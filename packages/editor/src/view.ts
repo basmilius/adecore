@@ -27,6 +27,7 @@ import {
     type VerticalWindow
 } from './layout.ts';
 import { createMetrics, type EditorFont, readEditorFont } from './metrics.ts';
+import { zoomedFont } from './zoom.ts';
 import { type AttributedLines, AttributionRuns, colorValue, tintValue } from './attribution.ts';
 import { renderCodeBlock } from './code-block.ts';
 import { emit, subscribe } from './listeners.ts';
@@ -279,6 +280,8 @@ export class EditorView {
     private caretTimer: ReturnType<typeof setTimeout> | undefined;
     private caretKey = '';
     private renderedScroll = { top: -1, left: -1 };
+    /* A size the code is zoomed to, over the page's; null draws it at the page's. */
+    private fontSize: number | null = null;
     private font: EditorFont;
     private layoutVersion = 0;
     private revision: number;
@@ -476,8 +479,30 @@ export class EditorView {
     }
 
     refreshFont(): void {
-        this.font = readEditorFont(this.root);
-        this.applySettings();
+        const style = this.root.style;
+        style.removeProperty('--code-font-size');
+        style.removeProperty('--code-line-height');
+        const base = readEditorFont(this.root);
+        this.font = this.fontSize === null ? base : zoomedFont(base, this.fontSize);
+
+        // On the element itself, so everything the editor draws at the code's size follows, and the page's size stays the base.
+        if (this.fontSize !== null) {
+            style.setProperty('--code-font-size', `${this.font.size}px`);
+            style.setProperty('--code-line-height', `${this.font.lineHeight}px`);
+        }
+
+        this.anchorScroll(() => this.applySettings());
+    }
+
+    /* Draws the code at a size of its own in whole pixels; null goes back to the page's. */
+    setFontSize(size: number | null): void {
+        this.fontSize = size;
+        this.refreshFont();
+    }
+
+    /* The size the code is drawn at, in pixels. */
+    getFontSize(): number {
+        return this.font.size;
     }
 
     setTokenizer(tokenizer: LineTokenizer | null): void {

@@ -29,12 +29,20 @@
 | `line`, `column` |                      |                  | One-based, where the caret starts                                                                                                                                                                                  |
 | `scrollTop`      |                      |                  | In pixels, where the view starts; without it the caret's line is in view                                                                                                                                           |
 | `todoWords`      | `DEFAULT_TODO_WORDS` | `setTodoWords`   | The words that mark a TODO comment; see below                                                                                                                                                                      |
+| `fontSize`       | the page's           | `setFontSize`    | In pixels, a zoomed size the host kept; see [zoom](#zoom)                                                                                                                                                          |
+| `zoom`           | 12 to 90, wheel on   |                  | `EditorZoom`: `{ min, max, wheel }`, how far a person may zoom and whether the wheel does                                                                                                                         |
 
 `setReadOnly` stops typing, commands and `applyEdits`. `setText` still works, since a reload from disk is not a person typing.
 
 ## TODO comments
 
 A comment with one of the `todoWords` in it, `TODO` and `FIXME` by default, is drawn in `--editor-todo` and in italics from the word to the end of the comment on that line, and gets a tick in the scroll track that jumps to it. The words match as whole words in any case. Only a comment counts, as the model's lexer for the `language` reads it, so a word in a string or in code is no TODO. An empty list turns it off. `findTodos(text, language, options?)` from `@adecore/editor-core`, also exported here, returns the same `TodoMatch`es for a host that lists them.
+
+## Zoom
+
+`runCommand('increaseFontSize')` and `runCommand('decreaseFontSize')` make the code one pixel larger or smaller, and `runCommand('resetFontSize')` goes back to the page's `--code-font-size`. Ctrl with the wheel (Cmd on macOS), or a pinch, does the same unless `zoom.wheel` is `false`; a mouse notch is one step, and the small steps of a trackpad or a pinch add up to one. The size stays in whole pixels between `zoom.min` and `zoom.max`, 12 and 90 by default, and never goes below 12. The line grows with the text, as much taller as the page's line is to its text.
+
+Each step a person takes goes to `onFontSizeChange`, with the new size or `null` after a reset, so the host can keep it and hand it back as `fontSize` next time, or pass it to its other editors with `setFontSize`. `setFontSize` itself is not reported. `getFontSize()` is the size the code is drawn at. The commands have no chord in `KEYMAP`, since the zoom chords of other editors are the fold keys here; a host binds them through its keymap.
 
 `refreshFont()` reads the code font from the page again. Call it after changing `--font-mono`, `--code-font-size` or `--code-line-height`, or after a web font loads, since measured widths, wrapping and hit testing depend on it.
 

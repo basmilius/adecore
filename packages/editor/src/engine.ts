@@ -58,6 +58,7 @@ import type {
 } from './types.ts';
 import { fillLens, lensSignature } from './lens.ts';
 import { EditorView, type ViewSettings } from './view.ts';
+import { clampFontSize, type FontSizeRange, fontSizeRange } from './zoom.ts';
 
 const DEFAULT_TAB_SIZE = 4;
 const DEFAULT_LABEL = 'Code editor';
@@ -77,6 +78,9 @@ class SmartEditor implements Editor {
     private caretOffset = 0;
     private readonly saves = new Set<Listener>();
     private readonly blurs = new Set<Listener>();
+    private readonly fontSizes = new Set<(size: number | null) => void>();
+    private readonly fontSizeRange: FontSizeRange;
+    private fontSize: number | null = null;
     private readonly subscription: { dispose(): void };
     private language: string | undefined;
     private theme: EditorTheme;
@@ -91,6 +95,7 @@ class SmartEditor implements Editor {
 
     constructor(engine: SmartEditorEngineOptions, element: HTMLElement, options: EditorOptions) {
         this.engine = engine;
+        this.fontSizeRange = fontSizeRange(options.zoom);
         this.model = new DocumentModel(options.text);
         this.language = options.language;
         this.theme = options.theme;
@@ -123,8 +128,14 @@ class SmartEditor implements Editor {
             keymap: engine.keymap,
             apple: engine.apple ?? false,
             save: () => emit(this.saves),
-            blur: () => emit(this.blurs)
+            blur: () => emit(this.blurs),
+            zoom: (step) => this.zoom(step),
+            wheelZooms: () => options.zoom?.wheel !== false
         });
+
+        if (options.fontSize !== undefined) {
+            this.setFontSize(options.fontSize);
+        }
 
         this.revision = this.model.getRevision();
         this.caretOffset = this.model.getPrimary().head;
@@ -966,6 +977,40 @@ class SmartEditor implements Editor {
         this.view.refreshFont();
     }
 
+    setFontSize(size: number | null): void {
+        const next = size === null || !Number.isFinite(size) ? null : clampFontSize(size, this.fontSizeRange);
+
+        if (next !== this.fontSize) {
+            this.fontSize = next;
+            this.view.setFontSize(next);
+        }
+    }
+
+    getFontSize(): number {
+        return this.view.getFontSize();
+    }
+
+    onFontSizeChange(listener: (size: number | null) => void): () => void {
+        return subscribe(this.fontSizes, listener);
+    }
+
+    /* Steps from the size on screen, so the first step from the page's size is one pixel away from it. */
+    private zoom(step: -1 | 0 | 1): void {
+        const before = this.fontSize;
+        const current = this.view.getFontSize();
+
+        // A page size outside the range must not make a step the other way.
+        if (step !== 0 && Math.sign(clampFontSize(current + step, this.fontSizeRange) - current) !== step) {
+            return;
+        }
+
+        this.setFontSize(step === 0 ? null : current + step);
+
+        if (this.fontSize !== before) {
+            emit(this.fontSizes, this.fontSize);
+        }
+    }
+
     setReadOnly(readOnly: boolean, reason?: string): void {
         this.settings.readOnly = readOnly;
         this.settings.readOnlyReason = reason;
@@ -1000,6 +1045,7 @@ class SmartEditor implements Editor {
         this.carets.clear();
         this.saves.clear();
         this.blurs.clear();
+        this.fontSizes.clear();
         this.subscription.dispose();
         this.controller.dispose();
         this.view.dispose();

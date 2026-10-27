@@ -54,7 +54,7 @@ Each returns a function that removes the listener. Use `onChange` for a dirty ma
 
 ## Commands
 
-`runCommand(command)` runs a command on every caret, the way its key would, and returns `false` when nothing changed. It takes every [command of the model](/editor-core/commands#execute) and the view's own: `collapseRegion`, `expandRegion`, `collapseAllRegions`, `expandAllRegions`, `collapseRegionRecursively`, `expandRegionRecursively`, `foldSelection`, `collapseDocComments`, `expandDocComments`, `expandAllToLevel1` through `expandAllToLevel5`, and `toggleColumnMode`.
+`runCommand(command)` runs a command on every caret, the way its key would, and returns `false` when nothing changed. It takes every [command of the model](/editor-core/commands#execute) and the view's own: `collapseRegion`, `expandRegion`, `collapseAllRegions`, `expandAllRegions`, `collapseRegionRecursively`, `expandRegionRecursively`, `foldSelection`, `collapseDocComments`, `expandDocComments`, `expandAllToLevel1` through `expandAllToLevel5`, `toggleColumnMode`, and the [zoom](/editor/options#zoom) commands `increaseFontSize`, `decreaseFontSize` and `resetFontSize`.
 
 `focus()` puts the keyboard focus in the editor.
 

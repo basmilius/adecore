@@ -6,7 +6,7 @@ export type { EditorCommand, FoldRole };
 
 export type EditorFoldOutline = 'off' | 'hover' | 'always';
 
-/* The commands that fold, which the view answers since it knows where the ranges are. */
+/* The commands that fold or change how the text is drawn, which the view answers since it knows where the ranges are. */
 export type EditorViewCommand =
     | 'collapseRegion'
     | 'expandRegion'
@@ -22,7 +22,20 @@ export type EditorViewCommand =
     | 'expandAllToLevel3'
     | 'expandAllToLevel4'
     | 'expandAllToLevel5'
-    | 'toggleColumnMode';
+    | 'toggleColumnMode'
+    | 'increaseFontSize'
+    | 'decreaseFontSize'
+    | 'resetFontSize';
+
+/* How far a person may zoom the text, and whether the wheel does. */
+export interface EditorZoom {
+    /* In pixels; 12 by default, and never less. */
+    readonly min?: number;
+    /* In pixels; 90 by default. */
+    readonly max?: number;
+    /* Ctrl with the wheel (Cmd on macOS), or a pinch, zooms; on unless false. */
+    readonly wheel?: boolean;
+}
 
 /* Everything `runCommand` runs. */
 export type EditorRunCommand = EditorCommand | EditorViewCommand;
@@ -89,6 +102,9 @@ export interface EditorOptions {
     readonly scrollTop?: number;
     /* The words that mark a TODO comment, matched as whole words in any case; `DEFAULT_TODO_WORDS` without them, and none drawn with an empty list. */
     readonly todoWords?: readonly string[];
+    /* In pixels, a size a person zoomed to that the host kept; without it the code has the page's `--code-font-size`. */
+    readonly fontSize?: number;
+    readonly zoom?: EditorZoom;
 }
 
 /* The few sentences the editor says on its own. */
@@ -772,6 +788,12 @@ export interface Editor {
     setTheme(theme: EditorTheme): void;
     /* Reads the code face off the page again, after the page changed its size, family or ligatures. */
     refreshFont(): void;
+    /* Draws the code at a size of its own, kept inside the zoom range in whole pixels; null goes back to the page's size. Optional so an editor from before it still fits. */
+    setFontSize?(size: number | null): void;
+    /* The size the code is drawn at, in pixels. Optional so an editor from before it still fits. */
+    getFontSize?(): number;
+    /* A person zoomed: the new size in pixels, or null when they went back to the page's size. Not told of `setFontSize`. Optional so an editor from before it still fits. */
+    onFontSizeChange?(listener: (size: number | null) => void): () => void;
     setReadOnly(readOnly: boolean, reason?: string): void;
     /* Whether the editor refuses edits. Optional so an editor from before it still fits. */
     isReadOnly?(): boolean;

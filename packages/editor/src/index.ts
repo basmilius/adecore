@@ -67,6 +67,7 @@ export type {
     EditorTheme,
     EditorViewCommand,
     EditorWidget,
+    EditorZoom,
     FoldRole,
     KeyChord,
     LineToken,

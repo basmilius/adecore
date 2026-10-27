@@ -87,7 +87,10 @@ const ACTIONS: Partial<Record<KeymapId, KeyAction>> = {
     expandAllToLevel3: view('expandAllToLevel3'),
     expandAllToLevel4: view('expandAllToLevel4'),
     expandAllToLevel5: view('expandAllToLevel5'),
-    toggleColumnMode: view('toggleColumnMode')
+    toggleColumnMode: view('toggleColumnMode'),
+    increaseFontSize: view('increaseFontSize'),
+    decreaseFontSize: view('decreaseFontSize'),
+    resetFontSize: view('resetFontSize')
 };
 
 const PUNCTUATION_CODES: Readonly<Record<string, string>> = {

@@ -85,6 +85,10 @@ export const KEYMAP = {
     expandAllToLevel3: bind(null),
     expandAllToLevel4: bind(null),
     expandAllToLevel5: bind(null),
+    // The platform binds no chord to these, and the zoom chords of other editors are the fold keys here.
+    increaseFontSize: bind(null),
+    decreaseFontSize: bind(null),
+    resetFontSize: bind(null),
 
     triggerCompletion: bind('Ctrl+Space'),
     parameterInfo: bind('Mod+P'),
@@ -123,7 +127,7 @@ export const KEYMAP = {
 export type KeymapId = keyof typeof KEYMAP;
 
 /* Commands added after a host may have written a full keymap of its own; a keymap without one falls back to the built-in chord. */
-export type OptionalKeymapId = 'toggleRenderedDocs';
+export type OptionalKeymapId = 'toggleRenderedDocs' | 'increaseFontSize' | 'decreaseFontSize' | 'resetFontSize';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;
 export type KeymapOverrides = Partial<Record<KeymapId, Partial<KeyBinding>>>;

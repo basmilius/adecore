@@ -255,6 +255,7 @@ export class FakeEditor implements Editor {
         this.readOnlyReason = options.readOnlyReason;
         this.label = options.label ?? 'Code editor';
         this.todoWords = options.todoWords;
+        this.fontSize = options.fontSize ?? null;
         this.revealedLine = options.line ?? null;
         this.column = options.column ?? null;
         this.scrollTop = options.scrollTop ?? null;
@@ -1139,6 +1140,28 @@ export class FakeEditor implements Editor {
 
     refreshFont(): void {
         this.fontRefreshes += 1;
+    }
+
+    /* The size `setFontSize` set, null for the page's. */
+    fontSize: number | null = null;
+    private readonly fontSizeListeners = new Set<(size: number | null) => void>();
+
+    setFontSize(size: number | null): void {
+        this.fontSize = size;
+    }
+
+    getFontSize(): number {
+        return this.fontSize ?? 13;
+    }
+
+    onFontSizeChange(listener: (size: number | null) => void): () => void {
+        return subscribe(this.fontSizeListeners, listener);
+    }
+
+    /* What a person zooming would do: the new size goes to the listeners. */
+    zoomTo(size: number | null): void {
+        this.fontSize = size;
+        emit(this.fontSizeListeners, size);
     }
 
     setReadOnly(readOnly: boolean, reason?: string): void {
