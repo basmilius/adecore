@@ -38,9 +38,12 @@ import type {
 import { TypingContexts } from './typing-context.ts';
 import type { TypingContext } from './typing-context.ts';
 import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
+import { type LineOrder, planConvertIndents, planLineOrder } from './line-order.ts';
 import { isHumpBoundary, isWordBoundary } from './words.ts';
 
 export type { DocumentLine, FindMatch, FindNextOptions, FindOptions, FoldingOptions, FoldingRange };
+
+const LINE_ORDERS: Partial<Record<EditorCommand, LineOrder>> = { sortLines: 'sort', reverseLines: 'reverse', uniqueLines: 'unique' };
 
 export interface OffsetRange {
     readonly from: number;
@@ -1016,6 +1019,20 @@ export class DocumentModel {
 
         if (command === 'joinLines' || command === 'toggleCase' || command === 'autoIndentLines') {
             return this.editLines(command, { language, unit });
+        }
+
+        const order = LINE_ORDERS[command];
+
+        if (order !== undefined) {
+            const plan = planLineOrder(this.editSource(language), this.selections, order);
+
+            return plan !== null && this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
+        }
+
+        if (command === 'convertIndentsToSpaces' || command === 'convertIndentsToTabs') {
+            const edits = planConvertIndents(this.editSource(language), this.selections, tabSize, command === 'convertIndentsToSpaces');
+
+            return edits.length > 0 && this.applyEdits(edits, { source: 'command' });
         }
 
         if (command === 'insertTab') {
