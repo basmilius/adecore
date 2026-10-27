@@ -2,7 +2,7 @@ import type { EditPlan, EditSource } from './edit-source.ts';
 import { continues, planEnter } from './enter.ts';
 import { isBraced, statementTerminator } from './lexical.ts';
 import { whitespaceOf } from './line-text.ts';
-import { enclosingBrace, statementStart } from './statements.ts';
+import { BODIES, DECLARATION, declarationBody, METHOD, NOT_METHODS, statementStart } from './statements.ts';
 import type { Selection } from './types.ts';
 
 export interface CompleteStatementOptions {
@@ -20,31 +20,6 @@ interface Piece {
     caret: number;
 }
 
-const MODIFIERS =
-    '(?:export\\s+|default\\s+|declare\\s+|abstract\\s+|async\\s+|pub(?:\\([^)]*\\))?\\s+|public\\s+|private\\s+|protected\\s+|static\\s+|final\\s+|readonly\\s+|override\\s+|unsafe\\s+|extern\\s+)*';
-
-// The outline of the editor reads headers the same way; a statement is not a declaration when it ends in a value, so `type` and `namespace` are left out.
-const DECLARATION = new RegExp(`^${MODIFIERS}(function\\*?|class|interface|enum|trait|impl|struct|fn|func|object|record)\\b`);
-const METHOD = /^(?:(?:public|private|protected|static|async|get|set|override|readonly|abstract)\s+)*\*?\s*([A-Za-z_$#][\w$]*)\s*[(<]/;
-const NOT_METHODS = new Set([
-    'if',
-    'for',
-    'while',
-    'switch',
-    'catch',
-    'function',
-    'return',
-    'else',
-    'with',
-    'do',
-    'try',
-    'new',
-    'await',
-    'typeof',
-    'super',
-    'finally'
-]);
-const BODIES = new Set(['class', 'interface', 'enum', 'trait', 'impl', 'struct', 'object', 'record']);
 const CONTROL = /^(?:else\s+if|elseif|if|for|foreach|while|switch|catch|with)\b/;
 const PYTHON_BLOCK = /^(?:async\s+)?(?:if|elif|else|for|while|def|class|try|except|finally|with|match|case)\b/;
 
@@ -101,22 +76,6 @@ function endsWithCondition(head: string): boolean {
     }
 
     return false;
-}
-
-function isDeclarationBody(source: EditSource, offset: number): 'interface' | 'other' | null {
-    const brace = enclosingBrace(source, offset);
-
-    if (brace === null) {
-        return null;
-    }
-
-    const header = source.line(source.lineAt(brace)).text.slice(0, brace - source.line(source.lineAt(brace)).start);
-
-    if (/\binterface\b/.test(header)) {
-        return 'interface';
-    }
-
-    return /\b(?:class|enum|trait|impl|struct|object|record|namespace)\b/.test(header) ? 'other' : null;
 }
 
 function completeBraced(source: EditSource, lineIndex: number, caret: number, options: CompleteStatementOptions): Piece {
@@ -190,7 +149,7 @@ function completeBraced(source: EditSource, lineIndex: number, caret: number, op
         return replaceTail(text, text.length);
     }
 
-    const declaring = isDeclarationBody(source, end);
+    const declaring = declarationBody(source, end);
     const declaration = DECLARATION.exec(head)?.[1];
     const method = declaration === undefined && declaring === 'other' ? METHOD.exec(head)?.[1] : undefined;
 

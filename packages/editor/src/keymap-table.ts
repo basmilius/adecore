@@ -33,6 +33,8 @@ export const KEYMAP = {
     deleteLine: bind('Mod+Backspace', 'Mod+Y'),
     moveLineUp: bind('Alt+Shift+ArrowUp'),
     moveLineDown: bind('Alt+Shift+ArrowDown'),
+    moveStatementUp: bind('Mod+Shift+ArrowUp'),
+    moveStatementDown: bind('Mod+Shift+ArrowDown'),
     toggleLineComment: bind('Mod+/'),
     toggleBlockComment: bind('Mod+Alt+/', 'Mod+Shift+/'),
     joinLines: bind('Ctrl+Shift+J'),
@@ -82,9 +84,10 @@ export const KEYMAP = {
     smartEnd: bind('Meta+ArrowRight', null),
     selectSmartEnd: bind('Meta+Shift+ArrowRight', null),
     textStart: bind('Meta+ArrowUp', null),
-    selectTextStart: bind('Meta+Shift+ArrowUp', null),
+    // IntelliJ binds Cmd+Shift+ArrowUp and ArrowDown to Move Statement on macOS, where Cmd+Shift+Home and End still select to the text edges.
+    selectTextStart: bind(null),
     textEnd: bind('Meta+ArrowDown', null),
-    selectTextEnd: bind('Meta+Shift+ArrowDown', null),
+    selectTextEnd: bind(null),
 
     collapse: bind('Mod+-'),
     expand: bind('Mod+='),
@@ -154,6 +157,8 @@ export type OptionalKeymapId =
     | 'convertIndentsToSpaces'
     | 'convertIndentsToTabs'
     | 'completeCurrentStatement'
+    | 'moveStatementUp'
+    | 'moveStatementDown'
     | 'methodUp'
     | 'methodDown'
     | 'nextChange'

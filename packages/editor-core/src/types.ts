@@ -1,3 +1,5 @@
+import type { FoldingRange } from './structure.ts';
+
 /* Offsets are UTF-16 code units from the start of the document. */
 export interface Selection {
     anchor: number;
@@ -120,7 +122,9 @@ export type EditorCommand =
     | 'codeBlockEnd'
     | 'codeBlockStartWithSelection'
     | 'codeBlockEndWithSelection'
-    | 'completeCurrentStatement';
+    | 'completeCurrentStatement'
+    | 'moveStatementUp'
+    | 'moveStatementDown';
 
 export interface CommandOptions {
     /* Clamped to 1 through 16. */
@@ -156,6 +160,8 @@ export interface CommandOptions {
     lineSpan?: (line: number) => { first: number; last: number };
     /* Told which lines a move went to (`from` before, `to` after), so a host can take what it keeps by line along. */
     onLinesMoved?: (moves: readonly { from: number; to: number }[]) => void;
+    /* The folding ranges of the document, a language server's included, which Move Statement reads the extent of a statement from. Without it the model scans its own. */
+    structure?: () => readonly FoldingRange[];
     /* Whether the indent guides count as blocks for the code block commands. Off unless true. */
     indentGuides?: boolean;
 }

@@ -4,6 +4,7 @@ import { planBlockComment, planLineComments } from './comments.ts';
 import { planEnter } from './enter.ts';
 import { planCodeBlock } from './code-blocks.ts';
 import { planCompleteStatement } from './complete-statement.ts';
+import { planMoveStatement, statementMoveMode } from './statement-move.ts';
 import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
 import { planPaste } from './paste.ts';
@@ -1049,6 +1050,10 @@ export class DocumentModel {
             );
         }
 
+        if (command === 'moveStatementUp' || command === 'moveStatementDown') {
+            return this.moveStatements(command === 'moveStatementUp' ? -1 : 1, { language, unit, tabSize }, options);
+        }
+
         if (command === 'completeCurrentStatement') {
             const plan = planCompleteStatement(this.editSource(language), this.selections, { language, unit, tabSize });
 
@@ -1926,6 +1931,28 @@ export class DocumentModel {
         }
 
         return this.applyEdits(edits, { source: 'command', selections });
+    }
+
+    /* Moves the statement at each caret past its neighbor; a language without brackets or indentation to go by moves lines. */
+    private moveStatements(direction: -1 | 1, settings: { language: string; unit: string; tabSize: number }, options: CommandOptions): boolean {
+        if (statementMoveMode(settings.language) === null) {
+            return this.moveLines(this.selectedLines(options.lineSpan), direction, options);
+        }
+
+        const structure = options.structure?.() ?? this.getFoldingRanges({ language: settings.language, tabSize: settings.tabSize });
+        const plan = planMoveStatement(this.editSource(settings.language), this.selections, direction, { ...settings, structure, lineSpan: options.lineSpan });
+
+        if (plan === null) {
+            return false;
+        }
+
+        const changed = this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
+
+        if (changed) {
+            options.onLinesMoved?.(plan.moves);
+        }
+
+        return changed;
     }
 
     private moveLines(indices: readonly number[], direction: -1 | 1, options: CommandOptions): boolean {
