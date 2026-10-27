@@ -4,7 +4,10 @@ import { ModelCatalog } from './catalog.ts';
 import { claudeArgs, claudeEnv, promptPrefix } from './claude.ts';
 import { providerFor } from './registry.ts';
 import claudeManifest from './claude-models.json' with { type: 'json' };
+import antigravityManifest from './antigravity-models.json' with { type: 'json' };
 import codexManifest from './codex-models.json' with { type: 'json' };
+import copilotManifest from './copilot-models.json' with { type: 'json' };
+import grokManifest from './grok-models.json' with { type: 'json' };
 
 const catalog = new ModelCatalog();
 
@@ -105,9 +108,10 @@ describe('a catalog swapped in while the host runs', () => {
         models: [...shipped.models, { slug: 'claude-next', name: 'Claude Next', profile: 'sonnet' }]
     });
 
-    test('both shipped manifests are catalogs a service may hand out', () => {
-        expect(ModelCatalogDataSchema.safeParse(claudeManifest).success).toBe(true);
-        expect(ModelCatalogDataSchema.safeParse(codexManifest).success).toBe(true);
+    test('every shipped manifest is a catalog a service may hand out', () => {
+        for (const manifest of [claudeManifest, codexManifest, grokManifest, copilotManifest, antigravityManifest]) {
+            expect(ModelCatalogDataSchema.safeParse(manifest).success).toBe(true);
+        }
     });
 
     test('takes a newer copy and says the models changed', () => {
@@ -241,4 +245,86 @@ test('an adopted model that names its context window has that size, and one that
     expect(catalog.contextWindowFor(catalog.normalize({ model: 'plain' }))).toBe(64000);
     catalog.adopt([{ slug: 'plain', name: 'Plain' }], 'plain');
     expect(catalog.contextWindowFor(catalog.normalize({ model: 'plain' }))).toBe(64000);
+});
+
+describe('what an agent reported over a catalog', () => {
+    const base = (updatedAt: string, names: Record<string, string> = {}): ModelCatalogData => ({
+        updatedAt,
+        defaultModel: 'default',
+        profiles: {
+            agent: { options: [], contextWindowTokens: {} },
+            wide: { options: [{ id: 'fast', label: 'Fast', type: 'boolean', defaultValue: false }], contextWindowTokens: { '*': 256000 } }
+        },
+        models: [
+            { slug: 'default', name: 'Default', profile: 'agent' },
+            { slug: 'known', name: names.known ?? 'Known', badge: 'New', legacy: true, profile: 'wide' }
+        ]
+    });
+    const effort = {
+        id: 'effort',
+        label: 'Reasoning',
+        type: 'select' as const,
+        defaultChoice: 'high',
+        choices: [{ id: 'high', label: 'High' }]
+    };
+
+    test('a newer catalog keeps the models the agent reported', () => {
+        const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+        catalog.adopt(
+            [
+                { slug: 'known', name: 'known' },
+                { slug: 'other', name: 'Other' }
+            ],
+            'other'
+        );
+
+        expect(catalog.replace(base('2026-10-02T00:00:00Z', { known: 'Known Renamed' }))).toBe(true);
+        expect(catalog.list().map((model) => [model.slug, model.name, model.isDefault])).toEqual([
+            ['known', 'Known Renamed', false],
+            ['other', 'Other', true]
+        ]);
+    });
+
+    test('a model the base knows takes its name, badge, legacy flag and profile, with the reported options over them', () => {
+        const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+        catalog.adopt([{ slug: 'known', name: 'known', contextWindow: 64000 }], 'known', [effort]);
+
+        expect(catalog.list()).toEqual([
+            {
+                slug: 'known',
+                name: 'Known',
+                badge: 'New',
+                legacy: true,
+                isDefault: true,
+                options: [{ id: 'fast', label: 'Fast', type: 'boolean', defaultValue: false }, effort]
+            }
+        ]);
+        expect(catalog.contextWindowFor(catalog.normalize({ model: 'known' }))).toBe(256000);
+    });
+
+    test('a model the base does not know keeps the profile of the base default and its reported size', () => {
+        const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+        catalog.adopt([{ slug: 'other', name: 'Other', contextWindow: 64000 }], 'other', [effort]);
+
+        expect(catalog.list()[0]).toMatchObject({ slug: 'other', name: 'Other', legacy: false, options: [effort] });
+        expect(catalog.contextWindowFor(catalog.normalize({ model: 'other' }))).toBe(64000);
+    });
+
+    test('adopting after a replace reads the replaced base', () => {
+        const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+        catalog.replace(base('2026-10-02T00:00:00Z', { known: 'Known Renamed' }));
+        catalog.adopt([{ slug: 'known', name: 'known' }], 'known');
+
+        expect(catalog.nameOf('known')).toBe('Known Renamed');
+        expect(catalog.resolveModel('default')).toBeNull();
+    });
+
+    test('without an adopted list a replace swaps the whole catalog', () => {
+        const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+        const next = base('2026-10-02T00:00:00Z', { known: 'Known Renamed' });
+        catalog.replace(next);
+
+        expect(catalog.list().map((model) => model.name)).toEqual(['Default', 'Known Renamed']);
+        expect(catalog.defaultModel).toBe('default');
+    });
 });

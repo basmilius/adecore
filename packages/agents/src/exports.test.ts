@@ -22,7 +22,16 @@ const ENTRIES: Record<string, string> = {
 };
 
 /* The exports that are data, not modules. */
-const ASSETS = ['./package.json', './providers/claude-models.json', './providers/codex-models.json', './testing/fixtures/*', './usage/prices-snapshot.json'];
+const ASSETS = [
+    './package.json',
+    './providers/claude-models.json',
+    './providers/codex-models.json',
+    './providers/grok-models.json',
+    './providers/copilot-models.json',
+    './providers/antigravity-models.json',
+    './testing/fixtures/*',
+    './usage/prices-snapshot.json'
+];
 
 type Statement = Program['body'][number];
 type Declaration = NonNullable<Extract<Statement, { type: 'ExportNamedDeclaration' }>['declaration']>;

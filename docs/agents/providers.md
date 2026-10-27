@@ -19,7 +19,7 @@ The CLI stays up between turns. Claude Code reports a file change as the text be
 
 ## Models
 
-Each provider has a `ModelCatalog`, shipped as `providers/claude-models.json` and `providers/codex-models.json`. A selection a client sends is made complete by the catalog:
+Each provider has a `ModelCatalog`, shipped as `providers/<kind>-models.json`. A selection a client sends is made complete by the catalog:
 
 ```ts
 import { ModelCatalogDataSchema } from '@adecore/agent-contracts/model';
@@ -43,7 +43,7 @@ catalog.normalize({ model: 'standard', options: { effort: 'unknown', other: true
 // { model: 'standard-model', options: { effort: 'medium' } }
 ```
 
-`normalize` takes a slug or an alias, falls back to the default model for one it does not know, puts each option at its default when it is missing or does not fit, and drops options the model does not have. `resolveModel(name)` answers the slug, or `null` for an unknown name, for a caller that would rather refuse. `contextWindowFor(selection)` answers the context size of a selection, or `null`. `replace(data)` takes a newer catalog, but never one older than the catalog it was made with.
+`normalize` takes a slug or an alias, falls back to the default model for one it does not know, puts each option at its default when it is missing or does not fit, and drops options the model does not have. `resolveModel(name)` answers the slug, or `null` for an unknown name, for a caller that would rather refuse. `contextWindowFor(selection)` answers the context size of a selection, or `null`. `replace(data)` takes a newer catalog, but never one older than the catalog it was made with. `adopt(models, defaultModel, options)` lays the models an agent reported for itself over the catalog: the agent's list, order and default, with the name and profile of each model the catalog knows. A later `replace` keeps that list.
 
 ## Runtime modes
 

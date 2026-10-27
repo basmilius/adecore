@@ -2,7 +2,7 @@
 
 Every name each entry point exports, types included, by the path you import it from. A row names the module behind it and links to its source, where each export has its full type. Anything not listed here is internal and may change in any release.
 
-Three entries are JSON: `@adecore/agents/providers/claude-models.json` and `@adecore/agents/providers/codex-models.json`, the model catalogs a host ships, and `@adecore/agents/usage/prices-snapshot.json`, the bundled prices. Import them with `with { type: 'json' }` where the runtime asks for it.
+Six entries are JSON: `@adecore/agents/providers/<kind>-models.json` for `claude`, `codex`, `grok`, `copilot` and `antigravity`, the model catalogs a host ships, and `@adecore/agents/usage/prices-snapshot.json`, the bundled prices. Import them with `with { type: 'json' }` where the runtime asks for it.
 
 Nothing here belongs in a page. A window imports [`@adecore/agent-contracts`](/agent-contracts/) for the shapes and [`@adecore/agents-react`](/agents-react/) for the views.
 
