@@ -14,6 +14,7 @@ The page's theme colors the editor's chrome; the syntax theme colors the code. T
 | `--editor-guide`, `--editor-guide-active`                                  | Indent guides, and the guide of the block around the caret                                                        |
 | `--editor-margin`, `--editor-whitespace`                                   | The right margin and the dots and arrows of whitespace                                                            |
 | `--editor-added`, `--editor-modified`, `--editor-deleted`                  | Change marks                                                                                                      |
+| `--editor-todo`                                                            | [TODO comments](/editor/options#todo-comments) and their ticks in the scroll track                                |
 | `--editor-mark-number-mix`, `--editor-mark-bar-width`, `--editor-mark-gap` | Line number shade, bar width and the gap between the tinted number cell and the code, of a highlight with a `bar` |
 | `--find-match`, `--find-current`, `--find-current-text`                    | Find matches                                                                                                      |
 | `--agent-1` to `--agent-6`, `--agent-ink`                                  | [Agent](/editor/agents) colors and the text on them                                                               |

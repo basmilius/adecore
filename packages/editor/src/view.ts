@@ -50,6 +50,7 @@ import {
     type WrapSign
 } from './paint.ts';
 import { overlayTokens, type SemanticSpan } from './semantic.ts';
+import { TodoMarks } from './todos.ts';
 import { TokenCache } from './tokens.ts';
 import type {
     EditorBlock,
@@ -118,6 +119,8 @@ export interface ViewSettings {
     folding?: boolean;
     /* The headers of the blocks scrolled out of sight stay pinned on top; on unless false. */
     stickyScroll?: boolean;
+    /* The words that mark a TODO comment; the default ones without them, none drawn with an empty list. */
+    todoWords?: readonly string[];
 }
 
 /* The lines past the visible ones that are colored ahead of the scroll, and how long one slice of that work may take. */
@@ -201,6 +204,7 @@ export class EditorView {
     readonly layout: EditorLayout;
     readonly find: FindController;
     readonly tokens: TokenCache;
+    private readonly todos: TodoMarks;
     private readonly content: HTMLElement;
     private readonly gutter: HTMLElement;
     private readonly gutterLines: HTMLElement;
@@ -424,6 +428,7 @@ export class EditorView {
         });
 
         this.tokens = new TokenCache({ getLineCount: () => model.getLineCount(), getLineText: (line) => model.getLine(line).text });
+        this.todos = new TodoMarks(model, () => this.requestRender());
         const ResizeObserverClass = document.defaultView?.ResizeObserver;
 
         this.blockObserver = ResizeObserverClass
@@ -459,6 +464,7 @@ export class EditorView {
         this.root.dataset.readonly = String(this.settings.readOnly);
         this.root.dataset.wrap = String(this.settings.wrap);
         this.root.dataset.foldOutline = this.settings.foldOutline;
+        this.todos.configure(this.settings.language, this.settings.todoWords);
         this.layoutVersion++;
         this.layout.configure({ metrics: createMetrics(this.font, this.settings.tabSize, this.document) });
         this.render();
@@ -591,8 +597,13 @@ export class EditorView {
         this.render();
     }
 
-    /* The grammar's colors of a line with the servers' laid over them, the same object for as long as neither changed. */
+    /* The colors of a line with its TODOs drawn over them, the same object for as long as nothing under them changed. */
     private styledTokensOf(line: number): readonly LineToken[] | null {
+        return this.todos.styled(line, this.semanticTokensOf(line));
+    }
+
+    /* The grammar's colors of a line with the servers' laid over them, the same object for as long as neither changed. */
+    private semanticTokensOf(line: number): readonly LineToken[] | null {
         const base = this.lineTokenProvider === null ? this.tokens.tokensOf(line) : (this.lineTokenProvider(line) ?? null);
 
         if (base === null || this.semantic.length === 0 || this.scopeColors === null) {
@@ -841,6 +852,7 @@ export class EditorView {
             this.find.refresh();
             this.announceFind();
             this.scheduleFolds();
+            this.todos.schedule();
             this.colorAhead(true);
         }
 
@@ -2963,7 +2975,7 @@ export class EditorView {
         const matches = this.find.matches;
         const current = this.find.current;
         const alike = this.selectionOccurrences();
-        const key = `${this.revision}|${this.changeVersion}|${this.markerVersion}|${this.layout.height}|${trackHeight}|${matches.length}|${current}|${matches[0]?.from}|${matches.at(-1)?.from}|${this.selectionOccurrenceCache.key}`;
+        const key = `${this.revision}|${this.changeVersion}|${this.markerVersion}|${this.todos.version}|${this.layout.height}|${trackHeight}|${matches.length}|${current}|${matches[0]?.from}|${matches.at(-1)?.from}|${this.selectionOccurrenceCache.key}`;
 
         if (key === this.overviewKey) {
             return;
@@ -2996,6 +3008,12 @@ export class EditorView {
                     offset: marker.from,
                     ...(marker.message === undefined ? {} : { title: marker.message })
                 });
+            }
+        }
+
+        for (const todo of this.todos.marks) {
+            if (todo.line < this.model.getLineCount()) {
+                spans.push({ kind: 'todo', top: rowTop(todo.line), bottom: rowBottom(todo.line), offset: todo.from, title: todo.text });
             }
         }
 
@@ -3224,6 +3242,7 @@ export class EditorView {
         this.blockObserver?.disconnect();
         clearTimeout(this.bracketTimer);
         clearTimeout(this.foldTimer);
+        this.todos.dispose();
         clearTimeout(this.colorTimer);
         clearTimeout(this.noticeTimer);
         clearTimeout(this.liveTimer);

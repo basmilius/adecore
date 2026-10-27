@@ -37,6 +37,7 @@ import type {
 } from './types.ts';
 import { TypingContexts } from './typing-context.ts';
 import type { TypingContext } from './typing-context.ts';
+import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
 import { isHumpBoundary, isWordBoundary } from './words.ts';
 
 export type { DocumentLine, FindMatch, FindNextOptions, FindOptions, FoldingOptions, FoldingRange };
@@ -812,6 +813,17 @@ export class DocumentModel {
         markFileHeader(unique, getLine, this.getLineCount(), options.language);
 
         return options.hints === undefined ? unique : applyFoldHints(unique, options.hints, lineAt, getLine, slice, minimum);
+    }
+
+    /* The TODO comments of the lines from `first` through `last`. It reads the lexer state the editing commands keep, so after an edit only the lines from the edit on are lexed again. */
+    findTodos(language: string, options: TodoOptions = {}, first = 0, last = this.getLineCount() - 1): TodoMatch[] {
+        const source = {
+            lineCount: this.getLineCount(),
+            line: (index: number) => this.getLine(index),
+            context: (line: number, column: number) => this.typingContexts.at(line, column, language)
+        };
+
+        return todosInLines(source, options, first, last);
     }
 
     /*

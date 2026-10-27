@@ -87,6 +87,8 @@ export interface EditorOptions {
     readonly column?: number;
     /* In pixels, where the view opens; without it the cursor's line is brought into view. */
     readonly scrollTop?: number;
+    /* The words that mark a TODO comment, matched as whole words in any case; `DEFAULT_TODO_WORDS` without them, and none drawn with an empty list. */
+    readonly todoWords?: readonly string[];
 }
 
 /* The few sentences the editor says on its own. */
@@ -623,6 +625,8 @@ export interface Editor {
     /* The column to draw a line at; null takes it away. */
     setRightMargin(column: number | null): void;
     setFoldOutline(outline: EditorFoldOutline): void;
+    /* The words that mark a TODO comment; an empty list draws none. Optional so an editor from before it still fits. */
+    setTodoWords?(words: readonly string[]): void;
     setLabel(label: string): void;
     /* What a language server knows about the folds: the bodies of symbols and the ranges it folds. They follow their text through edits until set again; null forgets them. */
     setFoldHints(hints: EditorFoldHints | null): void;
