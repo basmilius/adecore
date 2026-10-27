@@ -4,5 +4,5 @@ export { RUIMTE_SESSION_VARIABLES, cliEnvironment, type CliEnvironmentPolicy } f
 export { type AgentHandler, type AgentHandlers, chatHandlers, accountHandlers, usageHandlers, type AgentRequestMap, type ChatRequestType } from './handlers.ts';
 export { memoryPortPair } from './memory-port.ts';
 export { type AgentWiring, wireAgents, type AgentWiringOptions } from './wiring.ts';
-export { ClientSinks } from '../client-sinks.ts';
+export { ClientSinks, WatchedSinks } from '../client-sinks.ts';
 export type { AgentEvent, AgentEventMap, AgentSink } from '../events.ts';

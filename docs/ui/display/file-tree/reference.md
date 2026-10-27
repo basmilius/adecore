@@ -58,6 +58,7 @@ Every other prop goes to the frame, a `<div>`. The rows passed to the render fun
 | `FileTree.compareRows(left, right)` | Directories first, then names in numeric order. |
 | `FileTree.selectOnly(model, path)` | Selects one path; `null` clears the selection. |
 | `FileTree.focusRow(model, path)` | Focuses a drawn row; `false` when it is not drawn. |
+| `FileTree.rebuildPaths(model, paths, fold, applying)` | Resets the paths and keeps the selection, and the focus while the tree has the keyboard, on the nearest row when its own went. `fold` runs between with `applying.current` set, so the tree's report of the folds is not read back as a person's doing. |
 | `FileTree.followFocus(model, onMoved?)` | Selects the focused row after the engine moved it; returns a cancel function. |
 | `FileTree.movesFocus(event)` | Whether a key is an arrow, Home or End without a modifier. |
 | `FileTree.extendsSelection(event)` | Whether Shift, Ctrl or Cmd is down. |

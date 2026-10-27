@@ -1,6 +1,6 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
-import { definitionSnippetOf, peekFilesOf, snippetOf, visualColumnOf } from './peek-model.ts';
+import { definitionSnippetOf, distinguishingFolders, peekFilesOf, snippetOf, visualColumnOf } from './peek-model.ts';
 
 const at = (line: number, character: number) => ({ line, character });
 const place = (uri: string, line: number) => ({ uri, range: { start: at(line, 2), end: at(line, 6) } });
@@ -70,5 +70,23 @@ describe('definitionSnippetOf', () => {
     test('starts a little above the name when the server gave no declaration', () => {
         expect(definitionSnippetOf(text, 10, null, range)).toMatchObject({ startLine: 8, active: 2 });
         expect(definitionSnippetOf(text, 0, null, range).startLine).toBe(0);
+    });
+});
+
+describe('distinguishingFolders', () => {
+    test('shows the folders that tell files with one name apart, and nothing for a name of its own', () => {
+        expect(distinguishingFolders(['src/a/TestData.php', 'src/b/TestData.php', 'src/Other.php'])).toEqual(['a', 'b', '']);
+    });
+
+    test('goes up as many folders as it takes', () => {
+        expect(distinguishingFolders(['tests/one/Fixtures/Data.php', 'tests/two/Fixtures/Data.php', 'tests/one/Data.php'])).toEqual([
+            'one/Fixtures',
+            'two/Fixtures',
+            'one'
+        ]);
+    });
+
+    test('tells a file in the root from one in a folder', () => {
+        expect(distinguishingFolders(['a.ts', 'src/a.ts'])).toEqual(['', 'src']);
     });
 });

@@ -18,6 +18,7 @@ export {
     movesFocus,
     newlyExpanded,
     pathOfRow,
+    rebuildPaths,
     resetExpandedPaths,
     rowPathOf,
     selectOnly,

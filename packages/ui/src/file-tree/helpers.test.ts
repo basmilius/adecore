@@ -8,6 +8,7 @@ import {
     mergeExpanded,
     menuTargetsOf,
     pathOfRow,
+    rebuildPaths,
     resetExpandedPaths,
     selectOnly,
     visibleRows,
@@ -75,6 +76,27 @@ describe('file tree model behavior', () => {
         expect(copied).toBe(42);
         expect(visibleRowsAround(model, 0, 40)[0]!.index).toBe(0);
         expect(visibleRowsAround(model, 9990, 40).at(-1)!.index).toBe(9999);
+        model.cleanUp();
+    });
+});
+
+describe('rebuildPaths', () => {
+    test('puts the new paths in place, keeps the selection of rows that stayed and folds while applying', () => {
+        const model = new Model({ paths: ['a', 'b', 'c'] });
+        model.getItem('b')?.select();
+        model.getItem('c')?.select();
+        const applying = { current: false };
+        const seen: boolean[] = [];
+        // The helper asks the page which element has the keyboard; this run has no page.
+        const page = globalThis as { document?: unknown };
+        const before = page.document;
+        page.document = { activeElement: null };
+        rebuildPaths(model, ['b', 'd'], () => seen.push(applying.current), applying);
+        page.document = before;
+        expect(visibleRows(model).map((row) => row.path)).toEqual(['b', 'd']);
+        expect(model.getSelectedPaths()).toEqual(['b']);
+        expect(seen).toEqual([true]);
+        expect(applying.current).toBe(false);
         model.cleanUp();
     });
 });

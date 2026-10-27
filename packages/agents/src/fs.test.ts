@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { entryExists, fileExists, removeFile, writeAtomic } from './fs.ts';
+import { entryExists, fileExists, hasErrorCode, removeFile, writeAtomic } from './fs.ts';
 
 let dir: string;
 
@@ -67,5 +67,21 @@ describe('removeFile', () => {
         await removeFile(target);
         await removeFile(target);
         expect(await readdir(dir)).toEqual([]);
+    });
+});
+
+describe('hasErrorCode', () => {
+    test('matches the code of an error against any of the codes given', () => {
+        const error = Object.assign(new Error('gone'), { code: 'ENOENT' });
+
+        expect(hasErrorCode(error, 'ENOENT')).toBe(true);
+        expect(hasErrorCode(error, 'EXDEV', 'ENOENT')).toBe(true);
+        expect(hasErrorCode(error, 'EXDEV')).toBe(false);
+    });
+
+    test('is false for a value without a code', () => {
+        expect(hasErrorCode(new Error('plain'), 'ENOENT')).toBe(false);
+        expect(hasErrorCode(null, 'ENOENT')).toBe(false);
+        expect(hasErrorCode('ENOENT', 'ENOENT')).toBe(false);
     });
 });
