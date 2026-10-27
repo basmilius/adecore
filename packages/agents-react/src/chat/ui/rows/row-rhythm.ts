@@ -44,5 +44,5 @@ export function replyHeader(row: TimelineRow, previous: TimelineRow | null): { a
 
 // A transform also shifts a descendant's sticky position after it was resolved against the scrollport.
 export function rowPosition(kind: TimelineRow['kind'], top: number): CSSProperties {
-    return kind === 'visual' ? { top } : { transform: `translateY(${top}px)` };
+    return kind === 'visual' || kind === 'app-card' ? { top } : { transform: `translateY(${top}px)` };
 }

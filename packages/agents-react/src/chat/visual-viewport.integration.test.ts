@@ -42,16 +42,18 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         };
         const app = createRoot(document.getElementById('mount'));
         let layout;
+        let card = false;
         const render = (fill = false) => {
             const visual = {id:'page', title:'Chart', at:0, maxHeight:2000, size:1, layout};
             const frame = createElement(VisualFrame, {chatId:'test', visual, fill, key:fill?'expanded':'inline'});
             app.render(createElement(ChatHostProvider, {host}, createElement(ChatScopeContext.Provider, {value:{id:'test'}},
                 createElement(RowContainer, {row:{kind:'assistant',id:'text',text:'Before'},previous:null,index:0,top:0}, createElement('p', {id:'text'}, 'Before the visual')),
                 fill ? createElement('div', {'data-index':1,style:{position:'absolute',top:200,height:500,width:'100%'}}, frame)
-                    : createElement(RowContainer, {row:{kind:'visual',id:'page',visual},previous:null,index:1,top:200}, frame)
+                    : createElement(RowContainer, {row:card ? {kind:'app-card',id:'page',card:{id:'page',at:0,render:()=>frame}} : {kind:'visual',id:'page',visual},previous:null,index:1,top:200}, frame)
             )));
         };
         window.setLayout = next => { layout = next; render(); };
+        window.setCard = () => { card = true; render(); };
         window.resizePane = (width, strip = false) => {
             scroller.style.width = width + 'px';
             const thread = document.getElementById('thread');
@@ -262,6 +264,14 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         expect(narrow.value).toBe('Retained');
         await view.evaluate("(()=> {resizePane(640); setLayout('inline'); return sample({responsive:false});})()");
         await waitFor('(async()=> (await sample()).boxHeight===6000)()');
+        await view.evaluate('setCard()');
+        await view.evaluate('move(1700)');
+        await waitFor('(async()=> (await sample()).top===1500)()');
+
+        const card = await view.evaluate<{ frameTop: number; frameHeight: number }>('sample()');
+
+        expect(card.frameTop).toBe(30);
+        expect(card.frameHeight).toBe(600);
         await view.evaluate('sample({height:8200})');
         await waitFor('(async()=> (await sample()).boxHeight === 8200)()');
         await view.evaluate('move(200)');
