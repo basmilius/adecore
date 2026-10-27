@@ -5,6 +5,7 @@ export { findMatches, iterateMatches, findMatchFrom, replacementText, type FindM
 export { indentationColumn } from './structure.ts';
 export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from './doc-comments.ts';
 export { DEFAULT_TODO_WORDS, findTodos, type TodoMatch, type TodoOptions } from './todo.ts';
+export { detectIndentation, type DetectedIndentation } from './line-order.ts';
 export type { FoldHints, FoldRangeHint, FoldRole, FoldSymbolHint, FoldingOptions, FoldingRange } from './structure.ts';
 
 export type {

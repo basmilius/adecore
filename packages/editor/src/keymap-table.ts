@@ -41,6 +41,12 @@ export const KEYMAP = {
     splitLine: bind('Mod+Enter'),
     toggleCase: bind('Mod+Shift+U'),
     autoIndentLines: bind('Ctrl+Alt+I'),
+    // The platform binds no chord to these, so they live in the menu and the palette.
+    sortLines: bind(null),
+    reverseLines: bind(null),
+    uniqueLines: bind(null),
+    convertIndentsToSpaces: bind(null),
+    convertIndentsToTabs: bind(null),
 
     expandSelection: bind('Alt+ArrowUp', 'Ctrl+W'),
     shrinkSelection: bind('Alt+ArrowDown'),
@@ -127,7 +133,16 @@ export const KEYMAP = {
 export type KeymapId = keyof typeof KEYMAP;
 
 /* Commands added after a host may have written a full keymap of its own; a keymap without one falls back to the built-in chord. */
-export type OptionalKeymapId = 'toggleRenderedDocs' | 'increaseFontSize' | 'decreaseFontSize' | 'resetFontSize';
+export type OptionalKeymapId =
+    | 'toggleRenderedDocs'
+    | 'increaseFontSize'
+    | 'decreaseFontSize'
+    | 'resetFontSize'
+    | 'sortLines'
+    | 'reverseLines'
+    | 'uniqueLines'
+    | 'convertIndentsToSpaces'
+    | 'convertIndentsToTabs';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;
 export type KeymapOverrides = Partial<Record<KeymapId, Partial<KeyBinding>>>;

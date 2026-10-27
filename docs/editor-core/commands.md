@@ -40,13 +40,16 @@ Nothing pairs in plain text (`text`, `plaintext`, `txt` or `log`), inside a comm
 | Words                 | `wordLeft`, `wordRight`, `selectWordLeft`, `selectWordRight`, `deleteWordLeft`, `deleteWordRight` and the same six with `camel`           |
 | Line edges            | `smartHome`, `smartEnd`, `selectSmartHome`, `selectSmartEnd`                                                                             |
 | Deleting              | `smartBackspace`, `deleteForward`                                                                                                        |
-| Lines                 | `duplicateLine`, `deleteLine`, `moveLineUp`, `moveLineDown`, `joinLines`, `toggleCase`, `autoIndentLines`                               |
-| Indentation           | `insertTab`, `indent`, `outdent`                                                                                                         |
+| Lines                 | `duplicateLine`, `deleteLine`, `moveLineUp`, `moveLineDown`, `joinLines`, `toggleCase`, `autoIndentLines`, `sortLines`, `reverseLines`, `uniqueLines` |
+| Indentation           | `insertTab`, `indent`, `outdent`, `convertIndentsToSpaces`, `convertIndentsToTabs`                                                       |
 | Comments              | `toggleLineComment`, `toggleBlockComment`                                                                                                |
 | New lines             | `insertNewline`, `startNewLine`, `startNewLineBefore`, `splitLine`                                                                       |
 | Carets                | `addCaretAbove`, `addCaretBelow`, `addCaretPerSelectedLine`, `selectNextOccurrence`, `unselectOccurrence`, `selectAllOccurrences`        |
 
 A few of them do more than their name says:
+
+- `sortLines`, `reverseLines` and `uniqueLines` act on every line a selection touches, each selection on its own, or on the whole document when nothing is selected. A selection that ends at the start of a line leaves that line out, and so does the empty line after a final line break. Sorting compares by code unit, so capitals come before lower case, and keeps equal lines in their order; `uniqueLines` keeps the first of equal lines. The line breaks stay where they were, so a last line without one stays without one. The selections keep their offsets as far as the text still reaches, and the command is one undo step.
+- `convertIndentsToSpaces` and `convertIndentsToTabs` rewrite only the whitespace lines start with, of the same lines: to spaces with each tab taken to its stop, or to as many tabs as fit and the spaces left over, by `tabSize`.
 
 - `insertNewline` continues a line comment when text follows the caret, closes and continues a `/**` block, splits a string with the language's concatenation, indents after an opener or a `case` label, and closes a brace nothing closes.
 - In PHP markup, `insertNewline` indents after a static opening tag and splits matching opening and closing tags. Script and style openers split too; tags within their raw content, void tags, PHP strings, heredocs and HTML comments keep their existing rules. The tag rule reads the cached PHP markup context. PHP expressions inside tag attributes are not recognized by this tag rule yet. The initial PHP mode uses the first nonblank line within 64 lines and 64 KiB: markup and prose before a PHP opener start as output, while bare code fragments stay code. Editing that deciding line or an earlier line resets the cached initial state.

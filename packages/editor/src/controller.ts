@@ -58,7 +58,12 @@ const MODIFYING = new Set<EditorCommand>([
     'outdent',
     'insertNewline',
     'smartBackspace',
-    'deleteForward'
+    'deleteForward',
+    'sortLines',
+    'reverseLines',
+    'uniqueLines',
+    'convertIndentsToSpaces',
+    'convertIndentsToTabs'
 ]);
 
 const VIEW_COMMANDS = new Set<EditorViewCommand>([

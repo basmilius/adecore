@@ -57,6 +57,7 @@ document.matchBracket(13); // { mate: 4 }
 ## Other helpers
 
 - `indentationColumn(text, tabSize)` is the width of the leading whitespace of `text`, with tabs expanded.
+- `detectIndentation(text)` reads the indentation a text already uses, as a `DetectedIndentation`: `{ insertSpaces: false }` when more lines start with a tab than with spaces, or `{ insertSpaces: true, tabSize }` with the width of one level, the step to a deeper line that occurs most often. The star lines of a block comment are left out, and on a tie the step more indents are a multiple of wins, so a line aligned under a parenthesis does not pass for a level. It returns `null` when no line says, and reads at most the first 10,000 lines. A host that prefers the file's own indentation over its setting passes the result, over its own, as the editor's `indentation` when a file opens.
 
 ## Types
 

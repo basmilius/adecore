@@ -110,7 +110,12 @@ export type EditorCommand =
     | 'selectNextOccurrence'
     | 'unselectOccurrence'
     | 'selectAllOccurrences'
-    | 'addCaretPerSelectedLine';
+    | 'addCaretPerSelectedLine'
+    | 'sortLines'
+    | 'reverseLines'
+    | 'uniqueLines'
+    | 'convertIndentsToSpaces'
+    | 'convertIndentsToTabs';
 
 export interface CommandOptions {
     /* Clamped to 1 through 16. */
