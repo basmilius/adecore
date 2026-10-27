@@ -61,6 +61,8 @@ export const KEYMAP = {
     methodDown: bind('Ctrl+Shift+ArrowDown', 'Alt+ArrowDown'),
     lastEditLocation: bind('Mod+Shift+Backspace'),
     nextEditLocation: bind(null),
+    pasteFromHistory: bind('Mod+Shift+V'),
+    pasteAsPlainText: bind('Mod+Alt+Shift+V'),
     nextChange: bind('Ctrl+Alt+Shift+ArrowDown'),
     previousChange: bind('Ctrl+Alt+Shift+ArrowUp'),
     codeBlockStart: bind('Mod+Alt+[', 'Ctrl+['),
@@ -169,6 +171,8 @@ export type OptionalKeymapId =
     | 'nextEditLocation'
     | 'methodUp'
     | 'methodDown'
+    | 'pasteFromHistory'
+    | 'pasteAsPlainText'
     | 'nextChange'
     | 'previousChange'
     | 'codeBlockStart'

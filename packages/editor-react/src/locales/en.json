@@ -192,6 +192,10 @@
         "history": {
             "recent": "Recent locations"
         },
+        "pasteHistory": {
+            "title": "Choose Content to Paste",
+            "empty": "Nothing was copied yet"
+        },
         "announce": {
             "problem": "{{severity}}: {{message}}",
             "severity": {

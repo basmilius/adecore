@@ -15,7 +15,9 @@ import type {
     EditorInlayClick,
     EditorInlayClickHandler,
     EditorContextMenu,
+    EditorCopy,
     EditorKeyHandler,
+    EditorPasteOptions,
     EditorPosition,
     EditorRunCommand,
     EditorSelectionRanges,
@@ -95,13 +97,22 @@ const VIEW_COMMANDS = new Set<EditorViewCommand>([
     'methodUp',
     'methodDown',
     'nextChange',
-    'previousChange'
+    'previousChange',
+    'pasteAsPlainText'
 ]);
 
 const ZOOM_STEPS = { increaseFontSize: 1, decreaseFontSize: -1, resetFontSize: 0 } as const satisfies Partial<Record<EditorViewCommand, -1 | 0 | 1>>;
 
 /* The clipboard text of the last copy or cut of a bare caret, which pastes back as whole lines. Shared, since it can be pasted in another editor. */
 let lineClip: string | null = null;
+
+/*
+ * Makes `text` the copy that pastes back as whole lines (or not), for a paste from a history that kept what the
+ * copy was. The clipboard itself is the caller's.
+ */
+export function rememberCopy(text: string, wholeLines: boolean): void {
+    lineClip = wholeLines ? text : null;
+}
 
 function selectionSignature(selections: readonly Selection[]): string {
     return selections.map((selection) => `${selection.anchor}:${selection.head}`).join(',');
@@ -123,6 +134,7 @@ export class InputController {
     private readonly cleanup: (() => void)[] = [];
     private readonly keyHandlers = new Set<EditorKeyHandler>();
     private readonly navigateListeners = new Set<(from: number) => void>();
+    private readonly copyListeners = new Set<(copy: EditorCopy) => void>();
     private wordSources: (() => readonly string[]) | null = null;
     private readonly gesture: DoubleModifierGesture;
     private readonly clickHandlers = new Set<EditorClickHandler>();
@@ -253,7 +265,7 @@ export class InputController {
 
         this.listen(input, 'paste', (event) => {
             event.preventDefault();
-            this.paste(event.clipboardData?.getData('text/plain') ?? '');
+            this.pasteText(event.clipboardData?.getData('text/plain') ?? '');
         });
 
         this.listen(input, 'copy', (event) => this.copy(event, false));
@@ -326,6 +338,7 @@ export class InputController {
         this.cleanup.length = 0;
         this.keyHandlers.clear();
         this.navigateListeners.clear();
+        this.copyListeners.clear();
     }
 
     private blockedByReadOnly(): boolean {
@@ -370,16 +383,30 @@ export class InputController {
         }
     }
 
-    private paste(text: string): void {
+    /* Pastes as a paste from the clipboard does; false when a read-only editor refused. */
+    pasteText(text: string, options: EditorPasteOptions = {}): boolean {
         if (this.blockedByReadOnly()) {
-            return;
+            return false;
         }
 
         this.unfoldCarets();
         this.historyGroup++;
-        this.view.model.paste(this.native.normalizeNewlines(text), { ...this.commandOptions(), wholeLines: text !== '' && text === lineClip });
+
+        const pasted = this.view.model.paste(this.native.normalizeNewlines(text), {
+            ...this.commandOptions(),
+            ...(options.reindent === false ? { indentOnPaste: false } : {}),
+            wholeLines: options.wholeLines ?? (text !== '' && text === lineClip)
+        });
+
         this.historyGroup++;
         this.view.revealCaret();
+
+        return pasted;
+    }
+
+    /* Told what a copy or cut put on the clipboard. */
+    onCopy(listener: (copy: EditorCopy) => void): () => void {
+        return subscribe(this.copyListeners, listener);
     }
 
     private commandOptions(): CommandOptions {
@@ -433,6 +460,20 @@ export class InputController {
             return moved;
         }
 
+        if (name === 'pasteAsPlainText') {
+            // The clipboard is read once a person asks, and an editor with no way to read it does nothing.
+            if (this.blockedByReadOnly() || globalThis.navigator?.clipboard?.readText === undefined) {
+                return false;
+            }
+
+            void navigator.clipboard.readText().then(
+                (text) => this.pasteText(text, { reindent: false }),
+                () => undefined
+            );
+
+            return true;
+        }
+
         if (name === 'nextChange' || name === 'previousChange') {
             return view.goToChange(name === 'nextChange' ? 1 : -1);
         }
@@ -441,7 +482,10 @@ export class InputController {
             return false;
         }
 
-        const run: Record<Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS | 'methodUp' | 'methodDown' | 'nextChange' | 'previousChange'>, () => void> = {
+        const run: Record<
+            Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS | 'methodUp' | 'methodDown' | 'nextChange' | 'previousChange' | 'pasteAsPlainText'>,
+            () => void
+        > = {
             collapseRegion: () => view.collapseRegion(),
             expandRegion: () => view.expandRegion(),
             collapseAllRegions: () => view.foldAll(true),
@@ -989,6 +1033,7 @@ export class InputController {
 
         event.clipboardData?.setData('text/plain', text);
         lineClip = empty ? text : null;
+        emit(this.copyListeners, { text, wholeLines: empty, cut });
 
         if (!cut || this.blockedByReadOnly()) {
             return;

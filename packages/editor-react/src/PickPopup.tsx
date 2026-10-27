@@ -10,7 +10,34 @@ import type { PickPreview, PickView } from './popups.ts';
 const CARD =
     'fixed top-0 left-0 z-(--z-popup) flex w-[420px] flex-col overflow-hidden rounded-lg border border-border bg-surface-raised text-text shadow-(--float-shadow)';
 
+/* The label with the part a query matched marked, whatever the case. */
+function MatchedLabel({ label, query }: { label: string; query: string | null }) {
+    const start = query === null || query === '' ? -1 : label.toLowerCase().indexOf(query.toLowerCase());
+
+    if (query === null || start < 0) {
+        return label;
+    }
+
+    return (
+        <>
+            {label.slice(0, start)}
+            <mark className="bg-transparent font-semibold text-accent">{label.slice(start, start + query.length)}</mark>
+            {label.slice(start + query.length)}
+        </>
+    );
+}
+
 function PreviewLines({ preview }: { preview: PickPreview }) {
+    if (preview.kind === 'text') {
+        return (
+            <div className="max-h-48 overflow-auto border-t border-border p-2 font-mono text-code whitespace-pre">
+                {preview.added.map((line, index) => (
+                    <div key={index}>{line === '' ? ' ' : line}</div>
+                ))}
+            </div>
+        );
+    }
+
     return (
         <div className="flex flex-col gap-px border-t border-border p-1 font-mono text-code">
             {preview.removed.map((line, index) => (
@@ -89,7 +116,12 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
             onPointerDown={(event) => event.preventDefault()}
             {...keepFocusOutOfList(() => language.editor.focus())}
         >
-            {view.title !== null && <div className="border-b border-border px-3 py-1.5 text-xs text-text-muted">{view.title}</div>}
+            {(view.title !== null || view.query !== null) && (
+                <div className="flex items-baseline gap-2 border-b border-border px-3 py-1.5 text-xs text-text-muted">
+                    <span className="min-w-0 truncate">{view.title}</span>
+                    {view.query !== null && view.query !== '' && <span className="ml-auto shrink-0 font-mono text-text">{view.query}</span>}
+                </div>
+            )}
             <div id={listId} role="listbox" className="min-h-0 flex-1 overflow-y-auto p-1">
                 {view.groups.map((group, groupIndex) => (
                     <div key={group.title ?? groupIndex} role="group" className="flex flex-col">
@@ -102,12 +134,15 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
                                 type="button"
                                 role="option"
                                 tabIndex={-1}
-                                aria-selected={row.id === view.active}
+                                aria-selected={row.id === view.active || view.chosen.includes(row.id)}
                                 data-active={row.id === view.active}
-                                className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-xs cursor-row"
-                                onClick={() => language.pick.choose(row.id)}
+                                data-chosen={view.chosen.includes(row.id)}
+                                className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-xs cursor-row data-[chosen=true]:bg-accent/15"
+                                onClick={(event) => language.pick.choose(row.id, { toggle: event.metaKey || event.ctrlKey, range: event.shiftKey })}
                             >
-                                <span className={row.path ? 'shrink-0' : 'min-w-0 truncate'}>{row.label}</span>
+                                <span className={row.path ? 'shrink-0' : 'min-w-0 truncate'}>
+                                    <MatchedLabel label={row.label} query={view.query} />
+                                </span>
                                 {row.path ? (
                                     <PathText path={row.detail} className="ml-auto font-mono text-text-faint" />
                                 ) : (

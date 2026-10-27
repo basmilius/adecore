@@ -192,6 +192,10 @@
         "history": {
             "recent": "Recente plekken"
         },
+        "pasteHistory": {
+            "title": "Kies wat je plakt",
+            "empty": "Er is nog niets gekopieerd"
+        },
         "announce": {
             "problem": "{{severity}}: {{message}}",
             "severity": {

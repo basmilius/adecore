@@ -2,6 +2,7 @@ import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import type { EditorPosition, EditorRange } from '@adecore/editor';
 import type { i18n } from 'i18next';
 import type { Keymap } from '@adecore/editor/keymap';
+import type { ClipboardHistory } from './clipboard-history.ts';
 import type { ProjectFiles } from './workspace-edit.ts';
 import type { Place } from './navigation-history.ts';
 import type { ProblemSource } from './project-problems.ts';
@@ -64,6 +65,8 @@ export interface LanguageHost {
     readonly files?: ProjectFiles;
     readonly apple?: boolean;
     readonly keymap?: Keymap;
+    /* What Paste from History lists. A new `ClipboardHistory` that lives as long as the project without one; pass one to choose its size or to keep its entries. */
+    readonly clipboard?: ClipboardHistory;
     /* How many places Last Edit Location and Next Edit Location remember; 150 without one. */
     readonly editHistoryLimit?: number;
     /* The height in pixels of the list-and-preview area of the peek and the call hierarchy, so a person's drag outlives the panel; 180 without one. */

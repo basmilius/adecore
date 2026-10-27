@@ -22,6 +22,17 @@ export interface PickSpec {
     attempt?(id: string): Promise<string | null>;
     /* What the active row would change, asked a moment after it became active. */
     preview?(id: string, signal: AbortSignal): Promise<PickPreview | null>;
+    /*
+     * Typing narrows the rows to those whose `search` (the label without one) contains the query, whatever the case, and
+     * the list stays open while a person types. Backspace edits the query.
+     */
+    readonly filter?: boolean;
+    /* Shift with the arrows or a press chooses a run of rows, and Mod with a press adds or takes away one. */
+    readonly multiple?: boolean;
+    /* Enter takes the chosen rows, or the active one when none is chosen; without it Enter calls `accept` with the active row. */
+    acceptMany?(ids: readonly string[]): void;
+    /* Delete takes the chosen rows, or the active one, out of the list, and so does Backspace when there is no query. It answers the rows that remain. */
+    remove?(ids: readonly string[]): readonly PickGroup[];
 }
 
 /*
@@ -33,8 +44,18 @@ export class PickFeature {
     private readonly language: EditorLanguage;
     private readonly timers: Timers;
     private spec: PickSpec | null = null;
+
+    /* The rows as the spec gave them, or as `remove` left them; `ids` are those a query lets through. */
+    private groups: readonly PickGroup[] = [];
+
     private ids: readonly string[] = [];
     private active = '';
+    private query = '';
+
+    /* The rows chosen as a run or one by one, in list order, and the row a run of them grows from. */
+    private chosen: readonly string[] = [];
+
+    private rangeAnchor: string | null = null;
     private previewTimer: unknown;
     private controller: AbortController | null = null;
 
@@ -78,6 +99,10 @@ export class PickFeature {
 
         this.spec = spec;
         this.refusals = new Map();
+        this.groups = spec.groups;
+        this.query = '';
+        this.chosen = [];
+        this.rangeAnchor = null;
         this.ids = ids;
         this.active = spec.active !== undefined && ids.includes(spec.active) ? spec.active : ids[0]!;
         this.publish(null);
@@ -96,16 +121,50 @@ export class PickFeature {
         this.language.popups.setState({ pick: null });
     }
 
-    move(delta: number): void {
+    /* Moves the active row; with `extend`, in a list of several choices, the rows between where the move began and the new row are chosen. */
+    move(delta: number, extend = false): void {
+        if (this.ids.length === 0) {
+            return;
+        }
+
         const index = this.ids.indexOf(this.active);
-        this.activate(this.ids[Math.max(0, Math.min(this.ids.length - 1, index + delta))]!);
+        const id = this.ids[Math.max(0, Math.min(this.ids.length - 1, index + delta))]!;
+
+        if (extend && this.spec?.multiple === true) {
+            this.extendTo(id);
+
+            return;
+        }
+
+        this.settle(id);
     }
 
-    /* Takes a row, by a click or Enter. */
-    choose(id: string): void {
+    /* Makes `id` the only row the list is on. */
+    private settle(id: string): void {
+        const hadChosen = this.chosen.length > 0;
+
+        this.chosen = [];
+        this.rangeAnchor = null;
+        this.activate(id, hadChosen);
+    }
+
+    /* Takes a row, by a click or Enter. In a list of several choices a press with Shift chooses the run up to the row, and one with Mod adds or takes away the row. */
+    choose(id: string, modifiers: { readonly toggle?: boolean; readonly range?: boolean } = {}): void {
         const spec = this.spec;
 
         if (spec === null || !this.ids.includes(id) || this.attempting) {
+            return;
+        }
+
+        if (spec.multiple === true && modifiers.range === true) {
+            this.extendTo(id);
+
+            return;
+        }
+
+        if (spec.multiple === true && modifiers.toggle === true) {
+            this.toggle(id);
+
             return;
         }
 
@@ -140,29 +199,124 @@ export class PickFeature {
             });
     }
 
-    private activate(id: string): void {
-        if (id === this.active) {
+    private activate(id: string, force = false): void {
+        const moved = id !== this.active;
+
+        this.active = id;
+
+        if (moved) {
+            this.controller?.abort();
+            this.schedulePreview();
+        }
+
+        if (moved || force) {
+            this.publish(null);
+        }
+    }
+
+    private extendTo(id: string): void {
+        const anchor = this.rangeAnchor ?? this.active;
+        const first = this.ids.indexOf(anchor);
+        const last = this.ids.indexOf(id);
+        const run = this.ids.slice(Math.min(first, last), Math.max(first, last) + 1);
+
+        this.rangeAnchor = anchor;
+        this.chosen = run.length > 1 ? run : [];
+        this.activate(id, true);
+    }
+
+    private toggle(id: string): void {
+        const held = this.chosen.length > 0 ? this.chosen : [this.active];
+        const next = held.includes(id) ? held.filter((other) => other !== id) : [...held, id];
+
+        this.chosen = this.ids.filter((other) => next.includes(other));
+        this.rangeAnchor = id;
+        this.activate(id, true);
+    }
+
+    /* Enter: the chosen rows, or the active one when none is chosen. */
+    private takeActive(): void {
+        const spec = this.spec;
+
+        if (spec?.acceptMany === undefined) {
+            this.choose(this.active);
+
             return;
         }
 
-        this.active = id;
+        const ids = this.chosen.length > 0 ? this.chosen : [this.active];
+
+        if (this.active !== '' && !this.attempting) {
+            this.close();
+            spec.acceptMany(ids);
+        }
+    }
+
+    private visibleGroups(): readonly PickGroup[] {
+        const query = this.query.toLowerCase();
+
+        if (query === '') {
+            return this.groups;
+        }
+
+        return this.groups
+            .map((group) => ({ ...group, rows: group.rows.filter((row) => (row.search ?? row.label).toLowerCase().includes(query)) }))
+            .filter((group) => group.rows.length > 0);
+    }
+
+    /* The query changed: the rows it lets through, with the first of them active. */
+    private requery(query: string): void {
+        this.query = query;
+        this.ids = this.visibleGroups().flatMap((group) => group.rows.map((row) => row.id));
+        this.chosen = [];
+        this.rangeAnchor = null;
+        this.active = this.ids[0] ?? '';
+        this.controller?.abort();
+        this.publish(null);
+        this.schedulePreview();
+    }
+
+    /* Takes the chosen rows, or the active one, out of the list; the list closes when no row is left. */
+    private removeChosen(): void {
+        const spec = this.spec;
+
+        if (spec?.remove === undefined || this.active === '') {
+            return;
+        }
+
+        const removed = this.chosen.length > 0 ? this.chosen : [this.active];
+        const index = this.ids.indexOf(removed[0]!);
+        this.groups = spec.remove(removed);
+
+        if (this.groups.every((group) => group.rows.length === 0)) {
+            this.close();
+
+            return;
+        }
+
+        this.ids = this.visibleGroups().flatMap((group) => group.rows.map((row) => row.id));
+        this.chosen = [];
+        this.rangeAnchor = null;
+        this.active = this.ids[Math.min(index, this.ids.length - 1)] ?? '';
         this.controller?.abort();
         this.publish(null);
         this.schedulePreview();
     }
 
     private key(event: KeyboardEvent): boolean {
-        if (this.spec === null || event.metaKey || event.ctrlKey || event.altKey) {
+        const spec = this.spec;
+
+        if (spec === null || event.metaKey || event.ctrlKey || event.altKey) {
             return false;
         }
 
         switch (event.key) {
             case 'ArrowDown':
-                this.move(1);
+                this.move(1, event.shiftKey);
 
                 return true;
             case 'ArrowUp':
-                this.move(-1);
+                this.move(-1, event.shiftKey);
 
                 return true;
             case 'PageDown':
@@ -174,20 +328,31 @@ export class PickFeature {
 
                 return true;
             case 'Home':
-                this.activate(this.ids[0]!);
-
-                return true;
             case 'End':
-                this.activate(this.ids[this.ids.length - 1]!);
+                if (this.ids.length > 0) {
+                    this.settle(event.key === 'Home' ? this.ids[0]! : this.ids[this.ids.length - 1]!);
+                }
 
                 return true;
             case 'Enter':
-                this.choose(this.active);
+                this.takeActive();
 
                 return true;
-            case 'Tab': {
-                const spec = this.spec;
+            case 'Delete':
+                this.removeChosen();
 
+                return spec.remove !== undefined;
+            case 'Backspace':
+                if (this.query !== '') {
+                    this.requery(this.query.slice(0, -1));
+
+                    return true;
+                }
+
+                this.removeChosen();
+
+                return spec.remove !== undefined || spec.filter === true;
+            case 'Tab': {
                 if (spec.onTab !== undefined) {
                     this.close();
                     spec.onTab(event.shiftKey);
@@ -202,6 +367,12 @@ export class PickFeature {
 
                 return true;
             default:
+                if (spec.filter === true && event.key.length === 1) {
+                    this.requery(this.query + event.key);
+
+                    return true;
+                }
+
                 return false;
         }
     }
@@ -210,7 +381,7 @@ export class PickFeature {
         const spec = this.spec;
         this.timers.clear(this.previewTimer);
 
-        if (spec?.preview === undefined) {
+        if (spec?.preview === undefined || this.active === '') {
             return;
         }
 
@@ -239,6 +410,17 @@ export class PickFeature {
 
         const refusal = this.refusals.get(this.active);
         const shown = refusal === undefined ? preview : { removed: [], added: [], note: null, refusal };
-        this.language.popups.setState({ pick: { anchor: spec.anchor, groups: spec.groups, active: this.active, preview: shown, title: spec.title ?? null } });
+
+        this.language.popups.setState({
+            pick: {
+                anchor: spec.anchor,
+                groups: this.visibleGroups(),
+                active: this.active,
+                preview: shown,
+                title: spec.title ?? null,
+                query: spec.filter === true ? this.query : null,
+                chosen: this.chosen
+            }
+        });
     }
 }

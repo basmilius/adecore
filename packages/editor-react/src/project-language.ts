@@ -10,6 +10,7 @@ import {
     type WorkspaceEdit
 } from '@adecore/lsp';
 import type { Editor, EditorPosition } from '@adecore/editor';
+import { ClipboardHistory } from './clipboard-history.ts';
 import { EditLocations } from './edit-locations.ts';
 import { NavigationHistory, type Place } from './navigation-history.ts';
 import { ProjectProblems, serviceProblems } from './project-problems.ts';
@@ -123,6 +124,7 @@ export class ProjectLanguage {
     readonly problems: ProjectProblems;
     readonly history = new NavigationHistory();
     readonly edits: EditLocations;
+    readonly clipboard: ClipboardHistory;
     private readonly holders = new Map<string, Holder>();
     private readonly files: ProjectFiles | null;
 
@@ -141,6 +143,7 @@ export class ProjectLanguage {
         this.folder = host.folder ?? '';
         this.files = host.files ?? null;
         this.edits = new EditLocations(host.editHistoryLimit);
+        this.clipboard = host.clipboard ?? new ClipboardHistory();
         this.panelBodyHeight = host.panelBodyHeight ?? PANEL_BODY_HEIGHT;
         this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(service, (uri) => this.pathOfLocation(uri) ?? uri));
     }

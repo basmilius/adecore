@@ -19,7 +19,8 @@ export const KEY_PRIORITY = {
     callHierarchy: 400,
     symbolPicker: 300,
     history: 200,
-    renderedDocs: 100
+    renderedDocs: 100,
+    pasteHistory: 50
 } as const;
 
 interface Entry {

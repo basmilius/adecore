@@ -32,7 +32,8 @@ export type EditorViewCommand =
     | 'methodUp'
     | 'methodDown'
     | 'nextChange'
-    | 'previousChange';
+    | 'previousChange'
+    | 'pasteAsPlainText';
 
 /* How far a person may zoom the text, and whether the wheel does. */
 export interface EditorZoom {
@@ -285,6 +286,21 @@ export interface EditorRange {
 export interface EditorContentChange {
     readonly range: EditorRange;
     readonly text: string;
+}
+
+/* What a copy or cut put on the clipboard. */
+export interface EditorCopy {
+    readonly text: string;
+    /* A copy of bare carets takes their lines, which paste back above the lines of bare carets. */
+    readonly wholeLines: boolean;
+    readonly cut: boolean;
+}
+
+export interface EditorPasteOptions {
+    /* Pastes above the lines of bare carets, as the paste of a copy of bare carets does; by default when the text is the last such copy. */
+    readonly wholeLines?: boolean;
+    /* False leaves the indentation of the text alone; the editor's indent on paste setting otherwise. */
+    readonly reindent?: boolean;
 }
 
 export interface EditorApplyEditsOptions {
@@ -661,6 +677,10 @@ export interface Editor {
     hasFocus?(): boolean;
     /* The texts of the other open documents, which Hippie completion takes words from after those of this one; null takes them away. Optional so an editor from before it still fits. */
     setWordSources?(source: (() => readonly string[]) | null): void;
+    /* Told after a copy or cut, with the text it put on the clipboard. Optional so an editor from before it still fits. */
+    onCopy?(listener: (copy: EditorCopy) => void): () => void;
+    /* Pastes `text` as a paste from the clipboard does: at every caret, with indent on paste, and refused with its notice when the editor is read-only. False when nothing was pasted. Optional so an editor from before it still fits. */
+    paste?(text: string, options?: EditorPasteOptions): boolean;
     /*
      * Marks that follow their lines through edits until the host sets them again. Every layer (default: the unnamed one)
      * holds its own marks and the editor draws the union, so setting one layer never clears another; an empty list
