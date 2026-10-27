@@ -1,0 +1,15 @@
+{
+  "updatedAt": "2026-10-27T12:00:00Z",
+  "defaultModel": "default",
+  "profiles": {
+    "agent": { "options": [], "contextWindowTokens": {} }
+  },
+  "models": [
+    { "slug": "default", "name": "Default", "profile": "agent" },
+    { "slug": "auto", "name": "Auto", "profile": "agent" },
+    { "slug": "claude-sonnet-4.6", "name": "Claude Sonnet 4.6", "profile": "agent" },
+    { "slug": "claude-haiku-4.5", "name": "Claude Haiku 4.5", "profile": "agent" },
+    { "slug": "gpt-5.3-codex", "name": "GPT-5.3-Codex", "profile": "agent" },
+    { "slug": "mai-code-1.1-flash", "name": "MAI-Code-1.1-Flash", "profile": "agent" }
+  ]
+}

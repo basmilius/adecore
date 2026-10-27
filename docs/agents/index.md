@@ -45,7 +45,7 @@ It registers no IPC channel and opens no server: it serves a `FramePort` your ap
 | `@adecore/agents/context` | Context commands: verbs, arguments, help and refusals |
 | `@adecore/agents/testing` | Fake CLIs, a manual clock, a fake watcher and test accounts |
 
-The model catalogs are JSON: `@adecore/agents/providers/claude-models.json` and `@adecore/agents/providers/codex-models.json`. The [export reference](/agents/reference) lists every name. A module that no entry exports is internal. Keep the package out of a page: the page imports the contracts and the views, never this package.
+The model catalogs are JSON: `@adecore/agents/providers/<kind>-models.json` for `claude`, `codex`, `grok`, `copilot` and `antigravity`. The [export reference](/agents/reference) lists every name. A module that no entry exports is internal. Keep the package out of a page: the page imports the contracts and the views, never this package.
 
 ## Where to go next
 
