@@ -76,6 +76,22 @@ It returns `true` when the text changed. It returns `false`, with nothing change
 
 Edits with the same `historyGroup` join one undo step until something closes the group: a `setSelections`, an undo, an edit without the group, or any other change of the text or the selections in between. `typeText` uses the group `typing` unless told otherwise, so a word typed letter by letter undoes at once.
 
+## Saving
+
+The document follows which lines changed since `markSaved()`, or since it was made: every edit, undo and redo marks the lines it touched, a deletion included, and the marks move with their text. `getModifiedLines()` returns them, zero-based and in order. A change that ends at the start of a line, such as an inserted line, does not mark that line.
+
+`cleanUpWhitespace(options?)` cleans up the whitespace before a save, as one undo step, and returns whether the text changed. It takes the `WhitespaceCleanupOptions`, all off unless set:
+
+| Option                     | Default | Meaning                                                                                                 |
+| -------------------------- | ------- | ------------------------------------------------------------------------------------------------------- |
+| `trailingWhitespace`       | `'off'` | `TrailingWhitespace`: strip the spaces and tabs at the end of the `'modified'` lines or of `'all'` lines |
+| `keepCaretLines`           | `true`  | The lines a caret is on keep their trailing whitespace                                                  |
+| `removeTrailingBlankLines` | `false` | The blank lines at the end go, up to the last line with text and its line break                         |
+| `ensureFinalNewline`       | `false` | A text that does not end in a line break gets one, in the style of its first                            |
+| `language`                 |         | The language id; trailing whitespace inside a multiline string of it stays                              |
+
+It leaves the marks alone; call `markSaved()` once the text is written.
+
 ## Snapshots and listeners
 
 `getSnapshot()` returns an `EditorSnapshot`: `text`, `selections`, `revision`, `canUndo` and `canRedo`. Its `text` is read lazily from the rope of that revision, so a snapshot kept across later edits still returns its own text.

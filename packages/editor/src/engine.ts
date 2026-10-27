@@ -53,6 +53,7 @@ import type {
     EditorTextChange,
     EditorTrackedRange,
     EditorTheme,
+    EditorWhitespaceCleanup,
     EditorWidget,
     SmartEditorEngineOptions
 } from './types.ts';
@@ -402,6 +403,17 @@ class SmartEditor implements Editor {
         } catch {
             return false;
         }
+    }
+
+    cleanUpWhitespace(options: EditorWhitespaceCleanup): boolean {
+        const changed = !this.settings.readOnly && this.model.cleanUpWhitespace({ ...options, language: this.settings.language });
+        this.model.markSaved();
+
+        return changed;
+    }
+
+    markSaved(): void {
+        this.model.markSaved();
     }
 
     setMarkers(markers: readonly EditorMarker[]): void {

@@ -49,6 +49,7 @@ import type {
     EditorTextChange,
     EditorTrackedRange,
     EditorTheme,
+    EditorWhitespaceCleanup,
     EditorWidget
 } from './types.ts';
 import { emit, type Listener, subscribe } from './listeners.ts';
@@ -1132,6 +1133,22 @@ export class FakeEditor implements Editor {
                 }));
 
         return this.edit(ordered, 'command', options.mergeUndo === true, place);
+    }
+
+    /* The options of every cleanup asked for, in order; the fake changes no text for them. */
+    readonly cleanups: EditorWhitespaceCleanup[] = [];
+    /* How often the text was marked as saved, by a cleanup or on its own. */
+    savedMarks = 0;
+
+    cleanUpWhitespace(options: EditorWhitespaceCleanup): boolean {
+        this.cleanups.push({ ...options });
+        this.markSaved();
+
+        return false;
+    }
+
+    markSaved(): void {
+        this.savedMarks += 1;
     }
 
     setTheme(theme: EditorTheme): void {

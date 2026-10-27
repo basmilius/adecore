@@ -22,6 +22,17 @@ editor.applyEdits([
 
 The editor has no `expectedRevision`. Guard an answer that took a while with a [tracked range](#tracked-ranges).
 
+## Saving
+
+`cleanUpWhitespace(options)` is for right before the host writes the file. It strips trailing whitespace, removes the blank lines at the end and ends the file in a line break, as the `EditorWhitespaceCleanup` options say ([the model's options](/editor-core/documents#saving), without `language`, which the editor passes itself), as one undo step. Then it marks the text as saved, so `trailingWhitespace: 'modified'` strips the lines changed since the last save. Call it on every save, with everything off too, so the count starts there. `markSaved()` marks the text as saved without a cleanup, such as after a reload from disk. A read-only editor changes nothing, and both are optional on `Editor`.
+
+```ts
+editor.onSave(() => {
+    editor.cleanUpWhitespace({ trailingWhitespace: 'modified' });
+    writeFile(path, editor.getText());
+});
+```
+
 ## Change events
 
 | Event                   | Fires when                                                                       |
