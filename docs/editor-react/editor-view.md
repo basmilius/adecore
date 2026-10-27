@@ -52,7 +52,7 @@ Attach one `EditorLanguage` per editor. `EditorView` already makes one, so do no
 
 ### Keys
 
-The features see the editor's keys through `language.onKey(handler, priority?)`, which returns the function that removes the handler. A handler with a higher priority sees a key first, of two with the same priority the one added first, and the first to return `true` takes the key. `KEY_PRIORITY` holds the priority of each feature, a hundred apart from highest to lowest: `pick`, `diagnostics`, `hover`, `completion`, `snippets`, `signature`, `highlights`, `codeActions`, `rename`, `navigation`, `peek`, `callHierarchy`, `symbolPicker`, `history` and `renderedDocs`. Without a priority a handler comes after every feature.
+The features see the editor's keys through `language.onKey(handler, priority?)`, which returns the function that removes the handler. A handler with a higher priority sees a key first, of two with the same priority the one added first, and the first to return `true` takes the key. `KEY_PRIORITY` holds the priority of each feature, a hundred apart from highest to lowest: `pick`, `diagnostics`, `hover`, `completion`, `snippets`, `markup`, `signature`, `highlights`, `codeActions`, `rename`, `navigation`, `peek`, `callHierarchy`, `symbolPicker`, `history` and `renderedDocs`. Without a priority a handler comes after every feature.
 
 A subclass that must see a key before a feature registers after `super()` with a priority above it:
 

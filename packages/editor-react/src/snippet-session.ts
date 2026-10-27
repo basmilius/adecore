@@ -5,7 +5,7 @@ import { acquireSnippetTransforms, type SnippetTransformLease } from './snippet-
 import { realTimers, type Timers } from './timers.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { MAX_TRANSFORM_CHARACTERS, type SnippetTransformJob } from './snippet-transform-protocol.ts';
-import type { EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
+import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
 import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { textBeforeOf } from './line-text.ts';
@@ -367,7 +367,12 @@ export class SnippetFeature {
     }
 
     /* Imports can touch a hull's edge; their affinity must differ from edits inside its active field. */
-    applyEdits(changes: readonly EditorContentChange[], token: number, extras: readonly EditorContentChange[] = []): boolean {
+    applyEdits(
+        changes: readonly EditorContentChange[],
+        token: number,
+        extras: readonly EditorContentChange[] = [],
+        options?: EditorApplyEditsOptions
+    ): boolean {
         const frame = this.frames.at(-1);
 
         const fits =
@@ -385,14 +390,14 @@ export class SnippetFeature {
         if (token !== this.generation || !fits) {
             this.end();
 
-            return this.language.editor.applyEdits(changes);
+            return this.language.editor.applyEdits(changes, options);
         }
 
         this.applying = true;
         this.extras = extras;
 
         try {
-            return this.language.editor.applyEdits(changes);
+            return this.language.editor.applyEdits(changes, options);
         } finally {
             this.applying = false;
             this.extras = [];

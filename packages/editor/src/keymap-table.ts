@@ -123,6 +123,7 @@ export const KEYMAP = {
     renameSymbol: bind('Shift+F6'),
     organizeImports: bind('Ctrl+Alt+O'),
     formatDocument: bind('Mod+Alt+L'),
+    wrapWithAbbreviation: bind('Mod+Alt+J'),
     selectionToChat: bind(null),
     inlineEdit: bind(null),
     suggestInline: bind(null),
@@ -178,7 +179,8 @@ export type OptionalKeymapId =
     | 'codeBlockStart'
     | 'codeBlockEnd'
     | 'codeBlockStartWithSelection'
-    | 'codeBlockEndWithSelection';
+    | 'codeBlockEndWithSelection'
+    | 'wrapWithAbbreviation';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;
 export type KeymapOverrides = Partial<Record<KeymapId, Partial<KeyBinding>>>;

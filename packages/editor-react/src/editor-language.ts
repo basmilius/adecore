@@ -14,6 +14,7 @@ import { HighlightsFeature } from './highlights.ts';
 import { HistoryFeature } from './history.ts';
 import { HoverFeature } from './hover.ts';
 import { KeyDispatcher } from './key-priority.ts';
+import { MarkupFeature } from './markup.ts';
 import { NavigationFeature, locationRow } from './navigation.ts';
 import { PasteHistoryFeature } from './paste-history.ts';
 import { PeekFeature } from './peek.ts';
@@ -66,6 +67,7 @@ export class EditorLanguage {
     readonly completion: CompletionFeature;
     readonly signature: SignatureFeature;
     readonly snippets: SnippetFeature;
+    readonly markup: MarkupFeature;
     readonly highlights: HighlightsFeature;
     readonly pick: PickFeature;
     readonly codeActions: CodeActionsFeature;
@@ -101,6 +103,7 @@ export class EditorLanguage {
         this.hover = new HoverFeature(this, timers);
         this.completion = new CompletionFeature(this, timers);
         this.snippets = new SnippetFeature(this, timers);
+        this.markup = new MarkupFeature(this);
         this.signature = new SignatureFeature(this, timers);
         this.highlights = new HighlightsFeature(this, timers);
         this.symbols = new SymbolsFeature(this, timers);
