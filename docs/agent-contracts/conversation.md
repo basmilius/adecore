@@ -100,6 +100,8 @@ A visual is a page an agent published, shown in the thread at its `at`, between 
 
 A turn's `checkpointDiff` lists the files the working tree changed against the tree the turn started from: `path`, `kind` (`add`, `update`, `delete`), lines `added` and `deleted`, and a unified `diff`. `omitted` says why a diff is empty (`binary` or `too-large`), and `truncated` that more files changed than the list holds. `chat.turnDiff` answers `{ diff: null }` when there is no checkpoint, such as outside a repository. The contracts run no git.
 
+A host may keep a large value apart from the thread (past `CHAT_PAYLOAD_INLINE_BYTES`, 64 KiB). The item then carries the beginning and a `ChatPayloadRef`, `{ id, bytes }`: a tool's `output` is its first part and `outputRef` names the whole, and a turn's `checkpointDiff` lists every file but leaves the later diffs empty, with `checkpointDiffRef` naming the whole. `bytes` is the size of the whole in UTF-8, and `id` is opaque. `chat.toolOutput { chatId, itemId }` answers `{ output }` whole, and `chat.turnDiff` the whole diff. Both fields are optional, so a client that does not know them shows the beginning.
+
 `chat.fork` starts a new chat after a turn, with the history up to it. It can take a `title` (at most `CHAT_FORK_TITLE_MAX`, 120), a worktree on a new branch, another provider, model or account. `chat.forkInfo` answers what a fork dialog needs to offer: whether the folder is a repository, the branches taken, a free one to suggest. `chat.continueOn` moves a chat that stopped on a limit to another account of its CLI. Where a fork lands is the app's business; see [Protocol](/agent-contracts/protocol#requests).
 
 ## Limits

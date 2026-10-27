@@ -8,6 +8,7 @@ Everything a host keeps lives in its data folder. Give each host a folder of its
 | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `chats/<id>.json`                               | A chat's record: `{ info, items, seq?, resetSeq?, preambles?, uiAccess? }` and the host's own extras. |
 | `chats/<id>.log`                                | Its events since the record, one JSON line each: `{ seq, at, event }`.                                |
+| `chats/<id>.payloads/<sha-256>.gz`              | Its large tool outputs and checkpoint diffs, gzipped. See [Large outputs](#large-outputs).            |
 | `chats/<id>.bookmarks.json`                     | Its bookmarks.                                                                                        |
 | `chats/<id>.visuals.json`                       | Its [visuals](/agents/chats#visuals), as `{ version: 1, visuals }`.                                   |
 | `attachments/<id>/`                             | The files attached to its messages, and the page of each visual as `<visual id>.html`.                |
@@ -33,6 +34,16 @@ An id becomes a file name with `encodeURIComponent`. A host's extras sit at the 
 A record this version cannot read is left as it is and refused with `chat-unreadable`; creating the chat again does not write over it. A log can rebuild a record that is missing, when it holds a start to rebuild from.
 
 A record starts with its `info`. `ChatStore.settled` reads only that and the last info in the log, so `recoverInterrupted` parses in full only the chats with a turn in flight or a resume after a limit. A record that starts with another key is read in full.
+
+## Large outputs
+
+A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (64 KiB of UTF-8; for a diff, of its JSON) is kept apart from the record. The record holds the beginning: the first 8 KiB of an output, ending on a line break when that keeps at least half, and every file of a diff with the diffs that fit in 8 KiB, the later ones empty. The item gets a ref to the whole, `outputRef` on a tool and `checkpointDiffRef` on a turn, each `{ id, bytes }`, where `id` is the SHA-256 of the whole and `bytes` its size. Opening a chat reads the record and the log, never a payload, so its cost follows the size of those beginnings.
+
+- `chat.toolOutput { chatId, itemId }` answers the whole output (`ChatCore.toolOutput`), and `chat.turnDiff` the whole diff. Whoever may send a request about the chat may send these; they read only what its own items name.
+- A payload is written before the record that names it, so a record on disk never names a payload that is missing. One that went missing anyway is refused with `payload-missing`.
+- A record from before moves its large values out on its next read: the payloads land first, then the record is replaced whole. A move cut short leaves the old record as it was, and the next read starts again; a payload it already wrote is the same file. A large value the log holds whole goes apart on read as well, and into the record at the next write. The CLI's own conversation, which a resume reads, is not touched.
+- Each chat has a folder of its own. Writing a record whose items name a payload the folder lacks, such as a fork's record from its original's items, copies the payload in from the chat that has it, so removing the original leaves the fork whole. Removing a chat removes its folder. Folding the log removes what the record no longer names, which is how a clear lets the payloads of its thread go; a payload written while that runs stays.
+- A loaded chat keeps the outputs of its own turns whole in memory, and its attached clients get them whole; they are cut to their beginning the next time the chat is opened. A find in the thread and an agent reading a chat as text see only the beginning of an output kept apart.
 
 ## Writing
 
