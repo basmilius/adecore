@@ -26,11 +26,12 @@ import { useChatHost, type CommandLook } from '../../../host';
 import { useCommandNames } from '../../../host-hooks';
 import { lazyNamed } from '../../../lazy';
 import { useChatActions } from '../../actions';
+import { formatBytes } from '../../attachments';
 import { ChatScopeContext, useChatScope } from '../../../scope';
 import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
 import { useTimelineFlash } from '../../timeline-flash';
 import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
-import { Icon, LazyBoundary, MiddleTruncate, Spinner, useTickingText } from '@adecore/ui';
+import { Button, Icon, LazyBoundary, MiddleTruncate, Spinner, useTickingText } from '@adecore/ui';
 import { ROW_GUTTER, toolIcon } from '../icons';
 import { AnsiOutput } from '../AnsiOutput';
 import { RowTime } from '../RowTime';
@@ -251,36 +252,118 @@ function ChangedFileLine({
     );
 }
 
+type WholeState<T> = { status: 'idle' } | { status: 'loading' } | { status: 'loaded'; value: T } | { status: 'failed' };
+
+interface Whole<T> {
+    state: WholeState<T>;
+    /* Null where nothing can load it. */
+    load: (() => void) | null;
+}
+
+/* The whole of what the thread keeps only the beginning of, loaded once a person asks; a failure can be tried again. */
+function useWhole<T>(fetch: (() => Promise<T>) | null): Whole<T> {
+    const [state, setState] = useState<WholeState<T>>({ status: 'idle' });
+
+    if (fetch === null) {
+        return { state, load: null };
+    }
+
+    const load = (): void => {
+        setState({ status: 'loading' });
+        fetch().then(
+            (value) => setState({ status: 'loaded', value }),
+            () => setState({ status: 'failed' })
+        );
+    };
+
+    return { state, load };
+}
+
+/* The line under a beginning that offers the rest: its size when known, and a retry after a failure. */
+function WholeBar<T>({ whole, label, failedLabel, bytes }: { whole: Whole<T>; label: string; failedLabel: string; bytes?: number | undefined }) {
+    const { t } = useTranslation('agent-chat');
+    const { state, load } = whole;
+
+    if (load === null || state.status === 'loaded') {
+        return null;
+    }
+
+    const failed = state.status === 'failed';
+    const loading = state.status === 'loading';
+
+    return (
+        <div className="flex items-center gap-2 py-1.5 font-sans text-xs text-text-faint">
+            {failed && <span className="text-status-error">{failedLabel}</span>}
+            {!failed && bytes !== undefined && <span>{t('work.wholeSize', { size: formatBytes(bytes) })}</span>}
+            <Button size="xs" variant="secondary" disabled={loading} onClick={load}>
+                {loading && <Spinner size={12} />}
+                {failed ? t('work.retry') : label}
+            </Button>
+        </div>
+    );
+}
+
+/* What a call answered as far as the thread shows it, and the whole once a person asks: from the host when the item carries only the beginning. */
+function useToolText(tool: ChatToolItem, chatId: string | undefined): { text: string | null; whole: Whole<string | null> } {
+    const { toolOutput } = useChatActions();
+    const stored = tool.outputRef !== undefined;
+    let fetch: (() => Promise<string | null>) | null = null;
+
+    if (stored && chatId !== undefined && toolOutput !== undefined) {
+        fetch = () => toolOutput(chatId, tool.id);
+    } else if (!stored && (tool.output?.length ?? 0) > OUTPUT_LIMIT) {
+        fetch = () => Promise.resolve(tool.output);
+    }
+
+    const whole = useWhole(fetch);
+
+    return { text: whole.state.status === 'loaded' ? whole.state.value : tool.output, whole };
+}
+
+/* An output clipped while it is the beginning and whole once loaded. A beginning the host keeps the rest of counts no characters it cannot see. */
+function OutputText({ text, whole, stored }: { text: string; whole: Whole<string | null>; stored: boolean }) {
+    const loaded = whole.state.status === 'loaded';
+
+    return <AnsiOutput text={text} limit={loaded ? undefined : OUTPUT_LIMIT} marksOmitted={loaded || !stored} />;
+}
+
 /* A diff keeps its card, with what the call answered under it. */
-function DiffBody({ tool, entries, patched }: { tool: ChatToolItem; entries: readonly ReviewEntry[]; patched: boolean }) {
+function DiffBody({ tool, entries, patched, chatId }: { tool: ChatToolItem; entries: readonly ReviewEntry[]; patched: boolean; chatId: string | undefined }) {
+    const { t } = useTranslation('agent-chat');
+    const { text, whole } = useToolText(tool, chatId);
+
     return (
         <div className="mt-1.5 mb-2 ml-6 overflow-hidden rounded-md border border-border bg-surface-raised">
             <DiffStack entries={entries} />
-            {hasOutput(tool.output) && !patched && (
-                <pre
-                    data-find-field="output"
-                    className={clsx(
-                        'max-h-64 overflow-auto whitespace-pre-wrap border-t border-border px-3 py-2 font-mono text-code select-text',
-                        tool.state === 'error' ? 'text-chat-removed' : 'text-chat-output'
-                    )}
-                >
-                    <AnsiOutput text={tool.output} limit={OUTPUT_LIMIT} />
-                </pre>
+            {hasOutput(text) && !patched && (
+                <div className="border-t border-border px-3 py-2">
+                    <pre
+                        data-find-field="output"
+                        className={clsx(
+                            'max-h-64 overflow-auto whitespace-pre-wrap font-mono text-code select-text',
+                            tool.state === 'error' ? 'text-chat-removed' : 'text-chat-output'
+                        )}
+                    >
+                        <OutputText text={text} whole={whole} stored={tool.outputRef !== undefined} />
+                    </pre>
+                    <WholeBar whole={whole} label={t('work.showFullOutput')} failedLabel={t('work.fullOutputFailed')} bytes={tool.outputRef?.bytes} />
+                </div>
             )}
         </div>
     );
 }
 
 /* What a call answered, muted under the call; a failure in the error color, or its exit code when the tool names one. */
-function ToolOutput({ tool }: { tool: ChatToolItem }) {
+function ToolOutput({ tool, chatId }: { tool: ChatToolItem; chatId: string | undefined }) {
     const { t } = useTranslation('agent-chat');
+    const { text, whole } = useToolText(tool, chatId);
 
-    if (!hasOutput(tool.output)) {
+    if (!hasOutput(text)) {
         return null;
     }
 
     const failed = tool.state === 'error';
-    const { code, rest } = failed ? exitCodeOf(tool.output) : { code: null, rest: tool.output };
+    const { code, rest } = failed ? exitCodeOf(text) : { code: null, rest: text };
 
     return (
         <>
@@ -289,21 +372,22 @@ function ToolOutput({ tool }: { tool: ChatToolItem }) {
                     data-find-field="output"
                     className={clsx('max-h-64 overflow-auto whitespace-pre-wrap', failed && code === null ? 'text-status-error' : 'text-text-muted')}
                 >
-                    <AnsiOutput text={rest} limit={OUTPUT_LIMIT} />
+                    <OutputText text={rest} whole={whole} stored={tool.outputRef !== undefined} />
                 </pre>
             )}
+            <WholeBar whole={whole} label={t('work.showFullOutput')} failedLabel={t('work.fullOutputFailed')} bytes={tool.outputRef?.bytes} />
             {code !== null && <div className="text-status-error">{t('work.exitCode', { code: String(code) })}</div>}
         </>
     );
 }
 
-/* An opened call without a card: what it was asked in the foreground, what it answered muted below. */
-export function ToolBody({ tool }: { tool: ChatToolItem }) {
+/* An opened call without a card: what it was asked in the foreground, what it answered muted below. With `chatId` it can ask for an output the thread keeps only the beginning of. */
+export function ToolBody({ tool, chatId }: { tool: ChatToolItem; chatId?: string | undefined }) {
     const patches = unifiedChanges(tool);
     const changes = patches.length > 0 ? [] : fileChanges(tool.name, tool.input);
 
     if (patches.length + changes.length > 0) {
-        return <DiffBody tool={tool} entries={reviewEntries(patches, changes)} patched={patches.length > 0} />;
+        return <DiffBody tool={tool} entries={reviewEntries(patches, changes)} patched={patches.length > 0} chatId={chatId} />;
     }
 
     const lines = toolCallLines(tool.name, tool.input);
@@ -327,7 +411,7 @@ export function ToolBody({ tool }: { tool: ChatToolItem }) {
                 </dl>
             )}
             {lines.text !== null && <pre className="max-h-64 overflow-auto whitespace-pre-wrap wrap-anywhere text-text">{clip(lines.text)}</pre>}
-            <ToolOutput tool={tool} />
+            <ToolOutput tool={tool} chatId={chatId} />
         </div>
     );
 }
@@ -380,7 +464,7 @@ export function WorkRow({
                 time={tool.createdAt}
             />
             {image !== null && ReadImage !== null && <ReadImage path={image} />}
-            {open && opens && <ToolBody tool={tool} />}
+            {open && opens && <ToolBody tool={tool} chatId={chatId} />}
         </div>
     );
 }
@@ -427,7 +511,7 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
                 }
                 live
             />
-            {open && opens && <ToolBody tool={tool} />}
+            {open && opens && <ToolBody tool={tool} chatId={chatId} />}
             {tail !== null && !open && (
                 <pre className="mt-1.5 mb-2 ml-6 max-h-48 overflow-auto rounded-md border border-border bg-surface-raised px-3 py-2 font-mono text-code whitespace-pre-wrap text-chat-output select-text">
                     <AnsiOutput text={tail} tailLines={12} />
@@ -520,10 +604,20 @@ function omittedLabel(reason: 'binary' | 'too-large'): string {
     return reason === 'binary' ? i18next.t('agent-chat:work.omitted.binary') : i18next.t('agent-chat:work.omitted.tooLarge');
 }
 
-/* One file of a turn's checkpoint diff: its patch, or the reason there is none. */
-function CheckpointFileBody({ file }: { file: ChatCheckpointFile }) {
+/* One file of a turn's checkpoint diff: its patch, the reason there is none, or the offer of the whole diff where the thread held this one back. */
+function CheckpointFileBody({ file, whole }: { file: ChatCheckpointFile; whole: Whole<ChatCheckpointDiff | null> | null }) {
+    const { t } = useTranslation('agent-chat');
+
     if (file.omitted) {
         return <div className="px-3 py-2 text-xs text-text-faint">{omittedLabel(file.omitted)}</div>;
+    }
+
+    if (whole !== null && file.diff === '') {
+        return (
+            <div className="px-3">
+                <WholeBar whole={whole} label={t('work.showFullDiff')} failedLabel={t('work.fullDiffFailed')} />
+            </div>
+        );
     }
 
     return (
@@ -595,6 +689,7 @@ function ChangedFilesCard({
  * checkpoint diff comes first (the working tree against the tree the turn started from), then the
  * unified diffs the CLI reported, then the before and after of its own edits. A turn that has a
  * checkpoint but no stored diff asks the host for one, which is also how a running turn gets it.
+ * A diff the thread keeps only the first files of (`heldBack`) asks for the whole when a person does.
  */
 export function ChangedFilesRow({
     tools,
@@ -602,7 +697,8 @@ export function ChangedFilesRow({
     checkpoint,
     baseMoved,
     chatId,
-    turnId
+    turnId,
+    heldBack = false
 }: {
     tools: ChatToolItem[];
     diff: ChatCheckpointDiff | null;
@@ -610,10 +706,13 @@ export function ChangedFilesRow({
     baseMoved?: BaseMoved | undefined;
     chatId: string;
     turnId: string;
+    heldBack?: boolean;
 }) {
     const [open, setOpen] = useState<Record<string, boolean>>({});
     const [fetched, setFetched] = useState<ChatCheckpointDiff | null>(null);
     const actions = useChatActions();
+    const whole = useWhole(heldBack ? () => actions.turnDiff(chatId, turnId) : null);
+    const loaded = whole.state.status === 'loaded' ? whole.state.value : null;
 
     useEffect(() => {
         if (diff !== null || !checkpoint) {
@@ -636,7 +735,7 @@ export function ChangedFilesRow({
         };
     }, [actions, chatId, turnId, diff, checkpoint]);
 
-    const checkpointDiff = diff ?? fetched;
+    const checkpointDiff = loaded ?? diff ?? fetched;
     const { keyOf } = useChatScope();
     const flash = useTimelineFlash((s) => s.target);
     const revealNonce = flash !== null && flash.opens && flash.key === keyOf(chatId) && flash.rowId === `files-${turnId}` ? flash.nonce : 0;
@@ -666,7 +765,7 @@ export function ChangedFilesRow({
                             </>
                         }
                     >
-                        <CheckpointFileBody file={file} />
+                        <CheckpointFileBody file={file} whole={loaded === null && heldBack ? whole : null} />
                     </ChangedFileLine>
                 ))}
             </ChangedFilesCard>

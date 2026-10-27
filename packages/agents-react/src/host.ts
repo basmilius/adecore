@@ -63,6 +63,8 @@ export interface ChatActions {
     continueOn(chatId: string, account: string): Promise<void>;
     /* Null when the turn has no checkpoint to compare against. */
     turnDiff(chatId: string, turnId: string): Promise<ChatCheckpointDiff | null>;
+    /* The whole of what a tool call answered, where its item carries only the beginning; without it that beginning is all a person sees. */
+    toolOutput?(chatId: string, itemId: string): Promise<string | null>;
     stopSubagent(chatId: string, toolUseId: string): Promise<void>;
     stopTask(chatId: string, taskId: string): Promise<void>;
     /* Pauses, resumes or clears the chat's goal; absent where the host offers none of it, which leaves the goal row without its buttons. */

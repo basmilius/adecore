@@ -217,7 +217,13 @@ export default {
         alsoRan: '+ {{programs}}',
         heredoc: 'heredoc',
         moreRuns_one: '+{{count}}',
-        moreRuns_other: '+{{count}}'
+        moreRuns_other: '+{{count}}',
+        showFullOutput: 'Show full output',
+        showFullDiff: 'Show full diff',
+        wholeSize: '{{size}} in total',
+        fullOutputFailed: 'Could not load the full output',
+        fullDiffFailed: 'Could not load the full diff',
+        retry: 'Try again'
     },
     timeline: {
         welcome: {

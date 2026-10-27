@@ -56,7 +56,17 @@ export type TimelineRow =
     | { kind: 'question'; id: string; item: ChatQuestionItem }
     | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }
     | { kind: 'compaction'; id: string; preTokens: number | null }
-    | { kind: 'changed-files'; id: string; turnId: string; tools: ChatToolItem[]; diff: ChatCheckpointDiff | null; checkpoint: boolean; baseMoved?: BaseMoved }
+    | {
+          kind: 'changed-files';
+          id: string;
+          turnId: string;
+          tools: ChatToolItem[];
+          diff: ChatCheckpointDiff | null;
+          checkpoint: boolean;
+          baseMoved?: BaseMoved;
+          // Set when `diff` holds back the diffs past its first few, which the host answers whole.
+          heldBack?: boolean;
+      }
     | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean }
     | { kind: 'forks'; id: string; turnId: string }
     | { kind: 'working'; id: string; startedAt: number }
@@ -481,7 +491,8 @@ function changedFilesRow(turn: ChatTurnItem, items: ChatItem[]): TimelineRow | n
         tools: edits,
         diff,
         checkpoint: turn.checkpoint !== undefined,
-        ...(moved ? { baseMoved: { from: turn.checkpointHead!, to: turn.checkpointHeadAfter! } } : {})
+        ...(moved ? { baseMoved: { from: turn.checkpointHead!, to: turn.checkpointHeadAfter! } } : {}),
+        ...(turn.checkpointDiffRef ? { heldBack: true } : {})
     };
 }
 

@@ -202,7 +202,7 @@ export function WorkflowRow({
                 </div>
                 {running && chatId && workflow.taskId && <IconButton icon={Square} size="xs" label={t('activity.stop')} onClick={stop} />}
             </div>
-            {open && opens && <ToolBody tool={tool} />}
+            {open && opens && <ToolBody tool={tool} chatId={chatId} />}
             <div className="mt-1.5 ml-6">
                 {workflow.name !== null && <div className="truncate text-sm font-medium text-text">{workflow.name}</div>}
                 {description !== null && <p className="mt-0.5 line-clamp-2 text-xs text-text-muted">{description}</p>}
