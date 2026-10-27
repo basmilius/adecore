@@ -17,6 +17,7 @@
     --editor-added: var(--status-idle);
     --editor-modified: var(--accent);
     --editor-deleted: var(--status-error);
+    --editor-todo: var(--status-running);
     --editor-mark-number-mix: 72%;
     --editor-mark-bar-width: 3px;
     --editor-mark-gap: 4px;
@@ -38,6 +39,7 @@
     --editor-margin: color-mix(in srgb, var(--text) 16%, transparent);
     --editor-whitespace: color-mix(in srgb, var(--text) 32%, transparent);
     --editor-hatch: color-mix(in srgb, var(--text) 10%, transparent);
+    --editor-todo: var(--status-idle);
     --editor-mark-number-mix: 82%;
     --editor-sticky-shadow: color-mix(in srgb, black 60%, transparent);
 }
@@ -478,10 +480,14 @@
     left: 6px;
     background: var(--editor-occurrence);
 }
+.se-tick-todo,
 .se-tick-error,
 .se-tick-warning,
 .se-tick-info {
     left: 10px;
+}
+.se-tick-todo {
+    background: var(--editor-todo);
 }
 /* The only part of the track that takes the pointer, with a wider reach than the 4px it draws. */
 .se-tick[data-offset] {

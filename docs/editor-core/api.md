@@ -13,6 +13,7 @@ Everything comes from the package root, `@adecore/editor-core`.
 | Commands   | `typeText`, `paste`, `execute`, `wordSelectionAt`, `wordStartBefore`, `wordEndAfter`                             |
 | Search     | `find`, `findNext`, `replace`, `replaceAll`, `replaceMatches`                                                    |
 | Folding    | `getFoldingRanges`                                                                                               |
+| Comments   | `findTodos`                                                                                                      |
 
 See [Documents and edits](/editor-core/documents), [Typing and commands](/editor-core/commands) and [Search and folding](/editor-core/search-folding).
 
@@ -74,6 +75,14 @@ Large dense edit batches rebuild the rope in one pass and emit one `contentEdits
 `replacementText` accepts an optional sixth `maxCharacters` argument, after `preserveCase`. It throws `RangeError` before concatenating expanded output above that limit. Without the argument its existing expansion behavior remains unchanged.
 
 `DocumentEditOptions.selectionPositions` supplies anchor/head positions in the resulting text. They are resolved against the new rope and recorded in the same undo state. Columns are clamped to their line, and a line outside the resulting text throws (the editor engine reports that as `false`). They are ignored when the edits leave the text unchanged. Explicit offset `selections` take precedence when both are supplied. Without either, selections keep their usual mapping.
+
+## TODO comments
+
+`findTodos(text, language, options?)` returns the TODO comments of a text as `TodoMatch`es: `from` and `to` offsets, the zero-based `line` and the `word` of the list it matched. A match starts at one of `options.words` (`DEFAULT_TODO_WORDS`, `TODO` and `FIXME`, without them), found as a whole word in any case wherever it stands in a comment, and ends where the comment does on that line: at the end of a line comment and before the closer of a block comment on the line it closes on. What counts as a comment is the language's, read by the same lexer as the editing commands, so a word in a string or in code is no TODO. A second word in the same comment is part of the first one's match. `document.findTodos(language, options?, first?, last?)` does the same for lines `first` through `last` of a `DocumentModel`, with the lexer state it keeps between edits. `TodoOptions` is the type of `options`.
+
+```ts
+findTodos('const x = 1; // TODO: rename', 'typescript'); // [{ from: 16, to: 28, line: 0, word: 'TODO' }]
+```
 
 ## Documentation comments
 

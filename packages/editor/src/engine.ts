@@ -111,7 +111,8 @@ class SmartEditor implements Editor {
             whitespace: options.whitespace === true,
             rightMargin: options.rightMargin ?? null,
             foldOutline: options.foldOutline ?? 'hover',
-            folding: options.folding !== false
+            folding: options.folding !== false,
+            todoWords: options.todoWords
         };
 
         this.view = new EditorView(element, this.model, this.settings);
@@ -902,6 +903,11 @@ class SmartEditor implements Editor {
 
     setLabel(label: string): void {
         this.settings.label = label;
+        this.view.applySettings();
+    }
+
+    setTodoWords(words: readonly string[]): void {
+        this.settings.todoWords = [...words];
         this.view.applySettings();
     }
 

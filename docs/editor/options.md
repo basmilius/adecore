@@ -28,8 +28,13 @@
 | `foldDefaults`   |                      |                  | Fold roles to collapse when a file opens without kept folds                                                                                                                                                        |
 | `line`, `column` |                      |                  | One-based, where the caret starts                                                                                                                                                                                  |
 | `scrollTop`      |                      |                  | In pixels, where the view starts; without it the caret's line is in view                                                                                                                                           |
+| `todoWords`      | `DEFAULT_TODO_WORDS` | `setTodoWords`   | The words that mark a TODO comment; see below                                                                                                                                                                      |
 
 `setReadOnly` stops typing, commands and `applyEdits`. `setText` still works, since a reload from disk is not a person typing.
+
+## TODO comments
+
+A comment with one of the `todoWords` in it, `TODO` and `FIXME` by default, is drawn in `--editor-todo` and in italics from the word to the end of the comment on that line, and gets a tick in the scroll track that jumps to it. The words match as whole words in any case. Only a comment counts, as the model's lexer for the `language` reads it, so a word in a string or in code is no TODO. An empty list turns it off. `findTodos(text, language, options?)` from `@adecore/editor-core`, also exported here, returns the same `TodoMatch`es for a host that lists them.
 
 `refreshFont()` reads the code font from the page again. Call it after changing `--font-mono`, `--code-font-size` or `--code-line-height`, or after a web font loads, since measured widths, wrapping and hit testing depend on it.
 

@@ -254,6 +254,7 @@ export class FakeEditor implements Editor {
         this.readOnly = options.readOnly ?? false;
         this.readOnlyReason = options.readOnlyReason;
         this.label = options.label ?? 'Code editor';
+        this.todoWords = options.todoWords;
         this.revealedLine = options.line ?? null;
         this.column = options.column ?? null;
         this.scrollTop = options.scrollTop ?? null;
@@ -808,6 +809,12 @@ export class FakeEditor implements Editor {
 
     setLabel(label: string): void {
         this.label = label;
+    }
+
+    todoWords: readonly string[] | undefined;
+
+    setTodoWords(words: readonly string[]): void {
+        this.todoWords = [...words];
     }
 
     setFoldHints(hints: EditorFoldHints | null): void {

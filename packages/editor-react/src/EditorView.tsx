@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
     DEFAULT_SMART_KEYS,
+    DEFAULT_TODO_WORDS,
     type Editor,
     type EditorEngine,
     type EditorIndentation,
@@ -113,6 +114,10 @@ function applyChangedOptions(editor: Editor, before: EditorOptions, after: Edito
 
     if (after.label !== undefined && before.label !== after.label) {
         editor.setLabel(after.label);
+    }
+
+    if (before.todoWords?.join('\n') !== after.todoWords?.join('\n')) {
+        editor.setTodoWords?.(after.todoWords ?? DEFAULT_TODO_WORDS);
     }
 }
 
