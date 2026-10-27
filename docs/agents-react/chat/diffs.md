@@ -48,6 +48,8 @@ The demo above runs under such a pool. Without one the diffs highlight on the pa
 
 `ChatActions.turnDiff(chatId, turnId)` reads what the working tree holds against the checkpoint a turn started from, or `null` without one. The timeline reads the changes out of the tool calls itself: an edit's before and after, a patch, and the copy an approval carries.
 
+A turn whose diff the host keeps apart (`checkpointDiffRef`) lists every file, and a file whose diff was held back offers "Show full diff", which loads the whole through `turnDiff`. A tool output the item carries only the beginning of (`outputRef`) shows that beginning with the size of the whole and "Show full output", which loads through `ChatActions.toolOutput(chatId, itemId)`. Both show a spinner while they load and an error with "Try again" when the load fails. An output past the clip that the thread holds whole opens in place without a request.
+
 ## Editor source tokens
 
 The diff syntax helpers of `@adecore/agents-react/chat/ui` connect a [`DiffView`](/editor-react/change-review#diffview) to the shared Shiki runtime. Existing patch and split components keep their APIs; hosts without the optional editor keep their rendering. The optional editor path adds `@adecore/editor-react` and its LSP dependency to the installation even for hosts that do not opt in; the renderer remains in a lazy chunk.
