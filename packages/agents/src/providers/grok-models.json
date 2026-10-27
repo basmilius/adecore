@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-27T12:00:00Z",
+  "updatedAt": "2026-10-27T14:38:15.597Z",
   "defaultModel": "default",
   "profiles": {
     "agent": { "options": [], "contextWindowTokens": {} },
@@ -9,7 +9,7 @@
     { "slug": "default", "name": "Default", "profile": "agent" },
     { "slug": "grok-4.7", "name": "Grok 4.7", "profile": "agent" },
     { "slug": "grok-4.7-build-fast", "name": "Grok 4.7 Build Fast", "profile": "agent" },
-    { "slug": "grok-4.6", "name": "Grok 4.6", "profile": "agent-256k" },
-    { "slug": "grok-4.5", "name": "Grok 4.5", "profile": "agent-256k" }
+    { "slug": "grok-4.6", "name": "Grok 4.6", "profile": "agent-256k", "legacy": true },
+    { "slug": "grok-4.5", "name": "Grok 4.5", "profile": "agent-256k", "legacy": true }
   ]
 }
