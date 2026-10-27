@@ -48,6 +48,7 @@ const ACTIONS: Partial<Record<KeymapId, KeyAction>> = {
     toggleBlockComment: command('toggleBlockComment'),
     joinLines: command('joinLines'),
     startNewLine: command('startNewLine'),
+    completeCurrentStatement: command('completeCurrentStatement'),
     startNewLineBefore: command('startNewLineBefore'),
     splitLine: command('splitLine'),
     toggleCase: command('toggleCase'),

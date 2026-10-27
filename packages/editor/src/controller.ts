@@ -48,6 +48,7 @@ const MODIFYING = new Set<EditorCommand>([
     'toggleLineComment',
     'toggleBlockComment',
     'startNewLine',
+    'completeCurrentStatement',
     'startNewLineBefore',
     'splitLine',
     'joinLines',

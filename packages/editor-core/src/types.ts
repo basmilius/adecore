@@ -119,7 +119,8 @@ export type EditorCommand =
     | 'codeBlockStart'
     | 'codeBlockEnd'
     | 'codeBlockStartWithSelection'
-    | 'codeBlockEndWithSelection';
+    | 'codeBlockEndWithSelection'
+    | 'completeCurrentStatement';
 
 export interface CommandOptions {
     /* Clamped to 1 through 16. */

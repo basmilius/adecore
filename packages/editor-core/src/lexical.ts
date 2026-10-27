@@ -130,3 +130,12 @@ export function startsExpressionAt(text: string, from: number, to: number): bool
 export function startsExpressionAfter(character: string): boolean {
     return expressionPunctuation.has(character);
 }
+
+/* The character that ends a statement in a language, or null where a line break does. */
+export function statementTerminator(language: string): ';' | null {
+    return /^(typescript|javascript|typescriptreact|javascriptreact|tsx|jsx|ts|js|mjs|cjs|mts|cts|php|java|c|cpp|c\+\+|csharp|cs|rust|rs|dart|zig|glsl|hlsl|scala)$/i.test(
+        language
+    )
+        ? ';'
+        : null;
+}

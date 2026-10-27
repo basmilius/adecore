@@ -214,6 +214,11 @@ describe('the structural movement keys', () => {
         expect(keyAction(key('ArrowUp', both), false)).toEqual({ type: 'view', command: 'previousChange' });
     });
 
+    test('complete the current statement with Mod+Shift+Enter', () => {
+        expect(keyAction(key('Enter', { metaKey: true, shiftKey: true }), true)).toEqual({ type: 'command', command: 'completeCurrentStatement' });
+        expect(keyAction(key('Enter', { ctrlKey: true, shiftKey: true }), false)).toEqual({ type: 'command', command: 'completeCurrentStatement' });
+    });
+
     test('leave Alt+ArrowDown to Method Down and give Shrink Selection Ctrl+Shift+W off macOS', () => {
         expect(KEYMAP.shrinkSelection.mac).toBe('Alt+ArrowDown');
         expect(KEYMAP.shrinkSelection.other).toBe('Ctrl+Shift+W');
