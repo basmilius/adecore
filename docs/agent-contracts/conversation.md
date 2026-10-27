@@ -29,6 +29,8 @@ The fields a client reads most:
 
 Optional arrays such as `queue`, `background`, `skills` and `requests` are absent on records from before they existed; read absent as empty.
 
+`holdsConversation(info)` says whether the CLI holds a conversation for the chat: it named a session, or a turn is in flight. While it does, the chat keeps its CLI and an account that cannot read its transcripts. A clear starts the conversation over, so a cleared chat is free again, even though `usage.turns` still counts its earlier turns.
+
 ## Items
 
 `ChatItemSchema` is a union on `kind`. Every item has an `id`, a `createdAt` in milliseconds and a `turnId`, which is `null` outside a turn.

@@ -312,6 +312,15 @@ export const ChatInfoSchema = z.object({
 });
 export type ChatInfo = z.infer<typeof ChatInfoSchema>;
 
+/*
+ * Whether the CLI holds a conversation for the chat, which ties it to the CLI and to accounts that read its
+ * transcripts. The CLI names its session during the first turn, so a turn in flight counts too. Past turns do
+ * not: a cleared chat keeps its tally, but the next send starts a conversation of its own.
+ */
+export function holdsConversation(info: Pick<ChatInfo, 'agentSessionId' | 'activeTurnId'>): boolean {
+    return info.agentSessionId !== null || info.activeTurnId !== null;
+}
+
 // Where a skill was found: the person's own folder, the chat's folder, or a plugin.
 export const ChatSkillSourceSchema = z.enum(['user', 'project', 'plugin']);
 export type ChatSkillSource = z.infer<typeof ChatSkillSourceSchema>;

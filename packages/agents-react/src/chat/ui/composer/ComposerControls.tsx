@@ -2,7 +2,7 @@ import { useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { ArrowUp, ChevronDown, Play, Plus, Square } from 'lucide-react';
-import type { ChatInfo } from '@adecore/agent-contracts';
+import { holdsConversation, type ChatInfo } from '@adecore/agent-contracts';
 import { Button, ErrorBoundary, Icon, Menu, Tooltip, type Shortcut } from '@adecore/ui';
 import { useChatHost, type ComposerSendAction, type ComposerSendDraft } from '../../../host';
 import { useChatScope } from '../../../scope';
@@ -124,8 +124,7 @@ export function ComposerControls({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const busy = info.activeTurnId !== null;
     const model = providers.find((entry) => entry.kind === info.provider)?.models.find((entry) => entry.slug === info.selection.model);
-    // The CLI announces its session on the first message, so anything before that is still a blank chat.
-    const started = info.agentSessionId !== null || info.usage.turns > 0;
+    const started = holdsConversation(info);
 
     // A chat that has started keeps its provider (the CLI holds the thread), and so does one opened for a
     // named CLI; its models stay switchable, since the CLI takes a new one on the restart the next send does.

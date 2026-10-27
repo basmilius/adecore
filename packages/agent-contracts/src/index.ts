@@ -253,7 +253,8 @@ export {
     type ChatListResult,
     GeneratedImageInputSchema,
     type GeneratedImageInput,
-    generatedImageAttachment
+    generatedImageAttachment,
+    holdsConversation
 } from './chat.ts';
 export {
     ErrorSchema,

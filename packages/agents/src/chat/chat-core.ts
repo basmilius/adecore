@@ -2,6 +2,7 @@ import { join } from 'node:path';
 import {
     ChatAttachmentUploadsSchema,
     generatedImageAttachment,
+    holdsConversation,
     HOST_TASK_ORIGIN,
     type AgentKind,
     type ChatAttachment,
@@ -612,9 +613,7 @@ export class ChatCore {
 
         // As named, so a switch to the default account is refused while it is turned off.
         this.requireAccount(kind, requested);
-        const spoke = session.info.agentSessionId !== null || session.info.usage.turns > 0;
-
-        if (spoke && !this.canContinue(kind, from, to)) {
+        if (holdsConversation(session.info) && !this.canContinue(kind, from, to)) {
             const label = this.accountLabel(kind, to);
 
             throw new AccountError(
