@@ -6,6 +6,7 @@ import type { ClipboardHistory } from './clipboard-history.ts';
 import type { ProjectFiles } from './workspace-edit.ts';
 import type { Place } from './navigation-history.ts';
 import type { ProblemSource } from './project-problems.ts';
+import type { ServerMessage } from '@adecore/lsp';
 
 export interface DiskText {
     text: string;
@@ -76,9 +77,13 @@ export interface LanguageHost {
     /* Where `project.problems` reads its reports, such as a machine that also reports files no editor here holds; the service's diagnostics without one. */
     readonly problemSource?: ProblemSource;
     openPlace?(place: Place): void;
+    /* Opens a web address outside the editor, from a link in the text or a server; a new browser window without it. */
+    openExternal?(url: string): void;
     pathOfUri?(uri: string): string | null;
     serverNames?(uri: string): readonly string[];
     notify?(notification: EditorNotification): void;
+    /* A message of a server for a person, or a line for its log; without it the messages are not shown. */
+    onServerMessage?(message: ServerMessage): void;
     /* Synchronous overrides; undefined delegates to built-ins or an editable unknown-variable placeholder. */
     resolveSnippetVariable?(name: string, context: SnippetVariableContext): string | undefined;
     suggestNames?(request: RenameSuggestionsRequest, signal: AbortSignal): Promise<readonly string[]>;

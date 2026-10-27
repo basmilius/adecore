@@ -492,6 +492,8 @@ export interface EditorInlayHint {
     /* A gap of 4 pixels that keeps the pill off the character before it or the one after it. */
     readonly paddingLeft?: boolean;
     readonly paddingRight?: boolean;
+    /* A square of this CSS color in place of the label, such as the color a literal stands for; the label is then what assistive technology reads. */
+    readonly swatch?: string;
 }
 
 /* A hint, or one part of its label, under the pointer. */
@@ -731,7 +733,8 @@ export interface Editor {
     /* Colors by what the language servers know, over what the grammar made of the text; null takes them away. */
     setSemanticTokens(tokens: readonly EditorSemanticToken[] | null): void;
     /* Hints to draw as soft pills in the text, replacing the ones set before. They follow their text through edits until set again. */
-    setInlayHints(hints: readonly EditorInlayHint[]): void;
+    /* Each owner sets its own hints and keeps those of the others; ids stay unique across owners. */
+    setInlayHints(hints: readonly EditorInlayHint[], owner?: string): void;
     /* The pointer moved onto a hint or one of its parts, or null when it left them. Optional so an editor from before it still fits. */
     onInlayHover?(listener: (target: EditorInlayTarget | null) => void): () => void;
     /* Handlers see a press of the primary button on a hint before the editor does, the first to take it winning. */

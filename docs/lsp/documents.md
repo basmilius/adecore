@@ -27,6 +27,17 @@ Opening, changes, requests, saving and closing go out in the order they were mad
 | Formatting            | `formatting`, `rangeFormatting`, `onTypeFormatting`                                              |
 | Colors and hints      | `semanticTokens`, `semanticTokensDelta`, `semanticTokensRange`, `inlayHints`, `resolveInlayHint` |
 | Diagnostics           | `diagnostics`, the pull model                                                                    |
+| Type hierarchy        | `prepareTypeHierarchy`, `supertypes`, `subtypes`                                                 |
+| Links and colors      | `documentLinks`, `resolveDocumentLink`, `documentColors`, `colorPresentations`                   |
+| Editing together      | `linkedEditingRanges`                                                                            |
+| Suggestions           | `inlineCompletions`                                                                              |
+| Formatting ranges     | `rangesFormatting`, for a server that sets `rangesSupport`                                       |
+| Indexing and debugging | `monikers`, `inlineValues`                                                                      |
+| Saving                | `willSave(reason?)`, `willSaveWaitUntil(reason?)`, then `save()` once the file is written         |
+
+`supertypes(item)` and `subtypes(item)` take a `TypeHierarchyItem` from `prepareTypeHierarchy(position)` and run side by side like the calls of a call hierarchy. `willSave` sends nothing and `willSaveWaitUntil` answers `null` when the server did not ask for them in its `textDocumentSync`; apply the edits `willSaveWaitUntil` answers before the file is written.
+
+A request can stream its answer. With `onPartialResult` in the options the client adds a `partialResultToken`, and each part the server sends under it arrives in the callback before the answer, which then holds what is left. Joining the parts is the caller's, since a list of locations joins differently than a report. `onWorkDoneProgress` adds a `workDoneToken` and hears the `WorkDoneProgress` of the request. A part for a version that is gone is dropped.
 
 `incomingCalls(item)` and `outgoingCalls(item)` take a `CallHierarchyItem` that `prepareCallHierarchy(position)` returned, with its `data` untouched, and answer the calls with their `fromRanges`. They run side by side by default, so opening two nodes of a tree does not cancel the first; pass `cancelPrevious: true` to change that. A server answers all three through `callHierarchyProvider`, and the session advertises `callHierarchy` with `dynamicRegistration: false`.
 

@@ -136,6 +136,7 @@ export const KEYMAP = {
     peekDefinition: bind('Alt+Space', 'Ctrl+Shift+I'),
     peekReferences: bind('Alt+F7'),
     callHierarchy: bind('Ctrl+Alt+H'),
+    typeHierarchy: bind('Ctrl+H'),
     toggleRenderedDocs: bind('Ctrl+Alt+Q'),
     historyBack: bind('Mod+[', 'Ctrl+Alt+ArrowLeft'),
     historyForward: bind('Mod+]', 'Ctrl+Alt+ArrowRight'),
@@ -180,7 +181,8 @@ export type OptionalKeymapId =
     | 'codeBlockEnd'
     | 'codeBlockStartWithSelection'
     | 'codeBlockEndWithSelection'
-    | 'wrapWithAbbreviation';
+    | 'wrapWithAbbreviation'
+    | 'typeHierarchy';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;
 export type KeymapOverrides = Partial<Record<KeymapId, Partial<KeyBinding>>>;

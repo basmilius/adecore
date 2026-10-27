@@ -34,8 +34,8 @@ export function followModKey(apple: boolean, onHeld: (held: boolean) => void): (
 
 /*
  * The name under the pointer drawn as a link while Cmd (Ctrl elsewhere) is held and a server knows where it
- * is defined, which is what a Mod+click on it follows. The editor only says where the pointer is, so the
- * key comes from the window.
+ * is defined, which is what a Mod+click on it follows. A document link under the pointer goes first. The
+ * editor only says where the pointer is, so the key comes from the window.
  */
 export class DefinitionLinkFeature {
     private readonly language: EditorLanguage;
@@ -89,6 +89,18 @@ export class DefinitionLinkFeature {
 
     private update(): void {
         const { pointer } = this;
+
+        const link = pointer === null ? null : this.language.links.rangeAt(pointer);
+        if (this.held && link !== null) {
+            const key = `link:${link.start.line}:${link.start.character}`;
+            if (key !== this.shownKey) {
+                this.clear();
+                this.shownKey = key;
+                this.drawn = true;
+                this.language.editor.setLink(link);
+            }
+            return;
+        }
 
         if (!this.held || pointer === null || !this.language.service.supports('textDocument/definition', this.language.uri)) {
             this.clear();

@@ -125,12 +125,29 @@
             "site": "Aanroep {{current}} van {{total}}",
             "previousSite": "Vorige aanroep",
             "nextSite": "Volgende aanroep",
+            "typesUnavailable": "Typehiërarchie niet beschikbaar in dit bestand",
+            "typesNone": "Hier geen type",
+            "typesFailed": "Kon de types niet opzoeken: {{message}}",
+            "typesLabel": "Typehiërarchie",
+            "supertypes": "Supertypes",
+            "subtypes": "Subtypes",
+            "noSupertypes": "Geen supertypes",
+            "noSubtypes": "Geen subtypes",
             "announce": {
                 "incoming_one": "{{count}} aanroeper van {{name}}",
                 "incoming_other": "{{count}} aanroepers van {{name}}",
                 "outgoing_one": "{{count}} aangeroepen door {{name}}",
-                "outgoing_other": "{{count}} aangeroepen door {{name}}"
+                "outgoing_other": "{{count}} aangeroepen door {{name}}",
+                "supertypes_one": "{{count}} supertype van {{name}}",
+                "supertypes_other": "{{count}} supertypes van {{name}}",
+                "subtypes_one": "{{count}} subtype van {{name}}",
+                "subtypes_other": "{{count}} subtypes van {{name}}"
             }
+        },
+        "colors": {
+            "swatch": "Kleur {{color}}",
+            "title": "Kleur",
+            "other": "Andere kleur kiezen…"
         },
         "codeVision": {
             "usagesNone": "Niet gebruikt",
@@ -246,10 +263,12 @@
         "goToTypeDefinition": "Ga naar typedefinitie",
         "goToImplementation": "Ga naar implementatie",
         "callHierarchy": "Aanroephiërarchie",
+        "typeHierarchy": "Typehiërarchie",
         "peekReferences": "Bekijk referenties",
         "renameSymbol": "Symbool hernoemen",
         "codeActions": "Codeacties",
-        "formatDocument": "Document formatteren"
+        "formatDocument": "Document formatteren",
+        "formatSelection": "Selectie formatteren"
     },
     "find": {
         "label": "Zoeken",

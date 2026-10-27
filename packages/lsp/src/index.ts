@@ -18,7 +18,7 @@ export { type CreatedFile, type DeletedFile, type RenamedFile } from './file-ope
 export { watchesFile, type FileChangeType } from './watched-files.ts';
 export { LspSession, type LspSessionOptions, type SessionState } from './session.ts';
 export { TextMirror } from './text-mirror.ts';
-export type { DiagnosticsReport, LanguageDocument, LanguageRequestOptions, LanguageService } from './service.ts';
+export type { DiagnosticsReport, LanguageDocument, LanguageRequestOptions, LanguageService, ServerMessage } from './service.ts';
 export { unservedLanguageService } from './unserved.ts';
 export { connectWebSocket, createStreamTransport, type ByteStream, type WebSocketTransportOptions } from './transport.ts';
 export { fileUriToPath, pathToFileUri } from './uris.ts';

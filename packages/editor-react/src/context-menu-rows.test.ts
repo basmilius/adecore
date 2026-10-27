@@ -10,7 +10,7 @@ describe('the rows of the editor context menu', () => {
         const groups = menuGroupsOf(() => true);
 
         expect(ids(groups.goTo)).toEqual(['definition', 'declaration', 'typeDefinition', 'implementation']);
-        expect(ids(groups.references)).toEqual(['peekReferences', 'callHierarchy']);
+        expect(ids(groups.references)).toEqual(['peekReferences', 'callHierarchy', 'typeHierarchy']);
         expect(ids(groups.changes)).toEqual(['renameSymbol', 'codeActions']);
     });
 

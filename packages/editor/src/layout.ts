@@ -57,7 +57,12 @@ export interface Inlay {
     composition?: boolean;
     /* A suggestion the host drew after the caret: text in the code face with no padding, which the caret stays in front of. */
     ghost?: boolean;
+    /* A square of this CSS color in place of the text, such as the color a literal in the code stands for. */
+    swatch?: string;
 }
+
+/* The side of a swatch in pixels, without its gaps. */
+export const SWATCH_SIZE = 12;
 
 /* A row of the host's own DOM above or below a line, as tall as the host makes it. */
 export interface BlockWidget {
@@ -366,10 +371,13 @@ export function scanDenseLine(
             const inlay = lineInlays[nextInlay++]!;
             const shown = visibleBidi(inlay.text);
 
+            const gaps = (inlay.gapLeft ?? 0) + (inlay.gapRight ?? 0);
             const width =
                 inlay.composition || inlay.ghost
                     ? metrics.measureText(shown)
-                    : Math.max(8, metrics.measureInlay(shown) + 12) + (inlay.gapLeft ?? 0) + (inlay.gapRight ?? 0);
+                    : inlay.swatch !== undefined
+                      ? SWATCH_SIZE + gaps
+                      : Math.max(8, metrics.measureInlay(shown) + 12) + gaps;
 
             geometry.inlays.push({ inlay, x, width, subRow: row });
             x += width;

@@ -4,6 +4,10 @@ The callers of a symbol, or the symbols it calls, as a tree between the lines of
 
 `language.callHierarchy.open(position?, direction?)` prepares the symbol at the caret with `textDocument/prepareCallHierarchy` and opens its callers (`'incoming'`, the default) or its callees (`'outgoing'`). A server that answers several symbols for one position, such as overloads, gives several roots. The chord is `callHierarchy` in the key table, `Ctrl+Alt+H` on every platform, and the context menu lists it where the service supports it. Pressing the chord while the tree is open switches between callers and callees.
 
+## Type hierarchy
+
+The same tree walks the supertypes or the subtypes of a type. `language.callHierarchy.open(position, 'supertypes')` or `'subtypes'` prepares the type with `textDocument/prepareTypeHierarchy`, and each node asks `typeHierarchy/supertypes` or `typeHierarchy/subtypes` when it opens. A type has no call sites, so the code beside the tree is the type itself and Enter goes there. The chord is `typeHierarchy` in the key table, `Ctrl+H` on every platform, as in IntelliJ; pressing it again switches between supertypes and subtypes. The context menu lists it beside the call hierarchy. `typesSupported` says whether the service has the three methods and a server answers them. `setDirection` from calls to types, or back, prepares the symbol again at the place the tree was opened.
+
 ## What it asks, and when
 
 The tree asks only when the service has `prepareCallHierarchy`, `incomingCalls` and `outgoingCalls` (all three are optional on [`LanguageService`](/lsp/language-service)) and `supports('textDocument/prepareCallHierarchy', uri)` is true, which is a server announcing `callHierarchyProvider`. `language.callHierarchy.supported` says so. Otherwise `open` shows a notification and asks nothing.

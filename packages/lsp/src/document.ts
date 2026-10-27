@@ -9,6 +9,9 @@ import type {
     CodeAction,
     CodeActionContext,
     CodeLens,
+    Color,
+    ColorInformation,
+    ColorPresentation,
     Command,
     CompletionContext,
     CompletionItem,
@@ -17,13 +20,20 @@ import type {
     DocumentDiagnosticReport,
     DocumentHighlight,
     DocumentItem,
+    DocumentLink,
     DocumentRequestOptions,
     DocumentSymbolResult,
     FoldingRange,
     FormattingOptions,
     Hover,
     InlayHint,
+    InlineCompletionContext,
+    InlineCompletionResult,
+    InlineValue,
+    InlineValueContext,
+    LinkedEditingRanges,
     Location,
+    Moniker,
     NavigationResult,
     Position,
     PrepareRenameResult,
@@ -33,7 +43,9 @@ import type {
     SemanticTokensDelta,
     SignatureHelp,
     SignatureHelpContext,
+    TextDocumentSaveReason,
     TextEdit,
+    TypeHierarchyItem,
     WorkspaceEdit
 } from './protocol.ts';
 
@@ -286,6 +298,72 @@ export class LspDocument {
         return this.feature('textDocument/diagnostic', { previousResultId, identifier }, options);
     }
 
+    documentLinks(options?: DocumentRequestOptions): Promise<DocumentLink[] | null> {
+        return this.feature('textDocument/documentLink', {}, options);
+    }
+
+    resolveDocumentLink(link: DocumentLink, options?: DocumentRequestOptions): Promise<DocumentLink> {
+        return this.resolve('documentLink/resolve', link, options);
+    }
+
+    documentColors(options?: DocumentRequestOptions): Promise<ColorInformation[] | null> {
+        return this.feature('textDocument/documentColor', {}, options);
+    }
+
+    colorPresentations(color: Color, range: Range, options?: DocumentRequestOptions): Promise<ColorPresentation[] | null> {
+        return this.feature('textDocument/colorPresentation', { color, range }, options);
+    }
+
+    linkedEditingRanges(position: Position, options?: DocumentRequestOptions): Promise<LinkedEditingRanges | null> {
+        return this.feature('textDocument/linkedEditingRange', { position }, options);
+    }
+
+    monikers(position: Position, options?: DocumentRequestOptions): Promise<Moniker[] | null> {
+        return this.feature('textDocument/moniker', { position }, options);
+    }
+
+    prepareTypeHierarchy(position: Position, options?: DocumentRequestOptions): Promise<TypeHierarchyItem[] | null> {
+        return this.feature('textDocument/prepareTypeHierarchy', { position }, options);
+    }
+
+    /* Like the calls of a call hierarchy, expansions of the tree run beside each other unless `cancelPrevious` says otherwise. */
+    supertypes(item: TypeHierarchyItem, options?: DocumentRequestOptions): Promise<TypeHierarchyItem[] | null> {
+        return this.perform('typeHierarchy/supertypes', { item }, { cancelPrevious: false, ...options });
+    }
+
+    subtypes(item: TypeHierarchyItem, options?: DocumentRequestOptions): Promise<TypeHierarchyItem[] | null> {
+        return this.perform('typeHierarchy/subtypes', { item }, { cancelPrevious: false, ...options });
+    }
+
+    inlineValues(range: Range, context: InlineValueContext, options?: DocumentRequestOptions): Promise<InlineValue[] | null> {
+        return this.feature('textDocument/inlineValue', { range, context }, options);
+    }
+
+    inlineCompletions(position: Position, context: InlineCompletionContext, options?: DocumentRequestOptions): Promise<InlineCompletionResult> {
+        return this.feature('textDocument/inlineCompletion', { position, context }, options);
+    }
+
+    rangesFormatting(ranges: readonly Range[], formatting: FormattingOptions, options?: DocumentRequestOptions): Promise<TextEdit[] | null> {
+        return this.feature('textDocument/rangesFormatting', { ranges: [...ranges], options: formatting }, options);
+    }
+
+    /* Tells the server a save is coming, when it asked to hear it. */
+    async willSave(reason: TextDocumentSaveReason = 1): Promise<void> {
+        this.assertOpen();
+        if (this.session.syncOptions.willSave) {
+            await this.session.notify('textDocument/willSave', { textDocument: { uri: this.uri }, reason });
+        }
+    }
+
+    /* The edits the server wants in the text before it is saved, or null when it did not ask to be told. Apply them, then save. */
+    async willSaveWaitUntil(reason: TextDocumentSaveReason = 1, options?: DocumentRequestOptions): Promise<TextEdit[] | null> {
+        this.assertOpen();
+        if (!this.session.syncOptions.willSaveWaitUntil) {
+            return null;
+        }
+        return this.perform('textDocument/willSaveWaitUntil', { textDocument: { uri: this.uri }, reason }, options);
+    }
+
     /* Any feature by its LSP method, for a caller that gets the method from elsewhere. `params` leave out `textDocument`; a resolve method takes the item. */
     request<T = unknown>(method: string, params: object, options?: DocumentRequestOptions): Promise<T> {
         return method.endsWith('/resolve') ? (this.resolve(method, params, options) as Promise<T>) : this.feature<T>(method, params, options);
@@ -367,7 +445,14 @@ export class LspDocument {
             this.sendFullText?.();
             await this.synced;
             this.assertCurrent(version);
-            const result = await this.session.request<T>(method, params, { signal: controller.signal, timeoutMs: options.timeoutMs });
+            const { onPartialResult, onWorkDoneProgress } = options;
+            const result = await this.session.request<T>(method, params, {
+                signal: controller.signal,
+                timeoutMs: options.timeoutMs,
+                // A part for a text that moved on is as stale as the answer would be.
+                onPartialResult: onPartialResult && ((value) => this.version === version && !this.closed && onPartialResult(value)),
+                onWorkDoneProgress
+            });
             this.assertCurrent(version);
             this.remember(result, version);
 

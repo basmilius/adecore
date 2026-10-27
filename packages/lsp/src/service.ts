@@ -5,6 +5,9 @@ import type {
     CodeAction,
     CodeActionContext,
     CodeLens,
+    Color,
+    ColorInformation,
+    ColorPresentation,
     Command,
     CompletionContext,
     CompletionItem,
@@ -13,23 +16,37 @@ import type {
     Diagnostic,
     Disposable,
     DocumentHighlight,
+    DocumentLink,
     DocumentSymbolResult,
     FoldingRange,
     FormattingOptions,
     Hover,
     InlayHint,
+    InlineCompletionContext,
+    InlineCompletionResult,
+    InlineValue,
+    InlineValueContext,
+    LinkedEditingRanges,
     Location,
+    MessageType,
+    Moniker,
     NavigationResult,
     Position,
     PrepareRenameResult,
+    PreviousResultId,
     ProviderOptions,
     Range,
     SelectionRange,
     SemanticTokens,
     SemanticTokensDelta,
+    ShowDocumentParams,
+    ShowDocumentResult,
     SignatureHelp,
     SignatureHelpContext,
+    TextDocumentSaveReason,
     TextEdit,
+    TypeHierarchyItem,
+    WorkspaceDiagnosticReport,
     WorkspaceEdit,
     WorkspaceSymbolResult
 } from './protocol.ts';
@@ -128,4 +145,42 @@ export interface LanguageService {
     didDeleteFiles?(files: readonly DeletedFile[]): Promise<void>;
     codeLenses(uri: string, options?: LanguageRequestOptions): Promise<CodeLens[] | null>;
     resolveCodeLens(uri: string, lens: CodeLens, options?: LanguageRequestOptions): Promise<CodeLens>;
+
+    /*
+     * The methods below are optional so a service from before them still fits; `supports(method, uri)` says
+     * whether a server answers each. They follow the LSP methods their names point at.
+     */
+    documentLinks?(uri: string, options?: LanguageRequestOptions): Promise<DocumentLink[] | null>;
+    resolveDocumentLink?(uri: string, link: DocumentLink, options?: LanguageRequestOptions): Promise<DocumentLink>;
+    documentColors?(uri: string, options?: LanguageRequestOptions): Promise<ColorInformation[] | null>;
+    colorPresentations?(uri: string, color: Color, range: Range, options?: LanguageRequestOptions): Promise<ColorPresentation[] | null>;
+    linkedEditingRanges?(uri: string, position: Position, options?: LanguageRequestOptions): Promise<LinkedEditingRanges | null>;
+    monikers?(uri: string, position: Position, options?: LanguageRequestOptions): Promise<Moniker[] | null>;
+    prepareTypeHierarchy?(uri: string, position: Position, options?: LanguageRequestOptions): Promise<TypeHierarchyItem[] | null>;
+    /* `uri` is the document the hierarchy was prepared in, which names the server to ask. */
+    supertypes?(uri: string, item: TypeHierarchyItem, options?: LanguageRequestOptions): Promise<TypeHierarchyItem[] | null>;
+    subtypes?(uri: string, item: TypeHierarchyItem, options?: LanguageRequestOptions): Promise<TypeHierarchyItem[] | null>;
+    inlineValues?(uri: string, range: Range, context: InlineValueContext, options?: LanguageRequestOptions): Promise<InlineValue[] | null>;
+    inlineCompletions?(uri: string, position: Position, context: InlineCompletionContext, options?: LanguageRequestOptions): Promise<InlineCompletionResult>;
+    rangesFormatting?(uri: string, ranges: readonly Range[], formatting: FormattingOptions, options?: LanguageRequestOptions): Promise<TextEdit[] | null>;
+    /* Tells the servers a save is coming; `willSaveWaitUntil` answers the edits they want in the text first, null when none asked. */
+    willSave?(uri: string, reason?: TextDocumentSaveReason): Promise<void>;
+    willSaveWaitUntil?(uri: string, reason?: TextDocumentSaveReason, options?: LanguageRequestOptions): Promise<TextEdit[] | null>;
+    /* The diagnostics of every file the server of `uri` knows, the answer for each document a full or an unchanged report. */
+    workspaceDiagnostics?(uri: string, previousResultIds?: readonly PreviousResultId[], options?: LanguageRequestOptions): Promise<WorkspaceDiagnosticReport>;
+    /* The text of a document of a scheme a server owns, such as a decompiled class; null when no server serves the scheme. */
+    textDocumentContent?(uri: string, options?: LanguageRequestOptions): Promise<string | null>;
+    /* What the servers want a person to read or have logged (`window/showMessage`, `window/logMessage`). */
+    onServerMessage?(listener: (message: ServerMessage) => void): Disposable;
+    /* Answers `window/showDocument`: the handler shows the document or web address and says whether it did. One handler at a time. */
+    onShowDocument?(handler: (params: ShowDocumentParams) => Promise<ShowDocumentResult>): Disposable;
+}
+
+/* A message of a server: one to show a person, or a line for its log. */
+export interface ServerMessage {
+    readonly kind: 'show' | 'log';
+    readonly type: MessageType;
+    readonly message: string;
+    /* The server that sent it, as the service names servers. */
+    readonly source?: string;
 }
