@@ -111,8 +111,8 @@ export class SignatureFeature {
     }
 
     private options(): { triggers: readonly string[]; retriggers: readonly string[] } | null {
-        const { project, uri } = this.language;
-        const options = project.service.providerOptions(METHOD, uri);
+        const { uri } = this.language;
+        const options = this.language.service.providerOptions(METHOD, uri);
 
         return options === undefined ? null : { triggers: options.triggerCharacters ?? [], retriggers: options.retriggerCharacters ?? [] };
     }
@@ -147,9 +147,9 @@ export class SignatureFeature {
     }
 
     private ask(context: Omit<SignatureHelpContext, 'activeSignatureHelp'>): void {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        if (!project.service.supports(METHOD, uri)) {
+        if (!this.language.service.supports(METHOD, uri)) {
             return;
         }
 
@@ -160,7 +160,7 @@ export class SignatureFeature {
     }
 
     private async fetch(context: SignatureHelpContext, request: number): Promise<void> {
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
         const caret = editor.getCaret();
         this.controller?.abort();
         const controller = new AbortController();
@@ -168,7 +168,7 @@ export class SignatureFeature {
         let help: SignatureHelp | null;
 
         try {
-            help = await project.service.signatureHelp(uri, caret, context, { signal: controller.signal });
+            help = await this.language.service.signatureHelp(uri, caret, context, { signal: controller.signal });
         } catch {
             return;
         }

@@ -1,6 +1,14 @@
 import { disposeSnippetTransforms } from './snippet-transform-queue.ts';
 import i18next, { type i18n } from 'i18next';
-import { fileUriToPath, pathToFileUri, type ApplyWorkspaceEditResult, type ContentChange, type LanguageService, type WorkspaceEdit } from '@adecore/lsp';
+import {
+    fileUriToPath,
+    pathToFileUri,
+    unservedLanguageService,
+    type ApplyWorkspaceEditResult,
+    type ContentChange,
+    type LanguageService,
+    type WorkspaceEdit
+} from '@adecore/lsp';
 import type { Editor, EditorPosition } from '@adecore/editor';
 import { NavigationHistory, type Place } from './navigation-history.ts';
 import { ProjectProblems, serviceProblems } from './project-problems.ts';
@@ -15,6 +23,8 @@ export interface LanguageDocumentHandle {
     readonly ready: Promise<void>;
     release(): void;
 }
+
+const UNSERVED = unservedLanguageService();
 
 /* Sends one editor's edits to the document, holding them until the document is open. */
 class DocumentSync {
@@ -76,8 +86,16 @@ class DocumentSync {
 
 interface Holder {
     readonly editors: Editor[];
-    sync: DocumentSync;
+    /* The editors a server serves, in the order they came; the first one sends the changes. */
+    readonly served: Editor[];
+    /* Null while no editor of the document is served, so nothing of it is open in the service. */
+    sync: DocumentSync | null;
     languageId: string;
+}
+
+export interface AcquireOptions {
+    /* False registers the editor as open without telling the service, for a document no server serves; true by default. */
+    readonly serve?: boolean;
 }
 
 /* A file or folder for a file operation notification: a bare path is a file. */
@@ -187,7 +205,7 @@ export class ProjectLanguage {
 
     /* The text of a file as it stands now: an open document's, else a draft's or the machine's; null when it is no text file. */
     async readText(uri: string): Promise<string | null> {
-        const open = this.holders.get(uri)?.sync.text;
+        const open = this.holders.get(uri)?.editors[0]?.getText();
 
         if (open !== undefined) {
             return open;
@@ -234,27 +252,39 @@ export class ProjectLanguage {
         return pending.position;
     }
 
+    /* The editors that hold a document, one per uri in the order the documents were first opened. */
+    openEditors(): readonly { uri: string; editor: Editor }[] {
+        return [...this.holders].flatMap(([uri, holder]) => (holder.editors[0] === undefined ? [] : [{ uri, editor: holder.editors[0] }]));
+    }
+
     /* Opens `uri` for the editor, or joins the editors that already hold it. */
-    acquire(uri: string, languageId: string, editor: Editor): LanguageDocumentHandle {
+    acquire(uri: string, languageId: string, editor: Editor, options: AcquireOptions = {}): LanguageDocumentHandle {
         if (this.disposed) {
             throw new Error('The project language is disposed');
         }
 
+        const serve = options.serve ?? true;
         let holder = this.holders.get(uri);
 
         if (holder === undefined) {
-            holder = { editors: [], sync: new DocumentSync(this.service, uri, languageId, editor), languageId };
+            holder = { editors: [], served: [], sync: null, languageId };
             this.holders.set(uri, holder);
         }
 
         holder.editors.push(editor);
+
+        if (serve) {
+            holder.served.push(editor);
+            holder.sync ??= new DocumentSync(this.service, uri, languageId, editor);
+        }
+
         let released = false;
 
         return {
             uri,
-            service: this.service,
+            service: serve ? this.service : UNSERVED,
             get ready() {
-                return holder.sync.ready;
+                return serve ? (holder.sync?.ready ?? Promise.resolve()) : Promise.resolve();
             },
             release: () => {
                 if (!released) {
@@ -273,26 +303,38 @@ export class ProjectLanguage {
         }
 
         holder.editors.splice(holder.editors.indexOf(editor), 1);
-        const next = holder.editors[0];
 
-        if (next === undefined) {
-            holder.sync.dispose();
+        if (holder.served.includes(editor)) {
+            holder.served.splice(holder.served.indexOf(editor), 1);
+        }
+
+        const { sync } = holder;
+
+        if (holder.editors.length === 0) {
             this.holders.delete(uri);
+        }
 
-            void holder.sync.ready
+        if (sync === null || sync.editor !== editor) {
+            return;
+        }
+
+        sync.dispose();
+        const next = holder.served[0];
+
+        // The editor that sent the changes is gone; the next served one takes over and opens the document with its own text.
+        holder.sync = next === undefined ? null : new DocumentSync(this.service, uri, holder.languageId, next);
+
+        if (holder.sync === null) {
+            void sync.ready
                 .catch(() => undefined)
                 .then(() => {
-                    if (this.holders.has(uri)) {
+                    if (this.holders.get(uri)?.sync) {
                         return undefined;
                     }
 
                     return this.service.closeDocument(uri);
                 })
                 .catch(() => undefined);
-        } else if (holder.sync.editor === editor) {
-            // The editor that sent the changes is gone; the next one takes over and opens the document with its own text.
-            holder.sync.dispose();
-            holder.sync = new DocumentSync(this.service, uri, holder.languageId, next);
         }
     }
 
@@ -305,6 +347,10 @@ export class ProjectLanguage {
         disposeSnippetTransforms(this);
 
         for (const [uri, holder] of this.holders) {
+            if (holder.sync === null) {
+                continue;
+            }
+
             holder.sync.dispose();
 
             void holder.sync.ready

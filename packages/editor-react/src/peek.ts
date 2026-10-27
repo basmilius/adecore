@@ -82,7 +82,7 @@ export class PeekFeature {
         const { editor, project, uri } = this.language;
         const method = KINDS[kind].method;
 
-        if (!project.service.supports(method, uri)) {
+        if (!this.language.service.supports(method, uri)) {
             this.tell(this.say(KINDS[kind].unavailable));
 
             return;
@@ -160,14 +160,14 @@ export class PeekFeature {
     }
 
     private async fetch(kind: PeekKind, position: EditorPosition): Promise<{ locations: Location[]; targets: Map<string, Range> }> {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
         if (kind === 'references') {
             // Without the declaration, so the list holds what the usages count above a declaration counts.
-            return { locations: (await project.service.references(uri, position, false)) ?? [], targets: new Map() };
+            return { locations: (await this.language.service.references(uri, position, false)) ?? [], targets: new Map() };
         }
 
-        const places = uniquePlaces(await project.service.definition(uri, position));
+        const places = uniquePlaces(await this.language.service.definition(uri, position));
         const targets = new Map(places.flatMap(({ location, target }) => (target === null ? [] : [[placeKey(location), target] as const])));
 
         return { locations: places.map(({ location }) => location), targets };

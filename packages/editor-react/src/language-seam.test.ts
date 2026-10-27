@@ -249,3 +249,78 @@ test('signature and proposal display render without an application host', () => 
 
     expect(review).toContain('Proposed edit');
 });
+
+describe('unserved documents', () => {
+    test('an unserved acquire sends nothing and a later served one opens the document', async () => {
+        const service = new FakeLanguageService();
+        const project = new ProjectLanguage(service);
+        const plain = editor('a');
+        const unserved = project.acquire(uri, 'plaintext', plain, { serve: false });
+
+        plain.type('ab');
+        await unserved.ready;
+        await settle();
+
+        expect(service.calls).toHaveLength(0);
+        expect(unserved.service).not.toBe(service);
+        expect(await project.readText(uri)).toBe('ab');
+
+        const served = project.acquire(uri, 'plaintext', editor('ab'));
+
+        await served.ready;
+
+        expect(served.service).toBe(service);
+        expect(service.documents.get(uri)?.text).toBe('ab');
+
+        served.release();
+        unserved.release();
+        await settle();
+
+        expect(service.documents.has(uri)).toBe(false);
+
+        project.dispose();
+    });
+
+    test('releasing an unserved editor closes nothing', async () => {
+        const service = new FakeLanguageService();
+        const project = new ProjectLanguage(service);
+
+        project.acquire(uri, 'plaintext', editor('a'), { serve: false }).release();
+        await settle();
+
+        expect(service.calls).toHaveLength(0);
+
+        project.dispose();
+    });
+
+    test('lists the open editors once per uri in the order they opened', () => {
+        const project = new ProjectLanguage(new FakeLanguageService());
+        const first = editor('a');
+        const second = editor('b');
+
+        project.acquire('file:///a.txt', 'plaintext', first, { serve: false });
+        project.acquire('file:///b.txt', 'plaintext', second);
+        project.acquire('file:///a.txt', 'plaintext', editor('a'), { serve: false });
+
+        expect(project.openEditors()).toEqual([
+            { uri: 'file:///a.txt', editor: first },
+            { uri: 'file:///b.txt', editor: second }
+        ]);
+
+        project.dispose();
+    });
+
+    test('an unserved EditorLanguage never asks the project service', async () => {
+        const service = new FakeLanguageService();
+        const project = new ProjectLanguage(service);
+        const language = new EditorLanguage(project, editor('abc'), uri, 'plaintext', new ManualTimers(), { serve: false });
+
+        await settle();
+
+        expect(language.served).toBe(false);
+        expect(service.calls).toHaveLength(0);
+
+        language.dispose();
+        project.dispose();
+    });
+});

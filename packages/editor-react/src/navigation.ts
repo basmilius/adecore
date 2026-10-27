@@ -95,11 +95,11 @@ export class NavigationFeature {
     }
 
     supports(kind: NavigationKind): boolean {
-        return this.language.project.service.supports(METHODS[kind], this.language.uri);
+        return this.language.service.supports(METHODS[kind], this.language.uri);
     }
 
     async go(kind: NavigationKind, position: EditorPosition = this.language.editor.getCaret()): Promise<void> {
-        const { project, uri, editor } = this.language;
+        const { uri, editor } = this.language;
 
         if (!this.supports(kind)) {
             this.tell(this.say('unavailable'));
@@ -110,7 +110,7 @@ export class NavigationFeature {
         let result: NavigationResult;
 
         try {
-            result = await REQUESTS[kind](project.service, uri, position);
+            result = await REQUESTS[kind](this.language.service, uri, position);
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.tell(this.say('failed', { message: messageOf(error) }));
@@ -141,7 +141,7 @@ export class NavigationFeature {
      * up by name among the symbols of the project. One match goes there at once, several are listed, and none says nothing.
      */
     async goToName(name: string, anchor: EditorPosition, own: Location | null): Promise<void> {
-        const { project, uri, editor } = this.language;
+        const { uri, editor } = this.language;
 
         if (own !== null) {
             this.language.goTo(own);
@@ -149,12 +149,12 @@ export class NavigationFeature {
             return;
         }
 
-        if (!project.service.supports('workspace/symbol', uri)) {
+        if (!this.language.service.supports('workspace/symbol', uri)) {
             return;
         }
 
         try {
-            const places = placesOfName(await project.service.workspaceSymbols(uri, name), name, editor.getText());
+            const places = placesOfName(await this.language.service.workspaceSymbols(uri, name), name, editor.getText());
 
             if (places.length === 1) {
                 this.language.goTo(places[0]!);

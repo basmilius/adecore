@@ -88,8 +88,7 @@ export class CallHierarchyFeature {
 
     /* Whether a server of this document answers the three requests the tree is made of. */
     get supported(): boolean {
-        const { project, uri } = this.language;
-        const { service } = project;
+        const { service, uri } = this.language;
 
         return (
             service.prepareCallHierarchy !== undefined &&
@@ -101,7 +100,7 @@ export class CallHierarchyFeature {
 
     /* Opens the tree for the symbol at the position, on its callers unless told otherwise. */
     async open(position: EditorPosition = this.language.editor.getCaret(), direction: CallDirection = 'incoming'): Promise<void> {
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
 
         if (!this.supported) {
             this.tell(this.say('unavailable'));
@@ -114,7 +113,7 @@ export class CallHierarchyFeature {
         let items: CallHierarchyItem[] | null;
 
         try {
-            items = await project.service.prepareCallHierarchy!(uri, position, { signal: this.controller.signal });
+            items = await this.language.service.prepareCallHierarchy!(uri, position, { signal: this.controller.signal });
         } catch (error) {
             if (epoch === this.epoch && !(error instanceof StaleResultError)) {
                 this.tell(this.say('failed', { message: messageOf(error) }));
@@ -331,8 +330,8 @@ export class CallHierarchyFeature {
             return;
         }
 
-        const { service, i18n } = this.language.project;
-        const { uri, editor } = this.language;
+        const { i18n } = this.language.project;
+        const { service, uri, editor } = this.language;
         const { direction, epoch } = this;
         const options = { signal: this.controller.signal, parallel: true };
         this.patch(id, { load: 'loading', error: null });

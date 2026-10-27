@@ -1,6 +1,6 @@
 import { KEYMAP, type Keymap } from '@adecore/editor/keymap';
 import type { Editor, EditorKeyHandler, EditorPosition } from '@adecore/editor';
-import type { Location } from '@adecore/lsp';
+import type { LanguageService, Location } from '@adecore/lsp';
 import { CallHierarchyFeature } from './call-hierarchy.ts';
 import { CodeActionsFeature } from './code-actions.ts';
 import { CodeVisionFeature } from './code-vision.ts';
@@ -36,6 +36,8 @@ import type { LanguageDocumentHandle, ProjectLanguage } from './project-language
 export interface EditorLanguageOptions {
     /* Where a document counts as large for semantic tokens. */
     semanticTokens?: SemanticTokensOptions;
+    /* False for a document no server serves: it counts as open in the project and the features stay inert. True by default. */
+    serve?: boolean;
 }
 
 /*
@@ -50,6 +52,9 @@ export class EditorLanguage {
     readonly project: ProjectLanguage;
     readonly document: LanguageDocumentHandle;
     readonly languageId: string;
+
+    /* Whether a server serves this document; read it where a host meant "a language server is behind this editor". */
+    readonly served: boolean;
 
     /* What the features of this editor have open over it: the hover card, the suggestions, the signature. */
     readonly popups = createPopupStore();
@@ -86,7 +91,8 @@ export class EditorLanguage {
         this.shortcuts = shortcutsOf(this.keymap, this.apple);
         this.project = project;
         this.languageId = languageId;
-        this.document = project.acquire(uri, languageId, editor);
+        this.served = options.serve ?? true;
+        this.document = project.acquire(uri, languageId, editor, { serve: this.served });
         this.onDispose(editor.onKeyDown((event) => this.keys.dispatch(event)));
         this.pick = new PickFeature(this, timers);
         this.diagnostics = new DiagnosticsFeature(this);
@@ -118,6 +124,11 @@ export class EditorLanguage {
 
     get uri(): string {
         return this.document.uri;
+    }
+
+    /* The service this document is asked through: the project's, or one that answers nothing when no server serves it. */
+    get service(): LanguageService {
+        return this.document.service;
     }
 
     get isDisposed(): boolean {
@@ -173,7 +184,7 @@ export class EditorLanguage {
             () => undefined
         );
 
-        const providers = this.project.service.onProvidersChanged((uri) => {
+        const providers = this.service.onProvidersChanged((uri) => {
             if (uri === this.uri) {
                 listener();
             }

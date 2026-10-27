@@ -52,9 +52,9 @@ export class FormatOnTypeFeature {
 
     /* Whether the server of this document formats on type and the service can ask it. */
     get supported(): boolean {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        return project.service.onTypeFormatting !== undefined && project.service.supports(METHOD, uri);
+        return this.language.service.onTypeFormatting !== undefined && this.language.service.supports(METHOD, uri);
     }
 
     configure(enabled: boolean): void {
@@ -67,7 +67,7 @@ export class FormatOnTypeFeature {
 
     /* The characters that ask the server, the first one and the more. */
     triggerCharacters(): readonly string[] {
-        const options = this.language.project.service.providerOptions(METHOD, this.language.uri);
+        const options = this.language.service.providerOptions(METHOD, this.language.uri);
 
         return options === undefined
             ? []
@@ -99,12 +99,12 @@ export class FormatOnTypeFeature {
     }
 
     private async ask(revision: number, typed: string, caret: { line: number; character: number }, signal: AbortSignal): Promise<void> {
-        const { editor, project, uri, document } = this.language;
+        const { editor, uri, document } = this.language;
 
         try {
             // The change of the typed character reaches the server before this question does.
             await document.ready;
-            const edits = await project.service.onTypeFormatting!(uri, caret, typed, { ...editor.getIndentation() }, { signal });
+            const edits = await this.language.service.onTypeFormatting!(uri, caret, typed, { ...editor.getIndentation() }, { signal });
             const here = editor.getCaret();
             const stale = revision !== this.revision || this.language.isDisposed || comparePositions(here, caret) !== 0;
 

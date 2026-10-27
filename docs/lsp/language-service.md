@@ -25,6 +25,8 @@ Every request takes `LanguageRequestOptions`: a `signal`, and `parallel: true` f
 - A `DiagnosticsReport` has the `uri`, the `source` (which server), an optional `version` and the `diagnostics`. A report replaces the earlier one of the same source, so give each server a stable source and send an empty report when its problems are gone.
 - A completion item, code action, lens or hint resolves on the server that produced it, and so does the command of an action.
 
+`unservedLanguageService()` is the service for a document no server serves: it takes documents, supports nothing, hands out subscriptions that do nothing, and rejects every request with an `LspError` of `-32601`.
+
 The package ships no service over processes. A small one over a single session hands each method to the open `LspDocument`, keeps a count of clients per URI, and turns `session.onCapabilitiesChanged` and `onDiagnostics` into the two events. Server discovery, installing, starting and permissions stay in the app.
 
 ## Vue and TypeScript

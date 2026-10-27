@@ -36,16 +36,16 @@ export class SymbolPickerFeature {
     }
 
     async open(): Promise<void> {
-        const { project, uri, popups } = this.language;
+        const { uri, popups } = this.language;
 
-        if (!project.service.supports('textDocument/documentSymbol', uri)) {
+        if (!this.language.service.supports('textDocument/documentSymbol', uri)) {
             this.language.project.host.notify?.({ id: TOAST_ID, kind: 'error', title: this.language.project.i18n.t('editor:language.symbols.unavailable') });
 
             return;
         }
 
         try {
-            const entries = entriesOf(await project.service.documentSymbols(uri));
+            const entries = entriesOf(await this.language.service.documentSymbols(uri));
             popups.setState({ symbols: { file: basenameOf(this.language.uri), entries } });
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
@@ -79,13 +79,13 @@ export class SymbolPickerFeature {
 
     /* The symbols of the project that answer to a name, which is a request to the server and so waits for a pause in the typing. */
     async search(text: string, signal: AbortSignal): Promise<WorkspaceEntry[]> {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        if (text === '' || !project.service.supports('workspace/symbol', uri)) {
+        if (text === '' || !this.language.service.supports('workspace/symbol', uri)) {
             return [];
         }
 
-        return workspaceEntriesOf(await project.service.workspaceSymbols(uri, text, { signal }));
+        return workspaceEntriesOf(await this.language.service.workspaceSymbols(uri, text, { signal }));
     }
 
     goToWorkspace(entry: WorkspaceEntry): void {

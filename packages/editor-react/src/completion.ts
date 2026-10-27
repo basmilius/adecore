@@ -236,7 +236,7 @@ export class CompletionFeature {
 
         recentChoicesOf(this.language.languageId).record(entry.item);
         let item = this.resolved.get(entry.item) ?? entry.item;
-        const needsResolve = !this.resolved.has(entry.item) && project.service.providerOptions('completionItem/resolve', uri) !== undefined;
+        const needsResolve = !this.resolved.has(entry.item) && this.language.service.providerOptions('completionItem/resolve', uri) !== undefined;
         this.close();
 
         if (needsResolve) {
@@ -522,7 +522,7 @@ export class CompletionFeature {
 
     /* Parameter info for a call that was opened (or that the server asks for), then the item's own command. */
     private afterInsert(item: CompletionItem, commit: string | undefined, lineBefore: string): void {
-        const { editor, project, uri, signature } = this.language;
+        const { editor, uri, signature } = this.language;
         const { start } = editor.getSelection();
         const insideCall = start.character > 0 && editor.textInRange({ start: { line: start.line, character: start.character - 1 }, end: start }) === '(';
 
@@ -539,7 +539,7 @@ export class CompletionFeature {
         if (command.command === PARAMETER_HINTS_COMMAND) {
             signature.trigger();
         } else {
-            project.service.executeCommand(uri, command).catch(() => undefined);
+            this.language.service.executeCommand(uri, command).catch(() => undefined);
         }
     }
 
@@ -549,10 +549,10 @@ export class CompletionFeature {
      * suggestion is resolved in that one; an item that cannot be resolved is still inserted as it is.
      */
     private async resolveNow(item: CompletionItem, signal: AbortSignal): Promise<CompletionItem> {
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
 
         try {
-            return { ...item, ...(await project.service.resolveCompletion(uri, item, { signal })) };
+            return { ...item, ...(await this.language.service.resolveCompletion(uri, item, { signal })) };
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 return item;
@@ -560,11 +560,11 @@ export class CompletionFeature {
         }
 
         try {
-            const fresh = itemsOf(await project.service.completion(uri, editor.getCaret(), { triggerKind: 1 }, { signal })).items.find(
+            const fresh = itemsOf(await this.language.service.completion(uri, editor.getCaret(), { triggerKind: 1 }, { signal })).items.find(
                 (candidate) => candidate.label === item.label && candidate.kind === item.kind
             );
 
-            return fresh === undefined ? item : { ...fresh, ...(await project.service.resolveCompletion(uri, fresh, { signal }).catch(() => fresh)) };
+            return fresh === undefined ? item : { ...fresh, ...(await this.language.service.resolveCompletion(uri, fresh, { signal }).catch(() => fresh)) };
         } catch {
             return item;
         }
@@ -703,15 +703,15 @@ export class CompletionFeature {
     }
 
     private triggerCharacters(): readonly string[] {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        return project.service.providerOptions(METHOD, uri)?.triggerCharacters ?? [];
+        return this.language.service.providerOptions(METHOD, uri)?.triggerCharacters ?? [];
     }
 
     private beginRequest(context: CompletionContext, delay: number): void {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        if (!project.service.supports(METHOD, uri)) {
+        if (!this.language.service.supports(METHOD, uri)) {
             return;
         }
 
@@ -729,7 +729,7 @@ export class CompletionFeature {
         let normalized: ReturnType<typeof itemsOf>;
 
         try {
-            const result = await project.service.completion(uri, position, context, { signal: controller.signal });
+            const result = await this.language.service.completion(uri, position, context, { signal: controller.signal });
 
             if (request !== this.request || this.controller !== controller || controller.signal.aborted) {
                 return;
@@ -839,12 +839,12 @@ export class CompletionFeature {
     }
 
     private scheduleResolve(): void {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
         this.timers.clear(this.resolveTimer);
         this.resolving?.abort();
         const entry = this.ranked[this.active];
 
-        if (entry === undefined || this.resolved.has(entry.item) || project.service.providerOptions('completionItem/resolve', uri) === undefined) {
+        if (entry === undefined || this.resolved.has(entry.item) || this.language.service.providerOptions('completionItem/resolve', uri) === undefined) {
             return;
         }
 
@@ -854,7 +854,7 @@ export class CompletionFeature {
             const controller = new AbortController();
             this.resolving = controller;
 
-            void project.service
+            void this.language.service
                 .resolveCompletion(uri, entry.item, { signal: controller.signal })
                 .then((item) => {
                     this.resolved.set(entry.item, { ...entry.item, ...item });

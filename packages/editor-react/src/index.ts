@@ -3,7 +3,7 @@ export { KEY_PRIORITY } from './key-priority.ts';
 export { realTimers, type Timers } from './timers.ts';
 export { type SemanticTokensOptions } from './semantic-tokens.ts';
 export { ProjectLanguage, type FileOperationTarget } from './project-language.ts';
-export type { LanguageDocumentHandle } from './project-language.ts';
+export type { AcquireOptions, LanguageDocumentHandle } from './project-language.ts';
 
 export type {
     SnippetVariableContext,

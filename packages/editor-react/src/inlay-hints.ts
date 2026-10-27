@@ -391,7 +391,7 @@ export class InlayHintsFeature {
 
     /* Whether asking the server could still change what the hint offers. */
     private resolvable(entry: Entry): boolean {
-        return !entry.answered && entry.epoch === this.epoch && this.language.project.service.supports(RESOLVE_METHOD, this.language.uri);
+        return !entry.answered && entry.epoch === this.epoch && this.language.service.supports(RESOLVE_METHOD, this.language.uri);
     }
 
     /* Underlines the part under the pointer when a press would do something with it: a command always, a place while the key is down. */
@@ -479,7 +479,7 @@ export class InlayHintsFeature {
                 this.cancelHover();
                 this.language.goTo(action.location);
             } else if (action.kind === 'run') {
-                await project.service.executeCommand(uri, action.command);
+                await this.language.service.executeCommand(uri, action.command);
             } else if (entry.epoch === this.epoch && editsFit(editor, action.edits)) {
                 this.cancelHover();
                 const applied = editor.applyEdits(action.edits.map((edit) => ({ range: edit.range, text: edit.newText })));
