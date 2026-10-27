@@ -254,9 +254,9 @@ export class RenderedDocsFeature {
 
     /* Whether names in `{@link}` and `@see` can be followed, which takes a server that finds symbols by name. */
     get canFollow(): boolean {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        return project.service.supports('workspace/symbol', uri);
+        return this.language.service.supports('workspace/symbol', uri);
     }
 
     /* Goes to what a link in a comment names. */

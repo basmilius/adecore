@@ -46,17 +46,17 @@ export class HighlightsFeature {
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         this.language = language;
-        const { editor, project, uri } = language;
+        const { editor, uri } = language;
 
         this.refresher = new Refresher(
             async (signal) => {
-                if (!project.service.supports(METHOD, uri) || !this.onName()) {
+                if (!language.service.supports(METHOD, uri) || !this.onName()) {
                     this.clear();
 
                     return;
                 }
 
-                const result = await project.service.documentHighlights(uri, editor.getCaret(), { signal });
+                const result = await language.service.documentHighlights(uri, editor.getCaret(), { signal });
 
                 if (!signal.aborted) {
                     this.set(result === null ? [] : editorHighlightsOf(result));

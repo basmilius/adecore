@@ -144,15 +144,15 @@ export class SymbolsFeature {
     private readonly listeners = new Set<(result: DocumentSymbolResult) => void>();
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
-        const { editor, project, uri } = language;
+        const { editor, uri } = language;
 
         this.refresher = new Refresher(
             async (signal) => {
-                if (!project.service.supports(METHOD, uri)) {
+                if (!language.service.supports(METHOD, uri)) {
                     return;
                 }
 
-                const result = await project.service.documentSymbols(uri, { signal });
+                const result = await language.service.documentSymbols(uri, { signal });
 
                 if (!signal.aborted) {
                     editor.setBlocks(result === null ? null : blocksOf(result, editor.getText()));

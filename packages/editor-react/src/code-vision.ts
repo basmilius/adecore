@@ -149,7 +149,7 @@ export class CodeVisionFeature {
     }
 
     private get canCount(): boolean {
-        return this.settings.usages && this.language.project.service.supports(REFERENCES, this.language.uri);
+        return this.settings.usages && this.language.service.supports(REFERENCES, this.language.uri);
     }
 
     /* Queues the declarations in view whose count is not from the current text, nearest the top of the view first. */
@@ -180,13 +180,13 @@ export class CodeVisionFeature {
     }
 
     private async count(declaration: CodeVisionDeclaration): Promise<void> {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
         const controller = new AbortController();
         this.running.set(declaration.id, controller);
         const epoch = this.epoch;
 
         try {
-            const locations = await project.service.references(uri, declaration.position, false, { signal: controller.signal, parallel: true });
+            const locations = await this.language.service.references(uri, declaration.position, false, { signal: controller.signal, parallel: true });
 
             if (!this.disposed && epoch === this.epoch) {
                 this.counts.set(declaration.id, { count: distinctPlaces(locations ?? []), epoch });

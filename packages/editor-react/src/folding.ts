@@ -58,15 +58,15 @@ export class FoldingFeature {
 
     constructor(language: EditorLanguage, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
         this.language = language;
-        const { editor, project, uri } = language;
+        const { editor, uri } = language;
 
         this.refresher = new Refresher(
             async (signal) => {
-                if (!project.service.supports(METHOD, uri)) {
+                if (!language.service.supports(METHOD, uri)) {
                     return;
                 }
 
-                const ranges = await project.service.foldingRanges(uri, { signal });
+                const ranges = await language.service.foldingRanges(uri, { signal });
 
                 if (!signal.aborted) {
                     this.ranges = foldRangesOf(ranges);

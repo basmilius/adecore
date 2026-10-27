@@ -27,6 +27,8 @@ The `host` is what the app allows the features to do. Every field is optional.
 
 `EditorLanguage` acquires the document of its URI from the project. The first editor of a URI opens it on the service and sends its changes. A second editor of the same URI joins that document and sends nothing, since both would report the same edit. When the editor that sends closes, the next one takes over and opens the document again with its own text. After the last one, the project closes the document.
 
+`acquire(uri, languageId, editor, { serve: false })` registers an editor whose document no server serves, such as plain text. The project counts it as open (`openEditors()` lists one editor per URI, in the order the documents opened) but sends nothing to the service, and its handle's `service` is `unservedLanguageService()`. A later served acquire of the same URI opens the document then, and its handle gets the project's service. `EditorLanguage` takes the same choice as `serve` in its `EditorLanguageOptions`; its `served` field says what it chose, and its `service` is the one to ask about this document. Every feature asks through `language.service`, so the features of an unserved document stay inert.
+
 Two editors of one file share a document, not a text. Keeping their texts the same is the app's work, for example with [`setText`](/editor/editing#replacing-the-text) in the other editor.
 
 Changes made while the document is opening wait for it. `document.ready` rejects when opening failed. Later failures of a change or a close are swallowed, so a service reports its own errors.

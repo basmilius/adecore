@@ -122,7 +122,7 @@ export class CodeActionsFeature {
     }
 
     get supported(): boolean {
-        return this.language.project.service.supports(METHOD, this.language.uri);
+        return this.language.service.supports(METHOD, this.language.uri);
     }
 
     /* The list under the caret, or under the selection's start. */
@@ -162,16 +162,16 @@ export class CodeActionsFeature {
     }
 
     async formatDocument(): Promise<void> {
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
 
-        if (!project.service.supports('textDocument/formatting', uri)) {
+        if (!this.language.service.supports('textDocument/formatting', uri)) {
             this.tell('error', this.say('noFormatter'));
 
             return;
         }
 
         try {
-            const edits = await project.service.formatting(uri, { ...editor.getIndentation() });
+            const edits = await this.language.service.formatting(uri, { ...editor.getIndentation() });
 
             if (edits !== null && edits.length > 0 && !editor.applyEdits(edits.map((edit) => ({ range: edit.range, text: edit.newText })))) {
                 this.tell('error', this.say('readOnly'));
@@ -247,7 +247,7 @@ export class CodeActionsFeature {
 
     /* Asks the servers; null when they could not answer, with the reason said aloud for a request a person made. */
     private async request(range: EditorRange, triggerKind: number, options: RequestOptions = {}): Promise<ActionEntry[] | null> {
-        const { project, uri, diagnostics } = this.language;
+        const { uri, diagnostics } = this.language;
         const { only, signal, order } = options;
 
         try {
@@ -264,7 +264,7 @@ export class CodeActionsFeature {
                 triggerKind: triggerKind as 1 | 2
             };
 
-            const entries = actionsOf(await project.service.codeActions(uri, range, context, { signal }), order);
+            const entries = actionsOf(await this.language.service.codeActions(uri, range, context, { signal }), order);
 
             // A server may answer with more than the kinds asked for.
             return only ? entries.filter((entry) => only.some((kind) => entry.action.kind === kind || entry.action.kind?.startsWith(`${kind}.`))) : entries;
@@ -329,13 +329,13 @@ export class CodeActionsFeature {
             return known;
         }
 
-        const { project, uri } = this.language;
+        const { uri } = this.language;
         const { action } = entry;
         let result = action;
 
-        if (action.edit === undefined && project.service.providerOptions(METHOD, uri)?.resolveProvider === true) {
+        if (action.edit === undefined && this.language.service.providerOptions(METHOD, uri)?.resolveProvider === true) {
             try {
-                result = await project.service.resolveCodeAction(uri, action, { signal });
+                result = await this.language.service.resolveCodeAction(uri, action, { signal });
             } catch (error) {
                 if (isRefusal(error)) {
                     throw new ActionRefused((error as Error).message);
@@ -427,7 +427,7 @@ export class CodeActionsFeature {
             if (action.command?.command === INLINE_RENAME_COMMAND) {
                 await this.startRename(action.command);
             } else if (action.command !== undefined) {
-                await project.service.executeCommand(uri, action.command);
+                await this.language.service.executeCommand(uri, action.command);
             }
         } catch (error) {
             this.fail(error);

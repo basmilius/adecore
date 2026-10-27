@@ -21,14 +21,14 @@ export function selectionChainOf(selection: SelectionRange): EditorRange[] {
  */
 export class SelectionRangesFeature {
     constructor(language: EditorLanguage) {
-        const { editor, project, uri } = language;
+        const { editor, uri } = language;
 
         editor.setSelectionRanges(async (positions) => {
-            if (!project.service.supports(METHOD, uri)) {
+            if (!language.service.supports(METHOD, uri)) {
                 return null;
             }
 
-            const chains = await project.service.selectionRanges(uri, positions);
+            const chains = await language.service.selectionRanges(uri, positions);
 
             return chains === null || chains.length !== positions.length ? null : chains.map(selectionChainOf);
         });

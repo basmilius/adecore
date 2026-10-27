@@ -67,9 +67,9 @@ export class RenameFeature {
     }
 
     async start(): Promise<void> {
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
 
-        if (!project.service.supports(METHOD, uri)) {
+        if (!this.language.service.supports(METHOD, uri)) {
             this.tell('error', this.say('unavailable'));
 
             return;
@@ -77,11 +77,11 @@ export class RenameFeature {
 
         this.cancel();
         const caret = editor.getCaret();
-        const prepare = project.service.providerOptions(METHOD, uri)?.prepareProvider === true;
+        const prepare = this.language.service.providerOptions(METHOD, uri)?.prepareProvider === true;
         let answer: PrepareRenameResult;
 
         try {
-            answer = prepare ? await project.service.prepareRename(uri, caret) : { defaultBehavior: true };
+            answer = prepare ? await this.language.service.prepareRename(uri, caret) : { defaultBehavior: true };
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.tell('error', this.say('nothing'));
@@ -127,7 +127,7 @@ export class RenameFeature {
         const { project, uri } = this.language;
 
         try {
-            const edit = await project.service.rename(uri, session.target.range.start, next);
+            const edit = await this.language.service.rename(uri, session.target.range.start, next);
 
             if (this.session !== session) {
                 return;
@@ -218,14 +218,14 @@ export class RenameFeature {
 
     /* Lights up the places the name has in this file, and counts them all; what the servers listed, or null when they did not. */
     private async light(session: Session): Promise<readonly Location[] | null> {
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
 
-        if (!project.service.supports('textDocument/references', uri)) {
+        if (!this.language.service.supports('textDocument/references', uri)) {
             return null;
         }
 
         try {
-            const locations = await project.service.references(uri, session.target.range.start, true);
+            const locations = await this.language.service.references(uri, session.target.range.start, true);
 
             if (this.session !== session || locations === null) {
                 return null;
@@ -277,14 +277,14 @@ export class RenameFeature {
 
     /* So a suggester knows a function from a variable; a rename on a use finds the kind through the declaration's place in this file. */
     private async kindOf(session: Session, locations: readonly Location[]): Promise<string | undefined> {
-        const { project, uri } = this.language;
+        const { uri } = this.language;
 
-        if (!project.service.supports('textDocument/documentSymbol', uri)) {
+        if (!this.language.service.supports('textDocument/documentSymbol', uri)) {
             return undefined;
         }
 
         try {
-            const symbols = await project.service.documentSymbols(uri, { signal: session.names.signal, parallel: true });
+            const symbols = await this.language.service.documentSymbols(uri, { signal: session.names.signal, parallel: true });
 
             return renameKindOf(symbols, session.original, [session.target.range, ...occurrencesOf(locations, uri).inFile]);
         } catch {

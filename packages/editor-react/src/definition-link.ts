@@ -90,13 +90,13 @@ export class DefinitionLinkFeature {
     private update(): void {
         const { pointer } = this;
 
-        if (!this.held || pointer === null || !this.language.project.service.supports('textDocument/definition', this.language.uri)) {
+        if (!this.held || pointer === null || !this.language.service.supports('textDocument/definition', this.language.uri)) {
             this.clear();
 
             return;
         }
 
-        const { editor, project, uri } = this.language;
+        const { editor, uri } = this.language;
         const line = lineTextOf(editor, pointer.line);
         const word = isIdentifierCharacter(line[pointer.character] ?? '') ? wordRangeAt(line, pointer) : null;
 
@@ -118,7 +118,7 @@ export class DefinitionLinkFeature {
         const controller = new AbortController();
         this.lookup = controller;
 
-        project.service
+        this.language.service
             .definition(uri, pointer, { signal: controller.signal })
             .then((result) => {
                 if (request === this.request && locationsOf(result).length > 0) {
