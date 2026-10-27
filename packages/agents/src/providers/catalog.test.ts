@@ -260,6 +260,7 @@ describe('what an agent reported over a catalog', () => {
             { slug: 'known', name: names.known ?? 'Known', badge: 'New', legacy: true, profile: 'wide' }
         ]
     });
+
     const effort = {
         id: 'effort',
         label: 'Reasoning',
@@ -270,6 +271,7 @@ describe('what an agent reported over a catalog', () => {
 
     test('a newer catalog keeps the models the agent reported', () => {
         const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+
         catalog.adopt(
             [
                 { slug: 'known', name: 'known' },
