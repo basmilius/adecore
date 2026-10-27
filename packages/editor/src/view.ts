@@ -1403,6 +1403,25 @@ export class EditorView {
         return [...new Set([...this.outline.declarationStops(this.model), ...sections])].sort((left, right) => left - right);
     }
 
+    /* Moves the one caret to the first line of the next or previous change mark, of any layer. False when there is none. */
+    goToChange(direction: -1 | 1): boolean {
+        const line = this.model.positionAt(this.model.getPrimary().head).line;
+        const { runs } = this.resolvedChanges();
+
+        // A run the caret is in is where it already is; a deleted run is the line its mark sits on.
+        const target = direction === 1 ? runs.find((run) => run.start > line) : runs.findLast((run) => (run.kind === 'deleted' ? run.start : run.end) < line);
+
+        if (target === undefined) {
+            return false;
+        }
+
+        const offset = this.model.getLine(Math.min(target.start, this.model.getLineCount() - 1)).start;
+        this.model.setSelections([{ anchor: offset, head: offset }]);
+        this.revealOffset(offset, 'center');
+
+        return true;
+    }
+
     /* Moves the one caret to the previous or next declaration on another line. False when there is none. */
     goToMethod(direction: -1 | 1): boolean {
         // The structure is read after a pause in typing, so a press right after an edit reads it now.

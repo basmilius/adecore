@@ -88,7 +88,9 @@ const VIEW_COMMANDS = new Set<EditorViewCommand>([
     'decreaseFontSize',
     'resetFontSize',
     'methodUp',
-    'methodDown'
+    'methodDown',
+    'nextChange',
+    'previousChange'
 ]);
 
 const ZOOM_STEPS = { increaseFontSize: 1, decreaseFontSize: -1, resetFontSize: 0 } as const satisfies Partial<Record<EditorViewCommand, -1 | 0 | 1>>;
@@ -418,11 +420,15 @@ export class InputController {
             return moved;
         }
 
+        if (name === 'nextChange' || name === 'previousChange') {
+            return view.goToChange(name === 'nextChange' ? 1 : -1);
+        }
+
         if (view.settings.folding === false && name !== 'toggleColumnMode') {
             return false;
         }
 
-        const run: Record<Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS | 'methodUp' | 'methodDown'>, () => void> = {
+        const run: Record<Exclude<EditorViewCommand, keyof typeof ZOOM_STEPS | 'methodUp' | 'methodDown' | 'nextChange' | 'previousChange'>, () => void> = {
             collapseRegion: () => view.collapseRegion(),
             expandRegion: () => view.expandRegion(),
             collapseAllRegions: () => view.foldAll(true),

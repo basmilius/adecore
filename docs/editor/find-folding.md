@@ -70,6 +70,8 @@ The fold commands go through [`runCommand`](/editor/editing#commands). The arrow
 
 The editor reads the blocks of a document, the stretches with a header line such as a function, from brackets and indentation. Sticky scroll pins the headers of the blocks scrolled out of view, up to five lines and at most a quarter of the view. `onScope(listener)` reports the named blocks around the caret, outermost first, for a breadcrumb.
 
+`runCommand('nextChange')` and `runCommand('previousChange')` (`Ctrl+Alt+Shift+ArrowDown` and `ArrowUp`) step the caret to the first line of the next or previous run of change marks from `setChangeMarks`, of any layer. A run the caret is in does not count, a removal is the line its mark sits on, and neither command wraps or enters the navigation history.
+
 `setDeclarations(positions)` sets the places Method Up and Down (`methodUp`, `methodDown`) stop at, such as the names of a language server's symbols. They follow their text through edits until set again; `null` goes back to the names of the editor's own structure and the headings of a Markdown file. A press moves the one caret to the next stop on another line and does not wrap. `onNavigate(listener)` hears the position the caret left after Method Up and Down and after the code block commands; `hasFocus()` tells whether the editor has the keyboard focus.
 
 `setBlocks(blocks)` replaces those blocks with better ones, such as a language server's symbols: an `EditorBlock` has one-based `startLine` and `endLine`, and an optional `name` and `kind`. `null` goes back to the editor's own.

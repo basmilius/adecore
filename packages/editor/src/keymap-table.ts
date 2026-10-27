@@ -54,6 +54,8 @@ export const KEYMAP = {
     matchBrace: bind('Ctrl+M', 'Ctrl+Shift+M'),
     methodUp: bind('Ctrl+Shift+ArrowUp', 'Alt+ArrowUp'),
     methodDown: bind('Ctrl+Shift+ArrowDown', 'Alt+ArrowDown'),
+    nextChange: bind('Ctrl+Alt+Shift+ArrowDown'),
+    previousChange: bind('Ctrl+Alt+Shift+ArrowUp'),
     codeBlockStart: bind('Mod+Alt+[', 'Ctrl+['),
     codeBlockEnd: bind('Mod+Alt+]', 'Ctrl+]'),
     codeBlockStartWithSelection: bind('Mod+Alt+Shift+[', 'Ctrl+Shift+['),
@@ -152,6 +154,8 @@ export type OptionalKeymapId =
     | 'convertIndentsToTabs'
     | 'methodUp'
     | 'methodDown'
+    | 'nextChange'
+    | 'previousChange'
     | 'codeBlockStart'
     | 'codeBlockEnd'
     | 'codeBlockStartWithSelection'

@@ -30,7 +30,9 @@ export type EditorViewCommand =
     | 'decreaseFontSize'
     | 'resetFontSize'
     | 'methodUp'
-    | 'methodDown';
+    | 'methodDown'
+    | 'nextChange'
+    | 'previousChange';
 
 /* How far a person may zoom the text, and whether the wheel does. */
 export interface EditorZoom {

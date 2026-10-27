@@ -207,6 +207,13 @@ describe('the structural movement keys', () => {
         });
     });
 
+    test('step through the change marks with Ctrl+Alt+Shift and the vertical arrows', () => {
+        const both = { ctrlKey: true, altKey: true, shiftKey: true };
+
+        expect(keyAction(key('ArrowDown', both), true)).toEqual({ type: 'view', command: 'nextChange' });
+        expect(keyAction(key('ArrowUp', both), false)).toEqual({ type: 'view', command: 'previousChange' });
+    });
+
     test('leave Alt+ArrowDown to Method Down and give Shrink Selection Ctrl+Shift+W off macOS', () => {
         expect(KEYMAP.shrinkSelection.mac).toBe('Alt+ArrowDown');
         expect(KEYMAP.shrinkSelection.other).toBe('Ctrl+Shift+W');
