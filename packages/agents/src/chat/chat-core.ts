@@ -663,6 +663,7 @@ export class ChatCore {
             items: session.previewItems(page.items),
             pending: session.previewItems(session.thread.pending()),
             subagents: session.thread.subagentsBefore(page.history.start),
+            outline: session.thread.outlineBefore(page.history.start),
             seq: log.seq
         };
     }
@@ -703,6 +704,12 @@ export class ChatCore {
         } while (this.listChanges.get(chatId) !== changes);
 
         const result = this.attach(chatId, clientId, historyLimit, since);
+
+        // A reply before the page has a tick only while a bookmark is on it, which only this read knows.
+        if (result.outline !== undefined && result.history !== undefined && bookmarks !== undefined && bookmarks.length > 0) {
+            const marked = new Set(bookmarks.map((bookmark) => bookmark.itemId));
+            result.outline = this.require(chatId).thread.outlineBefore(result.history.start, marked);
+        }
 
         return { ...result, ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
     }

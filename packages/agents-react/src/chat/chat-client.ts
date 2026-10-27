@@ -443,7 +443,9 @@ export class ChatClient {
             }
         } else {
             const page =
-                result.history === undefined ? undefined : { history: result.history, pending: result.pending ?? [], subagents: result.subagents ?? [] };
+                result.history === undefined
+                    ? undefined
+                    : { history: result.history, pending: result.pending ?? [], subagents: result.subagents ?? [], outline: result.outline ?? [] };
 
             this.sink.reset(chatId, result.info, result.items, page);
         }

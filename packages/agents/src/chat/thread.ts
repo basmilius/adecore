@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
     activeSubagents,
+    outlineItems,
     type AgentStatus,
     type ChatApprovalItem,
     type ChatEvent,
@@ -244,6 +245,14 @@ export class ChatThread {
     /* The active sub-agents a page that begins at `start` leaves out. */
     subagentsBefore(start: number): ChatSubagentItem[] {
         return activeSubagents(this.list()).filter((item) => this.indices.get(item.id)! < start);
+    }
+
+    /* The outline of what a page that begins at `start` leaves out, with the replies in `marked` that a bookmark is on. */
+    outlineBefore(start: number, marked?: ReadonlySet<string>): ChatItem[] {
+        return outlineItems(
+            this.order.slice(0, start).map((id) => this.items.get(id)!),
+            marked
+        );
     }
 
     snapshot(): { info: ChatInfo; items: ChatItem[] } {

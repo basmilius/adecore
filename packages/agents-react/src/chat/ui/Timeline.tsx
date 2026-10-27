@@ -45,7 +45,8 @@ import {
     STRIP_CLEARANCE_PX,
     tickOfRow,
     ticksOf,
-    ticksWithHits
+    ticksWithHits,
+    EARLIER_ROW
 } from '../logic/scrubber';
 import {
     EMPTY_TARGET,
@@ -206,6 +207,7 @@ export function Timeline({
     const items = useChatRow(chatId, (row) => row?.structure);
     const activeTurnId = useChatRow(chatId, (row) => row?.info.activeTurnId ?? null);
     const bookmarks = useChatRow(chatId, (row) => row?.bookmarks);
+    const outlineBefore = useChatRow(chatId, (row) => row?.outlineBefore);
     const visuals = useChatRow(chatId, (row) => row?.visuals);
     const forkedTurns = useForkedTurns(chatId);
     const info = useChatRow(chatId, (row) => row?.info ?? null);
@@ -306,7 +308,7 @@ export function Timeline({
     // A chat that took a turn before is one whose thread has not come in yet, not one to greet.
     const welcome = !loadingHistory && welcomes && empty && (info === null || (info.usage.turns === 0 && info.activeTurnId === null));
     const marks = useMemo(() => bookmarkRows(rows, bookmarks ?? [], items ?? {}), [rows, bookmarks, items]);
-    const ticks = useMemo(() => ticksOf(rows, marks), [rows, marks]);
+    const ticks = useMemo(() => ticksOf(rows, marks, outlineBefore, bookmarks), [rows, marks, outlineBefore, bookmarks]);
     // A message a jump is on its way to; it may first have to open the turn its reply folded into.
     const [seeking, setSeeking] = useState<{ itemId: string; block?: UiReplyTarget; key: string; options?: ItemJumpOptions } | null>(null);
     const [landing, setLanding] = useState<{ target: UiReplyTarget; key: string } | null>(null);
@@ -613,9 +615,10 @@ export function Timeline({
             return;
         }
 
-        if (tick.bookmark !== null) {
+        // A message before the rows this client holds comes in page by page until its row is there.
+        if (tick.bookmark !== null || tick.rowIndex === EARLIER_ROW) {
             setLanding(null);
-            setSeeking({ itemId: tick.bookmark.itemId, key: keyOf(chatId) });
+            setSeeking({ itemId: tick.bookmark?.itemId ?? tick.id, key: keyOf(chatId) });
 
             return;
         }

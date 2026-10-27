@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatItem } from '@adecore/agent-contracts';
 import {
+    EARLIER_ROW,
     layoutTicks,
     messageAt,
     messagesInView,
@@ -109,6 +110,21 @@ describe('ticksOf', () => {
     test('a message of only attachments reads as their names', () => {
         const ticks = ticksOf(deriveTimelineRows(thread, options));
         expect(ticks[2]!.text).toBe('shot.png');
+    });
+
+    test('the outline before the rows this client holds comes first, with the ids its rows will have and its bookmarks', () => {
+        const bookmark = { itemId: 'a2', excerpt: 'Both tasks', createdAt: 1 };
+        const rows = deriveTimelineRows(thread.slice(7), options);
+        const ticks = ticksOf(rows, new Map(), thread.slice(0, 7), [bookmark]);
+
+        expect(ticks.map((tick) => [tick.id, tick.kind, tick.rowIndex, tick.bookmark?.itemId ?? null])).toEqual([
+            ['u1', 'person', EARLIER_ROW, null],
+            ['start-t2', 'wake', EARLIER_ROW, null],
+            ['a2', 'bookmark', EARLIER_ROW, 'a2'],
+            ['u4', 'person', rows.findIndex((row) => row.id === 'u4'), null]
+        ]);
+
+        expect(ticks[1]!.text).toBe('Woken by 2 tasks');
     });
 });
 

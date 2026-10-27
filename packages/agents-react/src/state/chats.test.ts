@@ -315,6 +315,21 @@ describe('a thread held from its newest page', () => {
         expect(waitingRequestsOf(partial)).toEqual([]);
     });
 
+    test('keeps the outline before it apart from the thread, until the pages reach it', () => {
+        const outline = [user('u1', 'first'), user('u2', 'second')];
+        useChats.getState().reset(key, info(), newest, { history: { start: 2, cursor: 'g:2' }, pending: [], outline });
+        const state = useChats.getState().byKey[key]!;
+        useChats.getState().forget(key);
+        expect(state.outlineBefore?.map((item) => item.id)).toEqual(['u1', 'u2']);
+        expect(state.items.u1).toBeUndefined();
+
+        const partial = prependPage(state, 'g:2', { items: [user('u2', 'second')], history: { start: 1, cursor: 'g:1' } });
+        expect(partial.outlineBefore?.map((item) => item.id)).toEqual(['u1']);
+
+        const whole = prependPage(partial, 'g:1', { items: [user('u1', 'first')], history: { start: 0, cursor: null } });
+        expect(whole.outlineBefore).toBeUndefined();
+    });
+
     test('a page for a cursor the thread no longer has changes nothing', () => {
         const state = held();
         expect(prependPage(state, 'g:9', { items: [user('u1', 'first')], history: { start: 0, cursor: null } })).toBe(state);

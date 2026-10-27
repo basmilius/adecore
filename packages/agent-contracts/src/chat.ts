@@ -759,6 +759,38 @@ export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] 
         .map(({ item }) => item);
 }
 
+/* How much of a message the outline keeps: what a hover card over its tick shows. */
+export const CHAT_OUTLINE_TEXT_CHARS = 280;
+
+/*
+ * The places a scrubber over the thread returns to, cut down to what its ticks need: every message of
+ * the person, every turn tasks or messages woke, and the replies in `marked`, which a bookmark is on.
+ * A message of only attachments keeps their names. `items` is in thread order.
+ */
+export function outlineItems(items: readonly ChatItem[], marked: ReadonlySet<string> = new Set()): ChatItem[] {
+    return items.flatMap((item): ChatItem[] => {
+        const { id, createdAt, turnId } = item;
+
+        if (item.kind === 'user') {
+            const text = item.text.slice(0, CHAT_OUTLINE_TEXT_CHARS);
+
+            return [{ id, createdAt, turnId, kind: 'user', text, ...(text === '' && item.attachments ? { attachments: item.attachments } : {}) }];
+        }
+
+        if (item.kind === 'turn' && ((item.taskIds?.length ?? 0) > 0 || (item.messageFrom?.length ?? 0) > 0)) {
+            const { checkpointDiff: _checkpointDiff, ...turn } = item;
+
+            return [turn];
+        }
+
+        if (item.kind === 'assistant' && marked.has(id)) {
+            return [{ id, createdAt, turnId, kind: 'assistant', text: item.text.slice(0, CHAT_OUTLINE_TEXT_CHARS), streaming: false }];
+        }
+
+        return [];
+    });
+}
+
 // Events apply after the `chat.attach` snapshot; item ids make upserts and streamed deltas replayable.
 export const ChatEventSchema = z.discriminatedUnion('type', [
     z.object({ type: z.literal('item'), item: ChatItemSchema, historyIndex: z.number().int().nonnegative().optional() }),
@@ -984,7 +1016,9 @@ export const ChatAttachResultSchema = z.object({
     // Absent from a host that keeps no visuals.
     visuals: ChatVisualsSchema.optional(),
     // With a page: the active sub-agents (`activeSubagents`) from before it, so the pill over the composer never waits on a scroll.
-    subagents: z.array(ChatSubagentItemSchema).optional()
+    subagents: z.array(ChatSubagentItemSchema).optional(),
+    // With a page: the thread before it as `outlineItems` cuts it, so the scrubber reaches the whole thread before a scroll does.
+    outline: z.array(ChatItemSchema).optional()
 });
 export type ChatAttachResult = z.infer<typeof ChatAttachResultSchema>;
 
