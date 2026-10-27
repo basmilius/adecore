@@ -28,12 +28,10 @@ async function readOptional(path: string): Promise<Buffer | null> {
 }
 
 /*
- * The usage of every transcript ever read, apart from where the scanner left each one. The history
- * is appended a line per changed transcript and rewritten only once superseded lines make up half
- * of it; the scan state is small and rewritten after every scan that changed it. The state is saved
- * after the lines it accounts for, against the history's size, so a crash in between leaves a state
- * that does not match: it is dropped, every transcript is read from the start again, and a read from
- * the start replaces what a path counted instead of adding to it.
+ * The usage of every transcript ever read, kept apart from where the scanner left each one. The state
+ * is saved after the lines it accounts for, against the history's size, so after a crash in between it
+ * does not match: it is dropped and every transcript is read from the start again, which replaces what
+ * a path counted instead of adding to it.
  */
 export class UsageStore {
     readonly usage = new Map<string, FileUsage>();

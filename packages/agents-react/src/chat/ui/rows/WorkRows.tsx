@@ -270,6 +270,7 @@ function useWhole<T>(fetch: (() => Promise<T>) | null): Whole<T> {
 
     const load = (): void => {
         setState({ status: 'loading' });
+
         fetch().then(
             (value) => setState({ status: 'loaded', value }),
             () => setState({ status: 'failed' })

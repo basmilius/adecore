@@ -52,10 +52,10 @@ export function encodeHeader(header: HistoryHeader): string {
 
 export function encodeEntry(entry: HistoryEntry): string {
     const writer = new RowWriter();
-    const r = entry.usage.records.map((record) => writer.row(record));
-    const t = entry.usage.tail.map((record) => writer.row(record));
+    const rows = entry.usage.records.map((record) => writer.row(record));
+    const tail = entry.usage.tail.map((record) => writer.row(record));
     const { models, sessions, folders, accounts } = writer.tables;
-    const line: EntryLine = { p: entry.path, k: entry.usage.provider, op: entry.op, m: models, s: sessions, f: folders, a: accounts, r, t };
+    const line: EntryLine = { p: entry.path, k: entry.usage.provider, op: entry.op, m: models, s: sessions, f: folders, a: accounts, r: rows, t: tail };
 
     return `${JSON.stringify(line)}\n`;
 }

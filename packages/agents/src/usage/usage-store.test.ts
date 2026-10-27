@@ -49,11 +49,12 @@ function record(id: string, output: number, patch: Partial<UsageRecord> = {}): U
     };
 }
 
-const exists = (path: string): Promise<boolean> =>
-    stat(path).then(
+function exists(path: string): Promise<boolean> {
+    return stat(path).then(
         () => true,
         () => false
     );
+}
 
 /* An index of the single-file format: one transcript that is still there and one whose source is gone. */
 async function legacyIndex(home: string, claude: string, roots: UsageRootPath[]): Promise<UsageIndex> {
@@ -96,6 +97,7 @@ describe('the usage store', () => {
         const before = foldByKey(
             [...(decodeIndex(await readFile(join(usage, 'index.json'), 'utf8'))?.values() ?? [])].flatMap((file) => [...file.records, ...file.tail])
         );
+
         expect(before).toHaveLength(5);
 
         const payload = { from: '2026-09-10', to: '2026-09-10', resolution: 'day', timeZone: 'UTC' } as const;
@@ -111,9 +113,12 @@ describe('the usage store', () => {
 
         // The transcript that is gone keeps its usage; only where a scan left it is dropped.
         const state = JSON.parse(await readFile(join(usage, 'scan-state.json'), 'utf8')) as { files: Record<string, unknown> };
+
         expect(Object.keys(state.files)).toEqual([join(claude, 'a.jsonl')]);
+
         const reloaded = new UsageScanner(home, roots);
         await reloaded.scan();
+
         expect(reloaded.records()).toEqual(before);
         expect(index.size).toBe(2);
     });
@@ -129,6 +134,7 @@ describe('the usage store', () => {
 
         const scanner = new UsageScanner(home, roots);
         await scanner.scan();
+
         expect(scanner.records()).toEqual(first.records());
         expect(await exists(join(usage, 'index.json'))).toBe(false);
     });
@@ -140,6 +146,7 @@ describe('the usage store', () => {
         await writeFile(join(claude, 'a.jsonl'), assistant('msg_1', 0, 40));
         const scanner = new UsageScanner(home, roots);
         await scanner.scan();
+
         expect(scanner.records()).toHaveLength(1);
         expect(await readFile(join(usage, 'index.json.unreadable'), 'utf8')).toBe('not an index');
     });
@@ -156,17 +163,20 @@ describe('the usage store', () => {
         await appendFile(path, assistant('msg_3', 10, 15));
         await scanner.scan();
         const grown = await readFile(join(usage, 'history.jsonl'));
-        expect(grown.subarray(0, history.length).equals(history)).toBe(true);
         const added = grown.subarray(history.length).toString('utf8');
+
+        expect(grown.subarray(0, history.length).equals(history)).toBe(true);
         expect(added.trimEnd().split('\n')).toHaveLength(1);
         expect(JSON.parse(added)).toMatchObject({ p: path, op: 'add', r: [[expect.any(Number), 0, 0, 0, 1, 10, 100, 20, 0, 15, 0, 'msg_3', 0]] });
 
         // Nothing new is no line at all.
         await scanner.scan();
+
         expect((await readFile(join(usage, 'history.jsonl'))).length).toBe(grown.length);
 
         const reloaded = new UsageScanner(home, roots);
         const report = await reloaded.scan();
+
         expect(report.changedFiles).toBe(0);
         expect(reloaded.records()).toEqual(scanner.records());
     });
@@ -186,6 +196,7 @@ describe('the usage store', () => {
 
         const reloaded = new UsageScanner(home, roots);
         await reloaded.scan();
+
         expect(reloaded.records().map((entry) => entry.dedupeKey)).toEqual(['msg_1', 'msg_2']);
     });
 
@@ -200,6 +211,7 @@ describe('the usage store', () => {
 
         const reloaded = new UsageScanner(home, roots);
         const report = await reloaded.scan();
+
         expect(report.changedFiles).toBe(0);
         expect(reloaded.records()).toEqual(scanner.records());
         expect((await readFile(join(usage, 'history.jsonl'))).equals(history)).toBe(true);
@@ -218,6 +230,7 @@ describe('the usage store', () => {
 
         const reloaded = new UsageScanner(home, roots);
         const report = await reloaded.scan();
+
         expect(report.changedFiles).toBe(1);
         expect(reloaded.records().map((entry) => entry.dedupeKey)).toEqual(scanner.records().map((entry) => entry.dedupeKey));
         expect(reloaded.records()).toHaveLength(2);
@@ -243,8 +256,10 @@ describe('the usage store', () => {
         }
 
         expect(shrank).toBe(true);
+
         const reloaded = new UsageScanner(home, roots);
         await reloaded.scan();
+
         expect(reloaded.records()).toEqual(scanner.records());
         expect(scanner.records()).toHaveLength(1);
     });

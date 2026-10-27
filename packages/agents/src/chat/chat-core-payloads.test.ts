@@ -3,11 +3,11 @@ import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatCheckpointDiff, ChatInfo, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
+import { claudeProvider } from '../providers/claude-provider.ts';
+import { ProviderRegistry } from '../providers/registry.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
-import { claudeProvider } from '../providers/claude-provider.ts';
-import { ProviderRegistry } from '../providers/registry.ts';
 
 const providers = new ProviderRegistry({
     detect: async () => ({ installed: true, version: 'test' }),
@@ -31,6 +31,7 @@ const providers = new ProviderRegistry({
 });
 
 const OUTPUT = Array.from({ length: 4000 }, (_, index) => `line ${index} of a long build log`).join('\n');
+
 const DIFF: ChatCheckpointDiff = {
     files: Array.from({ length: 40 }, (_, index) => ({
         path: `src/f${index}.ts`,
@@ -103,6 +104,7 @@ test('an attach carries the beginning of a large output and diff, and the whole 
     await core.create({ chatId: 'chat' });
     const { items } = await core.attachWithBookmarks('chat', 'client');
     const [turn, tool] = items as [ChatTurnItem, ChatToolItem];
+
     expect(tool.output?.length).toBeLessThan(OUTPUT.length);
     expect(tool.outputRef?.bytes).toBe(OUTPUT.length);
     expect(turn.checkpointDiff?.files).toHaveLength(DIFF.files.length);
@@ -114,17 +116,23 @@ test('an attach carries the beginning of a large output and diff, and the whole 
 
 test('a clear takes the payloads of the thread it emptied along', async () => {
     await core.create({ chatId: 'chat' });
+
     expect(await payloads('chat')).toHaveLength(2);
+
     await core.clear('chat');
+
     expect(await payloads('chat')).toEqual([]);
 });
 
 test('a fork keeps its payloads when the chat it came from is removed', async () => {
     const items = (await core.readChat('chat'))?.items ?? [];
     await core.writeRecord('fork', info('fork'), items);
+
     expect(await core.deleteRecord('chat')).toBe(true);
     expect(await payloads('chat')).toEqual([]);
+
     await core.create({ chatId: 'fork' });
+
     expect(await core.toolOutput('fork', 'tool')).toBe(OUTPUT);
     expect(await core.turnDiff('fork', 't1')).toEqual(DIFF);
 });
@@ -132,5 +140,6 @@ test('a fork keeps its payloads when the chat it came from is removed', async ()
 test('removing a loaded chat removes its payloads', async () => {
     await core.create({ chatId: 'chat' });
     await core.kill('chat');
+
     expect(await payloads('chat')).toEqual([]);
 });
