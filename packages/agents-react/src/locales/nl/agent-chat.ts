@@ -536,7 +536,10 @@ export default {
     image: {
         zoomIn: 'Inzoomen',
         zoomOut: 'Uitzoomen',
-        reset: 'Herstellen'
+        reset: 'Herstellen',
+        previous: 'Vorige afbeelding',
+        next: 'Volgende afbeelding',
+        position: '{{index}} van {{count}}'
     },
     generatedImage: {
         label: 'Gegenereerde afbeelding',

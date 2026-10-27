@@ -22,7 +22,7 @@ import { referenceTokens } from '../../chat-references';
 import { presentReferences } from '../../mentions';
 import { ReferenceChip } from '../ReferenceChip';
 import { ReferenceLookupContext } from '../reference-lookup';
-import { ImageThumb } from '../ImageView';
+import { ImageGroup, ImageThumb } from '../ImageView';
 import { Markdown, MessageMarkdown, ReplyMarkdown } from '../Markdown';
 import { FadingWords } from '../FadingWords';
 import { settledBlocksText } from '../markdown-blocks';
@@ -123,13 +123,15 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                 <MessageHeading>{t('rows.user.heading')}</MessageHeading>
                 {attachments.length > 0 && (
                     <div className="mb-1.5 flex max-w-[80%] flex-wrap justify-end gap-1.5">
-                        {attachments.map((attachment) =>
-                            isImageAttachment(attachment.mime) ? (
-                                <AttachmentThumb key={attachment.id} chatId={chatId} attachment={attachment} />
-                            ) : (
-                                <AttachmentLink key={attachment.id} chatId={chatId} attachment={attachment} />
-                            )
-                        )}
+                        <ImageGroup>
+                            {attachments.map((attachment) =>
+                                isImageAttachment(attachment.mime) ? (
+                                    <AttachmentThumb key={attachment.id} chatId={chatId} attachment={attachment} />
+                                ) : (
+                                    <AttachmentLink key={attachment.id} chatId={chatId} attachment={attachment} />
+                                )
+                            )}
+                        </ImageGroup>
                     </div>
                 )}
                 {beside.length > 0 && (

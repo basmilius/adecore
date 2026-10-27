@@ -520,19 +520,37 @@
        steps put the dim over it; both stay under `--z-popup`, so a menu in the nested dialog wins. */
     .dialog-backdrop-nested { z-index: calc(var(--z-dialog) + 1); }
     .dialog-popup-nested { z-index: calc(var(--z-dialog) + 2); }
-    /* A lightbox is the picture and nothing else, so the popup takes the size the picture settles at
-       instead of filling the window. The margin keeps the window's own title bar, and the traffic
-       lights on it, in reach above a picture that is as large as it is allowed to get. */
-    .lightbox-frame {
+    /* A lightbox is the picture over the whole window, without the frame of a dialog. Its bar takes
+       the band of the window's title bar: it drags the window like that band does, its buttons opt
+       out, and on Windows and Linux it keeps the native window controls' corner free. */
+    .dialog-popup.lightbox {
+        --lightbox-bar: 48px;
         --lightbox-margin: 64px;
-        --lightbox-header: 45px;
+        inset: 0;
+        translate: none;
+        display: flex;
+        flex-direction: column;
+        max-width: none;
+        max-height: none;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        -webkit-app-region: no-drag;
     }
-    .lightbox-frame img {
+    .dialog-popup.lightbox[data-starting-style], .dialog-popup.lightbox[data-ending-style] { scale: 1; }
+    .lightbox-bar {
+        -webkit-app-region: drag;
+        padding-right: calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 12px);
+    }
+    .lightbox-bar button { -webkit-app-region: no-drag; }
+    /* The margin leaves room for the arrows beside a picture that is as large as it is allowed to get. */
+    .lightbox-stage img {
         max-width: calc(100vw - 2 * var(--lightbox-margin));
-        max-height: calc(100dvh - 2 * var(--lightbox-margin) - var(--lightbox-header));
+        max-height: calc(100dvh - 2 * var(--lightbox-bar));
     }
     /* A picture holds the eye better against a heavier dim than a dialog of controls needs. */
-    .lightbox-backdrop { background: color-mix(in srgb, var(--bg) 80%, transparent); }
+    .lightbox-backdrop { background: color-mix(in srgb, var(--bg) 92%, transparent); }
     /* Tooltips. The popup fades and scales from its anchor side, and drops the motion while Base UI
        says the tooltip is instant. The positioner does not animate its place: Base UI parks it at the
        window's origin until it is measured, so it would slide in from the corner. */

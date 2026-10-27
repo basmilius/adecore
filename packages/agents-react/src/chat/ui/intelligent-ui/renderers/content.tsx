@@ -8,7 +8,7 @@ import { formatNumber } from '@adecore/ui/format';
 import { useChatHost } from '../../../../host';
 import { CodeBlock } from '../../CodeBlock';
 import { CodeStreamingContext } from '../../code-streaming';
-import { ImageThumb } from '../../ImageView';
+import { ImageGroup, ImageThumb } from '../../ImageView';
 import { uiChildrenOf, uiNodeLabel, uiNodeText, uiUrlDomain } from '../node-text';
 import type { UiRendererProps } from '../render-context';
 import { useTruncated } from '../use-truncated';
@@ -105,7 +105,9 @@ export function GalleryRenderer({ node, children }: UiRendererProps<UiProps<'Gal
     return (
         <GalleryContext value>
             <div role="group" aria-label={t('blocks.gallery.label', { count: uiChildrenOf(node, 'Image').length })} className="@container">
-                <div className="chat-ui-nodes grid grid-cols-2 gap-2 @min-[420px]:grid-cols-3">{children}</div>
+                <div className="chat-ui-nodes grid grid-cols-2 gap-2 @min-[420px]:grid-cols-3">
+                    <ImageGroup>{children}</ImageGroup>
+                </div>
             </div>
         </GalleryContext>
     );

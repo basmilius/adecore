@@ -536,7 +536,10 @@ export default {
     image: {
         zoomIn: 'Zoom in',
         zoomOut: 'Zoom out',
-        reset: 'Reset'
+        reset: 'Reset',
+        previous: 'Previous image',
+        next: 'Next image',
+        position: '{{index}} of {{count}}'
     },
     generatedImage: {
         label: 'Generated image',
