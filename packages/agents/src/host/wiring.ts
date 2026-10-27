@@ -25,7 +25,7 @@ import { cliEnvironment, type CliEnvironmentPolicy } from './environment.ts';
 import { accountHandlers, chatHandlers, usageHandlers, type AgentHandlers } from './handlers.ts';
 
 export interface AgentWiringOptions<Core extends ChatCore = ChatCore> {
-    // Where the chats, their attachments, bookmarks and visuals, the accounts and the usage index are kept.
+    // Where the chats, their attachments, bookmarks and visuals, the accounts and the usage history are kept.
     dataDir: string;
     // The environment the CLIs start in; absent, this process's own through `cliEnvironment`.
     env?: Record<string, string | undefined>;

@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
-import { mkdir, mkdtemp, open, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, open, rm, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { encodeIndex, type UsageIndex } from './index-file.ts';
 import { UsageScanner, forEachLine } from './scanner.ts';
 import type { UsageRootPath } from './roots.ts';
 
@@ -174,7 +175,8 @@ describe('the usage scanner', () => {
         expect(first.changedFiles).toBe(2);
         expect(first.roots.every((root) => root.status === 'ok')).toBe(true);
         expect(scanner.records()).toHaveLength(3);
-        await expect(stat(join(home, 'usage', 'index.json'))).resolves.toBeDefined();
+        await expect(stat(join(home, 'usage', 'history.jsonl'))).resolves.toBeDefined();
+        await expect(stat(join(home, 'usage', 'scan-state.json'))).resolves.toBeDefined();
 
         const second = await scanner.scan();
         expect(second.changedFiles).toBe(0);
@@ -406,10 +408,31 @@ describe('the usage scanner', () => {
 
     test('reads an index from before accounts as the default account, without reading a transcript again', async () => {
         const { home, claude, roots } = await workspace();
-        await writeFile(join(claude, 'a.jsonl'), assistant('msg_1', 0, 40) + assistant('msg_2', 5, 60));
-        await new UsageScanner(home, roots).scan();
+        const path = join(claude, 'a.jsonl');
+        await writeFile(path, assistant('msg_1', 0, 40) + assistant('msg_2', 5, 60));
+        const elsewhere = new UsageScanner(join(home, '..', 'elsewhere'), roots);
+        await elsewhere.scan();
+        const info = await stat(path);
+
+        const legacy: UsageIndex = new Map([
+            [
+                path,
+                {
+                    provider: 'claude',
+                    size: info.size,
+                    mtimeMs: info.mtimeMs,
+                    offset: info.size,
+                    records: elsewhere.records(),
+                    tail: [],
+                    codex: null,
+                    head: null
+                }
+            ]
+        ]);
+
         const file = join(home, 'usage', 'index.json');
-        const index = JSON.parse(await readFile(file, 'utf8')) as { version: number; accounts?: string[]; files: Record<string, { r: unknown[][] }> };
+        await mkdir(join(home, 'usage'), { recursive: true });
+        const index = JSON.parse(encodeIndex(legacy)) as { version: number; accounts?: string[]; files: Record<string, { r: unknown[][] }> };
         index.version = 1;
         delete index.accounts;
 

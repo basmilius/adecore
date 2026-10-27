@@ -168,17 +168,17 @@ describe('Codex usage accounting', () => {
         const { home, summary, write } = await workspace();
         await write([...header(), settings('priority'), tokens(), request(), compacted()]);
         await summary();
-        const path = join(home, 'usage', 'index.json');
-        const index = JSON.parse(await readFile(path, 'utf8'));
-        index.version = 2;
+        const state = JSON.parse(await readFile(join(home, 'usage', 'scan-state.json'), 'utf8'));
+        const files: Record<string, unknown> = {};
 
-        for (const file of Object.values(index.files) as Array<{ v?: number; r: unknown[][]; c: unknown }>) {
-            delete file.v;
-            file.r = [];
-            file.c = null;
+        for (const [path, file] of Object.entries(state.files) as Array<[string, Record<string, unknown>]>) {
+            const { v: _parser, ...rest } = file;
+            files[path] = { ...rest, r: [], t: [], c: null };
         }
 
-        await writeFile(path, JSON.stringify(index));
+        await rm(join(home, 'usage', 'history.jsonl'));
+        await rm(join(home, 'usage', 'scan-state.json'));
+        await writeFile(join(home, 'usage', 'index.json'), JSON.stringify({ version: 2, models: [], sessions: [], folders: [], accounts: [], files }));
         const result = await summary();
         expect(result.models[0]!.totals.calls).toBe(2);
         expect(result.models[0]!.costUsd).toBeCloseTo(0.00417, 10);
