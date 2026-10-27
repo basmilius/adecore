@@ -304,6 +304,14 @@ describe('what an agent reported over a catalog', () => {
         expect(catalog.contextWindowFor(catalog.normalize({ model: 'known' }))).toBe(256000);
     });
 
+    test('a model the base knows without a size keeps the size the agent reported', () => {
+        const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
+        catalog.adopt([{ slug: 'default', name: 'default', contextWindow: 64000 }], 'default');
+
+        expect(catalog.nameOf('default')).toBe('Default');
+        expect(catalog.contextWindowFor(catalog.normalize({ model: 'default' }))).toBe(64000);
+    });
+
     test('a model the base does not know keeps the profile of the base default and its reported size', () => {
         const catalog = new ModelCatalog(base('2026-10-01T00:00:00Z'));
         catalog.adopt([{ slug: 'other', name: 'Other', contextWindow: 64000 }], 'other', [effort]);

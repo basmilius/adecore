@@ -26,7 +26,7 @@ function profileIn(data: ModelCatalogInput, slug: string): ModelCatalogProfile |
 
 /*
  * The agent's models in the agent's order, with the agent's default. A model the base knows keeps how the base names
- * it and its profile; every other one gets the profile of the base's default, with the context window it reported as
+ * it and its profile, with the size it reported where that profile names none; every other one gets the profile of the base's default, with the context window it reported as
  * its only size. The options an agent reports replace the profile's options of the same id either way.
  */
 function compose(base: ModelCatalogInput, adopted: Adopted): ModelCatalogInput {
@@ -45,8 +45,10 @@ function compose(base: ModelCatalogInput, adopted: Adopted): ModelCatalogInput {
         const knownProfile = known === undefined ? undefined : base.profiles[known.profile];
 
         if (known !== undefined && knownProfile !== undefined) {
-            const name = `${ADOPTED_PROFILE}:${known.profile}`;
-            profiles[name] = withOptions(knownProfile);
+            // A base that names no size leaves the one the agent reported.
+            const reported = Object.keys(knownProfile.contextWindowTokens).length === 0 ? model.contextWindow : undefined;
+            const name = reported === undefined ? `${ADOPTED_PROFILE}:${known.profile}` : `${ADOPTED_PROFILE}:${known.profile}-${reported}`;
+            profiles[name] = withOptions(reported === undefined ? knownProfile : { ...knownProfile, contextWindowTokens: { '*': reported } });
 
             return { ...known, profile: name };
         }
