@@ -107,4 +107,36 @@ describe('the account a chat of ChatCore starts under', () => {
         await chats.create({ chatId: 'default', cwd: home, provider: 'claude' });
         expect(chats.configure({ chatId: 'default', account: 'claude' }).account).toBeUndefined();
     });
+
+    test('a chat whose CLI holds the conversation keeps an account that cannot read it, until a clear starts it over', async () => {
+        await new ChatStore(root).write(
+            'spoke',
+            {
+                chatId: 'spoke',
+                provider: 'claude',
+                account: 'claude_work',
+                cwd: home,
+                agentSessionId: 'session-1',
+                model: null,
+                selection: { model: 'claude-sonnet-5', options: {} },
+                runtimeMode: 'full-access',
+                status: 'idle',
+                running: false,
+                activeTurnId: null,
+                slashCommands: [],
+                usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 3 },
+                createdAt: 1
+            },
+            []
+        );
+
+        const chats = await open(machine(true));
+        await chats.create({ chatId: 'spoke' });
+        const refusal = await refusalOf(() => chats.configure({ chatId: 'spoke', account: 'claude' }));
+        expect(refusal).toMatchObject({ code: 'account-incompatible' });
+        await chats.clear('spoke');
+        const info = chats.configure({ chatId: 'spoke', account: 'claude' });
+        expect(info.account).toBeUndefined();
+        expect(info.usage.turns).toBe(3);
+    });
 });
