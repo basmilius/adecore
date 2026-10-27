@@ -3,6 +3,7 @@ import { CloserTracker } from './closer-tracker.ts';
 import { planBlockComment, planLineComments } from './comments.ts';
 import { planEnter } from './enter.ts';
 import { planCodeBlock } from './code-blocks.ts';
+import { planCompleteStatement } from './complete-statement.ts';
 import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
 import { planPaste } from './paste.ts';
@@ -1046,6 +1047,12 @@ export class DocumentModel {
                 { brackets: pairing && options.autoClosingBrackets !== false, quotes: pairing && options.autoClosingQuotes !== false },
                 language
             );
+        }
+
+        if (command === 'completeCurrentStatement') {
+            const plan = planCompleteStatement(this.editSource(language), this.selections, { language, unit, tabSize });
+
+            return this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
         }
 
         const blockMatch = codeBlockCommand.exec(command);

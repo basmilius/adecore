@@ -1,4 +1,5 @@
 import type { EditSource } from './edit-source.ts';
+import { lineContinues } from './enter.ts';
 import { isBlank, whitespaceOf } from './line-text.ts';
 
 /* The indentation of a line text in columns, tabs taken to their stops. */
@@ -96,4 +97,38 @@ export function indentGuideAt(source: EditSource, line: number, column: number, 
     }
 
     return null;
+}
+
+const CONTINUATION_START = /^(?:\.|\?\.|&&|\|\||\?\?|\+(?!\+)|-(?!-)|\?|:|else\b|catch\b|finally\b)/;
+
+/*
+ * The first line of the statement a line belongs to: a line that opens with a closer belongs to the statement of its
+ * opener, and a line the one above leaves open, or that goes on with a member access, an operator or `else`, to the one above.
+ */
+export function statementStart(source: EditSource, line: number, language: string): number {
+    let first = line;
+
+    // Each step goes up at least one line, so the walk ends.
+    while (first > 0) {
+        const info = source.line(first);
+        const lead = info.text.length - info.text.trimStart().length;
+        const opener = /^[)\]}]/.test(info.text.slice(lead)) ? source.context(info.start + lead).bracket : undefined;
+        const openerLine = opener === undefined ? first : source.lineAt(opener.at);
+
+        if (openerLine < first) {
+            first = openerLine;
+
+            continue;
+        }
+
+        const above = first - 1;
+
+        if (isBlank(source.line(above).text) || !(CONTINUATION_START.test(info.text.trimStart()) || lineContinues(source, language, above))) {
+            break;
+        }
+
+        first = above;
+    }
+
+    return first;
 }

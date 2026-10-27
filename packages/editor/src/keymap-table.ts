@@ -37,6 +37,7 @@ export const KEYMAP = {
     toggleBlockComment: bind('Mod+Alt+/', 'Mod+Shift+/'),
     joinLines: bind('Ctrl+Shift+J'),
     startNewLine: bind('Shift+Enter'),
+    completeCurrentStatement: bind('Mod+Shift+Enter'),
     startNewLineBefore: bind('Mod+Alt+Enter'),
     splitLine: bind('Mod+Enter'),
     toggleCase: bind('Mod+Shift+U'),
@@ -152,6 +153,7 @@ export type OptionalKeymapId =
     | 'uniqueLines'
     | 'convertIndentsToSpaces'
     | 'convertIndentsToTabs'
+    | 'completeCurrentStatement'
     | 'methodUp'
     | 'methodDown'
     | 'nextChange'
