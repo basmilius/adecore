@@ -38,32 +38,38 @@ export interface LimitGroup {
 /*
  * The plan numbers per CLI, one row per account. The machine only reads an account that is signed in,
  * so an account that is on but signed out comes from the account list, where it can say why it has
- * no numbers. An account that is off is left out, unless the machine still reads it (a CLI's default).
- * A CLI the machine reads no plan of at all has no group, whatever accounts it has.
+ * no numbers. An account that is off is left out, also when an older machine still reads it.
+ * A CLI the machine reads no plan of, or that is not installed there, has no group, whatever accounts it has.
  */
 export function limitGroups(snapshot: UsageLimitsSnapshot, accounts: ProviderAccounts | null): LimitGroup[] {
     return USAGE_PROVIDERS.flatMap((kind) => {
-        if (!snapshot.providers.some((entry) => entry.kind === kind)) {
+        const entries = snapshot.providers.filter((entry) => entry.kind === kind && entry.unavailable?.reason !== 'not-installed');
+
+        if (entries.length === 0) {
             return [];
         }
 
         const known = accountsOfKind(accounts, kind);
 
-        const read = snapshot.providers
-            .filter((entry) => entry.kind === kind)
-            .map((entry): LimitAccount => {
-                const id = limitsAccountId(entry);
-                const account = known.find((each) => each.id === id);
+        const read = entries.flatMap((entry): LimitAccount[] => {
+            const id = limitsAccountId(entry);
+            const account = known.find((each) => each.id === id);
 
-                return {
+            if (account?.account.enabled === false) {
+                return [];
+            }
+
+            return [
+                {
                     id,
                     kind,
                     name: account === undefined ? (entry.account?.label ?? PROVIDER_LABELS[kind]) : accountName(account, PROVIDER_LABELS[kind]),
                     color: account === undefined ? entry.account?.color : account.account.color,
                     entry,
                     status: account?.status ?? null
-                };
-            });
+                }
+            ];
+        });
 
         const unread = known
             .filter((account) => account.account.enabled !== false && !read.some((row) => row.id === account.id))

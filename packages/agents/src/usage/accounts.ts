@@ -62,7 +62,7 @@ export function usageRootsOf(service: ProviderAccountsService): UsageRootPath[] 
     );
 }
 
-/* The plans the limits monitor reads: the default account of every CLI, and every other one that is on and signed in. */
+/* The plans the limits monitor reads, of the accounts that are on: the default account of every CLI, and every other one that is signed in. */
 export function limitAccountsOf(
     service: ProviderAccountsService,
     nameOf: (kind: UsageProvider) => string,
@@ -71,7 +71,7 @@ export function limitAccountsOf(
     return {
         list: () =>
             machineAccounts(service.snapshot(), nameOf)
-                .filter((account) => account.isDefault || (account.enabled && account.signedIn))
+                .filter((account) => account.enabled && (account.isDefault || account.signedIn))
                 .map((account): LimitAccount => ({ ...usageAccount(account), isDefault: account.isDefault })),
         // A plan read is no start: the default account goes unnamed, so turning it off does not fail its read.
         envFor: (kind, id) => definedEnv(service.envFor(kind, storedAccount(kind, id), baseEnv)),

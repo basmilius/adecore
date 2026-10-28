@@ -75,6 +75,19 @@ describe('limits per account', () => {
         expect(limitGroups({ providers: [entry('codex')] }, withGrok).map((group) => group.kind)).toEqual(['codex']);
     });
 
+    test('an account that is off is left out, also when the machine still read it', () => {
+        const groups = limitGroups(
+            { providers: [entry('claude', { id: 'claude', label: 'Claude Code' }), entry('claude', { id: 'claude_off', label: 'Off' })] },
+            accounts
+        );
+        expect(groups[0]!.accounts.map((account) => account.id)).toEqual(['claude', 'claude_work', 'claude_out']);
+    });
+
+    test('a CLI that is not installed on the machine has no group', () => {
+        const missing = entry('codex', undefined, { unavailable: { reason: 'not-installed', message: null } });
+        expect(limitGroups({ providers: [entry('claude'), missing] }, null).map((group) => group.kind)).toEqual(['claude']);
+    });
+
     test('a machine from before accounts has one row per CLI, named after it', () => {
         const groups = limitGroups({ providers: [entry('claude'), entry('codex')] }, null);
         expect(groups.map((group) => group.accounts.map((account) => account.name))).toEqual([['Claude Code'], ['Codex']]);
