@@ -117,6 +117,20 @@ describe('provided blocks', () => {
     });
 });
 
+describe('declarationStops', () => {
+    test('stop at the name of a declaration, also where the name is a piece of its keyword', () => {
+        const source = 'function on() {\n}\nclass Item {\n    $get() {\n    }\n}';
+        const outline = outlineOf(source);
+        const model = (outline as unknown as { model: DocumentModel }).model;
+
+        expect(outline.declarationStops(model).toSorted((left, right) => left - right)).toEqual([
+            source.indexOf('on('),
+            source.indexOf('Item'),
+            source.indexOf('$get')
+        ]);
+    });
+});
+
 describe('stickyPlacements', () => {
     const blocks = [
         { startLine: 0, endLine: 9 },

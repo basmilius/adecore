@@ -151,6 +151,19 @@ function toBlock(entry: OutlineEntry, document: OutlineDocument): OutlineBlock {
     };
 }
 
+/* Where the name stands in a line as a whole identifier, so `on` is not found inside `function`; -1 where it does not. */
+function identifierIndex(text: string, name: string): number {
+    const isPart = (character: string | undefined): boolean => character !== undefined && /[\w$]/.test(character);
+
+    for (let at = text.indexOf(name); at >= 0; at = text.indexOf(name, at + 1)) {
+        if (!isPart(text[at - 1]) && !isPart(text[at + name.length])) {
+            return at;
+        }
+    }
+
+    return -1;
+}
+
 /*
  * The blocks the editor knows the document by: its own reading of the structure, or the host's
  * where it has better, such as a language server's symbols. Ends are offsets, so an edit keeps
@@ -224,7 +237,7 @@ export class Outline {
 
             const header = document.getLine(document.positionAt(entry.from).line);
 
-            return [header.start + Math.max(0, header.text.indexOf(entry.name))];
+            return [header.start + Math.max(0, identifierIndex(header.text, entry.name))];
         });
     }
 
