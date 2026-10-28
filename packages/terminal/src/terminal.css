@@ -3,7 +3,10 @@
 
 /* What `TerminalView` draws with, read as literal colors on every theme change. The cursor follows the
    accent; the sixteen colors are the ones a program asks for by number. The selectors are the ones
-   the theme of @adecore/ui uses, so an app overrides both in one rule. */
+   the theme of @adecore/ui uses, so an app overrides both in one rule.
+
+   `--term-font` is not declared here: an app sets it on `<html>` (inline) to give its terminals a font
+   family apart from `--font-mono`, and the terminal follows `--font-mono` while it is unset or empty. */
 :root, [data-theme="light"] {
     --term-bg: #fbfbfc;
     --term-fg: #27272a;
