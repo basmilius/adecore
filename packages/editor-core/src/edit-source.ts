@@ -16,6 +16,8 @@ export interface EditSource {
     region(line: number): VueRegion | null;
     /* Whether a `{` at this offset has no closer of its own, so Enter after it adds one. */
     unclosedBrace(offset: number): boolean;
+    /* Where the closer of the opening bracket at this offset stands, undefined where the document has none. */
+    closerOf(offset: number): number | undefined;
 }
 
 /* Edits to apply together and the selections that stand after them. */

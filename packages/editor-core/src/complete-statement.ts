@@ -89,12 +89,25 @@ function completeBraced(source: EditSource, lineIndex: number, caret: number, op
     const context = source.context(end);
     const first = statementStart(source, lineIndex, options.language);
     const firstStart = source.line(first).start;
-    const startsWithBrace = /^\s*\}/.test(line.text);
+    const startsWithBrace = /^\s*\}/.test(line.text) && source.context(line.start + whitespaceOf(line.text).length).bracket?.block !== false;
     let inline = context.mode === 'quote' ? (context.quote ?? '') : '';
     let open = context.bracket;
 
+    let resume: number | null = null;
+
     for (; open !== undefined && open.template !== true && !(open.close === '}' && open.block === true) && open.at >= firstStart; open = open.previous) {
-        inline += open.close;
+        const closer = source.closerOf(open.at);
+
+        if (closer === undefined) {
+            inline += open.close;
+        } else {
+            resume = closer;
+        }
+    }
+
+    // A later line closes a bracket of this one, so the statement goes on there and ends there.
+    if (resume !== null) {
+        return completeBraced(source, source.lineAt(resume), resume, options);
     }
 
     const tail = source.slice(end, line.end);
@@ -184,9 +197,20 @@ function completePython(source: EditSource, lineIndex: number, caret: number, op
     }
 
     let inline = '';
+    let resume: number | null = null;
 
     for (let open = source.context(end).bracket; open !== undefined; open = open.previous) {
-        inline += open.close;
+        const closer = source.closerOf(open.at);
+
+        if (closer === undefined) {
+            inline += open.close;
+        } else {
+            resume = closer;
+        }
+    }
+
+    if (resume !== null) {
+        return completePython(source, source.lineAt(resume), resume, options);
     }
 
     const head = (source.slice(line.start, end) + inline).trim();
@@ -205,25 +229,30 @@ function completePython(source: EditSource, lineIndex: number, caret: number, op
 export function planCompleteStatement(source: EditSource, selections: readonly Selection[], options: CompleteStatementOptions): EditPlan {
     const complete = isBraced(options.language) ? completeBraced : /^(python|py)$/i.test(options.language) ? completePython : null;
     const pieces = new Map<number, Piece>();
+    const byStart = new Map<number, Piece>();
 
     for (const selection of selections) {
         const line = source.lineAt(selection.head);
-        pieces.set(line, complete === null ? startNewLine(source, line, options) : complete(source, line, selection.head, options));
+        const piece = complete === null ? startNewLine(source, line, options) : complete(source, line, selection.head, options);
+
+        // Carets on lines of one statement end up at the same edit, which applies once.
+        pieces.set(line, byStart.get(piece.from) ?? piece);
+        byStart.set(piece.from, pieces.get(line)!);
     }
 
-    const ordered = [...pieces.entries()].sort((left, right) => left[1].from - right[1].from);
-    const carets = new Map<number, number>();
+    const ordered = [...new Set(pieces.values())].sort((left, right) => left.from - right.from);
+    const carets = new Map<Piece, number>();
     let delta = 0;
 
-    for (const [line, piece] of ordered) {
-        carets.set(line, piece.from + delta + piece.caret);
+    for (const piece of ordered) {
+        carets.set(piece, piece.from + delta + piece.caret);
         delta += piece.text.length - (piece.to - piece.from);
     }
 
     return {
-        edits: ordered.map(([, piece]) => ({ from: piece.from, to: piece.to, text: piece.text })),
+        edits: ordered.map((piece) => ({ from: piece.from, to: piece.to, text: piece.text })),
         selections: selections.map((selection) => {
-            const caret = carets.get(source.lineAt(selection.head))!;
+            const caret = carets.get(pieces.get(source.lineAt(selection.head))!)!;
 
             return { anchor: caret, head: caret };
         })

@@ -2224,7 +2224,8 @@ export class DocumentModel {
             newline: (index) => this.newlineAt(index),
             context: (offset) => this.typingContext(offset, language),
             region: (line) => (/^vue$/i.test(language) ? vueRegionAt((index) => this.getLine(index).text, line) : null),
-            unclosedBrace: (offset) => this.isUnclosedBrace(offset, language)
+            unclosedBrace: (offset) => this.isUnclosedBrace(offset, language),
+            closerOf: (offset) => this.closerOf(offset, language)
         };
     }
 
@@ -2233,10 +2234,7 @@ export class DocumentModel {
      * it, which it took from that block. Such a closer sits shallower than the brace's line and leaves an opener before it unmatched.
      */
     private isUnclosedBrace(offset: number, language: string): boolean {
-        const context = isPhp(language) ? this.typingContext(offset, language) : undefined;
-
-        const index =
-            context?.embedded === 'javascript' && context.embedStart !== undefined ? this.scriptBracketIndex(context.embedStart) : this.bracketIndex(language);
+        const index = this.bracketIndexAt(offset, language);
 
         if (index === undefined) {
             return false;
@@ -2255,6 +2253,25 @@ export class DocumentModel {
         }
 
         return [...index.unmatched].some((at) => at < offset && this.rope.charAt(at) === '{');
+    }
+
+    /* Where the closer of the opening bracket at `offset` stands; undefined where it has none, or the document is too large to scan. */
+    private closerOf(offset: number, language: string): number | undefined {
+        const index = this.bracketIndexAt(offset, language);
+
+        if (index === undefined || index.unmatched.has(offset)) {
+            return undefined;
+        }
+
+        return index.pairs.get(offset);
+    }
+
+    private bracketIndexAt(offset: number, language: string): BracketIndex | undefined {
+        const context = isPhp(language) ? this.typingContext(offset, language) : undefined;
+
+        return context?.embedded === 'javascript' && context.embedStart !== undefined
+            ? this.scriptBracketIndex(context.embedStart)
+            : this.bracketIndex(language);
     }
 
     private scriptSource(start: number, limit: number): { limit: number; text?: string; index?: BracketIndex } {
