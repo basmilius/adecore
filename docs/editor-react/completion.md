@@ -25,6 +25,8 @@ For a function, method or constructor in TypeScript, JavaScript, Vue, PHP or Pyt
 
 `completion.addSource(source)` adds a `CompletionSource`, which the list asks for rows on every request, and returns the function that takes it away. `source.items({ position, explicit, triggerCharacter })` is synchronous and cheap and returns `LocalCompletionItem` values: a `CompletionItem` whose edit range is the typed prefix on the caret's line, ending at the caret, and an `accept()` that inserts the row itself, so the row is never resolved. Give a row the sort text `'\uffff'` followed by its key and it sorts after the rows of the service that match as well.
 
+[Live templates](/editor-react/templates#suggestions) are such a source: `language.templates` adds one when it is created, so a template that applies is a row of every list, and Insert Live Template opens the list through `showItems`.
+
 With a source added the list opens in a document no service answers for, and a request the service fails still shows the rows of the sources. A list that was asked for and has one row takes it at once, whoever the row is from. `completion.showItems(items, start)` opens the list with only the given rows, the typed prefix starting at `start`, as Insert Live Template does. No request refreshes it, and typing only narrows it, until a character that is no part of a word, or a row that no longer matches, closes it.
 
 ## Snippets

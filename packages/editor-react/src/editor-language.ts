@@ -35,6 +35,7 @@ import { SemanticTokensFeature, type SemanticTokensOptions } from './semantic-to
 import { SignatureFeature } from './signature.ts';
 import { SnippetFeature } from './snippet-session.ts';
 import { SymbolsFeature } from './symbols.ts';
+import { TemplatesFeature } from './live-templates.ts';
 import type { Place } from './navigation-history.ts';
 import type { LanguageDocumentHandle, ProjectLanguage } from './project-language.ts';
 
@@ -75,6 +76,7 @@ export class EditorLanguage {
     readonly signature: SignatureFeature;
     readonly snippets: SnippetFeature;
     readonly markup: MarkupFeature;
+    readonly templates: TemplatesFeature;
     readonly highlights: HighlightsFeature;
     readonly pick: PickFeature;
     readonly codeActions: CodeActionsFeature;
@@ -117,6 +119,7 @@ export class EditorLanguage {
         this.completion = new CompletionFeature(this, timers);
         this.snippets = new SnippetFeature(this, timers);
         this.markup = new MarkupFeature(this);
+        this.templates = new TemplatesFeature(this);
         this.signature = new SignatureFeature(this, timers);
         this.highlights = new HighlightsFeature(this, timers);
         this.symbols = new SymbolsFeature(this, timers);

@@ -219,6 +219,10 @@
             "title": "Choose Content to Paste",
             "empty": "Nothing was copied yet"
         },
+        "templates": {
+            "none": "No templates defined in this context",
+            "selectToSave": "Select the text to save as a live template"
+        },
         "announce": {
             "problem": "{{severity}}: {{message}}",
             "severity": {

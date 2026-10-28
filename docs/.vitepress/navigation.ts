@@ -376,6 +376,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Rename and code actions', '/editor-react/rename'],
             ['Format on type', '/editor-react/format-on-type'],
             ['Markup', '/editor-react/markup'],
+            ['Templates', '/editor-react/templates'],
             ['Links, colors and more', '/editor-react/language-features'],
             ['FindReplace', '/editor-react/find-replace'],
             ['Reviews and agents', '/editor-react/change-review'],
