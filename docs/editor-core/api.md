@@ -14,7 +14,7 @@ Everything comes from the package root, `@adecore/editor-core`.
 | Search     | `find`, `findNext`, `replace`, `replaceAll`, `replaceMatches`                                                    |
 | Folding    | `getFoldingRanges`                                                                                               |
 | Saving     | `markSaved`, `getModifiedLines`, `cleanUpWhitespace`; see [Saving](/editor-core/documents#saving)                |
-| Comments   | `findTodos`                                                                                                      |
+| Comments   | `findTodos`, `commentSyntax`                                                                                     |
 | Lexical    | `placeAt`, `postfixOperands`, `surroundShape`, `unwrapTargets`; see [Lexical queries](#lexical-queries)          |
 
 See [Documents and edits](/editor-core/documents), [Typing and commands](/editor-core/commands) and [Search and folding](/editor-core/search-folding).

@@ -223,6 +223,29 @@
             "none": "Geen sjablonen gedefinieerd in deze context",
             "selectToSave": "Selecteer de tekst die je als live sjabloon wilt opslaan"
         },
+        "surround": {
+            "title": "Omring met",
+            "selectTemplate": "Kies een sjabloon",
+            "liveTemplates": "Live sjablonen",
+            "configure": "Live sjablonen instellen…",
+            "comments": "{{construct}}-commentaar",
+            "none": "Geen Omring met-varianten gevonden voor de huidige context",
+            "noTemplates": "Geen omringende sjablonen gedefinieerd in deze context",
+            "unwrap": {
+                "title": "Kies het statement om uit te pakken of te verwijderen",
+                "if": "'if...' uitpakken",
+                "else": "'else...' uitpakken",
+                "removeElse": "'else...' verwijderen",
+                "for": "'for...' uitpakken",
+                "while": "'while...' uitpakken",
+                "do": "'do...' uitpakken",
+                "try": "'try...' uitpakken",
+                "removeCatch": "'catch...' verwijderen",
+                "removeFinally": "'finally...' verwijderen",
+                "braces": "Accolades uitpakken",
+                "tag": "Omringende tag verwijderen: {{name}}"
+            }
+        },
         "announce": {
             "problem": "{{severity}}: {{message}}",
             "severity": {

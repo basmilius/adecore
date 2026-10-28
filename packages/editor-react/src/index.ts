@@ -66,6 +66,7 @@ export type {
     WrapView
 } from './popups.ts';
 export { type MarkupFeature } from './markup.ts';
+export { type SurroundFeature } from './surround.ts';
 export type { MarkupSettings } from './markup.ts';
 export { RowHost, LineActionHost } from './row-host.ts';
 export type { HostedRow, HostedAction } from './row-host.ts';

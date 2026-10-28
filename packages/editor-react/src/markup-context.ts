@@ -29,6 +29,19 @@ export interface TagPair {
     readonly close: { readonly from: number; readonly to: number };
 }
 
+/* A whole tag, from its `<` up to and after its `>`. */
+export interface TagSpan {
+    readonly from: number;
+    readonly to: number;
+}
+
+/* An element as its tags: `close` is null for one that was never closed. */
+export interface EnclosingElement {
+    readonly name: string;
+    readonly open: TagSpan;
+    readonly close: TagSpan | null;
+}
+
 /* Above this a document is not read on a keystroke; the features then do nothing in it. */
 export const MAX_MARKUP_SCAN = 1_000_000;
 
@@ -74,10 +87,11 @@ class Stop {
  */
 class MarkupScanner {
     readonly pairs: TagPair[] = [];
+    readonly elements: EnclosingElement[] = [];
     private readonly text: string;
     private readonly syntax: MarkupSyntax;
     private readonly until: number;
-    private readonly open: (OpenElement & { readonly nameTo: number })[] = [];
+    private readonly open: (OpenElement & { readonly nameTo: number; readonly tag: TagSpan })[] = [];
 
     constructor(text: string, syntax: MarkupSyntax, until: number) {
         this.text = text;
@@ -160,7 +174,7 @@ class MarkupScanner {
         const name = text.slice(nameFrom, nameTo);
         const end = this.tagEnd(at, closing, name, nameFrom, nameTo);
         if (closing) {
-            this.close(name, nameFrom, nameTo);
+            this.close(name, nameFrom, nameTo, { from: at, to: end });
             return end;
         }
         const selfClosing = text[end - 2] === '/' && text[end - 1] === '>';
@@ -168,9 +182,9 @@ class MarkupScanner {
             return end;
         }
         if (this.syntax !== 'xml' && RAW_ELEMENTS.has(name.toLowerCase())) {
-            return this.rawContent(end, name, nameFrom, nameTo);
+            return this.rawContent({ from: at, to: end }, name, nameFrom, nameTo);
         }
-        this.open.push({ name, nameFrom, nameTo });
+        this.open.push({ name, nameFrom, nameTo, tag: { from: at, to: end } });
         return end;
     }
 
@@ -212,7 +226,8 @@ class MarkupScanner {
     }
 
     /* The content of `script`, `style` and the like is not markup, up to the end tag of the element. */
-    private rawContent(from: number, name: string, nameFrom: number, nameTo: number): number {
+    private rawContent(tag: TagSpan, name: string, nameFrom: number, nameTo: number): number {
+        const from = tag.to;
         const pattern = new RegExp(`</${name}(?=[\\s/>]|$)`, 'gi');
         pattern.lastIndex = from;
         const match = pattern.exec(this.text);
@@ -225,21 +240,131 @@ class MarkupScanner {
         const closeTo = closeFrom + name.length;
         const after = this.tagEnd(end, true, this.text.slice(closeFrom, closeTo), closeFrom, closeTo);
         this.pairs.push({ open: { from: nameFrom, to: nameTo }, close: { from: closeFrom, to: closeTo } });
+        this.elements.push({ name, open: tag, close: { from: end, to: after } });
         return after;
     }
 
     /* An end tag closes the nearest open element of its name and every element left open inside it. */
-    private close(name: string, nameFrom: number, nameTo: number): void {
+    private close(name: string, nameFrom: number, nameTo: number, tag: TagSpan): void {
         const caseless = this.syntax !== 'xml';
         for (let index = this.open.length - 1; index >= 0; index--) {
             const element = this.open[index]!;
             if (element.name === name || (caseless && element.name.toLowerCase() === name.toLowerCase())) {
                 this.pairs.push({ open: { from: element.nameFrom, to: element.nameTo }, close: { from: nameFrom, to: nameTo } });
+                this.elements.push({ name: element.name, open: element.tag, close: tag });
                 this.open.length = index;
                 return;
             }
         }
     }
+
+    /* The elements still open at the end of the text. */
+    unclosed(): EnclosingElement[] {
+        return this.open.map((element) => ({ name: element.name, open: element.tag, close: null }));
+    }
+}
+
+/*
+ * The elements whose tags hold `offset`, innermost first: each with its start tag and its end tag, which an element left
+ * open does not have. Empty for a document too large to read on a keystroke.
+ */
+export function enclosingElements(text: string, offset: number, syntax: MarkupSyntax): EnclosingElement[] {
+    if (text.length > MAX_MARKUP_SCAN) {
+        return [];
+    }
+    const scanner = new MarkupScanner(text, syntax, Infinity);
+    scanner.run();
+    return [...scanner.elements, ...scanner.unclosed()]
+        .filter((element) => element.open.from <= offset && offset <= (element.close?.to ?? text.length))
+        .sort((left, right) => right.open.from - left.open.from);
+}
+
+/* A replacement of the text from one offset up to another. */
+export interface TextReplacement {
+    readonly from: number;
+    readonly to: number;
+    readonly text: string;
+}
+
+export function lineStartOf(text: string, offset: number): number {
+    let at = offset;
+
+    while (at > 0 && text[at - 1] !== '\n' && text[at - 1] !== '\r') {
+        at--;
+    }
+
+    return at;
+}
+
+export function lineEndOf(text: string, offset: number): number {
+    let at = offset;
+
+    while (at < text.length && text[at] !== '\n' && text[at] !== '\r') {
+        at++;
+    }
+
+    return at;
+}
+
+function breakLengthAt(text: string, offset: number): number {
+    if (text.startsWith('\r\n', offset)) {
+        return 2;
+    }
+
+    return text[offset] === '\n' || text[offset] === '\r' ? 1 : 0;
+}
+
+/* The tag alone on its line takes the line with it, and the break before it where no break follows. */
+function tagReplacement(text: string, tag: TagSpan): TextReplacement {
+    const start = lineStartOf(text, tag.from);
+    const end = lineEndOf(text, tag.to);
+
+    if (text.slice(start, tag.from).trim() !== '' || text.slice(tag.to, end).trim() !== '') {
+        return { from: tag.from, to: tag.to, text: '' };
+    }
+
+    const after = breakLengthAt(text, end);
+    const before = start > 0 && after === 0 ? (text.startsWith('\r\n', start - 2) ? 2 : 1) : 0;
+
+    return { from: start - before, to: end + after, text: '' };
+}
+
+/*
+ * The edits that take an element's tags away and keep what is between them: each tag that stands alone on its line
+ * goes with its line, and when the start tag does, the lines it enclosed lose one indentation unit. The offsets are
+ * those of `text`, ascending and apart.
+ */
+export function removeTagEdits(text: string, element: EnclosingElement, unit: string): TextReplacement[] {
+    const open = tagReplacement(text, element.open);
+    const edits: TextReplacement[] = [open];
+
+    if (element.close === null) {
+        return edits;
+    }
+
+    const close = tagReplacement(text, element.close);
+    const openAlone = open.from !== element.open.from || open.to !== element.open.to;
+    const closeAlone = close.from !== element.close.from || close.to !== element.close.to;
+    const indent = unit === '\t' ? /^\t/ : new RegExp(`^ {1,${unit.length}}`);
+    const lastLine = lineStartOf(text, element.close.from);
+    let line = lineEndOf(text, element.open.to);
+
+    line += breakLengthAt(text, line);
+
+    while (openAlone && line <= lastLine && line < text.length && !(closeAlone && line === lastLine)) {
+        const found = indent.exec(text.slice(line, lineEndOf(text, line)));
+
+        if (found !== null) {
+            edits.push({ from: line, to: line + found[0].length, text: '' });
+        }
+
+        line = lineEndOf(text, line);
+        line += breakLengthAt(text, line);
+    }
+
+    edits.push(close);
+
+    return edits;
 }
 
 /* What `offset` is in; null for a document too large to read on a keystroke. */

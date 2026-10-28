@@ -3,6 +3,7 @@ export type { DocumentEditOptions, DocumentLine, OffsetRange, ReplaceAllOptions,
 export { scanBrackets, type BracketIndex, type BracketMatch } from './brackets.ts';
 export { findMatches, iterateMatches, findMatchFrom, replacementText, type FindMatch, type FindNextOptions, type FindOptions } from './search.ts';
 export { indentationColumn } from './structure.ts';
+export { commentSyntax, type CommentSyntax } from './languages.ts';
 export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from './doc-comments.ts';
 export { DEFAULT_TODO_WORDS, findTodos, type TodoMatch, type TodoOptions } from './todo.ts';
 export { detectIndentation, type DetectedIndentation } from './line-order.ts';
