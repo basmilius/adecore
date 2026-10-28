@@ -1034,9 +1034,12 @@ export class InputController {
 
         event.clipboardData?.setData('text/plain', text);
         lineClip = empty ? text : null;
-        emit(this.copyListeners, { text, wholeLines: empty, cut });
+        const blocked = cut && this.blockedByReadOnly();
 
-        if (!cut || this.blockedByReadOnly()) {
+        // A cut that a read-only editor refuses took nothing out, so it is told as the copy it came to.
+        emit(this.copyListeners, { text, wholeLines: empty, cut: cut && !blocked });
+
+        if (!cut || blocked) {
             return;
         }
 

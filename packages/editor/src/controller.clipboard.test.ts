@@ -34,6 +34,17 @@ describe('onCopy', () => {
         ]);
     });
 
+    test('tells a cut that a read-only editor refuses as a copy', () => {
+        const { editor, clip } = mountEditor({ text: 'one\ntwo', readOnly: true });
+        const copies: EditorCopy[] = [];
+        editor.onCopy?.((copy) => copies.push(copy));
+
+        clip('cut');
+
+        expect(copies).toEqual([{ text: 'one\n', wholeLines: true, cut: false }]);
+        expect(editor.getText()).toBe('one\ntwo');
+    });
+
     test('says a copy of a selection is no whole line', () => {
         const { editor, press, clip } = mountEditor({ text: 'one\ntwo' });
         const copies: EditorCopy[] = [];
