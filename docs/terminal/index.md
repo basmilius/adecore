@@ -49,7 +49,7 @@ When two windows show the same program, the last one to resize decides its grid.
 
 ## Theme and font
 
-The colors come from the `--term-*` tokens in `terminal.css`: a background, a foreground, a cursor that follows the accent and the sixteen colors a program asks for by number. The selection is `--selection` and the font `--font-mono`. The terminal reads them again whenever `data-theme`, `class` or the inline style on `<html>` changes, so a theme switch, a new accent or another monospace font reaches it without a prop. `fontSize` (13 by default) and `lineHeight` (1) are props, since an app usually lets a person set them.
+The colors come from the `--term-*` tokens in `terminal.css`: a background, a foreground, a cursor that follows the accent and the sixteen colors a program asks for by number. The selection is `--selection`. The font is `--term-font`, and while that is unset or empty it is `--font-mono`, so an app that wants its terminals in another font than its code sets `--term-font` on `<html>` and leaves `--font-mono` alone. The terminal reads them again whenever `data-theme`, `class` or the inline style on `<html>` changes, so a theme switch, a new accent or another monospace font reaches it without a prop. `fontSize` (13 by default) and `lineHeight` (1) are props, since an app usually lets a person set them.
 
 ## Links
 

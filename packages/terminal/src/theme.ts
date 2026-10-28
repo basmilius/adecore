@@ -29,4 +29,9 @@ export const readTerminalTheme = (): ITheme => {
     return theme;
 };
 
-export const readTerminalFont = (): string => token(getComputedStyle(document.documentElement), '--font-mono');
+/* `--term-font` is the terminal's own font; without it the terminal follows the code font of the page. */
+export const readTerminalFont = (): string => {
+    const style = getComputedStyle(document.documentElement);
+
+    return token(style, '--term-font') || token(style, '--font-mono');
+};
