@@ -219,6 +219,10 @@
             "title": "Kies wat je plakt",
             "empty": "Er is nog niets gekopieerd"
         },
+        "templates": {
+            "none": "Geen sjablonen gedefinieerd in deze context",
+            "selectToSave": "Selecteer de tekst die je als live sjabloon wilt opslaan"
+        },
         "announce": {
             "problem": "{{severity}}: {{message}}",
             "severity": {

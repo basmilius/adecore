@@ -75,6 +75,21 @@ export type { Place } from './navigation-history.ts';
 export { EditLocations, type EditPlace } from './edit-locations.ts';
 export { ClipboardHistory, type ClipboardEntry, type ClipboardHistoryOptions } from './clipboard-history.ts';
 export { type PasteHistoryFeature } from './paste-history.ts';
+export {
+    TemplateRegistry,
+    checkTemplate,
+    BUILT_IN_LIVE_TEMPLATES,
+    BUILT_IN_POSTFIX_TEMPLATES,
+    type TemplatesFeature,
+    type LiveTemplate,
+    type PostfixTemplate,
+    type LiveTemplateDraft,
+    type TemplateLanguage,
+    type TemplatePlace,
+    type TemplateSettings,
+    type TemplateRegistryOptions,
+    type TemplateUpdate
+} from './templates.ts';
 export { openingPlace, viewStates, followViewStates, viewStateKey, forgetMovesFrom } from './view-state.ts';
 export type { ViewState, RevealLineRequest } from './view-state.ts';
 export { lspLanguageIdOf, shikiLanguageOf, shikiLanguageOfPath } from './language-ids.ts';

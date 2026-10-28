@@ -21,6 +21,7 @@ The `host` is what the app allows the features to do. Every field is optional.
 | `problemSource`                         | Where [`project.problems`](#problems) reads its reports; the service's diagnostics without one |
 | `notify(notification)`                  | Shows a short `success` or `error` message with an `id` and a `title`, such as a toast                                                                                            |
 | `clipboard` | The `ClipboardHistory` that Paste from History lists; a new one that lives as long as the project without one |
+| `templates`, `saveAsLiveTemplate(draft)`, `openTemplateSettings()` | The [`TemplateRegistry`](/editor-react/templates#the-registry) of the project (the built-in templates only, living as long as the project, without one), the call that Save as Live Template makes with a `LiveTemplateDraft`, and the call that opens the host's template settings |
 | `editHistoryLimit` | How many places [Last Edit Location](/editor-react/navigation#edit-locations) remembers; 150 without one |
 | `resolveSnippetVariable(name, context)` | Synchronous snippet overrides; `undefined` delegates to built-ins or an editable unknown-variable placeholder. The `SnippetVariableContext` describes one caret before insertion. |
 | `suggestNames(request, signal)`         | Suggests new names during a rename, from any source the app picks                                                                                                                 |
