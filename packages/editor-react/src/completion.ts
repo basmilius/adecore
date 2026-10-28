@@ -728,7 +728,7 @@ export class CompletionFeature {
 
         // The rows were given, so typing only filters them.
         if (this.shown && this.isOpen) {
-            if (change.source === 'input' && change.changes.length === 1 && Array.from(change.changes[0]!.text).every(isIdentifierCharacter)) {
+            if (change.source === 'input' && change.changes.length === 1 && this.typedIntoShown(change.changes[0]!)) {
                 this.refilter();
             } else {
                 this.close();
@@ -766,6 +766,20 @@ export class CompletionFeature {
             // A request the last letter started, still waiting or out, would open the list after a character that ends the word.
             this.close();
         }
+    }
+
+    /* Whether a change put word characters into the typed prefix of the given rows; anything else leaves their ranges pointing at other text. */
+    private typedIntoShown({ range, text }: EditorContentChange): boolean {
+        const start = this.start;
+
+        return (
+            text !== '' &&
+            isEmptyRange(range) &&
+            start !== null &&
+            range.start.line === start.line &&
+            range.start.character >= start.character &&
+            Array.from(text).every(isIdentifierCharacter)
+        );
     }
 
     private caretMoved(position: EditorPosition): void {

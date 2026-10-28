@@ -325,6 +325,21 @@ describe('Insert Live Template', () => {
         expect(editor.getText()).toBe('<div>\n    <tag>a\n    b</tag>\n</div>');
     });
 
+    test('closes the list when typing replaces the selection it was opened for', async () => {
+        const { press, type, editor, language } = await setup('<div>\n    a\n    b\n</div>|', { languageId: 'html' });
+
+        editor.setSelection({ start: { line: 2, character: 5 }, end: { line: 1, character: 4 } });
+        press('j', INSERT_CHORD);
+
+        expect(language.completion.isOpen).toBe(true);
+
+        type('t');
+        await settle();
+
+        expect(language.completion.isOpen).toBe(false);
+        expect(editor.getText()).toBe('<div>\n    t\n</div>');
+    });
+
     test('does nothing in a read-only editor', async () => {
         const { press, language } = await setup('|', { readOnly: true });
 
