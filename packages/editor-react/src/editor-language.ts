@@ -249,16 +249,16 @@ export class EditorLanguage {
      * as the specification allows. Call it, then save, then let the service send `didSave`.
      */
     async prepareSave(reason: TextDocumentSaveReason = 1): Promise<void> {
-        const { service } = this.project;
+        const { service } = this;
         await service.willSave?.(this.uri, reason).catch(() => undefined);
-        if (service.willSaveWaitUntil === undefined) {
+        if (this.disposed || service.willSaveWaitUntil === undefined) {
             return;
         }
         const controller = new AbortController();
         const timer = this.timers.set(() => controller.abort(), SAVE_PARTICIPANT_MS);
         try {
             const edits = await service.willSaveWaitUntil(this.uri, reason, { signal: controller.signal });
-            if (!controller.signal.aborted && edits !== null && edits.length > 0) {
+            if (!this.disposed && !controller.signal.aborted && edits !== null && edits.length > 0) {
                 this.editor.applyEdits(edits.map((edit) => ({ range: edit.range, text: edit.newText })));
             }
         } catch {
