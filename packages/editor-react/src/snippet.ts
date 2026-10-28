@@ -40,15 +40,21 @@ export interface ParsedSnippet {
 }
 
 type Node =
-    | { kind: 'text'; text: string; transform?: SnippetTransform }
+    // `indent` marks the value of a variable whose lines after the first take the indentation of the line it starts on.
+    | { kind: 'text'; text: string; transform?: SnippetTransform; indent?: true }
     | { kind: 'field'; index: number; body?: Node[]; choices?: string[]; transform?: SnippetTransform }
     | { kind: 'variable'; name: string; body?: Node[]; transform?: SnippetTransform };
 
 export type SnippetVariableResolver = (name: string) => string | undefined;
 
+export interface SnippetRenderOptions {
+    /* The way VS Code treats `TM_SELECTED_TEXT`: the lines of a value after its first take the leading whitespace of the output line the variable starts on. */
+    readonly indentVariables?: boolean;
+}
+
 export interface SnippetTemplate {
     readonly source: string;
-    render(resolve?: SnippetVariableResolver, variableTransforms?: readonly string[]): ParsedSnippet;
+    render(resolve?: SnippetVariableResolver, variableTransforms?: readonly string[], options?: SnippetRenderOptions): ParsedSnippet;
 }
 
 type FieldNode = Extract<Node, { kind: 'field' }>;
@@ -235,6 +241,13 @@ class SnippetParser {
     }
 }
 
+/* The lines of a value after its first, behind the whitespace the last line of `before` starts with; blank lines stay blank. */
+function indentLines(value: string, before: string): string {
+    const prefix = /^[\t ]*/.exec(before.slice(before.lastIndexOf('\n') + 1))![0];
+
+    return prefix === '' ? value : value.replace(/(\r\n|\r|\n)(?=[^\r\n])/g, `$1${prefix}`);
+}
+
 function renderSnippet(nodes: readonly Node[], variableTransforms?: readonly string[]): ParsedSnippet {
     const definitions = new Map<number, FieldNode>();
 
@@ -304,7 +317,8 @@ function renderSnippet(nodes: readonly Node[], variableTransforms?: readonly str
 
             if (node.kind === 'text') {
                 const start = text.length;
-                const value = node.transform === undefined || variableTransforms === undefined ? node.text : variableTransforms[transforms.length];
+                const given = node.transform === undefined || variableTransforms === undefined ? node.text : variableTransforms[transforms.length];
+                const value = node.indent === true && typeof given === 'string' ? indentLines(given, text) : given;
 
                 if (typeof value !== 'string') {
                     throw new RangeError('The variable transform count does not match the snippet.');
@@ -453,7 +467,7 @@ function variableIndices(nodes: readonly Node[]): ReadonlyMap<string, number> {
     );
 }
 
-function resolveVariables(nodes: readonly Node[], indices: ReadonlyMap<string, number>, resolve?: SnippetVariableResolver): Node[] {
+function resolveVariables(nodes: readonly Node[], indices: ReadonlyMap<string, number>, resolve?: SnippetVariableResolver, indentVariables = false): Node[] {
     const unknown = new Map<string, { index: number; body: Node[]; defaulted: boolean; definition: Node }>();
     const values = new Map<string, string | undefined>();
 
@@ -513,7 +527,11 @@ function resolveVariables(nodes: readonly Node[], indices: ReadonlyMap<string, n
                     return [{ kind: 'text', text: value ?? '', transform: node.transform }];
                 }
 
-                return value !== undefined && value !== '' ? [{ kind: 'text', text: value }] : normalize(node.body ?? [], visiting, depth + 1);
+                if (value !== undefined && value !== '') {
+                    return [{ kind: 'text', text: value, ...(indentVariables ? { indent: true as const } : {}) }];
+                }
+
+                return normalize(node.body ?? [], visiting, depth + 1);
             }
 
             if (node.kind === 'field') {
@@ -565,13 +583,13 @@ export function compileSnippet(source: string): SnippetTemplate {
 
     return {
         source,
-        render: (resolve, variableTransforms) => {
+        render: (resolve, variableTransforms, options) => {
             if (nodes === null) {
                 return { text: source, stops: [], limited: true };
             }
 
             try {
-                return renderSnippet(resolveVariables(nodes, indices, resolve), variableTransforms);
+                return renderSnippet(resolveVariables(nodes, indices, resolve, options?.indentVariables === true), variableTransforms);
             } catch (error) {
                 if (!(error instanceof SnippetLimitError)) {
                     throw error;
@@ -614,4 +632,61 @@ export function tabOrder(parsed: ParsedSnippet): SnippetStop[] {
     const visited = [...first.values()].filter((stop) => stop.index > 0).sort((left, right) => left.index - right.index);
 
     return [...visited, first.get(0) ?? { index: 0, start: parsed.text.length, end: parsed.text.length }];
+}
+
+/* The names of the variables a snippet uses, the editable ones that are no built-in too. A source that does not parse names none. */
+export function snippetVariables(source: string): ReadonlySet<string> {
+    const names = new Set<string>();
+
+    const scan = (nodes: readonly Node[]): void => {
+        for (const node of nodes) {
+            if (node.kind === 'variable') {
+                names.add(node.name);
+            }
+
+            if (node.kind !== 'text' && node.body !== undefined) {
+                scan(node.body);
+            }
+        }
+    };
+
+    if (source.length > MAX_SNIPPET_TEXT) {
+        return names;
+    }
+
+    try {
+        scan(new SnippetParser(source).parse());
+    } catch {
+        return new Set();
+    }
+
+    return names;
+}
+
+/* Why a snippet cannot be used, in English for a host to show, or null: it does not parse, or it is over the limits an insertion keeps. */
+export function checkSnippet(source: string): string | null {
+    if (source.length > MAX_SNIPPET_TEXT) {
+        return `The text is longer than ${MAX_SNIPPET_TEXT} characters.`;
+    }
+
+    try {
+        new SnippetParser(source).parse();
+    } catch (error) {
+        if (error instanceof MalformedSnippetError) {
+            return 'A transform in the text is not valid.';
+        }
+
+        if (error instanceof SnippetLimitError) {
+            return 'The text has too many parts or is nested too deeply.';
+        }
+
+        throw error;
+    }
+
+    return compileSnippet(source).render().limited === true ? 'The text expands to more than a snippet can hold.' : null;
+}
+
+/* Escapes `\`, `$` and `}`, so the text reads back as itself in a snippet. */
+export function escapeSnippetText(text: string): string {
+    return text.replace(/[\\$}]/g, '\\$&');
 }

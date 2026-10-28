@@ -105,6 +105,7 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
     }
 
     const activeId = optionIds.get(view.active);
+    const mnemonics = view.groups.some((group) => group.rows.some((row) => row.mnemonic !== undefined));
 
     useInputPopup(language, listId, activeId);
 
@@ -135,11 +136,17 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
                                 role="option"
                                 tabIndex={-1}
                                 aria-selected={row.id === view.active || view.chosen.includes(row.id)}
+                                aria-keyshortcuts={row.mnemonic}
                                 data-active={row.id === view.active}
                                 data-chosen={view.chosen.includes(row.id)}
                                 className="flex h-7 w-full items-center gap-2 rounded-md px-2 text-left text-xs cursor-row data-[chosen=true]:bg-accent/15"
                                 onClick={(event) => language.pick.choose(row.id, { toggle: event.metaKey || event.ctrlKey, range: event.shiftKey })}
                             >
+                                {mnemonics && (
+                                    <span aria-hidden="true" className="w-3 shrink-0 text-center font-mono text-text-faint">
+                                        {row.mnemonic}
+                                    </span>
+                                )}
                                 <span className={row.path ? 'shrink-0' : 'min-w-0 truncate'}>
                                     <MatchedLabel label={row.label} query={view.query} />
                                 </span>

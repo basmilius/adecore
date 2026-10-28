@@ -84,6 +84,8 @@ export interface PickRow {
     readonly path?: boolean;
     /* What a typed query is matched against, when a list filters; the label without it. */
     readonly search?: string;
+    /* One character that takes the row when typed in a list that does not filter, such as `1` or `A`. */
+    readonly mnemonic?: string;
 }
 
 export interface PickGroup {

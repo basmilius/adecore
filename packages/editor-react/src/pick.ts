@@ -373,8 +373,24 @@ export class PickFeature {
                     return true;
                 }
 
-                return false;
+                return spec.filter !== true && event.key.length === 1 && this.takeMnemonic(event.key);
         }
+    }
+
+    /* Takes the visible row whose mnemonic is the typed character, whatever the case. */
+    private takeMnemonic(character: string): boolean {
+        const wanted = character.toLowerCase();
+        const row = this.visibleGroups()
+            .flatMap((group) => group.rows)
+            .find((candidate) => candidate.mnemonic?.toLowerCase() === wanted);
+
+        if (row === undefined) {
+            return false;
+        }
+
+        this.choose(row.id);
+
+        return true;
     }
 
     private schedulePreview(): void {
