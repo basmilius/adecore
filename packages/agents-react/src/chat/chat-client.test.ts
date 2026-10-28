@@ -383,7 +383,7 @@ describe('ChatClient', () => {
         expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [], workflows: [], outline: [] });
     });
 
-    test('the workflows from before the page reach the store, and a host that sends none leaves them out', async () => {
+    test('the workflows from before the page reach the store', async () => {
         const { transport, sink, client } = setup();
 
         const workflow: ChatItem = {
