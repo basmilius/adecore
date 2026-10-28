@@ -46,7 +46,9 @@ async function setup(marked: string, options: Options = {}) {
     const drafts: LiveTemplateDraft[] = [];
     templates.set({ live });
 
-    const project = new ProjectLanguage(new FakeLanguageService(), {
+    const service = new FakeLanguageService();
+
+    const project = new ProjectLanguage(service, {
         templates,
         notify: (notification) => notifications.push(notification),
         saveAsLiveTemplate: (draft) => drafts.push(draft)
@@ -76,7 +78,7 @@ async function setup(marked: string, options: Options = {}) {
         }
     };
 
-    return { ...mounted, language, templates, notifications, drafts, shown, timers, typeKeys };
+    return { ...mounted, language, templates, notifications, drafts, shown, timers, typeKeys, service };
 }
 
 describe('Tab', () => {
@@ -88,6 +90,23 @@ describe('Tab', () => {
 
         expect(shown()).toBe('console.log(|);');
         expect(language.snippets.isActive).toBe(false);
+    });
+
+    test('accepts the inline suggestion that is shown instead of expanding the key', async () => {
+        const { press, shown, language, service, timers } = await setup('log|');
+
+        service.respond('textDocument/inlineCompletion', () => [
+            { insertText: 'logging', range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } } }
+        ]);
+        language.inlineCompletion.configure({ enabled: true });
+        language.inlineCompletion.trigger();
+        await settle();
+        timers.advance(300);
+
+        expect(press('Tab')).toBe(true);
+        await settle();
+
+        expect(shown()).toBe('logging|');
     });
 
     test('goes through the places of the template, and leaves it at the last', async () => {

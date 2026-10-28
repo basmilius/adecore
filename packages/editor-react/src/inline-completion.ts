@@ -69,6 +69,7 @@ export class InlineCompletionFeature {
         const { editor } = language;
         const offs = [
             language.onKey((event) => this.key(event), KEY_PRIORITY.inlineCompletion),
+            language.onKey((event) => this.tab(event), KEY_PRIORITY.inlineAccept),
             editor.onTextChange((change) => this.edited(change)),
             editor.onCaret(() => queueMicrotask(() => this.moved()))
         ];
@@ -146,6 +147,17 @@ export class InlineCompletionFeature {
         }
     }
 
+    /* Tab takes the suggestion on screen before any feature that expands on Tab; without one it is left alone. */
+    private tab(event: KeyboardEvent): boolean {
+        if (this.current === null || event.isComposing) {
+            return false;
+        }
+        if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
+            return this.accept();
+        }
+        return false;
+    }
+
     private key(event: KeyboardEvent): boolean {
         if (isShortcut(this.language.shortcuts.suggestInline, event) && this.enabled) {
             this.trigger();
@@ -153,9 +165,6 @@ export class InlineCompletionFeature {
         }
         if (this.current === null || event.isComposing) {
             return false;
-        }
-        if (event.key === 'Tab' && !event.shiftKey && !event.altKey && !event.ctrlKey && !event.metaKey) {
-            return this.accept();
         }
         if (event.key === 'Escape') {
             this.hide();

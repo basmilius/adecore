@@ -159,6 +159,7 @@ describe('the keys of an editor language', () => {
             'diagnostics',
             'hover',
             'completion',
+            'inlineAccept',
             'snippets',
             'templates',
             'markup',
