@@ -445,7 +445,13 @@ export class ChatClient {
             const page =
                 result.history === undefined
                     ? undefined
-                    : { history: result.history, pending: result.pending ?? [], subagents: result.subagents ?? [], outline: result.outline ?? [] };
+                    : {
+                          history: result.history,
+                          pending: result.pending ?? [],
+                          subagents: result.subagents ?? [],
+                          workflows: result.workflows ?? [],
+                          outline: result.outline ?? []
+                      };
 
             this.sink.reset(chatId, result.info, result.items, page);
         }

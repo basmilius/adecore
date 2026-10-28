@@ -368,6 +368,81 @@ describe('a thread held from its newest page', () => {
             expect(flyout(partial)).toEqual(['s1']);
         });
     });
+
+    describe('with workflows from before it', () => {
+        const workflow = (id: string, state: 'running' | 'done', agents = 0): Extract<ChatItem, { kind: 'tool' }> => ({
+            id,
+            kind: 'tool',
+            createdAt: 0,
+            turnId: null,
+            toolUseId: id,
+            name: 'Workflow',
+            input: {},
+            output: null,
+            state,
+            parentToolUseId: null,
+            workflow: {
+                name: id,
+                phases: [],
+                agents: Array.from({ length: agents }, (_, index) => ({
+                    index,
+                    label: `agent ${index}`,
+                    phaseIndex: null,
+                    agentId: null,
+                    status: 'running' as const,
+                    startedAt: null,
+                    durationMs: null,
+                    lastTool: null
+                }))
+            }
+        });
+
+        const holding = (...workflows: Extract<ChatItem, { kind: 'tool' }>[]): ChatState => {
+            useChats.getState().reset(key, info(), newest, { history: { start: 2, cursor: 'g:2' }, pending: [], workflows });
+            const state = useChats.getState().byKey[key]!;
+            useChats.getState().forget(key);
+
+            return state;
+        };
+
+        test('holds the ones the host sent outside the thread, once each', () => {
+            const state = holding(workflow('w0', 'running'), workflow('u3', 'running'));
+            expect(state.order).toEqual(['u3', 'u4']);
+            expect(state.workflowsBefore).toEqual(['w0']);
+            expect(state.structure.w0).toEqual(workflow('w0', 'running'));
+            expect(state.structure.u3).toEqual(user('u3', 'third'));
+        });
+
+        test('follows one as it moves, and takes in one that reported only now', () => {
+            let state = applyEvent(holding(workflow('w0', 'running')), { type: 'item', item: workflow('w0', 'running', 2), historyIndex: 0 });
+            expect(state.order).toEqual(['u3', 'u4']);
+            expect(state.workflowsBefore).toEqual(['w0']);
+            expect(state.structure.w0).toEqual(workflow('w0', 'running', 2));
+            state = applyEvent(state, { type: 'item', item: workflow('w1', 'running'), historyIndex: 1 });
+            expect(state.workflowsBefore).toEqual(['w0', 'w1']);
+
+            // Any other call from before the page stays out.
+            const call = { ...workflow('bash', 'running'), name: 'Bash' } as ChatItem;
+            expect(applyEvent(state, { type: 'item', item: call, historyIndex: 1 })).toBe(state);
+        });
+
+        test('moves one into the thread once a page reaches it, keeping what came in live, and forgets them all with the whole thread', () => {
+            const live = applyEvent(holding(workflow('w0', 'running'), workflow('w1', 'running')), {
+                type: 'item',
+                item: workflow('w1', 'done', 1),
+                historyIndex: 1
+            });
+            const partial = prependPage(live, 'g:2', { items: [workflow('w1', 'running')], history: { start: 1, cursor: 'g:1' } });
+            expect(partial.order).toEqual(['w1', 'u3', 'u4']);
+            expect(partial.workflowsBefore).toEqual(['w0']);
+            expect(partial.items.w1).toEqual(workflow('w1', 'done', 1));
+
+            const whole = prependPage(partial, 'g:1', { items: [workflow('w0', 'running')], history: { start: 0, cursor: null } });
+            expect(whole.order).toEqual(['w0', 'w1', 'u3', 'u4']);
+            expect(whole.workflowsBefore).toBeUndefined();
+            expect(applyEvent(partial, { type: 'reset', info: info(), items: [] }).workflowsBefore).toBeUndefined();
+        });
+    });
 });
 
 test('a UI preview updates only the matching streaming text without changing timeline structure', () => {
