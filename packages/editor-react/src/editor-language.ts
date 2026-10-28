@@ -34,6 +34,7 @@ import { SelectionRangesFeature } from './selection-ranges.ts';
 import { SemanticTokensFeature, type SemanticTokensOptions } from './semantic-tokens.ts';
 import { SignatureFeature } from './signature.ts';
 import { SnippetFeature } from './snippet-session.ts';
+import { SurroundFeature } from './surround.ts';
 import { SymbolsFeature } from './symbols.ts';
 import { TemplatesFeature } from './live-templates.ts';
 import type { Place } from './navigation-history.ts';
@@ -77,6 +78,7 @@ export class EditorLanguage {
     readonly snippets: SnippetFeature;
     readonly markup: MarkupFeature;
     readonly templates: TemplatesFeature;
+    readonly surround: SurroundFeature;
     readonly highlights: HighlightsFeature;
     readonly pick: PickFeature;
     readonly codeActions: CodeActionsFeature;
@@ -120,6 +122,7 @@ export class EditorLanguage {
         this.snippets = new SnippetFeature(this, timers);
         this.markup = new MarkupFeature(this);
         this.templates = new TemplatesFeature(this);
+        this.surround = new SurroundFeature(this);
         this.signature = new SignatureFeature(this, timers);
         this.highlights = new HighlightsFeature(this, timers);
         this.symbols = new SymbolsFeature(this, timers);

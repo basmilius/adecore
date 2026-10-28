@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { markupPlaceAt, markupSyntaxOf, tagPairAt, type MarkupSyntax } from './markup-context.ts';
+import { enclosingElements, markupPlaceAt, markupSyntaxOf, removeTagEdits, tagPairAt, type MarkupSyntax } from './markup-context.ts';
 
 /* The place at the `|` of `marked`, which is left out of the text. */
 function placeAt(marked: string, syntax: MarkupSyntax = 'html') {
@@ -78,5 +78,55 @@ describe('tagPairAt', () => {
     test('finds nothing for a tag without its other half', () => {
         expect(tagPairAt('<div><p>', 2, 'html')).toBeNull();
         expect(tagPairAt('<br>', 2, 'html')).toBeNull();
+    });
+});
+
+describe('enclosingElements', () => {
+    test('lists the elements around an offset with their tags, innermost first', () => {
+        const text = '<div><ul><li>a</li></ul></div>';
+        const found = enclosingElements(text, 14, 'html');
+
+        expect(found.map((element) => element.name)).toEqual(['li', 'ul', 'div']);
+        expect(found[0]).toEqual({ name: 'li', open: { from: 9, to: 13 }, close: { from: 14, to: 19 } });
+    });
+
+    test('leaves out void elements and elements that closed before the offset', () => {
+        expect(enclosingElements('<p><br><b>x</b> y</p>', 17, 'html').map((element) => element.name)).toEqual(['p']);
+    });
+
+    test('has no end tag for an element that is left open, and reads raw elements', () => {
+        expect(enclosingElements('<div><p>a', 8, 'html')).toEqual([
+            { name: 'p', open: { from: 5, to: 8 }, close: null },
+            { name: 'div', open: { from: 0, to: 5 }, close: null }
+        ]);
+        expect(enclosingElements('<script>if (a < b) {}</script>', 12, 'html').map((element) => element.name)).toEqual(['script']);
+    });
+});
+
+describe('removeTagEdits', () => {
+    function removed(text: string, name: string, unit = '    '): string {
+        const offset = text.indexOf('|');
+        const source = text.replace('|', '');
+        const element = enclosingElements(source, offset, 'html').find((candidate) => candidate.name === name)!;
+
+        return removeTagEdits(source, element, unit)
+            .reverse()
+            .reduce((result, edit) => result.slice(0, edit.from) + edit.text + result.slice(edit.to), source);
+    }
+
+    test('takes tags that share a line with text and leaves the line', () => {
+        expect(removed('<p>a <b>|c</b> d</p>', 'b')).toBe('<p>a c d</p>');
+    });
+
+    test('takes the lines of tags that stand alone and moves the lines between them one unit out', () => {
+        expect(removed('<div>\n    <ul>\n        <li>|a</li>\n    </ul>\n</div>', 'ul')).toBe('<div>\n    <li>a</li>\n</div>');
+    });
+
+    test('takes the line of a last tag that has no line break after it', () => {
+        expect(removed('<ul>\n    <li>|a</li>\n</ul>', 'ul')).toBe('<li>a</li>');
+    });
+
+    test('moves out one tab of a tab-indented element', () => {
+        expect(removed('<div>\n\t<p>|a</p>\n</div>', 'div', '\t')).toBe('<p>a</p>');
     });
 });

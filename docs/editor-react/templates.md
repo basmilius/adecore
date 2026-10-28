@@ -55,6 +55,35 @@ With `liveInCompletion` on, the suggestion list gets a row for each template tha
 
 A `PostfixTemplate` is expanded after a dot and its key, around the expression before the dot: `$EXPR` in the `body` stands for it. It has a `key` of identifier characters, the `languages` it applies to (`javascript`, `typescript` and `php`), an optional `example` shown at the end of its row, as in `if (expr) {}`, and an `expression` that is `'any'` or `'statement'`. The registry holds them and `settings.postfix` and `settings.postfixInCompletion` switch them. No postfix template ships yet.
 
+## Surround With and Unwrap
+
+`language.surround` is the `SurroundFeature`, with three commands that take their chord and return true, also where nothing applies: `open()` (`surroundWith`, `Mod+Alt+T`), `openTemplates()` (`surroundWithLiveTemplate`, `Mod+Alt+J`) and `unwrap()` (`unwrap`, `Mod+Shift+Delete`). Some Linux desktops take `Ctrl+Alt+T`; the chord stays as IntelliJ has it, and a host reaches the command from a menu or a palette through `language.surround.open()`. Each is one `applyEdits` or one snippet insertion, so one undo step, and none does anything in a read-only editor.
+
+### Surround With
+
+`open()` surrounds the selection, or at a caret the content of its line without the spaces and tabs around it; a blank line has nothing to surround. With several carets every range is surrounded and the snippet fields are mirrored; ranges that overlap become one, and two ranges on one line refuse. The ranges must all be written in one language, as `placeAt` tells it: a selection from the script of a Vue file into its template refuses with "Couldn't find Surround With variants applicable to the current context", through `host.notify`.
+
+`surroundShape` decides what applies. Whole statements get the statement rows, and one expression on a line gets `(expr)` and `!(expr)`. The list, titled "Surround With", has rows numbered `1` to `9`, then `0`, then `A`, `B` and on; typing the character takes the row.
+
+| Language                                  | Statements                                                                                            | Expressions        |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------ |
+| JavaScript and TypeScript (also in Vue)   | `if`, `if / else`, `while`, `do / while`, `for`, `try / catch`, `try / finally`, `try / catch / finally`, `{ }`, `function` | `(expr)`, `!(expr)` |
+| PHP                                       | `if`, `if / else`, `while`, `do / while`, `for`, `foreach`, `try / catch`, `try / finally`, `try / catch / finally`, `function` | `(expr)`, `!(expr)` |
+
+After them come the two region comments for any language that has comments: "region...endregion Comments" and "&lt;editor-fold...&gt; Comments". They use the line comment, or the block pair where there is none, with no space after the marker: `//region Description`, `/*region Description*/`, `<!--region Description-->`. Last is the group "Live templates": Emmet in markup, then the live templates that use `$TM_SELECTED_TEXT` and apply where the selection is, each with a mnemonic from the first character of its key that no row has, and "Configure live templates…" when the host has `openTemplateSettings`.
+
+A chosen row ends a running snippet and inserts its body with the selection as `$TM_SELECTED_TEXT`, without the indentation its lines share; the caret goes to the first field, the condition of a statement. Emmet opens the wrap field of [markup](/editor-react/markup#emmet) over the selection. The row under the caret previews the lines before and after.
+
+`openTemplates()` opens the group "Live templates" alone, titled "Select Template", as Surround with Live Template does. Where nothing applies it says "No surround templates defined in this context".
+
+### Unwrap/Remove
+
+`unwrap()` lists the constructs around the caret, innermost first, in a list titled "Choose the statement to unwrap/remove" that narrows as a person types. Only the primary caret counts, and a preview shows the construct before and after. Choosing a row applies its edits in one step and the selections follow their text. Without a construct it does nothing.
+
+In JavaScript, TypeScript and PHP the rows come from `Editor.unwrapTargets`: "Unwrap 'if...'" (the then-body stays, the `else` chain goes), "Unwrap 'else...'" and "Remove 'else...'", "Unwrap 'for...'" (also `foreach`), "Unwrap 'while...'", "Unwrap 'do...'", "Unwrap 'try...'" (the body stays, `catch` and `finally` go), "Remove 'catch...'" where a `finally` or another `catch` follows, "Remove 'finally...'" where a `catch` exists, and "Unwrap braces" for a bare block. Functions, classes, object literals and `switch` give none.
+
+In HTML, XML, Vue and the markup of PHP every element around the caret is a row, "Remove enclosing tag: div", which takes the two tags and keeps what is between them. A tag that stands alone on its line takes the line, and when the start tag does, the lines it enclosed move out one indentation unit. In Vue and PHP the two lists are merged, the construct that starts last first.
+
 ## Host hooks
 
 `LanguageHost` gets three members. `templates` is the `TemplateRegistry` of the project, and `ProjectLanguage.templates` reads it; without one, the project has a registry of the built-in templates that lives as long as it does. `saveAsLiveTemplate(draft)` is called by Save as Live Template. `openTemplateSettings()` opens the host's settings for templates; it is the host's half of the "Configure live templates…" row, which a list shows only when the host has it.
@@ -63,4 +92,4 @@ A host that has no use for the rows in an unserved document sets `templates.set(
 
 ## Words
 
-Every word comes from the `editor:language.templates.*` keys of the editor-react locales, in English and Dutch.
+Every word comes from the `editor:language.templates.*` and `editor:language.surround.*` keys of the editor-react locales, in English and Dutch.

@@ -223,6 +223,29 @@
             "none": "No templates defined in this context",
             "selectToSave": "Select the text to save as a live template"
         },
+        "surround": {
+            "title": "Surround With",
+            "selectTemplate": "Select Template",
+            "liveTemplates": "Live templates",
+            "configure": "Configure live templates…",
+            "comments": "{{construct}} Comments",
+            "none": "Couldn't find Surround With variants applicable to the current context",
+            "noTemplates": "No surround templates defined in this context",
+            "unwrap": {
+                "title": "Choose the statement to unwrap/remove",
+                "if": "Unwrap 'if...'",
+                "else": "Unwrap 'else...'",
+                "removeElse": "Remove 'else...'",
+                "for": "Unwrap 'for...'",
+                "while": "Unwrap 'while...'",
+                "do": "Unwrap 'do...'",
+                "try": "Unwrap 'try...'",
+                "removeCatch": "Remove 'catch...'",
+                "removeFinally": "Remove 'finally...'",
+                "braces": "Unwrap braces",
+                "tag": "Remove enclosing tag: {{name}}"
+            }
+        },
         "announce": {
             "problem": "{{severity}}: {{message}}",
             "severity": {

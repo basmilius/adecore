@@ -3,6 +3,7 @@ export { AGENT_COLORS } from './attribution.ts';
 export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from '@adecore/editor-core';
 export { DEFAULT_TODO_WORDS, findTodos, type TodoMatch, type TodoOptions } from '@adecore/editor-core';
 export { detectIndentation, type DetectedIndentation } from '@adecore/editor-core';
+export { commentSyntax, type CommentSyntax } from '@adecore/editor-core';
 export { createSmartEditorEngine } from './engine.ts';
 export { rememberCopy } from './controller.ts';
 export { DEFAULT_SMART_KEYS } from './smart-keys.ts';
