@@ -242,6 +242,29 @@ describe('workspace', () => {
         await plain.session.shutdown();
     });
 
+    it('lets the diagnostics of the workspace wait as long as the server polls, unless the caller sets a deadline', async () => {
+        jest.useFakeTimers();
+
+        try {
+            const offered = await sessionWith({ diagnosticProvider: { interFileDependencies: false, workspaceDiagnostics: true } }, { timeoutMs: 10 });
+            const answer = offered.session.workspaceDiagnostics();
+            await flush();
+            jest.advanceTimersByTime(1_000);
+            offered.transport.respond('workspace/diagnostic', { items: [] });
+            expect(await answer).toEqual({ items: [] });
+
+            const bounded = rejecting(offered.session.workspaceDiagnostics([], undefined, { timeoutMs: 10 }), (error) =>
+                expect((error as Error).message).toContain('timed out')
+            );
+            await flush();
+            jest.advanceTimersByTime(10);
+            await bounded;
+            await offered.session.shutdown();
+        } finally {
+            jest.useRealTimers();
+        }
+    });
+
     it('tells a server only the folders that really changed', async () => {
         const { session, transport } = await sessionWith(
             { workspace: { workspaceFolders: { supported: true, changeNotifications: true } } },
