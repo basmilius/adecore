@@ -616,3 +616,58 @@ describe('a pick list whose rows can be removed', () => {
         expect(editor.press({ key: 'Delete' })).toBe(false);
     });
 });
+
+describe('a pick list with mnemonics', () => {
+    async function numbered(spec: Partial<PickSpec> = {}) {
+        const context = await setup();
+
+        context.openPick({
+            groups: [
+                {
+                    title: null,
+                    rows: [
+                        { id: 'if', label: 'if', detail: '', mnemonic: '1' },
+                        { id: 'ifelse', label: 'if / else', detail: '', mnemonic: '2' },
+                        { id: 'region', label: 'region', detail: '', mnemonic: 'A' },
+                        { id: 'plain', label: 'plain', detail: '' }
+                    ]
+                }
+            ],
+            ...spec
+        });
+
+        return context;
+    }
+
+    test('takes the row whose mnemonic is typed, whatever the case', async () => {
+        const { editor, accepted, language } = await numbered();
+
+        expect(editor.press({ key: '2' })).toBe(true);
+        expect(accepted).toEqual(['ifelse']);
+        expect(language.pick.isOpen).toBe(false);
+    });
+
+    test('matches a letter in either case', async () => {
+        const { editor, accepted } = await numbered();
+
+        expect(editor.press({ key: 'a' })).toBe(true);
+        expect(accepted).toEqual(['region']);
+    });
+
+    test('hands a typed character that is no mnemonic, or one with a modifier, to the editor', async () => {
+        const { editor, accepted, language } = await numbered();
+
+        expect(editor.press({ key: 'z' })).toBe(false);
+        expect(editor.press({ key: '2', metaKey: true })).toBe(false);
+        expect(accepted).toEqual([]);
+        expect(language.pick.isOpen).toBe(true);
+    });
+
+    test('leaves the typing to the query in a list that filters', async () => {
+        const { editor, accepted, language } = await numbered({ filter: true });
+
+        expect(editor.press({ key: '2' })).toBe(true);
+        expect(accepted).toEqual([]);
+        expect(language.popups.getState().pick?.query).toBe('2');
+    });
+});

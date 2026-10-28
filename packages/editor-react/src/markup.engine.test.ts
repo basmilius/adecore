@@ -79,6 +79,20 @@ describe('Emmet abbreviations', () => {
         expect(script.editor.getText()).not.toContain('<div>');
     });
 
+    test('tells where the abbreviation starts without expanding it, under the conditions where Tab expands', async () => {
+        const { editor, language } = await setup('<body>\n    ul>li*2|\n</body>');
+        expect(language.markup.abbreviationAt()).toEqual({ line: 1, character: 4 });
+        expect(editor.getText()).toBe('<body>\n    ul>li*2\n</body>');
+        editor.setSelection({ start: { line: 1, character: 4 }, end: { line: 1, character: 8 } });
+        expect(language.markup.abbreviationAt()).toBeNull();
+        language.markup.configure({ emmet: false });
+        editor.setCaret({ line: 1, character: 10 });
+        expect(language.markup.abbreviationAt()).toBeNull();
+
+        const attribute = await setup('<div class|></div>');
+        expect(attribute.language.markup.abbreviationAt()).toBeNull();
+    });
+
     test('is off once the host turns it off', async () => {
         const { press, editor, language } = await setup('div|');
         language.markup.configure({ emmet: false });

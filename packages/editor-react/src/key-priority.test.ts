@@ -160,6 +160,7 @@ describe('the keys of an editor language', () => {
             'hover',
             'completion',
             'snippets',
+            'templates',
             'markup',
             'signature',
             'highlights',

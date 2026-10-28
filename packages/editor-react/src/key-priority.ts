@@ -10,6 +10,8 @@ export const KEY_PRIORITY = {
     hover: 1400,
     completion: 1300,
     snippets: 1200,
+    // Between snippets and markup, so the spacing of a hundred bends here: Tab has to reach the templates after a running snippet and before Emmet.
+    templates: 1150,
     markup: 1100,
     signature: 1000,
     highlights: 900,

@@ -141,3 +141,185 @@ test('a character that ends a word drops the list the letter before it asked for
 
     dispose();
 });
+
+/* An editor of a document no server answers for, or one whose server answers `items`. */
+async function openWith(text: string, items: readonly CompletionItem[] | null) {
+    const context = await open(text, items ?? []);
+
+    if (items === null) {
+        context.service.providers.delete('textDocument/completion');
+    }
+
+    return context;
+}
+
+function local(label: string, accepted: string[], extra: Partial<CompletionItem> = {}) {
+    return {
+        item: { label, kind: 15, sortText: `￿${label}`, filterText: label, ...extra } as CompletionItem,
+        accept: () => {
+            accepted.push(label);
+        }
+    };
+}
+
+test('the rows of a source show in a document no server answers for, and accepting one runs the source', async () => {
+    const accepted: string[] = [];
+    const { editor, timers, language, service, dispose } = await openWith('', null);
+    const off = language.completion.addSource({ items: () => [local('log', accepted), local('logger', accepted)] });
+    editor.type('l');
+    timers.advance(80);
+    await settle();
+
+    expect(language.completion.isOpen).toBe(true);
+    expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['log', 'logger']);
+
+    await language.completion.accept(false, 1);
+
+    expect(accepted).toEqual(['logger']);
+    expect(language.completion.isOpen).toBe(false);
+    expect(editor.getText()).toBe('l');
+    expect(service.calls.filter((call) => call.method.startsWith('completion'))).toEqual([]);
+
+    off();
+    editor.type('lx');
+    timers.advance(80);
+    await settle();
+
+    expect(language.completion.isOpen).toBe(false);
+
+    dispose();
+});
+
+test('the rows of a source merge with the rows of the server and sort after rows that match as well', async () => {
+    const accepted: string[] = [];
+    const { editor, timers, language, dispose } = await open('', [{ label: 'logging' }, { label: 'lookups' }]);
+    language.completion.addSource({ items: () => [local('loggers', accepted)] });
+    editor.type('l');
+    timers.advance(80);
+    await settle();
+
+    expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['logging', 'lookups', 'loggers']);
+
+    dispose();
+});
+
+test('accepting a row of a source never resolves it', async () => {
+    const accepted: string[] = [];
+    const { service, editor, timers, language, dispose } = await open('', [{ label: 'other' }]);
+    service.respond('completionItem/resolve', (call) => call.params, { resolveProvider: true });
+    language.completion.addSource({ items: () => [local('logger', accepted)] });
+    editor.type('l');
+    timers.advance(80);
+    await settle();
+    timers.advance(200);
+    await settle();
+
+    expect(service.calls.filter((call) => call.method === 'completionItem/resolve')).toEqual([]);
+
+    await language.completion.accept(false);
+
+    expect(accepted).toEqual(['logger']);
+    expect(service.calls.filter((call) => call.method === 'completionItem/resolve')).toEqual([]);
+
+    dispose();
+});
+
+test('a single row of a source in a list that was asked for is taken at once', async () => {
+    const accepted: string[] = [];
+    const { editor, timers, language, dispose } = await open('', [{ label: 'other' }]);
+    language.completion.addSource({ items: () => [local('logger', accepted)] });
+    editor.type('l');
+    language.completion.invoke();
+    timers.advance(1);
+    await settle();
+
+    expect(accepted).toEqual(['logger']);
+    expect(language.completion.isOpen).toBe(false);
+
+    dispose();
+});
+
+test('a request the server fails still leaves the rows of a source', async () => {
+    const accepted: string[] = [];
+    const { service, editor, timers, language, dispose } = await open('', []);
+    service.respond('textDocument/completion', () => {
+        throw new Error('The server broke');
+    });
+    language.completion.addSource({ items: () => [local('logger', accepted)] });
+    editor.type('l');
+    timers.advance(80);
+    await settle();
+
+    expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['logger']);
+
+    dispose();
+});
+
+test('a source is asked with the caret and whether the list was asked for', async () => {
+    const requests: unknown[] = [];
+    const { editor, timers, language, dispose } = await openWith('', null);
+    language.completion.addSource({
+        items: (request) => {
+            requests.push(request);
+
+            return [];
+        }
+    });
+    editor.type('l');
+    timers.advance(80);
+    await settle();
+    language.completion.invoke();
+    timers.advance(1);
+    await settle();
+
+    expect(requests).toEqual([
+        { position: { line: 0, character: 1 }, explicit: false },
+        { position: { line: 0, character: 1 }, explicit: true }
+    ]);
+
+    dispose();
+});
+
+test('showItems opens the list with only the given rows, which narrow as a person types', async () => {
+    const accepted: string[] = [];
+    const { editor, language, service, dispose } = await open('x ', [{ label: 'server' }]);
+    const at = { line: 0, character: 2 };
+    const row = (label: string) => local(label, accepted, { textEdit: { range: { start: at, end: at }, newText: label } });
+    language.completion.showItems([row('foo'), row('bar'), row('food')], at);
+
+    expect(language.popups.getState().completion?.rows.map((entry) => entry.label)).toEqual(['bar', 'foo', 'food']);
+
+    editor.type('x f');
+
+    expect(language.popups.getState().completion?.rows.map((entry) => entry.label)).toEqual(['foo', 'food']);
+
+    editor.type('x fo');
+    editor.type('x foo');
+
+    expect(language.popups.getState().completion?.rows.map((entry) => entry.label)).toEqual(['foo', 'food']);
+    expect(service.calls.filter((call) => call.method === 'textDocument/completion')).toEqual([]);
+
+    await language.completion.accept(false);
+
+    expect(accepted).toEqual(['foo']);
+
+    dispose();
+});
+
+test('showItems closes when what is typed matches no row or is no part of a word', async () => {
+    const accepted: string[] = [];
+    const { editor, language, dispose } = await open('', []);
+    const at = { line: 0, character: 0 };
+    const rows = () => [local('foo', accepted, { textEdit: { range: { start: at, end: at }, newText: 'foo' } })];
+    language.completion.showItems(rows(), at);
+    editor.type('z');
+
+    expect(language.completion.isOpen).toBe(false);
+
+    language.completion.showItems(rows(), { line: 0, character: 1 });
+    editor.type('z ');
+
+    expect(language.completion.isOpen).toBe(false);
+
+    dispose();
+});

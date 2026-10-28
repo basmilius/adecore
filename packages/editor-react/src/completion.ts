@@ -91,6 +91,30 @@ function mapCompletionEdits(
     return valid ? mapped : null;
 }
 
+/** A row a source of the editor offers beside the language server's. */
+export interface LocalCompletionItem {
+    /** The label, kind, detail, documentation, filter text and sort text of the row; its edit range is the typed prefix on the caret's line, ending at the caret. */
+    readonly item: CompletionItem;
+
+    /** Runs instead of the insertion: the source inserts the row itself. */
+    accept(): void;
+}
+
+/** What a source is asked for when the list is requested. */
+export interface CompletionRequest {
+    readonly position: EditorPosition;
+
+    /** Whether the person asked for the list with the keyboard. */
+    readonly explicit: boolean;
+    readonly triggerCharacter?: string;
+}
+
+/** Rows that come from the editor itself, such as templates, merged into the list of the language server. */
+export interface CompletionSource {
+    /** Synchronous and cheap; asked on every request of the list. */
+    items(request: CompletionRequest): readonly LocalCompletionItem[];
+}
+
 /*
  * The suggestions that open while a word is typed. A single typed identifier character or a trigger
  * character of the server asks for the list; every character after that only filters the list that
@@ -129,6 +153,13 @@ export class CompletionFeature {
     private acceptSequence = 0;
     private disposed = false;
     private readonly resolved = new Map<CompletionItem, CompletionItem>();
+    private readonly sources = new Set<CompletionSource>();
+
+    /* The rows of the list that a source inserts itself. */
+    private locals = new Map<CompletionItem, LocalCompletionItem>();
+
+    /* Whether the list holds the rows `showItems` gave it and no request refreshes it. */
+    private shown = false;
 
     constructor(language: EditorLanguage, timers: Timers = realTimers) {
         this.language = language;
@@ -169,6 +200,30 @@ export class CompletionFeature {
         this.beginRequest({ triggerKind: 1 }, 0);
     }
 
+    /** Adds rows to every list, also in a document without a language server. Returns the function that takes the source away again. */
+    addSource(source: CompletionSource): () => void {
+        this.sources.add(source);
+
+        return () => {
+            this.sources.delete(source);
+        };
+    }
+
+    /** Opens the list with only these rows, the typed prefix starting at `start`, as Insert Live Template does. */
+    showItems(items: readonly LocalCompletionItem[], start: EditorPosition): void {
+        this.language.pick.close();
+        this.close();
+        this.shown = true;
+        this.locals = new Map(items.map((local) => [local.item, local]));
+        this.pool = items.map((local) => local.item);
+        this.incomplete = false;
+        this.start = start;
+        this.active = 0;
+        this.touched = false;
+        this.server = '';
+        this.refilter();
+    }
+
     move(delta: number): void {
         if (this.ranked.length === 0) {
             return;
@@ -196,6 +251,16 @@ export class CompletionFeature {
         const entry = this.ranked[index];
 
         if (entry === undefined) {
+            return;
+        }
+
+        const local = this.locals.get(entry.item);
+
+        if (local !== undefined) {
+            recentChoicesOf(this.language.languageId).record(entry.item);
+            this.close();
+            local.accept();
+
             return;
         }
 
@@ -584,6 +649,8 @@ export class CompletionFeature {
         this.activeKey = null;
         this.start = null;
         this.resolved.clear();
+        this.locals = new Map();
+        this.shown = false;
 
         if (this.language.popups.getState().completion !== null) {
             this.language.popups.setState({ completion: null });
@@ -659,6 +726,17 @@ export class CompletionFeature {
     private edited(change: EditorTextChange): void {
         this.textRevision++;
 
+        // The rows were given, so typing only filters them.
+        if (this.shown && this.isOpen) {
+            if (change.source === 'input' && change.changes.length === 1 && Array.from(change.changes[0]!.text).every(isIdentifierCharacter)) {
+                this.refilter();
+            } else {
+                this.close();
+            }
+
+            return;
+        }
+
         if (change.source !== 'input' || change.changes.length !== 1) {
             this.close();
 
@@ -711,7 +789,7 @@ export class CompletionFeature {
     private beginRequest(context: CompletionContext, delay: number): void {
         const { uri } = this.language;
 
-        if (!this.language.service.supports(METHOD, uri)) {
+        if (!this.language.service.supports(METHOD, uri) && this.sources.size === 0) {
             return;
         }
 
@@ -726,26 +804,41 @@ export class CompletionFeature {
         this.controller?.abort();
         const controller = new AbortController();
         this.controller = controller;
-        let normalized: ReturnType<typeof itemsOf>;
+        let normalized: ReturnType<typeof itemsOf> = { items: [], incomplete: false };
+        let failed = false;
 
-        try {
-            const result = await this.language.service.completion(uri, position, context, { signal: controller.signal });
+        if (this.language.service.supports(METHOD, uri)) {
+            try {
+                const result = await this.language.service.completion(uri, position, context, { signal: controller.signal });
 
-            if (request !== this.request || this.controller !== controller || controller.signal.aborted) {
-                return;
+                if (request !== this.request || this.controller !== controller || controller.signal.aborted) {
+                    return;
+                }
+
+                normalized = itemsOf(result);
+            } catch {
+                if (request !== this.request || this.controller !== controller || controller.signal.aborted) {
+                    return;
+                }
+
+                failed = true;
             }
+        }
 
-            normalized = itemsOf(result);
-        } catch {
-            if (request === this.request && this.controller === controller && !controller.signal.aborted) {
-                this.close();
-            }
+        const locals = [...this.sources].flatMap((source) =>
+            source.items({ position, explicit: this.explicit && !refresh, triggerCharacter: context.triggerCharacter })
+        );
+
+        // A failed request still leaves the rows of the sources.
+        if (failed && locals.length === 0) {
+            this.close();
 
             return;
         }
 
         const { items, incomplete } = normalized;
-        this.pool = items;
+        this.pool = [...items, ...locals.map((local) => local.item)];
+        this.locals = new Map(locals.map((local) => [local.item, local]));
         this.incomplete = incomplete;
         this.resolved.clear();
         this.server = project.host.serverNames?.(uri)[0] ?? '';
@@ -844,7 +937,12 @@ export class CompletionFeature {
         this.resolving?.abort();
         const entry = this.ranked[this.active];
 
-        if (entry === undefined || this.resolved.has(entry.item) || this.language.service.providerOptions('completionItem/resolve', uri) === undefined) {
+        if (
+            entry === undefined ||
+            this.locals.has(entry.item) ||
+            this.resolved.has(entry.item) ||
+            this.language.service.providerOptions('completionItem/resolve', uri) === undefined
+        ) {
             return;
         }
 

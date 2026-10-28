@@ -1,7 +1,7 @@
 import { indentSnippet } from './snippet-indent.ts';
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
-import { compileSnippet, parseSnippet, tabOrder } from './snippet.ts';
+import { checkSnippet, compileSnippet, escapeSnippetText, parseSnippet, snippetVariables, tabOrder } from './snippet.ts';
 
 describe('parseSnippet', () => {
     test('turns placeholders, choices and bare stops into text and stops', () => {
@@ -362,4 +362,56 @@ test('indentation containment belongs to the occurrence that rendered the child'
         { start: 0, end: 4 },
         { start: 4, end: 8 }
     ]);
+});
+
+describe('indented variables', () => {
+    const selected = (value: string) => (name: string) => (name === 'TM_SELECTED_TEXT' ? value : undefined);
+
+    test('give the lines of a value after its first the indentation of the line the variable starts on', () => {
+        const template = compileSnippet('if ($1) {\n\t$TM_SELECTED_TEXT\n}');
+
+        expect(template.render(selected('a();\nb();'), undefined, { indentVariables: true }).text).toBe('if () {\n\ta();\n\tb();\n}');
+        expect(template.render(selected('a();\nb();')).text).toBe('if () {\n\ta();\nb();\n}');
+    });
+
+    test('keep blank lines blank and take the line of the variable, not of the snippet', () => {
+        const template = compileSnippet('x\n  y $TM_SELECTED_TEXT');
+
+        expect(template.render(selected('a\n\nb'), undefined, { indentVariables: true }).text).toBe('x\n  y a\n\n  b');
+    });
+
+    test('leave a transformed variable to its transform', () => {
+        const template = compileSnippet('\t${TM_SELECTED_TEXT/a/b/}');
+
+        expect(template.render(selected('a\na'), ['b\nb'], { indentVariables: true }).text).toBe('\tb\nb');
+    });
+});
+
+describe('snippetVariables', () => {
+    test('names the variables of a snippet, nested ones too', () => {
+        expect([...snippetVariables('$TM_SELECTED_TEXT ${1:${CLIPBOARD}} ${name/a/b/} $1')].sort()).toEqual(['CLIPBOARD', 'TM_SELECTED_TEXT', 'name']);
+        expect(snippetVariables('plain \\$text').size).toBe(0);
+    });
+
+    test('names none for a snippet that does not parse', () => {
+        expect(snippetVariables('$TM_FILENAME ${1/abc} tail').size).toBe(0);
+    });
+});
+
+describe('checkSnippet', () => {
+    test('accepts a snippet and reads a reason off one it cannot use', () => {
+        expect(checkSnippet('for (${1:i};;) {\n\t$0\n}')).toBeNull();
+        expect(checkSnippet('${1/abc} tail')).toBe('A transform in the text is not valid.');
+        expect(checkSnippet('x'.repeat(100_001))).toBe('The text is longer than 100000 characters.');
+        expect(checkSnippet('${1:'.repeat(100) + '}'.repeat(100))).toBe('The text has too many parts or is nested too deeply.');
+    });
+});
+
+describe('escapeSnippetText', () => {
+    test('escapes the backslash, the dollar sign and the closing brace, so the text reads back as itself', () => {
+        const text = 'cost: $5 \\ {a}';
+
+        expect(escapeSnippetText(text)).toBe('cost: \\$5 \\\\ {a\\}');
+        expect(parseSnippet(escapeSnippetText(text)).text).toBe(text);
+    });
 });

@@ -147,3 +147,36 @@ test('a filtering pick list shows its query, marks the match and the chosen rows
         expect(pressed).toEqual([['a', { toggle: true, range: undefined }]]);
     });
 });
+
+test('a pick list with mnemonics draws them in a column of their own, and an option is still named by its label', async () => {
+    await inPage(async (page, root) => {
+        const editor = new FakeEditor(page.host, { text: 'fo' } as never);
+        const language = { editor, pick: { choose: () => undefined } } as unknown as EditorLanguage;
+
+        const view: PickView = {
+            anchor: { line: 0, character: 0 },
+            title: 'Surround With',
+            preview: null,
+            query: null,
+            chosen: [],
+            active: 'a',
+            groups: [
+                {
+                    title: null,
+                    rows: [
+                        { id: 'a', label: 'if', detail: '', mnemonic: '1' },
+                        { id: 'b', label: 'while', detail: '' }
+                    ]
+                }
+            ]
+        };
+
+        await act(async () => root.render(createElement(PickPopup, { language, view, rect })));
+        const options = [...page.document.querySelectorAll('[role="option"]')];
+
+        expect(options.map((option) => option.getAttribute('aria-keyshortcuts'))).toEqual(['1', null]);
+        expect(options.map((option) => option.firstElementChild?.textContent)).toEqual(['1', '']);
+        expect(options.map((option) => option.firstElementChild?.getAttribute('aria-hidden'))).toEqual(['true', 'true']);
+        expect(options.map((option) => option.children[1]?.textContent)).toEqual(['if', 'while']);
+    });
+});

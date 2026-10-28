@@ -1,4 +1,4 @@
-import type { EditorApplyEditsOptions, EditorContentChange, EditorRange, EditorTextChange, EditorTrackedRange } from '@adecore/editor';
+import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange, EditorTrackedRange } from '@adecore/editor';
 import { abbreviationBefore, expandAbbreviation } from './emmet.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
@@ -87,23 +87,33 @@ export class MarkupFeature {
 
     /* Expands the abbreviation before the caret, its places to fill as a snippet; false when there is none, which leaves Tab its own meaning. */
     expand(): boolean {
+        const found = this.abbreviation();
+        return found !== null && this.insert(found.range, found.expanded, found.line);
+    }
+
+    /* Where the abbreviation that `expand` would take starts, without expanding it; null under the conditions where `expand` does nothing. */
+    abbreviationAt(): EditorPosition | null {
+        return this.abbreviation()?.range.start ?? null;
+    }
+
+    private abbreviation(): { range: EditorRange; expanded: string; line: string } | null {
         const { syntax } = this;
         const { editor } = this.language;
         if (syntax === null || !this.settings.emmet || !this.editable()) {
-            return false;
+            return null;
         }
         const caret = editor.getCaret();
         const line = lineTextOf(editor, caret.line);
         const found = abbreviationBefore(line, caret.character);
         if (found === null) {
-            return false;
+            return null;
         }
         const range = { start: { line: caret.line, character: found.start }, end: { line: caret.line, character: found.end } };
         if (markupPlaceAt(editor.getText(), editor.offsetAt(range.start), syntax)?.kind !== 'text') {
-            return false;
+            return null;
         }
         const expanded = expandAbbreviation(found.abbreviation, { syntax, indent: this.indent() });
-        return expanded !== null && this.insert(range, expanded, line);
+        return expanded === null ? null : { range, expanded, line };
     }
 
     /* Opens the field for an abbreviation to wrap the selection in, or the text of the caret's line without one. */
