@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import {
     activeSubagents,
+    activeWorkflows,
     outlineItems,
     type AgentStatus,
     type ChatApprovalItem,
@@ -9,7 +10,8 @@ import {
     type ChatInfo,
     type ChatItem,
     type ChatQuestionItem,
-    type ChatSubagentItem
+    type ChatSubagentItem,
+    type ChatToolItem
 } from '@adecore/agent-contracts';
 import { appendToolOutput } from '@adecore/agent-contracts/text';
 import { ChatError } from './errors.ts';
@@ -245,6 +247,11 @@ export class ChatThread {
     /* The active sub-agents a page that begins at `start` leaves out. */
     subagentsBefore(start: number): ChatSubagentItem[] {
         return activeSubagents(this.list()).filter((item) => this.indices.get(item.id)! < start);
+    }
+
+    /* The active Workflow calls a page that begins at `start` leaves out. */
+    workflowsBefore(start: number): ChatToolItem[] {
+        return activeWorkflows(this.list()).filter((item) => this.indices.get(item.id)! < start);
     }
 
     /* The outline of what a page that begins at `start` leaves out, with the replies in `marked` that a bookmark is on. */

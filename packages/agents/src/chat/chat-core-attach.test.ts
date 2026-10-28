@@ -103,3 +103,38 @@ test('a bookmark made while the visuals are read reaches the client that attache
         await rm(home, { recursive: true, force: true });
     }
 });
+
+test('a page carries the workflows from before it that still run, and a replay or a whole thread none', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'adecore-attach-'));
+    const attachments = new AttachmentStore(home);
+    const manager = new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers });
+
+    try {
+        await manager.create({ chatId: 'chat', cwd: home });
+
+        manager.get('chat')!.thread.upsert({
+            id: 'wf',
+            kind: 'tool',
+            createdAt: 0,
+            turnId: null,
+            toolUseId: 'wf',
+            name: 'Workflow',
+            input: {},
+            output: null,
+            state: 'running',
+            parentToolUseId: null,
+            workflow: { name: 'review', taskId: 'w1', phases: [], agents: [] }
+        });
+
+        await manager.addNote('chat', 'info', 'One');
+        await manager.addNote('chat', 'info', 'Two');
+        const paged = manager.attach('chat', 'paged', 1);
+        expect(paged.items.map((item) => item.id)).not.toContain('wf');
+        expect(paged.workflows?.map((item) => item.id)).toEqual(['wf']);
+        expect(manager.attach('chat', 'whole').workflows).toBeUndefined();
+        expect(manager.attach('chat', 'resumed', undefined, paged.seq).workflows).toBeUndefined();
+    } finally {
+        await manager.shutdown();
+        await rm(home, { recursive: true, force: true });
+    }
+});

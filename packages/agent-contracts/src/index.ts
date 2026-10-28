@@ -132,6 +132,7 @@ export {
     ENDED_NOTE_PREFIX,
     abortedByEnd,
     activeSubagents,
+    activeWorkflows,
     CHAT_OUTLINE_TEXT_CHARS,
     outlineItems,
     WAITING_NOTE_PREFIX,

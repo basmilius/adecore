@@ -663,6 +663,7 @@ export class ChatCore {
             items: session.previewItems(page.items),
             pending: session.previewItems(session.thread.pending()),
             subagents: session.thread.subagentsBefore(page.history.start),
+            workflows: session.thread.workflowsBefore(page.history.start),
             outline: session.thread.outlineBefore(page.history.start),
             seq: log.seq
         };
