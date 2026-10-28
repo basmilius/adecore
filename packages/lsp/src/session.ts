@@ -484,7 +484,8 @@ export class LspSession {
         if (!this.supports('workspace/diagnostic')) {
             return Promise.reject(new LspError('Server does not support workspace diagnostics', ErrorCodes.MethodNotFound));
         }
-        return this.request('workspace/diagnostic', { identifier, previousResultIds: [...previousResultIds] }, options);
+        // The server may hold the request until something changes, so only the caller's own deadline ends it.
+        return this.request('workspace/diagnostic', { identifier, previousResultIds: [...previousResultIds] }, { timeoutMs: 0, ...options });
     }
 
     /* The text of a document of a scheme the server owns, such as a decompiled class, which is shown read-only. */
