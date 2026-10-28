@@ -1,8 +1,8 @@
 # Opening tables as tabs
 
-The views draw no tabs and no windows. When a person opens a table, a console or the designer, the view hands a `DatabaseAction` to the `onAction` of the [`DatabaseProvider`](/database/guide/getting-started#databaseprovider), and the app decides where it lands: a tab beside its file tabs, a split, a window of its own.
+The views draw no tabs or windows. When a person opens a table, a console or the designer, the view hands a `DatabaseAction` to `onAction` of the [`DatabaseProvider`](/database/guide/getting-started#databaseprovider), and the app decides where it lands.
 
-[`DatabaseWorkbench`](/database/views/workbench) answers every action with tabs of its own. Read on when the tabs belong to the app.
+[`DatabaseWorkbench`](/database/views/workbench) answers every action with its own tabs. This page is for apps with their own tabs.
 
 ```tsx
 import type { DatabaseAction, ExplorerSelection } from '@adecore/database';
@@ -18,13 +18,13 @@ import type { DatabaseAction, ExplorerSelection } from '@adecore/database';
 | `edit-table`        | `ref`                                                                         | The explorer's Edit table item, and the designer after it created or renamed a table |
 | `manage-connection` | `connectionId`                                                                | The explorer's Edit connection item                                                  |
 
-`ref` is a `TableRef`: `connectionId`, `schema` and `table`. `where` is a condition as typed after `WHERE`, and the table should open filtered by it. `tableKind` says whether `ref` is a `'table'` or a `'view'`, where the sender knows it; the explorer does once the schema's list has loaded. `preview` comes only from an explorer with [`openOnClick`](/database/views/explorer#selecting-and-opening): `true` for a click, `false` for a double click or Enter. `sql` is the text a new console starts with, such as a `SELECT` of the table that was right clicked.
+`ref` is a `TableRef`: `connectionId`, `schema` and `table`. `where` is a condition as typed after `WHERE`; open the table filtered by it. `tableKind` is `'table'` or `'view'` when the sender knows it. `preview` comes only from an explorer with [`openOnClick`](/database/views/explorer#selecting-and-opening): `true` for a click, `false` for a double click or Enter. `sql` is the console's starting text, such as a `SELECT` of the right-clicked table.
 
-Without `onAction`, the views leave out the items that would send one: the explorer has no Open data and no New console, and the table view has no Go to referenced row.
+Without `onAction`, the views hide the items that would send one: Open data, New console and Go to referenced row.
 
 ## A side pane and tabs
 
-The explorer sits in a side pane, and `onAction` turns each action into a tab in the app's own state:
+The explorer sits in a side pane, and `onAction` turns each action into a tab in the app's state:
 
 ```tsx
 import { useState } from 'react';
@@ -130,20 +130,20 @@ function viewOf(tab: Tab, connections: readonly Connection[]) {
 
 The example leaves these decisions to you:
 
-- A table opened twice gets a second tab here. The workbench focuses the tab it has, except for a filtered table, which always gets a tab of its own.
-- A designer that created or renamed a table sends `edit-table` for it, so the app can turn that tab into the designer of the table instead of opening another.
-- `TableView` calls `onDirtyChange` with `true` while it holds edits that were not submitted. Use it to ask before such a tab closes, and keep background tabs mounted (`keepMounted` above), or the edits go with them.
-- Give `QueryConsole` `value` and `onValueChange` to keep its text in the tab, so it survives a reload.
+- A table opened twice gets a second tab here. The workbench focuses the existing tab, except for a filtered table.
+- A designer that created or renamed a table sends `edit-table`, so the app can reuse that tab instead of opening another.
+- `TableView` calls `onDirtyChange` with `true` while it holds unsubmitted edits. Ask before such a tab closes, and keep background tabs mounted (`keepMounted` above), or the edits are lost.
+- Give `QueryConsole` `value` and `onValueChange` to keep its text across a reload.
 
 ## What the explorer selects
 
-`DatabaseExplorer` reports the row a person picked as an `ExplorerSelection`: the `connectionId`, and a `schema` and a `table` when the row has them. Use it to decide where New console runs when no tab is in front, or to highlight the table of the open tab. A click selects; a double click or Enter on a table also sends `open-table`, and with `openOnClick` a click on a table does too.
+`DatabaseExplorer` reports the picked row as an `ExplorerSelection`: the `connectionId`, plus a `schema` and `table` when the row has them. Use it to decide where New console runs, or to highlight the open tab's table. A click selects. A double click or Enter on a table also sends `open-table`, as does a click with `openOnClick`.
 
 ## Nested providers
 
-`onAction` belongs to the nearest provider, so a provider inside another answers for a part of the page. A provider inside another takes every prop it leaves out from the one above it: the client, `storage`, `files`, `numberNotation`, `onAction` and `onNotice` too. Set only what differs for that part.
+`onAction` belongs to the nearest provider. A nested provider inherits every prop it leaves out from the one above: the client, `storage`, `files`, `numberNotation`, `onAction` and `onNotice`. Set only what differs.
 
-To know which tab an action came from, wrap the view of each tab in a provider with an `onAction` of its own. A designer that created or renamed its table then turns its own tab into the designer of that table:
+To know which tab an action came from, wrap each tab's view in a provider with its own `onAction`. A designer that created or renamed its table then turns its own tab into that table's designer:
 
 ```tsx
 <DatabaseProvider client={client} storage={storage} files={files} onAction={openTab}>
@@ -155,4 +155,4 @@ To know which tab an action came from, wrap the view of each tab in a provider w
 </DatabaseProvider>
 ```
 
-[`DatabaseWorkbench`](/database/views/workbench) nests one the same way: it answers the actions it can place, and passes the rest to the provider above it. Only the outermost provider needs a `client`; one without a client and without a provider above it throws.
+[`DatabaseWorkbench`](/database/views/workbench) nests one the same way. It answers the actions it can place and passes the rest up. Only the outermost provider needs a `client`; a provider with neither a client nor a parent throws.

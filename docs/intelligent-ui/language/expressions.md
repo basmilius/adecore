@@ -1,6 +1,6 @@
 # Expressions
 
-An expression stands in braces: in a prop (`value={$limit}`), in text (`{@Count($rows)}`) or as a declaration's query arguments. It computes a value from literals and state. It cannot call anything outside the fixed helpers, and every step counts against the block's [budget](/intelligent-ui/guide/security#budgets).
+An expression stands in braces: in a prop (`value={$limit}`), in text (`{@Count($rows)}`) or as a query's arguments. It computes a value from literals and state, calls only the fixed helpers, and counts every step against the block's [budget](/intelligent-ui/guide/security#budgets).
 
 ```ui
 $runs = [{"name": "unit", "ms": 4210, "failed": false}, {"name": "e2e", "ms": 61800, "failed": true}]
@@ -13,11 +13,11 @@ $runs = [{"name": "unit", "ms": 4210, "failed": false}, {"name": "e2e", "ms": 61
 </Show>
 ```
 
-A declaration holds a literal, never a computation, so an expression is written where its value is used. There is no conditional operator; `Show` draws children only when its condition holds.
+A declaration holds a literal, never a computation, so write an expression where its value is used. There is no conditional operator; `Show` draws its children only when its condition holds.
 
 ## Values
 
-An expression gives a `UiValue`: `null`, a boolean, a finite number, a string, an array or a record of those. Literals are written as in JSON, with two additions: strings may use single quotes, and record keys may be bare names (`{branch: "main"}`).
+An expression gives a `UiValue`: `null`, a boolean, a finite number, a string, or an array or record of those. Literals are JSON, plus single-quoted strings and bare record keys (`{branch: "main"}`).
 
 ## References
 
@@ -29,7 +29,7 @@ An expression gives a `UiValue`: `null`, a boolean, a finite number, a string, a
 | `$runs[0]`        | An item of an array, by index                               |
 | `$run["ms"]`      | An own field by a computed key                              |
 
-Only own data fields are read. An inherited field, an accessor, a missing field and the keys `__proto__`, `constructor` and `prototype` are refused with `refused_access`.
+Only own data fields are read. Inherited fields, accessors, missing fields and the keys `__proto__`, `constructor` and `prototype` get `refused_access`.
 
 ## Operators
 
@@ -45,7 +45,7 @@ From loosest to tightest:
 | `*`, `/`, `%`                 | Multiplication, division and remainder                                  |
 | `!`, `-`, `+` (prefix)        | Not, negation and a number as is                                        |
 
-Arithmetic and comparison take numbers only, and a result must be finite: `1 / 0` is refused. Equality compares by identity, so two arrays or records are never equal; compare their fields. Parentheses group.
+Arithmetic and comparison take numbers only, and results must be finite, so `1 / 0` is refused. Equality compares by identity, so two arrays or records are never equal; compare their fields. Parentheses group.
 
 ## Helpers
 
@@ -63,9 +63,9 @@ $tasks = [{"title": "Docs", "points": 3, "done": true}, {"title": "Tests", "poin
 <Progress value={@Count(@Filter($tasks, task, task.done))} max={@Count($tasks)}>Tasks done</Progress>
 ```
 
-The second argument of `@Filter` is a bare name, without `$`. It holds each item while the predicate runs, and the predicate must give a boolean. `@Count` of a string counts UTF-16 units.
+The second argument of `@Filter` is a bare name, without `$`, that holds each item while the predicate runs. The predicate must give a boolean. `@Count` of a string counts UTF-16 units.
 
-Three more names exist, but not as values. `@Query` only stands in a [declaration](/intelligent-ui/host/queries), and `@Set` and `@Reset` only in a [Button action](/intelligent-ui/language/state#buttons). Used anywhere else they are refused with `query_only` or `action_only`. Any other `@Name` is refused with `refused_call`.
+`@Query` stands only in a [declaration](/intelligent-ui/host/queries), and `@Set` and `@Reset` only in a [Button action](/intelligent-ui/language/state#buttons). Elsewhere they get `query_only` or `action_only`. Any other `@Name` gets `refused_call`.
 
 ## Each
 
@@ -78,11 +78,11 @@ $suites = [{"name": "unit", "passed": 120}, {"name": "e2e", "passed": 18}]
 </EntityList>
 ```
 
-`Each` repeats its children for every item of `items`, which may hold at most 1,000. `as` names the item, a bare name like a `@Filter` local. Inside, the name reads like any variable. Each repetition gets its own node ids, the compiled id with `:0`, `:1` and so on added.
+`Each` repeats its children for every item of `items`, at most 1,000. `as` names the item, a bare name like a `@Filter` local, that reads like any variable inside. Each repetition gets its own node ids: the compiled id plus `:0`, `:1` and so on.
 
 ## From code
 
-`parseUiExpression(source, budget?)` parses one expression into a `UiExpression` tree. `evaluateUiExpression(expression, variables?, budget?)` evaluates it against variables, copied in with `copyUiValue` first. Both throw a `UiFailure` with its `code` on refusal. `sameUiValue(first, second)` compares two values deeply, regardless of key order; the runtime uses it to tell whether state still holds its default.
+`parseUiExpression(source, budget?)` parses one expression into a `UiExpression` tree. `evaluateUiExpression(expression, variables?, budget?)` evaluates it against variables, copied in with `copyUiValue`. Both throw a `UiFailure` on refusal. `sameUiValue(first, second)` compares two values deeply, ignoring key order.
 
 ```ts
 import { evaluateUiExpression, parseUiExpression } from '@adecore/intelligent-ui/expression';

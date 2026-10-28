@@ -8,9 +8,9 @@ import { Spinner } from '@adecore/ui';
 
 <Demo src="display/spinner" />
 
-It comes in the sizes of an [`Icon`](/ui/display/icon): 12, 14, 16 and 20 pixels, and is centered on the text beside it the same way.
+It comes in the sizes of an [`Icon`](/ui/display/icon), 12, 14, 16 and 20 pixels.
 
-Without a `label` it is hidden from screen readers, like an icon, for a spinner next to words that already say what runs. Give it a `label` when it stands on its own, such as a mark beside a title. It takes a [`Tooltip`](/ui/overlays/tooltip) like any other element.
+Without a `label` it is hidden from screen readers, for a spinner next to words that say what runs. Give it a `label` when it stands on its own.
 
 ```tsx
 <Tooltip label="Running">

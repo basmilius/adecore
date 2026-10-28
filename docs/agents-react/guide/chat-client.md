@@ -13,33 +13,33 @@ interface ChatTransport {
 }
 ```
 
-The names and payloads are those of the [agent protocol](/agent-contracts/protocol). A refused request rejects with something that has a string `code`; `ChatTransportError(code, message)` is such an error, `errorCode(error)` reads the code of any error, and `isConnectionError(error)` is true for `not-connected` and `disconnected`. When `status` turns `open` again, everything that holds state on the host asks again, so a socket that reconnects keeps the same transport object and says so through `subscribeStatus`.
+The names and payloads are those of the [agent protocol](/agent-contracts/protocol). A refused request rejects with an error with a string `code`. `ChatTransportError(code, message)` is such an error, `errorCode(error)` reads the code of any error, and `isConnectionError(error)` is true for `not-connected` and `disconnected`. A reconnecting socket keeps the same transport object and reports through `subscribeStatus`; when `status` turns `open` again, the views reload their state.
 
-`portTransport(port)` is a transport over a [`FramePort`](/agent-contracts/protocol#frameport). It is open from the start and checks every frame that arrives: a malformed frame or an unknown event is dropped with a warning, and a result that does not fit its schema rejects with `bad-reply`. A port cannot reconnect. `close()` rejects every waiting request with `disconnected` and turns the status `closed` for good; after that a request rejects with `not-connected`. It has no timeout and does not notice when the other end goes away, so whoever owns the port calls `close()`, and closes the port itself.
+`portTransport(port)` is a transport over a [`FramePort`](/agent-contracts/protocol#frameport). It is open from the start, drops malformed frames with a warning, and rejects a result that fails its schema with `bad-reply`. It cannot reconnect and has no timeout. The port's owner calls `close()`, which rejects waiting requests with `disconnected`, and closes the port itself.
 
 ## ChatClient
 
-`new ChatClient(transport, sink, providers?)` is one connection's chats. It writes everything into a `ChatSink`, `chatSink(keyOf)` for the shared store, and with `providerSinkFor(scopeId)` also the list of CLIs.
+`new ChatClient(transport, sink, providers?)` holds one connection's chats. It writes into a `ChatSink`: `chatSink(keyOf)` for the shared store, and `providerSinkFor(scopeId)` for the list of CLIs.
 
 | Method                                  | What it does                                                                                     |
 | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `open(chatId, options)`                 | Creates or loads the chat and attaches to it, with the newest 60 items. `false` when the transport is down; it attaches once it is up. |
+| `open(chatId, options)`                 | Creates or loads the chat and attaches with the newest page of items. `false` while the transport is down; it attaches once it is up. |
 | `detach(chatId)`                        | Stops streaming the chat here. The agent goes on.                                                |
-| `send(chatId, text, extras?)`           | Answers `{ queued, turnId? }`: whether it waits behind a running turn.                           |
-| `retarget(chatId, provider, selection)` | Moves a chat that has not spoken yet to another CLI, by killing and creating it again.           |
-| `loadEarlier(chatId, cursor)`           | Reads the 60 items before the oldest one held. One read per chat at a time.                      |
-| `inspect(chatId)`                       | Reads up to 100 items once, without keeping the chat attached, for a preview.                    |
+| `send(chatId, text, extras?)`           | Returns `{ queued, turnId? }`: whether it waits behind a running turn.                           |
+| `retarget(chatId, provider, selection)` | Moves a chat that has not spoken yet to another CLI.                                             |
+| `loadEarlier(chatId, cursor)`           | Reads the page before the oldest item held.                                                      |
+| `inspect(chatId)`                       | Reads the recent items once, without attaching, for a preview.                                   |
 | `clear(chatId, force?)`                 | Starts the chat over; refused with `chat-busy` during a turn unless `force`.                     |
-| `restart(chatId)`                       | Ends the chat's CLI and keeps the conversation, which the next message resumes in a fresh process; refused with `chat-busy` while the chat works. |
+| `restart(chatId)`                       | Ends the chat's CLI and keeps the conversation for the next message; refused with `chat-busy` while the chat works. |
 | `kill(chatId)`                          | Forgets the chat here and asks the host to remove it.                                            |
-| `listSkills(chatId)`                    | What the chat's CLI runs as a skill, for the `$` picker.                                         |
-| `addBookmark`, `renameBookmark`, `removeBookmark` | Answer the chat's whole bookmark list.                                                 |
-| `removeVisual(chatId, visualId)`        | Deletes a visual and its page for good, and answers the chat's whole list of visuals.           |
-| `setPreferences(payload)`               | Tells the host what a chat it starts on its own is made with, now and after every reconnect.     |
-| `loadProviders()`, `loadStatuses()`     | Read the CLIs and every chat's status again; the client does this on every `open`.               |
-| `isMounted(chatId)`, `dispose()`        | Whether a chat is open here, and letting go of everything. `dispose` leaves the agents running.  |
+| `listSkills(chatId)`                    | The CLI's skills, for the `$` picker.                                                            |
+| `addBookmark`, `renameBookmark`, `removeBookmark` | Return the chat's whole bookmark list.                                                 |
+| `removeVisual(chatId, visualId)`        | Deletes a visual for good and returns the chat's visuals.                                        |
+| `setPreferences(payload)`               | Tells the host the defaults for chats it starts itself, also after every reconnect.             |
+| `loadProviders()`, `loadStatuses()`     | Reload the CLIs and every chat's status; `open` does this too.                                  |
+| `isMounted(chatId)`, `dispose()`        | Whether a chat is open here, and releasing everything. `dispose` leaves the agents running.     |
 
-`open` takes `provider`, `account`, `cwd`, `resume`, `selection` and `runtimeMode` for a chat it creates; a chat that exists keeps its own. On a reconnect the client attaches every open chat again and offers the last event it holds, so the host answers only what it missed, or the whole page when it cannot. Open a chat id once per client: a second `open` and `detach` of the same id undo each other.
+`open` takes `provider`, `account`, `cwd`, `resume`, `selection` and `runtimeMode` for a new chat; an existing chat keeps its own. On a reconnect the client reattaches every open chat and catches up on what it missed. Open a chat id once per client, since a second `open` and a `detach` cancel each other.
 
 Close a scope in the reverse order of opening it:
 
@@ -57,10 +57,10 @@ useUsageStore.getState().forget(scope.id);
 
 The stores are Zustand stores shared by every scope.
 
-- `useChats` holds a `ChatState` per key: the chat's `info`, its `items` by id, its `order`, `history` when only the newest page is held, `waitingBefore` for requests older than that page, `subagentsBefore` for sub-agents older than it that the host sent or that changed since, `outlineBefore` for the outline of the thread before it, which only the scrubber reads, `bookmarks`, and `visuals`, the pages agents published in it. Bookmarks and visuals come with the attach and with their own events, and a fresh thread from the host keeps them. `statusByKey` holds only the info, and changes only when the info does.
-- `useChatRow(chatId, select)` reads one chat of the scope in context. Select the field you draw: a streamed word replaces `items`.
-- `structure` is `items` minus the growth of a streaming reply, thought or tool output. Derive rows from it; that keeps a word from redrawing the whole thread.
-- `waitingRequestsOf(chat)` lists every approval and question that waits, also those before the loaded page.
+- `useChats` holds a `ChatState` per key: `info`, `items` by id, `order`, `history` when only the newest page is held, `waitingBefore`, `subagentsBefore` and `outlineBefore` for what lies before that page, `bookmarks` and `visuals`. `statusByKey` holds only the info and changes only with it.
+- `useChatRow(chatId, select)` reads one chat of the scope in context. Select only the field you draw, since a streamed word replaces `items`.
+- `structure` is `items` without the growth of streaming text. Derive rows from it, so a word does not redraw the whole thread.
+- `waitingRequestsOf(chat)` lists every waiting approval and question, also those before the loaded page.
 - `useProviders(select)` and `useProviderAccounts(select)` read the CLIs and accounts of the scope in context; `providersOf(scopeId)` and `providerAccountsOf(scopeId)` do the same outside React. `knownAccounts(row)` is `undefined` until the host answered and `null` for a host without accounts.
 - `applyEvent(state, event)` is the pure step the store takes for an event, for a store of your own.
 

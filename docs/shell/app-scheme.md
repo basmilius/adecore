@@ -1,8 +1,8 @@
 # App scheme
 
-An app that serves its built page from a scheme of its own, such as `app://app`, gets a real origin without a server. `createAppScheme` serves the page and the other hosts of that scheme from their folders, and binds the scheme and the origin to the [web guards](/shell/web-guards), so a call site names neither again.
+A page served from a scheme of its own, such as `app://app`, gets a real origin without a server. `createAppScheme` serves each host of the scheme from its folder and binds the scheme and origin to the [web guards](/shell/web-guards).
 
-The package registers nothing itself. The app hands `privileged` to Electron before it is ready, and `handle` to the sessions it picks:
+The package registers nothing itself. Hand `privileged` to Electron before it is ready, and `handle` to the sessions you pick:
 
 ```ts
 import { app, protocol, session } from 'electron';
@@ -39,13 +39,13 @@ app.whenReady().then(() => {
 | `privileges` | standard and secure       | What Chromium allows the scheme                                                              |
 | `read`       | reads the file whole   | Answers with a file it found; `(file) => net.fetch(pathToFileURL(file).href)` streams it      |
 
-The default privileges make the scheme standard and secure: a real origin and a secure context, fetch and CORS, streaming, the code cache and service workers.
+The default privileges give a real origin, a secure context, fetch and CORS, streaming, the code cache and service workers.
 
 ## What it serves
 
-A request is answered from the folder of its host. `/` is the folder's `index.html`, and so is an address without an extension when the folder routes itself. A file it lacks is a 404, also a chunk that a newer build replaced, so a stale one fails as a load error instead of loading the page. A segment that could climb out (`..`, an escaped slash) and a symlink that leads outside the folder are a 404 as well. The content type comes from the extension, `application/wasm` included, which a WebAssembly module needs to compile while it streams.
+Each request is answered from the folder of its host. `/` serves `index.html`, and so does an address without an extension when the folder routes itself. A missing file is a 404, so a chunk replaced by a newer build fails as a load error. A path that climbs out of the folder (`..`, an escaped slash, a symlink) is a 404 too. The content type follows the extension.
 
-A `SchemeFolder` is `{ root, routes?, headers? }`. A host whose files are not one folder, such as files found by an id, is a `SchemeResolver`: `(request, url) => Response`. It finds the file itself and answers through `serveFile(root, file, request, headers?)`, which serves it only when it lies inside `root`. `segmentsOf(pathname)` gives the decoded segments of a path, or `null` when one could climb out.
+A `SchemeFolder` is `{ root, routes?, headers? }`. A host whose files are not one folder, such as files found by an id, is a `SchemeResolver`: `(request, url) => Response`. It finds the file and answers through `serveFile(root, file, request, headers?)`, which serves only files inside `root`. `segmentsOf(pathname)` returns the decoded segments of a path, or `null` when one climbs out.
 
 ```ts
 const scheme = createAppScheme({
@@ -64,7 +64,7 @@ const scheme = createAppScheme({
 
 ## The guards
 
-The `AppScheme` it returns holds the guards. `origin` is what the guards take for the app's, and `url` is what the window loads. The guards are bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/web-guards#appwindownavigation) and `isAppSender(isAppWindow, frame)`. With `pageUrl` the app's origin is the dev server's, so the page's own host on the scheme is then not the app.
+The returned `AppScheme` has `origin` (the app's origin for the guards), `url` (what the window loads) and the guards bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/web-guards#appwindownavigation) and `isAppSender(isAppWindow, frame)`. With `pageUrl` set, the app's origin is the dev server's, and the scheme's own page host no longer counts as the app.
 
 ```ts
 const fromApp = (event: Electron.IpcMainInvokeEvent): boolean => scheme.isAppSender(isAppWindow(event.sender), event.senderFrame);

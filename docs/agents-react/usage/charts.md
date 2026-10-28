@@ -1,6 +1,6 @@
 # Charts and tiles
 
-The parts of the [usage page](/agents-react/usage/usage-page), each drawn from a summary the app already has. Fold a summary first with `deriveUsage(summary, metric)`.
+The parts of the [usage page](/agents-react/usage/usage-page), drawn from a summary. Fold it first with `deriveUsage(summary, metric)`.
 
 ```tsx
 import { deriveUsage, labelEveryFor } from '@adecore/agents-react/usage';
@@ -23,8 +23,8 @@ const money = useMoney();
 - `UsageTiles` are the tokens processed, uncached and cached input, cache writes, output, and what the cache saved.
 - `UsageBreakdown` cuts the period three ways behind tabs: by model, by folder and by day.
 
-`deriveUsage` answers the `slots` of the chart, the totals per CLI (`providers`), the CLIs that did anything (`active`), and the period's totals, cost and cache savings. `deriveDays(summary)` is the table by day, newest first. `enumerateSlots` and `niceScale` are the axis.
+`deriveUsage` returns the chart's `slots`, the totals per CLI (`providers`), the CLIs with activity (`active`), and the period's totals, cost and cache savings. `deriveDays(summary)` is the table by day, newest first. `enumerateSlots` and `niceScale` build the axis.
 
 ## Money and numbers
 
-Every price is in dollars. `useMoney()` answers the formatter of the chosen currency at the rate the summary carries; `moneyFormat(currency, rate)` is the same outside React. `formatCount`, `formatTokens`, `formatClock`, `formatDate`, `slotLabel`, `slotAxisLabel` and `shortPath` write the rest. `PROVIDER_LABELS` and `PROVIDER_COLORS` name and color each CLI.
+Every price is in dollars. `useMoney()` returns the formatter of the chosen currency at the summary's rate; `moneyFormat(currency, rate)` works outside React. `formatCount`, `formatTokens`, `formatClock`, `formatDate`, `slotLabel`, `slotAxisLabel` and `shortPath` write the rest. `PROVIDER_LABELS` and `PROVIDER_COLORS` name and color each CLI.

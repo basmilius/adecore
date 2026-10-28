@@ -1,6 +1,6 @@
 # PromptDialog
 
-The one dialog a question is asked in: a name to type, or a warning to agree with. Every confirm and every rename can share it instead of growing a layout of its own.
+A dialog that asks one question: a name to type, or a warning to accept. Use it for every confirm and rename.
 
 ```tsx
 import { PromptDialog } from '@adecore/ui';
@@ -8,17 +8,17 @@ import { PromptDialog } from '@adecore/ui';
 
 <Demo src="overlays/prompt-dialog" />
 
-Try `HEAD` as the name to see a failure. When `onConfirm` returns a promise, the confirm button is disabled while it runs, and a rejection stays on screen as the reason while the dialog stays open. The message is the error's, or `fallbackMessage` when the rejection is not an `Error` ([`messageOf`](/ui/utilities/error-messages)). The confirm button also waits while the field is empty, unless `allowEmpty` is set.
+Try `HEAD` as the name to see a failure. While a promise from `onConfirm` runs, the confirm button is disabled. A rejection shows its message and the dialog stays open; the message is the error's, or `fallbackMessage` for a non-`Error` ([`messageOf`](/ui/utilities/error-messages)). The confirm button is also disabled while the field is empty, unless `allowEmpty` is set.
 
 ## It never closes itself
 
-`onOpenChange` is only ever told `false`, by Cancel, Escape or a click outside. After a confirm the dialog stays open until you close it, since a step that asks a second question would lose the dialog if it closed on its own.
+`onOpenChange(false)` fires only on Cancel, Escape or a click outside. After a confirm, you close the dialog, so a follow-up question can reuse it.
 
-Every opening starts from the props. The fields reset to `field.initial` and `area.initial` each time `open` turns true, so one mounted dialog can ask about one branch and then another.
+The fields reset to `field.initial` and `area.initial` each time `open` turns true.
 
 ## A confirm
 
-Without `field` the dialog is a confirm and nothing else. `danger` turns the confirm button red. [`ConfirmDialog`](/ui/settings/confirm-dialog) wraps this for a destructive step over another dialog.
+Without `field` the dialog is a plain confirm. `danger` turns the confirm button red. [`ConfirmDialog`](/ui/settings/confirm-dialog) wraps this for a destructive step over another dialog.
 
 ## Props
 
@@ -38,7 +38,7 @@ Without `field` the dialog is a confirm and nothing else. `danger` turns the con
 | `danger` | `boolean` | `false` | |
 | `busy` | `boolean` | `false` | For a step the caller runs elsewhere. |
 | `allowEmpty` | `boolean` | `false` | Lets the field be confirmed empty. |
-| `confirmDisabled` | `boolean` | `false` | A reason the question cannot be answered, beside an empty field. |
+| `confirmDisabled` | `boolean` | `false` | Disables the confirm for another reason than an empty field. |
 | `secondary` | `{ label, onClick }` | | A second way out next to the confirm. |
 | `nested` | `boolean` | `false` | Over another dialog. |
 | `children` | `ReactNode` | | Anything between the description and the buttons. |

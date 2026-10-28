@@ -1,6 +1,6 @@
 # Testing
 
-`@adecore/database/testing` has a transport that answers the protocol from memory. The demos on this site run on it, and an app can run its tests or a component workshop on it without a helper or a server.
+`@adecore/database/testing` has a transport that answers the protocol from memory. The demos on this site run on it, and so can an app's tests, without a helper or server.
 
 ```ts
 import { fakeDatabaseTransport, type FakeDatabase, type FakeDatabaseTransportOptions, type FakeTable } from '@adecore/database/testing';
@@ -12,7 +12,7 @@ import { fakeDatabaseTransport, type FakeDatabase, type FakeDatabaseTransportOpt
 const client = createDatabaseClient(fakeDatabaseTransport({ databases: { '/data/shop.sqlite': shop }, latencyMs: 150 }));
 ```
 
-It returns a `DatabaseTransport`, so it goes wherever the real one goes.
+It returns a `DatabaseTransport`.
 
 `FakeDatabaseTransportOptions`:
 
@@ -23,7 +23,7 @@ It returns a `DatabaseTransport`, so it goes wherever the real one goes.
 | `server`     | `ServerInfo`                             | from the engine | What `open` and `test` report.                                                                                                        |
 | `containers` | `readonly DockerContainer[]`             | `[]`            | What `discover` lists.                                                                                                                |
 
-The fake ignores tunnels and looks a MySQL server up by `host` even then, so a Docker connection finds the database stored under its `host`, `127.0.0.1` in a new connection of the form. Each transport works on its own copy of `databases`, and what `apply` changes lasts as long as the transport.
+The fake ignores tunnels and always looks up a MySQL server by `host`, so a Docker connection from the form finds the database under `127.0.0.1`. Each transport works on its own copy of `databases`, and `apply` changes last as long as the transport.
 
 ## The data
 
@@ -34,9 +34,9 @@ A `FakeDatabase` is `{ schemas }`: schema name to table name to a `FakeTable`. S
 | `columns`                | The `ColumnInfo` list. Required.                                                                                           |
 | `rows`                   | One entry per row, its `Value`s in the order of `columns`. Required.                                                       |
 | `primaryKey`             | The columns of the primary key, which is also the row key.                                                                 |
-| `kind`                   | `table` when left out. A view cannot be edited.                                                                            |
-| `indexes`, `foreignKeys` | What `structure` reports. A unique index over columns that cannot be null is the row key of a table without a primary key. |
-| `checks`, `triggers`     | What `structure` reports; left out, they are left out of the structure too.                                                |
+| `kind`                   | `table` by default. A view cannot be edited.                                                                               |
+| `indexes`, `foreignKeys` | What `structure` reports. Without a primary key, a unique index over non-null columns is the row key.                      |
+| `checks`, `triggers`     | What `structure` reports, or absent.                                                                                       |
 | `ddl`                    | The `CREATE` statement `structure` reports.                                                                                |
 
 ```ts
@@ -62,21 +62,21 @@ const shop: FakeDatabase = {
 ## What it answers
 
 - `open`, `test`, `close`, `schemas`, `tables` and `structure` answer from the data. The schemas `information_schema`, `mysql`, `performance_schema` and `sys` are `system`.
-- `rows` pages with `offset` and `limit`, reports `hasMore` and cuts text and bytes past `cellLimit` into previews. It stops at `maxBytes` as the helper does, counting characters rather than bytes, and so do `execute` and `page`. `cell` returns the whole value.
-- `apply` keeps all changes or none. It fails with `read-only` on a read only connection, `unsupported` on a view, `no-row-key` without a row key, `conflict` (with `change`) when a key matches no row or more than one, and `query-failed` for a duplicate primary key. A value left out takes its default, with numbering for an auto increment column and the current time for `CURRENT_TIMESTAMP`.
-- `execute` and `page` run `SELECT * FROM <table>` on the selected schema, which is the first until a call names another. Every other statement fails with `unsupported`, and as in the protocol the first failed statement ends the list.
-- `transaction` raises and lowers a flag that `execute` reports as `inTransaction`. A rollback does not undo a change.
+- `rows` pages with `offset` and `limit`, reports `hasMore` and cuts cells past `cellLimit` into previews. It, `execute` and `page` stop at `maxBytes`, counting characters. `cell` returns the whole value.
+- `apply` keeps all changes or none. It fails with `read-only` on a read only connection, `unsupported` on a view, `no-row-key` without a row key, `conflict` (with `change`) when a key matches zero or several rows, and `query-failed` for a duplicate primary key. Omitted values take their default, including auto increment and `CURRENT_TIMESTAMP`.
+- `execute` and `page` run `SELECT * FROM <table>` on the selected schema, the first until a call names another. Any other statement fails with `unsupported` and ends the list.
+- `transaction` toggles the flag `execute` reports as `inTransaction`. A rollback does not undo a change.
 - `discover` answers the `containers` option.
-- `export`, `sample` and `import` fail with `unsupported`, since there are no files. A test of an app's dialogs answers them in a client or transport that wraps the fake.
-- `cancel` answers a request that still waits out `latencyMs` with `cancelled`.
+- `export`, `sample` and `import` fail with `unsupported`. To test an app's dialogs, answer them in a wrapping client or transport.
+- `cancel` answers a request still waiting out `latencyMs` with `cancelled`.
 
 ## Limits
 
-- `where` and `orderBy` are not read: `rows` and `count` return every row in stored order.
-- Any SQL beyond `SELECT * FROM <table>` fails, the `ALTER TABLE` of the [designer](/database/views/table-designer) and the `DROP TABLE` of the explorer included.
-- Only the primary key is enforced on insert. Other indexes and foreign keys are only reported.
+- `where` and `orderBy` are ignored: `rows` and `count` return every row in stored order.
+- Any SQL beyond `SELECT * FROM <table>` fails, including the designer's `ALTER TABLE` and the explorer's `DROP TABLE`.
+- Inserts enforce only the primary key. Other indexes and foreign keys are only reported.
 
-Use the real helper against a SQLite file for anything that depends on SQL, such as the exact text of an error.
+For anything that depends on SQL, such as an error's exact text, use the real helper against a SQLite file.
 
 ## In a test
 

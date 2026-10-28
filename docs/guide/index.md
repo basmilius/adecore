@@ -1,6 +1,6 @@
 # Introduction
 
-This repository holds the packages that desktop apps for working with agents share, so the parts they have in common are written once.
+The packages that desktop apps for working with agents share.
 
 ## Packages
 
@@ -53,23 +53,23 @@ This repository holds the packages that desktop apps for working with agents sha
 
 ## One version
 
-Every package is released under the same version, from one tag. Take them together: a version of one package is tested against the same version of the others.
+Every package is released under the same version, from one tag, and tested against the same version of the others. Upgrade them together.
 
-While the version is `0.x`, a breaking change bumps the minor and everything else the patch. The release notes on GitHub name each breaking change with what to do about it.
+While the version is `0.x`, a breaking change bumps the minor and everything else the patch. The GitHub release notes say how to migrate each breaking change.
 
 ## Installing
 
-Every package comes from npm and is installed on its own:
+Install each package from npm on its own:
 
 ```sh
 bun add @adecore/ui
 ```
 
-The page of a package says which peer dependencies it expects and how to wire it into an app.
+Each package page lists its peer dependencies and how to wire it into an app.
 
 ## Working on a local checkout
 
-Every package has a `source` export condition that points into its `src`, so an app can use a checkout without building it after every change. Link the package from its own folder:
+Every package has a `source` export condition that points into its `src`, so an app can use a checkout without building it. Link the package from its own folder:
 
 ```sh
 # in packages/<name> of the adecore checkout
@@ -79,12 +79,12 @@ bun link
 bun link @adecore/<name>
 ```
 
-Then turn the condition on wherever the app resolves modules: `resolve.conditions` in Vite, `customConditions` in TypeScript and `--conditions=source` for `bun test`. A package's own page lists what else it needs, such as a single copy of React.
+Then turn the condition on wherever the app resolves modules: `resolve.conditions` in Vite, `customConditions` in TypeScript and `--conditions=source` for `bun test`. A package page lists what else it needs, such as a single copy of React.
 
 ## The React Compiler
 
-The packages with React views (UI, Terminal, Agent views and Editor views) are built with the [React Compiler](https://react.dev/learn/react-compiler), so what npm serves from `dist` memoizes its components and hooks itself: a chat that streams or a composer that is typed in draws only the parts that changed. The compiled code imports `react/compiler-runtime`, which comes with React 19.
+The packages with React views (UI, Terminal, Agent views and Editor views) ship a `dist` built with the [React Compiler](https://react.dev/learn/react-compiler), so their components and hooks memoize themselves. The compiled code imports `react/compiler-runtime`, which comes with React 19.
 
-The `source` condition gives an app the TypeScript as it is written. To keep the memoization, run the compiler over those sources the way the app runs it over its own: `babel-plugin-react-compiler` with `target: '19'`, through `reactCompilerPreset` of `@vitejs/plugin-react` in Vite. A bundler setup that leaves `node_modules` out has to let the `src` of these packages in. Without the compiler every view still works, but the sources hold no `useMemo` or `useCallback` the compiler covers: a view draws again as often as its parent does and works out what it shows anew each time. A production build that drops the `source` condition takes the compiled `dist` instead.
+The `source` condition serves uncompiled TypeScript, which has no hand-written `useMemo` or `useCallback`. Without the compiler the views still work, but redraw whenever their parent does. To keep the memoization, run `babel-plugin-react-compiler` with `target: '19'` over these sources, in Vite through `reactCompilerPreset` of `@vitejs/plugin-react`. If your bundler setup skips `node_modules`, include the `src` of these packages. A production build without the `source` condition uses the compiled `dist`.
 
-A function that starts with `'use no memo'` stays as it is written, in `dist` too, and so does one the compiler cannot prove safe.
+A function that starts with `'use no memo'` stays uncompiled, in `dist` too, and so does one the compiler cannot prove safe.

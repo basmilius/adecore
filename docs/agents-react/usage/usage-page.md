@@ -1,6 +1,6 @@
 # UsagePage
 
-What the agent CLIs of a host cost over a period, read from their transcripts by the host: a total, a chart per day or hour, tiles for the kinds of tokens, a breakdown by model, folder and day, and what is left of each plan. The page asks the host; it scans nothing itself.
+What the agent CLIs of a host cost over a period: a total, a chart per day or hour, token tiles, a breakdown by model, folder and day, and the plan limits. The host scans the transcripts; the page only asks.
 
 ```tsx
 import { UsageDialog, UsagePage } from '@adecore/agents-react/usage';
@@ -16,11 +16,11 @@ import { UsageDialog, UsagePage } from '@adecore/agents-react/usage';
 </UsageDialog>
 ```
 
-`UsageDialog` is the frame, a dialog larger than the settings; what is in it mounts only while it is open, so nothing is asked behind a closed dialog. `UsagePage` is its body and reads the host of the scope it is rendered in. Give it a `key` per host: an account picked on one host means nothing on another.
+`UsageDialog` is the frame; its content mounts only while open. `UsagePage` is the body and reads the host of its scope. Give it a `key` per host, since a picked account belongs to one host.
 
 ## What it asks
 
-While it is mounted, the page sends `usage.subscribe`, which keeps the host scanning, asks `usage.summary` for the period on screen, and asks again on every `usage.changed`. It sends `usage.unsubscribe` when it goes. A reply to an earlier question than the one on screen is never drawn. A request that fails keeps the numbers it had and says so under them. Without a link to the host it shows what it last had, or an empty state when it never had anything.
+While mounted, the page sends `usage.subscribe`, asks `usage.summary` for the period on screen, asks again on every `usage.changed`, and sends `usage.unsubscribe` on unmount. A failed request keeps the old numbers and says so. Without a connection it shows the last numbers or an empty state.
 
 | Choice   | Values                                                  | Kept      |
 | -------- | ------------------------------------------------------- | --------- |
@@ -29,18 +29,18 @@ While it is mounted, the page sends `usage.subscribe`, which keeps the host scan
 | Currency | `USD`, `EUR` at the rate the summary carries            | Yes, `USD` |
 | Account  | All, or one account once a CLI has several              | No        |
 
-The period runs in the viewer's own calendar days and time zone, which travel with the request. `windowFor(period)` makes that window.
+The period follows the viewer's calendar days and time zone. `windowFor(period)` builds that window.
 
 ## Props
 
 | Prop      | Type                             |                                                                                          |
 | --------- | -------------------------------- | ---------------------------------------------------------------------------------------- |
 | `pickers` | `ReactNode`                      | Controls of your own, first in the header, such as a picker of the host.                 |
-| `notice`  | `(stale: boolean) => ReactNode`  | A line over the numbers about the host itself; `stale` is true while older numbers stand under it. |
+| `notice`  | `(stale: boolean) => ReactNode`  | A line over the numbers about the host; `stale` is true while older numbers show. |
 
 ## UsagePane
 
-The section of the settings dialog for usage: the currency, and a button to the page. `onOpenPage` is how your app lets the settings make way for the usage dialog.
+The usage section of the settings dialog: the currency and a button to the page. `onOpenPage` lets your app swap the settings for the usage dialog.
 
 <Demo src="agents/usage-pane" />
 
@@ -50,4 +50,4 @@ The section of the settings dialog for usage: the currency, and a button to the 
 
 ## State
 
-`useUsageStore` keeps the three choices, kept in [storage](/agents-react/guide/persistence), and per scope the summary, the question it answers, whether it loads or failed, and the plan limits. `askedKey(payload)` is the key a summary is kept under.
+`useUsageStore` holds the three [stored](/agents-react/guide/persistence) choices and, per scope, the summary, its request, its loading or failed state and the plan limits. `askedKey(payload)` is a summary's key.

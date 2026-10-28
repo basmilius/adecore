@@ -1,6 +1,6 @@
 # @adecore/diagram
 
-Directed graphs that are written rather than drawn. A diagram file says which nodes exist, which groups hold them and what points at what; the package computes where everything goes, routes the edges, and writes the result as SVG or as lines of text. The same file always gives the same picture, so an agent can write a diagram without placing a single box.
+Directed graphs that are written rather than drawn. A diagram file lists nodes, groups and edges. The package places the nodes, routes the edges and writes SVG or lines of text. The same file always gives the same picture, so an agent can write a diagram without placing a box.
 
 ```sh
 bun add @adecore/diagram
@@ -23,16 +23,16 @@ const lines = readingOrder(diagram);
 
 <Demo src="canvas/diagram-layout" />
 
-The dashed edge from `Approved?` back to `Commit` closes a cycle. The layout ranks the nodes without it and still draws it. Under the diagram are the lines `readingOrder` writes for the same file.
+The dashed edge from `Approved?` back to `Commit` closes a cycle, which the layout ranks without but still draws. Under the diagram are the lines of `readingOrder`.
 
 ## What is in it
 
-- [Documents](/diagram/documents): the schemas of nodes, groups and edges on `@adecore/diagram/protocol`, and `diagramProblemIn`, which checks what a schema cannot.
-- [Layout](/diagram/layout): how `layoutOf` ranks, orders and places nodes, wraps groups around them and routes edges, and what a node a person dragged does.
-- [Painting and reading](/diagram/rendering): `toSvg`, the shape and text helpers for a painter of your own, and `readingOrder`.
+- [Documents](/diagram/documents): the schemas on `@adecore/diagram/protocol`, and `diagramProblemIn` for what a schema cannot check.
+- [Layout](/diagram/layout): how `layoutOf` places nodes, wraps groups, routes edges and keeps dragged nodes.
+- [Painting and reading](/diagram/rendering): `toSvg`, helpers for your own painter, and `readingOrder`.
 
-The package depends on [`@adecore/drawing`](/drawing/) for its palette names, its `Point` and `Rect` and its default colors, so a diagram follows a theme the way a drawing does. The protocol entry point loads Zod and the drawing protocol, without the layout or the renderer.
+The package takes its palette names, `Point`, `Rect` and default colors from [`@adecore/drawing`](/drawing/), so a diagram follows a theme like a drawing does. The protocol entry point loads Zod and the drawing protocol, without the layout or the renderer.
 
 ## What the app does
 
-The package keeps no state. The app owns storage and the `rev` check on save, dragging (which writes a node's `pos`), selection, and the colors and font it paints in.
+The package keeps no state. The app owns storage, the `rev` check on save, dragging (which writes a node's `pos`), selection, and the colors and font.

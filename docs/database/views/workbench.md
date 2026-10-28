@@ -1,6 +1,6 @@
 # DatabaseWorkbench
 
-The whole database tool in one view: the explorer in a column on the left, and closable tabs beside it for the tables, consoles and designers a person opens. Use it when the database tool is a screen of its own. When the tabs belong to the app, wire the views yourself; see [Opening tables as tabs](/database/guide/tabs).
+The whole database tool in one view: the explorer on the left, and closable tabs for the tables, consoles and designers a person opens. Use it for a dedicated database screen. When the app owns the tabs, wire the views yourself; see [Opening tables as tabs](/database/guide/tabs).
 
 ```tsx
 import { DatabaseWorkbench } from '@adecore/database';
@@ -12,30 +12,28 @@ import { DatabaseWorkbench } from '@adecore/database';
 <DatabaseWorkbench connections={connections} onConnectionsChange={setConnections} className="h-full" />
 ```
 
-Double click a table in the explorer, right click a schema for New table or New console here, or follow a foreign key from a cell's menu: each opens a tab.
+Double clicking a table, New table or New console here on a schema, and following a foreign key each open a tab.
 
 ## Tabs
 
-The workbench is a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) itself, with the client, `storage`, `files` and `numberNotation` of the one above it, and it answers the actions of the views inside.
+The workbench nests its own [`DatabaseProvider`](/database/guide/getting-started#databaseprovider), inheriting the client, `storage`, `files` and `numberNotation`, and answers the actions of the views inside.
 
-- A table opens once; opening it again focuses its tab. A switch in the tab strip shows the data or the structure. Both stay mounted, so pending edits survive a look at the structure.
-- A table opened with a condition, as a foreign key jump does, always gets a tab of its own, titled `orders (filtered)`.
-- A console opens as Console 1, Console 2 and so on, on the connection and schema of the tab in front, else of the explorer's selection, else of the first connection. The button at the end of the strip opens one too.
-- A designer of an existing table opens once. After a new table is created, its tab becomes the designer of that table.
-- A tab closes with its button, a middle click, Delete or Backspace on the tab, or Cmd or Ctrl and W. A table tab with pending edits asks first.
-- The explorer column is resized from its edge, between 200 pixels and half the window.
+- A table opens once; opening it again focuses its tab. A switch in the tab strip toggles data and structure, both kept mounted so pending edits survive.
+- A table opened with a condition, such as a foreign key jump, always gets its own tab, titled `orders (filtered)`.
+- Consoles open as Console 1, Console 2 and so on, on the connection and schema of the front tab, else the explorer's selection, else the first connection. The button at the end of the strip opens one too.
+- A designer of an existing table opens once. After a new table is created, its tab becomes that table's designer.
+- A tab closes with its button, a middle click, Delete or Backspace, or Cmd or Ctrl+W. A table tab with pending edits asks first.
+- The explorer column resizes from its edge, between 200 pixels and half the window.
 
-With `storage` on the provider, the open tabs, the tab in front, the text of each console and the data or structure switch of each table are kept under `database:workbench` and restored on the next mount. A tab whose connection is gone is dropped, but not while `connections` is empty, since the list may still be loading.
+With `storage` on the provider, the open tabs, the front tab, console text and each table's data or structure switch are kept under `database:workbench`. Tabs of missing connections are dropped, except while `connections` is empty and may still be loading.
 
 ## Managing connections
 
-With `onConnectionsChange`, the explorer's header has a button that opens a [`ConnectionManager`](/database/views/connection-manager) in a dialog, and Edit connection in the explorer opens it on that connection. Every add, edit and delete goes out through `onConnectionsChange`, and the app saves.
-
-Without it the connections are fixed and there is no button.
+With `onConnectionsChange`, a button in the explorer header opens a [`ConnectionManager`](/database/views/connection-manager) in a dialog, as does Edit connection. Every change goes out through `onConnectionsChange` for the app to save. Without it the connections are fixed.
 
 ## What it passes on
 
-An action the workbench cannot place goes on to the `onAction` of the provider above it: `manage-connection` without `onConnectionsChange`, and any action for a connection that is not in `connections`.
+Actions the workbench cannot place go to `onAction` of the provider above: `manage-connection` without `onConnectionsChange`, and any action for a connection not in `connections`.
 
 ## Props
 

@@ -1,6 +1,6 @@
 # Storage
 
-Everything a host keeps lives in its data folder. Give each host a folder of its own: the stores assume one writer, and the file helpers guard against a half-written file, not against a second process.
+A host keeps everything in its data folder. Give each host its own folder. The stores assume one writer, and the file helpers guard against half-written files, not against a second process.
 
 ## What goes where
 
@@ -21,33 +21,30 @@ Everything a host keeps lives in its data folder. Give each host a folder of its
 
 ## Usage
 
-The usage page counts the transcripts the CLIs leave, and the CLIs remove old ones. What a transcript counted stays in `usage/history.jsonl` after the transcript is gone, so that file is the only record of it and cannot be rebuilt.
+The CLIs remove old transcripts, but what a transcript counted stays in `usage/history.jsonl`. That file is the only record of it and cannot be rebuilt. Back it up if usage history matters.
 
-- `history.jsonl` starts with a header line and then holds a line per transcript that changed: `set` replaces what a path counted, since the scan read it from the start, and `add` folds new calls into it, since the transcript grew. A scan that finds a few new calls appends a few lines and leaves the rest of the file alone. Once superseded lines make up half of the file, it is rewritten with one `set` line per path.
-- `scan-state.json` holds the offsets, hashes and parser state per transcript and is rewritten after each scan that changed it. The state of a transcript that is gone is dropped. Deleting the file resets the scan cache: every transcript is read from the start once, which replaces what it counted, and the usage of transcripts that are gone stays.
-- The state names the history it was saved against. When they disagree, after a crash between the two writes, the state is dropped as if reset, so nothing is counted twice. A half-written last line of the history is cut off on load.
-- Deleting `history.jsonl` is a reset of the history itself: only the transcripts still on disk are counted again.
-- A `usage/index.json` from an earlier version is moved into both files on the first load and then removed. One that does not read is renamed to `index.json.unreadable`.
+- Deleting `scan-state.json` resets the scan cache. Every transcript still on disk is read again, and the usage of removed transcripts stays.
+- Deleting `history.jsonl` resets the history. Only transcripts still on disk count again.
+- A crash between the two writes never counts anything twice.
+- A `usage/index.json` from an earlier version migrates on first load. An unreadable one becomes `index.json.unreadable`.
 
-An id becomes a file name with `encodeURIComponent`. A host's extras sit at the top level of a chat's record, next to `info` and `items`, which they cannot replace. `ChatStoreOptions.isSidecar` keeps JSON files of your own in `chats/` out of the list of chats.
+An id becomes a file name with `encodeURIComponent`. A host's extras sit at the top level of a chat's record, next to `info` and `items`, which they cannot replace. `ChatStoreOptions.isSidecar` keeps your own JSON files in `chats/` out of the chat list.
 
-A record this version cannot read is left as it is and refused with `chat-unreadable`; creating the chat again does not write over it. A log can rebuild a record that is missing, when it holds a start to rebuild from.
-
-A record starts with its `info`. `ChatStore.settled` reads only that and the last info in the log, so `recoverInterrupted` parses in full only the chats with a turn in flight or a resume after a limit. A record that starts with another key is read in full.
+A record this version cannot read stays untouched and fails with `chat-unreadable`. Creating the chat again does not overwrite it. A log can rebuild a missing record when it holds a start. `ChatStore.settled` reads only each record's `info` and the log's last info, so `recoverInterrupted` stays cheap.
 
 ## Large outputs
 
-A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (64 KiB of UTF-8; for a diff, of its JSON) is kept apart from the record. The record holds the beginning: the first 8 KiB of an output, ending on a line break when that keeps at least half, and every file of a diff with the diffs that fit in 8 KiB, the later ones empty. The item gets a ref to the whole, `outputRef` on a tool and `checkpointDiffRef` on a turn, each `{ id, bytes }`, where `id` is the SHA-256 of the whole and `bytes` its size. Opening a chat reads the record and the log, never a payload, so its cost follows the size of those beginnings.
+A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (64 KiB) is stored apart. The record keeps the beginning, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn. `id` is the SHA-256 of the whole.
 
-- `chat.toolOutput { chatId, itemId }` answers the whole output (`ChatCore.toolOutput`), and `chat.turnDiff` the whole diff. Whoever may send a request about the chat may send these; they read only what its own items name.
-- A payload is written before the record that names it, so a record on disk never names a payload that is missing. One that went missing anyway is refused with `payload-missing`.
-- A record from before moves its large values out on its next read: the payloads land first, then the record is replaced whole. A move cut short leaves the old record as it was, and the next read starts again; a payload it already wrote is the same file. A large value the log holds whole goes apart on read as well, and into the record at the next write. The CLI's own conversation, which a resume reads, is not touched.
-- Each chat has a folder of its own. Writing a record whose items name a payload the folder lacks, such as a fork's record from its original's items, copies the payload in from the chat that has it, so removing the original leaves the fork whole. Removing a chat removes its folder. Folding the log removes what the record no longer names, which is how a clear lets the payloads of its thread go; a payload written while that runs stays.
-- A loaded chat keeps the outputs of its own turns whole in memory, and its attached clients get them whole; they are cut to their beginning the next time the chat is opened. A find in the thread and an agent reading a chat as text see only the beginning of an output kept apart.
+- `chat.toolOutput { chatId, itemId }` returns the whole output (`ChatCore.toolOutput`), and `chat.turnDiff` the whole diff. Anyone who may send requests about the chat may send these.
+- A missing payload fails with `payload-missing`.
+- Records from earlier versions move their large values out on the next read.
+- A fork copies the payloads it names, so removing the original leaves the fork whole. A clear lets its payloads go.
+- A loaded chat and its attached clients keep its own outputs whole until the chat is opened again. Thread search and agents reading a chat as text see only the beginning.
 
 ## Writing
 
-`ChatCore` writes a small record at once and waits a moment with a large one, and joins deltas before they are written. `save` and `persisted(chatId)` wait for a write. The log is what makes replay possible: `after(since)` answers the events after a sequence number while the log still holds all of them, and a client gets a whole snapshot otherwise. Compacting folds old events into the record. `host.close()` writes every record, even of a turn still running, and ends the CLIs even when a write fails; `persistAllSync` is for an exit that cannot wait.
+`ChatCore` batches writes. `save` and `persisted(chatId)` wait for one. `after(since)` returns the events after a sequence number while the log holds them all. Otherwise a client gets a full snapshot. `host.close()` writes every record, even mid-turn, and ends the CLIs even when a write fails. `persistAllSync` is for an exit that cannot wait.
 
 ## File helpers
 
@@ -72,26 +69,24 @@ export async function writeCounter(dataDir: string): Promise<number> {
 }
 ```
 
-The count ends at 2. `Serializer.run` runs work one at a time, even after one failed, and each caller gets its own result or error; `idle()` waits for the queue without rethrowing. `KeyedSerializer` does the same per key.
+The count ends at 2. `Serializer.run` runs work one at a time, also after a failure, and each caller gets its own result or error. `idle()` waits for the queue without rethrowing. `KeyedSerializer` does the same per key.
 
-`writeAtomic(target, content, mode = 0o600, { durable? })` writes a temporary file beside the target and renames it over, retrying a busy rename five times, 40 ms apart. `durable` syncs the file before the rename and its folder after, except on Windows. Create the folder first. `writeAtomicSync` and `replaceSync` do the same synchronously, without `durable`. `fileExists` is `false` for any error, so use `isNotFound` when other errors should surface. It follows a link; `entryExists` does not, so a link that leads nowhere counts there, which is what a check for a free name needs.
+`writeAtomic(target, content, mode = 0o600, { durable? })` writes a temporary file beside the target and renames it over. `durable` also syncs the file and its folder (not on Windows). Create the folder first. `writeAtomicSync` and `replaceSync` are the synchronous forms, without `durable`. `fileExists` returns `false` on any error, so use `isNotFound` when other errors should surface. `fileExists` follows links. `entryExists` does not, so it also counts a dangling link, as a free-name check needs.
 
-`RecordDirectory<T>` is a folder of JSON records, checked by a schema on load and written and removed one at a time per id, so two deletes of one file never overlap; a record that does not parse stays on disk. `keep` can rewrite or drop records on load, and `write` and `remove` replace the file operations, for a test.
+`RecordDirectory<T>` is a folder of JSON records, validated by a schema on load and written one at a time per id. A record that does not parse stays on disk. `keep` can rewrite or drop records on load. `write` and `remove` replace the file operations in tests.
 
 ## Other helpers
 
-- `runProcess(command, options)` runs a short command and answers its output and `exitCode` (`null` after a signal). A nonzero exit is an answer, not an error; The command runs in a process group of its own. `timeoutMs` rejects and sends the group a SIGTERM, then a SIGKILL two seconds later. Past 16 MB of stdout and stderr together, the run ends the same way and rejects, so keep it to commands that print little.
-- `SingleFlight<T>.run(key, work)` runs `work` once per key at a time: a caller that asks while it runs shares its outcome, and `get` and `has` tell whether a key runs.
-- `cancellableTimeout(ms, run)` and `unrefTimeout(ms, run)` answer the function that cancels the timer; the second does not hold the process open. `hasErrorCode(error, ...codes)` tells whether a caught error carries one of the system codes.
-- `withTimeout(promise, ms, message)` rejects at a deadline without stopping what it waited for, and `wait(ms, signal?)` resolves early on an abort.
-- `WatchSeams` is file watching you can swap: `SYSTEM_WATCH` uses `fs.watch`, recursive only where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes, and `PerClientWatches` keeps a watch per client and path.
-- `cleanTitle` and `readLines` read titles from a transcript; `readLines` stops at the last whole line, so a line still being written is read later.
-- `CodedError` is an error with a `code`, `errorText` and `describeError` write an error for a log, and `setErrorStacks` turns stack traces on or off for the whole package.
+- `runProcess(command, options)` runs a short command in its own process group and returns its output and `exitCode` (`null` after a signal). A nonzero exit is a result, not an error. `timeoutMs` rejects and kills the group. Output past 16 MB does the same, so use it for commands that print little.
+- `SingleFlight<T>.run(key, work)` runs `work` once per key at a time, and concurrent callers share the outcome. `get` and `has` tell whether a key runs.
+- `cancellableTimeout(ms, run)` and `unrefTimeout(ms, run)` return a cancel function. The second does not hold the process open. `hasErrorCode(error, ...codes)` checks a caught error for system codes.
+- `withTimeout(promise, ms, message)` rejects at a deadline without stopping the work. `wait(ms, signal?)` resolves early on abort.
+- `WatchSeams` is swappable file watching. `SYSTEM_WATCH` uses `fs.watch`, recursive where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes. `PerClientWatches` keeps a watch per client and path.
+- `cleanTitle` and `readLines` read titles from a transcript. `readLines` stops at the last whole line.
+- `CodedError` is an error with a `code`. `errorText` and `describeError` format an error for a log. `setErrorStacks` turns stack traces on or off for the package.
 
 ## Generated image attachments
 
-The Codex adapter reads the bytes of an image through `generatedImage(data, prompt)`, which is internal to the package. It refuses a result that is empty, malformed, not an image or too large, tells PNG, JPEG, GIF and WebP apart by their bytes, and reads the size in pixels. It never reads the path where the provider saved the image. An `imageView` item records its path as tool input and does not read it either.
+The Codex adapter validates generated image bytes (PNG, JPEG, GIF, WebP) and never reads the path where the provider saved them. `AttachmentStore.saveGenerated(chatId, ref, upload)` stores the image under the provider's item id and never overwrites one. A repeated completion reuses the file. A replay with other bytes under the same id fails. `ChatCore.attachment` finds generated images as well as attached files.
 
-`AttachmentStore.saveGenerated(chatId, ref, upload)` takes the attachment id from the provider's item id and writes the bytes whole, never over an image already there. A completion that comes again reuses the file, and a replay with other bytes under the same id fails. The backend waits for the write before it passes on the events after it, the end of the turn included. `ChatCore.attachment` finds generated images in the chat's tool items as well as files in user messages and the queue.
-
-`AttachmentStore.copy(chatId, attachment)` gives a fork a file of its own with the same id and size. The host copies the attachment's metadata into the fork's record, so deleting the chat it came from leaves the fork's images.
+`AttachmentStore.copy(chatId, attachment)` gives a fork its own copy with the same id, so deleting the original leaves the fork's images.

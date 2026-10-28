@@ -12,13 +12,13 @@ A `text` and a `note` are both a `WrittenElement`: they carry `text`, a `size` a
 | `text` with `sized`    | Wrapped to `w`.                                                          |
 | `note`                 | Wrapped to the box minus `NOTE_PADDING` (16) on each side.               |
 
-`writingFrameOf(element)` is where those lines start inside the element and how wide they may be. Wrapping breaks at spaces, and breaks a word that does not fit on a line of its own between its characters. Wrapping only sets the width: a note with more text than room runs past the bottom of its sheet, and the app makes it taller.
+`writingFrameOf(element)` is where those lines start inside the element and how wide they may be. Wrapping breaks at spaces, and inside a word that is too long for a line. A note with more text than room runs past the bottom of its sheet; the app makes it taller.
 
-`fontOf(font)` reads an absent font as `hand`. `DEFAULT_FONT_STACKS` names a stack per font for outside the app: Kalam for `hand`, the system font for `sans` and the system monospace for `mono`. The package ships no font files.
+`fontOf(font)` reads an absent font as `hand`. `DEFAULT_FONT_STACKS` names a stack per font: Kalam for `hand`, the system font for `sans` and the system monospace for `mono`. The package ships no font files.
 
 ## Measuring
 
-A `MeasureLine` takes a line and returns its width in world units. Without a font engine, `approximateMeasure(size, font)` counts characters: each is `0.6 * size` wide in `mono` and `0.55 * size` otherwise. That is close enough for a backend, but wraps differently from a browser. To match what a person sees, give `toSvg` a measure from a canvas, after the fonts loaded:
+A `MeasureLine` takes a line and returns its width in world units. `approximateMeasure(size, font)` estimates from the character count. That is fine for a backend, but wraps differently from a browser. To match what a person sees, give `toSvg` a measure from a canvas once the fonts have loaded:
 
 ```ts
 import { DEFAULT_FONT_STACKS, DEFAULT_PALETTE, fontOf, toSvg } from '@adecore/drawing';
@@ -50,6 +50,6 @@ Idea -> Review
 Review -> Shipped
 ```
 
-First come the texts and notes that say something, top to bottom. Texts within 24 units of the top of a row count as that row and read left to right. Then every line with an arrow head becomes `from -> to`, read in the direction the head points. An end of an arrow takes the name of the nearest text, note or shape with a text inside that it lands on or whose center is within 48 units. An arrow with an end that names nothing, or with the same name at both ends, is left out.
+First come the texts and notes, in rows top to bottom and left to right within a row. Then every line with an arrow head becomes `from -> to`, in the direction the head points. Each end takes the name of the nearest text, note or labeled shape. An arrow with an unnamed end, or the same name at both ends, is left out.
 
-It is a guess from positions, and it reads the unturned points of an arrow. When the connections matter, keep them as data: [`@adecore/diagram`](/diagram/) stores edges and reads them back exactly.
+It is a guess from positions. When the connections matter, keep them as data: [`@adecore/diagram`](/diagram/) stores edges and reads them back exactly.

@@ -1,6 +1,6 @@
 # PreviewCard
 
-A card that opens while the pointer rests on its trigger, usually a link, drawn like a [popover](/ui/overlays/popover). It previews what the link leads to without leaving the page.
+A card that opens on hover over its trigger, usually a link, drawn like a [popover](/ui/overlays/popover), to preview the link's target.
 
 ```tsx
 import { PreviewCard } from '@adecore/ui';
@@ -14,8 +14,8 @@ import { PreviewCard } from '@adecore/ui';
 | --- | --- |
 | `PreviewCard.Root` | Holds the open state, and the delays before it opens and closes. |
 | `PreviewCard.Trigger` | The link the card belongs to. It renders an `<a>`. |
-| `PreviewCard.Popup` | The portal, the positioner and the card, with the same `variant` and placement props as `Popover.Popup`. |
+| `PreviewCard.Popup` | Portal, positioner and card, with the `variant` and placement props of `Popover.Popup`. |
 
-Treat the card as extra. It opens for the pointer, so keep anything a person needs on the page or behind the link itself.
+The card opens only for the pointer, so keep anything a person needs on the page or behind the link.
 
 `PreviewCardPopupProps` is an exported type.

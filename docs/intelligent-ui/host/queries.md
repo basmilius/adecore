@@ -1,6 +1,6 @@
 # Live queries
 
-A block can show data that changes after the agent wrote it: the state of a build, the open tasks of a project. The agent declares a query of a source the host registered. The host reads it with the access of the chat that wrote the block, and the page shows the newest reading while the block is in view.
+A block can show data that changes after the agent wrote it, such as the state of a build. The agent declares a query of a source the host registered. The host reads it with the access of the chat that wrote the block, and the page shows the newest reading while the block is in view.
 
 ```ui
 $branch = "main"
@@ -17,19 +17,19 @@ $runs = @Query("ci.runs", {branch: $branch, limit: 5})
 
 ## Declaring a query
 
-`$name = @Query("source", {arguments})` is a declaration, at the top of the block. The rules:
+`$name = @Query("source", {arguments})` is a declaration at the top of the block:
 
-- The source is a string literal, and the host must have registered it. An unknown source is `unknown_query`.
-- The arguments are a record. They may read declared local state, so a control can change what is read. They never read a query result, so one query cannot steer another.
-- The host's schema for the source must accept the arguments as evaluated with the defaults, or the block gets `invalid_query`.
+- The source is a string literal the host registered. An unknown source is `unknown_query`.
+- The arguments are a record. They may read declared local state, so a control can change what is read, but never a query result.
+- The source's schema must accept the arguments evaluated with the defaults, or the block gets `invalid_query`.
 - A block declares at most `UI_HOST_LIMITS.queries` (8) queries.
-- A query is read only. Nothing in a block writes to a source.
+- A query is read only.
 
-The result is the value of `$name`. Until the first reading arrives it has none, and a part that reads it draws as its fallback.
+`$name` holds the result. Until the first reading arrives, parts that read it draw their fallback.
 
 ## Registering sources
 
-The compiler needs each source's argument schema: `UiCompileOptions.querySchemas` maps a source name to a zod schema. With [`@adecore/agents`](/agents/chats#live-ui-sources) the host passes a `ChatUiHost` as `ChatCoreOptions.intelligentUi`, and the sessions take the schemas from it:
+`UiCompileOptions.querySchemas` maps each source name to its zod argument schema. With [`@adecore/agents`](/agents/chats#live-ui-sources), pass a `ChatUiHost` as `ChatCoreOptions.intelligentUi` and the sessions take the schemas from it:
 
 ```ts
 import { z } from 'zod';
@@ -49,27 +49,27 @@ const intelligentUi: ChatUiHost = {
 };
 ```
 
-`capture`, `authorize` and `read` are yours; `projectsOf`, `assertCanRead` and `fetchRuns` stand for your own code. `capture` records what the writing chat may read, once per reply. `authorize` throws to refuse, and runs before every read with that captured access and the chat's current info. `read` returns the result, which must pass `result`.
+`projectsOf`, `assertCanRead` and `fetchRuns` stand for your own code. `capture` records what the writing chat may read, once per reply. `authorize` runs before every read with that captured access and the chat's current info, and throws to refuse. `read` returns a result that must pass `result`.
 
-To say why with a code a client can word itself, throw a `ChatUiRefusal(code, reason)` from `@adecore/agents/chat`, as in `throw new ChatUiRefusal('project-closed', 'The project is closed.')`. The code lands in the reading's `code` and the sentence in its `reason`: from `authorize` the reading is `refused`, from `read` it is `failed`, and from `ChatUiHost.link` the link stays plain. Keep a code the same across versions. Pick one of the host codes below when it fits, and otherwise one that is in neither table.
+To refuse with a code a client can word itself, throw a `ChatUiRefusal(code, reason)` from `@adecore/agents/chat`: `throw new ChatUiRefusal('project-closed', 'The project is closed.')`. From `authorize` the reading is `refused`, from `read` it is `failed`, and from `ChatUiHost.link` the link stays plain. Keep codes stable across versions, and reuse a host code below when one fits.
 
 ## Reading
 
-A client asks `ui.query` with the block's identity, the query name and its current input values. The backend then:
+A client sends `ui.query` with the block's identity, the query name and its input values. The backend then:
 
-1. Finds the stored, completed block at that `revision`. A block that changed answers `block-stale`.
-2. Checks the query is declared there and its source registered.
-3. Validates the input values with `uiValidatedState` and evaluates the arguments with `uiQueryArguments(block, name, input, limits?, queries?)`, against the stored definition, never against the client's. `queries` holds the newest fresh reading of each query of the block, so a value picked from options a query read passes; a choice passes the readings its `reads` name.
+1. Finds the stored, completed block at that `revision`, or answers `block-stale`.
+2. Checks the query is declared and its source registered.
+3. Validates the inputs with `uiValidatedState` and evaluates the arguments with `uiQueryArguments(block, name, input, limits?, queries?)` against the stored block. `queries` holds the newest fresh reading of each query, so a value picked from options a query read passes.
 4. Parses the arguments with the source's schema and authorizes them with the captured access.
-5. Answers from the cache if the same arguments were read in the last ten seconds, or reads.
+5. Answers from the cache within ten seconds of the same read, or reads.
 
-`uiValidatedState(block, input, queries?, limits?)` accepts only values of declared inputs that a person could have set on screen; see [Choices](/intelligent-ui/host/choices#what-a-person-could-have-set). `uiQueryArguments` throws a `UiFailure` (`invalid_query`, `refused_binding`, `invalid_value`) for anything else.
+`uiValidatedState(block, input, queries?, limits?)` accepts only values a person could have set on screen; see [choices](/intelligent-ui/host/choices#what-a-person-could-have-set). `uiQueryArguments` throws a `UiFailure` (`invalid_query`, `refused_binding`, `invalid_value`) for anything else.
 
 A reading is a `ChatUiQueryReading`: `state` (`fresh`, `failed` or `refused`), the `value` and a `readId` when fresh, `readAt`, and for a failure a `reason` with a stable `code`.
 
 ## Limits
 
-`UI_HOST_LIMITS` holds what a host reads per block. The agents host adds bounds of its own.
+`UI_HOST_LIMITS` bounds the host reads per block. The agents host adds its own.
 
 | Limit                         | Value  | Where                                     |
 | ----------------------------- | ------ | ----------------------------------------- |
@@ -82,17 +82,17 @@ A reading is a `ChatUiQueryReading`: `state` (`fresh`, `failed` or `refused`), t
 | Result size                   | 64 KB  | The agents host                           |
 | Captured access               | 32 KB  | The agents host                           |
 
-A timed-out source keeps its slot until its work actually ends. The backend never reads on a clock of its own: only a visible block asks.
+The backend reads only when a visible block asks.
 
 ## Freshness
 
-When a reply is final, the backend reads every query of every block once and freezes those first readings, the link resolutions and a text fallback in the item's `uiQueries`. A page draws the frozen readings at once, and a client that cannot read live still has them. `uiQueryFallback(block, values)` builds that text from the block evaluated with the first values, so the agent's own history keeps what the person saw.
+When a reply is final, the backend reads every query once and freezes those first readings, the link resolutions and a text fallback in the item's `uiQueries`. A page draws them at once, and a client that cannot read live still has them. `uiQueryFallback(block, values)` builds the fallback text from those first values, so the agent's history keeps what the person saw.
 
-The page reads again while a block is visible and the app is in front: at most every ten seconds, and once more when an input rested for 300 ms. A failed read keeps the last successful value, muted. Choices of a block stay closed while it reads, and send the read ids of the values on screen; see [Choices](/intelligent-ui/host/choices#live-blocks).
+The page reads again while a block is visible and the app is in front: at most every ten seconds, and once more after an input rests for 300 ms. A failed read keeps the last value, muted. Choices stay closed while a block reads, and send the read ids of the values on screen; see [choices](/intelligent-ui/host/choices#live-blocks).
 
 ## Reason codes
 
-A failed or refused reading, a plain link and a refused choice carry a `code` that stays the same across versions, beside a `reason` in words. A client words a code it knows itself and shows the reason for one it does not. `uiReasonText` in [agents-react](/agents-react/chat/intelligent-ui#words-and-accessibility) does this.
+A failed or refused reading, a plain link and a refused choice carry a stable `code` and a `reason` in words. A client words the codes it knows and shows the reason for others. `uiReasonText` in [agents-react](/agents-react/chat/intelligent-ui#words-and-accessibility) does this.
 
 | Code                  | Meaning                                                          |
 | --------------------- | ---------------------------------------------------------------- |
@@ -111,9 +111,9 @@ A failed or refused reading, a plain link and a refused choice carry a `code` th
 | `link-unchecked`      | The link has to be checked again                                 |
 | `unreadable`          | The page could not reach the backend                             |
 
-Any other error your `authorize`, `read`, `link` or `place` throws carries a fixed reason (`This query could not be read.`, for a place `The place could not be looked up.`) and no message of its own: the reason is frozen into the record every client reads, so only a `ChatUiRefusal` chooses its words.
+Any other error thrown by `authorize`, `read`, `link` or `place` gets a fixed reason (`This query could not be read.`, or `The place could not be looked up.`), because the reason is frozen into the record. Only a `ChatUiRefusal` chooses its words.
 
-A host may also refuse with one of the codes that `uiReasonText` words without being in this table:
+`uiReasonText` also words these host codes:
 
 | Code                 | Meaning                                                      |
 | -------------------- | ------------------------------------------------------------ |
@@ -123,7 +123,7 @@ A host may also refuse with one of the codes that `uiReasonText` words without b
 
 ## Places
 
-A `Place` can give an address instead of coordinates. A host that registers `ChatUiHost.place` has each such address looked up once, when the reply settles, and the point is frozen beside the block in `uiQueries.blocks[id].places`, by node id. Every client then draws the same point, also months later, and a reader of the fallback finds the coordinates in its `Places:` line.
+A `Place` can give an address instead of coordinates. With `ChatUiHost.place`, the host looks each address up once when the reply settles and freezes the point in `uiQueries.blocks[id].places`, by node id. Every client draws the same point, and the fallback's `Places:` line carries the coordinates.
 
 ```ts
 import { uiPlaceQueries } from '@adecore/intelligent-ui/places';
@@ -139,8 +139,8 @@ const intelligentUi: ChatUiHost = {
 };
 ```
 
-`uiPlaceQueries(block, input?, queries?)` gives the complete Places with an address, also one that has coordinates too, as `{ [nodeId]: { address, name } }`; the host itself calls `place` for at most `UI_HOST_LIMITS.places` (50) of them, one after the other. `uiMayReferenceHost` is true for text with a `<Place` that has `address=`, so the daemon looks at such a reply.
+`uiPlaceQueries(block, input?, queries?)` returns the complete Places with an address as `{ [nodeId]: { address, name } }`. The host calls `place` for at most `UI_HOST_LIMITS.places` (50) of them. `uiMayReferenceHost` is true for text with a `<Place` that has `address=`.
 
-A reading is `found` with `lat`, `lon` and an optional `label`, or `missing` with an optional `code` and `reason`, and always names the trimmed `address` it was made for. The daemon sets `address`; your `place` returns the rest. A reader uses a reading only for a node whose current address is that one, so a reordered `Each` or an address that came from state never borrows another point. A frozen block whose readings were too large to keep stays in the record with none, and its places read as not found. Lookups run four at a time. One that throws, takes longer than five seconds or answers something the schema refuses is frozen as `missing` with the reason, and nothing looks again. A block has fifteen seconds for all of its lookups: past that, and after three timeouts in a row, the places left are frozen as `missing` with the code `timed-out` without being asked, and the `signal` of a lookup under way aborts. It also aborts when the chat ends, and nothing is asked once the reply or the block is gone. A machine that was offline or signed out when the reply settled keeps `missing` for that reply. A host without `place` freezes nothing, and the renderers draw such a place as not on the map. The write is dropped when the block changed while the lookups ran.
+Your `place` returns `found` with `lat`, `lon` and an optional `label`, or `missing` with an optional `code` and `reason`; the host adds the trimmed `address`. A reading applies only to a node whose current address matches. A lookup that throws, takes over five seconds or fails the schema is frozen as `missing` and never retried. A block has fifteen seconds for all its lookups; the rest freeze as `missing` with `timed-out`, and `signal` aborts. A reply settled while offline keeps `missing`.
 
-A frozen reading is the host's to keep or drop: a host that may not store coordinates leaves `place` out, and a map then draws only the places the agent gave coordinates for.
+Without `place`, nothing is frozen and a map draws only the places the agent gave coordinates for. Leave it out if the host may not store coordinates.

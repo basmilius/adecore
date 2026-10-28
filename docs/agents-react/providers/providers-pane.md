@@ -1,6 +1,6 @@
 # ProvidersPane
 
-The agent CLIs of a host and the accounts they sign in with: a list on the left, the picked CLI or account on the right. It is a settings pane, made to sit in the `SettingsDialog` of `@adecore/ui`, and it reads the host from the scope it is rendered in.
+A settings pane for the agent CLIs of a host and their accounts: a list on the left, the picked CLI or account on the right. It sits in the `SettingsDialog` of `@adecore/ui` and reads the host from its scope.
 
 ```tsx
 import { ProvidersPane } from '@adecore/agents-react/providers';
@@ -8,31 +8,31 @@ import { ProvidersPane } from '@adecore/agents-react/providers';
 
 <Demo src="agents/providers-pane" />
 
-The list puts the providers in three groups, and leaves out a group without any:
+The list has three groups, each shown only when it has providers:
 
-- Ready: an installed CLI with at least one account that is signed in (or still being checked), or a provider without accounts to read.
-- Needs setup: a provider your app says is not set up through `setupStatusOf`, or a CLI whose accounts are all signed out, failing or turned off. The row says why in a word or two.
+- Ready: an installed CLI with a signed-in account, or a provider without accounts.
+- Needs setup: a provider `setupStatusOf` flags, or a CLI whose accounts are all signed out, failing or off.
 - Not installed: a CLI the host reports with `installed: false`. Picking it opens its install page.
 
-A provider with one account shows that account's plan on its right. With more than one, the accounts sit under the provider, each with its plan, and the default one wears a Default pill. Picking a provider opens its detail with its version, what it can do, the model and options a new chat of it starts with, and its accounts. An account shows its state as the CLI reported it, its name, color, folder and environment variables, a way to sign in and a way to remove it. The plus beside a provider, shown on hover, adds an account: in a folder the host makes, or under Advanced in one that exists.
+With several accounts, they sit under the provider with their plans, and the default one has a Default pill. A provider's detail shows its version, abilities, new-chat defaults and accounts. An account shows its state, name, color, folder and environment variables. The plus beside a provider adds an account, in a new folder or, under Advanced, an existing one.
 
-The pane needs the scope's accounts, so run `watchProviderAccounts(scopeId, transport)` for the scope; see [Getting started](/agents-react/guide/getting-started#a-scope). Signing in runs the CLI's own login through the host's `openLogin`; without one there is no button. A CLI whose provider has a `home` without a `loginCommand` signs in from its first chat: it still gets the plus, its new account gets a folder of its own, and the account says that the chat asks for the login instead of offering a terminal. The host checks every save itself and refuses what it does not allow, such as a variable it reserves.
+Run `watchProviderAccounts(scopeId, transport)` for the scope; see [Getting started](/agents-react/guide/getting-started#a-scope). Sign in runs the CLI's login through the host's `openLogin`; without it there is no button. A provider with a `home` but no `loginCommand` signs in from its first chat instead. The host checks every save and may refuse it, such as a reserved variable.
 
 ## Props
 
 | Prop            | Type                                                      |                                                                                                                                             |
 | --------------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `target`        | `string \| null`                                          | The `searchId` of a settings search result; the pane opens on its CLI. `providers.install.<kind>` opens on a CLI's install page; see below. |
+| `target`        | `string \| null`                                          | The `searchId` of a settings search result; the pane opens on its CLI. `providers.install.<kind>` opens a CLI's install page. |
 | `detailOf`      | `(provider: ProviderInfo) => ReactNode \| null`           | A detail of your own for a CLI; `null` draws the usual one.                                                                                 |
-| `defaults`      | `boolean`                                                 | Shows what a new chat starts with. `true` by default; pass `false` when your app decides that elsewhere.                                    |
-| `installStepOf` | `(provider: ProviderInfo) => ProviderInstallStep \| null` | A step of your own on a CLI's install page, after its install; `null` adds none.                                                            |
-| `setupStatusOf` | `(provider: ProviderInfo) => ProviderSetupStatus \| null` | Puts a provider under Needs setup with a few words, such as one turned off in its own detail; `null` leaves it to its accounts.              |
-| `sectionsOf`    | `(provider: ProviderInfo) => ReactNode \| null`           | Sections of your own under a CLI's usual detail, such as its version and an update; `null` adds none.                                       |
-| `addPage`       | `(added: (kind: AgentKind) => void) => ReactNode`         | A page of your own to add a provider from, such as a catalog; the list ends in an Add provider row that opens it. See below.                 |
+| `defaults`      | `boolean`                                                 | Shows what a new chat starts with. `true` by default.                                                       |
+| `installStepOf` | `(provider: ProviderInfo) => ProviderInstallStep \| null` | A step of your own on a CLI's install page, after its install.                                                     |
+| `setupStatusOf` | `(provider: ProviderInfo) => ProviderSetupStatus \| null` | Puts a provider under Needs setup; `null` leaves it to its accounts.                                       |
+| `sectionsOf`    | `(provider: ProviderInfo) => ReactNode \| null`           | Sections of your own under a CLI's usual detail, such as an update.                                        |
+| `addPage`       | `(added: (kind: AgentKind) => void) => ReactNode`         | A page of your own to add a provider from, opened by an Add provider row.                                   |
 
 ## Setup status
 
-A provider that never runs in a terminal has no CLI to sign in to, so its accounts cannot say whether it is ready. Your app knows: hand back a `ProviderSetupStatus`, its `text` and a `tone` of `muted` or `warning`, while the provider cannot be used yet. The words come before whatever its accounts say. Without the hook, a CLI whose accounts all fail says so itself, as "Signed out" or "Check failed".
+A provider without a CLI login cannot report readiness through its accounts. Return a `ProviderSetupStatus` (`text` and a `tone` of `muted` or `warning`) while it cannot be used yet.
 
 ```tsx
 <ProvidersPane setupStatusOf={(provider) => (provider.kind === 'example' && !example.enabled ? { text: 'Off', tone: 'muted' } : null)} />
@@ -40,19 +40,19 @@ A provider that never runs in a terminal has no CLI to sign in to, so its accoun
 
 ## Install page
 
-A CLI the host reports with `installed: false` and an `install` field (see [Providers](/agent-contracts/providers-and-accounts#providers)) gets a page of numbered steps: install the CLI, sign in, start working. The current step is outlined in the accent, a step that is done has a check, and a later one is muted.
+A CLI reported with `installed: false` and an `install` field (see [Providers](/agent-contracts/providers-and-accounts#providers)) gets numbered steps: install, sign in, start working.
 
-The first step offers a command per system the provider lists and opens on the system of the scope's machine, from the host's `useMachinePlatform`, or the page's when the host does not say. Each command has a Copy button. A "Run in a terminal" button is there only when the host has `runProviderCommand`, and the install guide only when the provider has a `guideUrl`. The sign-in step names each of the provider's `signIn` ways; after a key in the environment it adds the host's `providerKeyNote`, if any. See [the host](/agents-react/guide/host).
+The install step lists a command per system, opening on the scope machine's system from the host's `useMachinePlatform`. Each command has Copy. "Run in a terminal" needs the host's `runProviderCommand`, and the install guide link needs a `guideUrl`. The sign-in step names the provider's `signIn` ways and adds the host's `providerKeyNote` after an environment key. See [the host](/agents-react/guide/host).
 
-The page says the CLI was not found yet and that it is checked again when the person comes back. Checking again is the host's: report the provider anew and the page follows, with the version in the header and the first step done. Once the CLI is installed, signed in and any step of your own is done, the pane shows the CLI's usual detail. A host that sends no `install` gets a short note in place of the steps.
+Report the provider anew once installed and the page follows. When every step is done, the pane shows the usual detail. Without `install`, a short note replaces the steps.
 
-To send a person straight to that page, from a note that a CLI is missing for example, pass `target="providers.install.<kind>"` with the provider's `kind`. The pane opens on the install page, the same one picking the CLI under "Not installed" opens. A CLI that is already installed opens on its usual detail instead, and one the host has not reported yet is taken as missing.
+`target="providers.install.<kind>"` opens the install page directly. An installed CLI opens on its detail instead.
 
 ```tsx
 <ProvidersPane target="providers.install.example" />
 ```
 
-A CLI whose chat needs more than the CLI, such as a server your app installs beside it, gets that as a step of its own through `installStepOf`. Hand back a `ProviderInstallStep`: its `title`, whether it is `done`, and the `body` you draw under the title. The page numbers it, places it after the install and holds sign-in back until it is done.
+A CLI that needs more, such as a server your app installs beside it, gets an extra step through `installStepOf`. Return a `ProviderInstallStep` with a `title`, `done` and a `body`. Sign-in waits until it is done.
 
 ```tsx
 <ProvidersPane
@@ -62,17 +62,15 @@ A CLI whose chat needs more than the CLI, such as a server your app installs bes
 
 ## Adding a provider
 
-A host that can put a new provider on its machine, from a catalog for example, draws that page itself through `addPage`. The list then ends in an Add provider row, and `target="providers.add"` opens on the page. Call `added(kind)` once the provider is there, after the host reported it anew, and the pane picks it.
+`addPage` draws your own page to add a provider, such as a catalog. The list ends in an Add provider row, and `target="providers.add"` opens the page. Call `added(kind)` after the host reported the new provider, and the pane picks it.
 
 ```tsx
 <ProvidersPane addPage={(added) => <Catalog onInstalled={added} />} />
 ```
 
-`sectionsOf` adds sections under a CLI's usual detail without replacing it, such as the version installed and an update offered the way the CLI was installed.
-
 ## In the settings dialog
 
-`settingsSection(section, Pane)` makes the entry the dialog takes, with the words read when the dialog draws. `PROVIDERS_SECTION` is this pane's section and `USAGE_SECTION` the one of [`UsagePane`](/agents-react/usage/usage-page#usagepane).
+`settingsSection(section, Pane)` makes the dialog's entry. `PROVIDERS_SECTION` is this pane's section and `USAGE_SECTION` the one of [`UsagePane`](/agents-react/usage/usage-page#usagepane).
 
 ```tsx
 import { SettingsDialog, useSettingsTarget } from '@adecore/ui/settings';
@@ -90,6 +88,6 @@ Keep the pane component the same between renders, or its forms start over.
 
 ## Parts and actions
 
-The detail and its forms are internal to the package. Saving the accounts sends the whole map and shows a toast through the chat host's `notify` when the host of chats refused. Adding an account asks the host for one in a folder it makes, or links a folder that exists. Removing one forgets the account and leaves its folder; a new chat that was to use it goes back to the CLI's default account.
+The detail and its forms are internal. A refused save shows a toast through the host's `notify`. Removing an account keeps its folder; new chats fall back to the CLI's default account.
 
-`accountsOfKind` and `accountStatusLine` read the accounts of a CLI for a list of your own. `providerAbilities(provider)` says in words where a CLI opens and whether it reports its status.
+`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.

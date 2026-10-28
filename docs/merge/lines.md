@@ -1,6 +1,6 @@
 # Lines and diffs
 
-The line diff and merge functions work on arrays of lines. A line holds no line ending; the endings and whether the file ends on one are kept apart in a `TextShape`, and put back when the lines are joined.
+The diff and merge functions work on arrays of lines without line endings. A `TextShape` keeps the endings apart and puts them back on join.
 
 ```ts
 import { diffLines, joinLines, shapeOf, splitLines } from '@adecore/merge';
@@ -15,13 +15,11 @@ import type { Change, TextShape } from '@adecore/merge';
 | `shapeOf(text)`           | The `TextShape` of `text`: `{ eol: '\n' \| '\r\n', finalNewline: boolean }`. `eol` is CRLF when the first LF has a CR before it. `''` counts as ending on a newline. |
 | `joinLines(lines, shape)` | The lines joined with `shape.eol`, plus one at the end when `shape.finalNewline` is set. `[]` gives `''`.                                                            |
 
-Take the shape before you split, and pick which version owns it: `shapeOf(ours)` keeps the file as it is on disk. A file that mixes LF and CRLF comes back with one kind only, and a change that only touches line endings is invisible to the diff. An app that has to keep mixed endings or the original encoding needs its own representation around these functions.
+Take the shape before you split, from the version that owns it: `shapeOf(ours)` keeps the file as it is on disk. Mixed LF and CRLF come back as one kind, and the diff does not see a change to line endings only.
 
 ## diffLines
 
-`diffLines(base, other)` returns where `other` differs from `base`, as `Change[]` in reading order. A `Change` is `{ baseStart, baseEnd, otherStart, otherEnd }`: the lines it replaces in `base` and the lines that replace them in `other`, counted from zero, `end` exclusive. An insert has an empty base range, a delete an empty other range.
-
-Every range points into the original arrays, so applying the changes needs no shifting:
+`diffLines(base, other)` returns `Change[]` in reading order. A `Change` is `{ baseStart, baseEnd, otherStart, otherEnd }`, zero-based with exclusive ends. An insert has an empty base range, a delete an empty other range. Every range points into the original arrays, so applying the changes needs no shifting:
 
 ```ts
 const base = ['first', 'old', 'last'];
@@ -36,13 +34,13 @@ for (const change of diffLines(base, other)) {
 rebuilt.push(...base.slice(cursor));
 ```
 
-Here `diffLines` returns one change, `{ baseStart: 1, baseEnd: 2, otherStart: 1, otherEnd: 3 }`. Edits that follow each other with no equal line between them come back as one change.
+Here `diffLines` returns one change, `{ baseStart: 1, baseEnd: 2, otherStart: 1, otherEnd: 3 }`. Adjacent edits come back as one change.
 
 ## Patch snapshots
 
-`missingSides(patch)` reads a single file patch's header and returns `{ old, new }`, marking a side missing when its filename is `/dev/null`. Headers are read only before the first hunk, so deleted content that resembles a header cannot change the result. A patch with no file headers has neither side marked missing.
+`missingSides(patch)` reads a single-file patch header and returns `{ old, new }`. A side is missing when its filename is `/dev/null`. Without file headers, neither side is missing.
 
-`patchFits(patch, oldText, newText, ignoreWhitespace)` checks that every displayed context, removed and added line occurs at its hunk coordinates in the corresponding snapshot. It returns `false` without a hunk or when any displayed line differs. Set `ignoreWhitespace` for a patch made with Git's `--ignore-all-space`: a context line can carry either side's spacing even though the snapshots keep their own text.
+`patchFits(patch, oldText, newText, ignoreWhitespace)` checks that every displayed line of every hunk occurs at its coordinates in the matching snapshot. It returns `false` without a hunk or on any mismatch. Set `ignoreWhitespace` for a patch made with Git's `--ignore-all-space`.
 
 ```ts
 import { missingSides, patchFits } from '@adecore/merge';
@@ -52,15 +50,13 @@ missingSides(patch); // { old: false, new: false }
 patchFits(patch, 'old\n', 'new\n', false); // true
 ```
 
-These helpers preserve patch text rather than normalizing its line endings. Git shows a CRLF file's carriage returns in the hunk body. The `\ No newline at end of file` marker carries no source line and does not advance either snapshot position. Changes outside the displayed hunks are not checked.
-
-`patchFits` is a snapshot alignment check for ordinary single-file unified hunks, not a complete patch validator. It does not validate hunk counts, the final newline markers or combined/multi-file patch syntax. Do not use it to authorize applying an untrusted patch.
+`patchFits` checks the displayed lines of single-file unified hunks only. It skips hunk counts, newline markers and multi-file syntax, so never use it to authorize applying an untrusted patch.
 
 ## Parsed patches and diff rows
 
-`parseHunkHeader(line)` reads one `@@ -a,b +c,d @@ section` line into a `HunkHeader` with one-based starts and a count that is one when omitted, or returns `undefined`. `parsePatch(patch)` reads one file's unified patch into a `ParsedPatch`. File headers are optional. Each `Hunk` holds zero-based `oldStart` and `newStart` positions, counts, section text and `PatchLine` entries (`context`, `delete` or `insert`). A zero-count range is an insertion anchor. The parser retains carriage returns in source text and attaches `noNewline: true` to the line before a final newline marker.
+`parseHunkHeader(line)` reads one `@@ -a,b +c,d @@ section` line into a `HunkHeader` (one-based starts, a count of one when omitted), or returns `undefined`. `parsePatch(patch)` reads one file's unified patch into a `ParsedPatch`, with or without file headers. Each `Hunk` has zero-based `oldStart` and `newStart`, counts, section text and `PatchLine` entries (`context`, `delete` or `insert`). Carriage returns stay in the text. The line before a `\ No newline at end of file` marker gets `noNewline: true`.
 
-The parser preserves recognized lines when a hunk is truncated or malformed and sets `partial: true`. It also marks overlapping hunks and multi-file patches partial. It never throws for malformed patch text. An empty context line may omit its space prefix. It does not parse combined diffs, binary patches, rename metadata or quoted paths.
+`parsePatch` never throws. A truncated or malformed hunk, overlapping hunks or a multi-file patch set `partial: true`, and the recognized lines stay. Combined diffs, binary patches, rename metadata and quoted paths are not supported.
 
 ```ts
 import { diffDocument, diffRows, parsePatch } from '@adecore/merge';
@@ -70,21 +66,19 @@ const document = diffDocument(parsed, { old: 'old\n', new: 'new\n' });
 const rows = diffRows(document, 'split');
 ```
 
-`diffDocument(parsed, contents, ignoreWhitespace = false)` returns a `DiffDocument`. With valid snapshots it keeps every line from both files and their `TextShape`. Verification covers hunk counts, displayed text, final newline markers and unchanged gaps. With `ignoreWhitespace`, every column still reads its own snapshot text, including context that has different spacing on each side.
+`diffDocument(parsed, contents, ignoreWhitespace = false)` returns a `DiffDocument`. When the snapshots match the patch, it holds every line of both files and their `TextShape`. With `ignoreWhitespace`, each side still shows its own spacing.
 
-When snapshots are absent or fail verification, the document contains compact arrays of recognized patch lines, sets `snapshots: false` and `partial: true`, and prevents unfolding. Each hunk has an entry in `offsets` identifying the start of its lines in the two arrays. A `DiffLineRef` separates the zero-based array `index` from the one-based original line `number`; these differ in a compact document. Consumers must use `index` to read text and `number` for the gutter.
+When snapshots are absent or do not match, the document holds only the patch lines, sets `snapshots: false` and `partial: true`, and its gaps cannot unfold. `offsets` gives where each hunk starts in the two arrays. A `DiffLineRef` has a zero-based array `index` and a one-based line `number`. Read text through `index` and label the gutter with `number`.
 
-`diffRows(document, layout, unfolded?)` returns `DiffRow` entries in reading order. A `DiffLineRow` points at either or both sides and carries a `context`, `delete`, `insert` or `pair` change. Unified rows preserve patch order; split rows pair removals and additions in each changed block, leaving excess lines on their own. The optional `hunk` identifies the source hunk. A `noNewline` value identifies `old`, `new` or `both` sides.
+`diffRows(document, layout, unfolded?)` returns `DiffRow` entries in reading order. A `DiffLineRow` points at one or both sides with a `context`, `delete`, `insert` or `pair` change, an optional `hunk` and a `noNewline` of `old`, `new` or `both`. Unified rows keep patch order. Split rows pair removals with additions in each changed block.
 
-A `DiffGapRow` describes omitted lines with zero-based starts and separate counts for both sides. It has a stable `id` equal to the following hunk index, or the hunk count for the trailing gap. `unfoldable` is true only when verified snapshots contain that context.
+A `DiffGapRow` stands for omitted lines, with zero-based starts and a count per side. Its `id` is the index of the next hunk, or the hunk count for the trailing gap. `unfoldable` is true only when verified snapshots hold that context. To unfold, pass `unfolded` as a `ReadonlyMap<number, number>` from gap id to the lines to reveal at each edge next to a hunk. `Infinity` reveals the whole gap.
 
-Pass a `ReadonlyMap<number, number>` as `unfolded` to expose lines beside hunks. The value is the number of lines to reveal at each edge adjoining a hunk; an interior gap reveals both edges. Values are cumulative, rounded down and clamped. `Infinity` reveals the entire gap. Exposed context rows retain side-specific text and final newline markers. A partially unfolded gap keeps its original id.
-
-The document and rows describe a view; they do not authorize applying a patch. Keep the original `ParsedPatch.text` available for a raw patch view when `partial` is set. Without snapshots, syntax highlighting must reset at each hunk because omitted context can change the grammar state.
+The document and rows describe a view and do not authorize applying a patch. When `partial` is set, keep `ParsedPatch.text` for a raw view. Without snapshots, reset syntax highlighting at each hunk.
 
 ## Computed patches and word changes
 
-`patchOf(oldText, newText, context = 3, options?)` returns a `ParsedPatch` for two complete texts. It uses the same Myers walk as `diffLines`, merges changes whose context overlaps or touches, and retains raw CRLF data and final newline markers in the serialized `text`. It moves a repeated blank from the end of a pure insertion or deletion to its beginning, so an added or removed function includes its leading separator. This alignment applies only to computed patches; `parsePatch` keeps a supplied patch's hunk boundaries.
+`patchOf(oldText, newText, context = 3, options?)` returns a `ParsedPatch` for two complete texts. Hunks whose context touches merge. A repeated blank line at the end of a pure insertion or deletion moves to its start, so an added function includes its leading separator.
 
 ```ts
 import { diffDocument, diffRows, patchOf, wordChanges } from '@adecore/merge';
@@ -96,19 +90,15 @@ const rows = diffRows(document, 'split');
 const words = wordChanges(document.sides.old[0]!, document.sides.new[0]!);
 ```
 
-An unchanged pair yields no hunks and empty patch text. An empty text is a file with zero lines; it does not imply a missing filename, so both `missing` fields stay false. Context must be a nonnegative safe integer; invalid values throw `RangeError`. A computed hunk containing a changed block larger than 4000 lines has `coarse: true`, allowing a renderer to skip word pairing for that block.
+An unchanged pair yields no hunks. An invalid `context` throws `RangeError`. A hunk whose changed block spans more than 4000 lines has `coarse: true`, so a renderer can skip word pairing. To bound the work on large input, pass `{ maxWork: 2_000_000 }` as the fourth argument. Past the limit, the unmatched middle becomes one `coarse` replacement hunk.
 
-Pass `{ maxWork: 2_000_000 }` as the fourth argument to bound Myers work. `maxWork` must be a nonnegative safe integer. Each diagonal visit and line comparison in the walk counts as one unit; half the limit is reserved for the replay used to reconstruct the path. Once exhausted, the unmatched middle becomes one replacement hunk with `coarse: true`, including small replacements. Prefix and suffix scans, text splitting and patch serialization are linear work outside this counter; bound source size separately. Pure additions, deletions and identical texts do not need a walk. Omitting the option preserves the existing output. The two-argument `diffLines` keeps its existing behavior.
-
-`wordChanges(oldLine, newLine)` returns `{ old, new }` arrays of `DiffWordRange` entries. `from` and `to` are UTF-16 offsets with an exclusive end. Word segmentation retains combining characters and emoji sequences. Whitespace changes are included. Unchanged sides have no ranges. The function returns `null` above 20,000 combined UTF-16 code units or 2000 combined segments, bounding the work for long or minified lines.
+`wordChanges(oldLine, newLine)` returns `{ old, new }` arrays of `DiffWordRange` entries, with `from` and `to` as UTF-16 offsets, end exclusive. Whitespace changes count. It returns `null` for very long lines, so fall back to line highlighting.
 
 ## Unified display documents
 
-`diffDisplay(document, unfolded?)` turns unified diff rows into selectable text and a source map. `DiffDisplay.lines` and `rows` have one entry per display line; `text` joins those lines with LF. Removed lines are real text, so an editor can select, search, wrap and copy them alongside added lines. Context reads the new side, including its own whitespace when snapshots were verified with `ignoreWhitespace`.
+`diffDisplay(document, unfolded?)` turns unified rows into editor text and a source map. `DiffDisplay.lines` and `rows` have one entry per display line, and `text` joins the lines with LF. Removed lines are real text, so an editor can select, search and copy them. Context shows the new side.
 
-Each `DiffDisplayGap` has the original gap `row` and a zero-based `before` position outside the selectable text. A position equal to the display line count means a trailing gap. The host can render gaps as widgets and regenerate the display when one unfolds. Source indices and numbers in `rows` still refer to the original old and new sides, not to display positions. Final newline flags stay on those rows and never become copied status text.
-
-An empty display has no source rows, even though a mounted text editor may draw its own empty line. One changed blank source line instead has a single row with empty text. The host can distinguish them through `rows.length` and suppress a synthetic gutter label.
+Each `DiffDisplayGap` has its gap `row` and a zero-based `before` position outside the text. A position equal to the line count marks a trailing gap. Draw gaps as widgets and rebuild the display when one unfolds. `rows` point at source lines, not display positions. An empty display has no rows, while one changed blank line has one row with empty text.
 
 ```ts
 import { diffDisplay, diffDocument, patchOf } from '@adecore/merge';
@@ -119,8 +109,10 @@ const display = diffDisplay(document);
 // display.text is 'oldName\nnewName'; each row names its source side.
 ```
 
+## Split display documents
+
+`diffSplit(document, unfolded)` returns a `DiffSplit` for two synchronized editors: old and new `DiffDisplay` documents and aligned `DiffSplitRow` entries. A line entry holds a zero-based display index per side and its `DiffLineRow`. A gap entry holds its `DiffGapRow`. Each side has its own text, numbers and no-newline markers, with no placeholder lines.
+
 ## Limits
 
-The diff strips the lines both versions start and end with, then runs Myers' algorithm on the middle, which finds the shortest list of inserts and deletes. It gives up when that list would pass 4000 edits and answers the whole middle as one change instead. The result still rebuilds `other` exactly, but a three-way merge then shows the middle as one large conflict. The limit counts edits, not lines, and it cannot be configured.
-
-The walk keeps one state in 64 and walks the rounds between them again on the way back, so its memory stays bounded at that limit. It has no cancellation and no progress; the call returns when it is done.
+Past 4000 edits, `diffLines` returns the whole changed middle as one change. The result still rebuilds `other`, but a three-way merge then shows that middle as one large conflict. The limit is fixed, and the call has no cancellation.

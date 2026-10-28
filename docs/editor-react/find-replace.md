@@ -14,8 +14,6 @@ A find and replace bar over the [matcher of an editor](/editor/find-folding#find
 | `onClose`   | `() => void` | Escape in the bar; the bar does not hide itself |
 | `className` | `string`     | On the bar                                      |
 
-When the editor reports more matches than it can mark, the count ends with `+`, for example `1 / 10,000+`. Replace all still covers every match.
+The bar has case, whole word and regular expression toggles, search in selection, a match count, previous and next, and a replace row with preserve case, replace and replace all. Enter goes to the next match, Shift+Enter to the previous. An invalid regular expression shows an error. Past the editor's mark limit the count ends with `+` (`1 / 10,000+`); replace all still covers every match. Unmounting the bar ends the find.
 
-The bar has case, whole word and regular expression toggles, a search in the selection, the count of matches, previous and next, and a replace row with preserve case, replace and replace all. Enter goes to the next match and Shift+Enter to the previous one. A regular expression that does not parse says so instead of searching. Unmounting the bar ends the find.
-
-Whether the bar shows, and which key opens it, is the app's. The `findNext`, `findPrevious` and `replace` ids of the [key table](/editor/options#keymaps) name keys for that.
+The app decides when the bar shows and which key opens it; the `findNext`, `findPrevious` and `replace` ids of the [key table](/editor/options#keymaps) name keys for that.

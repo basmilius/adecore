@@ -8,7 +8,7 @@ import { useAsyncAction } from '@adecore/ui';
 
 <Demo src="hooks/use-async-action" />
 
-The first press fails, the second goes through. `run(work)` clears the last failure, sets `busy`, awaits the work, and returns whether it went through, so the caller closes a dialog or steps on only on success:
+`run(work)` clears the last failure, sets `busy`, awaits the work, and returns whether it succeeded:
 
 ```tsx
 const step = useAsyncAction();
@@ -20,7 +20,7 @@ async function save(): Promise<void> {
 }
 ```
 
-A rejection becomes `failure`, the error's message through [`messageOf`](/ui/utilities/error-messages). The `fallback` you pass the hook names the step when the rejection is not an `Error`, such as a thrown string.
+A rejection becomes `failure`, through [`messageOf`](/ui/utilities/error-messages). The `fallback` you pass the hook is the message when the rejection is not an `Error`.
 
 ## What it returns
 
@@ -29,7 +29,7 @@ A rejection becomes `failure`, the error's message through [`messageOf`](/ui/uti
 | `busy` | `boolean` | `true` while `run` awaits. |
 | `failure` | `string \| null` | The reason the last run failed. |
 | `run(work)` | `(work: () => Promise<unknown>) => Promise<boolean>` | |
-| `fail(message)` | `(message: string) => void` | A refusal the surface sees for itself, shown in the same line as one that came back. |
+| `fail(message)` | `(message: string) => void` | Sets `failure` from the surface's own check. |
 | `clear()` | `() => void` | |
 
 [`PromptDialog`](/ui/overlays/prompt-dialog) runs its confirm through this hook. `AsyncAction` is an exported type.

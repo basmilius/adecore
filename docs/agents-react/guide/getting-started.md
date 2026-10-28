@@ -18,13 +18,13 @@ pnpm add @adecore/agents-react @adecore/agent-contracts
 
 :::
 
-`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies. CodeMirror, Shiki, `@pierre/diffs`, Zustand, the Markdown renderer and Pele (MIT, loaded only for a diagram) come along. Set up [`@adecore/ui`](/ui/guide/getting-started) first: the views are made of its components and read its theme.
+`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies. Set up [`@adecore/ui`](/ui/guide/getting-started) first, since the views use its components and theme.
 
-The backend stays out of the page. Import `@adecore/agents` in the process that runs the chats, never here.
+Import `@adecore/agents` only in the process that runs the chats, never in the page.
 
 ## CSS
 
-The package ships `theme.css` with the tokens and rules of its own, and builds the rest from Tailwind utilities, so Tailwind 4 has to scan its files. Import it after the theme of `@adecore/ui`, and load the typography plugin, which a reply's Markdown is drawn with:
+Import `theme.css` after the theme of `@adecore/ui`, let Tailwind 4 scan the package, and load the typography plugin for Markdown:
 
 ```css
 @import 'tailwindcss';
@@ -36,15 +36,15 @@ The package ships `theme.css` with the tokens and rules of its own, and builds t
 @source '../node_modules/@adecore/agents-react/dist';
 ```
 
-The `@source` paths are relative to the CSS file. An app that links a checkout and resolves the `source` condition scans `src` instead of `dist`.
+The `@source` paths are relative to the CSS file. With a linked checkout and the `source` condition, scan `src` instead of `dist`.
 
-Tool output, code and diffs take the colors of the terminal when the app imports `terminal.css` of [`@adecore/terminal`](/terminal/), and the colors of the base theme when it does not. The colors of a command's output come from the sixteen `--term-ansi-*` tokens of that file; without it the output keeps one color.
+Import `terminal.css` of [`@adecore/terminal`](/terminal/) to give tool output, code and diffs the terminal's colors, including the `--term-ansi-*` colors of command output. Without it, output keeps one color.
 
 ## Words
 
-Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language, so a bundler splits them per language. To import one namespace by itself, `@adecore/agents-react/locales/<language>/<namespace>` has it as its default export.
+Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
 
-The components read the words through `react-i18next`, but some helpers call the default `i18next` instance directly. Add the words to that instance and pass the same instance to `UIProvider`:
+Some helpers call the default `i18next` instance directly. Add the words to that instance and pass it to `UIProvider`:
 
 ```ts
 import i18next from 'i18next';
@@ -61,7 +61,7 @@ for (const [namespace, words] of Object.entries(await AGENTS_LOCALES.en!())) {
 
 ## The host
 
-Configure where drafts and preferences are kept before anything reads a store: once one was read, it is fixed. See [Persistence](/agents-react/guide/persistence).
+Configure where drafts and preferences are kept before anything reads a store. See [Persistence](/agents-react/guide/persistence).
 
 ```ts
 import { configureChatStorage } from '@adecore/agents-react';
@@ -69,9 +69,9 @@ import { configureChatStorage } from '@adecore/agents-react';
 configureChatStorage({ namespace: 'my-app' });
 ```
 
-A kind of agent your app adds gets its mark the same way, once, with `configureAgentMarks`. See [Agent marks](/agents-react/providers/marks#a-mark-for-a-kind-the-host-adds).
+An agent kind your app adds gets its mark once with `configureAgentMarks`. See [Agent marks](/agents-react/providers/marks#a-mark-for-a-kind-the-host-adds).
 
-A `ChatHostProvider` hands the views what only your app can decide. Keep the object in a constant, since the provider reads it once. Everything you leave out keeps a default that leaves that part out. See [Host adapters](/agents-react/guide/host).
+A `ChatHostProvider` hands the views what only your app can decide. Keep the object in a constant. A field you leave out leaves its part out. See [Host adapters](/agents-react/guide/host).
 
 ```tsx
 import { ChatHostProvider, type ChatHost } from '@adecore/agents-react';
@@ -90,7 +90,7 @@ createRoot(element).render(
 
 ## A scope
 
-A scope is one host of chats: an id, a transport to reach it, and a `ChatClient` that writes what arrives into the stores. Make it once per connection, outside render. With a `FramePort` to the host, such as a `MessagePort` your app hands the page, `portTransport` is the transport:
+A scope is one host of chats: an id, a transport, and a `ChatClient` that writes into the stores. Make it once per connection, outside render. Over a `FramePort`, such as a `MessagePort`, use `portTransport`:
 
 ```ts
 import type { FramePort } from '@adecore/agent-contracts/port';
@@ -116,7 +116,7 @@ export function openScope(id: string, port: MessagePort): ChatScope {
 }
 ```
 
-`keyOf` decides where a chat's row lives in the shared store and `owns` recognizes those keys; two scopes need keys that never overlap. `providerSinkFor` lets the client fill the list of CLIs, and `watchProviderAccounts` keeps their accounts in step and answers the function that stops it. [Chat client and state](/agents-react/guide/chat-client) has the rest, including closing a scope.
+`keyOf` places a chat's row in the shared store and `owns` recognizes those keys; two scopes need keys that never overlap. `providerSinkFor` fills the list of CLIs. `watchProviderAccounts` keeps their accounts current and returns a stop function. [Chat client and state](/agents-react/guide/chat-client) covers the rest, including closing a scope.
 
 ## A first chat
 
@@ -168,4 +168,4 @@ export function ChatView({ scope, chatId, cwd }: { scope: ChatScope; chatId: str
 }
 ```
 
-The thread needs a height: give every flex parent `min-h-0` down to it. A component that reads a chat outside a `ChatScopeContext` throws on purpose, since it has to know which host it reads from.
+Give every flex parent down to the thread `min-h-0`. A component that reads a chat outside a `ChatScopeContext` throws.

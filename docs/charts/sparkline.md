@@ -1,6 +1,6 @@
 # Sparkline
 
-A small chart without axes, for a row of a list or a tile. Its total is in a tooltip, and a screen reader hears the label with the total.
+A small chart without axes, for a list row or a tile. A tooltip shows the total, and a screen reader hears the label with the total.
 
 ```tsx
 import { Sparkline } from '@adecore/charts';
@@ -13,7 +13,7 @@ import { Sparkline } from '@adecore/charts';
 <Sparkline values={tokens} label="Tokens in 14 days" tone="running" format={formatTokens} width={160} />
 ```
 
-`kind="bars"` draws a rounded column per value, 2px apart, as wide as the width allows: 14 values in 82px make columns of 4px. A column is rounded by half its width, and the smallest count is 4px tall, so it reads as a bar rather than a dot, and a zero is a one-pixel baseline in `--border-strong` so a quiet day still shows; `kind="line"` (the default) draws a line, broken by a missing value. It is one tab stop, so the tooltip opens on the keyboard too.
+`kind="bars"` draws a rounded column per value, as wide as the width allows, with a baseline for zero. `kind="line"` (default) draws a line, broken by a missing value. The sparkline is one tab stop, so the tooltip opens from the keyboard too.
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |

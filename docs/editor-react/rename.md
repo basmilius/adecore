@@ -4,17 +4,17 @@
 
 <Demo src="editor/rename" />
 
-`language.rename.start()` opens the rename card over the name at the caret, as Shift+F6 does. When the service declares `prepareProvider`, it asks `textDocument/prepareRename` for the range and the placeholder first; otherwise it takes the word at the caret. The other uses of the name light up while the card is open.
+`language.rename.start()` (Shift+F6) opens the rename card over the name at the caret. With `prepareProvider`, it asks `textDocument/prepareRename` for the range and placeholder; otherwise it takes the word at the caret. Other uses of the name light up while the card is open.
 
-In the card, Enter renames and Shift+Enter first lists the lines the rename changes, grouped by file, with Enter to apply them. Escape, or an edit in the file, cancels. A refusal of the service stays under the input, so the person can try another name. The edit goes through [`applyWorkspaceEdit`](/editor-react/project#workspace-edits), so open files take it as one undo step and other files become drafts. The preview also lists the files the rename makes, moves and deletes, as `Creates`, `Moves` (old path to new path) and `Deletes` rows under the lines. These come from `RenameView.operations`.
+Enter renames. Shift+Enter first previews the changed lines by file, with Enter to apply. Escape or an edit in the file cancels. A refusal from the service stays under the input. The edit goes through [`applyWorkspaceEdit`](/editor-react/project#workspace-edits). The preview also lists `Creates`, `Moves` and `Deletes` rows from `RenameView.operations`.
 
-With `suggestNames` on the [host](/editor-react/project#languagehost), the card shows suggested names. The callback gets the name, its kind when the outline of the file lists it (`function`, `class`), the code around it and a few of its uses, with an `AbortSignal`; which model or rule answers is the app's choice.
+With `suggestNames` on the [host](/editor-react/project#languagehost), the card shows suggested names. The callback gets the name, its kind (`function`, `class`) when known, the surrounding code, a few uses and an `AbortSignal`.
 
 ## Code actions
 
 <Demo src="editor/code-actions" />
 
-`language.codeActions.open()` lists the actions for the caret or selection in a pick list, grouped as quick fixes, rewrites, extractions, inlines, moves, refactorings, source actions and the rest, as Alt+Enter does. A disabled action shows the server's reason. While the caret rests on a line with a fix, a lightbulb stands in the gutter; pressing it opens the same list.
+`language.codeActions.open()` (Alt+Enter) lists the actions for the caret or selection, grouped as quick fixes, rewrites, extractions, inlines, moves, refactorings, source actions and the rest. A disabled action shows the server's reason. A lightbulb in the gutter marks a line with a fix and opens the same list.
 
 | Method                       | What it lists or does                                |
 | ---------------------------- | ---------------------------------------------------- |
@@ -25,13 +25,13 @@ With `suggestNames` on the [host](/editor-react/project#languagehost), the card 
 | `formatDocument()`           | Formats the file with the editor's indentation       |
 | `list(only)`, `apply(entry)` | The entries of some kinds, and one applied           |
 
-The preview of an action notes the other files it edits, and how many files it moves, creates and deletes. Applying resolves the action through `codeAction/resolve` when the server needs that, makes its edit through the project, and runs its command on the server that offered it. A command can ask the app to apply more edits through `workspace/applyEdit`; send those through the same `applyWorkspaceEdit`.
+An action's preview notes the other files it edits, moves, creates and deletes. Applying resolves it through `codeAction/resolve` when needed, applies its edit through the project and runs its command. A command's `workspace/applyEdit` requests go through the same `applyWorkspaceEdit`.
 
 ## Context menu
 
-A right click asks the editor for a context menu, and the editor draws it in groups: a Go to submenu with definition, declaration, type definition and implementation; peek references and call hierarchy; rename symbol, code actions and a submenu of refactorings; then cut, copy and paste, and format document. A row is there where the service supports it, and a group without rows leaves no line behind. Each row shows its key, from the key table or the clipboard's own. A right click outside the selection moves the caret there first.
+A right click opens the context menu: a Go to submenu (definition, declaration, type definition, implementation), peek references and call hierarchy, rename, code actions and a refactorings submenu, then cut, copy, paste and format document. Rows only appear where the service supports them, each with its key. A right click outside the selection moves the caret first.
 
-`contextMenuItems` on `EditorView` or `LanguagePopups` adds a group of the app's own rows between the refactorings and the clipboard rows, with a line on either side. It gets the `EditorLanguage`, so a row can read its document or call a feature:
+`contextMenuItems` on `EditorView` or `LanguagePopups` adds the app's own group between the refactorings and the clipboard rows. It gets the `EditorLanguage`:
 
 ```tsx
 <EditorView

@@ -1,6 +1,6 @@
 # Prompts
 
-The cards a person answers a chat's approvals and questions in. The [composer](/agents-react/chat/composer) draws them itself, in its own place, for its own requests and those of its delegated chats. The parts are exported for a stack of cards somewhere else, such as over a canvas of chats.
+The cards for a chat's approvals and questions. The [composer](/agents-react/chat/composer) draws them for its chat and its delegated chats. The parts are exported for a stack elsewhere, such as over a canvas of chats.
 
 ```tsx
 import { PromptView, usePromptSession } from '@adecore/agents-react/prompts';
@@ -10,19 +10,19 @@ import { PromptView, usePromptSession } from '@adecore/agents-react/prompts';
 
 ## What a person sees
 
-An approval names the tool and what it is about, with the command or the diff it wants to run, and buttons to deny or allow. When the CLI proposed a rule to remember, a third button grants it for good; the keyboard never starts on that one, nor on Allow. A denial can carry a reason when the CLI takes one.
+An approval names the tool and shows the command or diff, with Deny and Allow. When the CLI proposes a rule to remember, a third button grants it for good. The keyboard never starts on Allow or that button. A denial can carry a reason when the CLI takes one.
 
-A question shows its choices, one or several to pick, or a field for a written answer, and pages through several questions before it answers them together. Picking several choices answers them joined by commas. A question the CLI marked `async` can be dismissed.
+A question shows single or multiple choices, or a field for a written answer. Several questions page before they are answered together. Multiple picks are joined by commas. A question marked `async` can be dismissed.
 
-Requests that hold the agent up come first, oldest first, then optional questions. A card being read stays in front when a new request arrives, and a press that started on the card before it never lands on the new one. A refusal leaves the card where it was, with the host's message under it.
+Blocking requests come first, oldest first, then optional questions. A new request never replaces the card being read. A refusal keeps the card, with the host's message under it.
 
-Delegated requests carry a badge with the sub-agent's task. Answers still go to the child chat, including when several children use the same request id. The main composer follows running descendants and their pending requests without opening their conversation panels.
+A delegated request carries a badge with the subagent's task, and its answer goes to the child chat.
 
 ## A stack of your own
 
-`ChatPromptFeed` from `@adecore/agents-react/chat` supplies the same chat subjects to another surface. Construct it with a `ChatScope`, the main chat id and a callback, call `start()`, and call `dispose()` when the surface closes. It shares live child attachments through `ChatClient.observe(chatId)`, whose returned function releases one reader. Observing attaches an existing chat without creating or starting its CLI; the last reader detaches it unless a visible composer still holds it.
+`ChatPromptFeed` from `@adecore/agents-react/chat` feeds the same subjects to another surface. Construct it with a `ChatScope`, the main chat id and a callback, call `start()`, and `dispose()` when the surface closes. It attaches child chats through `ChatClient.observe(chatId)`, which returns a release function.
 
-`usePromptSession` keeps the state of a stack: which subject is in front, a draft per request, sending and the last error. `PromptView` draws one subject. `answerPrompt(subject, action, actions, host)` sends a card's action as the request it is answered with, or to the host's `prompts.answer` for a prompt of your app.
+`usePromptSession` holds a stack's state: the subject in front, a draft per request, sending and the last error. `PromptView` draws one subject. `answerPrompt(subject, action, actions, host)` sends a card's action, or hands it to the host's `prompts.answer` for a prompt of your app.
 
 ```tsx
 import { useChatActions } from '@adecore/agents-react/chat';
@@ -60,11 +60,11 @@ function Stack({ subjects }: { subjects: PromptSubject[] }) {
 }
 ```
 
-A chat's `PromptSubject` is `{ kind: 'chat', nodeId, item }`, where `nodeId` is the chat receiving the answer. Its optional `source: { label, provider? }` identifies the delegated agent and supplies the badge. Use `{ kind: 'host', nodeId, prompt }` for a prompt of your app. Keep both capture handlers on the element around the card: they stop a press from answering a card that took the place of the one it started on. `act` answers `sent`, `failed` or `busy`; it sends one answer at a time and hides an answered card until the host settles it.
+A chat's `PromptSubject` is `{ kind: 'chat', nodeId, item }`, where `nodeId` is the chat that gets the answer. An optional `source: { label, provider? }` names the delegated agent for the badge. A prompt of your app is `{ kind: 'host', nodeId, prompt }`. Keep both capture handlers on the element around the card, so a press never answers a card that replaced the one it started on. `act` returns `sent`, `failed` or `busy`, sends one answer at a time and hides an answered card until the host settles it.
 
 ## Keys
 
-Arrows, Home and End move through the choices and Space picks; Enter on a single choice picks and answers. Mod+Enter is the card's main action and Mod+Shift+Left and Right page through a stack (`PROMPT_SHORTCUTS`). A key typed for something else never answers a card: when a request arrives while a person types, the keyboard goes to its heading. `focusPromptStart` and `useFocusAfterAnswer` are those moves, for a stack of your own.
+Arrows, Home and End move through the choices and Space picks; Enter on a single choice picks and answers. Mod+Enter is the card's main action, and Mod+Shift+Left and Right page through a stack (`PROMPT_SHORTCUTS`). A request that arrives while a person types puts the focus on its heading, not a button. `focusPromptStart` and `useFocusAfterAnswer` do the same for a stack of your own.
 
 ## Prompts of your own
 
@@ -80,8 +80,8 @@ const CHAT_HOST: Partial<ChatHost> = {
 };
 ```
 
-A `HostPrompt` is `{ id, createdAt, blocking, asks, data }`: a stable id, whether it holds anything up, `approval` or `question` for its mark, and whatever your app needs in `data`. Return the same objects from `useExtra` while nothing changed. `PromptCard`, `PromptPrimary` and `ApprovalActions` build a card that looks like the others, and a `choose` action answers with one of your own choices.
+A `HostPrompt` is `{ id, createdAt, blocking, asks, data }`: a stable id, whether it blocks, `approval` or `question` for its mark, and your own `data`. Return the same objects from `useExtra` while nothing changed. `PromptCard`, `PromptPrimary` and `ApprovalActions` build a matching card, and a `choose` action answers with a choice of your own.
 
 ## Parts
 
-`PromptView` is made of `PromptCard` (the frame, with heading, meta, notice and error), the bodies for an approval and a question, and the action rows. `PROMPT_SURFACE` is the surface class of the card for a frame that matches it. The logic in `@adecore/agents-react/prompts` that a stack of your own needs is pure: `emptyPromptDraft` and `orderPrompts`.
+`PromptView` is made of `PromptCard` (the frame with heading, meta, notice and error), the approval and question bodies, and the action rows. `PROMPT_SURFACE` is the card's surface class, for a matching frame. `emptyPromptDraft` and `orderPrompts` are pure helpers for a stack of your own.

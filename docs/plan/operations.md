@@ -17,9 +17,9 @@ if (result.ok) {
 }
 ```
 
-`applyPlanOps(plan, ops, options)` works on a copy. Each operation sees what the ones before it did, and the batch is all or nothing: one refusal and the plan you passed in is returned untouched. A batch that passes raises `rev` by exactly one, so a step marked done and the next one marked active land in the same revision. The result is checked like a loaded plan before it is returned.
+`applyPlanOps(plan, ops, options)` works on a copy. Each operation sees the ones before it. The batch is all or nothing: one refusal leaves your plan untouched. A batch that passes raises `rev` by one.
 
-`options` is a `PlanApplyOptions`: the `actor`, the `now` written into `at`, and an optional `mintId` for new items without an id. A success is a `PlanApplied`, `{ ok: true, plan, minted, dropped }`: `minted` lists the ids made for new items and `dropped` the steps that lost their state because they got their first sub-step.
+`options` is a `PlanApplyOptions`: the `actor`, the `now` written into `at`, and an optional `mintId`. A success is a `PlanApplied`, `{ ok: true, plan, minted, dropped }`. `minted` lists the ids made for new items. `dropped` lists the steps that lost their state when they got their first sub-step.
 
 ## The operations
 
@@ -34,9 +34,9 @@ if (result.ok) {
 | `remove` | `id`                                                                      | Removes an item with everything under it.                                        |
 | `meta`   | Optional `title`, `summary`, `status`, `checks`                           | Changes the plan's meta. An empty summary or status removes it.                  |
 
-`under` names the section or step to put an item in, and `after` the item it follows there. Without either the item goes last at the top; with only `after` it goes right after that item, beside it. A section only stands at the top, a text block not under a step, and nothing moves into itself.
+`under` names the section or step to put an item in, and `after` the item it follows there. Without either the item goes last at the top. With only `after` it goes right after that item. A section only stands at the top, a text block never under a step.
 
-A `set` only takes leaf steps: a parent's state follows from its children. Several active steps at once are fine; `next` does not end the others. When a person sets a step back to `open`, `by` and `at` go away, so a misclick does not leave a mark the agent has to respect. Adding the first sub-step to a step clears its state, as its children now decide it, and lists it in `dropped`.
+A `set` only takes leaf steps. Several steps may be active at once; `next` does not end the others. When a person sets a step back to `open`, `by` and `at` go away, so a misclick leaves no mark the agent has to respect.
 
 `PlanOpSchema` parses any operation and `PlanPersonOpSchema` only the three a person may send.
 
@@ -52,13 +52,15 @@ Who may set a step depends on [its checks](/plan/plans#who-checks-a-step):
 | `agent`  | Not until a person unlocks it | Yes, unless a person set it |
 | `person` | Yes                           | Never                       |
 
-A state a person set belongs to the person. The agent cannot change it, though it may set the same state again, which keeps the person's mark. Nor can the agent remove the step or anything holding it, rename it, or add a sub-step that would take its state away. A step only a person checks keeps its title and its checks and cannot be removed by the agent, even before anyone checked it, and takes only sub-steps a person checks too, since their states would decide its own. `meta.checks` stays `person` while a step still takes its checks from it. Once a person unlocks a step, the agent cannot lock it again. Notes, descriptions and moves stay open to the agent.
+A state a person set belongs to the person. The agent cannot change it, remove the step or anything holding it, rename it, or give it a first sub-step. Setting the same state again is allowed.
 
-`canApply(op, actor, plan)` answers the permission question for one operation without applying it, to grey out a control. Whether the result is a valid plan is only known after `applyPlanOps`. `canDeletePlan(plan, actor)` refuses an agent that would delete a plan holding a state a person set. Deleting a plan is the app's to do.
+A step only a person checks keeps its title and checks, cannot be removed by the agent, and only takes sub-steps a person checks too. `meta.checks` stays `person` while a step still inherits it. The agent cannot lock a step a person unlocked. Notes, descriptions and moves stay open to the agent.
+
+`canApply(op, actor, plan)` checks the permission for one operation without applying it, to disable a control. It does not check that the result is valid. `canDeletePlan(plan, actor)` refuses an agent that would delete a plan holding a state a person set. Deleting a plan is up to the app.
 
 ## Refusals
 
-A refusal is a `PlanRefusal`, `{ ok: false, code, message }`. The message names the item and reads well enough to pass to an agent, which can correct its next batch from it. `PlanVerdict` is a refusal or `{ ok: true }`, and `refuse(code, message)` builds one for the app's own checks.
+A refusal is a `PlanRefusal`, `{ ok: false, code, message }`. The message names the item; pass it to the agent so it can correct its next batch. `PlanVerdict` is a refusal or `{ ok: true }`, and `refuse(code, message)` builds one for the app's own checks.
 
 | `PlanRefusalCode`    | When                                                                       |
 | -------------------- | -------------------------------------------------------------------------- |
@@ -72,15 +74,15 @@ A refusal is a `PlanRefusal`, `{ ok: false, code, message }`. The message names 
 | `plan-parent-state`  | A state was set on, or stored on, a step with sub-steps                    |
 | `plan-bad-position`  | `under` or `after` puts an item where it cannot stand                      |
 | `duplicate-id`       | An id is taken                                                             |
-| `plan-too-deep`      | Steps nest deeper than 5                                                   |
-| `plan-too-large`     | The plan holds more than 300 items                                         |
+| `plan-too-deep`      | Steps nest deeper than `PLAN_LIMITS.depth`                                 |
+| `plan-too-large`     | The plan holds more items than `PLAN_LIMITS.items`                         |
 | `plan-invalid`       | The operations, the draft or the result do not fit the schema              |
 | `plan-not-found`     | Not returned by the package: for an app that looks plans up                |
 | `too-many-plans`     | Not returned by the package: for an app that limits plans per conversation |
 
 ## In a store
 
-Because operations carry no base revision, a store applies each batch to the latest plan inside one transaction, or one queue per plan:
+Operations carry no base revision, so a store applies each batch to the latest plan inside a transaction, or one queue per plan:
 
 ```ts
 import { applyPlanOps, refuse, type PlanApplied, type PlanRefusal } from '@adecore/plan';
@@ -94,4 +96,4 @@ async function update(id: string, ops: PlanOp[], actor: PlanActor): Promise<Plan
 }
 ```
 
-`store` stands for the app's own storage, which saves `result.plan` only when the result is `ok`. Tell the page about the change after the commit, not before. A custom `mintId` may be called for a batch that is refused later, so it must not write anything.
+`store` is the app's storage; it saves `result.plan` only when the result is `ok`. Tell the page after the commit. A custom `mintId` may run for a batch that is refused later, so it must not write anything.

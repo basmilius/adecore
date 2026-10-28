@@ -20,11 +20,11 @@ hero:
 ## Interface
 
 - [UI](/ui/): menus, dialogs, tooltips, fields, toasts, a settings dialog, keyboard shortcuts and formatters, drawn from one theme on Base UI.
-- [Terminal](/terminal/): a terminal pane on xterm.js in the colors of the theme. It fits its container and is fed by the app through a handle.
+- [Terminal](/terminal/): a terminal pane on xterm.js in the colors of the theme, fed by the app through a handle.
 
 ## Desktop
 
-- [Shell](/shell/): the main process of an Electron app whose page draws its own interface. The menu the page builds, an updater it watches, windows that open where they were left and the guards around its bridge.
+- [Shell](/shell/): the main process of an Electron app that draws its own interface. Menus, updates, window state and the guards around its bridge.
 - [Service](/service/): a launchd job on macOS or a systemd user service on Linux, defined once and managed through injected system calls.
 
 ## Agents

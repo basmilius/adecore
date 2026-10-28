@@ -1,6 +1,6 @@
 # @adecore/terminal
 
-A terminal pane on [xterm.js](https://xtermjs.org) that looks like the rest of an `@adecore/ui` interface in both themes. It fits the box it is given, opens links in the output and either takes typing or only shows output. The app feeds it output and reads back what is on screen through a handle, without touching xterm's addons.
+A terminal pane on [xterm.js](https://xtermjs.org) in the theme of `@adecore/ui`. It fits its box, opens links and takes typing or only shows output. The app writes output and reads the screen through a handle.
 
 ```tsx
 import { TerminalView, type TerminalViewHandle } from '@adecore/terminal';
@@ -16,7 +16,7 @@ xterm and its addons are peer dependencies, so the app picks the version:
 bun add @adecore/terminal @xterm/xterm @xterm/addon-fit @xterm/addon-web-links @xterm/addon-webgl
 ```
 
-Import xterm's stylesheet and the package's own after the theme of `@adecore/ui`. The package's stylesheet holds the `--term-*` tokens and the box the terminal sits in; the colors, the selection and the font of the [theme](/ui/guide/theme) apply to the terminal too.
+Import xterm's stylesheet and the package's own after the [theme](/ui/guide/theme) of `@adecore/ui`:
 
 ```css
 @import "tailwindcss";
@@ -27,7 +27,7 @@ Import xterm's stylesheet and the package's own after the theme of `@adecore/ui`
 
 ## Feeding it
 
-The handle is the way in. `write` draws a program's output and `onData` hears what the person types or pastes, so a pty is two lines:
+`write` on the handle draws output, and `onData` reports what the person types or pastes. A pty takes two lines:
 
 ```tsx
 const view = useRef<TerminalViewHandle>(null);
@@ -37,33 +37,33 @@ useEffect(() => session.onOutput((data) => view.current?.write(data)), [session]
 <TerminalView ref={view} label="Shell" onData={(data) => session.write(data)} onResize={(cols, rows) => session.resize(cols, rows)} className="h-full" />
 ```
 
-The grid it fits at mount is `size()`, which is what a program starts with. After that `onResize` reports every new grid, debounced while a container is being dragged, and after a font change. A host the layout has given no room yet is not fitted, since FitAddon would make two columns of it: `size()` is then xterm's default of 80 by 24, and the first fit with room comes through `onResize`, whatever grid it is. Rows that do not fill the height are centered, and the background runs to the edges.
+`size()` returns the grid fitted at mount, which a program starts with. After that, `onResize` reports every new grid, debounced during a drag. A host with no room yet keeps xterm's default of 80 by 24 until its first real fit arrives through `onResize`.
 
-`reset()` clears the screen and the scrollback, in order with the output written before it, so a replay that starts over is `reset()` and a `write` of the whole text. `visibleText()` returns the rows on screen as plain text, such as for a question about what the terminal shows. `paste`, `selectAll` and `selection()` serve a context menu. The scrollback keeps 5000 lines, and Option on a Mac types as Meta.
+`reset()` clears the screen and the scrollback, in order with earlier writes. To replay from the start, call `reset()` and `write` the whole text. `visibleText()` returns the rows on screen as plain text. `paste`, `selectAll` and `selection()` serve a context menu. The scrollback keeps 5000 lines, and Option on a Mac types as Meta.
 
-For captured output rather than a pty's, `convertEol` treats a lone line feed as a line break, and `readOnly` drops the typing and stops the cursor blinking.
+For captured output, `convertEol` treats a lone line feed as a line break. `readOnly` ignores typing and stops the cursor blinking.
 
 ## Several clients on one program
 
-When two windows show the same program, the last one to resize decides its grid. `followGrid(size)` draws the grid the program reports, clipped or with room to spare, until the next fit here changes the grid and `onResize` claims it back.
+When two windows show the same program, the last one to resize sets its grid. `followGrid(size)` draws the grid the program reports, clipped or padded, until the next local fit claims it back through `onResize`.
 
 ## Theme and font
 
-The colors come from the `--term-*` tokens in `terminal.css`: a background, a foreground, a cursor that follows the accent and the sixteen colors a program asks for by number. The selection is `--selection`. The font is `--term-font`, and while that is unset or empty it is `--font-mono`, so an app that wants its terminals in another font than its code sets `--term-font` on `<html>` and leaves `--font-mono` alone. The terminal reads them again whenever `data-theme`, `class` or the inline style on `<html>` changes, so a theme switch, a new accent or another monospace font reaches it without a prop. `fontSize` (13 by default) and `lineHeight` (1) are props, since an app usually lets a person set them.
+The `--term-*` tokens in `terminal.css` set the background, the foreground, a cursor in the accent and the sixteen ANSI colors. The selection is `--selection`. The font is `--term-font`, or `--font-mono` while that is unset. To give terminals another font than code, set `--term-font` on `<html>`. The terminal rereads the tokens when `data-theme`, `class` or the inline style on `<html>` changes, so theme and accent switches need no prop. `fontSize` (13) and `lineHeight` (1) are props.
 
 ## Links
 
-HTTP and HTTPS URLs in the output and OSC 8 hyperlinks share one handler. Without `onOpenLink`, a primary click opens the whole URL in a new window with `noopener,noreferrer`. A selection drag or another mouse button opens nothing. A desktop app passes the function that opens its browser.
+HTTP and HTTPS URLs and OSC 8 hyperlinks share one handler. Other schemes are ignored. Without `onOpenLink`, a primary click opens the URL in a new window with `noopener,noreferrer`. A desktop app passes the function that opens its browser.
 
-`onOpenLink(uri, event)` gets the whole target and the mouse event, so a host can ask for Cmd or Ctrl and selecting text still works. `onLinkHover(uri, bounds)` gets the same target and a `TerminalLinkBounds` rectangle in viewport pixels, or two `null` values when the pointer leaves. The rectangle covers the part of the link on the hovered row, with canvas zoom and scrollback taken into account, so a host can center a tooltip above or below that row instead of following the pointer. Every row of a wrapped link carries the whole target. The handlers follow prop changes, and each terminal has its own. A link with a scheme other than HTTP or HTTPS reaches neither.
+`onOpenLink(uri, event)` gets the target and the mouse event, so a host can require Cmd or Ctrl. `onLinkHover(uri, bounds)` gets the target and a `TerminalLinkBounds` rectangle in viewport pixels, or two `null` values on leave. The rectangle covers the link's segment on the hovered row, so a host can place a tooltip above or below it. A wrapped link carries the whole target on every row.
 
-`linkLineBounds(range, grid, screen, pointerY)` does the same measuring for an xterm link provider of the app's own. Pass the one-based buffer range, `{ cols, rows, viewportY }`, the `.xterm-screen` bounding rectangle and the mouse event's `clientY`. It returns the hovered row segment in viewport pixels, or `null` for a screen without dimensions.
+`linkLineBounds(range, grid, screen, pointerY)` does the same measuring for the app's own xterm link provider. Pass the one-based buffer range, `{ cols, rows, viewportY }`, the `.xterm-screen` bounding rectangle and the mouse event's `clientY`. It returns the hovered row segment in viewport pixels, or `null` for a screen without dimensions.
 
 ## WebGL
 
-`webgl` draws with WebGL instead of the DOM, which is faster on a busy screen. A browser keeps about 16 contexts per page and silently drops the oldest, so every terminal with `webgl` shares one budget of ten: the focused one first, then the ones written to most recently. Output moves a context at most once a second, and only away from a terminal that has been quiet for a second, so more busy terminals than contexts do not trade them on every write. A terminal that loses its context falls back to the DOM and asks again on its next `focus()`. `webglTerminals()` lists the terminals that hold one, highest ranked first.
+`webgl` draws with WebGL instead of the DOM, which is faster on a busy screen. Browsers cap WebGL contexts per page, so at most ten terminals hold one at a time: the focused one first, then the most recently written. The others draw with the DOM. A terminal that loses its context asks again on its next `focus()`. `webglTerminals()` lists the terminals that hold one, highest ranked first.
 
-The WebGL addon loads on the first grant. Register its import with the [prefetcher](/ui/utilities/lazy-loading) of `@adecore/ui` to have it ready before then:
+The WebGL addon loads on the first grant. To load it earlier, register its import with the [prefetcher](/ui/utilities/lazy-loading) of `@adecore/ui`:
 
 ```ts
 prefetcher.register(() => import('@xterm/addon-webgl'));
@@ -71,11 +71,11 @@ prefetcher.register(() => import('@xterm/addon-webgl'));
 
 ## Under a scaled ancestor
 
-A terminal on a canvas that zooms with a CSS transform measures the pointer against the scaled box, so a click lands on the wrong cell. `scaledByAncestor` corrects every pointer for the scale, for selection, links and mouse reporting alike. It is read at mount.
+Under a CSS transform, such as a zooming canvas, clicks land on the wrong cell. `scaledByAncestor` corrects pointer positions for the scale. It is read at mount.
 
 ## The terminal itself
 
-`terminal` on the handle is the xterm instance, for what the props leave to the app: its own key handler (`attachCustomKeyEventHandler`), an OSC handler such as one for the clipboard, or a registry of open terminals. It exists from the first effect after mount until unmount, and a parent's effect already sees it.
+`terminal` on the handle is the xterm instance, for what the props leave to the app: a key handler (`attachCustomKeyEventHandler`), an OSC handler such as one for the clipboard, or a registry of open terminals. A parent's effect already sees it, and it stays until unmount.
 
 ## Props
 
@@ -109,4 +109,4 @@ A terminal on a canvas that zooms with a CSS transform measures the pointer agai
 | `visibleText()` | The rows on screen as text. |
 | `followGrid(size)` | Draws the grid another client set. |
 
-`TerminalViewProps`, `TerminalViewHandle`, `TerminalSize` and `TerminalLinkBounds` are exported types. `TerminalLinkBounds` contains `x`, `y`, `width` and `height` in viewport pixels.
+The exported types are `TerminalViewProps`, `TerminalViewHandle`, `TerminalSize` and `TerminalLinkBounds` (`x`, `y`, `width`, `height`).

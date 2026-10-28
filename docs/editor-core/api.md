@@ -21,9 +21,9 @@ See [Documents and edits](/editor-core/documents), [Typing and commands](/editor
 
 ## Diffing two texts
 
-`changedSpan(before, after)` returns the one `TextSpan` (`start`, `end`, `text`) that differs between two texts, found from both ends, or `null` when they are equal. `changedSpans(before, after)` runs a line diff and returns one span per changed stretch, in the coordinates of `before`. Past 4 million steps of work, 1,000 changed lines or 16 MiB between the first and last change it gives up and returns the one span.
+`changedSpan(before, after)` returns the one `TextSpan` (`start`, `end`, `text`) that differs between two texts, or `null` when they are equal. `changedSpans(before, after)` runs a line diff and returns one span per changed stretch, relative to `before`. A very large diff falls back to the single span.
 
-Apply the spans as one batch to replace a document's text without moving the carets, folds and marks outside the changes:
+Apply the spans as one batch to replace a document's text without moving carets, folds and marks outside the changes:
 
 ```ts
 const spans = changedSpans(document.getText(), textFromDisk);
@@ -38,13 +38,13 @@ The view's `setText` does exactly this.
 
 ## Brackets
 
-`scanBrackets(text, language?)` pairs brackets lexically, so it works on code that does not parse yet. It skips strings and comments of the language (`typescript` by default) and returns a `BracketIndex`: `pairs` maps each opener to its closer and back, and `unmatched` holds the offsets of brackets without a partner. Malformed nesting never yields crossing pairs.
+`scanBrackets(text, language?)` pairs brackets lexically, so it works on code that does not parse yet. It skips strings and comments (`typescript` by default) and returns a `BracketIndex`. `pairs` maps each opener to its closer and back, and `unmatched` holds the offsets of unpaired brackets. Pairs never cross.
 
 ```ts
 scanBrackets('call(items[0]').pairs; // Map { 10 => 12, 12 => 10 }
 ```
 
-`document.matchBracket(offset, language?, limit?)` pairs the one bracket at `offset` as `scanBrackets` would, without lexing the whole document for it. The document keeps the lexer's state at checkpoints a few kilobytes apart, so after an edit it lexes only the stretch the edit is in, and a far mate costs a walk over the checkpoints. It returns a `BracketMatch` whose `mate` is the offset of the partner, or `undefined` for a bracket without one, and `undefined` itself where no bracket of the code stands, such as in a string or a comment. With `limit` it lexes at most about that many characters and returns `null` when that was not enough; the work is kept, so asking again goes on from there. A view that highlights the brackets at the carets passes a limit per frame, so an edit at many carets of a large document never holds up a keystroke.
+`document.matchBracket(offset, language?, limit?)` pairs the bracket at `offset` as `scanBrackets` would, lexing only what changed since the last call. It returns a `BracketMatch` whose `mate` is the partner's offset, or `undefined` for an unpaired bracket. It returns `undefined` itself where no code bracket stands, such as in a string. With `limit` it lexes at most about that many characters and returns `null` when that was not enough. Asking again continues where it stopped, so a view can spread the work over frames.
 
 ```ts
 const document = new DocumentModel('call(items[0])');
@@ -54,21 +54,21 @@ document.matchBracket(13); // { mate: 4 }
 
 ## Lexical queries
 
-Each takes a language id, the one the document is edited as, and reads the same lexer that typing uses.
+Each takes the document's language id and uses the same lexer as typing.
 
-- `placeAt(offset, language)` returns a `TextPlace`: the `language` the offset is written in and its `kind`, a `TextPlaceKind` of `code`, `comment` or `string`. Embedded regions are resolved: `typescript` or `javascript` in the `<script>` of a Vue file (from its `lang`), `css`, `scss` or `less` in a `<style>`, `html` in a Vue template, in the markup of a PHP file and in JSX children, and `javascript` or `css` in the `<script>` and `<style>` of a markup file. Any other language keeps its own id. Past two million characters the answer is the document's language as code.
-- `postfixOperands(dot, language)` lists the expressions that end right before the `.` at `dot`, innermost first, as `PostfixOperand` values: `from` is where the expression starts and `statement` is true on the widest one when it starts a statement. It reads JavaScript, TypeScript and PHP code and returns nothing in a string, a comment, markup or when the dot is a decimal point. A member chain, call chain or literal is one expression, and each prefix operator or binary operator the chain can grow by adds another one, as the syntax tree would: `a * b + c` gives `c` and the whole line, never `b + c`. An assignment, a keyword such as `return` and an opening bracket end the search.
-- `surroundShape(from, to, language)` says what a range can be surrounded with, as a `SurroundShape`: the trimmed `from` and `to`, `statements` when the range is whole statements, and `expression` when it is one expression on a line. Both ends must be code inside the same bracket. It returns `null` for a blank range.
-- `unwrapTargets(offset, language, indentUnit)` lists what can be unwrapped or removed around an offset in script and PHP code, innermost first, as `UnwrapTarget` values: the `kind` (an `UnwrapKind`: `if`, `else`, `removeElse`, `for`, `while`, `do`, `try`, `removeCatch`, `removeFinally` or `braces`), the `range` of the whole construct and the `edits` that do it. An unwrap keeps the body, moves it to the indentation of the header and drops the header, the closing brace and the clauses that follow (the `else` chain of an `if`, the `catch` and `finally` of a `try`, the `while` of a `do`). A `removeElse`, `removeCatch` or `removeFinally` drops one clause with its body, and a catch only where another catch or a finally stays. `indentUnit` is the indentation removed when a body does not sit deeper than its header. Functions, classes, object literals and `switch` give no targets.
+- `placeAt(offset, language)` returns a `TextPlace`: the `language` at the offset and its `kind`, a `TextPlaceKind` of `code`, `comment` or `string`. It resolves embedded regions, such as the `<script>` (by its `lang`) and `<style>` of a Vue file, `html` in a Vue template, PHP markup and JSX children. Very large documents report the document's language as code.
+- `postfixOperands(dot, language)` lists the expressions ending right before the `.` at `dot`, innermost first, as `PostfixOperand` values. `from` is the expression's start, and `statement` is true on the widest one when it starts a statement. It reads JavaScript, TypeScript and PHP code and returns nothing in a string, comment, markup or after a decimal point. It follows operator precedence: `a * b + c` gives `c` and the whole line, never `b + c`. An assignment, a keyword such as `return` or an opening bracket ends the search.
+- `surroundShape(from, to, language)` returns a `SurroundShape`: the trimmed `from` and `to`, `statements` when the range is whole statements, and `expression` when it is one expression on a line. Both ends must be code inside the same bracket. A blank range returns `null`.
+- `unwrapTargets(offset, language, indentUnit)` lists what can be unwrapped or removed around an offset in script and PHP code, innermost first, as `UnwrapTarget` values: the `kind` (an `UnwrapKind`: `if`, `else`, `removeElse`, `for`, `while`, `do`, `try`, `removeCatch`, `removeFinally` or `braces`), the construct's `range` and the `edits`. An unwrap keeps the body at the header's indentation and drops the header, closing brace and following clauses. A `remove` kind drops one clause with its body. `indentUnit` is the indentation removed when a body is not deeper than its header. Functions, classes, object literals and `switch` give no targets.
 
 ## Search helpers
 
-`findMatches`, `iterateMatches`, `findMatchFrom` and `replacementText` work with an immutable string and revision instead of a model. See [Search and folding](/editor-core/search-folding) for iteration, direction and replacement semantics.
+`findMatches`, `iterateMatches`, `findMatchFrom` and `replacementText` work on a string and revision instead of a model. See [Search and folding](/editor-core/search-folding). `replacementText` takes an optional sixth `maxCharacters` argument and throws `RangeError` when the expanded output would exceed it.
 
 ## Other helpers
 
 - `indentationColumn(text, tabSize)` is the width of the leading whitespace of `text`, with tabs expanded.
-- `detectIndentation(text)` reads the indentation a text already uses, as a `DetectedIndentation`: `{ insertSpaces: false }` when more lines start with a tab than with spaces, or `{ insertSpaces: true, tabSize }` with the width of one level, the step to a deeper line that occurs most often. The star lines of a block comment are left out, and on a tie the step more indents are a multiple of wins, so a line aligned under a parenthesis does not pass for a level. It returns `null` when no line says, and reads at most the first 10,000 lines. A host that prefers the file's own indentation over its setting passes the result, over its own, as the editor's `indentation` when a file opens.
+- `detectIndentation(text)` returns the indentation a text uses as a `DetectedIndentation`: `{ insertSpaces: false }` when tabs dominate, or `{ insertSpaces: true, tabSize }` with the most common level width. It returns `null` when no line tells. A host that prefers the file's indentation passes the result as the editor's `indentation` when a file opens.
 
 ## Types
 
@@ -85,15 +85,13 @@ Each takes a language id, the one the document is edited as, and reads the same 
 | `TextSpan`, `BracketIndex`, `BracketMatch`                                                    | Helper results and inputs                                               |
 | `TextPlace`, `TextPlaceKind`, `PostfixOperand`, `SurroundShape`, `UnwrapTarget`, `UnwrapKind` | Lexical queries                                                         |
 
-Large dense edit batches rebuild the rope in one pass and emit one `contentEdits` stretch covering the changed region. Small or sparse batches retain separate content edits and share unchanged rope branches. In both cases the snapshot keeps the individual offset changes for annotations, maps selections with their existing affinity, and records one undo step.
+A large dense edit batch may report one `contentEdits` stretch over the changed region instead of one per edit.
 
-`replacementText` accepts an optional sixth `maxCharacters` argument, after `preserveCase`. It throws `RangeError` before concatenating expanded output above that limit. Without the argument its existing expansion behavior remains unchanged.
-
-`DocumentEditOptions.selectionPositions` supplies anchor/head positions in the resulting text. They are resolved against the new rope and recorded in the same undo state. Columns are clamped to their line, and a line outside the resulting text throws (the editor engine reports that as `false`). They are ignored when the edits leave the text unchanged. Explicit offset `selections` take precedence when both are supplied. Without either, selections keep their usual mapping.
+`DocumentEditOptions.selectionPositions` sets anchor and head as line and column positions in the resulting text. Columns clamp to their line, and a line outside the text throws. Offset `selections` win when both are given.
 
 ## TODO comments
 
-`findTodos(text, language, options?)` returns the TODO comments of a text as `TodoMatch`es: `from` and `to` offsets, the zero-based `line` and the `word` of the list it matched. A match starts at one of `options.words` (`DEFAULT_TODO_WORDS`, `TODO` and `FIXME`, without them), found as a whole word in any case wherever it stands in a comment, and ends where the comment does on that line: at the end of a line comment and before the closer of a block comment on the line it closes on. What counts as a comment is the language's, read by the same lexer as the editing commands, so a word in a string or in code is no TODO. A second word in the same comment is part of the first one's match. `document.findTodos(language, options?, first?, last?)` does the same for lines `first` through `last` of a `DocumentModel`, with the lexer state it keeps between edits. `TodoOptions` is the type of `options`.
+`findTodos(text, language, options?)` returns the TODO comments of a text as `TodoMatch`es: `from` and `to` offsets, the zero-based `line` and the matched `word`. A match starts at one of `options.words` (default `DEFAULT_TODO_WORDS`: `TODO` and `FIXME`), as a whole word in any case inside a comment, and runs to the comment's end on that line. Words in strings or code do not count. `document.findTodos(language, options?, first?, last?)` does the same for lines `first` through `last` of a `DocumentModel`, reusing its lexer state. `TodoOptions` is the type of `options`.
 
 ```ts
 findTodos('const x = 1; // TODO: rename', 'typescript'); // [{ from: 16, to: 28, line: 0, word: 'TODO' }]
@@ -101,4 +99,4 @@ findTodos('const x = 1; // TODO: rename', 'typescript'); // [{ from: 16, to: 28,
 
 ## Documentation comments
 
-`findDocComments(text, languageId, limit?)` returns the documentation comments of a text that have their lines to themselves, as `DocComment`s: `from` and `to` offsets, zero-based inclusive `startLine` and `endLine`, the `indent` in front of the opener and the `body` with the delimiters and margin stars taken off. Only languages that write block comments with a slash and a star have any, a Vue file has them in its script, and past `MAX_DOC_COMMENTS` (500, or `limit`) comments the rest are left out. [`@adecore/editor-react`](/editor-react/rendered-documentation) draws them as formatted text.
+`findDocComments(text, languageId, limit?)` returns the `/** */` comments that stand on their own lines, as `DocComment`s: `from` and `to` offsets, zero-based inclusive `startLine` and `endLine`, the opener's `indent` and the `body` without delimiters and margin stars. Comments past `MAX_DOC_COMMENTS` (500, or `limit`) are left out. [`@adecore/editor-react`](/editor-react/rendered-documentation) draws them as formatted text.

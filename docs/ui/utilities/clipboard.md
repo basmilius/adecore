@@ -8,6 +8,6 @@ import { copyText, readClipboardText, selectAllWithin, selectionWithin } from '@
 
 <Demo src="utilities/clipboard" />
 
-`copyText(text)` writes text to the clipboard and resolves to `true` once it is there, or `false` when it is not, for a caller that tells the person whether copying worked. A caller that does not care can ignore the result. `readClipboardText()` resolves to what is on it, or an empty string when the browser will not say. A browser hands over the clipboard only to a focused document that is allowed to use it, and nobody can do anything about a refusal, so neither rejects. A button that copies and confirms it is a [`CopyButton`](/ui/actions/copy-button).
+`copyText(text)` writes text to the clipboard and resolves to whether it worked. `readClipboardText()` resolves to the clipboard text, or an empty string when the browser refuses. Neither rejects. A button that copies and confirms it is a [`CopyButton`](/ui/actions/copy-button).
 
-`selectionWithin(element)` returns the selected text, but only when the selection lies inside `element`. A context menu belongs to the surface the click landed on, and a selection somewhere else is not one that menu can copy. `selectAllWithin(element)` selects the text of `element` and nothing else, which is what Cmd+A should do inside a block of text. [`TextMenu`](/ui/overlays/text-menu) uses both.
+`selectionWithin(element)` returns the selected text only when the selection lies inside `element`, so a context menu copies only from its own surface. `selectAllWithin(element)` selects the text of `element` alone, as Cmd+A should inside a block of text. [`TextMenu`](/ui/overlays/text-menu) uses both.

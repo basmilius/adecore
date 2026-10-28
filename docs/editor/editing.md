@@ -2,15 +2,15 @@
 
 ## Positions
 
-The `Editor` speaks in the positions of a language server: `EditorPosition` is `{ line, character }`, zero-based, with `character` in UTF-16 code units, and `EditorRange` is `{ start, end }`. `positionAt(offset)`, `offsetAt(position)` and `textInRange(range)` convert. A position past the end of its line or of the document lands on the end.
+The `Editor` uses language server positions. `EditorPosition` is `{ line, character }`, zero-based, with `character` in UTF-16 code units, and `EditorRange` is `{ start, end }`. `positionAt(offset)`, `offsetAt(position)` and `textInRange(range)` convert. A position past the end of its line or document clamps to the end.
 
-Mount options and `revealLine` count lines from one, like a person does. Everything else counts from zero.
+Mount options and `revealLine` count lines from one. Everything else counts from zero.
 
 ## Replacing the text
 
-`setText(text)` is for a change from outside, such as a reload after the file changed on disk or an edit in another view of the same file. It applies only the lines that differ, as one undo step with the source `external`, so the caret, the scroll, the folds and the decorations stay wherever the text around them did.
+`setText(text)` is for outside changes, such as a reload from disk or an edit in another view of the file. It applies only the differing lines as one `external` undo step, so caret, scroll, folds and decorations stay with their text.
 
-`applyEdits(changes)` replaces ranges of the current text at once, as one undo step. Every range is in the text before the batch. It returns `false` and changes nothing when the editor is read-only, the list is empty, or the ranges overlap.
+`applyEdits(changes, options?)` replaces ranges of the current text as one undo step. Every range refers to the text before the batch. It returns `false` and changes nothing when the editor is read-only, the list is empty or ranges overlap. `editor.isReadOnly()` reports the read-only state; it is optional on `Editor`, so a wrapper checks `editor.isReadOnly?.() ?? false`.
 
 ```ts
 // 'red blue red' becomes 'green blue green'.
@@ -20,11 +20,16 @@ editor.applyEdits([
 ]);
 ```
 
-The editor has no `expectedRevision`. Guard an answer that took a while with a [tracked range](#tracked-ranges).
+`EditorApplyEditsOptions`:
+
+- `mapSelections` maps each current selection, as a start-before-end range, to its place in the new text. Selections keep their direction. Without it, selections follow the edits.
+- `mergeUndo: true` joins the edits to the previous undo step when the text is exactly as that step left it, such as formatting after a typed character.
+
+The editor has no `expectedRevision`. Guard a slow answer with a [tracked range](#tracked-ranges).
 
 ## Saving
 
-`cleanUpWhitespace(options)` is for right before the host writes the file. It strips trailing whitespace, removes the blank lines at the end and ends the file in a line break, as the `EditorWhitespaceCleanup` options say ([the model's options](/editor-core/documents#saving), without `language`, which the editor passes itself), as one undo step. Then it marks the text as saved, so `trailingWhitespace: 'modified'` strips the lines changed since the last save. Call it on every save, with everything off too, so the count starts there. `markSaved()` marks the text as saved without a cleanup, such as after a reload from disk. A read-only editor changes nothing, and both are optional on `Editor`.
+`cleanUpWhitespace(options)` runs right before the host writes the file. It applies the `EditorWhitespaceCleanup` options (the [model's options](/editor-core/documents#saving) without `language`) as one undo step, then marks the text saved, so `trailingWhitespace: 'modified'` counts from the last save. Call it on every save, even with everything off. `markSaved()` marks the text saved without cleanup, such as after a reload. Both are optional on `Editor` and do nothing when read-only.
 
 ```ts
 editor.onSave(() => {
@@ -45,33 +50,33 @@ editor.onSave(() => {
 | `onViewChange(listener)` | The editor scrolled or changed size, so screen positions moved                 |
 | `onHover(listener)`      | The pointer moved onto another character, with its `rect`, or `null` off the text |
 
-Each returns a function that removes the listener. Use `onChange` for a dirty marker, since a reload should not mark the file dirty, and `onTextChange` to keep a language server in sync.
+Each returns an unsubscribe function. Use `onChange` for a dirty marker, since a reload should not mark the file dirty, and `onTextChange` to keep a language server in sync.
 
-`EditorTextChange` has a `source` (`input`, `command` or `external`) and `changes`, a list of `EditorContentChange`s in order: each range is in the text the change before it left. That is the shape of `textDocument/didChange`. It is not the shape `applyEdits` takes, so a list from the event cannot be passed back as one batch.
+`EditorTextChange` has a `source` (`input`, `command` or `external`), `typed` when typing caused a command such as Enter, and `changes`: `EditorContentChange`s in order, each relative to the text the previous one left. That is the shape of `textDocument/didChange`, not of `applyEdits`, so the list cannot be passed back as one batch.
 
 ## Selections
 
-`getCaret()` returns the primary caret. `getSelection()` returns the primary selection with its start before its end, and `getSelections()` returns all of them, the primary one last. `setCaret(position, reveal?)`, `setSelection(range, reveal?)` and `setSelections(ranges, reveal?)` replace them and scroll the primary one into view; an empty list changes nothing.
+`getCaret()` returns the primary caret. `getSelection()` returns the primary selection, start before end, and `getSelections()` returns all of them, primary last. `setCaret(position, reveal?)`, `setSelection(range, reveal?)` and `setSelections(ranges, reveal?)` replace them and scroll the primary into view. An empty list changes nothing.
 
-`reveal` decides the scroll. `relative`, the default, keeps the caret in view with a line of margin. `center` puts a target that is out of view a third from the top and leaves one in view alone. `centerDown` and `centerUp` do the same while stepping through results in one direction. `revealLine(line, reveal?)` puts the caret at the start of a one-based line.
+`reveal` sets the scroll. `relative` (default) keeps the caret in view with a line of margin. `center` puts an off-screen target a third from the top. `centerDown` and `centerUp` do the same while stepping through results in one direction. `revealLine(line, reveal?)` puts the caret at the start of a one-based line.
 
-`getVisibleRange()` is the range of lines on screen, which a feature such as inlay hints asks about. `rectAt(position)` is the box of a character in page pixels, or `null` where the editor has no layout, and is the anchor for a popup. Place the popup again on `onViewChange`.
+`getVisibleRange()` returns the lines on screen. `rectAt(position)` returns a character's box in page pixels, or `null` without layout, as a popup anchor. Reposition the popup on `onViewChange`.
 
 ## Pointer and keys
 
-`onClick(handler)` sees a press of the primary button on the text before the editor does. The first handler that returns `true` takes it, and the caret stays where it was. `EditorClick` carries the `position` and the `mod`, `alt` and `shift` keys. Mod and a click is how a host follows a name to its definition.
+`onClick(handler)` sees a primary-button press on the text before the editor. The first handler returning `true` takes it, and the caret stays put. `EditorClick` carries the `position` and the `mod`, `alt` and `shift` keys, for example to follow Mod+click to a definition.
 
-`onContextMenu(listener)` reports a request for the context menu: the `position`, whether it is `inSelection`, and `x` and `y` in page pixels. The editor draws no menu and moves no caret for it. `onKeyDown` is on [Options and keymaps](/editor/options#keymaps).
+`onContextMenu(listener)` reports a context menu request: the `position`, whether it is `inSelection`, and `x` and `y` in page pixels. The editor draws no menu and keeps the caret. `onKeyDown` is on [Options and keymaps](/editor/options#keymaps).
 
 ## Commands
 
-`runCommand(command)` runs a command on every caret, the way its key would, and returns `false` when nothing changed. It takes every [command of the model](/editor-core/commands#execute) and the view's own: `collapseRegion`, `expandRegion`, `collapseAllRegions`, `expandAllRegions`, `collapseRegionRecursively`, `expandRegionRecursively`, `foldSelection`, `collapseDocComments`, `expandDocComments`, `expandAllToLevel1` through `expandAllToLevel5`, `toggleColumnMode`, and the [zoom](/editor/options#zoom) commands `increaseFontSize`, `decreaseFontSize` and `resetFontSize`.
+`runCommand(command)` runs a command on every caret, as its key would, and returns `false` when nothing changed. It takes every [model command](/editor-core/commands#execute) and the view's own: `collapseRegion`, `expandRegion`, `collapseAllRegions`, `expandAllRegions`, `collapseRegionRecursively`, `expandRegionRecursively`, `foldSelection`, `collapseDocComments`, `expandDocComments`, `expandAllToLevel1` through `expandAllToLevel5`, `toggleColumnMode`, and the [zoom](/editor/options#zoom) commands `increaseFontSize`, `decreaseFontSize` and `resetFontSize`.
 
 `focus()` puts the keyboard focus in the editor.
 
 ## Tracked ranges
 
-`trackRange(range)` returns an `EditorTrackedRange` that follows its text through every change. `get()` returns where the range is now, or `null` once an edit replaced text inside it or landed between its ends. Text inserted exactly at an end leaves it alone. A disposed range is `null`.
+`trackRange(range)` returns an `EditorTrackedRange` that follows its text. `get()` returns where the range is now, or `null` once an edit touched its inside or after `dispose()`. Text inserted exactly at an end leaves it alone.
 
 ```ts
 const original = editor.textInRange(range);
@@ -87,4 +92,4 @@ if (current !== null) {
 tracked.dispose();
 ```
 
-Each tracked range costs one mapping of two offsets per change, so dispose it when the answer is in or abandoned.
+Dispose a tracked range once the answer is in or abandoned, since each one costs work on every change.

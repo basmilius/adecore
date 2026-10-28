@@ -1,6 +1,6 @@
 # Banner
 
-The strip over a view: one line and the buttons that answer it. Anything that waits for a person goes here, such as a conflict, a failure or a request. A toast in the corner is read after the fact, and a decision has to be where the eyes already are.
+The strip over a view: one line and the buttons that answer it. Use it for anything that waits for a person, such as a conflict, a failure or a request. A toast is for what a person may read after the fact.
 
 ```tsx
 import { Banner } from '@adecore/ui';
@@ -8,15 +8,15 @@ import { Banner } from '@adecore/ui';
 
 <Demo src="display/banner" />
 
-By default it stands centered along the top of its positioned parent. Show one at a time: the slot is one row, and the caller decides what stands in it. The banner is a polite live region, so a screen reader announces a new line.
+By default it floats centered along the top of its positioned parent. Show one at a time. The banner is a polite live region, so a screen reader announces a new line.
 
 ## In the flow of a page
 
-With `placement="inline"` the banner is a notice that belongs to the page, such as a warning above a table. It stands in the flow, fills its row and drops the shadow of the floating strip, so it lines up with the panels around it. Its `className` adds margins and the like.
+With `placement="inline"` the banner stands in the flow and fills its row without a shadow, such as a warning above a table. Its `className` adds margins and the like.
 
 <Demo src="display/banner-inline" />
 
-On the overlay, a `className` replaces the floating position instead of adding to it, and the strip keeps its centered shape.
+On the overlay, a `className` replaces the floating position.
 
 ## Props
 

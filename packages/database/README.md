@@ -13,7 +13,7 @@ Browse, query and edit SQLite and MySQL or MariaDB databases from a desktop app.
 bun add @adecore/database
 ```
 
-`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies; the app brings them. Only the page needs them. The host (`@adecore/database/host`) and the protocol (`@adecore/database/protocol`) import none of them.
+`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies of the page. The host (`@adecore/database/host`) and the protocol (`@adecore/database/protocol`) import none of them.
 
 ## Layers
 
@@ -91,7 +91,7 @@ A `Connection` is `{ id, name, config }`. The app keeps the list, with the passw
 >
 ```
 
-`onAction` receives a `DatabaseAction` when a view wants a table, a console or the designer opened, so the app decides where it goes. `storage` keeps layouts, console history and open tabs across a remount. `files` holds the app's save and open dialogs for export and import. A provider inside another needs none of them: it takes what it leaves out from the one above, so `<DatabaseProvider onAction={...}>` around one tab tells which tab an action came from.
+`onAction` receives a `DatabaseAction` when a view wants a table, a console or the designer opened, and the app decides where it goes. `storage` keeps layouts, console history and open tabs across a remount. `files` holds the app's save and open dialogs for export and import. A nested provider takes what it leaves out from the one above, so `<DatabaseProvider onAction={...}>` around one tab tells which tab an action came from.
 
 Tell Tailwind to scan the package for its classes, next to the `@source` line of `@adecore/ui`. The path is relative to the CSS file:
 
@@ -143,11 +143,9 @@ Or copy the binary into `extraResources` and pass that path to `spawnHelper`, wi
 
 ## Views and testing
 
-`ConnectionManager` and `ConnectionForm` edit the saved connections: a SQLite file, or a MySQL or MariaDB server reached over TCP, a Unix socket, an SSH host or a Docker container. `DatabaseExplorer` is a tree of connections, schemas, tables and columns, with context menus. `TableView` pages through the rows of a table, filters and sorts them from one command field, and edits them. `StructureView` shows columns, indexes, foreign keys and the DDL. `TableDesigner` creates and alters a table and shows the SQL before it runs. `QueryConsole` runs SQL, with history, paging, transactions and export. `DatabaseWorkbench` is the explorer beside closable tabs for all of those.
+The views are `ConnectionManager`, `ConnectionForm`, `DatabaseExplorer`, `TableView`, `StructureView`, `TableDesigner`, `QueryConsole` and `DatabaseWorkbench`, which puts the explorer beside tabs of the others. A connection reaches MySQL or MariaDB over TCP, a Unix socket, an SSH host or a Docker container. [The documentation](https://adecore.dev/database/) has a page per view and guides for connections, files, security and the protocol.
 
-`@adecore/database/testing` has `fakeDatabaseTransport`, an in-memory server behind the same transport, for demos and for tests of an app.
-
-The documentation at https://adecore.dev/database/ has a page for each view, and guides for connections, files, security and the protocol.
+`@adecore/database/testing` has `fakeDatabaseTransport`, an in-memory server behind the same transport, for demos and an app's tests.
 
 ## License
 

@@ -10,17 +10,17 @@ import { Markdown, MessageMarkdown, ReplyMarkdown } from '@adecore/agents-react/
 
 ## Markdown
 
-Three renderers, for three kinds of text. All of them write GitHub-flavored Markdown with the typography plugin's `prose` styles, and none of them renders raw HTML.
+Three renderers of GitHub-flavored Markdown with the typography plugin's `prose` styles. None renders raw HTML.
 
-- `MessageMarkdown({ text, mentions?, skills? })` is what a person sent. A line break is a line break, a tag typed without backticks stays text, and the files and skills picked in the composer are chips again.
-- `ReplyMarkdown({ text, streaming, arriving? })` is a reply. It parses a block at a time, so a streamed word only parses the block that grows, and it draws a code fence outside a list or quote without parsing it at all, so a word added to a long fence costs no more than one added to a short one. While `streaming`, new words fade in and a code fence that is still open is highlighted as it grows; `arriving` fades in each block instead.
-- `Markdown({ text, breaks?, fileLinks?, muted?, rehypePlugins?, componentOverrides? })` is any other text, such as a note from your app. `breaks` keeps line breaks, `fileLinks` (on by default) turns paths into links through the host's `fileLinks`, and `muted` sets the text a step back, the way a thought is drawn.
+- `MessageMarkdown({ text, mentions?, skills? })` draws what a person sent. Line breaks stay, a typed tag stays text, and picked files and skills become chips.
+- `ReplyMarkdown({ text, streaming, arriving? })` draws a reply, parsing one block at a time. While `streaming`, new words fade in and an open code fence highlights as it grows; `arriving` fades in whole blocks instead.
+- `Markdown({ text, breaks?, fileLinks?, muted?, rehypePlugins?, componentOverrides? })` draws any other text. `breaks` keeps line breaks, `fileLinks` (on by default) links paths through the host's `fileLinks`, and `muted` dims the text like a thought.
 
-A path becomes a link only when the host's `fileLinks.target(text, cwd)` finds one in it. `FileLinkContext` gives the folder a relative path counts from; the thread sets it to the chat's own `cwd`.
+A path becomes a link when the host's `fileLinks.target(text, cwd)` finds one. `FileLinkContext` sets the folder for relative paths; the thread sets it to the chat's `cwd`.
 
 ## CodeBlock
 
-A fenced block, highlighted with Shiki in the theme the host's `code` names for the current mode. The grammar and the theme load on first use, and the block holds its shape until they are there, so it never flashes uncolored. An unknown language stays plain text.
+A fenced block, highlighted with Shiki in the theme of the host's `code`. The block keeps its size while the grammar loads. An unknown language stays plain text.
 
 <Demo src="agents/code-block" />
 
@@ -28,28 +28,26 @@ A fenced block, highlighted with Shiki in the theme the host's `code` names for 
 <CodeBlock code={source} lang="ts" />
 ```
 
-`useCodeTheme()` answers the theme id in use. `CodeStreamingContext` tells a block that its fence is still open, which `ReplyMarkdown` sets.
+`useCodeTheme()` returns the theme id in use. `CodeStreamingContext` marks a fence as still open; `ReplyMarkdown` sets it.
 
-`view` takes the place of the code inside the same frame, such as what the code draws, while Copy still copies `code`.
+`view` replaces the code inside the same frame, such as with what the code draws, while Copy still copies `code`.
 
-Every block has a Copy icon that copies its `code` text, including whitespace and line endings. The controls show on hover or keyboard focus, and always on a device without hover. A failed clipboard write shows an error, never a copied state. The optional `actions` node adds controls of your own beside Copy, in the same block. The code scrolls apart from the controls. A reply of the chat itself puts the host's [shell action](/agents-react/guide/host#slots-and-cards) there.
+Copy copies `code` exactly. The controls show on hover or focus, and always without hover. The optional `actions` node adds your own controls beside Copy. In the chat's own replies, the host's [shell action](/agents-react/guide/host#slots-and-cards) goes there.
 
 ## Mermaid diagrams
 
-A ```` ```mermaid ```` fence in any of the three is drawn as its diagram, by [Pele](https://pele.run) (MIT), which reads the syntax of Mermaid 12.1 and every diagram type built into it. Pele loads only when the first closed diagram fence appears on the page, never with the thread, and then only the part a diagram of that kind needs. While the fence is still open the block is its highlighted source, and once it closes the diagram takes its place. A text Pele cannot parse or draw stays its source, with a short muted note under it.
+A ```` ```mermaid ```` fence is drawn as a diagram by [Pele](https://pele.run) (MIT), which reads Mermaid 12.1 syntax. Pele loads lazily with the first closed fence. An open fence shows its source; text Pele cannot draw stays source with a note.
 
-The diagram stands in the frame of a code block and scrolls sideways when it is wider than the reply. A button beside Copy switches between the diagram and its source, and Copy copies the source either way. The colors are the theme's tokens, resolved over the ground of the code block; a change of the theme writes them into the drawing again without laying it out again.
+A button beside Copy switches between diagram and source; Copy copies the source either way. The diagram uses the theme's tokens and follows theme changes.
 
-Pele draws labels as text and leaves out links, images and a click directive's script. No math or icon resolver is given, which are the only markup it inserts unfiltered. The drawing is shown as an image (a `data:` URL of the SVG), which never runs script and loads nothing. A page with a Content Security Policy needs `data:` in `img-src`, and no `'unsafe-eval'`.
-
-The options and the steps from Pele's SVG to the image are internal to the package.
+The drawing is an SVG `data:` image without links, images or scripts. A Content Security Policy needs `data:` in `img-src`, and no `'unsafe-eval'`.
 
 ## AnsiOutput and FadingWords
 
-`AnsiOutput({ text, limit?, tailLines? })` draws the output of a command with its colors, bold, italics and underlines. Every other control sequence, cursor moves and links included, is dropped rather than shown. `tailLines` keeps the last lines and `limit` the first characters, with a line saying how many were left out. The colors come from the `--term-ansi-*` tokens; see [CSS](/agents-react/guide/getting-started#css).
+`AnsiOutput({ text, limit?, tailLines? })` draws command output with its colors, bold, italics and underlines, and drops other control sequences. `tailLines` keeps the last lines and `limit` the first characters, with a line saying how much was left out. The colors come from the `--term-ansi-*` tokens; see [CSS](/agents-react/guide/getting-started#css).
 
-`FadingWords({ text })` fades in each word as text grows, the effect a streamed reply has.
+`FadingWords({ text })` fades in each word as text grows.
 
 <Demo src="agents/ansi-output" />
 
-`parseAnsi(text, options)` and `stripAnsi(text)` are the parsing on its own. `wordSegments`, `rehypeFadeWords`, `rehypeChips` and `remarkHtmlAsText` are the plugins the renderers are built from, and `splitMarkdownBlocks` the block splitting `ReplyMarkdown` does: a block is a `MarkdownBlock`, and a code fence at the top level is one of its own with a `MarkdownFence` that reads its marker, info string and body the way markdown does.
+`parseAnsi(text, options)` and `stripAnsi(text)` are the parser alone. `wordSegments`, `rehypeFadeWords`, `rehypeChips` and `remarkHtmlAsText` are the renderers' plugins. `splitMarkdownBlocks` splits text into `MarkdownBlock`s as `ReplyMarkdown` does; a top-level fence carries a `MarkdownFence` with its marker, info string and body.

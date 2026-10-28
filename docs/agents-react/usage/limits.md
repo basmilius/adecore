@@ -8,9 +8,9 @@ import { UsageLimits, UsageLimitsCard } from '@adecore/agents-react/usage';
 
 <Demo src="agents/usage-limits" />
 
-`UsageLimits()` is the section of the usage page: a card per account with a bar per window, when it resets, and why an account has no numbers, with a way to sign in when the host has `openLogin`. It reads the scope in context.
+`UsageLimits()` is the usage page's section: a card per account with a bar and reset time per window, or why an account has no numbers, with sign-in when the host has `openLogin`. It reads the scope in context.
 
-`UsageLimitsCard({ children })` puts the same numbers in a hover card over a trigger of your own, such as a button in a sidebar. It asks the host only once the card opens.
+`UsageLimitsCard({ children })` shows the same numbers in a hover card over your own trigger. It asks the host only once opened.
 
 ```tsx
 <UsageLimitsCard>
@@ -20,14 +20,12 @@ import { UsageLimits, UsageLimitsCard } from '@adecore/agents-react/usage';
 
 ## Reading the limits
 
-`useUsageLimits()` answers the scope's `UsageLimitsSnapshot`, or `null` until the host answered. Every view that shows the limits of a host shares one read: the first asks `usage.limits` and follows `usage.limitsChanged`, the last to unmount stops following. It never makes a transport connect.
+`useUsageLimits()` returns the scope's `UsageLimitsSnapshot`, or `null` until the host answers. All views of a host share one read of `usage.limits`, following `usage.limitsChanged`.
 
-`useLimitGroups(limits)` groups the windows per CLI with the scope's accounts, so an account that is on but signed out still has a row that says why; `limitGroups(snapshot, accounts)` does it outside React. A window with no reading is unknown, not room left.
+`useLimitGroups(limits)` groups the windows per CLI with the scope's accounts, so a signed-out account still gets a row; `limitGroups(snapshot, accounts)` does it outside React. A window without a reading is unknown, not room left.
 
 ## Lists
 
-`LimitsList({ limits, now, compact? })` lists every CLI with its windows; `compact` is for a list inside a hover card. `AccountLimitsList({ groups, now })` does the same per account, once a CLI has several. `WindowBar({ window, now, compact })` is one bar with how much is used and when it resets.
+`LimitsList({ limits, now, compact? })` lists every CLI with its windows; `compact` suits a hover card. `AccountLimitsList({ groups, now })` lists per account. `WindowBar({ window, now, compact })` is one bar with usage and reset time.
 
-A window with both a reset and a length carries a mark where an even pace through it would stand by now, and every bar says in its `aria-valuetext` whether the account is ahead of that pace or behind it. `evenPace(window, now)`, from `@adecore/agent-contracts/usage` and passed on here, answers the same outside React: the mark in whole percent and whether the usage is `ahead`, `behind` or `even`, or `null` without the timing to measure from.
-
-The logic behind them, which windows an account shows and which reset comes next, is internal to the package.
+A window with a reset and a length marks where an even pace would stand by now, and its `aria-valuetext` says whether usage is ahead or behind. `evenPace(window, now)` from `@adecore/agent-contracts/usage`, re-exported here, returns the mark in whole percent and `ahead`, `behind` or `even`, or `null` without timing.

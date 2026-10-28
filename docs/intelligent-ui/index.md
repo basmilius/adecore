@@ -1,6 +1,6 @@
 # @adecore/intelligent-ui
 
-An agent can answer with a block of components instead of a page of prose: a summary, a table, a checklist, the next steps a person picks from. This package defines that catalog, compiles the blocks out of a reply while it streams and evaluates them in a bounded interpreter. It has no framework and no DOM. A renderer draws what it returns.
+An agent can answer with a block of components instead of prose: a summary, a table, a checklist, next steps to pick from. This package defines the catalog, compiles blocks out of a streaming reply and evaluates them in a bounded interpreter. It has no framework and no DOM; a renderer draws the result.
 
 ```ui
 $selected = ["links"]
@@ -15,7 +15,7 @@ $selected = ["links"]
 </Choices>
 ```
 
-The agent writes a block like the one above in a fenced code block of its reply. [`UiReply`](/agents-react/chat/intelligent-ui) draws it like this:
+The agent writes this in a fenced code block. [`UiReply`](/agents-react/chat/intelligent-ui) draws it:
 
 <Demo src="agents/intelligent-ui" />
 
@@ -35,9 +35,9 @@ The agent writes a block like the one above in a fenced code block of its reply.
 - Compute text and props with a small [expression language](/intelligent-ui/language/expressions): arithmetic, comparisons, `@Count`, `@Filter`, `@Sum`, `@Join` and `@Round`.
 - Read [live data](/intelligent-ui/host/queries) from a source the host registered.
 - Name a file, a diff, a commit or a node, which the host turns into a [link](/intelligent-ui/host/links).
-- Offer shortcuts after finished work with [Choices](/intelligent-ui/host/choices). A question the agent's turn waits on goes through its own question tool or prose.
+- Offer follow-ups after finished work with [Choices](/intelligent-ui/host/choices). A question the turn waits on goes through the agent's question tool or prose.
 
-A block cannot run code, fetch an address, style anything or act outside itself. The [security model](/intelligent-ui/guide/security) lists every boundary.
+A block cannot run code, fetch an address, style anything or act outside itself; see the [security model](/intelligent-ui/guide/security).
 
 ## Entry points
 
@@ -56,13 +56,4 @@ A block cannot run code, fetch an address, style anything or act outside itself.
 | `@adecore/intelligent-ui/text`       | The instructions for the agent and the text fallback     |
 | `@adecore/intelligent-ui/budget`     | The work limits and the refusal type                     |
 
-The package depends on zod and nothing else, and runs in Bun, Node and a browser. [`@adecore/agents`](/agents/chats#live-ui-sources) compiles the blocks in a chat session, and [`@adecore/agents-react`](/agents-react/chat/intelligent-ui) draws them.
-
-## Where to go next
-
-- [Getting started](/intelligent-ui/guide/getting-started) wires a host end to end.
-- [Security model](/intelligent-ui/guide/security) lists what agent text can and cannot do.
-- [Syntax](/intelligent-ui/language/syntax), [expressions](/intelligent-ui/language/expressions) and [state and inputs](/intelligent-ui/language/state) describe the language.
-- The component pages list every prop: [status](/intelligent-ui/components/status), [data](/intelligent-ui/components/data), [structure](/intelligent-ui/components/structure), [content](/intelligent-ui/components/content), [places](/intelligent-ui/components/places), [host links](/intelligent-ui/components/links), [inputs](/intelligent-ui/components/inputs) and [choices](/intelligent-ui/components/choices).
-- The host pages cover [live queries](/intelligent-ui/host/queries), [choices](/intelligent-ui/host/choices), [links](/intelligent-ui/host/links), [compilation and streaming](/intelligent-ui/host/compilation) and [performance](/intelligent-ui/performance).
-- [Exports](/intelligent-ui/reference) lists every public name by entry point.
+The package depends only on zod and runs in Bun, Node and a browser. [`@adecore/agents`](/agents/chats#live-ui-sources) compiles the blocks in a chat session, and [`@adecore/agents-react`](/agents-react/chat/intelligent-ui) draws them. Start with [getting started](/intelligent-ui/guide/getting-started); [exports](/intelligent-ui/reference) lists every public name.

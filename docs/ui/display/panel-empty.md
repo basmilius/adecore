@@ -8,7 +8,7 @@ import { PanelEmpty } from '@adecore/ui';
 
 <Demo src="display/panel-empty" />
 
-A panel is one track of a flex column, so by default the empty state grows into what is left of it (`fill="grow"`). A card is a box with a height of its own, where growing means nothing; use `fill="full"` there. `sunken` gives it the sunken ground, for a box that has no ground behind it yet. `header` keeps the panel's own header above the sentence, so a person can still act while nothing is listed.
+By default it grows into the rest of a flex column (`fill="grow"`). In a card with its own height, use `fill="full"`. `sunken` gives it the sunken ground. `header` keeps the panel's header above the sentence, so its actions stay reachable.
 
 ## Props
 

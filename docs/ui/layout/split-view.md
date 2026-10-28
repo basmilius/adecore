@@ -4,13 +4,13 @@ Panels in a tree: horizontal and vertical splits nested to any depth. A panel ho
 
 <Demo src="layout/split-view" />
 
-The demo has no tab strip: each panel holds one view, and the dividers still work with the pointer and the keyboard. An app changes the layout from its own menus or shortcuts by passing a `SplitCommand` to `updateSplitLayout`.
+The demo has no tab strip; each panel holds one view. To change the layout from a menu or shortcut, pass a `SplitCommand` to `updateSplitLayout`.
 
-[Workspace](./workspace) covers the controlled state, dragging, sizes, the life of a view and every prop. Document tabs on their own are a [TabStrip](./tab-strip).
+[Workspace](./workspace) covers state, dragging, sizes and every prop. Document tabs on their own are a [TabStrip](./tab-strip).
 
 ## A drag layer of the app's own
 
-An app that runs drags itself, over cells it draws with `showTabs={false}`, can show the same outline `SplitView` shows where a drop will land.
+An app that runs its own drags over cells drawn with `showTabs={false}` can show the same drop outline as `SplitView`.
 
 ```tsx
 import { DropPreview, rectDropPreview, tabDropPreview, tabGapAt } from '@adecore/ui';
@@ -18,8 +18,8 @@ import { DropPreview, rectDropPreview, tabDropPreview, tabGapAt } from '@adecore
 
 <Demo src="layout/drop-preview" />
 
-`DropPreview` draws a `DropPreviewShape` and fills its nearest positioned ancestor, so the shape is in that box's coordinates. With `shape={null}` it draws nothing, and the next shape appears in place; from one shape to another the outline moves. It takes `className` and `ref`, which lands on the `<svg>`. `DropPreviewProps` is an exported type.
+`DropPreview` draws a `DropPreviewShape` in the coordinates of its nearest positioned ancestor, which it fills. `shape={null}` draws nothing. Between shapes the outline animates. It takes `className` and `ref` (on the `<svg>`). `DropPreviewProps` is an exported type.
 
-A shape comes from one of two functions. `rectDropPreview(rect)` takes a `SplitRect` for a split or a trade. `tabDropPreview(drop, origin)` takes a `TabDrop` for a tab standing in a cell's bar: `gap` is the gap in the strip, `left` and `tabWidth` place the tab, and `width`, `height` and `barHeight` describe the cell, bar included, all relative to `origin`, the cell's top left. `tabGapAt(rects, x)` gives the gap the pointer is nearest to, from the left and right edge of each tab: 0 before the first and `rects.length` after the last.
+`rectDropPreview(rect)` makes a shape from a `SplitRect`, for a split or a swap. `tabDropPreview(drop, origin)` makes one from a `TabDrop`, for a tab in a cell's bar: `gap` is the strip gap, `left` and `tabWidth` place the tab, and `width`, `height` and `barHeight` describe the cell, all relative to `origin`, the cell's top left. `tabGapAt(rects, x)` returns the gap nearest the pointer, from 0 to `rects.length`.
 
-`sameDropPreview(left, right)` says whether two shapes draw the same outline. A `dragover` fires many times a second, so a layer that only stores a different shape renders once per zone.
+`sameDropPreview(left, right)` says whether two shapes match. Store a new shape only when it differs, so `dragover` renders once per zone.

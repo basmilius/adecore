@@ -1,6 +1,6 @@
 # FileTree
 
-A tree of file paths, drawn in the library's theme on the `@pierre/trees` engine (pinned at `1.0.0-beta.6`). `useFileTree` creates the model, and `FileTree.Root` draws it with 25 pixel rows, 12 pixel chevrons, names truncated at the end and a sideways shift for names that do not fit.
+A tree of file paths, drawn in the library's theme on the `@pierre/trees` engine. `useFileTree` creates the model, and `FileTree.Root` draws it, with a sideways shift for names that do not fit.
 
 ```tsx
 import { FileTree, useFileTree } from '@adecore/ui';
@@ -32,15 +32,15 @@ export function ProjectFiles() {
 }
 ```
 
-Paths are POSIX and relative to a root you choose. A directory path ends in `/`, a file path does not, and the model derives the parent directories from the paths. Keep absolute filesystem paths and permission checks in your own code.
+Paths are POSIX and relative to a root you choose. A directory path ends in `/`; the model derives parent directories. Keep absolute paths and permission checks in your own code.
 
-The view virtualizes, so it needs a height to scroll in. With `fitContent` it takes the height of its rows instead and follows them as directories open and close, so what you place after it sits right under its last row. It never grows past its container (`max-height: 100%`), and in a flex column it gives up height when space runs out and scrolls; do not give it a height of your own then. Without `label` the tree is named "Files" (`tree.label`); give it a name that says which files it holds.
+The view virtualizes, so it needs a height to scroll in. With `fitContent` it takes the height of its rows instead, up to its container's height; do not give it a height then. Without `label` the tree is named "Files" (`tree.label`); give it a name that says which files it holds.
 
 ## Defaults and ownership
 
-`useFileTree` starts with closed directories, directories before files in numeric order ([`FileTree.compareRows`](/ui/display/file-tree/models-loading#sorting-and-flattened-paths)), the [`FileIcon`](/ui/display/file-icon) set (`FILE_TREE_ICONS`), and the engine's search, sticky folders and context menu turned off. You can override any of these. Density and row height are fixed. `unsafeCSS` is appended to the wrapper's own styles inside the tree's shadow root.
+`useFileTree` starts with closed directories, directories first in numeric order ([`FileTree.compareRows`](/ui/display/file-tree/models-loading#sorting-and-flattened-paths)), the [`FileIcon`](/ui/display/file-icon) set (`FILE_TREE_ICONS`), and the engine's search, sticky folders and context menu off. You can override each. Density and row height are fixed. `unsafeCSS` is appended to the wrapper's styles inside the shadow root.
 
-The options only create the model. A new `paths` array or `initialExpansion` on a later render does not rebuild it; use the model's methods instead (`resetPaths`, `add`, `remove`, `move`, `batch`, `setGitStatus`, `setIcons`). Only `onSelectionChange` is kept current by the hook.
+The options only create the model. A new `paths` or `initialExpansion` on a later render does not rebuild it; use the model's methods (`resetPaths`, `add`, `remove`, `move`, `batch`, `setGitStatus`, `setIcons`).
 
 ```tsx
 import { useEffect } from 'react';
@@ -55,16 +55,16 @@ export function Files({ paths }: { paths: readonly string[] }) {
 }
 ```
 
-`resetPaths` replaces the whole listing and its expansion; [Models, loading and expansion](/ui/display/file-tree/models-loading) shows how to keep folds, and how to apply smaller changes. Changing the model changes what is drawn, never the filesystem.
+`resetPaths` replaces the listing and its expansion; [Models, loading and expansion](/ui/display/file-tree/models-loading) shows how to keep folds. The model never touches the filesystem.
 
-Your code owns filesystem changes, listings, search requests, caches and permissions; the model owns the displayed paths, selection and expansion. The hook cleans up its model when the component unmounts, so do not call `cleanUp()` on it while it is mounted. Unsubscribe your own model listeners and cancel your own requests when the root changes.
+Your code owns filesystem changes, listings, search requests, caches and permissions. The model owns the displayed paths, selection and expansion. The hook cleans up its model on unmount, so never call `cleanUp()` yourself. Unsubscribe your own listeners and cancel your requests when the root changes.
 
 ## Guides
 
-- [Models, loading and expansion](/ui/display/file-tree/models-loading): sorting, flattened directories, changes, lazy listings, empty directories, remembered folds and search.
+- [Models, loading and expansion](/ui/display/file-tree/models-loading): sorting, changes, lazy listings, empty directories, remembered folds and search.
 - [Interaction and row controls](/ui/display/file-tree/interaction-controls): activation, selection, checkboxes, context menus, dragging and long names.
-- [Reference](/ui/display/file-tree/reference): every option, prop and helper, and what to check before an engine update.
+- [Reference](/ui/display/file-tree/reference): every option, prop and helper.
 
 ## Limits
 
-The row controls sit in slots beside the engine's own row buttons, in its shadow root. Pointer and keyboard behavior there is tested; screen reader behavior across those slots is not verified yet. The wrapper relies on internals of the pinned engine version, so a dependency update needs the checks listed in the [reference](/ui/display/file-tree/reference#engine-updates).
+Screen reader behavior across the row control slots is not verified yet. The wrapper relies on internals of the [pinned engine version](/ui/display/file-tree/reference#engine-updates).

@@ -1,6 +1,6 @@
 # Getting started
 
-`@adecore/ui` is a set of React components for apps that behave like desktop software: dense toolbars, menus with shortcuts, dialogs over dialogs, a settings window. It sits on [Base UI](https://base-ui.com) for behavior, [Lucide](https://lucide.dev) for icons and Tailwind 4 for styling, and it ships its own theme.
+`@adecore/ui` is a set of React components for desktop-style apps: dense toolbars, menus with shortcuts, stacked dialogs, a settings window. It builds on [Base UI](https://base-ui.com), [Lucide](https://lucide.dev) and Tailwind 4, and ships its own theme.
 
 ## Install
 
@@ -20,11 +20,11 @@ pnpm add @adecore/ui
 
 :::
 
-React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies, so your app brings them. Base UI, Lucide, `clsx`, `zustand` and `@pierre/trees`, the engine of the file tree, come along with the library.
+React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies. Base UI, Lucide, `clsx`, `zustand` and `@pierre/trees` (the file tree engine) come with the library.
 
 ## Import the theme
 
-Import the theme right after Tailwind, then tell Tailwind to scan the library for the classes its components use:
+Import the theme after Tailwind, and let Tailwind scan the library's classes:
 
 ```css
 @import "tailwindcss";
@@ -33,13 +33,13 @@ Import the theme right after Tailwind, then tell Tailwind to scan the library fo
 @source "../node_modules/@adecore/ui/dist";
 ```
 
-The `@source` path is relative to the CSS file it sits in. Without it Tailwind never sees the classes inside the library, and the components render unstyled.
+The `@source` path is relative to the CSS file. Without it the components render unstyled.
 
-The theme holds the semantic tokens (`bg-surface`, `text-text-muted`, `border-border` and the rest), the type scale and the rules utilities cannot express, such as the states of a menu row. It also resets Tailwind's color palette, so `bg-red-500` stops existing and every color comes from a token. Light and dark follow `data-theme="light"` or `data-theme="dark"` on `<html>`. The [theme page](/ui/guide/theme) lists every token and shows how to set your own accent.
+The theme resets Tailwind's palette, so `bg-red-500` no longer exists and every color comes from a token. Light and dark follow `data-theme="light"` or `data-theme="dark"` on `<html>`. The [theme page](/ui/guide/theme) lists every token and shows how to set your own accent.
 
 ## Wrap the app in UIProvider
 
-Mount `UIProvider` once, above the first component of the library:
+Mount `UIProvider` once, above the library's components:
 
 ```tsx
 import i18next from 'i18next';
@@ -53,19 +53,17 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-It adds the library's words to your i18next instance and hands the formatters your `formatSource`. It mounts the shared tooltip provider, so moving along a row of buttons shows each tooltip without a new delay. And it writes whether the keyboard or the pointer was used last, as `data-modality` on `<html>`.
-
-An app that wires the format source itself calls `setFormatSource`. See [UIProvider](/ui/utilities/ui-provider).
+It adds the library's words to your i18next instance, hands the formatters your `formatSource`, mounts the shared tooltip provider and writes `data-modality` on `<html>`. To wire the format source yourself, call `setFormatSource`. See [UIProvider](/ui/utilities/ui-provider).
 
 ## Words and languages
 
-The library's own words, such as "Cancel", "Dismiss" and "Zoom in", live in the `ui` namespace (`UI_NAMESPACE`). English and Dutch ship with it. `UIProvider` adds both to the i18next instance you pass it, next to your own namespaces, and a component reads them through `useTranslation('ui')` on that instance. Switch the language the way you already do, with `i18n.changeLanguage('nl')`.
+The library's words ("Cancel", "Zoom in") live in the `ui` namespace (`UI_NAMESPACE`), in English and Dutch. `UIProvider` adds both to your i18next instance. Switch languages as usual with `i18n.changeLanguage('nl')`.
 
-A language you filled yourself keeps its words, since `UIProvider` skips a language that already has a `ui` bundle. To translate the library into a third language, add a `ui` bundle for it before the provider mounts. `UI_RESOURCES` holds the English source to translate from.
+`UIProvider` skips a language that already has a `ui` bundle. To add a third language, add its `ui` bundle before the provider mounts. `UI_RESOURCES` holds the English source.
 
 ## The format source
 
-The formatters in `@adecore/ui/format` write every number, date and duration a person reads. They need two settings: the language, which writes the words (`Sep` or `sep`), and the region, which writes the order, the separators and the clock (`9/19/2026, 8:05 AM` or `19-9-2026 08:05`). The two are separate on purpose. English with a Dutch notation is a common pair on a Dutch computer.
+The formatters in `@adecore/ui/format` take two settings. The language writes the words (`Sep` or `sep`). The region writes the order, separators and clock (`9/19/2026, 8:05 AM` or `19-9-2026 08:05`). English with a Dutch notation is a common pair.
 
 A `FormatSource` hands both over:
 
@@ -86,13 +84,11 @@ Without one, the formatters write English. [Format source](/ui/formatting/) expl
 
 ## Optional pieces
 
-Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once if holding Cmd (Ctrl on Windows and Linux) should print every visible button's shortcut under it; it listens on the window. Mount [`<Toasts store={toasts} />`](/ui/overlays/toasts) once for a stack of toasts from `createToastStore()`.
+Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once to print every visible button's shortcut while Cmd (Ctrl elsewhere) is held. Mount [`<Toasts store={toasts} />`](/ui/overlays/toasts) once for toasts from `createToastStore()`.
 
 ## Working on a local checkout
 
-The package has a `source` export condition that points into `src`. An app can use a checkout of this repository without building it after every change.
-
-Link the checkout:
+The `source` export condition points into `src`, so an app can use a checkout without building it. Link the checkout:
 
 ```sh
 # in packages/ui of the checkout
@@ -102,9 +98,9 @@ bun link
 bun link @adecore/ui
 ```
 
-A `file:../adecore/packages/ui` dependency works too, but Bun copies the checkout on install, so a change reaches the app only after the next `bun install`.
+A `file:../adecore/packages/ui` dependency works too, but changes arrive only after the next `bun install`.
 
-Turn the condition on in Vite, keep one copy of each shared dependency, and let Vite compile the library's source like your own:
+In Vite, turn on the condition and dedupe shared dependencies:
 
 ```ts
 import { defaultClientConditions, defineConfig } from 'vite';
@@ -122,7 +118,7 @@ export default defineConfig({
 });
 ```
 
-TypeScript needs the same condition, or it looks for types in a `dist` that may not exist:
+TypeScript needs the same condition:
 
 ```json
 {
@@ -132,16 +128,14 @@ TypeScript needs the same condition, or it looks for types in a `dist` that may 
 }
 ```
 
-Your app then type-checks the library's source with its own settings, so it needs `allowImportingTsExtensions`, `resolveJsonModule` and `"jsx": "react-jsx"`.
+Your app then type-checks the library's source, so it needs `allowImportingTsExtensions`, `resolveJsonModule` and `"jsx": "react-jsx"`.
 
-Point Tailwind at the checkout's `src` instead of `dist`, again relative to the CSS file:
+Point Tailwind at the checkout's `src`:
 
 ```css
 @source "../../adecore/packages/ui/src";
 ```
 
-The theme import stays the same. It resolves through the `style` condition, which points at `src/theme.css` in a checkout and in the published package. If Vite refuses to serve files from the checkout, add its folder to `server.fs.allow`.
+The theme import stays the same. If Vite refuses to serve files from the checkout, add its folder to `server.fs.allow`.
 
-`bun test` takes the condition as a flag (`bun test --conditions=source`) and has no `dedupe`; the library ships a preload for that, see [Testing](/ui/utilities/testing#a-linked-checkout-under-bun-test).
-
-These docs use the same condition: every demo on this site draws the source in the repository, not a published build.
+`bun test` takes the condition as a flag (`bun test --conditions=source`) and has no `dedupe`; see [Testing](/ui/utilities/testing#a-linked-checkout-under-bun-test) for the preload.

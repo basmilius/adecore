@@ -1,6 +1,6 @@
 # ContextMenu
 
-A menu that opens at the pointer on a right-click. Every part inside it is the [menu's](/ui/overlays/menu) own; only the root and the trigger differ.
+A menu that opens at the pointer on a right-click. Only the root and trigger differ from a [menu](/ui/overlays/menu).
 
 ```tsx
 import { ContextMenu } from '@adecore/ui';
@@ -10,8 +10,8 @@ import { ContextMenu } from '@adecore/ui';
 
 ## Parts
 
-`ContextMenu.Root` holds the open state and `ContextMenu.Trigger` is the area a right-click opens the menu over. Every other part is the menu's own under another name: `ContextMenu.Popup`, `ContextMenu.Item`, `ContextMenu.CheckboxItem`, `ContextMenu.RadioGroup`, `ContextMenu.RadioItem`, `ContextMenu.Group`, `ContextMenu.GroupLabel`, `ContextMenu.Label`, `ContextMenu.Separator`, `ContextMenu.Hint`, `ContextMenu.Check`, `ContextMenu.SubmenuRoot`, `ContextMenu.SubmenuTrigger`, `ContextMenu.Row`, `ContextMenu.RowAction` and `ContextMenu.RowSubmenuTrigger`. See [Menu](/ui/overlays/menu#parts) for what each does.
+`ContextMenu.Root` holds the open state and `ContextMenu.Trigger` is the right-click area. The other parts are the menu's: `ContextMenu.Popup`, `ContextMenu.Item`, `ContextMenu.CheckboxItem`, `ContextMenu.RadioGroup`, `ContextMenu.RadioItem`, `ContextMenu.Group`, `ContextMenu.GroupLabel`, `ContextMenu.Label`, `ContextMenu.Separator`, `ContextMenu.Hint`, `ContextMenu.Check`, `ContextMenu.SubmenuRoot`, `ContextMenu.SubmenuTrigger`, `ContextMenu.Row`, `ContextMenu.RowAction` and `ContextMenu.RowSubmenuTrigger`. See [Menu](/ui/overlays/menu#parts) for what each does.
 
-`ContextMenu.Popup` opens at the pointer, which its positioner already knows, so it needs no placement. A submenu inside it sits beside its row like any other.
+`ContextMenu.Popup` opens at the pointer and needs no placement.
 
-Anywhere text can be selected, a right-click should offer to copy it. [`TextMenu`](/ui/overlays/text-menu) is a context menu that does that for a block of text.
+For copying from a block of text, use [`TextMenu`](/ui/overlays/text-menu).

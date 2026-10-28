@@ -1,8 +1,8 @@
 # Export reference
 
-Every name each entry point exports, types included, by the path you import it from. A row names the module behind it and links to its source, where each export has its full type. Anything not listed here is internal and may change in any release. Two entries hold data rather than names: `@adecore/agents-react/theme.css`, and the words under `@adecore/agents-react/locales/<language>/<namespace>`, a module whose default export is one namespace in one language.
+Every name each entry point exports, types included. Each row links the module's source, where every export has its full type. Anything not listed is internal and may change in any release. `@adecore/agents-react/theme.css` and `@adecore/agents-react/locales/<language>/<namespace>` (one namespace in one language as the default export) hold data.
 
-Many props and options are not exported types. Derive them where you need one, as `ComponentProps<typeof Composer>` or `Parameters<ChatClient['open']>[1]`.
+Derive a prop or option type that is not exported, as `ComponentProps<typeof Composer>` or `Parameters<ChatClient['open']>[1]`.
 
 ## `@adecore/agents-react`
 

@@ -1,6 +1,6 @@
 # SlidingColumn
 
-A panel that slides in and out along the right edge of a view, with a left edge a person drags to resize it. It draws a border along that edge on the surface ground.
+A panel that slides in along the right edge of a view, resized by dragging its left edge.
 
 ```tsx
 import { SlidingColumn } from '@adecore/ui';
@@ -8,19 +8,19 @@ import { SlidingColumn } from '@adecore/ui';
 
 <Demo src="layout/sliding-column" fill />
 
-The outer column is 0 pixels wide and inert while closed. The contents sit in an inner column of the stored width, so they do not reflow while the column moves, and they stay mounted until the slide is over, so a close plays out. Only the width animates, in 200 milliseconds, and never while a person drags it.
+Closed, the column is 0 pixels wide and inert. The contents keep the stored width while it slides, so they do not reflow, and stay mounted until a close finishes.
 
-You keep the width. `onWidthChange` hands you every size during a drag, a whole number already held between `bounds.min` and `bounds.max()`. Clamp a stored width yourself before you pass it in, with [`clampColumnSize`](/ui/hooks/use-column-resize#clampcolumnsize), since only you know what has to stay beside the column.
+You hold the width. During a drag, `onWidthChange` reports whole pixels within `bounds.min` and `bounds.max()`. Clamp a stored width yourself with [`clampColumnSize`](/ui/hooks/use-column-resize#clampcolumnsize) before passing it in.
 
-`instant` lands the width without the motion, for a column whose place is restored as the page loads. Only what a person does afterwards should animate.
+`instant` skips the animation, for a width restored on page load.
 
 ## Space between panels
 
-`gap={8}` swaps the left border for 8 pixels of space in the `--separator` color, and the resize handle fills that space. `width`, `bounds` and `onWidthChange` measure the surface alone, so an open column takes `width + gap` pixels. A closed column still takes none. At the default of `0` the border stays.
+`gap={8}` replaces the left border with 8 pixels of `--separator` space, which the resize handle fills. `width`, `bounds` and `onWidthChange` measure the surface alone, so an open column takes `width + gap` pixels.
 
 ## A column with shortcuts
 
-`body` hands the column the keyboard, for a panel with shortcuts of its own. The inner column becomes focusable by script (`tabIndex={-1}`), so opening something in it can move focus there without a click first, and its `onKeyDown` hears the keys while focus is inside.
+`body` hands the column the keyboard. The inner column gets `tabIndex={-1}`, so code can move focus into it, and its `onKeyDown` hears keys while focus is inside.
 
 ## Props
 
@@ -29,7 +29,7 @@ You keep the width. `onWidthChange` hands you every size during a drag, a whole 
 | `open` | `boolean` | | Required. |
 | `width` | `number` | | Required. In pixels, already clamped. |
 | `gap` | `number` | `0` | Space before the surface, in whole pixels. |
-| `bounds` | `{ min: number; max(): number }` | | Required. `max` is read at drag time, so a window resize between two drags counts. |
+| `bounds` | `{ min: number; max(): number }` | | Required. `max` is read at drag time. |
 | `onWidthChange` | `(width: number) => void` | | Required. |
 | `instant` | `boolean` | `false` | |
 | `body` | `{ ref: RefObject<HTMLDivElement \| null>; onKeyDown(event): void }` | | |

@@ -1,6 +1,6 @@
 # ConfirmDialog
 
-One destructive step, asked before it happens, over whichever dialog it was opened from. It is a [`PromptDialog`](/ui/overlays/prompt-dialog) with the danger button, stacked as a nested dialog, that closes itself once the step succeeds.
+Confirms one destructive step over the dialog it opens from. It is a nested [`PromptDialog`](/ui/overlays/prompt-dialog) with a danger button that closes itself once the step succeeds.
 
 ```tsx
 import { ConfirmDialog } from '@adecore/ui/settings';
@@ -8,7 +8,7 @@ import { ConfirmDialog } from '@adecore/ui/settings';
 
 <Demo src="settings/confirm-dialog" />
 
-`onConfirm` returns a promise. While it runs the button is disabled. When it resolves the dialog closes; when it rejects, the reason stays on screen and the dialog stays open.
+While the promise from `onConfirm` runs, the button is disabled. On resolve the dialog closes; on reject it stays open and shows the reason.
 
 ## Props
 

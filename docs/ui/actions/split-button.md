@@ -8,7 +8,7 @@ import { Menu, SplitButton } from '@adecore/ui';
 
 <Demo src="actions/split-button" />
 
-It reads as one button: one ground, one radius and, on an outlined variant, one border around both halves, with a line half the button's height between them. That line is a light alpha of the text on a filled variant and the border's alpha on the others. The halves are still separate buttons, each with its own hover inside the shared shape. Each takes the focus, can be disabled on its own and carries its own hint. The children are the action half's content, the way a [`Button`](/ui/actions/button)'s are, and `menu` holds the rows of the [`Menu`](/ui/overlays/menu) the chevron opens. The menu hangs under the whole control, lined up with its end unless `menuAlign` says otherwise.
+It draws as one button with a divider. The two halves are separate buttons: each takes focus, can be disabled and has its own hint. The children are the action half's content, as in a [`Button`](/ui/actions/button). `menu` holds the rows of the [`Menu`](/ui/overlays/menu) the chevron opens, under the whole control and end-aligned unless `menuAlign` says otherwise.
 
 ```tsx
 <SplitButton
@@ -37,8 +37,8 @@ It reads as one button: one ground, one radius and, on an outlined variant, one 
 | `menuLabel` | `string` | | The chevron's accessible name, and its hint unless `menuTooltip` is set. Required. |
 | `menuTooltip` | `ReactNode` | | Another hint for the chevron, such as why it is disabled. |
 | `menuDisabled` | `boolean` | `false` | |
-| `menuAlign` | `'start' \| 'center' \| 'end'` | `'end'` | Where the menu lines up under the control. |
-| `menuClassName` | `string` | | A width or layout for the menu, such as `w-72`. |
+| `menuAlign` | `'start' \| 'center' \| 'end'` | `'end'` | |
+| `menuClassName` | `string` | | A width for the menu, such as `w-72`. |
 | `className` | `string` | | On the box around both halves. |
 | `ref` | `Ref<HTMLSpanElement>` | | On the box around both halves. |
 
@@ -46,4 +46,4 @@ It reads as one button: one ground, one radius and, on an outlined variant, one 
 
 ## Accessibility
 
-The chevron is a menu trigger: it carries `aria-haspopup` and `aria-expanded`, opens on Enter, Space and the arrow keys, and gives the focus back when the menu closes. Its name comes from `menuLabel`, so the hint and the name never drift apart.
+The chevron is a menu trigger named by `menuLabel`. It opens on Enter, Space and the arrow keys, and gets focus back when the menu closes.

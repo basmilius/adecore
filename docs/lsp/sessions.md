@@ -10,7 +10,7 @@ An `LspTransport` sends and receives whole JSON-RPC messages: `send(message)`, `
 | `connectWebSocket(url, options?)`          | A WebSocket, one JSON text frame per message; resolves once the socket is open                |
 | `createMemoryTransportPair()`              | From `@adecore/lsp/testing`: two ends in memory, each message JSON-copied and delivered on a microtask |
 
-A `ByteStream` is the app's adapter over a process: `write(chunk)`, `onData`, `onClose` and `close`. Wire the server's stdout to `onData` and keep its stderr apart, since a log line in stdout breaks the framing. The decoder takes messages of up to 32 MiB (`maxMessageBytes`) and closes the stream on a frame it cannot read.
+A `ByteStream` is the app's adapter over a process: `write(chunk)`, `onData`, `onClose` and `close`. Wire stdout to `onData` and keep stderr apart, since a log line in stdout breaks the framing. A frame over `maxMessageBytes` (32 MiB) or one it cannot read closes the stream.
 
 ```ts
 import { spawn } from 'node:child_process';
@@ -36,12 +36,11 @@ const transport = createStreamTransport(stream);
 child.stderr.on('data', (chunk) => log(String(chunk)));
 ```
 
-`connectWebSocket` takes `protocols`, a `signal` to cancel the opening, `timeoutMs` (10 seconds by default) and a `createWebSocket` factory for a runtime without a global `WebSocket`. A binary frame or a frame that is no JSON closes the socket. While the socket buffers more than 8 MiB, a send waits for it to drain, and fails after `timeoutMs`. There is no reconnect and no authentication; those are the app's.
-
+`connectWebSocket` takes `protocols`, a `signal` to cancel opening, `timeoutMs` (default 10 seconds) and a `createWebSocket` factory for runtimes without a global `WebSocket`. A binary or non-JSON frame closes the socket. Reconnecting and authentication are the app's job.
 
 ## LspSession
 
-`new LspSession(transport, options?)` is one conversation with one server. Call `initialize()` and wait for it before anything else; it sends `initialize`, checks the position encoding, sends `initialized` and then the `configuration`, if any.
+`new LspSession(transport, options?)` is one conversation with one server. Await `initialize()` before anything else. It runs the handshake and then sends the `configuration`, if any.
 
 | `LspSessionOptions`      | Default            | Meaning                                                                    |
 | ------------------------ | ------------------ | -------------------------------------------------------------------------- |
@@ -67,23 +66,23 @@ child.stderr.on('data', (chunk) => log(String(chunk)));
 | `trace`                  | `off`              | The trace level sent with `initialize`; `setTrace(value)` changes it later |
 | `locale`                 |                    | The language of the interface, for the server's messages                   |
 
-Advertise insertion modes and list defaults only when the completion consumer implements them. Empty lists leave the capabilities absent.
+Advertise insertion modes and list defaults only when the completion consumer implements them.
 
-Without `onConfiguration`, a configuration query without a section gets all settings, and a section gets the key or the dotted path, or `null`. `setConfiguration(settings)` replaces them and tells the server. Answer `onApplyEdit` with `applied: true` only once the edit is made.
+Without `onConfiguration`, a query without a section gets all settings, and a section gets that key or dotted path, or `null`. `setConfiguration(settings)` replaces the settings and notifies the server. Answer `onApplyEdit` with `applied: true` only once the edit is made.
 
-`state` goes from `new` to `initializing`, `ready`, `closing` and `closed`. A closed session does not start again.
+`state` goes `new`, `initializing`, `ready`, `closing`, `closed`. A closed session does not restart.
 
 ## Completion defaults
 
-`applyCompletionDefaults(item, defaults?)` fills completion-list defaults without changing the item. Explicit item fields win. A default edit range uses `textEditText`, then `label`; `insertText` does not supply a default edit. Malformed ranges throw `RangeError`; passing `{ onInvalidRange }` as the third argument reports and ignores just the invalid default range, preserving the other defaults. Ranges must be on one line; an insert/replace pair shares a start and the insert range must be a prefix of replace. Non-string labels or edit text throw `TypeError`. The session advertises mode `1` (as-is) as the completion default, matching the editor consumer; explicit item or list modes override it.
+`applyCompletionDefaults(item, defaults?)` returns the item with the list defaults filled in. Explicit item fields win. A default edit range takes `textEditText`, then `label`, as its text. Malformed ranges throw `RangeError`, unless you pass `{ onInvalidRange }` as the third argument, which reports the range and keeps the other defaults. Non-string labels or edit text throw `TypeError`. The session advertises insert mode `1` (as-is) by default.
 
 ## Capabilities
 
-`supports(method, document?)` says whether the server answers a method, from its static capabilities and from what it registered since, filtered by the document selector of a registration. `providerOptions(method, document?)` returns the options of that provider, such as trigger characters or a semantic tokens legend. Ask for the exact method: `completionItem/resolve` needs `resolveProvider`, `textDocument/prepareRename` needs `prepareProvider`.
+`supports(method, document?)` says whether the server answers a method, from its static and dynamic registrations, filtered by document selector. `providerOptions(method, document?)` returns that provider's options, such as trigger characters or a semantic tokens legend. Ask for the exact method: `completionItem/resolve` needs `resolveProvider`, `textDocument/prepareRename` needs `prepareProvider`.
 
-`onCapabilitiesChanged(listener)` fires when the server registers or unregisters a capability and when it asks the client to refresh semantic tokens, inlay hints, diagnostics, code lenses, inline values, folding ranges or the content of its documents. Ask again for what depends on it.
+`onCapabilitiesChanged(listener)` fires when the server registers or unregisters a capability, and when it asks for a refresh of semantic tokens, inlay hints, diagnostics, code lenses, inline values, folding ranges or document content. Request again whatever depends on it.
 
-The client announces every part of LSP 3.17 and the parts 3.18 adds: the language features of a document, workspace diagnostics, the content of documents of a server's own scheme, workspace folder changes, notebook synchronization, `showDocument` when the host answers it, partial results and work-done progress. Synchronization takes no dynamic registration: a server says in `textDocumentSync` whether it wants `willSave` and `willSaveWaitUntil`.
+The client announces all of LSP 3.17 and the 3.18 additions. `showDocument` is announced only when the host handles it.
 
 ## The workspace
 
@@ -97,7 +96,7 @@ The client announces every part of LSP 3.17 and the parts 3.18 adds: the languag
 
 ## Notebooks
 
-A notebook's cells are documents that do not go through `openDocument`. `openNotebook(notebook, cellTextDocuments)`, `changeNotebook(notebook, change)`, `saveNotebook(notebook)` and `closeNotebook(notebook, cellUris)` send the `notebookDocument/*` notifications, and only for a notebook the server selects in `notebookDocumentSync`, which `syncsNotebook(notebook)` tells. The editors of this repository have no notebook view; the session carries the protocol for a host that has one.
+Notebook cells do not go through `openDocument`. `openNotebook(notebook, cellTextDocuments)`, `changeNotebook(notebook, change)`, `saveNotebook(notebook)` and `closeNotebook(notebook, cellUris)` send the `notebookDocument/*` notifications for notebooks the server selects. `syncsNotebook(notebook)` tells whether it does. The editor packages have no notebook view.
 
 ## Listening
 
@@ -124,8 +123,8 @@ A request rejects with an `LspError` that carries a `code` from `ErrorCodes`, an
 | `InvalidRequest`       | `-32600` | The message was not a valid request                            |
 | `InternalError`        | `-32603` | Anything else                                                  |
 
-`StaleResultError` is an `LspError` with `ContentModified` and the document's `uri`, for an answer about a text that moved on. Drop it and ask again.
+`StaleResultError` is an `LspError` with `ContentModified` and the document's `uri`. Drop it and ask again.
 
 ## Shutdown
 
-`shutdown()` waits for a pending handshake, closes the documents, asks `shutdown` with a deadline of five seconds, sends `exit` and closes the connection, also when one of those fails. Calling it twice returns the same promise. Stopping the process stays with the app.
+`shutdown()` closes the documents, sends `shutdown` and `exit` and closes the connection, even when a step fails. A second call returns the same promise. Stopping the process is the app's job.

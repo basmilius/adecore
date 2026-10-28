@@ -1,6 +1,6 @@
 # Content
 
-Include code, attachments and sources. Nothing here loads an address or reads a path: an image is an attachment the chat already holds, and a source opens only when a person clicks it. `Image`, `Gallery`, `Compare` and `Model` take attachments of the chat only; how an agent attaches a file of its own is the host's to tell it.
+Include code, attachments and sources. Nothing here loads an address or reads a path. `Image`, `Gallery`, `Compare` and `Model` take only attachments the chat already holds; the host tells the agent how to attach its own files. A source opens only when a person clicks it.
 
 <Demo src="intelligent-ui/content" />
 
@@ -35,7 +35,7 @@ A chat attachment with an optional caption as its children. Give exactly one of 
 
 ## Gallery
 
-A grid of images, each with its caption under it. `Gallery` has no props and holds only `Image`, one to 24 of them; a complete `Gallery` without an `Image` or with more than 24 written is refused. An `Each` or a `Show` inside it is counted again once it drew: a `Gallery` that draws none fails as a whole, and one that draws more than 24 shows the first 24 with the diagnostic `too_many_children`. Each `Image` follows the rules above, and its children are the caption.
+A grid of images with captions. `Gallery` has no props and holds only `Image`, one to 24 of them; more written are refused. After `Each` or `Show`, a `Gallery` that draws none fails as a whole, and one that draws more than 24 shows the first 24 with `too_many_children`. Each `Image` follows the rules above.
 
 ```ui
 <Gallery>
@@ -44,11 +44,11 @@ A grid of images, each with its caption under it. `Gallery` has no props and hol
 </Gallery>
 ```
 
-The grid has three columns and two in a block narrower than 420px. A cell opens the image large, as a single `Image` does. An image whose attachment is gone shows its alt text in a quiet square.
+A cell opens the image large. An image whose attachment is gone shows its alt text.
 
 ## Compare
 
-Two attachments in one frame, with a handle between them that a person drags or moves with the arrow keys while it has the focus. Its children are the caption.
+Two attachments in one frame, with a handle between them that a person drags or moves with the arrow keys. Its children are the caption.
 
 | Prop          | Type   | Required | Notes                                            |
 | ------------- | ------ | -------- | ------------------------------------------------ |
@@ -61,11 +61,11 @@ Two attachments in one frame, with a handle between them that a person drags or 
 <Compare before="old" after="new" beforeLabel="Old" afterLabel="New">The header after the color change</Compare>
 ```
 
-The frame takes the shape of the `before` image. With one attachment gone, the other shows alone and says so; with both gone the frame says why. The position of the handle is the renderer's own and is not state of the block. Its fallback is `[Compare: Old a1, New a2] caption`.
+With one attachment gone, the other shows alone and says so. The handle position is not block state. Its fallback is `[Compare: Old a1, New a2] caption`.
 
 ## Model
 
-A 3D model from a chat attachment that a person can orbit and zoom. Its children are the caption. An agent shows one only when the person asks to see a model, never on its own after it wrote or changed one.
+A 3D model from a chat attachment that a person can orbit and zoom. Its children are the caption. Show one only when the person asks to see a model, never unprompted after writing or changing one.
 
 | Prop         | Type   | Required | Notes                                      |
 | ------------ | ------ | -------- | ------------------------------------------ |
@@ -76,7 +76,7 @@ A 3D model from a chat attachment that a person can orbit and zoom. Its children
 <Model attachment="bracket" alt="Mounting bracket">The bracket after the wall was made thicker</Model>
 ```
 
-The host draws the model; the catalog knows no file format. A host without a view of its own shows the model as a row with its name and caption. Its fallback is `[Model: Mounting bracket] caption`.
+The host draws the model; the catalog knows no file format. A host without a model view shows a row with the name and caption. Its fallback is `[Model: Mounting bracket] caption`.
 
 ## Sources and Source
 
@@ -87,4 +87,4 @@ Numbered sources, which prose in the block can cite as `[1]`. `Sources` has no p
 | `title` | string | Yes      |                                        |
 | `url`   | string | Yes      | Starts with `http://` or `https://`    |
 
-A renderer never preloads a source. It opens one through the host when a person clicks it. A long title wraps; a domain cut short reads whole, with the title, in the tooltip of the row, which takes keyboard focus while it cuts even where the host opens nothing.
+A renderer never preloads a source; it opens one through the host on click. A truncated domain reads whole in the row's tooltip.

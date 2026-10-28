@@ -1,10 +1,10 @@
 # Testing
 
-A host runs without a CLI, a login or a network when its parts are swapped for fakes. [Getting started](/agents/getting-started) is a whole test of that kind: a fake CLI in the process, an injected detection, the environment written out, the clocks off and a temporary data folder.
+With fakes, a host runs without a CLI, login or network. [Getting started](/agents/getting-started) is a complete example.
 
 ## Fakes
 
-Every fake comes from `@adecore/agents/testing`, except `memoryPortPair()`, which a real host can use as well and which comes from `@adecore/agents/host`. No module outside that entry imports them, so a host that never imports it never ships them.
+Every fake comes from `@adecore/agents/testing`, except `memoryPortPair()` from `@adecore/agents/host`. A host that never imports the testing entry never ships them.
 
 | Export                          |                                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------------------ |
@@ -17,11 +17,11 @@ Every fake comes from `@adecore/agents/testing`, except `memoryPortPair()`, whic
 | `FakeWatch`, `EventLog`         | File changes you raise yourself, and a log of events to wait on.                     |
 | `testAccounts` | An account service with fake checks and secrets in memory.                                   |
 
-A test that needs real pipes and a real exit code runs a fake as a process: resolve `@adecore/agents/testing/bin/fake-claude` or `@adecore/agents/testing/bin/fake-codex` and start it with `bun` where the CLI's command would go. `runOverStdio(cli)` does the same for a fake of your own. The captures the fakes follow are JSON under `@adecore/agents/testing/fixtures/`.
+For real pipes and exit codes, start `@adecore/agents/testing/bin/fake-claude` or `@adecore/agents/testing/bin/fake-codex` with `bun` in place of the CLI. `runOverStdio(cli)` does the same for a fake of your own. The captures the fakes follow are JSON under `@adecore/agents/testing/fixtures/`.
 
-`fakeClaude` answers a message with `echo:` and its text. A message `slow` keeps the turn running, so a test can stop it, and `crash` or `crash loudly` end the process the way a crash does. [`fake-claude`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-claude.ts) and [`fake-codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-codex.ts) have the rest, for approvals, questions and background work; a few of those write files or start a process, so read them before you use them.
+`fakeClaude` answers a message with `echo:` and its text. `slow` keeps the turn running so a test can stop it. `crash` and `crash loudly` end the process like a crash. [`fake-claude`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-claude.ts) and [`fake-codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-codex.ts) list the rest. Some of those write files or start a process, so read them first.
 
-A run of `inProcess` has `runLater()` for what the fake put off, `crash(code)`, and `exited`. Wait on events rather than on time, and put a limit on every wait, so a test that goes wrong fails rather than hangs:
+An `inProcess` run has `runLater()` for deferred work, `crash(code)` and `exited`. Wait on events, not time, and put a limit on every wait so a broken test fails instead of hanging:
 
 ```ts
 import { FakeWatch } from '@adecore/agents/testing';
@@ -38,11 +38,11 @@ await seams.settle();
 refresh.stop();
 ```
 
-That scans once. Close what a test opened, the host, the clients, the outbox worker and the watches, and check that it closed: an answered request says nothing about what is still running.
+That scans once. Close everything a test opened (host, clients, outbox worker, watches) and check that it closed. An answered request says nothing about what still runs.
 
 ## Error codes
 
-A refusal carries a code; branch on it, show the message.
+A refusal carries a code. Branch on the code and show the message.
 
 | Code                                                     |                                                                                   |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------- |

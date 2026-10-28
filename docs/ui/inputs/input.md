@@ -1,6 +1,6 @@
 # Input and TextArea
 
-The one text input: one border and one focus outline, at the normal height of 32 pixels or the compact 28. `TextArea` is a field of a few lines, such as a commit message or a note.
+The text input, 32 pixels high or 28 with `size="sm"`. `TextArea` is a field of a few lines, such as a commit message.
 
 ```tsx
 import { Input, TextArea } from '@adecore/ui';
@@ -8,21 +8,21 @@ import { Input, TextArea } from '@adecore/ui';
 
 <Demo src="inputs/input" />
 
-`size="sm"` is the height of a small button, for a row of tools or a name typed in place of the label it renames. `mono` switches to the code face for a branch, a path or anything read back character by character.
+`size="sm"` matches a small button, for a toolbar or an inline rename. `mono` uses the code font, for a branch or a path.
 
-`icon` draws a Lucide icon in front of the text, such as a magnifier on a search field. The icon is 14 pixels, or 12 with `size="sm"`. The input then sits in a box that draws the field, and `className` goes to that box so it lays out like any other field; `ref` and every other prop stay on the input.
+`icon` draws a Lucide icon before the text, 14 pixels or 12 with `size="sm"`. The input then sits in a box that draws the field. `className` goes to that box; `ref` and the other props stay on the input.
 
-A value a person reads but does not type, such as a chosen folder beside the button that picks it, is an `Input` with `readOnly`. It shows the value in the muted text color and ends a long one with an ellipsis. It stays an input, so a screen reader announces it as read-only and the value can be copied.
+For a value a person reads but does not type, such as a chosen folder, use `readOnly`. The value is muted and truncates, and stays copyable.
 
 <Demo src="inputs/input-icon" />
 
-`end` draws something after the text inside the field, such as a count of matches and an [`IconButton`](/ui/actions/icon-button) of size `xs` that clears the query. Like `icon`, it puts the input in a box that draws the field, and `className` goes to that box. Keep `end` set for as long as the field is on screen, `false` while it has nothing to show, so the input is not mounted again and keeps its focus when the content appears.
+`end` draws content after the text, such as a match count and an `xs` [`IconButton`](/ui/actions/icon-button) that clears the query. Like `icon`, it wraps the input in a box that takes `className`. Keep `end` set while the field is on screen (`false` when empty), or the input remounts and loses focus.
 
 <Demo src="inputs/input-end" />
 
-A `TextArea` is at least 64 pixels tall; `rows` makes it taller. `size="sm"` gives it the smaller text and padding of a compact input, for a commit message in a narrow panel. It has no resize handle until `resize="vertical"` gives it one.
+A `TextArea` is at least 64 pixels tall; `rows` makes it taller. `size="sm"` gives it compact text and padding. `resize="vertical"` adds a resize handle.
 
-`variant="bare"` drops the border, the ground and the focus outline, for a text area inside a card that draws them: a message box with its buttons under the text. The card then shows the focus itself, for example with `has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:-outline-offset-1 has-[textarea:focus-visible]:outline-accent`. The border stays as a transparent line, so the text sits where it would in a field of its own.
+`variant="bare"` drops the border, ground and focus outline, for a text area inside a card that draws them. The card then shows focus itself, for example with `has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:-outline-offset-1 has-[textarea:focus-visible]:outline-accent`.
 
 <Demo src="inputs/text-area-bare" />
 
@@ -44,8 +44,8 @@ Inside a [`Field`](/ui/inputs/field) both take their `id`, `aria-describedby` an
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `size` | `'md' \| 'sm'` | `'md'` | |
-| `resize` | `'none' \| 'vertical'` | `'none'` | `'vertical'` adds a handle to drag it taller. |
-| `mono` | `boolean` | `false` | The code face, as on an `Input`. |
-| `variant` | `'field' \| 'bare'` | `'field'` | `'bare'` leaves the border, ground and focus outline to a card around it. |
+| `resize` | `'none' \| 'vertical'` | `'none'` | |
+| `mono` | `boolean` | `false` | |
+| `variant` | `'field' \| 'bare'` | `'field'` | |
 
 `InputProps` and `TextAreaProps` are exported types.

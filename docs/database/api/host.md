@@ -1,6 +1,6 @@
 # Host
 
-The host runs in the app's backend, under Bun or Node, between the app's channel and the helper process. It is the boundary a page cannot get around, and it imports nothing from React.
+The host runs in the app's backend, under Bun or Node, between the app's channel and the helper. It is the boundary a page cannot bypass, and it imports nothing from React.
 
 ```ts
 import { createDatabaseHost, helperPath, parseRequest, spawnHelper } from '@adecore/database/host';
@@ -22,42 +22,40 @@ const host = createDatabaseHost({
 
 | Option               | Type                                                   | Default                  |                                                                                            |
 | -------------------- | ------------------------------------------------------ | ------------------------ | ------------------------------------------------------------------------------------------ |
-| `start`              | `() => HelperProcess`                                  |                          | Required. Starts a helper, on the first request and on the first request after one exited. |
-| `authorize`          | `(connection, owner) => boolean \| Promise<boolean>`   | every connection allowed | Asked on every `open` and `test`.                                                          |
-| `authorizeFile`      | `(path, access, owner) => boolean \| Promise<boolean>` | every file refused       | Asked on every `export` (`'write'`), `sample` and `import` (`'read'`).                     |
-| `authorizeDiscovery` | `(kind, owner) => boolean \| Promise<boolean>`         | discovery refused        | Asked on every `discover`, which hands container credentials to the page.                  |
-| `readyTimeoutMs`     | `number`                                               | `10000`                  | How long to wait for the helper's ready line.                                              |
+| `start`              | `() => HelperProcess`                                  |                          | Required. Starts a helper on the first request, and again after one exited. |
+| `authorize`          | `(connection, owner) => boolean \| Promise<boolean>`   | every connection allowed | Called on every `open` and `test`. |
+| `authorizeFile`      | `(path, access, owner) => boolean \| Promise<boolean>` | every file refused       | Called on every `export` (`'write'`), `sample` and `import` (`'read'`). |
+| `authorizeDiscovery` | `(kind, owner) => boolean \| Promise<boolean>`         | discovery refused        | Called on every `discover`, which hands container credentials to the page. |
+| `readyTimeoutMs`     | `number`                                               | `10000`                  | How long to wait for the helper's ready line. |
 
-A check that returns `false`, throws or rejects fails the request with `forbidden` before the helper sees it. [Security](/database/guide/security) covers which checks to write.
+A check that returns `false`, throws or rejects fails the request with `forbidden` before the helper sees it. See [Security](/database/guide/security).
 
 ### DatabaseHost
 
 | Method                   |                                                                                                             |
 | ------------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `handle(request, owner)` | Takes what came over the channel and resolves with a `DatabaseResponse`. Never rejects.                     |
-| `release(owner)`         | Cancels the running requests of an owner that went away and closes its sessions.                            |
-| `dispose()`              | Releases every owner and stops the helper. A disposed host answers every request with `helper-unavailable`. |
+| `release(owner)`         | Cancels an owner's running requests and closes its sessions. |
+| `dispose()`              | Releases every owner and stops the helper. Later requests get `helper-unavailable`. |
 
-`handle` takes `unknown` and checks it with [`parseRequest`](#parserequest) first, so the helper only sees well-formed requests. `owner` is a string the app picks, such as a window id or a socket id:
+`handle` takes `unknown` and checks it with [`parseRequest`](#parserequest) first, so the helper only sees well-formed requests. `owner` is a string the app picks, such as a window or socket id:
 
 - A session belongs to the owner that opened it. Another owner using its id gets `unknown-session`.
-- A `cancel` only reaches the requests of the owner that sent it.
+- A `cancel` only reaches the sender's own requests.
 - Two running requests of one owner cannot share an id; the second fails with `invalid-request`.
-- Request ids are the owner's. The host sends the helper ids of its own and puts the owner's id back on the response.
+- Request ids belong to the owner. The host renames them for the helper and restores them on the response.
 
-`release` and `dispose` wait up to two seconds for the helper to answer its `close` requests, so a helper that hangs cannot hold up an app that quits.
+`release` and `dispose` wait at most two seconds for the helper, so a hung helper cannot block quitting.
 
 ### When the helper fails
 
-The helper starts on the first request and is expected to stay up.
-
-- If it exits while requests run, they fail with `helper-exited`, and its sessions are gone. The next request starts a new helper, and the [client](/database/api/client#retry-rules) opens a session again where that is safe.
-- If `start` throws, or the helper writes no ready line within `readyTimeoutMs`, or a line that is not a ready line, or another `PROTOCOL_VERSION`, the request that started it fails with `helper-unavailable`.
-- If the helper answers with something that is not a response of the protocol, that request fails with `internal`.
+- If the helper exits while requests run, they fail with `helper-exited` and its sessions are gone. The next request starts a new helper, and the [client](/database/api/client#retry-rules) reopens sessions where safe.
+- If `start` throws, or the helper sends no valid ready line within `readyTimeoutMs`, or reports another `PROTOCOL_VERSION`, the request that started it fails with `helper-unavailable`.
+- If the helper answers with something that is not a protocol response, that request fails with `internal`.
 
 ### HelperProcess
 
-A running helper as the host sees it: lines in, lines out. [`spawnHelper`](#spawnhelper) makes one from a path, and a test of the host can write a fake.
+A running helper as the host sees it: lines in, lines out. [`spawnHelper`](#spawnhelper) makes one from a path, and a host test can write a fake.
 
 | Member             |                                              |
 | ------------------ | -------------------------------------------- |
@@ -72,7 +70,7 @@ A running helper as the host sees it: lines in, lines out. [`spawnHelper`](#spaw
 const helper = spawnHelper(path, { args, env, onLog });
 ```
 
-Runs the helper binary at `path` and returns a `HelperProcess` that speaks one JSON message per line over its stdin and stdout.
+Runs the helper binary at `path` and returns a `HelperProcess`.
 
 `SpawnHelperOptions`:
 
@@ -82,9 +80,7 @@ Runs the helper binary at `path` and returns a `HelperProcess` that speaks one J
 | `env`   | `Readonly<Record<string, string>>` | Variables added over the environment of this process. |
 | `onLog` | `(line: string) => void`           | Hears each line the helper writes to stderr.          |
 
-A trailing `\r` is dropped from each line, and a line of megabytes is cut in linear time. A path that cannot run calls `onLog` with the reason and `onExit` with `(null, null)`, so the host answers `helper-unavailable`. An exit listener registered after the process ended receives the same code and signal.
-
-The signal lets a host distinguish an unexpected crash from an intentional stop such as `SIGTERM`. Existing one-argument listeners still work. A custom `HelperProcess` may omit the signal; consumers should treat `undefined` as unknown.
+A path that cannot run calls `onLog` with the reason and `onExit` with `(null, null)`, so the host answers `helper-unavailable`. An exit listener added after the exit still receives the code and signal. The signal tells a crash from an intentional stop such as `SIGTERM`. A custom `HelperProcess` may omit it, so treat `undefined` as unknown.
 
 ## helperPath
 
@@ -98,13 +94,13 @@ if (path === null) {
 const host = createDatabaseHost({ start: () => spawnHelper(path) });
 ```
 
-Finds the helper for this machine, or returns `null` when there is none. It looks in this order:
+Finds the helper for this machine, or returns `null`. It looks in this order:
 
-1. `ADECORE_DATABASE_HELPER`, a path to another build. It is returned as is, without checking that it exists, so a wrong path fails when the helper starts instead of quietly running another one.
-2. The binary of the platform package the package manager installed (`@adecore/database-<platform>-<arch>`). The platform may have none, or the install may have left optional dependencies out. It maps `app.asar` to `app.asar.unpacked`, so an Electron app unpacks the platform packages; see [Getting started](/database/guide/getting-started#package-the-helper).
-3. The release build in a checkout of the repository (`helper/target/release/adecore-database`), when the package runs from the `src` of that checkout, such as a linked one read through the `source` condition. The published package has no `helper` folder, so an install never looks there.
+1. `ADECORE_DATABASE_HELPER`, returned unchecked, so a wrong path fails at start instead of running another build.
+2. The installed platform package (`@adecore/database-<platform>-<arch>`), with `app.asar` mapped to `app.asar.unpacked`; see [Getting started](/database/guide/getting-started#package-the-helper).
+3. The release build in a linked checkout (`helper/target/release/adecore-database`), when the package runs from its `src`.
 
-A binary the app packages itself, outside the platform packages, is the app's to find: pass its path to `spawnHelper`.
+For a binary packaged elsewhere, pass its path to `spawnHelper`.
 
 `HelperPathOptions` is for tests:
 
@@ -129,4 +125,4 @@ if (parsed.ok) {
 }
 ```
 
-Checks the envelope and the params of the method and returns a `ParsedRequest`. `handle` calls it; call it yourself to route, log or rate limit requests before they reach the host. [Security](/database/guide/security#shape) lists the rules.
+Checks the envelope and the method's params and returns a `ParsedRequest`. `handle` calls it; call it yourself to route, log or rate limit requests first. [Security](/database/guide/security#shape) lists the rules.

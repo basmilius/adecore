@@ -1,6 +1,6 @@
 # Popover
 
-A popup of content anchored to a trigger, as a compound component on Base UI's popover. Use it for something a person reads or fills in; a list of actions is a [`Menu`](/ui/overlays/menu).
+A popup of content anchored to a trigger, as a compound component on Base UI's popover. For a list of actions, use a [`Menu`](/ui/overlays/menu).
 
 ```tsx
 import { Popover } from '@adecore/ui';
@@ -21,16 +21,16 @@ import { Popover } from '@adecore/ui';
 
 ## Variants
 
-`variant` decides the surface. `menu`, the default, is the padded card menus use. `picker` is a card whose content runs to its edges, such as a search field on top of a list. `plain` leaves the surface to you.
+`variant` sets the surface. `menu`, the default, is the padded menu card. `picker` runs content to the edges, such as a search field over a list. `plain` leaves the surface to you.
 
 <Demo src="overlays/popover-picker" />
 
 ## Placement
 
-A popover opens under its trigger, lined up with its start, 8 pixels away. `Popover.Popup` takes the same placement props as [`Menu.Popup`](/ui/overlays/menu#placement).
+A popover opens 8 pixels under its trigger, start-aligned. `Popover.Popup` takes the placement props of [`Menu.Popup`](/ui/overlays/menu#placement).
 
 ## Keyboard
 
-Opening moves focus into the popup, Escape closes it, and focus goes back to the trigger.
+Focus moves into the popup on open. Escape closes it and focuses the trigger.
 
 `PopoverPopupProps` and `PopupVariant` are exported types.

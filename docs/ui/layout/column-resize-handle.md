@@ -1,6 +1,6 @@
 # ColumnResizeHandle
 
-An invisible strip over the free edge of a column or a row, which starts a drag from [`useColumnResize`](/ui/hooks/use-column-resize). The column needs `position: relative` and draws its own border.
+An invisible strip on the free edge of a column or row that starts a drag from [`useColumnResize`](/ui/hooks/use-column-resize). The column needs `position: relative` and draws its own border.
 
 ```tsx
 import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
 
 <Demo src="layout/column-resize-handle" fill />
 
-`from` is the edge the column hangs from, the same value you hand the hook; the handle is an 8 pixel strip on the opposite edge, with a resize cursor. It takes the pointer only and is not in the tab order, so a size that has to be reachable from the keyboard needs another way in, such as a setting.
+`from` is the edge the column hangs from, as passed to the hook. The handle is an 8 pixel strip on the opposite edge. It is pointer only, so offer keyboard users another way, such as a setting.
 
 ## Props
 

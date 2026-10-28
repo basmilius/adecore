@@ -1,6 +1,6 @@
 # Export reference
 
-Every name each entry point exports, types included, by the path you import it from. An entry links to its source, where each export has its full type.
+Every name each entry point exports, types included. Each entry links its source, which has the full types.
 
 | Entry | Exports |
 | --- | --- |

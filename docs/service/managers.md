@@ -1,6 +1,6 @@
 # Managers
 
-A manager puts a definition on disk and starts, restarts and stops the service through the platform's own commands. Creating one runs nothing and registers nothing, so there is nothing to dispose.
+A manager writes a definition to disk and starts, restarts and stops the service through the platform's commands. Creating one has no side effects and needs no disposal.
 
 ```ts
 import { launchdManager, systemdManager, taskSchedulerManager, type ServiceManager } from '@adecore/service/manager';
@@ -14,32 +14,32 @@ import { diskFiles, runCommand } from '@adecore/service/system';
 | --- | --- |
 | `kind` | `'launchd'`, `'systemd'` or `'task-scheduler'`. |
 | `path` | Where the definition lives. |
-| `isInstalled()` | Whether a definition is on disk. It does not look at a running process. |
+| `isInstalled()` | Whether a definition is on disk, not whether the service runs. |
 | `read()` | The definition on disk, or `null`. |
 | `install(definition)` | Writes the definition when it differs from the one on disk. Returns `true` only when it replaced a different one; a first install returns `false`. |
 | `start()` | Starts the service from the definition on disk. |
-| `restart()` | Stops the running service and starts it from the definition on disk, which is how a new definition or a new binary takes over. Returns a promise. |
-| `stop()` | Stops the running service. The definition stays. |
-| `uninstall()` | Removes the definition, so nothing starts the service again. A running service keeps running until `stop()`. |
+| `restart()` | Stops the service and starts it from disk, so a new definition or binary takes over. Returns a promise. |
+| `stop()` | Stops the service. The definition stays. |
+| `uninstall()` | Removes the definition. A running service keeps running until `stop()`. |
 | `linger` | systemd only; see [Lingering](#lingering). |
 
-Every member but `restart` is synchronous. A manager has no queue, lock or cancellation: run one change at a time, and wait for `restart` before the next. A step that fails throws an `Error` that reads `<command> failed (<code>): <output>`; there is no error class of its own. A failing step does not undo the ones before it: a systemd `install` whose `enable` fails leaves the new unit on disk.
+Every member but `restart` is synchronous. A manager has no queue or lock, so run one change at a time and await `restart`. A failed step throws an `Error` that reads `<command> failed (<code>): <output>`, and earlier steps stay done. A systemd `install` whose `enable` fails leaves the new unit on disk.
 
 ## launchd
 
-`launchdManager(options)` keeps the definition at `<home>/Library/LaunchAgents/<label>.plist` and runs `/bin/launchctl` in the `gui/<uid>` domain, the session of a logged-in person.
+`launchdManager(options)` keeps the definition at `<home>/Library/LaunchAgents/<label>.plist` and runs `/bin/launchctl` in the `gui/<uid>` domain.
 
 | `LaunchdOptions` | |
 | --- | --- |
 | `label` | The label of the spec. |
 | `uid` | The person's user id. |
 | `home` | Their home folder. |
-| `logFile` | The log file of the spec. `install` creates its folder, since a job whose log cannot open never starts. |
+| `logFile` | The log file of the spec. `install` creates its folder. |
 | `run` | A `CommandRunner`. |
 | `files` | A `ServiceFiles`. |
 | `sleep(ms)` | Resolves after `ms` milliseconds; `restart` waits with it. |
 
-`install` writes the property list but loads nothing. `start` runs `kickstart` when the label is loaded and `bootstrap` when it is not. `restart` runs `bootout`, waits until the label is gone (25 times 200ms at most) and runs `bootstrap`, which fails when the old job still holds the label. `stop` runs `bootout` when the label is loaded and ignores its result. `uninstall` only removes the file.
+`install` writes the property list but loads nothing. `start` runs `kickstart` when the label is loaded, else `bootstrap`. `restart` runs `bootout`, waits for the label to go and runs `bootstrap`, which throws when the old job does not exit in time. `stop` runs `bootout` and ignores its result. `uninstall` only removes the file.
 
 ## systemd
 
@@ -53,40 +53,42 @@ Every member but `restart` is synchronous. A manager has no queue, lock or cance
 | `run` | A `CommandRunner`. |
 | `files` | A `ServiceFiles`. |
 
-`install` writes a changed unit and runs `daemon-reload`, then `enable` every time, so the unit starts at the next login. It starts nothing. `start` and `restart` run `start` and `daemon-reload` plus `restart`. `stop` runs `stop` and ignores its result. `uninstall` runs `disable`, removes the file and runs `daemon-reload`, all without checking the results.
+`install` writes a changed unit, runs `daemon-reload` and always runs `enable`, so the unit starts at the next login. It starts nothing. `start` runs `start`, and `restart` runs `daemon-reload` and `restart`. `stop` runs `stop` and ignores its result. `uninstall` runs `disable`, removes the file and runs `daemon-reload`, ignoring results.
 
 ### Lingering
 
-A user unit stops when the person's last session ends. `manager.linger?.enabled()` asks `loginctl show-user <user> --property=Linger --value` and is true only when it prints `yes`. `manager.linger?.enable()` runs `loginctl enable-linger <user>` and throws when that fails. Nothing calls it for you, and there is no way back through the package. It changes the person's account for every user service, so ask them first.
+A user unit stops when the person's last session ends. `manager.linger?.enabled()` is true only when `loginctl show-user <user> --property=Linger --value` prints `yes`. `manager.linger?.enable()` runs `loginctl enable-linger <user>` and throws on failure. Nothing calls it for you, and the package cannot undo it. It affects every user service of the account, so ask the person first.
 
 ## Task Scheduler
 
-`taskSchedulerManager(options)` registers the task in the root of the person's Task Scheduler library with `schtasks.exe`, from a copy of the definition it keeps at `definitionFile`. A task for oneself with an `InteractiveToken` takes no admin and stores no password.
+`taskSchedulerManager(options)` registers the task in the root of the person's Task Scheduler library with `schtasks.exe`, from a copy of the definition at `definitionFile`. It needs no admin rights and stores no password.
 
 | `TaskSchedulerOptions` | |
 | --- | --- |
-| `taskName` | The name of the task, which has to be the label of the spec: a stop finds the task's processes by it. |
+| `taskName` | The name of the task. It must equal the spec's label, which `stop` uses to find the processes. |
 | `definitionFile` | Where the copy of the definition lives; `path` is this file. |
-| `logFile` | The log file of the spec. `install` creates its folder, since `cmd.exe` makes none and the task ends without it. |
+| `logFile` | The log file of the spec. `install` creates its folder. |
 | `run` | A `CommandRunner`. |
 | `files` | A `ServiceFiles`. |
 | `sleep(ms)` | Resolves after `ms` milliseconds; `restart` waits with it. |
 
-`isInstalled` is true when the copy is on disk and `schtasks /Query` finds the task. `install` writes a changed copy and runs `schtasks /Create /XML /F` when the copy changed or the task is gone; it starts nothing. Since the task runs again every minute, `stop` ends the tree under the task's `cmd.exe` with `taskkill /T /F`, since `/End` ends that one process and leaves the program running, then runs `/End` and `/Change /DISABLE`, and `start` runs `/Change /ENABLE` before `/Run`: a stopped task stays stopped, also at the next logon, until something starts it. `restart` ends the tree the same way and runs `/End`, waits until the task no longer runs (25 times 200ms at most), then starts it; it reads the state through `Get-ScheduledTask` in PowerShell, because `schtasks` writes it in the language of the system. `uninstall` runs `/Delete /F` and removes the copy, without checking the result. A deleted task cannot be stopped through the manager any more, so stop it first.
+`isInstalled` is true when the copy is on disk and `schtasks /Query` finds the task. `install` runs `schtasks /Create /XML /F` when the copy changed or the task is gone, and starts nothing.
+
+`stop` kills the process tree with `taskkill /T /F`, then ends and disables the task, so it stays stopped across logons. `start` enables the task and runs it. `restart` kills the tree, waits for the task to stop and starts it. `uninstall` deletes the task and the copy without checking the result. The manager cannot stop a deleted task, so stop it first.
 
 ## Picking the platform
 
-`platformServiceManager(platform, { launchd, systemd, taskScheduler })` returns the launchd manager on `darwin`, the systemd manager on `linux`, the Task Scheduler manager on `win32` when `taskScheduler` is given, and `null` elsewhere. `PlatformServiceOptions` needs the launchd and systemd options in full. Check for `null` before you call `serviceDefinition`, which throws on an unsupported platform.
+`platformServiceManager(platform, { launchd, systemd, taskScheduler })` returns the launchd manager on `darwin`, the systemd manager on `linux`, the Task Scheduler manager on `win32` when `taskScheduler` is given, and `null` elsewhere. `PlatformServiceOptions` requires the launchd and systemd options. Check for `null` before you call `serviceDefinition`, which throws on an unsupported platform.
 
 ## Adapters
 
-A `CommandRunner` is `(command, args) => CommandResult`, where `CommandResult` is `{ code, stdout, stderr }`. It is synchronous on purpose: a service is often stopped while the app quits, and quitting cannot wait on a promise. `ServiceFiles` has `read(path)`, which returns the text or `null`, `write(path, text)`, `remove(path)` and `makeDirectory(path)`, which creates every parent.
+A `CommandRunner` is `(command, args) => CommandResult`, where `CommandResult` is `{ code, stdout, stderr }`. It is synchronous so a service can stop while the app quits. `ServiceFiles` has `read(path)` (text or `null`), `write(path, text)`, `remove(path)` and `makeDirectory(path)`, which creates every parent.
 
-`@adecore/service/system` holds the adapters that touch the machine. `runCommand` uses `spawnSync` without a shell, with stdin closed, no console window on Windows and a 15 second timeout per command; a missing exit code becomes `1` and a spawn error lands in `stderr`. `diskFiles` reads with `readFileSync`, creates the parent folder before it writes and removes a file with `force`. Its `read` returns `null` on any error, a missing permission included; pass a stricter adapter where that difference matters.
+`@adecore/service/system` holds the real adapters. `runCommand` uses `spawnSync` without a shell, with a 15 second timeout per command. A missing exit code becomes `1`, and a spawn error lands in `stderr`. `diskFiles` creates parent folders on write. Its `read` returns `null` on any error, including a missing permission, so pass a stricter adapter where that matters.
 
 ## Testing
 
-Pass a runner that records each command and a `Map` for files, and every step runs in a test without `launchctl`, `systemctl` or a real wait:
+With a recording runner and a `Map` for files, every step runs in a test without `launchctl`, `systemctl` or a real wait:
 
 ```ts
 import { launchdManager, type CommandRunner, type ServiceFiles } from '@adecore/service/manager';

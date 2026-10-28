@@ -13,7 +13,7 @@ import { Tree } from '@adecore/ui';
 | Part | What it is |
 | --- | --- |
 | `Tree.Root` | The container, with `role="tree"`. Name it with `aria-label` or `aria-labelledby`. `overflow` says what a row wider than the tree does. |
-| `Tree.Row` | One `role="treeitem"`, 25 pixels tall, with its `level`, `selected` state, indentation guides and the accent outline under the keyboard. |
+| `Tree.Row` | One `role="treeitem"`, with its `level`, `selected` state, indentation guides and the accent outline under the keyboard. |
 | `Tree.Chevron` | The button that opens or closes a branch without selecting its row. |
 | `Tree.ChevronSlot` | The empty space of a chevron, so a leaf lines up with the branches beside it. |
 | `Tree.Label` | The name, cut off at the end. |
@@ -25,13 +25,13 @@ Every part takes `className`, `ref` and Base UI's `render` prop, except `Tree.Ch
 
 ## Rows wider than the tree
 
-By default a row keeps its width and `Tree.Label` cuts the name off at the end. With `overflow="scroll"` on `Tree.Root` a row keeps everything it holds whole, and every row slides sideways together when a person scrolls sideways over the tree, the way a [`FileTree`](/ui/display/file-tree) does. The rows keep their background and the vertical scroll stays where it is; a thin bar shows how far the rows moved while a person scrolls or nears the bottom edge. The bar stays at the bottom edge of the tree however few rows it has, so give the tree the height it may fill and `overflow-y-auto`. It keeps 8 pixels under the last row for itself, so leave the bottom padding off the tree.
+By default `Tree.Label` cuts a long name off at the end. With `overflow="scroll"` on `Tree.Root`, rows stay whole and slide sideways together on a sideways scroll, as in a [`FileTree`](/ui/display/file-tree). A thin bar at the bottom edge shows the shift, so give the tree the height it may fill and `overflow-y-auto`, and leave its bottom padding off.
 
-`level` starts at 1, and each level indents 16 pixels and draws a guide for every ancestor. `joinedStart` and `joinedEnd` square the corners between adjacent selected rows; compute them from the visible rows. They change the look only.
+`level` starts at 1; each level indents and draws a guide for every ancestor. `joinedStart` and `joinedEnd` square the corners between adjacent selected rows; compute them from the visible rows.
 
 ## Keyboard and focus
 
-A row handles no key and is no tab stop by itself. This tree with one branch keeps one tab stop that moves with the arrow keys, opens and closes the branch with the left and right arrows, and activates a leaf on Enter:
+A row handles no key and is no tab stop by itself. This tree keeps one tab stop that the arrow keys move. Left and right close and open the branch, and Enter activates a leaf:
 
 ```tsx
 import { useRef, useState, type KeyboardEvent } from 'react';
@@ -152,6 +152,6 @@ export function ObjectTree() {
 }
 ```
 
-Selection here does not follow focus, and there is no selection with a modifier, no typeahead and no virtualization; those belong to the navigation of a larger model. The ref map holds only the rows that are drawn, so a larger tree draws a row before it focuses it. When a branch closes or a node disappears, move the focus to a parent or a neighbor first.
+This example has no selection with a modifier, typeahead or virtualization. A larger tree draws a row before it focuses it. When a branch closes or a node disappears, move the focus to a parent or neighbor first.
 
 The [reference](/ui/display/tree/reference) lists every prop and covers loading, controls and menus. [`DatabaseExplorer`](/database/views/explorer) is a complete tree built on these parts.

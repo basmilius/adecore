@@ -1,6 +1,6 @@
 # Windows
 
-`createWindows` holds the app's windows, each showing what its key names, such as a project, or nothing yet. A key belongs to one window at a time: opening it again raises the window that has it. The windows that were open when the app quit open again at the next start, each where it was left.
+`createWindows` holds the app's windows. Each shows what its key names, such as a project, or nothing yet. A key belongs to one window at a time, so opening it again raises that window. The windows open at quit reopen at the next start, each where it was left.
 
 ```ts
 import { createWindows, createWindowState, fileStorage } from '@adecore/shell';
@@ -27,17 +27,24 @@ windows.attach(app);
 app.whenReady().then(() => windows.restore());
 ```
 
-`attach` answers what every app with a set of windows does with its app's events: a second instance raises the window in front, a click on the dock icon with no window open opens the last session again, a quit that goes ahead keeps its windows in the session, pending bounds are written at quit, and off macOS the app quits with its last window while that window stays in the session. [Quitting](#quitting) covers an app that asks first.
+`attach` handles the app events:
 
-`create` builds and loads the window; the package passes the bounds to construct it with and follows the window from then on, so `create` never calls `windowState.track` itself. A new window whose key has no bounds of its own sits a little beside the one in front.
+- A second instance raises the window in front.
+- A dock click with no window open restores the last session.
+- A quit keeps its windows in the session and writes pending bounds.
+- Off macOS the app quits with its last window, which stays in the session.
 
-An app that kept its one window under a key of its own before it had several passes that key as `formerKey`: the first window after the change opens where that window stood. A window without a key keeps its bounds under the key `'start'`.
+[Quitting](#quitting) covers an app that asks first.
 
-`origin` says why the window opens: `session` for one that was open at the last quit, `first` for the one window of a start without a session, `opened` for one something asked for. These are the `WindowOrigin` type. A page can then tell a cold start, which may open what a person had last, from a new window, which starts empty. `onFront` runs once a window came to the front, when `focused()` already answers it.
+`create` builds and loads the window with the bounds it gets. The package tracks the window from then on, so `create` never calls `windowState.track`. A key without saved bounds opens a little beside the window in front.
+
+An app that used to keep its single window under its own key passes that key as `formerKey`, so the first window opens where the old one stood. A window without a key keeps its bounds under `'start'`.
+
+`origin`, a `WindowOrigin`, says why the window opens: `session` (open at the last quit), `first` (the one window of a start without a session) or `opened` (asked for). It lets a page tell a cold start from a new, empty window. `onFront` runs once a window is in front and `focused()` returns it.
 
 ## What a window shows
 
-A window can come to show something else, as when its page opens a project from a start screen. The page says so, and the shell answers whether it may:
+A window can switch to another key, as when its page opens a project from a start screen. The page asks, and the shell answers whether it may:
 
 ```ts
 // The app's own handler; `fromPage` is its check of the sender.
@@ -47,35 +54,35 @@ handleFromApp('window:claim', (event, key: unknown) => {
 });
 ```
 
-`claim` is false when another window already shows the key; that window comes to the front instead, and the page stays where it was. `null` lets a key go. From a claim on, the window's bounds are kept under its new key.
+`claim` returns false when another window already shows the key. That window comes to the front and the page stays where it was. `null` releases the key. After a claim, the window's bounds are kept under its new key.
 
-`open(key)` is for the shell's own reasons to open a window, such as a menu item or a page asking for a project in a new window. `open(null)` always opens a new one.
+`open(key)` opens a window for the shell's own reasons, such as a menu item. `open(null)` always opens a new one.
 
-`move(window)` puts what a window shows into a new window and leaves the old one without a key, with no moment in between where nobody has it. The old page then shows its empty state.
+`move(window)` moves what a window shows into a new window and leaves the old one without a key. The old page then shows its empty state.
 
-Both take a `WindowPoint` as a second argument, `{ x, y }` on the screen, where the new window's top left corner goes, such as under the pointer that dragged something out of another window. A window that is raised instead stays where it is.
+Both take an optional `WindowPoint`, `{ x, y }` on screen, for the new window's top left corner, such as under the pointer of a drag. A window that is raised instead stays put.
 
 ## Keys a window keeps
 
-A window can keep keys besides the one it shows, such as the projects of its tabs. `hold(window, keys)` sets them and answers the keys the window has now: a key another window shows or keeps stays with that window. A kept key is the window's like the one it shows, so `claim` and `open` for it raise this window; `holderOf(key)` names the window, so the app can tell its page to show the key.
+A window can keep keys besides the one it shows, such as the projects of its tabs. `hold(window, keys)` sets them and returns the keys the window now has. A key another window shows or keeps stays with that window. `claim` and `open` for a kept key raise its window, and `holderOf(key)` returns that window, so the app can tell its page to show the key.
 
-`detach(window, key, at)` takes a key the window shows or keeps into a new window, as when a tab is dragged out. `transfer(key, window)` hands a key to another window to keep, out of the one that had it, as when the tab is dropped on that window; its page then shows the key with `claim`. `windowAt(point, except)` is the window under a point on the screen, the one last in front first, for where such a drop lands.
+`detach(window, key, at)` moves a shown or kept key into a new window, as when a tab is dragged out. `transfer(key, window)` hands a key to another window, as when the tab is dropped there. Its page then shows the key with `claim`. `windowAt(point, except)` returns the window under a screen point, most recently in front first.
 
 ## What a page keeps
 
-`setState(window, state)` keeps a string for the window across a quit, such as the tabs its page had open. The shell never reads it. At the next start the session hands it back as the fourth argument of `create`, `state`, for that window only; a window opened any other way gets `null`. Put it in the address the window loads, so a reload finds it there too. A session file keeps the states in a list beside the keys, so a shell from before states still opens the windows, without them.
+`setState(window, state)` keeps a string for the window across a quit, such as its open tabs. The shell never reads it. At the next start, `create` gets it back as its fourth argument, `state`. A window opened any other way gets `null`. Put it in the window's URL so a reload finds it too.
 
 ## Who asked
 
-Every IPC handler resolves its window from the sender instead of assuming one: `fromPage(event.sender)` answers only for the page of an app window, so it is also the check of who may speak for the app. `fromContents` also knows the window of a `<webview>` inside a page, which Electron gives no window of its own, so a guest's context menu opens over the right window; it never decides who may call a handler. What has no sender, such as a second instance, a notification or a menu command, goes to `focused()`, the window last in front. `send(channel, ...args)` reaches every window, for what the whole app shares. `keyOf(window)` is the key a window shows, and `all()` lists the open windows.
+Every IPC handler resolves its window from the sender. `fromPage(event.sender)` answers only for the page of an app window, so it doubles as the check of who may speak for the app. `fromContents` also resolves a `<webview>` inside a page, for example to open a guest's context menu over the right window. Never use it to authorize a handler. Events without a sender, such as a second instance or a menu command, go to `focused()`, the window last in front. `send(channel, ...args)` reaches every window. `keyOf(window)` returns the key a window shows, and `all()` lists the open windows.
 
 `WindowsOptions` and `Windows` are exported types.
 
 ## Quitting
 
-A window that closes leaves the session, so closing one of three windows opens two next time. A window that closes because the app quits stays in it, and the next start opens all of them. `attach` tells the two apart: once `before-quit` went by and no listener kept the app open, the windows that close belong to the quit. Off macOS, where the app quits with its last window, that window stays in the session too.
+A window that closes leaves the session, so closing one of three windows opens two next time. A window closed by a quit stays in it. Off macOS the last window, which quits the app, stays in the session too.
 
-An app that asks before quitting, or has something to finish first, passes `confirmQuit`. It runs once per quit, before any window closes, and the quit waits until it answers. `true` lets the quit go ahead, `false` keeps the app as it was, and a throw lets the quit go ahead, so a broken check never traps the app. A window that closed on its way to the quit, the last one off macOS, opens again on a `false`.
+An app that asks before quitting, or must finish something first, passes `confirmQuit`. It runs once per quit, before any window closes, and the quit waits for it. `true` lets the quit go ahead and `false` cancels it. A throw lets the quit go ahead, so a broken check never traps the app. On `false`, a window that already closed for the quit (the last one off macOS) reopens.
 
 ```ts
 windows.attach(app, {
@@ -89,6 +96,6 @@ windows.attach(app, {
 });
 ```
 
-`update` is true for a quit an [update install](/shell/updater#installing) started. `AttachOptions` and `QuitRequest` are exported types. Once `confirmQuit` says yes, the quit is asked again in a task of its own; `setTimeout` in the options replaces that timer in a test.
+`update` is true for a quit an [update install](/shell/updater#installing) started. `AttachOptions` and `QuitRequest` are exported types. `setTimeout` in the options replaces the timer that retries the quit, for tests.
 
-`quit()` and `resume()` stay for an app that does not pass `confirmQuit` and decides in its own `before-quit` listener: `quit()` once the quit goes ahead, `resume()` when it does not happen after all. A listener that only calls `event.preventDefault()`, such as to hide the app instead, needs neither: a quit held back that way marks nothing.
+Without `confirmQuit`, an app that decides in its own `before-quit` listener calls `quit()` once the quit goes ahead and `resume()` when it is cancelled. A listener that only calls `event.preventDefault()`, for example to hide the app, needs neither.

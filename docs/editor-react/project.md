@@ -12,54 +12,54 @@ The `host` is what the app allows the features to do. Every field is optional.
 | `files`                                 | Reads, drafts, saves and renames files; see [workspace edits](#workspace-edits)                                                                                                   |
 | `keymap`, `apple`                       | The same resolved [key table](/editor/options#keymaps) and platform as the engine                                                                                                 |
 | `i18n`                                  | The i18next instance the features read their words from; the default instance without one                                                                                         |
-| `panelBodyHeight`, `onPanelResize(height)` | The height in pixels of the list-and-preview area of the peek and call hierarchy panels (180 without one, kept between 88 and four fifths of the editor), and the call that says where a person's drag of the bottom edge ended, so the app can remember it |
+| `panelBodyHeight`, `onPanelResize(height)` | The body height in pixels of the peek and call hierarchy panels (180), and the call that reports a person's resize so the app can keep it |
 | `openPlace(place)`                      | Opens another file at a zero-based position; the features call it to go to a definition elsewhere                                                                                 |
 | `openExternal(url)`                     | Opens a web address outside the editor, from a [document link](/editor-react/language-features#document-links) or a server's `window/showDocument`; a new browser window without it |
-| `onServerMessage(message)`              | A `ServerMessage` of a server: one to show a person (`kind: 'show'`) or a line for its log (`'log'`); without it the messages are not shown |
+| `onServerMessage(message)`              | A `ServerMessage` to show a person (`kind: 'show'`) or log (`'log'`); dropped without it                                                                                         |
 | `pathOfUri(uri)`                        | The path to show for a URI, or `null`; without it, `file:` URIs under `folder` are made relative                                                                                  |
 | `serverNames(uri)`                      | The names of the servers of a document, for the cards                                                                                                                             |
 | `problemSource`                         | Where [`project.problems`](#problems) reads its reports; the service's diagnostics without one |
 | `notify(notification)`                  | Shows a short `success` or `error` message with an `id` and a `title`, such as a toast                                                                                            |
-| `clipboard` | The `ClipboardHistory` that Paste from History lists; a new one that lives as long as the project without one |
-| `templates`, `saveAsLiveTemplate(draft)`, `openTemplateSettings()` | The [`TemplateRegistry`](/editor-react/templates#the-registry) of the project (the built-in templates only, living as long as the project, without one), the call that Save as Live Template makes with a `LiveTemplateDraft`, and the call that opens the host's template settings |
-| `editHistoryLimit` | How many places [Last Edit Location](/editor-react/navigation#edit-locations) remembers; 150 without one |
-| `resolveSnippetVariable(name, context)` | Synchronous snippet overrides; `undefined` delegates to built-ins or an editable unknown-variable placeholder. The `SnippetVariableContext` describes one caret before insertion. |
+| `clipboard` | The [`ClipboardHistory`](#clipboard-history) that Paste from History lists; a new one per project without it |
+| `templates`, `saveAsLiveTemplate(draft)`, `openTemplateSettings()` | The [`TemplateRegistry`](/editor-react/templates#the-registry) (built-in templates only without it), the call Save as Live Template makes with a `LiveTemplateDraft`, and the call that opens the host's template settings |
+| `editHistoryLimit` | How many places [Last Edit Location](/editor-react/navigation#edit-locations) remembers; 150 |
+| `resolveSnippetVariable(name, context)`, `snippetTransformWorker` | [Snippet variables](/editor-react/completion#variables-and-indentation) and the [transform worker](/editor-react/completion#isolated-snippet-transforms) |
 | `suggestNames(request, signal)`         | Suggests new names during a rename, from any source the app picks                                                                                                                 |
 
-`openPlace` only asks. The app opens the file, and when the editor of that file puts its caret on the line, the feature moves it to the right column (`takeCaret`). `jumpTo(place)` does the same from outside an editor, such as a problems panel, and records the last caret in the history.
+`openPlace` only asks. The app opens the file; when that editor puts its caret on the line, the feature moves it to the column (`takeCaret`). `jumpTo(place)` does the same from outside an editor, such as a problems panel, and records the last caret in the history.
 
 ## Documents
 
-`EditorLanguage` acquires the document of its URI from the project. The first editor of a URI opens it on the service and sends its changes. A second editor of the same URI joins that document and sends nothing, since both would report the same edit. When the editor that sends closes, the next one takes over and opens the document again with its own text. After the last one, the project closes the document.
+`EditorLanguage` acquires the document of its URI from the project. The first editor of a URI opens it on the service and sends its changes. Later editors of the same URI join it and send nothing. When the sending editor closes, the next one takes over. After the last one, the project closes the document.
 
-`acquire(uri, languageId, editor, { serve: false })` registers an editor whose document no server serves, such as plain text. The project counts it as open (`openEditors()` lists one editor per URI, in the order the documents opened) but sends nothing to the service, and its handle's `service` is `unservedLanguageService()`. A later served acquire of the same URI opens the document then, and its handle gets the project's service. `EditorLanguage` takes the same choice as `serve` in its `EditorLanguageOptions`; its `served` field says what it chose, and its `service` is the one to ask about this document. Every feature asks through `language.service`, so the features of an unserved document stay inert.
+`acquire(uri, languageId, editor, { serve: false })` registers an editor no server serves, such as plain text. It counts as open (`openEditors()` lists one editor per URI, in opening order), but its handle's `service` is `unservedLanguageService()`, so its features stay inert. A later served acquire opens the document on the service. `EditorLanguage` takes the same `serve` in its `EditorLanguageOptions`; `served` says what it chose, and `language.service` is the service for this document.
 
-Two editors of one file share a document, not a text. Keeping their texts the same is the app's work, for example with [`setText`](/editor/editing#replacing-the-text) in the other editor.
+Two editors of one file share a document, not a text. The app keeps their texts equal, for example with [`setText`](/editor/editing#replacing-the-text).
 
-Changes made while the document is opening wait for it. `document.ready` rejects when opening failed. Later failures of a change or a close are swallowed, so a service reports its own errors.
+`document.ready` rejects when opening failed. Later failures of a change or close are swallowed; the service reports its own errors.
 
-The features ask for symbols, folds, inlay hints, semantic colors, code actions and code vision once the document is open, after an edit, and when the service fires `onProvidersChanged` for the document. `language.onProvidersChanged(listener)` is that signal for one editor: it runs once the document is open and on every change the service fires for it.
+The features ask for symbols, folds, inlay hints, semantic colors, code actions and code vision when the document opens, after an edit, and when the service fires `onProvidersChanged`. `language.onProvidersChanged(listener)` is that signal for one editor.
 
 ## Clipboard history
 
-Every copy and cut made in an editor of the project goes into `project.clipboard`, a `ClipboardHistory`, newest first. `new ClipboardHistory(options)` takes a `limit` (100 entries), a `maxLength` (10,000,000 UTF-16 units in all, the oldest going first), the `entries` a host kept, `onChange(entries)` to keep them again, and a `clock`. `add(text, { wholeLines })` puts a text on top and moves a repeated text up instead of keeping it twice, `remove(entry)`, `promote(entry)` and `clear()` change it, and `subscribe(listener)` hears every change. An `entry` has the `text`, whether it was `wholeLines` (a copy of bare carets, which pastes back above the lines of bare carets) and the time it was `at`.
+Every copy and cut in the project's editors goes into `project.clipboard`, a `ClipboardHistory`, newest first. `new ClipboardHistory(options)` takes a `limit` (100 entries), a `maxLength` in UTF-16 units, the `entries` a host kept, `onChange(entries)` to keep them again, and a `clock`. `add(text, { wholeLines })` puts a text on top, moving a repeat up. `remove(entry)`, `promote(entry)` and `clear()` change it, and `subscribe(listener)` hears every change. An entry has its `text`, `wholeLines` (copied from bare carets) and the time `at`.
 
-`language.pasteHistory.open()` lists the entries in a pick list, as the `pasteFromHistory` key (`Mod+Shift+V`) does: one line each, with line breaks shown as `⏎`, the whole text as the preview, typing to narrow the list, Shift with the arrows to choose several entries, and Delete to forget them. Enter pastes the chosen entries in list order, joined by line breaks, at every caret and with indent on paste, as a paste from the clipboard does. The text is also put on the system clipboard, and a single entry moves to the top of the history. When nothing was copied yet the editor announces it instead.
+`language.pasteHistory.open()` lists the entries in a pick list, as `pasteFromHistory` (`Mod+Shift+V`) does. Typing narrows the list, Shift with the arrows picks several, and Delete forgets them. Enter pastes the chosen entries, joined by line breaks, at every caret, as a normal paste does. The text also goes to the system clipboard.
 
-`pasteAsPlainText` (`Mod+Alt+Shift+V`) is a view command: it pastes the text of the system clipboard without moving it to the indentation of its line. It does nothing where the clipboard cannot be read.
+`pasteAsPlainText` (`Mod+Alt+Shift+V`) pastes the system clipboard without reindenting it. It does nothing where the clipboard cannot be read.
 
 ## Workspace edits
 
-`project.applyWorkspaceEdit(edit)` makes an edit of a language server, such as a rename across files. `applyWorkspaceEdit(edit, host)` is the same function for an app without a project; its `WorkspaceEditHost` has `editorOf(uri)` and `files`.
+`project.applyWorkspaceEdit(edit)` applies a language server's edit, such as a rename across files. `applyWorkspaceEdit(edit, host)` does the same without a project; its `WorkspaceEditHost` has `editorOf(uri)` and `files`.
 
-It plans the edit first with [`planWorkspaceOperations`](/lsp/documents#resource-operations), so an edit that does not fit changes nothing. Then, just before the first step runs, it checks again that every open editor still holds the text and the version the plan was read from, and that the file of a delete holds no unsaved work, also where an earlier move in the edit took it from. Then it goes through the steps in order, and each text step and each delete checks that again right before it runs, since the steps before it are awaited. A step that no longer fits stops the edit there; the steps before it stay applied:
+It plans the edit first with [`planWorkspaceOperations`](/lsp/documents#resource-operations), so an edit that does not fit changes nothing. Before each step it checks that open editors still hold the planned text and version, and that a delete or overwrite loses no unsaved work. A step that no longer fits stops the edit there. Steps that already ran stay applied; nothing rolls back.
 
 - A file open in an editor takes its edits as one undo step.
 - Any other file becomes an unsaved draft through `files.stage`. Nothing is written on a server's word alone.
-- When the edit moves files, the drafts are saved through `files.save` and the moves go through `files.rename`, since a move and the edits that come with it are one change.
-- A file the edit creates is made through `files.create`, once, with the text every step of the edit writes into it. One that is there already is refused, unless the create says `ignoreIfExists`; then the edits after it go to that file. A create or a move that says `overwrite` over a file that is there needs `files.supportsOverwrite`; without it the edit is refused as if the file could not be replaced. With it, `overwrite` wins over `ignoreIfExists`, as the protocol says. A create empties the file and writes the text of the edit (`files.create(path, text, { overwrite: true })`), and an editor that still holds the file is set to that text. A move replaces the target (`files.rename(from, to, { overwrite: true })`); closing or reloading an editor open on the replaced target is the host's. Either is refused when the target, or anything under a folder target, has unsaved work (`files.isUnsaved`, or an open editor when the host cannot tell), checked once more right before the step runs.
-- A file or folder the edit deletes goes through `files.delete`. A delete that would lose unsaved work is refused.
-- A version in the edit must be the one of the editor. Give the host `versionOf(uri)` for that (`project.applyWorkspaceEdit` uses `service.versionOf` when the service has it). The version is only enforced when the host reports versions; without it the check of the text stands in. A version for a file no editor holds is always refused.
+- With moves in the edit, the drafts are saved through `files.save` and the moves go through `files.rename`.
+- A created file goes through `files.create`, with all the text the edit writes into it. An existing target is refused unless the edit says `ignoreIfExists`. `overwrite` needs `files.supportsOverwrite`. Closing or reloading an editor on a replaced target is up to the host.
+- A deleted file or folder goes through `files.delete`.
+- A version in the edit must match the editor's. The host gives `versionOf(uri)` (`project.applyWorkspaceEdit` uses `service.versionOf`); without it, the text check stands in. A version for a file no editor holds is refused.
 
 `ProjectFiles` is the app's side:
 
@@ -76,29 +76,27 @@ It plans the edit first with [`planWorkspaceOperations`](/lsp/documents#resource
 | `isFolder(path)`               | Optional. Whether the path is a folder                                                                               |
 | `supportsOverwrite`            | Optional flag. Whether `create` and `rename` take `overwrite`; without it an overwrite is refused                    |
 
-The permission checks belong in these. The operations the host supports follow what `ProjectFiles` has: `rename`, `create` and `delete`; a host that announces an operation its `ProjectFiles` cannot carry out gets that edit refused as unsupported. `supportedResourceOperations(files)` lists them, and is the value to pass as the session's `resourceOperations` so servers only ask for what can be done. Without `isUnsaved`, a delete of a file an editor holds is refused, since its state is unknown; for a folder the host gives `openUris()` so open documents under it are found, and without that a recursive delete is refused. Without `isFolder`, deleting anything that is no text file, or whose kind is unknown, needs `recursive`.
+The permission checks belong in these methods. An edit that needs a method `ProjectFiles` lacks is refused. Pass `supportedResourceOperations(files)` as the session's `resourceOperations`, so servers only ask for what can be done. Without `isUnsaved`, deleting a file an editor holds is refused, and a recursive delete needs `openUris()` on the host. Without `isFolder`, deleting anything but a text file needs `recursive`. Without `exists`, `ignoreIfNotExists` cannot be honored, so `create` and `rename` must refuse an existing target themselves.
 
-Telling the servers is the host's, inside these methods, the way it is for a move: after `rename`, `create` or `delete` succeeded, call ``project.didCreateFiles`or`project.didDeleteFiles`(and the session's`didRenameFiles` for a move). For a file the person makes or deletes outside a server's edit, ask first and apply what comes back:
+The host tells the servers, inside these methods. After `rename`, `create` or `delete` succeeds, call `project.didCreateFiles` or `project.didDeleteFiles` (or the session's `didRenameFiles`). For a file the person creates or deletes outside a server's edit:
 
-- `project.willCreateFiles(targets)` and `project.willDeleteFiles(targets)` return the `WorkspaceEdit` the servers want made before the files are made or deleted, or `null`. Apply it with `project.applyWorkspaceEdit`.
+- `project.willCreateFiles(targets)` and `project.willDeleteFiles(targets)` return the `WorkspaceEdit` the servers want first, or `null`. Apply it with `project.applyWorkspaceEdit`.
 - `project.didCreateFiles(targets)` and `project.didDeleteFiles(targets)` tell the servers afterwards.
 
-A target is an absolute path, a file unless it is `{ path, directory: true }`. Only the files the servers' filters take are sent. The service must have the matching optional `willCreateFiles`, `didCreateFiles`, `willDeleteFiles` and `didDeleteFiles` methods; without them these are no-ops. The edit executor itself sends nothing: a create or delete step of a server's edit goes through `files.create` and `files.delete`, which tell the servers.
+A target is an absolute path, or `{ path, directory: true }` for a folder. Only files the servers' filters take are sent. A service without the matching optional `willCreateFiles`, `didCreateFiles`, `willDeleteFiles` and `didDeleteFiles` makes these no-ops.
 
-Without `exists`, what `read` has no text for is of unknown existence. A move or delete of it is planned and the machine decides, `ignoreIfNotExists` cannot be honored, and a create or move onto it is planned as no overwrite, so `create` and `rename` must refuse a target that is there. A folder that only exists because an earlier move in the same edit made it is looked for where it was and refused.
-
-`WorkspaceEditHost` also takes `versionOf(uri)`, `isReadOnly(uri)` and `openUris()`. A read only editor is refused before any step runs, from `isReadOnly(uri)` or else the editor's own `isReadOnly()`; an editor that can say neither is found out when its step runs, and the steps before it stay applied. A failure halfway is never rolled back: the steps that ran stay done.
+`WorkspaceEditHost` also takes `versionOf(uri)`, `isReadOnly(uri)` and `openUris()`. A read only editor, from `isReadOnly(uri)` or the editor's own `isReadOnly()`, refuses the edit before any step runs.
 
 ## Problems
 
-`project.problems` is a `ProjectProblems` store of every file's problems, for a problems panel. `subscribe` and `getSnapshot` fit `useSyncExternalStore`. A `ProblemFile` has a `path` and its `rows`; a `ProblemRow` has the `diagnostic` and the `server` that reported it. Rows go worst first, then in file order, and files by path. Hints stay in the editor and are left out. A report sorts only the rows of its own file, the snapshot is made when it is first read, and a clean file reported clean again tells nobody.
+`project.problems` is a `ProjectProblems` store of every file's problems, for a problems panel. `subscribe` and `getSnapshot` fit `useSyncExternalStore`. A `ProblemFile` has a `path` and its `rows`; a `ProblemRow` has the `diagnostic` and the `server` that reported it. Rows go worst first, then in file order, and files by path. Hints are left out.
 
 ```tsx
 const files = useSyncExternalStore(project.problems.subscribe, project.problems.getSnapshot);
 const counts = countsOf(files); // { error, warning, info }
 ```
 
-The reports come from the service's diagnostics unless the host hands a `problemSource`: a function that passes every `ProblemReport` (`path`, `server`, `diagnostics`) to its listener and returns the function that stops it. That fits a machine that also reports files no editor of this page holds. The `path` is a stored path, as in a `ProblemFile`, and a report replaces the earlier one of the same server for that file. The project stops the source when it is disposed. `serviceProblems(service, pathOf)` is the default source, and `new ProjectProblems(source)` builds a store outside a project.
+Without a `problemSource`, the reports come from the service's diagnostics. A `problemSource` passes every `ProblemReport` (`path`, `server`, `diagnostics`) to its listener and returns its stop function; use it to report files no editor holds. A report replaces the earlier one of that server for that file. `serviceProblems(service, pathOf)` is the default source, and `new ProjectProblems(source)` builds a store outside a project.
 
 ```ts
 const project = new ProjectLanguage(service, {

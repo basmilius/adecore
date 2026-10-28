@@ -12,11 +12,11 @@ The marks of the agent CLIs and the dot of an account's color.
 | `ProviderLogo({ provider, size?, className? })` | `@adecore/agents-react/providers` | The mark of a `UsageProvider`, decorative.                                                    |
 | `AccountDot({ color, className? })`         | `@adecore/agents-react/providers` | An account's color: one of the host's `accents` by id, or the app's accent for any other.     |
 
-`size` is in pixels, 14 by default. Every mark comes from `@adecore/agents-react/providers`.
+`size` is in pixels, 14 by default.
 
 ## A mark for a kind the host adds
 
-`AgentIcon` knows the marks of the built-in kinds. A host that offers a kind of its own, such as one it runs through [`createAcpProvider`](/agents/acp), gives it a mark once with `configureAgentMarks` from `@adecore/agents-react`, before the first render and beside `configureChatStorage`. Every place that draws an agent's mark takes it from there: the pickers, the thread, the welcome, the run settings, the task rows and the providers pane.
+A kind of your own, such as one run through [`createAcpProvider`](/agents/acp), gets its mark once with `configureAgentMarks` from `@adecore/agents-react`, before the first render. Every view that draws an agent's mark uses it.
 
 ```ts
 import { configureAgentMarks } from '@adecore/agents-react';
@@ -27,4 +27,4 @@ configureAgentMarks({
 });
 ```
 
-An `AgentMark` is one SVG path (`path`, several shapes in one `d`) drawn in `currentColor`, with a `title` for screen readers and the box it was drawn in (`viewBox`, `0 0 24 24` when absent). A mark given for a built-in kind replaces the built-in one; a kind with no mark at all is drawn as a robot. A later call replaces the whole set.
+An `AgentMark` is one SVG `path` in `currentColor`, with a `title` for screen readers and an optional `viewBox` (`0 0 24 24` by default). A mark for a built-in kind replaces it. A later call replaces the whole set.

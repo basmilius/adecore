@@ -1,6 +1,6 @@
 # Scatter and series legend
 
-With `rows="points"` a `Chart.Root` draws a scatter: every row is a point of its own at its x and its value, `group` puts the points in series, and a `Chart.Line` connects the points of each series in the order of the data. The cursor, the keyboard and `onActivate` work per point instead of per bucket. Models by intelligence against what a task costs, on a log axis, with the frontier of the best value, a label with a mark at the end of each line, a legend with search and groups beside it, and one point picked:
+With `rows="points"`, `Chart.Root` draws a scatter. Every row is a point at its x and value, `group` sorts points into series, and `Chart.Line` connects each series in data order. The cursor, keyboard and `onActivate` work per point. Models by intelligence against cost, on a log axis, with a frontier, end labels and a legend:
 
 <Demo src="charts/models-by-cost" />
 
@@ -44,39 +44,39 @@ const CostChart = createChart<ModelCost>();
 
 `rows` takes a `ChartRows`: `'buckets'` (the default) or `'points'`. On a point chart:
 
-- Each row stands at its x and the value of the first `Chart.Point` or `Chart.Line`. A row whose x or value is missing is a gap: it gets no point and breaks its line, so a measurement that is not there is never drawn as a straight line between its neighbors.
-- `group` puts the rows in series, in the order a key first appears, and `groupLabel` names them. Without `group` all points are one series.
-- `rowKey` is the key of a row for `selected`, `activeX` and `onActiveXChange`, its index by default. `rowLabel` names a point beside its series, such as the effort of a model.
-- A linear value axis covers the points and leaves zero out, since a point needs no ground. `step: 10` in `y` puts a tick every 10, with the ends rounded out to it, on a column chart too.
-- `xScale` is `'linear'`, `'log'` or `'time'`. `xOptions` (a `ChartXOptions`) fixes the ends of a linear x axis: `{ min: 0 }` lets a linear cost start at nothing. On a `log` axis it only widens the range, to the whole decades around it: `{ min: 0.05, max: 5 }` runs from 0.01 to 10. A `log` axis runs over whole decades and ticks on each of them; where they do not fit, it keeps both ends and ticks on every second, third or later decade between them, as long as the ticks stay evenly apart. Where no such stride fits, only the ends keep a tick.
+- Each row stands at its x and the value of the first `Chart.Point` or `Chart.Line`. A row without an x or value gets no point and breaks its line.
+- `group` sorts rows into series, in order of first appearance, and `groupLabel` names them. Without `group`, all points are one series.
+- `rowKey` identifies a row for `selected`, `activeX` and `onActiveXChange` (its index by default). `rowLabel` names a point within its series.
+- A linear value axis does not include zero. `step: 10` in `y` ticks every 10, on column charts too.
+- `xScale` is `'linear'`, `'log'` or `'time'`. `xOptions` (a `ChartXOptions`) fixes the ends of a linear axis, such as `{ min: 0 }`. On a `log` axis it widens the range to whole decades: `{ min: 0.05, max: 5 }` runs from 0.01 to 10. Log ticks fall on decades, thinned evenly when they do not fit.
 
-`Chart.Point` draws a dot per point. Without a `tone` each series takes the next chart color; `tone` also takes a function of the row, as on a column. The point under the cursor and every picked point grow, a picked point gets a ring, and so does the point the keyboard is on. `Chart.Line` takes the same function of the row, and colors each series by its first row. The props are `ChartPointProps`.
+`Chart.Point` draws a dot per point. Without a `tone`, each series takes the next chart color; `tone` also takes a function of the row. The point under the cursor grows, and picked and keyboard points get a ring. `Chart.Line` colors each series by its first row. The props are `ChartPointProps`.
 
-`dimmed` dims a point to 25%. A series whose points are all dimmed dims its line and its end label too, so an app brings one series forward by dimming the others, as the demo does while the pointer is on a name in the legend.
+`dimmed` dims a point. A series with all points dimmed dims its line and end label too, so dimming the others brings one series forward.
 
 ## Cursor, keyboard and picks
 
-The pointer takes the nearest point within 16px, and leaving it clears the cursor. Dashed guides run from the point to both axes, with its x and its value written on the axes over their ticks; every picked point keeps its guides. `onActiveXChange` hears the key of the point, or `null`.
+The pointer takes the nearest point within 16px. Dashed guides run from the point to both axes, with its x and value written on them; picked points keep their guides. `onActiveXChange` receives the point's key, or `null`.
 
-The plot stays one stop for the keyboard. Left and Right move along a series, Up and Down to the same place in the previous or the next series, Home and End to the ends of the series, and Escape clears. A point is read as its series, its label, its x under the title of the x axis and its value: "Atlas 5, high, Cost per task $0.74, Intelligence 71". A point and a line with the same label are read once.
+The plot is one tab stop. Left and Right move along a series, Up and Down to the same place in the previous or next series, Home and End to the series ends, and Escape clears. A point reads as "Atlas 5, high, Cost per task $0.74, Intelligence 71".
 
-With `onActivate` every point is a `role="button"` with `aria-pressed`, reached through `aria-activedescendant`: Enter, Space and a click call it. What a pick means, such as the reference of a comparison, stays with the app; `selected` takes the keys it picked.
+With `onActivate`, every point is a `role="button"` with `aria-pressed`: Enter, Space and a click call it. `selected` takes the picked keys.
 
-`Chart.Tooltip` works per point as well, with the series and the label of the point on top and its x under the title of the axis. `Chart.Legend` lists the series of the groups with their color. `Chart.Table` gives the label of a point its own column next to its x, and leaves out a row without an x or a value, as the chart draws no point for it.
+`Chart.Tooltip` works per point. `Chart.Legend` lists the series. `Chart.Table` gives a point's label its own column and leaves out rows without an x or value.
 
 ## Frontier
 
-`Chart.Frontier` draws a wide soft band through the points no other point beats on both axes: none is at least as good on x and on value, and better on one of them. By default a lower x and a higher value are better, as with a cost and a score; `lowerX={false}` turns the x around for a speed, `higherY={false}` the value for a time. `width` is the width of the band in pixels (14), and `tone` its color, `--border` by default, which is an alpha over what lies behind it. Put it before the lines, so it stays under them. The props are `ChartFrontierProps`.
+`Chart.Frontier` draws a soft band through the points no other point beats on both axes. By default a lower x and a higher value are better. `lowerX={false}` flips the x, `higherY={false}` the value. `width` is the band width in pixels (14) and `tone` its color (`--border`). Put it before the lines. The props are `ChartFrontierProps`.
 
 ## End labels
 
-`Chart.EndLabels` writes a label right of the plot at the last point of each series, with a thin line in the color of the series back to its point. Labels that would come nearer than 24px push apart, up and down, and stay inside the plot; where there is no room for all of them at 24px, they come closer. The plot gives up `width` pixels on the right for them: 118, or 156 in a chart wider than 750px.
+`Chart.EndLabels` writes a label right of the plot at the last point of each series, with a line back to the point. Labels push apart to stay readable. The plot gives up `width` pixels on the right for them (118, or 156 above 750px).
 
-Its children get a `ChartPointSeries` (`key`, `label`, `rows` and `color`) and return what the label holds, such as a logo and a name. The label is HTML and takes the color of the series as `currentColor`. Without children it writes the label of the series. The props are `ChartEndLabelsProps`.
+Its children get a `ChartPointSeries` (`key`, `label`, `rows` and `color`) and return the label content, which takes the series color as `currentColor`. Without children it writes the series label. The props are `ChartEndLabelsProps`.
 
 ## Series legend
 
-`SeriesLegend` lists many series beside a chart: a search, groups that turn on or off as a whole, a toggle per series and a highlight while the pointer or the focus is on one. It needs no `Chart.Root` around it, so it fits a sidebar. It only reports: `hidden` and `onHiddenChange` hold the keys that are off, `highlighted` and `onHighlightedChange` the one the pointer is on. What turning a series off means, such as leaving its rows out of `data`, stays with the app.
+`SeriesLegend` lists many series beside a chart, with a search, group toggles, a toggle per series and a highlight on hover or focus. It needs no `Chart.Root`. It only reports: `hidden`/`onHiddenChange` hold the keys that are off, and `highlighted`/`onHighlightedChange` the one under the pointer. The app decides what hiding means, such as leaving rows out of `data`.
 
 ```tsx
 <SeriesLegend
@@ -94,14 +94,14 @@ Its children get a `ChartPointSeries` (`key`, `label`, `rows` and `color`) and r
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
-| `items`, `label` | `SeriesLegendItem[]`, `string` | | Required. The series, and the name of the list for a screen reader. |
+| `items`, `label` | `SeriesLegendItem[]`, `string` | | Required. The series, and the list name for a screen reader. |
 | `hidden`, `onHiddenChange` | `string[]` | | Required. The keys of the series that are off. |
-| `highlighted`, `onHighlightedChange` | `string \| null` | | The series under the pointer or the focus. A series that is off is never highlighted. |
-| `groups` | `SeriesLegendGroup[]` | | The groups in their order, each with a button that turns its series on or off together. An item whose `group` is not among them is left out. |
-| `mark` | `(item) => ReactNode` | | Drawn before the name in the color of the item. |
-| `search` | `string \| false` | "Search" | The placeholder and the name of the search field; `false` leaves it out. |
-| `query`, `onQueryChange` | `string` | | Controls the search, so an app can clear it with the rest of its filters. |
-| `empty` | `string` | "Nothing matches." | What the list says when the search finds nothing. |
-| `size` | `'sm' \| 'md'` | `'sm'` | The height of a row: 28px, or 36px for a touch screen. |
+| `highlighted`, `onHighlightedChange` | `string \| null` | | The series under the pointer or focus. Hidden series are never highlighted. |
+| `groups` | `SeriesLegendGroup[]` | | The groups in order, each with a toggle for all its series. Items in no listed group are left out. |
+| `mark` | `(item) => ReactNode` | | Drawn before the name in the item's color. |
+| `search` | `string \| false` | "Search" | The search placeholder and name; `false` drops it. |
+| `query`, `onQueryChange` | `string` | | Controls the search. |
+| `empty` | `string` | "Nothing matches." | Shown when the search finds nothing. |
+| `size` | `'sm' \| 'md'` | `'sm'` | Row height: 28px, or 36px for touch. |
 
-A `SeriesLegendItem` has a `key`, a `label`, and optionally a `name`, a `group`, a `color`, `disabled` for a series with nothing to show, and a `status` that says why a series shows less than it could ("Turned off"), under its name and in its hint. `name` is the full name a screen reader and the hint give where the list shows a short one, such as the model with its lab, and the search finds it too. The props are `SeriesLegendProps`.
+A `SeriesLegendItem` has a `key` and a `label`, and optionally a `name` (the full name for screen readers, the hint and search), a `group`, a `color`, `disabled`, and a `status` explaining why it shows less ("Turned off"). The props are `SeriesLegendProps`.

@@ -2,9 +2,9 @@
 
 ## Agent kinds
 
-`AgentKindSchema` is open: any identifier of lowercase letters, digits and hyphens that starts with a letter, at most `AGENT_KIND_MAX_LENGTH` (32) characters. A host can offer a CLI of its own under a new kind, and a client of an older version still reads a reply that names it. `KNOWN_AGENT_KINDS` lists the kinds this version knows by name (`claude`, `codex`, `gemini`, `copilot` and `apple`), `KnownAgentKind` is their type and `isKnownAgentKind` tells one apart. `AgentKind` accepts any string while an editor still completes the known ones.
+`AgentKindSchema` is open: lowercase letters, digits and hyphens, starting with a letter, at most `AGENT_KIND_MAX_LENGTH` characters. A host can offer its own CLI under a new kind, and older clients still read it. `KNOWN_AGENT_KINDS` lists the kinds this version names (`claude`, `codex`, `gemini`, `copilot`, `apple`), with the type `KnownAgentKind` and the guard `isKnownAgentKind`. `AgentKind` accepts any string and still autocompletes the known ones.
 
-A kind is not a promise of a chat for it; whether a CLI opens as a chat, in a terminal or both is a capability of its provider. Code that meets a kind it has no mark, color or behavior for falls back to a neutral one: the provider's own name from `provider.list`, a generic icon, and what its capabilities say. `UsageProviderSchema` stays closed, as every usage provider has a reader in code.
+Whether a CLI opens as a chat, in a terminal or both is a capability of its provider. For a kind without its own mark or color, fall back to the provider's name from `provider.list`, a generic icon and its capabilities. `UsageProviderSchema` stays closed, as every usage provider needs a reader in code.
 
 ```ts
 import { AgentKindSchema, isKnownAgentKind } from '@adecore/agent-contracts/agent';
@@ -33,13 +33,13 @@ const catalog = ModelCatalogDataSchema.parse({
 const selection = ModelSelectionSchema.parse({ model: catalog.defaultModel, options: {} });
 ```
 
-A catalog is the models of one provider, as a host ships it and as a newer copy can replace it; `updatedAt` orders the two. The schema asks for an ISO date and time, at least one model, a profile for every model, and a default model that is in the list. A slug is lowercase letters, digits, dots, underscores and hyphens and never starts with a hyphen, since it ends up on a command line. A profile holds the options its models take and their context size, per value of the `contextWindow` option or under `*` for one size. The schema does not check that slugs and aliases are unique, or that a `defaultChoice` names one of its choices.
+A catalog holds one provider's models. A newer copy can replace the shipped one, and `updatedAt` orders them. The schema requires an ISO date and time, at least one model, a profile per model, and a default model from the list. A slug is lowercase letters, digits, dots, underscores and hyphens, never starting with a hyphen, as it goes on a command line. A profile holds its models' options and context size, per `contextWindow` option value or under `*`. The schema does not check that slugs and aliases are unique or that a `defaultChoice` exists.
 
-`ModelSelection` is `{ model, options }`, the options a record of strings and booleans. Parsing one checks its shape, not that the provider offers that model; the host's catalog normalizes it. `ModelInfo` is a model as `provider.list` describes it, with its `options` as `ModelOptionDescriptor`s: a `select` with `choices` and a `defaultChoice`, or a `boolean` with a `defaultValue`.
+`ModelSelection` is `{ model, options }`, with options as strings and booleans. Parsing checks the shape only, and the host's catalog normalizes it. `ModelInfo` is a model as `provider.list` describes it, with `options` as `ModelOptionDescriptor`s: a `select` with `choices` and a `defaultChoice`, or a `boolean` with a `defaultValue`.
 
 ## Providers
 
-`ProviderInfo` is one CLI as `provider.list` reports it: whether it is `installed`, its `version`, its `models` and `defaultModel`, its `capabilities` and its `resumeCommand`. Draw a control only when the capability is there:
+`ProviderInfo` is one CLI as `provider.list` reports it: `installed`, `version`, `models`, `defaultModel`, `capabilities` and `resumeCommand`. Draw a control only when its capability is there:
 
 | Capability             |                                                                                      |
 | ---------------------- | ------------------------------------------------------------------------------------ |
@@ -54,14 +54,14 @@ A catalog is the models of one provider, as a host ships it and as a newer copy 
 | `compaction`           | Folding the context: `native`, as a prompt (`prompt`), or `none`.                    |
 | `reportsCost`, `reportsContextWindow`, `reportsThinking` | What the CLI tells about a turn.                   |
 | `slashCommands`        | Whether the CLI takes slash commands.                                                |
-| `goals`                | How `/goal` reaches the CLI: through calls that pause, resume and clear (`native`), as the slash command alone (`command`), or absent where the CLI has no goals. |
+| `goals`                | How `/goal` reaches the CLI: calls that pause, resume and clear (`native`), the slash command only (`command`), or absent. |
 
-`install` says how a person gets a CLI that is not on the machine yet, for an install page such as the one in the [providers pane](/agents-react/providers/providers-pane#install-page). A host that knows no way leaves it out, and so does one older than the field.
+`install` tells a person how to get a CLI that is not installed, for an install page such as the one in the [providers pane](/agents-react/providers/providers-pane#install-page). It is absent when the host knows no way.
 
 | Field         |                                                                                                   |
 | ------------- | ------------------------------------------------------------------------------------------------- |
 | `description` | One line on what the CLI is.                                                                      |
-| `commands`    | One command per system, by `ProviderPlatform`: `darwin`, `linux` and `win32`. Leave out a system the CLI does not install on in one line. |
+| `commands`    | One command per `ProviderPlatform` (`darwin`, `linux`, `win32`). Leave out a system without a one-line install. |
 | `guideUrl`    | The CLI's own install guide, optional.                                                            |
 | `signIn`      | The ways it signs in, preferred first, each a `ProviderSignIn`: `{ kind: 'command', command }` runs in a terminal, `{ kind: 'env', variable }` is a key in the environment, `{ kind: 'chat' }` asks in the first chat. |
 
@@ -75,7 +75,7 @@ ProviderInstallSchema.parse({
 });
 ```
 
-`resumeCommandFor(template, sessionId, flags = [])` fills a `resumeCommand`. It quotes the session id for a shell and puts the flags where the template has a `{flags}` word. The flags go in as they are: quote any that come from outside.
+`resumeCommandFor(template, sessionId, flags = [])` fills a `resumeCommand`. It shell-quotes the session id and puts the flags at `{flags}`. The flags go in unquoted, so quote any that come from outside.
 
 ```ts
 import { resumeCommandFor } from '@adecore/agent-contracts/model';
@@ -84,7 +84,7 @@ resumeCommandFor('example-cli {flags} --resume {id}', "it's-1", ['--read-only'])
 // example-cli --read-only --resume 'it'\''s-1'
 ```
 
-`pickerGroupsOf(providers)` splits a list into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with a separator between two groups that are not empty. `FRONTIER_PROVIDER_KINDS` holds the kinds of the frontier group (`claude` and `codex`), and `API_PROVIDER_KINDS` those of the providers billed per key (`anthropic-claude-api` and `nanogpt`); every other kind, an agent of the ACP registry too, is in `others`. `providerGroupOf(kind)` names the `ProviderPickerGroup` of one kind, which is how a list in that order knows where to draw a separator. Anything with a `kind` and a `name` goes in, so a host can order its `provider.list` reply the same way.
+`pickerGroupsOf(providers)` splits anything with a `kind` and `name` into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with separators between nonempty groups. `FRONTIER_PROVIDER_KINDS` holds the frontier kinds and `API_PROVIDER_KINDS` the providers billed per key. Every other kind goes in `others`. `providerGroupOf(kind)` returns one kind's `ProviderPickerGroup`, for drawing separators in an ordered list.
 
 ```ts
 import { pickerGroupsOf } from '@adecore/agent-contracts/model';
@@ -95,36 +95,36 @@ const ordered = [...frontier, ...others, ...api];
 
 ## Runtime modes
 
-`RuntimeModeSchema` is the permission policy of a chat, one vocabulary for every provider: `supervised`, `auto-accept-edits`, `auto` and `full-access`, from narrowest to widest. Each host adapter maps it onto its CLI; see [Providers](/agents/providers#runtime-modes) for the mapping of the built-in ones. A chat keeps the mode it asked for in `runtimeMode` and the mode the CLI confirmed in `effectiveRuntimeMode`; show the second when there is one.
+`RuntimeModeSchema` is a chat's permission policy, shared by every provider: `supervised`, `auto-accept-edits`, `auto` and `full-access`, narrowest first. Each host adapter maps it onto its CLI (see [Providers](/agents/providers#runtime-modes)). A chat keeps the requested mode in `runtimeMode` and the confirmed one in `effectiveRuntimeMode`. Show the second when present.
 
 ## Accounts
 
-An account of a CLI is one config folder of it, handed to the CLI through the variable it reads that folder from. The person signs in with the CLI itself.
+An account is one config folder of a CLI, passed through the variable the CLI reads it from. The person signs in with the CLI itself.
 
-`ProviderAccountIdSchema` is a slug: a lowercase letter, then up to 63 lowercase letters, digits, underscores or hyphens. It is never a path. No account, or an id equal to the provider's kind, is the CLI's default account.
+`ProviderAccountIdSchema` is a slug: a lowercase letter, then up to 63 lowercase letters, digits, underscores or hyphens. It is never a path. No account, or an id equal to the provider's kind, means the default account.
 
-`ProviderAccount` is `{ kind, label?, color?, enabled?, home?, shadowHome?, env? }`. Absent `enabled` is on. `home` is the config folder, `~` allowed, and absent on the default account. `shadowHome` is for Codex only: a folder of its own for the login that shares everything else with `home`. `kind` stays a plain string, so the record of a CLI an older host does not know still parses and goes back unchanged.
+`ProviderAccount` is `{ kind, label?, color?, enabled?, home?, shadowHome?, env? }`. Absent `enabled` is on. `home` is the config folder (`~` allowed), absent on the default account. `shadowHome` is Codex only: a separate login folder that shares everything else with `home`. `kind` is a plain string, so records of unknown CLIs still parse and round-trip.
 
-`ProviderAccountVariable` is `{ name, value, sensitive, valueRedacted? }`, set on the CLI's environment. The host never sends a sensitive value: it sends `value: ''` with `valueRedacted: true`, and a save that sends that back keeps the stored secret. `secretsAvailable` on the snapshot says whether the host can keep one at all.
+`ProviderAccountVariable` is `{ name, value, sensitive, valueRedacted? }`, set on the CLI's environment. The host never sends a sensitive value. It sends `value: ''` with `valueRedacted: true`, and saving that back keeps the stored secret. `secretsAvailable` on the snapshot says whether the host can store secrets.
 
-`ProviderAccountStatus` is what the CLI said about an account the last time it was asked, never stored. Its `state` is `checking`, `disabled`, `not-found`, `signed-out`, `ready`, `folder-missing`, `unavailable` or `failed`, with `email`, `plan`, `organization` and a `message` when the CLI gave them. `transcripts` is where the account writes its conversations: a chat can move to another account only when both write there.
+`ProviderAccountStatus` is the CLI's last answer about an account, never stored. Its `state` is `checking`, `disabled`, `not-found`, `signed-out`, `ready`, `folder-missing`, `unavailable` or `failed`, with optional `email`, `plan`, `organization` and `message`. `transcripts` is where the account writes conversations. A chat can move only between accounts that share it.
 
 | Request               | Payload and answer                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
-| `accounts.list`       | The snapshot: `accounts`, `statuses`, `secretsAvailable?`, `loginCommands?` (what a terminal types to sign each CLI in) and `chatLogins?` (the kinds that keep accounts but sign in from a chat). |
-| `accounts.save`       | The whole map. An id left out is removed; its folder stays.                                            |
-| `accounts.create`     | `{ kind, label, color? }`, with a label of 1 to 80 characters after trimming. Answers the snapshot and the new `id`. |
+| `accounts.list`       | The snapshot: `accounts`, `statuses`, `secretsAvailable?`, `loginCommands?` (the terminal sign-in command per CLI) and `chatLogins?` (kinds that sign in from a chat). |
+| `accounts.save`       | The whole map. A missing id is removed, and its folder stays.                                          |
+| `accounts.create`     | `{ kind, label, color? }`, with a trimmed label of 1 to 80 characters. Returns the snapshot and the new `id`. |
 | `accounts.refresh`    | Asks every CLI again and answers when all did.                                                         |
-| `accounts.watchLogin` | `{ id }`: answers at once and asks the CLI every few seconds until the account is signed in.           |
+| `accounts.watchLogin` | `{ id }`. Answers at once, then polls the CLI until the account is signed in.                          |
 
 ## Terminal agents
 
-A CLI can also run in a terminal, where the host reads its hooks. These contracts are for that, and live outside the agent tables:
+A CLI can also run in a terminal, where the host reads its hooks. These contracts live outside the agent tables:
 
-- `AgentRequestSchema` and its `AgentRequest` type carry readable terminal hook requests: `id`, `source`, `kind` (`approval` or `question`), `toolName`, nullable `title`, `text` and `createdAt`. They report what was requested; the terminal still owns its answer.
-- `AgentInfo` may include these in `requests`. It is the session a terminal runs: its `kind`, `agentSessionId`, `transcriptPath`, `status`, and `live`, which is false once the host restarted and the session can only be resumed. `SessionStatusEvent` carries it per terminal session.
+- `AgentRequestSchema` (`AgentRequest`) is a terminal hook request: `id`, `source`, `kind` (`approval` or `question`), `toolName`, nullable `title`, `text` and `createdAt`. It reports the request. The terminal still owns the answer.
+- `AgentInfo` is a terminal session: `kind`, `agentSessionId`, `transcriptPath`, `status`, optional `requests`, and `live`, false after a host restart when the session can only be resumed. `SessionStatusEvent` carries it per session.
 - `AgentResumePayload` names a session to resume.
-- `ApprovalRequest` is a permission the agent in a terminal waits on, with the `choices` to offer (`allow`, `remember` or `deny`) and an `expiresAt`. The CLI asks in its own prompt at the same time, so whoever answers first wins. `SessionApprovalsEvent` carries a session's whole pending list. `ApprovalAnswerPayload` names the choice, and `ApprovalAnswerResult.accepted` is false when the request had already settled.
-- `ApprovalPreferencePayload` says whether one client wants these requests at all. A client that never sends it gets them.
+- `ApprovalRequest` is a permission the terminal agent waits on, with `choices` (`allow`, `remember`, `deny`) and an `expiresAt`. The CLI asks in its own prompt too, and the first answer wins. `SessionApprovalsEvent` carries a session's pending list. `ApprovalAnswerPayload` names the choice. `ApprovalAnswerResult.accepted` is false when the request had already settled.
+- `ApprovalPreferencePayload` says whether a client wants these requests. A client that never sends it gets them.
 
-`SuggestedTitleSchema` is a title the CLI gave a session, at most `SUGGESTED_TITLE_LIMIT` (80) characters. A model wrote it, so show it as plain text. `SessionIdSchema` is a terminal session id, any nonempty string the client picks.
+`SuggestedTitleSchema` is a session title from the CLI, at most `SUGGESTED_TITLE_LIMIT` characters. A model wrote it, so show it as plain text. `SessionIdSchema` is a terminal session id, any nonempty string the client picks.

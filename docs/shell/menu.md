@@ -1,6 +1,6 @@
 # Application menu
 
-The page knows what has the focus, so the page builds the menu: a `MenuSpec` with a tree of `MenuNode`s, sent over IPC whenever the focus changes. The shell draws it natively and sends a picked command back by its id. Every label comes from the page, so the whole menu is in the language of the interface.
+The page knows what has focus, so it builds the menu. It sends a `MenuSpec`, a tree of `MenuNode`s, over IPC whenever focus changes. The shell draws it natively and sends a picked command back by id. Every label comes from the page, so the menu speaks the interface's language.
 
 ## The shape
 
@@ -32,7 +32,7 @@ const spec: MenuSpec<ShellAction> = {
 | `separator` | A line. |
 | `submenu` | A nested menu, which `enabled: false` greys out. |
 
-A menu in the bar may take a `MenuBarRole`. On macOS the system lists the open windows in the menu with `role: 'window'` and puts its search field in the one with `role: 'help'`; without a role neither appears. The shell leaves out a role it does not know.
+A menu in the bar may take a `MenuBarRole`. On macOS the system lists open windows in the `role: 'window'` menu and puts its search field in the `role: 'help'` menu. The shell drops a role it does not know.
 
 ```ts
 { id: 'window', label: 'Window', role: 'window', items: [{ kind: 'role', role: 'minimize', label: 'Minimize' }] }
@@ -40,7 +40,7 @@ A menu in the bar may take a `MenuBarRole`. On macOS the system lists the open w
 
 ## Drawing it
 
-`menuTemplateOf` turns a spec into a template for `Menu.buildFromTemplate`, or returns `null` for anything that is no spec. `shellItem` draws the app's own actions; return `null` to leave one out.
+`menuTemplateOf` turns a spec into a template for `Menu.buildFromTemplate`, or returns `null` for anything that is not a spec. `shellItem` draws the app's own actions. Return `null` to leave one out.
 
 ```ts
 import { createMenuCommands, createPageKeys, devToolsAccelerator, menuTemplateOf } from '@adecore/shell';
@@ -63,17 +63,17 @@ onFromApp('menu:set', (_event, spec: MenuSpec<ShellAction>) => {
 });
 ```
 
-Off macOS an accelerator is only shown, never registered: a registered one would take a key such as Ctrl+W from the page before the page saw it.
+Off macOS an accelerator is shown but never registered, so keys such as Ctrl+W reach the page.
 
 ## A key the page already had
 
-On macOS the menu fires its accelerator even when the page answered the key itself. `createMenuCommands` drops a command Electron says its accelerator fired when the page had a key with Cmd or Ctrl in the last second, as `createPageKeys` saw it. A mouse pick always runs. Electron reports a pick through accessibility or with the keyboard inside the open menu as fired by its accelerator too, so those run unless the page had such a key in that time.
+On macOS the menu fires its accelerator even when the page handled the key. `createMenuCommands` drops an accelerator-fired command when `createPageKeys` saw a Cmd or Ctrl key in the page within the last second. A mouse pick always runs.
 
-`keyBypassesPage` covers a page inside the app that never hands a key on, such as a `<webview>`: while it has the keyboard, the menu answers every key. A command reaches the page as `menu:run` with its id. Only a minimized window is shown first, so a pick from behind other work leaves the app where it is.
+`keyBypassesPage` covers an embedded page that never passes keys on, such as a `<webview>`. While it has the keyboard, the menu answers every key. A command reaches the page as `menu:run` with its id. Only a minimized window is shown first.
 
 ## The menu before the page's
 
-`staticMenuTemplate` is the menu that stands until the page sends its own, again after a reload or a crash, and while no window is open, so Quit is always there. Its View menu has no reload and no zoom roles: their accelerators would be taken before the page sees them.
+`staticMenuTemplate` is the menu that stands until the page sends its own: at start, after a reload or crash, and while no window is open, so Quit is always there. Its View menu has no reload or zoom roles, since their accelerators would take keys from the page.
 
 ```ts
 import { staticMenuTemplate } from '@adecore/shell';
@@ -91,6 +91,6 @@ Menu.setApplicationMenu(
 );
 ```
 
-`appItems` go at the top of the app menu on macOS; `quitItems` go right above Quit, in a File menu off macOS. `fileItems` get a File menu of their own on macOS and lead the File menu elsewhere. A macOS app keeps running after its last window closes, and then this menu is all a person has to open a new one. An item whose accelerator the page answers too, while the menu still stands over a page, can drop a key the page already had with `pageKeys.take()`, the way `createMenuCommands` does.
+`appItems` go at the top of the app menu on macOS. `quitItems` go right above Quit, which sits in the File menu off macOS. `fileItems` get their own File menu on macOS and lead the File menu elsewhere. On macOS this menu is the only way to open a window after the last one closes. An item whose accelerator the page also answers can call `pageKeys.take()` to drop a key the page already had, as `createMenuCommands` does.
 
 `MenuTemplateOptions`, `MenuCommandOptions`, `MenuWindow` (the part of a window a command reaches), `StaticMenuOptions`, `PageKey` and `PageKeys` are exported types.

@@ -1,6 +1,6 @@
 # ProjectSwitcher
 
-A project name in a toolbar that opens a menu of projects, recent projects and the actions of each. The app hands it the lists and handles each pick; the component keeps no project state and opens nothing itself.
+A project name in a toolbar that opens a menu of projects, recent projects and their actions. The app passes the lists and handles each pick; the component holds no project state.
 
 ```tsx
 import { ProjectSwitcher } from '@adecore/ui';
@@ -23,21 +23,21 @@ Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. Th
 
 `projects` fill the top of the menu. A nonempty `recentProjects` adds a Recent projects submenu.
 
-`onSelect(project, event)` receives the original item and the click event. `ProjectSwitcherProps<Item>` keeps the type of an item with fields of your own. The event carries the modifier keys, so the app can open a project in a new window on Cmd-click or Ctrl-click.
+`onSelect(project, event)` receives the original item and the click event, whose modifier keys let the app open a project in a new window on Cmd-click. `ProjectSwitcherProps<Item>` keeps your own item type.
 
-`current` gives the trigger its name and icon, and need not be in either list. `leading` adds a node before the current icon, such as a machine indicator with its own tooltip.
+`current` gives the trigger its name and icon, and need not be in either list. `leading` adds a node before the current icon, such as a machine indicator.
 
 ## Without a current project
 
-With `current={null}` the trigger reads its `label`, so an app whose list holds something other than projects names it in its own words. Without a `label` it reads "Projects" (`projectSwitcher.label`). A screen reader hears the same words the trigger shows. Next to a current project the accessible name joins the two, such as "Product: Studio", so it still holds the name on screen.
+With `current={null}` the trigger shows `label`, or "Projects" (`projectSwitcher.label`) without one. With a current project, the accessible name joins both, such as "Product: Studio".
 
 <Demo src="overlays/project-switcher-empty" />
 
 ## Groups
 
-The menu draws three groups: the projects, then the items in `before`, then Recent projects with the items in `children`. Put the ways to open a project in `children`, such as opening a folder or creating a project, so they share a group with Recent projects. Put what is neither in `before`. A group with nothing in it draws no separator.
+The menu has three groups: the projects, the items in `before`, and Recent projects with the items in `children`. Put ways to open a project (open a folder, create one) in `children`. Empty groups draw no separator.
 
-The same groups are `ProjectSwitcherGroups`, for a menu that opens from a trigger of its own, such as a plus at the end of a row of open projects. It takes `projects`, `recentProjects`, `before`, `children` and `onSelect` as above and goes inside a `Menu.Popup`.
+`ProjectSwitcherGroups` draws the same groups inside a `Menu.Popup` of your own, such as behind a plus button. It takes `projects`, `recentProjects`, `before`, `children` and `onSelect`.
 
 ```tsx
 <Menu.Root>
@@ -61,9 +61,9 @@ Keyboard, typeahead and submenus come from [Menu](/ui/overlays/menu). Typeahead 
 | `leading` | `ReactNode` | | |
 | `before` | `ReactNode` | | Menu items between the projects and Recent projects. |
 | `children` | `ReactNode` | | Menu items in the group of Recent projects. |
-| `label` | `string` | `projectSwitcher.label` | The trigger's text while `current` is null, and the start of its accessible name next to a current project. |
+| `label` | `string` | `projectSwitcher.label` | The trigger's text while `current` is null; prefixes the accessible name otherwise. |
 | `disabled` | `boolean` | | |
-| `tabIndex` | `number` | | On the trigger, for a switcher that leaves the tab order while its surface is not focused. |
+| `tabIndex` | `number` | | On the trigger. |
 | `open`, `defaultOpen`, `onOpenChange` | | | As on `Menu.Root`. |
 | `className` | `string` | | On the trigger. |
 | `ref` | `Ref<HTMLButtonElement>` | | The trigger. |

@@ -4,32 +4,39 @@
 
 ## Going to a definition
 
-`language.navigation.go(kind, position?)` asks for the `definition`, `declaration`, `typeDefinition` or `implementation` at the caret. One place moves the caret there, in this file or through the host's `openPlace`. Several open a pick list of places with a preview of each. Mod and a click on a name goes to its definition, and while Mod is held the name under the pointer is underlined.
+`language.navigation.go(kind, position?)` asks for the `definition`, `declaration`, `typeDefinition` or `implementation` at the caret. One result moves the caret there, in this file or through the host's `openPlace`. Several open a pick list with a preview of each. Mod+click on a name goes to its definition, and holding Mod underlines the name under the pointer.
 
-`language.pick.open(spec)` opens the same list for any choice: an anchor position, a title, groups of rows and an `accept(id)`. Up and Down move, Enter takes, Escape closes. Four optional fields change that. `filter: true` narrows the rows to those whose `search` (the label without one) contains what is typed, whatever the case, shows the query in the title line and keeps the list open while a person types. `multiple: true` lets Shift with the arrows, or Shift and a press, choose a run of rows and Mod and a press add or take away one; Enter then calls `acceptMany(ids)` with the chosen rows in list order, or with the active row when none is chosen, and without `acceptMany` it calls `accept` with the active row. `remove(ids)` handles Delete, and Backspace while the query is empty: it answers the groups that remain, and the list closes when none is left. A `PickRow` with a `mnemonic`, one character, is drawn with it in a column of its own, and typing that character, in either case, takes the row in a list that does not filter; a list that filters reads every character as part of the query. A `PickPreview` with `kind: 'text'` draws `added` as plain lines instead of changed ones. The `PickView` the popup draws has the `query` (null without `filter`) and the `chosen` ids.
+`language.pick.open(spec)` opens that list for any choice: an anchor position, a title, groups of rows and `accept(id)`. Up and Down move, Enter accepts, Escape closes. Optional fields:
+
+| Field           | Effect                                                                                                         |
+| --------------- | -------------------------------------------------------------------------------------------------------------- |
+| `filter: true`  | Typing narrows rows by their `search` (or label), case-insensitively, and shows the query in the title         |
+| `multiple: true` | Shift with the arrows or a click picks a run, Mod+click toggles one; Enter calls `acceptMany(ids)` in list order, or `accept` without it |
+| `remove(ids)`   | Handles Delete, and Backspace on an empty query; returns the remaining groups, and the list closes when none remain |
+| `onTab(backwards)` | Closes the list and passes Tab on                                                                           |
+
+A `PickRow` with a one-character `mnemonic` shows it in a column; typing it picks the row in a list without `filter`. A `PickPreview` with `kind: 'text'` draws `added` as plain lines. The popup draws a `PickView`, with the `query` (null without `filter`) and the `chosen` ids.
 
 ## Peek
 
-`language.peek.open(position?)` shows the references of a name in a panel between the lines of the editor, grouped by file, with the code of the selected one. `peek.openDefinition(position?)` does the same for definitions. The arrow keys pick a place, Enter goes there and Escape closes the panel. The code of other files is read through the project's [`files`](/editor-react/project#workspace-edits); a peek reads at most 30 files. Dragging the panel's bottom edge, or pressing the arrow keys, Home or End on it, resizes it; the host's `panelBodyHeight` and `onPanelResize` let the app remember the height (see [projects](/editor-react/project#languagehost)). The call hierarchy shares that height.
+`language.peek.open(position?)` shows the references of a name in a panel between the editor's lines, grouped by file, with the code of the selected one. `peek.openDefinition(position?)` does the same for definitions. The arrow keys pick a place, Enter goes there, Escape closes. Other files are read through the project's [`files`](/editor-react/project#workspace-edits), at most 30 per peek. Dragging the bottom edge, or the arrow keys, Home or End on it, resizes the panel; `panelBodyHeight` and `onPanelResize` on the [host](/editor-react/project#languagehost) keep the height, which the call hierarchy shares. The panel lives in an editor widget row and scrolls with the text.
 
-The panel renders into an editor widget row, so it scrolls with the text.
-
-`language.callHierarchy.open()` is the same panel for the callers and callees of a symbol; see [call hierarchy](/editor-react/call-hierarchy).
+`language.callHierarchy.open()` opens the same panel for callers and callees; see [call hierarchy](/editor-react/call-hierarchy).
 
 ## Symbols
 
-The symbols of the document are also the stops of Method Up and Down: `language.symbols` hands the editor the name of every symbol, at every depth, with `setDeclarations`. A jump that the editor reports with `onNavigate` is recorded in the history, so Back returns to where the caret left.
+`language.symbols` passes every symbol to the editor with `setDeclarations`, so they are the stops of Method Up and Down. Those jumps are recorded in the history.
 
-`language.symbolPicker.open()` opens a filter over the document's symbols, as Mod+F12 does. `:12` goes to line 12, and `#name` searches the symbols of the whole project through `workspace/symbol`, where the service supports it.
+`language.symbolPicker.open()` (Mod+F12) filters the document's symbols. `:12` goes to line 12, and `#name` searches the project through `workspace/symbol` where supported.
 
 ## History
 
-Every jump records where the caret was in the project's `NavigationHistory`, which serves all editors of the project, so Back and Forward walk across files. Two places on one line count as one, and the history keeps the last 100. `language.history.back()` and `forward()` move through it, as Mod+[ and Mod+] do on a Mac, and `recent()` lists the places in a pick list.
+Every jump records the caret's place in the project's `NavigationHistory`, shared by all its editors, so Back and Forward cross files. Places on one line count as one, and it keeps the last 100. `language.history.back()` and `forward()` (Mod+[ and Mod+] on a Mac) move through it, and `recent()` lists the places in a pick list.
 
-`NavigationHistory` is exported for a host that moves the caret itself: `record(from)`, `back(current)`, `forward(current)`, `canGoBack(current)`, `canGoForward(current)` and `recent(current)` all take `Place`s, a `uri` and a `position`.
+A host that moves the caret itself uses `NavigationHistory` directly: `record(from)`, `back(current)`, `forward(current)`, `canGoBack(current)`, `canGoForward(current)` and `recent(current)`, all with `Place`s of a `uri` and a `position`.
 
 ## Edit locations
 
-The project also remembers where it was edited, in `project.edits`, an `EditLocations`. An edit a person makes in a focused editor is recorded as an `EditPlace`, the `uri` and the selections with the primary last, once the caret has settled. An edit within three lines of the last place and with as many carets is the same place, so typing a paragraph is one stop. The list keeps 150 places, or `LanguageHost.editHistoryLimit`. The places follow later edits of their file (`map`), and `didDeleteFiles` drops those of deleted files (`forget`). Changes that come from outside the editor move the places but add none, and the list is not kept between sessions.
+`project.edits`, an `EditLocations`, remembers where a person edited. Each `EditPlace` holds the `uri` and the selections, primary last. Edits within three lines of the last place, with as many carets, count as one place. It keeps 150 places, or `LanguageHost.editHistoryLimit`. Places follow later edits of their file (`map`), and `didDeleteFiles` drops those of deleted files (`forget`). Edits from outside the editor add none, and nothing persists between sessions.
 
-`language.history.lastEdit()` goes to the previous place and `nextEdit()` to the next one, skipping the place the carets are on. In the same file they restore all the carets; in another file the project's `openPlace` opens it on the primary caret only. Neither adds to the history Back and Forward use. A caret that moves without an edit puts the walk back at the end, except the move that lands on the place a walk went to. The keymap ids are `lastEditLocation` (`Mod+Shift+Backspace`) and `nextEditLocation`, which has no chord.
+`language.history.lastEdit()` and `nextEdit()` walk the places, skipping the current one. In the same file they restore every caret; another file opens through `openPlace` on the primary caret only. Neither touches the Back and Forward history. The keymap ids are `lastEditLocation` (`Mod+Shift+Backspace`) and `nextEditLocation`, which has no chord.

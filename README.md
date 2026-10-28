@@ -38,15 +38,11 @@ The documentation is at **[adecore.dev](https://adecore.dev)**, with a live demo
 | [`@adecore/lsp`](packages/lsp)                                 | Language service contracts, JSON-RPC client, transports and fakes.                                                                                                                              | [LSP](https://adecore.dev/lsp/)                                 |
 | [`@adecore/editor-react`](packages/editor-react)               | Language feature coordination, React popups and review displays.                                                                                                                                | [editor views](https://adecore.dev/editor-react/)               |
 
-A newly transferred package stays private at `0.0.0` until it has its first npm version and Trusted Publishing is set up for it. The editor packages keep their current limits, and their docs list the work that remains.
-
 ```sh
 bun add @adecore/ui
-bun add @adecore/shell
-bun add @adecore/terminal
 ```
 
-Take them at the same version, since each version is tested against the same version of the others. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/adecore/releases) name every breaking change with what to do about it.
+Take every package at the same version, since each release is tested as a whole. While the version is `0.x`, a breaking change bumps the minor and anything else the patch. The [release notes](https://github.com/basmilius/adecore/releases) name every breaking change with what to do about it.
 
 Up to `0.13.x` the packages were `@basmilius/desktop-ui` and `@basmilius/desktop-shell`. From `0.14.0` they are `@adecore/ui` and `@adecore/shell`, with the same API; replacing the names in imports and in `package.json` is the whole migration.
 
@@ -74,7 +70,7 @@ An app can use a checkout of this repository without a build per change. Every p
 
 ## Releases
 
-A release starts as a draft GitHub release, and [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package and runs check, test and build. It sets internal dependencies to the release version and validates the packed artifacts. Then it publishes the public packages in dependency order through Trusted Publishing, with provenance, and deploys the docs. The database's platform binaries go out before the package that loads them. Private packages are skipped, and a public package cannot depend on a private one. A prerelease goes out under the `next` dist-tag and uploads the docs without making them live. The workflow publishes the GitHub release last, because a published release is immutable. Every `package.json` in the repository stays at `0.0.0`.
+A release starts as a draft GitHub release, then [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package, checks, tests, builds and validates the packed artifacts. It publishes the public packages in dependency order through Trusted Publishing, deploys the docs and publishes the GitHub release last, because a published release is immutable. A prerelease goes out under the `next` dist-tag. Every `package.json` in the repository stays at `0.0.0`.
 
 ## Issues
 

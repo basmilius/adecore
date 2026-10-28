@@ -1,10 +1,10 @@
 # Testing
 
-The views need a transport and nothing else from a host, so a test, a story or a demo can give them one that answers from memory. The demos on this site do exactly that: [`FakeAgentHost`](https://github.com/basmilius/adecore/blob/main/docs/demos/shared/agents-host.ts) answers the requests from fixtures and replies to a message a word at a time, with no process and no network.
+The views need only a transport, so a test or demo can answer from memory. The demos on this site use [`FakeAgentHost`](https://github.com/basmilius/adecore/blob/main/docs/demos/shared/agents-host.ts), which answers from fixtures.
 
 ## A transport in memory
 
-A transport is four members. One that refuses everything is enough to check that a view renders in its scope:
+A transport that refuses everything is enough to check that a view renders:
 
 ```tsx
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -27,12 +27,12 @@ const scope: ChatScope = { id: 'test', keyOf, owns: (key) => key.startsWith('tes
 const html = renderToStaticMarkup(<ChatScopeContext.Provider value={scope}>{view}</ChatScopeContext.Provider>);
 ```
 
-To draw a thread without a host, write it into the store yourself: `useChats.getState().reset(keyOf(chatId), info, items)`. To make it move, answer `chat.send` and emit `chat.event`s from the transport, the way the demos' host does.
+To draw a thread without a host, write it into the store: `useChats.getState().reset(keyOf(chatId), info, items)`. To make it move, answer `chat.send` and emit `chat.event`s from the transport.
 
 ## Storage
 
-The storage configuration is fixed on first read and cannot be reset, so a test that needs its own configuration runs in a process of its own. Use `storage: null`, or a `Map` as the adapter, and never a person's `localStorage`. See [Persistence](/agents-react/guide/persistence).
+The storage configuration cannot be reset, so a test that needs its own runs in a separate process. Use `storage: null` or a `Map` adapter. See [Persistence](/agents-react/guide/persistence).
 
 ## Words
 
-Load the four namespaces on the default `i18next` instance before rendering, or the views show their keys. A static render runs no effects, so it checks what draws, not the editor, the virtualized thread or the diff workers; those need a browser.
+Load the four namespaces on the default `i18next` instance before rendering, or the views show their keys. A static render runs no effects, so the editor, the virtualized thread and the diff workers need a browser.

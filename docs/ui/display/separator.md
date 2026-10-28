@@ -1,6 +1,6 @@
 # Separator
 
-A hairline between two groups of controls in a toolbar-like row. It carries no margin: the row's gap puts space on either side, so the line reads as a divider and not as a group of its own.
+A hairline between two groups of controls in a toolbar-like row. It has no margin; the row's gap spaces it.
 
 ```tsx
 import { Separator } from '@adecore/ui';

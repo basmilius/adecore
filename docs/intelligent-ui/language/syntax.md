@@ -1,6 +1,6 @@
 # Syntax
 
-A block is XML-like tags inside a fenced code block. This page is the grammar: the fence, declarations, tags, props, text and what happens to text that is still arriving.
+A block is XML-like tags inside a fenced code block. This page is the grammar, including how the compiler reads text that is still arriving.
 
 ## The fence
 
@@ -14,7 +14,7 @@ The build is green.
 Want the slow ones?
 ````
 
-A fence opens with three or more backticks or tildes, at most three spaces in, followed by the fence language and nothing else. It closes with the same character, at least as many times, and nothing after it. The language is `ui` unless the host [chose another](/intelligent-ui/guide/getting-started#tell-the-agent). A UI fence inside another code fence is code, not a block. A fence that is not closed yet is a block still streaming. Prose outside the fences stays Markdown.
+A fence opens with three or more backticks or tildes, indented at most three spaces, followed by the fence language and nothing else. It closes with at least as many of the same character and nothing after. The language is `ui` unless the host [chose another](/intelligent-ui/guide/getting-started#tell-the-agent). A UI fence inside another code fence is code. An unclosed fence is a block still streaming. Prose outside the fences stays Markdown.
 
 ## Declarations
 
@@ -28,9 +28,9 @@ $filters = {
 <Summary>Showing {$limit} runs</Summary>
 ```
 
-Declarations come first, one per line, before the first tag. A name starts with `$`, then a letter or an underscore. The value is literal JSON: a string, a number, a boolean, `null`, an array or a record. It may span lines while a bracket is open. A value that is not a literal is refused with `invalid_default`, and a second declaration of one name with `duplicate_declaration`.
+Declarations come first, one per line, before the first tag. A name is `$` followed by a letter or an underscore. The value is literal JSON: a string, a number, a boolean, `null`, an array or a record, spanning lines while a bracket is open. A non-literal value gets `invalid_default`, and a second declaration of one name `duplicate_declaration`.
 
-The one other declaration is a live query, `$runs = @Query("ci.runs", {branch: "main"})`. See [Live queries](/intelligent-ui/host/queries).
+The only other declaration is a live query, `$runs = @Query("ci.runs", {branch: "main"})`. See [live queries](/intelligent-ui/host/queries).
 
 ## Tags
 
@@ -39,7 +39,7 @@ The one other declaration is a live query, `$runs = @Query("ci.runs", {branch: "
 <Stats><Stat label="Tests" value={42}/></Stats>
 ```
 
-A tag is `<Name props>children</Name>`, or `<Name props/>` without children. A name starts with a letter and holds letters and digits. A closing tag closes the nearest open tag of its name and everything opened inside it; those inner tags get `unclosed_tag`. A closing tag with no open tag of its name gets `unmatched_tag`.
+A tag is `<Name props>children</Name>`, or `<Name props/>` without children. A name starts with a letter and holds letters and digits. A closing tag closes the nearest open tag of its name and everything opened inside it, and those inner tags get `unclosed_tag`. A closing tag without an open tag of its name gets `unmatched_tag`.
 
 Some components belong inside another: a `Stat` inside `Stats`, an `Item` inside `Checklist`. A child outside its parent gets `invalid_parent`, and a container refuses a child it does not hold with `invalid_child`. `Show` and `Each` may stand anywhere and pass their parent on, so an `Each` inside a `Checklist` may repeat `Item`s. Each component page lists its rule.
 
@@ -52,9 +52,9 @@ Some components belong inside another: a `Stat` inside `Stats`, an `Item` inside
 
 A prop is `name="text"`, `name='text'` or `name={expression}`. A name on its own is `true`, as in JSX: `<Choice primary>` reads as `primary={true}`. Quote strings. Put numbers, booleans, arrays, records and expressions in braces. Inside quotes a backslash escapes as in JSON: `\"`, `\'`, `\\`, `\/`, `\n`, `\t`, `\r`, `\b`, `\f` and `\uXXXX`.
 
-A braced value that is a constant becomes a static prop. Anything that reads a variable stays an expression, evaluated against state when the block draws. The compiler checks every prop against the component's schema once it can: at once for constants, and for expressions with the defaults of the block.
+A constant braced value becomes a static prop. A value that reads a variable stays an expression, evaluated against state when the block draws. The compiler checks every prop against the component's schema: constants at once, expressions with the block's defaults.
 
-A prop the component does not have is dropped with `refused_prop`, and the rest of the node still draws. A component can list a few likely misspellings of its props as `aliases` in the catalog (`time` on an `Event` for `at`): the compiler reads such a prop as the real one and reports `renamed_prop`, a warning, unless the real prop is written too. A prop written twice gets `duplicate_prop`. A value that fails the schema marks the node `invalid_props`, and the node draws as its fallback.
+An unknown prop is dropped with `refused_prop`, and the rest of the node still draws. A component may list likely misspellings as `aliases` in the catalog (`time` on an `Event` for `at`). The compiler reads an alias as the real prop and warns with `renamed_prop`, unless the real prop is written too. A prop written twice gets `duplicate_prop`. A value that fails the schema marks the node `invalid_props`, and the node draws as its fallback.
 
 ## Text
 
@@ -64,7 +64,7 @@ $fixed = ["links"]
 <Summary>Fixed {@Count($fixed)} of {@Count($found)} findings</Summary>
 ```
 
-Text between tags is a text node. A `{expression}` inside text is evaluated and written as text; it must give a string, a number, a boolean or `null`. Whitespace that holds a line break and nothing else is dropped, so tags may stand on lines of their own. A renderer writes text as inline Markdown at most; [agents-react](/agents-react/chat/intelligent-ui) allows emphasis, inline code and links.
+Text between tags is a text node. A `{expression}` in text must give a string, a number, a boolean or `null`, written as text. Whitespace that holds only a line break is dropped, so tags may stand on lines of their own. A renderer writes text as inline Markdown at most; [agents-react](/agents-react/chat/intelligent-ui) allows emphasis, inline code and links.
 
 ## CodeBlock
 
@@ -78,20 +78,20 @@ Everything between `<CodeBlock>` and `</CodeBlock>` is literal text: angle brack
 
 ## While it streams
 
-The compiler runs on every preview of a reply, so it reads text that stops anywhere.
+The compiler runs on every preview, so it reads text that stops anywhere.
 
-- A tag that is still open is an incomplete node. Its renderer draws what it has. A control is not interactive until its tag closes.
-- A quoted prop that has not closed yet holds the text received so far.
-- A half-written prop, name or expression waits for more text without a diagnosis.
-- A prop that cannot be read is reported and skipped up to the next space or the end of its tag. The tag still opens and closes, and its children and neighbors still draw; the node itself draws as its text fallback. A tag that lost a prop and is never closed ends at its own `>`.
-- After other malformed input the parser reports it and goes on at the next tag or line, so one mistake costs one line.
-- An unknown component keeps its own text fallback, and its neighbors still draw.
+- An open tag is an incomplete node, drawn with what it has. A control is not interactive until its tag closes.
+- An unclosed quoted prop holds the text received so far.
+- A half-written prop, name or expression waits for more text without a diagnostic.
+- An unreadable prop is reported and skipped up to the next space or the end of its tag. The tag still opens and closes, and its children and neighbors still draw; the node itself draws as its fallback. A tag that lost a prop and never closes ends at its own `>`.
+- Other malformed input is reported, and parsing resumes at the next tag or line, so one mistake costs one line.
+- An unknown component shows its text fallback, and its neighbors still draw.
 
 Once the reply is final, anything still open is reported: `unclosed_tag` for a tag, `incomplete_expression` for an expression.
 
 ## Diagnostics
 
-Every problem becomes a `UiDiagnostic` with a `code`, a `message`, a source range and, where it has one, the node's id. A block keeps at most `UI_LIMITS.diagnostics` of them.
+Every problem becomes a `UiDiagnostic` with a `code`, a `message`, a source range and, where it has one, the node id. A block keeps at most `UI_LIMITS.diagnostics` of them.
 
 | Code                                         | Cause                                                        |
 | -------------------------------------------- | ------------------------------------------------------------ |

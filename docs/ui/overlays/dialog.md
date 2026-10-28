@@ -1,6 +1,6 @@
 # Dialog
 
-A modal dialog for a question or a form of a few fields, as a compound component on Base UI's dialog. For one question with a typed answer, [`PromptDialog`](/ui/overlays/prompt-dialog) already has the layout.
+A modal dialog for a question or a short form, as a compound component on Base UI's dialog. For one question with a typed answer, use [`PromptDialog`](/ui/overlays/prompt-dialog).
 
 ```tsx
 import { Dialog } from '@adecore/ui';
@@ -15,19 +15,19 @@ import { Dialog } from '@adecore/ui';
 | `Dialog.Root` | Holds the open state: `open` and `onOpenChange`, or `defaultOpen`. |
 | `Dialog.Trigger` | The button that opens it. |
 | `Dialog.Popup` | The portal, the backdrop and the popup in one part. |
-| `Dialog.Title` | The heading, which is also the dialog's accessible name. `size="lg"` for a dialog with a header of its own rather than a question. |
-| `Dialog.Description` | The sentence under the title, which a screen reader reads as the dialog's description. It carries no margin. |
-| `Dialog.Text` | A further line in the description's style that is not the description: a warning, a note under a choice. |
-| `Dialog.Footer` | The buttons at the foot, with the main action last and so on the right. |
-| `Dialog.Close` | A button that closes the dialog. Hand it a `Button` through `render`. |
+| `Dialog.Title` | The heading and accessible name. `size="lg"` for a header rather than a question. |
+| `Dialog.Description` | The sentence under the title, read as the dialog's description. No margin. |
+| `Dialog.Text` | Another line in the description's style, such as a warning. |
+| `Dialog.Footer` | The buttons, main action last (on the right). |
+| `Dialog.Close` | A button that closes the dialog. Pass a `Button` through `render`. |
 
 ## Size
 
-`size="sm"` is 420 pixels wide with 20 pixels of padding, the one width every question dialog shares. Without a size the popup is as wide as its `className` says, and brings no padding.
+`size="sm"` is 420 pixels wide with 20 pixels of padding, for question dialogs. Without a size, `className` sets the width and there is no padding.
 
 ## A dialog over a dialog
 
-A dialog that opens while another is up stacks over it by itself. Its backdrop dims the first dialog too, and the first one stops taking clicks. `nested` forces the stacked layers for a dialog that always opens over another. Menus and selects inside either dialog still float above both.
+A dialog opened over another stacks over it and dims it. `nested` forces that layering for a dialog that always opens over another. Menus and selects in either dialog float above both.
 
 <Demo src="overlays/dialog-nested" />
 
@@ -40,14 +40,14 @@ A dialog that opens while another is up stacks over it by itself. Its backdrop d
 | `size` | `'sm'` | | |
 | `nested` | `boolean` | `false` | Always over another dialog. |
 | `backdrop` | `boolean` | `true` | The dim behind the dialog. |
-| `backdropClassName` | `string` | | Such as `lightbox-backdrop`, the heavier dim a picture needs. |
-| `keepMounted` | `boolean` | | Keeps the popup in the document while it is closed. |
+| `backdropClassName` | `string` | | Such as `lightbox-backdrop`, a heavier dim for a picture. |
+| `keepMounted` | `boolean` | | Keeps the popup mounted while closed. |
 
 `Dialog.Title` takes `size` `'base'` (the default) or `'lg'`. `Dialog.Description` and `Dialog.Text` take `size` `'sm'` (the default) or `'xs'`. `Dialog.Text` and `Dialog.Footer` take `render`.
 
 ## Keyboard and focus
 
-Opening the dialog moves focus into it, and Tab stays inside until it closes. Escape and a click on the backdrop close it through `onOpenChange(false)`. Closing returns focus to the trigger.
+Focus moves into the dialog and Tab stays inside. Escape and a backdrop click call `onOpenChange(false)`. Closing returns focus to the trigger.
 
 ## Types
 

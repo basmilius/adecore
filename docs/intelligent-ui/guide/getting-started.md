@@ -1,6 +1,6 @@
 # Getting started
 
-This page wires blocks end to end: the agent learns the language, the backend compiles its replies, the wire carries the blocks and the page draws them. With [`@adecore/agents`](/agents/) and [`@adecore/agents-react`](/agents-react/) most of it is configuration. Each step also shows the package on its own, for a host that has neither.
+This page wires blocks end to end: the agent learns the language, the backend compiles replies, the wire carries blocks and the page draws them. With [`@adecore/agents`](/agents/) and [`@adecore/agents-react`](/agents-react/) most of it is configuration. Each step also shows the package used on its own.
 
 ## Install
 
@@ -20,11 +20,11 @@ pnpm add @adecore/intelligent-ui
 
 :::
 
-Zod is its only dependency. The package has no React and no DOM, so the backend and the page both import it.
+The package has no React and no DOM, so the backend and the page both import it.
 
 ## Tell the agent
 
-An agent writes blocks only when it knows the language. `uiSessionNote()` returns a short note for the start of every session: the tag syntax, the rules for state, actions and expressions, the compact catalog and one example. It stays under 2,400 characters.
+`uiSessionNote()` returns a short note (under 2,400 characters) for the start of every session: the tag syntax, the rules for state, actions and expressions, the compact catalog and one example.
 
 ```ts
 import { ChatCore } from '@adecore/agents/chat';
@@ -40,11 +40,11 @@ const core = (options) =>
     });
 ```
 
-`fenceLanguage` is the info string after the opening backticks. It defaults to `UI_FENCE_LANGUAGE` (`ui`). Choose another only when replies already use `ui` for something else, and pass the same value to the note, the compiler and the session: a block in a fence the compiler does not look for stays code.
+`fenceLanguage` is the info string after the opening backticks, `UI_FENCE_LANGUAGE` (`ui`) by default. Pass the same value to the note, the compiler and the session; a fence the compiler does not look for stays code.
 
-`uiReferenceText()` is the long form, with every component's description and every group's rules. Hand it out on request, through a command or a skill the agent reads, rather than in every session.
+`uiReferenceText()` is the long form, with every component's description and every group's rules. Hand it out on request, through a command or a skill, not in every session.
 
-A host that wants a note without the optional props passes `catalog: 'names'`: the note then lists the components of each group with the props each one requires and, where a component takes its words between its tags, what those words are (`Event at (text: title)`). `detailHint` says how the agent gets the optional props of a group, such as a command the host runs. `uiGroupReference(group)` gives the text of that command: the group's description, its rules and every component with its props.
+`catalog: 'names'` shortens the note to each component's required props and text content (`Event at (text: title)`). `detailHint` tells the agent how to get a group's optional props, such as a host command. `uiGroupReference(group)` returns the text for that command: the group's description, rules and every component with its props.
 
 ```ts
 const note = uiSessionNote({ catalog: 'names', detailHint: '`tool help ui <group>` gives props' });
@@ -53,15 +53,15 @@ const inputs = uiGroupReference('inputs');
 
 ## Compile on the backend
 
-`ChatCore` compiles every assistant reply that opens a UI fence. Nothing else is needed:
+`ChatCore` compiles every assistant reply that opens a UI fence:
 
-- While a reply streams, a `UiStream` compiles it at most every 250 ms. Each preview goes to attached clients as a `delta` with `ui` and `textLength`, and never into the log.
-- When the reply is final, the compiled blocks are stored on the assistant item as `ui`. Each block gets a `revision`: a hash of the block that choices, queries and links name.
-- Diagnostics of the final blocks go into a note in front of the agent's next prompt, so it can repair its syntax.
+- While a reply streams, a `UiStream` compiles it at most every 250 ms. Each preview goes to attached clients as a `delta` with `ui` and `textLength`, never into the log.
+- `ChatCore` stores the final blocks on the assistant item as `ui`. Each block gets a `revision`, a hash that choices, queries and links name.
+- Diagnostics of the final blocks go into a note before the agent's next prompt, so it can repair its syntax.
 
-`ChatCoreOptions.intelligentUi` adds [live queries](/intelligent-ui/host/queries) and [links](/intelligent-ui/host/links). Without it a block shows its query fallback and its links stay text.
+`ChatCoreOptions.intelligentUi` adds [live queries](/intelligent-ui/host/queries) and [links](/intelligent-ui/host/links). Without it, a block shows its query fallback and links stay text.
 
-A host without `@adecore/agents` runs the stream itself. `UiStream` takes the stable options of the compiler, a clock and an `emit` for previews:
+Without `@adecore/agents`, run the stream yourself. `UiStream` takes the compiler options, a clock and an `emit` for previews:
 
 ```ts
 import { UiStream } from '@adecore/intelligent-ui/stream';
@@ -81,11 +81,11 @@ onDelta((text) => stream.update(text));
 const blocks = stream.finish(finalText);
 ```
 
-Call `update` with the whole text so far, not the newest piece. `finish` cancels a pending preview and returns the authoritative blocks. Store those and nothing else. [Compilation and streaming](/intelligent-ui/host/compilation) covers the compiler itself.
+Call `update` with the whole text so far, not the newest piece. `finish` cancels a pending preview and returns the final blocks; store only those. See [compilation and streaming](/intelligent-ui/host/compilation).
 
 ## The wire
 
-Blocks travel as JSON. `UiBlocksSchema` from `@adecore/intelligent-ui/protocol` validates them. [`@adecore/agent-contracts`](/agent-contracts/conversation) places them in the chat protocol:
+Blocks travel as JSON, validated by `UiBlocksSchema` from `@adecore/intelligent-ui/protocol`. [`@adecore/agent-contracts`](/agent-contracts/conversation) places them in the chat protocol:
 
 | Where                     | Field or request  | Schema                                                       |
 | ------------------------- | ----------------- | ------------------------------------------------------------ |
@@ -101,7 +101,7 @@ A client applies a preview only while the item's text is `textLength` long, so a
 
 ## Draw the blocks
 
-The `Timeline` of `@adecore/agents-react` draws an assistant item with `ui` through [`UiReply`](/agents-react/chat/intelligent-ui), between the reply's own Markdown. What a block may do outside itself comes from `ChatHost.intelligentUi`:
+The `Timeline` of `@adecore/agents-react` draws an item's `ui` through [`UiReply`](/agents-react/chat/intelligent-ui), between the reply's Markdown. `ChatHost.intelligentUi` decides what a block may do outside itself:
 
 ```ts
 import type { ChatHost } from '@adecore/agents-react';
@@ -118,7 +118,7 @@ const CHAT_HOST: Partial<ChatHost> = {
 };
 ```
 
-`transportFor`, `openInApp` and `openExternal` are your app's. Every callback is optional except `sendChoice`. Leave one out and the block draws the quiet version: choices stay closed, live values keep their first reading, links stay text and sources cannot be opened. `subscribe(scopeId, chatId, changed)` lets the host ask a visible block to read again, for example after a reconnect; it returns the function that stops it.
+`transportFor`, `openInApp` and `openExternal` are your app's. Every callback except `sendChoice` is optional. Without one, the block degrades: live values keep their first reading, links stay text and sources do not open. `subscribe(scopeId, chatId, changed)` lets the host ask visible blocks to read again, such as after a reconnect, and returns an unsubscribe function.
 
 A page without React evaluates a block itself:
 
@@ -131,10 +131,10 @@ state.subscribe(draw);
 draw();
 ```
 
-`evaluateUiBlock` returns `UiViewNode` objects with validated props, children and bindings. A control calls `node.bindings.value.onValueChange(next)` and a Button calls `node.onAction()`. Both change `state`, which calls `draw` again. See [State and inputs](/intelligent-ui/language/state).
+`evaluateUiBlock` returns `UiViewNode` objects with validated props, children and bindings. A control calls `node.bindings.value.onValueChange(next)` and a Button calls `node.onAction()`. Both change `state`, which calls `draw` again. See [state and inputs](/intelligent-ui/language/state).
 
 ## Choices, queries and links
 
-- A Choice sends its label and context once. The backend checks the stored block again with `resolveUiChoice`. See [Choices](/intelligent-ui/host/choices).
-- A live query reads a source the host registered, with the access the writing chat had. See [Live queries](/intelligent-ui/host/queries).
-- A File, Diff, Commit or Node becomes a chip only after the host checked it. See [Links](/intelligent-ui/host/links).
+- A Choice sends its label and context once; the backend checks it against the stored block with `resolveUiChoice`. See [choices](/intelligent-ui/host/choices).
+- A live query reads a host source with the writing chat's access. See [live queries](/intelligent-ui/host/queries).
+- A File, Diff, Commit or Node becomes a chip only after the host checks it. See [links](/intelligent-ui/host/links).

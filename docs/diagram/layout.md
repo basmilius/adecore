@@ -1,6 +1,6 @@
 # Layout
 
-`layoutOf(content)` places every node, group and edge in whole world units. It reads `meta`, `nodes`, `groups` and `edges`, so a document and its content both work. The result depends on nothing but the content: the same file gives the same layout on every machine.
+`layoutOf(content)` places every node, group and edge in whole world units. It takes a document or its content. The same content gives the same layout on every machine.
 
 ```ts
 import { layoutOf } from '@adecore/diagram';
@@ -12,48 +12,43 @@ const layout = layoutOf(diagram);
 // layout.bounds: { x, y, w, h }
 ```
 
-`nodes` and `edges` come in file order, `groups` too, but a group that wraps no node has no box and is left out. `EdgeRoute.index` is the position of the edge in the file, and `points` run from the source to the target, with the arrow head at the last one. `bounds` covers the boxes, the group labels, the corners of the edges and the edge labels, and is all zero for an empty diagram. The types are `DiagramLayout`, `NodeBox`, `GroupBox`, `EdgeRoute` and `EdgeLabelBox`.
+`nodes`, `edges` and `groups` come in file order. A group that wraps no node has no box and is left out. `EdgeRoute.index` is the edge's position in the file, and `points` run from source to target, with the arrow head at the last. `bounds` covers everything drawn and is all zero for an empty diagram. The types are `DiagramLayout`, `NodeBox`, `GroupBox`, `EdgeRoute` and `EdgeLabelBox`.
 
 ## Layers
 
-A diagram runs in columns along its direction. The column of a node, its `layer`, is the longest path to it from a node that nothing points at, counting from 0. A node without edges is in column 0.
+A diagram runs in columns along its direction. A node's `layer` is the longest path to it from a node nothing points at, counting from 0. A node without edges is in column 0.
 
-A cycle has no longest path, so it is broken first. A walk through the graph in file order leaves out every edge that points back at a node it is still inside of, and ranks what is left. Those edges are still drawn, against the flow. Which edge of a cycle is left out depends on the order of the file, so moving a node in the file can change the layout.
+To rank a cycle, the layout leaves out the edges that point back, walking in file order, and still draws them against the flow. Which edge drops out depends on file order, so moving a node in the file can change the layout.
 
 ## Order and placement
 
-Inside a column, nodes are sorted to cross fewer edges: twelve sweeps move each node to the average position of its neighbors, and the best order any sweep reached is kept. A tie keeps the order the nodes already had, which is file order at the start. The members of a group stay together, and groups keep the same order in every column. Then each node moves towards its neighbors as far as the nodes beside it allow, so a chain lines up straight.
+Inside a column, nodes are sorted to cross fewer edges, with ties kept in file order. Group members stay together, and groups keep their order across columns. Then nodes shift towards their neighbors, so a chain lines up straight. This is a heuristic: dense graphs can still cross edges, and spacing has no options.
 
-It is a heuristic, not an optimum. Dense graphs can still cross edges, and there are no options for spacing or the number of sweeps.
-
-A `down` diagram is laid out as a `right` one and mirrored across the diagonal. The boxes keep their size and their text stays upright.
+A `down` diagram is a `right` one mirrored across the diagonal, with boxes and text kept upright.
 
 ## Sizes
 
 A node's box follows from its wrapped text and its shape:
 
-- The label is `LABEL_SIZE` (14) and bold, on lines 18 apart. `sub` is `SUB_SIZE` (12), on lines 16 apart.
-- Text wraps to 280 minus the padding. A box is at least 120 wide.
-- A `diamond` wraps narrower and is twice the size of its text, so the text fits between its corners. It can end up wider than 280.
-- A `pill` widens its padding for its round ends, and a `cylinder` is 10 taller for its lid.
+- The label is bold in `LABEL_SIZE` (14). `sub` is `SUB_SIZE` (12).
+- Text wraps at 280 units minus padding. A box is at least 120 wide.
+- A `diamond` is twice the size of its text and can be wider than 280. A `pill` and a `cylinder` add room for their ends and lid.
 
-An edge label is `SUB_SIZE`, wrapped to 160, with 4 units of padding on the sides and 2 above and below.
+An edge label is `SUB_SIZE`, wrapped at 160.
 
-There is no font engine in the package, so text is estimated, never measured: a width per kind of character, measured once for common system fonts and leaning towards too wide. Text wraps at spaces, and a line break reads as a space. A font the estimate does not fit can run past its box, because exporting in another font does not change the layout. A view that draws the text itself sets it in `LABEL_SIZE` and `SUB_SIZE` and takes the lines from the layout, so it wraps where the boxes were sized for.
+Text widths are estimated from common system fonts, never measured, and lean wide. Text wraps at spaces, and a line break reads as a space. In a font the estimate does not fit, text can run past its box. A view that draws its own text sets it in `LABEL_SIZE` and `SUB_SIZE` and takes the lines from the layout.
 
 ## Groups
 
-A group is a box around its members, 20 away from them, with its label in a band of `GROUP_LABEL_BAND` (24) along the top, at `labelBox`. Groups do not nest. Nodes outside a group stay on the same side of it from column to column, so an edge between two of them does not have to cross it.
+A group is a box 20 units around its members, with its label in a band of `GROUP_LABEL_BAND` (24) along the top, at `labelBox`. Groups do not nest. Edges between nodes outside a group do not cross it.
 
 ## Edges
 
-Edges run in right angles through the space between two columns, and each gets a track of its own where it would otherwise run on top of another. An edge that skips columns passes through every column in between. Where several edges leave one side of a box, they spread along it in the order of their other ends, and they end on the outline of the shape, not on its box. A label sits in that space beside its edge, and the space grows wider when labels need the room.
-
-An edge from a node to itself is a small loop on the side of its box.
+Edges run in right angles between columns, each on its own track, and end on the outline of the shape. Edges that leave one side of a box spread along it. Labels sit beside their edge, and the space between columns widens to fit them. A self-edge is a small loop on the side of its box.
 
 ## Dragged nodes
 
-A node with a `pos` stays at that position, rounded to whole units, and gets `pinned: true`. The app writes `pos` when a person drags a node, and removes it to hand the node back to the layout.
+A node with a `pos` stays there, rounded to whole units, with `pinned: true`. The app writes `pos` when a person drags a node, and removes it to hand the node back to the layout.
 
 ```ts
 const layout = layoutOf({
@@ -68,4 +63,4 @@ const layout = layoutOf({
 // review: { x: 300, y: 201, pinned: true, layer: 1, ... }
 ```
 
-A pinned node keeps its `layer` number but takes no room in the layout, so the other nodes do not move out of its way. Its edges, and edges between two nodes in the same column, take a simpler route: out of one box, a step halfway, into the other. A group with a pinned member stretches to include it, wherever it is. Overlap is the app's to prevent.
+A pinned node keeps its `layer` but takes no room, so other nodes do not move out of its way. Its edges take a simple route with one step halfway, as do edges within one column. A group stretches to include a pinned member. The app prevents overlap.

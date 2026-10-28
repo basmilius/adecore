@@ -1,6 +1,6 @@
 # Choices
 
-Shortcuts after finished work that the person may ignore. A question the agent's turn waits on (a missing fact, a decision, a go-ahead for work it would otherwise do) is not a Choice: the agent asks with its own question tool when it has one, and otherwise in prose. A Choice sends its label and its context as a message, once, after the reply finished streaming. See [Choices](/intelligent-ui/host/choices) for what the host checks.
+Optional follow-ups after finished work. A question the turn waits on (a missing fact, a decision, a go-ahead) is not a Choice; ask it with the question tool, or in prose. A Choice sends its label and context as a message, once, after the reply finished streaming. See [choices](/intelligent-ui/host/choices) for what the host checks.
 
 <Demo src="intelligent-ui/choices" />
 
@@ -23,9 +23,9 @@ Shortcuts after finished work that the person may ignore. A question the agent's
 | `primary`  | boolean | No       | The recommended step; it stands first                                 |
 | `disabled` | boolean | No       | Shown, but cannot be picked                                           |
 
-Write a short label and a precise context. The context is the agent's next prompt, so it should say what to do without the block beside it. Both are visible before a person picks.
+Write a short label and a precise context. The context is the agent's next prompt, so it must make sense without the block. Both are visible before a person picks.
 
-The label and the context may read state. The message is evaluated with the values on screen when the person picks:
+The label and the context may read state, evaluated with the values on screen at the pick:
 
 ```ui
 $scope = "failed"
@@ -38,4 +38,4 @@ $scope = "failed"
 </Choices>
 ```
 
-A block is answered once. After a pick, every Choice and every input of the block closes, and the block says which Choice answered and when.
+A block is answered once. After a pick, every Choice and input closes, and the block shows which Choice answered and when.

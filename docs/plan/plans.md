@@ -32,9 +32,9 @@ A `Plan` has an `id`, a `rev` that every applied batch raises by one, a `created
 | `text`    | At the top or in a section            | Nothing               |
 | `step`    | At the top, in a section or in a step | Steps                 |
 
-Every item has an `id` and a `title`, and may have a `description`. A step also has optional `checks`, `state`, `note` and `unlocked`, and `by` and `at`: who set its state last and when. The app fills those two from `actor` and `now`; an agent never writes them.
+Every item has an `id`, a `title` and an optional `description`. A step also has optional `checks`, `state`, `note` and `unlocked`, plus `by` and `at` (who set its state last, and when). The app fills `by` and `at` from `actor` and `now`; an agent never writes them.
 
-Ids are lowercase letters, digits and hyphens, unique across the whole plan. Text fields have limits, in `PLAN_LIMITS`:
+Ids are lowercase letters, digits and hyphens, unique across the plan. `PLAN_LIMITS` holds the limits a plan must stay within:
 
 | Key            | Limit | Applies to                                                                    |
 | -------------- | ----- | ----------------------------------------------------------------------------- |
@@ -47,7 +47,7 @@ Ids are lowercase letters, digits and hyphens, unique across the whole plan. Tex
 | `items`        | 300   | Every item in the plan, sections and text included                            |
 | `plansPerChat` | 20    | Not checked here; a limit for the app's own list of plans in one conversation |
 
-`PlanSchema` checks fields and limits that one item can see. `validatePlan(value)` also checks what needs the whole tree (unique ids, depth, the item count, where sections and text may stand, no state on a parent) and returns `{ ok: true, plan }` or a [refusal](/plan/operations#refusals). Run it on every plan you load.
+`PlanSchema` checks each item on its own. `validatePlan(value)` also checks the whole tree (unique ids, depth, item count, placement, no state on a parent). It returns `{ ok: true, plan }` or a [refusal](/plan/operations#refusals). Run it on every plan you load.
 
 ## State
 
@@ -74,7 +74,7 @@ A step with sub-steps has no state of its own. `stepState(step)` derives it from
 | One active, done, warning or info  | `active`                                    |
 | Otherwise                          | `open`                                      |
 
-A skipped step next to open ones leaves the parent open, since nothing ran. A step with the state done, skipped, warning or info counts as finished.
+A skipped step next to open ones leaves the parent open.
 
 ## Who checks a step
 
@@ -104,7 +104,7 @@ In a `steps` plan a warning or info counts as done. In a `test` plan only `done`
 
 ## Creating a plan
 
-An agent proposes a plan as a `PlanDraft`: the same tree without `by`, `at` or `unlocked`, and with optional ids and meta. The draft schemas are strict, so a misspelled field is refused by its path instead of dropped.
+An agent proposes a plan as a `PlanDraft`. It is the same tree without `by`, `at` or `unlocked`, with optional ids and meta. The draft schemas are strict: a misspelled field is refused by its path, not dropped.
 
 ```ts
 import { createPlan, parsePlanDraft } from '@adecore/plan';
@@ -113,9 +113,9 @@ const draft = parsePlanDraft(JSON.parse(body));
 const created = draft.ok ? createPlan(draft.draft, { id: 'release', now: new Date().toISOString() }) : draft;
 ```
 
-`createPlan(draft, options)` takes a `PlanCreateOptions` and returns the new plan at `rev` 0 as `{ ok: true, plan, minted, dropped }`, or a refusal. It needs a title, from `options.meta` or the draft; `kind` defaults to `steps` and `checks` to `anyone`, and `options.meta` wins over the draft. A state in the draft is recorded as the agent's. A draft that gives a state to a step only a person checks is refused.
+`createPlan(draft, options)` takes a `PlanCreateOptions` and returns `{ ok: true, plan, minted, dropped }` at `rev` 0, or a refusal. The title comes from `options.meta` or the draft, and `options.meta` wins. `kind` defaults to `steps`, `checks` to `anyone`. A state in the draft counts as the agent's, so a state on a step only a person checks is refused.
 
-Items without an id get one from `options.mintId`, or from `randomItemId`, which makes six random lowercase letters and digits with Web Crypto. The new ids are listed in `minted`. Pass `mintId` for predictable ids in tests. An id that is already taken is minted again, and after 1000 taken ids in a row the call returns a `duplicate-id` refusal.
+Items without an id get one from `options.mintId`, or from `randomItemId` (six random lowercase letters and digits). `minted` lists the new ids. Pass `mintId` for predictable ids in tests; a `mintId` that keeps returning taken ids ends in a `duplicate-id` refusal.
 
 ## Schemas
 

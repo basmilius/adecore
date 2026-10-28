@@ -22,18 +22,18 @@ The package brings `@adecore/editor-core` and Shiki along. It has no React and n
 
 ## Styles
 
-Import the theme of [`@adecore/ui`](/ui/guide/theme) first and the editor's styles after it. The editor reads the theme's tokens for its surface, text, accent and status colors, and its own `--editor-*`, `--find-*` and `--agent-*` tokens build on those.
+Import the [`@adecore/ui`](/ui/guide/theme) theme first and the editor's styles after it. The editor's `--editor-*`, `--find-*` and `--agent-*` tokens build on the theme's.
 
 ```css
 @import '@adecore/ui/theme.css';
 @import '@adecore/editor/editor.css';
 ```
 
-An app without that theme defines the tokens itself: `--surface`, `--surface-raised`, `--surface-hover`, `--border`, `--text`, `--text-muted`, `--text-faint`, `--accent`, `--status-error`, `--status-idle`, `--status-needs-you` (find matches and warnings) and `--status-running`, the radii, `--font-sans`, `--font-mono` and the `--text-xs` and `--text-code` sizes. See [Theme and syntax](/editor/theme).
+An app without that theme defines the base tokens itself; see [Theme and syntax](/editor/theme#css-tokens).
 
 ## Mount an editor
 
-Create an engine once and mount it into an element. The editor fills the element, so the element needs a position and a size from its parent.
+Create an engine once and mount it into an element. The editor fills the element.
 
 ```ts
 import { createSmartEditorEngine } from '@adecore/editor';
@@ -49,15 +49,15 @@ const editor = engine.mount(element, {
 const stopSave = editor.onSave(() => save(editor.getText()));
 ```
 
-`text` and `theme` are the only required options; [Options and keymaps](/editor/options) lists the rest. The tokenizer above colors nothing. [Theme and syntax](/editor/theme) wires Shiki.
+`text` and `theme` are required. [Options and keymaps](/editor/options) lists the rest. The tokenizer above colors nothing; [Theme and syntax](/editor/theme) wires Shiki.
 
-Give the element something like `position: relative; height: 400px`. Inside a flex or grid layout, its parent may also need `min-height: 0`. The editor follows the element's size through a `ResizeObserver`.
+Give the element a position and size, such as `position: relative; height: 400px`. In a flex or grid layout, its parent may also need `min-height: 0`. The editor follows the element's size.
 
-Mod+S, which is Cmd+S on a Mac and Ctrl+S elsewhere, calls `onSave` listeners and nothing else. What saving means is the app's: the path, the permission and the write.
+Mod+S (Cmd+S on a Mac, Ctrl+S elsewhere) only calls the `onSave` listeners. The app does the actual saving.
 
 ## Engine options
 
-One engine can mount any number of editors. Each editor has its own document, history and decorations; the engine holds what they share.
+One engine mounts any number of editors. Each has its own document, history and decorations.
 
 | `SmartEditorEngineOptions` | Default  | Meaning                                                                             |
 | -------------------------- | -------- | ----------------------------------------------------------------------------------- |
@@ -67,11 +67,11 @@ One engine can mount any number of editors. Each editor has its own document, hi
 | `handBack`                 | `[]`     | `KeyChord`s the editor leaves alone, so the app's own shortcuts work from inside it |
 | `apple`                    | `false`  | Read Ctrl and Meta the way macOS does                                               |
 
-The tokenizer loads while the editor is already on screen and editable. A tokenizer that fails, or answers after a newer theme was set, is ignored.
+The editor is editable while the tokenizer loads. A tokenizer that fails, or answers after a newer theme was set, is ignored.
 
 ## Tear down
 
-`dispose()` removes the editor's DOM and its listeners. Call the functions that `on*` methods return when what listened goes away first. One element holds one editor: dispose the old one before mounting another.
+`dispose()` removes the editor's DOM and listeners. Call the functions `on*` methods return when a listener goes away earlier. Dispose an editor before mounting another into the same element.
 
 ```ts
 stopSave();

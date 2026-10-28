@@ -1,6 +1,6 @@
 # MasterDetail
 
-A list beside the detail of what is picked in it, for a settings pane of many things of one kind: accounts, devices, shortcut groups. Each side scrolls on its own, and the detail takes the rest of the width.
+A list beside the detail of its picked item, for a settings pane of many things of one kind: accounts, devices. Each side scrolls on its own.
 
 ```tsx
 import { DetailHeader, MasterDetail, MasterItem } from '@adecore/ui/settings';
@@ -8,15 +8,15 @@ import { DetailHeader, MasterDetail, MasterItem } from '@adecore/ui/settings';
 
 <Demo src="settings/master-detail" fill />
 
-Inside a [`SettingsDialog`](/ui/settings/settings-dialog), put it in a `split` section, so the dialog hands the pane its whole height instead of a padded scrolling column. Under 640 pixels wide the list stacks above the detail, at most 240 pixels tall.
+In a [`SettingsDialog`](/ui/settings/settings-dialog), use a `split` section for the full height. Under 640 pixels wide the list stacks above the detail.
 
 ## Parts
 
-`MasterDetail` takes the `list`, its width (`280`, `320` or `340` pixels), a `listLabel` that names the list for a screen reader, and the `detail`.
+`MasterDetail` takes the `list`, `listWidth`, a `listLabel` for screen readers, and the `detail`.
 
-`MasterItem` is one row of the list, a button that lifts a shade when `selected` and carries `aria-current`. It takes `selected`, `onSelect` and `children`.
+`MasterItem` is one list row, a button with `aria-current` when `selected`.
 
-`DetailHeader` is the head of a detail: a `mark` (a logo or an icon tile), the `title`, a `subtitle` line under it, and the `actions` of the thing on the right.
+`DetailHeader` heads a detail: a `mark` (logo or icon tile), the `title`, a `subtitle` and `actions` on the right.
 
 ## Props
 

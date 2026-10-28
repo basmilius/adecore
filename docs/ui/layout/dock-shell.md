@@ -1,6 +1,6 @@
 # DockShell
 
-The floating bar at the bottom of a canvas-like view, and the one place that knows how to get out of the way.
+The floating bar at the bottom of a canvas-like view, which can hide itself.
 
 ```tsx
 import { DockShell } from '@adecore/ui';
@@ -8,11 +8,11 @@ import { DockShell } from '@adecore/ui';
 
 <Demo src="layout/dock-shell" fill />
 
-With `autoHide` the dock waits below the edge until the pointer comes within 120 pixels of the bottom of the window. An open menu in the dock keeps it up, since the menu's popup would slide away with it. The buttons stay in the tab order while the dock is out of sight, and keyboard focus inside it brings it back.
+With `autoHide` the dock hides below the edge until the pointer comes within 120 pixels of the window's bottom. An open menu in the dock keeps it up. Keyboard focus inside it brings it back.
 
-Something that moves with the dock, such as a popover standing on it, marks itself with `data-holds-dock`, so reaching for it does not hide the dock under the pointer. `onHiddenChange` tells you whenever the bar slides away or comes back, for anything that stands on top of it.
+Mark an element that belongs to the dock, such as a popover on it, with `data-holds-dock`, so hovering it keeps the dock up. `onHiddenChange` reports when the bar hides or returns.
 
-The dock is centered 16 pixels above the bottom of its positioned parent, and the bar is a [`Surface`](/ui/display/surface).
+The dock is centered 16 pixels above the bottom of its positioned parent. The bar is a [`Surface`](/ui/display/surface).
 
 ## Props
 

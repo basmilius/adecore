@@ -8,7 +8,7 @@ import { Timeline, Composer } from '@adecore/agents-react/chat/ui';
 
 <Demo src="agents/chat" />
 
-The demos on these pages run on a host in memory: two CLIs, three accounts, a chat two turns in, usage for the last months. Send a message and it answers a word at a time; mention a check or a test and it asks for permission first. Open the helper agent's row to read its own conversation. Nothing leaves the page.
+The demos run on an in-memory host with two CLIs, three accounts and a chat two turns in. Send a message and it answers a word at a time; mention a check or a test and it asks for permission first. Nothing leaves the page.
 
 ## What is in it
 
@@ -28,7 +28,7 @@ scope           ChatScopeContext          one per host of chats
 views           Timeline, Composer, ...   read the stores of their scope
 ```
 
-The views read a chat from a store, never from the wire. A `ChatClient` fills that store from a `ChatTransport`, the one object that knows how to reach the host. A `ChatScope` bundles the two with an id and puts them in context, so an app that talks to two hosts renders a scope for each and their threads never mix. What only the app can decide, such as where a file opens or whether a stop needs a confirmation, it hands over in a `ChatHostProvider` around the views.
+The views read a chat from a store, never from the wire. A `ChatClient` fills the store from a `ChatTransport`, which reaches the host. A `ChatScope` bundles the two with an id in context, so two hosts get two scopes whose threads never mix. What only the app decides, such as where a file opens, goes in a `ChatHostProvider` around the views.
 
 ## Entry points
 
@@ -44,7 +44,7 @@ The views read a chat from a store, never from the wire. A `ChatClient` fills th
 | `@adecore/agents-react/locales` | The words of the views, by namespace |
 | `@adecore/agents-react/testing` | Prompts in every state, for tests and demos |
 
-The [export reference](/agents-react/reference) lists every name; a module that no entry exports is internal. `DiffPool`, `EditDiff` and `UnifiedDiff` are named exports of `@adecore/agents-react/chat/ui`. Two entries hold data rather than names: `@adecore/agents-react/theme.css`, and the words under `@adecore/agents-react/locales/<language>/<namespace>`, a module whose default export is one namespace in one language.
+The [export reference](/agents-react/reference) lists every name. `@adecore/agents-react/theme.css` and `@adecore/agents-react/locales/<language>/<namespace>` hold data rather than names.
 
 ## Where to go next
 

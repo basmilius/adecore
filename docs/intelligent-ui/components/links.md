@@ -1,6 +1,6 @@
 # Host links
 
-Refer to a resource the host owns: a file, a changed file, a commit or a node. The agent only names the target. The host checks it and decides whether a person can open it; see [Links](/intelligent-ui/host/links).
+Refer to a resource the host owns: a file, a changed file, a commit or a node. The agent names the target; the host checks it and decides whether a person can open it. See [links](/intelligent-ui/host/links).
 
 <Demo src="intelligent-ui/links" />
 
@@ -11,7 +11,7 @@ Refer to a resource the host owns: a file, a changed file, a commit or a node. T
 <Node id="review-notes"/>
 ```
 
-A link without children is a chip, and may stand inside text. With children it is a row: the chip, and what the agent says about it. Until the host has checked a target, it reads as plain text; a target the host refuses stays text, with the reason in a tooltip.
+A link without children is a chip and may stand inside text. With children it is a row of the chip and the agent's note. A target reads as plain text until the host checks it; a refused target stays text, with the reason in a tooltip.
 
 ## File
 

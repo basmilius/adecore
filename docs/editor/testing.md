@@ -4,7 +4,7 @@ Two entry points let an app test its editor code without a browser.
 
 ## A real editor on a LinkeDOM page
 
-`mountEditor(options?, engineOptions?)` from `@adecore/editor/testing` mounts the real engine on a [LinkeDOM](https://github.com/WebReflection/linkedom) page and returns the `editor` with helpers that drive it the way a person would. It colors nothing unless `engineOptions` passes a tokenizer.
+`mountEditor(options?, engineOptions?)` from `@adecore/editor/testing` mounts the real engine on a [LinkeDOM](https://github.com/WebReflection/linkedom) page and returns the `editor` with helpers that drive it like a person. It colors nothing unless `engineOptions` passes a tokenizer.
 
 ```ts
 import { expect, test } from 'bun:test';
@@ -36,11 +36,11 @@ test('typing replaces every selection', () => {
 | `clip(type, text?)`           | A `copy`, `cut` or `paste`; returns the text a copy or cut left |
 | `click(x, y, modifiers?)`     | A press and release at a point                                  |
 
-`createPage`, `press`, `release`, `typeInto`, `clipboard` and `pointer` are the lower-level helpers behind it. LinkeDOM has no layout, so every box has the editor's fallback size. The page checks keys, commands, the clipboard and the history; it says nothing about fonts, scrolling, input methods or accessibility.
+`createPage`, `press`, `release`, `typeInto`, `clipboard` and `pointer` are the lower-level helpers. LinkeDOM has no layout, so every box has a fallback size. Tests cover keys, commands, the clipboard and history, not fonts, scrolling, input methods or accessibility.
 
 ## A fake editor
 
-`FakeEditorEngine` from `@adecore/editor/fake` mounts a `FakeEditor`, which implements `Editor` without a DOM or a document model. It records what the code under test asked: `markers`, `inlayHints`, `widgetsByOwner`, `codeVision`, `findQuery`, `commands` and the rest are public fields. Methods such as `type`, `save`, `blur`, `click`, `press`, `hover`, `hoverInlay`, `clickInlay` and `pressGutterAction` play the person. `inlayLink` is the hint `setInlayLink` last drew as a link. `engine.last` is the editor mounted last. `inputPopup`, `announcements`, `lineLabels` and `messages` record what the accessibility methods were given.
+`FakeEditorEngine` from `@adecore/editor/fake` mounts a `FakeEditor`, which implements `Editor` without a DOM or document model. Public fields record what the code under test set: `markers`, `inlayHints`, `widgetsByOwner`, `codeVision`, `findQuery`, `commands` and more. `inlayLink` is the hint `setInlayLink` last drew. `inputPopup`, `announcements`, `lineLabels` and `messages` record the accessibility calls. Methods such as `type`, `save`, `blur`, `click`, `press`, `hover`, `hoverInlay`, `clickInlay` and `pressGutterAction` act as the person. `engine.last` is the editor mounted last.
 
 ```ts
 import { FakeEditorEngine } from '@adecore/editor/fake';
@@ -52,4 +52,4 @@ editor.type('two'); // the whole text becomes 'two'
 editor.save();
 ```
 
-The fake keeps the text, the selections and the history as the editor does: lines end at `\r\n`, a lone `\r` or `\n`, selections that overlap merge, the carets follow `applyEdits` and `setText`, and undo and redo take back a step. One contract test runs against both, so the two stay in step. It is coarser elsewhere. `type` replaces the whole text and reports the one stretch that changed, so a tracked range in that stretch is lost sooner than in the real editor. `runCommand` records every command and carries out only undo and redo, and `find` counts plain occurrences. Use `mountEditor` for anything that depends on keys, commands or drawing.
+The fake keeps text, selections and history like the editor: the same line endings, merging of overlapping selections, carets that follow `applyEdits` and `setText`, and undo and redo. One contract test runs against both. Elsewhere it is coarser. `type` replaces the whole text, so tracked ranges are lost sooner. `runCommand` records every command but carries out only undo and redo. `find` counts plain occurrences. Use `mountEditor` for anything that depends on keys, commands or drawing.

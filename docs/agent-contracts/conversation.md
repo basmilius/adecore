@@ -1,6 +1,6 @@
 # Conversation
 
-A chat is a `ChatInfo` and a list of `ChatItem`s. The info says what the chat is and what it is doing; the items are its thread.
+A chat is a `ChatInfo` and a list of `ChatItem`s. The info says what the chat is and does. The items are its thread.
 
 ```ts
 import { ChatInfoSchema, ChatItemSchema, type ChatInfo, type ChatItem } from '@adecore/agent-contracts/chat';
@@ -15,21 +15,21 @@ The fields a client reads most:
 | `chatId`                                | Chosen by the client. Any nonempty string.                                                               |
 | `provider`, `account`                   | The CLI that answers and its account. No `account` is the CLI's default account.                         |
 | `cwd`                                   | The folder the chat works in, on the host's machine.                                                     |
-| `selection`, `model`                    | The model and options asked for, and the model the CLI reported. They can differ, through an alias.      |
-| `runtimeMode`, `effectiveRuntimeMode`   | The permission policy asked for, and the one the running CLI confirmed, absent until it did.             |
+| `selection`, `model`                    | The model and options asked for, and the model the CLI reported. An alias can make them differ.          |
+| `runtimeMode`, `effectiveRuntimeMode`   | The permission policy asked for, and the one the running CLI confirmed (absent until then).              |
 | `status`                                | `running`, `needs-you`, `idle`, `error` or `exited`.                                                     |
 | `running`, `activeTurnId`               | Whether the CLI process is alive, and the turn in flight. A live process can be idle between turns.      |
-| `queue`, `queuePaused`                  | Messages sent during a turn, in the order they go out once it settles.                                   |
-| `background`, `delegating`              | Shell commands and monitors the CLI keeps running, and whether a subagent of its own still works.        |
-| `requests`                              | The approvals and questions that wait on a person, oldest first, at most `CHAT_REQUEST_LIMITS.perChat`.  |
-| `usage`                                 | `ChatUsage`: context tokens, context window, cost, turns and an estimated `breakdown` of the context. For a CLI that names the lifetime of its prompt cache, `cacheTtlMs` and `cacheExpiresAt`: the lifetime the main agent's last request wrote or read with, and when it ends, counted from the start of that request. |
-| `limit`, `resumeAt`, `resumeAtReset`    | The limit the last turn stopped on, when the host takes the chat up again, and the chat's own switch for that. |
-| `goal`                                  | `ChatGoal`: the objective the CLI works toward on its own, its status and how far it got; absent while there is none. |
-| `forkOf`, `hidden`, `suggestedTitle`    | Where a fork came from, a chat no list should show, and the title the CLI gave the session.              |
+| `queue`, `queuePaused`                  | Messages sent during a turn, in send order.                                                              |
+| `background`, `delegating`              | Shell commands and monitors the CLI keeps running, and whether its own subagent still works.             |
+| `requests`                              | The approvals and questions waiting on a person, oldest first, at most `CHAT_REQUEST_LIMITS.perChat`.    |
+| `usage`                                 | `ChatUsage`: context tokens, context window, cost, turns and an estimated context `breakdown`. `cacheTtlMs` and `cacheExpiresAt` give the prompt cache lifetime when the CLI reports it. |
+| `limit`, `resumeAt`, `resumeAtReset`    | The limit the last turn stopped on, when the host resumes, and the chat's switch for that.               |
+| `goal`                                  | `ChatGoal`: the objective, its status and progress. Absent without a goal.                               |
+| `forkOf`, `hidden`, `suggestedTitle`    | Where a fork came from, a chat no list should show, and the CLI's session title.                         |
 
-Optional arrays such as `queue`, `background`, `skills` and `requests` are absent on records from before they existed; read absent as empty.
+Read absent optional arrays (`queue`, `background`, `skills`, `requests`) as empty.
 
-`holdsConversation(info)` says whether the CLI holds a conversation for the chat: it named a session, or a turn is in flight. While it does, the chat keeps its CLI and an account that cannot read its transcripts. A clear starts the conversation over, so a cleared chat is free again, even though `usage.turns` still counts its earlier turns.
+`holdsConversation(info)` says whether the CLI holds a conversation for the chat: it named a session or a turn is in flight. While it does, the chat cannot switch to a CLI or account that cannot read its transcripts. A clear frees the chat again, although `usage.turns` still counts earlier turns.
 
 ## Items
 
@@ -48,17 +48,17 @@ Optional arrays such as `queue`, `background`, `skills` and `requests` are absen
 | `note`       | Information, a warning or an error from the host, by `level`.                                                      |
 | `compaction` | The moment the context was folded, with the token count before it when known.                                      |
 
-A running tool's `progress.output` holds only the last `TOOL_OUTPUT_TAIL` UTF-16 units of what it streamed, 64 KiB. A `delta` for a tool item carries only the new text, so a client grows the output with `appendToolOutput(output, text)`, which cuts it the way the host does. Once the call settles, its `output` replaces the progress.
+A running tool's `progress.output` holds only the last `TOOL_OUTPUT_TAIL` UTF-16 units. A tool `delta` carries only the new text, so grow the output with `appendToolOutput(output, text)`, which cuts it as the host does. Once the call settles, `output` replaces the progress.
 
-An `assistant` or `tool` item with a `parentToolUseId` is work a subagent did: draw it under that subagent, not as the chat's own answer. A subagent item's `itemsTruncated` says the thread holds only the start of its work; `chat.subagent` reads the rest from the CLI's own transcript. A workflow's agent has no call of its own, so `chat.subagent` names it as `workflowAgentRef(agentId)`, and `workflowAgentIdOf(ref)` reads the id back, or `null` for any other reference.
+An `assistant` or `tool` item with a `parentToolUseId` is a subagent's work. Draw it under that subagent, not as the chat's answer. A subagent item's `itemsTruncated` means the thread holds only the start, and `chat.subagent` reads the rest. A workflow's agent has no call of its own, so `chat.subagent` names it as `workflowAgentRef(agentId)`. `workflowAgentIdOf(ref)` reads the id back, or returns `null`.
 
-A turn without `origin` was started by a person, and one without `attempt` ran on one process. A turn that a restart could not take up again is aborted with a warning note that `notResumedNote(reason)` writes; `abortedByMachine(turn, items)` tells such a turn from one a person stopped. A turn the host ended along with its chat, because the agent that opened the chat was stopped, is aborted with a warning note whose id starts with `ENDED_NOTE_PREFIX`; `abortedByEnd(turn, items)` recognizes it.
+A turn without `origin` was started by a person. A turn a restart could not resume is aborted with a warning note from `notResumedNote(reason)`, and `abortedByMachine(turn, items)` tells it from a person's stop. A turn the host ended because the opening agent was stopped gets a note whose id starts with `ENDED_NOTE_PREFIX`, which `abortedByEnd(turn, items)` recognizes.
 
-The schema for each kind is exported on its own (`ChatUserItemSchema` up to `ChatCompactionItemSchema`), with a type for each (`ChatUserItem` up to `ChatCompactionItem`).
+Each kind has its own schema and type, from `ChatUserItemSchema` and `ChatUserItem` to `ChatCompactionItemSchema` and `ChatCompactionItem`.
 
 ## Attachments
 
-What a client sends is an upload, `{ name, mime, data }`, with `data` as base64 without a `data:` prefix. What the thread keeps is `{ id, name, mime, size, path }`: the bytes live in the host's attachment store, and `path` is absolute on the host's machine.
+A client sends an upload, `{ name, mime, data }`, with `data` as base64 without a `data:` prefix. The thread keeps `{ id, name, mime, size, path }`, where `path` is absolute on the host's machine.
 
 | Limit                                  |                                       |
 | -------------------------------------- | ------------------------------------- |
@@ -69,9 +69,9 @@ What a client sends is an upload, `{ name, mime, data }`, with `data` as base64 
 | `mentions`                             | At most 64                            |
 | `skills`, `chats`                      | At most 16 each                       |
 
-The limits count decoded bytes. Base64 for 10 MiB leaves room for the prompt and the envelope inside a 16 MiB frame, but the port enforces no frame size: the transport has to. `ChatSendPayloadSchema` asks for text that is not blank or at least one attachment, and sets no length on the text. Its optional `delivery` uses `ChatDeliverySchema` (`"steer"` or `"queue"`). `ChatDelivery` is the corresponding type. Absent delivery queues during running work. Steering returns the active turn id; queueing reserves a new one.
+The limits count decoded bytes. The port enforces no frame size, so the transport must. `ChatSendPayloadSchema` requires nonblank text or at least one attachment. Its optional `delivery` is a `ChatDelivery` (`ChatDeliverySchema`, `"steer"` or `"queue"`), queueing by default. Steering returns the active turn id, queueing a new one.
 
-`attachmentBytes(data)` is the decoded size of base64. `attachmentImageMime({ name, mime })` answers `image/png`, `image/jpeg`, `image/webp` or `image/gif`, or `null`. It trusts the declared type, and looks at the extension only when the type is empty or a generic binary one, so a declared PDF stays a PDF whatever its name. It never reads the bytes.
+`attachmentBytes(data)` is the decoded size of base64. `attachmentImageMime({ name, mime })` returns `image/png`, `image/jpeg`, `image/webp`, `image/gif` or `null`. It trusts the declared type and checks the extension only for an empty or generic binary type. It never reads the bytes.
 
 ## Approvals and questions
 
@@ -82,64 +82,68 @@ const approval = ChatApprovePayloadSchema.parse({ chatId: 'chat-1', requestId: '
 const answer = ChatAnswerPayloadSchema.parse({ chatId: 'chat-1', requestId: 'question-1', answers: { layout: 'Compact' } });
 ```
 
-A decision is `allow`, `allow-always` or `deny`. Offer `allow-always` only when the item has `canAllowAlways`, which means the CLI proposed a rule; `allowAlways` holds its label and description. A reason on a denial reaches the agent only on a provider whose capabilities say `denyReason`. An answer maps question ids to text, and a chosen choice's answer is its label, so keep both whole. Only a question marked `async` may be dismissed, with `chat.dismiss` and its item id rather than its request id.
+A decision is `allow`, `allow-always` or `deny`. Offer `allow-always` only when the item has `canAllowAlways`, meaning the CLI proposed a rule. `allowAlways` holds its label and description. A denial reason reaches the agent only when the provider's capabilities include `denyReason`. An answer maps question ids to text, and a picked choice's answer is its label, so keep both whole. Only an `async` question may be dismissed, with `chat.dismiss` and its item id.
 
-A request can settle elsewhere first: another client answered, or the person used the CLI's own prompt. The host then refuses with `request-not-found`, and the client reads the state again.
+A request may settle elsewhere first, from another client or the CLI's own prompt. The host then refuses with `request-not-found`, and the client reads the state again.
 
-`ChatRequestSummary` is the cut-down request in `ChatInfo.requests`. `CHAT_REQUEST_LIMITS` says where its texts stop: 8 requests per chat, a subject of 200 UTF-16 code units, a description of 300, a command of 1000 or 12 lines, a diff of 1500 or 12 lines, a question of 500, a header of 100 and a choice description of 200. These are where a host cuts, not schema `max` rules, so a host that cuts wrong never makes a whole `chat.list` fail. `truncated` says a command or a diff was cut; the thread keeps the whole call. `clipText(text, max)` cuts on a character boundary as a person sees it, never between the halves of a surrogate pair.
+`ChatRequestSummary` is the shortened request in `ChatInfo.requests`. `CHAT_REQUEST_LIMITS` says where its texts are cut. The host cuts, the schema has no `max`, so a bad cut never fails a whole `chat.list`. `truncated` marks a cut command or diff, and the thread keeps the whole call. `clipText(text, max)` cuts on a visible character boundary, never inside a surrogate pair.
 
 ## Bookmarks
 
-A bookmark hangs on an item id, with an optional `name` and an `excerpt` of the message. `CHAT_BOOKMARK_LIMITS` allows a name of 120 characters, an excerpt of 160 and 200 bookmarks per chat. Adding a bookmark to an item that has one keeps it and names it when a name comes along; renaming to an empty name removes the name; removing one that is already gone is no error. Every change sends the whole list to every attached client as `chat.bookmarks`.
+A bookmark hangs on an item id, with an optional `name` and an `excerpt` of the message, within `CHAT_BOOKMARK_LIMITS`. Adding a bookmark to an item that has one keeps it and sets the name if given. Renaming to an empty name removes the name. Removing a missing bookmark is no error. Every change sends the whole list to attached clients as `chat.bookmarks`.
 
 ## Visuals
 
-A visual is a page an agent published, shown in the thread at its `at`, between the items around it. It is no item: the chat's list comes with `chat.attach` and as `chat.visuals`, and `chat.removeVisual` takes one away. See [Visuals](/agent-contracts/visuals) for the record, the bridge between the page and the app, and the theme.
+A visual is a page an agent published, shown in the thread at its `at` time. It is no item. The list comes with `chat.attach` and as `chat.visuals`, and `chat.removeVisual` removes one. See [Visuals](/agent-contracts/visuals).
 
 ## Checkpoints and forks
 
-A turn's `checkpointDiff` lists the files the working tree changed against the tree the turn started from: `path`, `kind` (`add`, `update`, `delete`), lines `added` and `deleted`, and a unified `diff`. `omitted` says why a diff is empty (`binary` or `too-large`), and `truncated` that more files changed than the list holds. `chat.turnDiff` answers `{ diff: null }` when there is no checkpoint, such as outside a repository. The contracts run no git.
+A turn's `checkpointDiff` lists the files changed since the turn started: `path`, `kind` (`add`, `update`, `delete`), lines `added` and `deleted`, and a unified `diff`. `omitted` says why a diff is empty (`binary` or `too-large`). `truncated` means more files changed than the list holds. `chat.turnDiff` returns `{ diff: null }` without a checkpoint, such as outside a repository. The contracts run no git.
 
-A host may keep a large value apart from the thread (past `CHAT_PAYLOAD_INLINE_BYTES`, 64 KiB). The item then carries the beginning and a `ChatPayloadRef`, `{ id, bytes }`: a tool's `output` is its first part and `outputRef` names the whole, and a turn's `checkpointDiff` lists every file but leaves the later diffs empty, with `checkpointDiffRef` naming the whole. `bytes` is the size of the whole in UTF-8, and `id` is opaque. `chat.toolOutput { chatId, itemId }` answers `{ output }` whole, and `chat.turnDiff` the whole diff. Both fields are optional, so a client that does not know them shows the beginning.
+A host may store values past `CHAT_PAYLOAD_INLINE_BYTES` apart from the thread. The item then carries the beginning and a `ChatPayloadRef`, `{ id, bytes }`. On a tool it is `outputRef`, and on a turn `checkpointDiffRef`, whose diff lists every file but empties the later diffs. `id` is opaque. `chat.toolOutput { chatId, itemId }` returns the whole `{ output }`, and `chat.turnDiff` the whole diff. A client that ignores the refs shows the beginning.
 
-`chat.fork` starts a new chat after a turn, with the history up to it. It can take a `title` (at most `CHAT_FORK_TITLE_MAX`, 120), a worktree on a new branch, another provider, model or account. `chat.forkInfo` answers what a fork dialog needs to offer: whether the folder is a repository, the branches taken, a free one to suggest. `chat.continueOn` moves a chat that stopped on a limit to another account of its CLI. Where a fork lands is the app's business; see [Protocol](/agent-contracts/protocol#requests).
+`chat.fork` starts a new chat with the history up to a turn. It takes an optional `title` (at most `CHAT_FORK_TITLE_MAX`), a worktree on a new branch, and another provider, model or account. `chat.forkInfo` returns what a fork dialog offers: whether the folder is a repository, the branches taken, and a free one to suggest. `chat.continueOn` moves a chat that stopped on a limit to another account of its CLI. Where a fork lands is the app's business (see [Protocol](/agent-contracts/protocol#requests)).
 
 ## Limits
 
+A usage limit or an overloaded model is an `error` turn with `limit: { kind: 'usage' | 'overload', resetsAt? }`. `resetsAt` is absent when the CLI named no time. `ChatInfo.limit` repeats it for the header until the next turn opens.
+
 ## Goals
 
-`/goal` gives a CLI an objective it works toward turn after turn until it is met. `ChatInfo.goal` is a `ChatGoal` (`ChatGoalSchema`): the `objective`, its `status` (`ChatGoalStatusSchema`, `ChatGoalStatus`: `active`, `paused`, `blocked`, `usage-limited`, `budget-limited` or `complete`), and what the CLI counts of it: `checks` and `lastCheck` where its check of the goal sends the agent on, `tokensUsed`, `tokenBudget` and `secondsUsed` where it counts what the goal spent. The statuses are the goal's own enum, so a client that validates a chat payload whole never meets a new value inside one it knew. `chat.goal` (`ChatGoalPayloadSchema`, `ChatGoalPayload`, with a `ChatGoalAction` of `pause`, `resume` or `clear`, `ChatGoalActionSchema`) acts on the goal without a turn; which actions a CLI takes is its `goals` capability.
+`/goal` gives a CLI an objective it pursues over turns until met. `ChatInfo.goal` is a `ChatGoal` (`ChatGoalSchema`) with:
 
-A usage limit or an overloaded model is not a turn state: it is an `error` turn with `limit: { kind: 'usage' | 'overload', resetsAt? }`. `resetsAt` is absent when the CLI named no time. `ChatInfo.limit` repeats it for the header until the next turn opens.
+- `objective`.
+- `status`, a `ChatGoalStatus` (`ChatGoalStatusSchema`): `active`, `paused`, `blocked`, `usage-limited`, `budget-limited` or `complete`.
+- What the CLI counts: `checks` and `lastCheck`, or `tokensUsed`, `tokenBudget` and `secondsUsed`.
+
+`chat.goal` (`ChatGoalPayloadSchema`, `ChatGoalPayload`) applies a `ChatGoalAction` (`ChatGoalActionSchema`: `pause`, `resume`, `clear`) without a turn. The `goals` capability says which actions a CLI takes.
 
 ## Generated images
 
-A tool named `ImageGeneration` stores a `GeneratedImageInput`: an optional attachment, the revised prompt and whether the image is transparent. `GeneratedImageInputSchema` validates it, and `generatedImageAttachment(item)` returns the attachment or `null`. A failed generation keeps its error in the tool output and has no attachment. The bytes of an image never go in a chat item. An attachment may name its `width` and `height` in pixels, and an assistant item the provider's `phase`, such as `commentary` or `final_answer`. Both are optional, so older records still read.
-
+A tool named `ImageGeneration` stores a `GeneratedImageInput` (`GeneratedImageInputSchema`): an optional attachment, the revised prompt and whether the image is transparent. `generatedImageAttachment(item)` returns the attachment or `null`. A failed generation keeps its error in the tool output. Image bytes never go in a chat item. An attachment may carry `width` and `height` in pixels, and an assistant item the provider's `phase`, such as `commentary` or `final_answer`.
 
 ## Intelligent UI
 
-An assistant item may carry `ui`, an array of UI block envelopes from `@adecore/intelligent-ui/protocol`. The envelopes are open: a node type is a string, and props and expressions are records. Each block carries its catalog version, a stable ID, its range in the source, its diagnostics and a Markdown fallback. A component name or catalog version a client does not know leaves the rest of the history valid.
+An assistant item may carry `ui`, an array of UI block envelopes from `@adecore/intelligent-ui/protocol`. Each block carries its catalog version, a stable ID, its source range, its diagnostics and a Markdown fallback. An unknown component or catalog version leaves the rest of the history valid.
 
-While a reply streams, a preview of its blocks rides on a `delta` event with an empty `text`, an optional `ui` and `textLength`. It has no `seq`, stays out of the chat log and goes only to clients attached to the chat. A client applies it only while the assistant item still streams and has that length. An older client ignores the optional fields. The final assistant item carries the tree that counts, once, and replays with the rest of the thread.
-
+While a reply streams, a block preview rides on a `delta` with an empty `text`, an optional `ui` and `textLength`. It has no `seq`, stays out of the log and reaches only attached clients. Apply it only while the assistant item still streams and has that length. The final assistant item carries the tree that counts.
 
 ## Quoted replies and waiting notes
 
-`ChatQuoteSourceSchema` and `ChatQuoteSource` name the assistant item a quote was taken from, as an optional `quoteSource` on a send, a queued message and a user item. The host keeps it only when that item is an assistant item of the chat, and a fork keeps it. An older decoder drops the field.
+`ChatQuoteSourceSchema` and `ChatQuoteSource` name the assistant item a quote came from, as an optional `quoteSource` on a send, a queued message and a user item. The host keeps it only when that item is an assistant item of the chat. Forks keep it.
 
-`WAITING_NOTE_PREFIX` starts the note a parent receives when a child it delegated to waits on a question or an approval. A client that draws such a note recognizes it by this prefix.
+`WAITING_NOTE_PREFIX` starts the note a parent gets when a delegated child waits on a question or approval. Recognize such notes by this prefix.
 
 ## Choices in UI replies
 
-`ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: the IDs of the chat, the assistant item, the block, the revision and the choice, and optional local input `values`. Its result is a `ChatSendResult`. The client never sends a label or the context of the message. The host reads both from the stored block: the visible context becomes the message, and the label goes before it in the prompt to the provider. The host also sets the revision of the finished block and checks the choice against it.
+`ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: the chat, assistant item, block, revision and choice ids, plus optional local input `values`. Its result is a `ChatSendResult`. The client never sends a label or message context. The host reads both from the stored block and checks the choice against the block's revision.
 
-`ChatUiChoiceOriginSchema` and `ChatUiChoiceOrigin` keep, on a user item or a queued message, where a choice came from: the block, its label and time, whether it names an older reply, the values sent and when. The assistant's optional `uiAnswers` map holds `ChatUiAnswerSchema` / `ChatUiAnswer` records with the turn ID kept for the answer and whether the message queued. Picking the same choice again returns that turn; another choice in that block is refused. A queued answer keeps its origin when it goes out and is marked sent. An older decoder drops these optional fields.
+`ChatUiChoiceOriginSchema` and `ChatUiChoiceOrigin` record on a user item or queued message where a choice came from. The assistant's optional `uiAnswers` map holds `ChatUiAnswerSchema` / `ChatUiAnswer` records with the answer's turn id and whether it queued. Picking the same choice again returns that turn. Another choice in that block is refused.
 
 ## Live UI query records
 
-`ChatUiQueryPayloadSchema` and `ChatUiQueryPayload` are `ui.query`: the chat, item, block and revision, the name of the stored query, and optional local input values. A client never sends a source, SQL or fixed arguments.
+`ChatUiQueryPayloadSchema` and `ChatUiQueryPayload` are `ui.query`: chat, item, block, revision, the stored query's name, and optional local input values. A client never sends a source, SQL or fixed arguments.
 
-`ChatUiQueryReadingSchema` and `ChatUiQueryReading` carry a fresh value with an opaque read id, or a reading that failed or was refused, with the reason, an optional stable `code` for it and its time. The `state` values of readings and link resolutions are a closed set, since native clients validate these payloads whole; `code` is any string. `ChatUiQueryStateSchema` and `ChatUiQueryState` keep, on an assistant item, the writer's chat and the first reading of each block with its frozen text fallback. A delta may change them without sending the compiled tree again. A choice can name the read ids it showed; the host fills in those values after it checks access again.
+`ChatUiQueryReadingSchema` and `ChatUiQueryReading` carry a fresh value with an opaque read id, or a failed or refused reading with its reason, an optional stable `code` and its time. The `state` values of readings and link resolutions are a closed set. `code` is any string. `ChatUiQueryStateSchema` and `ChatUiQueryState` keep on an assistant item the writer's chat and each block's first reading with its frozen fallback. A choice can name the read ids it showed, and the host fills in those values after checking access again.
 
-`ChatUiLinkPayloadSchema` and `ChatUiLinkPayload` name a stored node for `ui.link`, with the block, the local inputs and the read ids the host issued. `ChatUiLinkReadingSchema` and `ChatUiLinkReading` say where the link may go, or why it stays plain text. The first resolutions may be saved beside the frozen readings; every open resolves the stored node again and checks access again. `ChatUiPlaceReadingSchema` and `ChatUiPlaceReading` hold the point a host looked up for a `Place` that gave an address, in the optional `places` of a frozen block by node id, each with the `address` it was looked up for; `state` is `found` or `missing`, and a block without `places` still reads.
+`ChatUiLinkPayloadSchema` and `ChatUiLinkPayload` name a stored node for `ui.link`, with the block, local inputs and host-issued read ids. `ChatUiLinkReadingSchema` and `ChatUiLinkReading` say where the link goes, or why it stays plain text. Every open resolves the node and checks access again. `ChatUiPlaceReadingSchema` and `ChatUiPlaceReading` hold the point a host found for a `Place`, in a frozen block's optional `places` by node id, with its `address`. `state` is `found` or `missing`.

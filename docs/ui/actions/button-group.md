@@ -1,6 +1,6 @@
 # ButtonGroup
 
-Icon buttons that belong together, 1 pixel apart. Separate groups keep the wider gap of the row they stand in, so a toolbar reads as clusters rather than a fence of equal buttons.
+Icon buttons that belong together, 1 pixel apart, so a toolbar reads as clusters.
 
 ```tsx
 import { ButtonGroup } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { ButtonGroup } from '@adecore/ui';
 
 <Demo src="actions/button-group" />
 
-A group draws no border and no background. Give it `role="group"` and an `aria-label` when the buttons share a purpose a screen reader should hear, as the alignment buttons above do. [`Stepper`](/ui/inputs/stepper) and [`ZoomControls`](/ui/layout/zoom-controls) are button groups on a sunken track.
+A group draws no border or background. Give it `role="group"` and an `aria-label` when the buttons share a purpose. [`Stepper`](/ui/inputs/stepper) and [`ZoomControls`](/ui/layout/zoom-controls) are button groups on a sunken track.
 
 ## Props
 

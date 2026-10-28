@@ -1,6 +1,6 @@
 # Tile
 
-One thing to start with, drawn as a card that is a button, for a start screen or the empty places of an app.
+A card that is a button, for a start screen or an empty state.
 
 ```tsx
 import { Tile } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { Tile } from '@adecore/ui';
 
 <Demo src="actions/tile" />
 
-Give one tile on a screen `primary`: its border and its icon take the accent. `sm` is for a narrow column like a sidebar. The description is one short line, such as where the action lands or why it waits, and it truncates rather than wraps.
+Make at most one tile per screen `primary`; its border and icon take the accent. `sm` fits a sidebar. The description is one line and truncates.
 
 ## Props
 

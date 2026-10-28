@@ -8,19 +8,19 @@ import { Button } from '@adecore/ui';
 
 ## Variants
 
-`ghost` is the default, a quiet button that lifts under the pointer. `secondary` has a border and a raised ground. Give a screen one `primary` at most. `danger` is for a deletion that cannot come back, `danger-outline` for a step that forgets something rather than destroys it, and `positive` for a step that completes something, such as a merge. `inverse` is dark on a light theme and light on a dark one, the way many sign-in buttons ask to be drawn.
+`ghost`, the default, is quiet and lifts on hover. `secondary` has a border and a raised ground. Use at most one `primary` per screen. `danger` is for an irreversible deletion, `danger-outline` for a step that forgets rather than destroys, and `positive` for a step that completes something, such as a merge. `inverse` is dark on light and light on dark, as many sign-in buttons require.
 
 <Demo src="actions/button-variants" />
 
 ## Sizes and links
 
-`md` is 32 pixels tall, `sm` 28 and `xs` 24, which fits a header of 32. An icon before the word is a 14 pixel [`Icon`](/ui/display/icon). With `href` the button is an anchor that opens in a new tab.
+`md` is 32 pixels tall, `sm` 28 and `xs` 24. An icon before the word is a 14 pixel [`Icon`](/ui/display/icon). With `href` the button is an anchor that opens in a new tab.
 
 <Demo src="actions/button-sizes" />
 
 ## Pill
 
-`shape="pill"` is 36 pixels tall and fully rounded, with text at the base size. It is for a button that sits in a round row of controls and takes the place of `size`, so `size` has no effect on it.
+`shape="pill"` is 36 pixels tall and fully rounded, for a row of round controls. It ignores `size`.
 
 <Demo src="actions/button-pill" />
 
@@ -41,4 +41,4 @@ import { Button } from '@adecore/ui';
 
 ## Accessibility
 
-`disabled` is the native attribute. The button leaves the tab order, takes no pointer events and fades to half its opacity. `Button` styles no `aria-disabled` state; an [`IconButton`](/ui/actions/icon-button) does.
+`disabled` is the native attribute: the button leaves the tab order and fades. `Button` styles no `aria-disabled` state; an [`IconButton`](/ui/actions/icon-button) does.

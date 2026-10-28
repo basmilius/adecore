@@ -1,8 +1,8 @@
 # Web guards
 
-The app's page carries the whole bridge, so where it may go and who may speak for it are security decisions. These are pure functions; the app wires them to Electron's events.
+The app's page carries the whole bridge, so where it may go and who may speak for it are security decisions. These are pure functions. The app wires them to Electron's events.
 
-An app that serves its page from a scheme of its own (`app://main`) passes that scheme as `schemes`: Node's URL gives every scheme it does not know the origin `null`, where Chromium gives a registered standard scheme a real one. [`createAppScheme`](/shell/app-scheme) binds the scheme and the origin to all of them once.
+A page served from its own scheme (`app://main`) passes that scheme as `schemes`, because Node's URL gives an unknown scheme the origin `null`. [`createAppScheme`](/shell/app-scheme) binds scheme and origin to all of them.
 
 ## originOf
 
@@ -17,7 +17,7 @@ originOf('app://main/index.html', ['app']); // 'app://main'
 
 ## appWindowNavigation
 
-Where the app window's own page may go. A dropped link or file navigates the top frame, and the page it lands on would inherit the bridge. So only the app stays (`allow`), a web link leaves for the system browser (`external`) and everything else stops (`refuse`). The three are the `NavigationVerdict` type.
+Where the app window's page may go. A dropped link or file navigates the top frame, and the page it lands on would inherit the bridge. The app's own origin is `allow`, a web link is `external` (open it in the system browser) and anything else is `refuse`. The three make up `NavigationVerdict`.
 
 ```ts
 contents.on('will-navigate', (event) => {
@@ -32,11 +32,11 @@ contents.on('will-navigate', (event) => {
 });
 ```
 
-A frame inside the page is the app's own decision, since what it may show differs per app.
+Frames inside the page are the app's own decision.
 
 ## isAppSender
 
-Whether an IPC message came from the app itself: the top frame of an app window, still on the app's origin. The web contents alone says nothing, since it stays the same object whatever it navigates to. Check it in every handler before anything else. `SenderFrame` is the part of `event.senderFrame` it reads: `url` and `parent`.
+Whether an IPC message came from the top frame of an app window that is still on the app's origin. The web contents alone proves nothing, since it stays the same object whatever it navigates to. Check it first in every handler. `SenderFrame` is the part of `event.senderFrame` it reads: `url` and `parent`.
 
 ```ts
 const fromApp = (event: Electron.IpcMainInvokeEvent): boolean =>
@@ -49,7 +49,7 @@ What the system browser or mail app may be handed: a web or `mailto:` link. A `f
 
 ## createGestureGate
 
-Whether a link a page wants to open in the system browser follows a press of the person. A page that runs scripts nobody vetted could otherwise send the person's browser anywhere, over and over. `saw` takes the type of every input event; only a press or a key counts. `consume` says whether one came within the last second, and uses it up, so one press lets one link out. The clock is injected for tests and defaults to `Date.now`; `GestureGate` is the type it returns.
+Whether a link the page wants to open externally follows a real press. Without it, an untrusted script could open the browser over and over. `saw` takes the type of every input event; only a press or a key counts. `consume` returns whether one came within the last second and uses it up, so one press lets one link out. The clock defaults to `Date.now`. `GestureGate` is the returned type.
 
 ```ts
 const gesture = createGestureGate();

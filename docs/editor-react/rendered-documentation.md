@@ -1,8 +1,8 @@
 # Rendered documentation
 
-Documentation comments drawn as formatted text in place of their lines, the way the Reader mode of the documentation in IntelliJ does. The comment stays in the document: copying, searching, the undo history and a language server see the raw text, and a screen reader finds the formatted block under the label "Rendered documentation" and the first words of its summary.
+`language.renderedDocs` draws documentation comments as formatted text in place of their lines, like IntelliJ's Reader mode. The comment stays in the document, so copy, find, undo and the language server see the raw text. A screen reader finds the block under "Rendered documentation" plus the first words of its summary.
 
-`language.renderedDocs` is the feature. It is off until a host turns it on for a document, or a person switches one comment with the button in the gutter.
+It is off until a host turns it on, or a person switches one comment with its gutter button.
 
 ```ts
 language.renderedDocs.configure({ renderDocComments: true }); // every documentation comment
@@ -12,13 +12,13 @@ language.renderedDocs.toggleAt(line); // the comment that starts on a line
 
 ## Which comments
 
-A block comment that opens with two stars and has its lines to itself: `/** ... */` in TypeScript, JavaScript, a Vue script, PHP, and every other language whose block comments are written with a slash and a star, such as Java, C#, Go, Rust, Kotlin, Swift and Dart. Ordinary `/* */` and `//` comments are not, nor is a banner of three stars or more, nor is the text of a PHP heredoc or nowdoc (the structure scan still reads a heredoc as code, so a quote in one can hide the comments after it), nor is a comment that shares a line with code, since a row could not take its lines without hiding the code. It is the same test that gives a fold the role `doc-comment`; `findDocComments(text, languageId)` of `@adecore/editor-core` and `@adecore/editor` returns the comments as `DocComment`s with their offsets, lines, indentation and body.
+A `/** ... */` comment on lines of its own, in TypeScript, JavaScript, Vue scripts, PHP and other languages with slash-star comments (Java, C#, Go, Rust, Kotlin, Swift, Dart). Not `/* */`, `//`, banners of three or more stars, comments sharing a line with code, or text in a PHP heredoc or nowdoc. Limitation: a quote inside a heredoc can hide the comments after it. `findDocComments(text, languageId)` of `@adecore/editor-core` and `@adecore/editor` returns them as `DocComment`s.
 
-A document is read again 100 ms after the last edit, and at most `MAX_DOC_COMMENTS` (500) comments per document are used; the rest stay text.
+At most `MAX_DOC_COMMENTS` (500) comments per document are formatted; the rest stay text.
 
 ## What it shows
 
-The description is Markdown, then the tags are gathered by name in the order a reader looks for them, as a definition list laid out as one table of two columns without lines. The label sits in the left column in the muted color, as wide as the widest label, and its values in the right column on the same row. Several parameters stack in that column, each as a name, a type and its text on one line where it fits.
+The description is Markdown. The tags follow, grouped by name, as a two-column list with the label in the muted color on the left and its values on the right.
 
 | Tag                                        | Shown as                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------------ |
@@ -32,27 +32,27 @@ The description is Markdown, then the tags are gathered by name in the order a r
 | `@since`, `@version`, `@author`            | The text                                                                       |
 | Any other tag                              | `tag:` and the text                                                            |
 
-A type is written in braces, `{number}`, as JSDoc does. PHPDoc writes it without: `@param array<string, int> $filter`. It is read that way in a PHP document only, so `@returns The sum` in TypeScript stays text. `psalm-` and `phpstan-` prefixes read as the plain tag. A dash between a name and its text (TSDoc) is dropped.
+JSDoc types go in braces (`{number}`). PHPDoc types without braces (`@param array<string, int> $filter`) are read in PHP only. `psalm-` and `phpstan-` prefixes read as the plain tag. A TSDoc dash between name and text is dropped.
 
-Inline `{@link Name}`, `{@link Name label}`, `{@link Name|label}`, `{@linkcode}`, `{@linkplain}` and `{@see}` are links, `{@code text}` is code. HTML is turned into Markdown for a small fixed set of elements (`p`, `br`, `b`, `strong`, `i`, `em`, `code`, `tt`, `kbd`, `pre`, `a`, `ul`, `ol`, `li`, `h1` to `h6`, `blockquote`, `hr`) and the entities `&lt;`, `&gt;`, `&amp;`, `&quot;`, `&#39;`, `&nbsp;` and the numeric ones. Nothing else is passed on: `script`, `style`, `iframe`, `img` and the like go with their content, attributes are never copied except the `href` of a link to `http`, `https` or `mailto`, and what is left over is drawn as text. The code never sets HTML from a comment.
+Inline `{@link Name}`, `{@link Name label}`, `{@link Name|label}`, `{@linkcode}`, `{@linkplain}` and `{@see}` are links; `{@code text}` is code. A fixed set of HTML elements (`p`, `br`, `b`, `strong`, `i`, `em`, `code`, `tt`, `kbd`, `pre`, `a`, `ul`, `ol`, `li`, `h1` to `h6`, `blockquote`, `hr`) and the common entities become Markdown. Other elements, such as `script` or `img`, are dropped with their content. Only `http`, `https` and `mailto` link targets survive. The feature never sets HTML from a comment, and images show as their alt text.
 
 ## Switching
 
-- **Gutter button.** Each documentation comment has a book button at its first line, pressed while the comment is formatted. It is a [gutter marker](/editor/decorations#gutter-buttons) of the owner `rendered-docs`.
-- **Command.** `toggleRenderedDocs` is a key of the key table, `Ctrl+Alt+Q` on every platform. `language.renderedDocs.toggle()` is the same for a menu or a palette. It switches the comment the caret is in and returns false when the caret is in none. Switching a comment to formatted takes the carets and selections that touch it to the line under it, or the line above it when the comment ends the document, and leaves the others where they are. A comment that is the whole document stays source: the command returns false and the button is not pressed. On other platforms than macOS, a Ctrl+Alt press that types a character other than its key's own, such as AltGr+Q typing `@`, is typing and fires no shortcut. A comment a reveal showed as source goes back to formatted when it scrolls out of view, when the caret never moved into it.
-- **Switch.** `configure({ renderDocComments, enabled })` takes `enabled` too, on unless `false`. Off, there are no gutter buttons, the shortcut and `toggle()` do nothing, and every comment is drawn as source. On again restores the switches a person made. Pass `enabled` on each `configure` call, since a call without it turns the feature on.
-- **Setting.** `configure({ renderDocComments })` formats every comment, and is off by default as it is in IntelliJ. Changing it puts every comment back under the setting, whatever a person switched before. `isRendered(comment)` and `all` read the state.
-- **Editing.** A comment the caret or a selection touches is drawn as source, and as formatted text again a moment after the caret leaves. A selection that ends where the comment begins, or swallows the comment whole, does not touch it. A click on the formatted block never moves the caret, and nothing typed edits it. Moving the caret up or down, by a line or by a page, steps over a formatted comment and keeps the column, as it does in IntelliJ. A find match or a go-to target inside a formatted comment shows that comment as source first, then reveals the target. A Markdown image is drawn as its alt text, so a comment cannot make the editor load anything.
+- **Gutter button.** A book button on the first line of each comment, pressed while it is formatted. It is a [gutter marker](/editor/decorations#gutter-buttons) of the owner `rendered-docs`.
+- **Command.** `toggleRenderedDocs` (`Ctrl+Alt+Q` everywhere) and `language.renderedDocs.toggle()` switch the comment under the caret, and return false outside one. Carets inside a comment that turns formatted move to the line below it. A comment that is the whole document stays source. Outside macOS, AltGr+Q typing `@` is typing, not the shortcut.
+- **Switch.** `configure({ renderDocComments, enabled })`. `enabled` is on unless `false`, so pass it on every call. Off, there are no buttons, the command does nothing and every comment is source. On again restores a person's switches.
+- **Setting.** `renderDocComments` formats every comment; off by default, as in IntelliJ. Changing it resets a person's switches. `isRendered(comment)` and `all` read the state.
+- **Editing.** A comment the caret or a selection touches shows as source, and formats again once the caret leaves. A click on the block never moves the caret. Up and Down step over a formatted comment and keep the column. A find match or go-to target inside one shows it as source first.
 
 ## Links
 
-A link to a name is followed with Cmd (Ctrl elsewhere) held, as a definition is, through the symbols of the project (`workspace/symbol`). Where the service has none the name is drawn as code and is not a link. A name that is not found does nothing. A link to a web address opens in a new window with the same key.
+Cmd+click (Ctrl elsewhere) follows a name link through `workspace/symbol`. Without that, the name is code, not a link. A web link opens in a new window with the same key.
 
 ## Layout
 
-The block uses the editor's code face for names and types and the interface face for prose, its colors from the theme, and is at most 520 pixels wide like a hover card. It stands at the indentation of the comment and is as tall as its content: the rows under it follow, and so does the scroll position. Folding a rendered comment shows the fold's own placeholder, and unfolding draws the formatted block again. Only the comments in view are drawn and parsed.
+The block uses the code face for names and types, the interface face for prose, and the theme's colors. It is at most 520 pixels wide and sits at the comment's indentation. Folding a rendered comment shows the fold placeholder. Only comments in view are parsed and drawn.
 
-`LanguagePopups` draws the formatted text into the elements the editor makes for the rows. A host that draws its own popups reads `language.renderedDocs.getEntries()` through `useSyncExternalStore` with its `subscribe`, both called on the feature, the same array until the rows change, and draws each `RenderedDocEntry` into its `container`. `entries()` builds the list anew, for code outside a render.
+`LanguagePopups` draws the blocks. A host with its own popups reads `language.renderedDocs.getEntries()` with `useSyncExternalStore` and its `subscribe`, both called on the feature, and draws each `RenderedDocEntry` into its `container`. `entries()` builds a fresh list for code outside a render.
 
 ## Exports
 
@@ -60,4 +60,4 @@ The block uses the editor's code face for names and types and the interface face
 
 ## Replacing lines in the editor
 
-The rows come from `setReplacements` of [`Editor`](/editor/rows#replacing-lines), which any host can use for lines it wants to draw itself.
+The rows come from `setReplacements` of [`Editor`](/editor/rows#replacing-lines), which a host can use to draw any lines itself.

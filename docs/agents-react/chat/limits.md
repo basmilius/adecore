@@ -10,12 +10,12 @@ import { LimitDock, LimitPill, ResumeCompactionDock } from '@adecore/agents-reac
 
 ## LimitDock and LimitPill
 
-`LimitDock({ chatId, info })` stands at the top of the composer: what stopped the turn, when the limit lifts or when the host takes the chat up again, and a switch to let it do so. `LimitPill({ chatId })` says the same in a few words, from the status every client gets, so a chat nobody has open says it too. Both draw nothing while the last turn stopped on nothing or a turn runs. `limitView(info, now)` answers their words.
+`LimitDock({ chatId, info })` sits at the top of the composer. It says what stopped the turn and when the limit lifts, with a switch to resume then. `LimitPill({ chatId })` says the same in a few words, from the status every client gets. Both draw nothing while a turn runs or after a normal stop. `limitView(info, now)` returns their words.
 
-The switch sets the chat's `resumeAtReset` through `configure`. It is there only while the host's `useResumeAtReset(scopeId)` allows it; whether and when a chat goes on is up to the host.
+The switch sets the chat's `resumeAtReset` through `configure`, and shows only while the host's `useResumeAtReset(scopeId)` allows it. The host decides whether and when the chat resumes.
 
-When the chat's CLI has another account that is on, signed in and has room left, the dock offers to continue there (`continueOn`). The host decides whether that takes the chat over or forks it. Nothing switches accounts without a person pressing the button. The button names the account with the least of its session spent; with two or more, a chevron beside it opens a menu of all of them in that order, each with its session and, for one that cannot read the chat's conversation, a note that it goes on in a fork. A pick does what the button does, for that account, and is not remembered: the next limit suggests the account with the most room again. An account that is off, signed out, at its own limit or not read yet is not offered.
+When another account of the CLI is on, signed in and has room, the dock offers to continue there (`continueOn`). The host decides whether that takes the chat over or forks it. The button names the account with the most session left; with several, a chevron opens a menu of all of them. An account that cannot read the conversation is marked as continuing in a fork. Nothing switches without a press.
 
 ## ResumeCompactionDock
 
-`ResumeCompactionDock({ tokens, onCompact, onDismiss })` offers to fold a long context before a chat that lay still is taken up again. The composer shows it for a chat whose context holds `RESUME_COMPACTION_TOKENS` (100,000) or more after `RESUME_COMPACTION_IDLE_MS` (70 minutes) without a turn, on a CLI that can compact; `resumeCompactionOffer` decides. It blocks nothing: sending without answering keeps the whole history.
+`ResumeCompactionDock({ tokens, onCompact, onDismiss })` offers to compact a long context before an idle chat resumes. The composer shows it past `RESUME_COMPACTION_TOKENS` after `RESUME_COMPACTION_IDLE_MS` without a turn, on a CLI that can compact; `resumeCompactionOffer` decides. Sending without answering keeps the whole history.

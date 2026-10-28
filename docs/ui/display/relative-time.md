@@ -8,23 +8,21 @@ import { RelativeTime } from '@adecore/ui';
 
 <Demo src="display/relative-time" />
 
-The age is `formatAge` and the tooltip is `formatDayClockWithYear`, both from [the date formatters](/ui/formatting/dates), so the language and the region a person set write both. Past a week the age turns into the day itself, with the year once it is not this one.
+The age is `formatAge` and the tooltip is `formatDayClockWithYear`, from [the date formatters](/ui/formatting/dates). Past a week the age turns into the date.
 
 ```tsx
 <RelativeTime at={run.finishedAt} className="text-xs text-text-faint tabular-nums" />
 ```
 
-It keeps its age current while it is on screen, on a clock that ticks every thirty seconds, so a page left open does not keep saying `2m ago`. A region change draws it again.
+It keeps its age current while on screen. It is a `<time>` with the moment in `dateTime`, and a tab stop so the tooltip opens on keyboard focus. `null`, `undefined` or an invalid date draws a dash with no tooltip and no tab stop.
 
-It is a `<time>` with the moment in `dateTime`. Text is no tab stop of its own, so it is one, with the accent outline: the tooltip opens on keyboard focus as it does on hover. A moment that is not known, `null`, `undefined` or an invalid date, is a dash with no tooltip and no tab stop.
-
-Inside a row that has the focus itself, such as an option of a command palette or a menu item, a tab stop of its own would leave the row's keys behind. Pass `tooltip={false}` there: the age still counts on, and the row carries the exact time in its own tooltip or description, written with `formatDayClockWithYear`.
+Inside a row that takes focus itself, such as a menu item, pass `tooltip={false}` and put the exact time in the row's own tooltip or description.
 
 ```tsx
 <RelativeTime at={session.updatedAt} tooltip={false} />
 ```
 
-Give it the size and the color through `className`. An age inside a sentence ("ended 5m ago") is a string, not this component: write it with `formatAgo` or `formatAge`.
+Set size and color through `className`. For an age inside a sentence ("ended 5m ago"), use `formatAgo` or `formatAge`.
 
 ## Props
 

@@ -8,24 +8,24 @@ import { SegmentBar } from '@adecore/ui';
 
 <Demo src="display/segment-bar" />
 
-The parts follow each other from 0, each as long as its `value`. Every part starts exactly at its place, so the bounds line up with anything else drawn over the same stretch, such as the marks of a [`Waveform`](/ui/display/waveform). The gap between two parts that touch comes out of the one before, and a part far too narrow for anything may not show at all.
+The parts follow each other from 0, each as long as its `value`. Their bounds line up with anything drawn over the same stretch, such as the marks of a [`Waveform`](/ui/display/waveform). A very narrow part may not show.
 
-A part with a `start` of its own begins there instead of where the part before it ends, and the stretch in between stays empty: no fill, no button and nothing a screen reader hears. That places the sections of a timeline where they fall, with room before, between or after them. The parts still go in order.
+A part with its own `start` begins there, and the stretch before it stays empty. The parts still go in order.
 
-`range` sets the stretch the bar shows. Without it the bar runs from 0 to the end of the last part. A longer range leaves the rest of the bar empty, so bars side by side compare by eye; a shorter one shows the visible part of a timeline that zooms and scrolls, with the parts at its edges cut off.
+`range` sets the stretch the bar shows, by default 0 to the end of the last part. A longer range leaves the rest empty, so bars side by side compare by eye. A shorter one shows the visible part of a zoomable timeline.
 
 ```tsx
 <SegmentBar label="Sections" parts={[{ value: 12, label: 'Intro' }, { value: 36, label: 'Verse', current: true }]} range={[0, 110]} />
 <SegmentBar label="Scenes" parts={[{ start: 8, value: 30, label: 'Interview' }, { start: 46, value: 22, label: 'B-roll' }]} range={[0, 110]} />
 ```
 
-The default size draws each label in its part and cuts a label short where it does not fit; a [`Tooltip`](/ui/overlays/tooltip) then shows it whole. `size="sm"` is a thin bar for a progress row or a meter, which shows its labels only as a tooltip.
+The default size draws each label in its part, cut short where it does not fit, with a [`Tooltip`](/ui/overlays/tooltip) for the whole label. `size="sm"` is a thin bar that shows labels only as a tooltip.
 
-A part wears the theme's color, or any CSS color in `color`, such as `var(--positive)` for a step that is done. `current` marks the part a person is at in the accent, and a `color` wins over it.
+A part takes the theme's color, or any CSS color in `color`, such as `var(--positive)`. `current` draws a part in the accent; `color` wins over it.
 
-With `onSelect` every part is a button, which calls it with the part's index in `parts`: to jump to a section, or to point at one. Give every part a `label` then, since it is the name of its button.
+With `onSelect` every part is a button that passes its index in `parts`. Give every part a `label` then, as the button's name.
 
-The bar is a list, so a screen reader hears the parts in order, by their labels, and hears which one is current. A bar whose parts have no label and no `onSelect` is hidden from a screen reader: name the whole on the element around it, such as a meter with its value.
+A screen reader hears the parts as a list, by label, with the current one marked. A bar without labels and `onSelect` is hidden from it, so name the whole on the element around it.
 
 ## Props
 
@@ -33,7 +33,7 @@ The bar is a list, so a screen reader hears the parts in order, by their labels,
 | --- | --- | --- | --- |
 | `parts` | `readonly SegmentBarPart[]` | | Required. |
 | `range` | `readonly [from: number, to: number]` | 0 up to the end of the last part | The stretch it shows, in the unit of the parts. |
-| `size` | `'sm' \| 'md'` | `'md'` | `sm` is 6 pixels high without visible labels, `md` 28 pixels with them. |
+| `size` | `'sm' \| 'md'` | `'md'` | `sm` is thin without visible labels. |
 | `onSelect` | `(index: number) => void` | | Makes every part a button. |
 | `label` | `string` | | The name of the whole. |
 | `className` | `string` | | |

@@ -1,12 +1,12 @@
 # @adecore/agent-contracts
 
-The Zod schemas and TypeScript types that an agent chat host and its clients share: the frames on the wire, the requests and events, a chat and its items, providers and their models, accounts, tasks, worktrees and usage. The package opens no connection, starts no process and makes no permission decision. It runs in a browser, a preload and a Node or Bun backend alike.
+The Zod schemas and TypeScript types an agent chat host and its clients share: wire frames, requests and events, chats and items, providers and models, accounts, tasks, worktrees and usage. The package opens no connection, starts no process and makes no permission decision. It runs in a browser, a preload, Node and Bun.
 
 ```ts
 import { AGENT_REQUEST_SCHEMAS, parseRequest } from '@adecore/agent-contracts';
 ```
 
-[`@adecore/agents`](/agents/) is a host that answers these requests, and [`@adecore/agents-react`](/agents-react/) draws a chat from them. Either side can be your own: the schemas are the contract, not the implementations.
+[`@adecore/agents`](/agents/) is a host that answers these requests, and [`@adecore/agents-react`](/agents-react/) draws a chat from them. Either side can be your own.
 
 ## Install
 
@@ -26,11 +26,11 @@ pnpm add @adecore/agent-contracts
 
 :::
 
-Zod 4 comes along as a dependency. There is no CSS and there are no words to load.
+Zod 4 comes along as a dependency. There is no CSS and no words to load.
 
 ## A first check
 
-A schema parses what crosses a boundary and throws on what does not fit. A type inferred from a schema describes the parsed output.
+A schema parses what crosses a boundary and throws on what does not fit. Inferred types describe the parsed output.
 
 ```ts
 import { AGENT_REQUEST_SCHEMAS, ChatAttachmentUploadSchema } from '@adecore/agent-contracts';
@@ -46,11 +46,11 @@ const payload = AGENT_REQUEST_SCHEMAS['chat.send'].payload.parse(message);
 const result = AGENT_REQUEST_SCHEMAS['chat.send'].result.parse({ queued: false });
 ```
 
-`.parse()` throws a `ZodError`; `.safeParse()` answers `{ success, data }` or `{ success, error }`. Object schemas are `z.object`, so a parse strips keys the schema does not know. Few fields have a default: an optional field that was left out stays absent, and the reader decides what absent means. The pages say it where that matters, such as an account without `enabled`, which is on.
+`.parse()` throws a `ZodError`. `.safeParse()` returns `{ success, data }` or `{ success, error }`. A parse strips unknown keys. Few fields have a default, so an omitted optional field stays absent and the reader decides what that means. The pages say so where it matters, such as an account without `enabled`, which is on.
 
 ## Entry points
 
-The root exports everything below. Each group also has a subpath of its own, which a bundler can split on.
+The root exports everything below. Each group also has its own subpath for bundle splitting.
 
 | Import                                       | What it holds                                                                                     |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
@@ -67,9 +67,9 @@ The root exports everything below. Each group also has a subpath of its own, whi
 | `@adecore/agent-contracts/visual`            | A chat's visuals, the bridge to their page, its theme and its bootstrap. See [Visuals](/agent-contracts/visuals). |
 | `@adecore/agent-contracts/ids`               | `SessionIdSchema` and `SessionId`.                                                                |
 | `@adecore/agent-contracts/text`              | `clipText`, `appendToolOutput` and `TOOL_OUTPUT_TAIL`.                                            |
-| `@adecore/agent-contracts/record`            | `isRecord`, which tells a plain object from an array or `null` before its fields are read.        |
+| `@adecore/agent-contracts/record`            | `isRecord`, which tells a plain object from an array or `null`.                                   |
 
-The [source](https://github.com/basmilius/adecore/tree/main/packages/agent-contracts/src) has every field with a comment on what it means.
+The [source](https://github.com/basmilius/adecore/tree/main/packages/agent-contracts/src) documents every field.
 
 ## Where to go next
 

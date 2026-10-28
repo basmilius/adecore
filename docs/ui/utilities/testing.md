@@ -8,7 +8,7 @@ import { fakeFormatSource } from '@adecore/ui/testing';
 
 ## fakeFormatSource
 
-A [format source](/ui/formatting/) you set by hand. It starts in English, in the region of the language, with no system locale of a shell. Hand it to `setFormatSource` and set the region a test expects, so its numbers and dates do not depend on the machine that runs it. The region of the language follows `navigator.language` where the runtime has one.
+A [format source](/ui/formatting/) you set by hand. It starts in English, in the region of the language. Hand it to `setFormatSource` and set the region a test expects, so numbers and dates do not depend on the machine.
 
 ```ts
 import { afterAll, afterEach, expect, test } from 'bun:test';
@@ -32,28 +32,28 @@ test('a count is grouped the way the region groups one', () => {
 });
 ```
 
-`set({ language?, region? })` changes either setting. It notifies no subscriber, so a component that is already drawn keeps what it wrote until it renders again. `setFormatSource` returns the source it replaced, which the file puts back when it is done. A component under test draws with the fake if you pass it to `UIProvider` as `formatSource`.
+`set({ language?, region? })` changes either setting. It notifies no subscriber, so a drawn component keeps its text until it renders again. `setFormatSource` returns the source it replaced. To draw a component with the fake, pass it to `UIProvider` as `formatSource`.
 
 `FakeFormatSource` is an exported type, a `FormatSource` with `set`.
 
 ## A linked checkout under bun test
 
-An app that links a checkout of the library (see [Getting started](/ui/guide/getting-started#working-on-a-local-checkout)) loads the checkout's own React, i18next and Base UI next to its own under `bun test`, since the checkout has a `node_modules` of its own. The first hook then fails with "Invalid hook call", and a compound part finds no root. Vite has `resolve.dedupe` for this; Bun has nothing like it. The library ships a preload that does the same for a test run. Put it first in `bunfig.toml`, before any preload that imports the library:
+An app that links a checkout of the library (see [Getting started](/ui/guide/getting-started#working-on-a-local-checkout)) loads the checkout's React, i18next and Base UI next to its own under `bun test`. The first hook then fails with "Invalid hook call". Bun has no `resolve.dedupe` like Vite, so the library ships a preload that does the same. Put it first in `bunfig.toml`:
 
 ```toml
 [test]
 preload = ["@adecore/ui/testing/dedupe", "./test-preload.ts"]
 ```
 
-It loads every file of these packages inside the checkout as a stand-in for the same file in the app's copy:
+It swaps the checkout's copy of these packages for the app's:
 
-- `react`, `react-dom`, `i18next`, `react-i18next` and `@base-ui/react`, which every package of the library shares with the page.
-- `@codemirror/*` and `@lezer/*`. CodeMirror rejects an extension or a facet made by a second copy, with "multiple instances of @codemirror/state", and the chat views take editor extensions from the app.
+- `react`, `react-dom`, `i18next`, `react-i18next` and `@base-ui/react`.
+- `@codemirror/*` and `@lezer/*`, which reject extensions made by a second copy.
 - `shiki`, for a highlighter the app hands to the chat views.
 
-The checkout's copies are those of every package in its repository, so a linked chat package counts as much as `@adecore/ui`. The app's copy is the one the folder `bun test` runs in resolves to, or else the one of the first workspace that depends on the library. A package the app has no copy of is left alone, and so is everything once the library comes from the registry, where the package manager already decided what to share.
+It covers every package of the checkout's repository. A package the app has no copy of is left alone. With the library from the registry the preload does nothing.
 
-An app adds names in its own `package.json`, the one in the folder `bun test` runs in or in a workspace that depends on the library. `@scope/*` stands for every package of a scope, here as in the built-in list:
+An app adds names in its own `package.json`, in the folder `bun test` runs in or a workspace that depends on the library. `@scope/*` stands for every package of a scope:
 
 ```json
 {
@@ -63,7 +63,7 @@ An app adds names in its own `package.json`, the one in the folder `bun test` ru
 }
 ```
 
-A bunfig at the root of a monorepo with an isolated install may not resolve the package itself, since only the workspace depends on it. Point at the file through the workspace instead:
+In a monorepo with an isolated install, a root bunfig may not resolve the package. Point at the file through the workspace instead:
 
 ```toml
 [test]

@@ -1,6 +1,6 @@
 # Getting started
 
-This page installs the package, finds the helper, wires the host into a backend and mounts the views on a page.
+Install the package, find the helper, wire the host into a backend and mount the views.
 
 ## Install
 
@@ -20,11 +20,11 @@ pnpm add @adecore/database
 
 :::
 
-`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies. Only the page needs them: `@adecore/database/host` and `@adecore/database/protocol` import none of them, so a backend does not need React. Set up [`@adecore/ui`](/ui/guide/getting-started) first, since the views are made of its components and read its theme.
+`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies of the page only. `@adecore/database/host` and `@adecore/database/protocol` import none of them. Set up [`@adecore/ui`](/ui/guide/getting-started) first.
 
 ## The helper
 
-The helper is a Rust program, `adecore-database`, that holds the database drivers. `@adecore/database` lists one package per platform as an optional dependency (`@adecore/database-darwin-arm64` for Apple silicon, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the one that fits the machine. `helperPath()` returns the path of its binary:
+The helper, `adecore-database`, is a Rust program that holds the drivers. One optional dependency per platform carries it (`@adecore/database-darwin-arm64` for Apple silicon, `-linux-x64`, `-linux-arm64` and `-win32-x64`), and the package manager installs the matching one. `helperPath()` returns the path of its binary:
 
 ```ts
 import { helperPath } from '@adecore/database/host';
@@ -36,11 +36,11 @@ if (path === null) {
 }
 ```
 
-`null` means the platform has no package, or the install left optional dependencies out. The Linux binaries need glibc 2.35 or newer. Set `ADECORE_DATABASE_HELPER` to the path of another build to have `helperPath()` return that instead.
+`null` means the platform has no package, or the install skipped optional dependencies. The Linux binaries need glibc 2.35 or newer. Set `ADECORE_DATABASE_HELPER` to another build's path to override it.
 
 ### Package the helper
 
-A binary cannot run from inside an Electron `app.asar` archive. `helperPath()` maps `app.asar` to `app.asar.unpacked`, so unpack the platform packages. With electron-builder:
+A binary cannot run from inside `app.asar`. `helperPath()` maps `app.asar` to `app.asar.unpacked`, so unpack the platform packages. With electron-builder:
 
 ```json
 {
@@ -48,23 +48,23 @@ A binary cannot run from inside an Electron `app.asar` archive. `helperPath()` m
 }
 ```
 
-Sign the unpacked binary with the rest of the app. Copying it into `extraResources` and passing that path to `spawnHelper` works too.
+Sign the unpacked binary with the app. Copying it into `extraResources` and passing that path to `spawnHelper` works too.
 
 ### Build it yourself
 
-For another platform or a patched helper, build it from a checkout of the repository and pass the path to `spawnHelper`:
+For another platform or a patched helper, build it from a checkout and pass the path to `spawnHelper`:
 
 ```sh
 cargo build --release --locked --manifest-path packages/database/helper/Cargo.toml
 ```
 
-The binary lands in `packages/database/helper/target/release/adecore-database` (`.exe` on Windows). SQLite is compiled in and MySQL connections use rustls, so it needs no system library. An app that links the checkout and reads its `src` gets this build from `helperPath()` when no platform package has a binary.
+The binary lands in `packages/database/helper/target/release/adecore-database` (`.exe` on Windows) and needs no system library. An app that links the checkout gets this build from `helperPath()` when no platform package has a binary.
 
 ## Wire the host
 
-Create one host per app, in the backend. It starts the helper on the first request, and again on the first request after the helper exited.
+Create one host per app, in the backend. It starts the helper on the first request, and again after the helper exits.
 
-The app checks the sender of every request, then passes it to `host.handle(request, owner)`. `owner` names who is asking, such as a window or a socket: a session belongs to the owner that opened it. Call `host.release(owner)` when the owner goes away, and `host.dispose()` when the app quits. `host.handle` never rejects. A request that fails comes back with `ok: false` and an [error code](/database/guide/protocol#error-codes).
+The app checks the sender of every request, then passes it to `host.handle(request, owner)`. `owner` names who is asking, such as a window or a socket, and owns the sessions it opens. Call `host.release(owner)` when the owner goes away, and `host.dispose()` when the app quits. `host.handle` never rejects. A failed request comes back with `ok: false` and an [error code](/database/guide/protocol#error-codes).
 
 ### Electron main process
 
@@ -93,13 +93,13 @@ app.on('web-contents-created', (_event, contents) => {
 app.on('before-quit', () => void host.dispose());
 ```
 
-`isTrustedSender` is yours: compare the frame's origin with the page you loaded. A window that reloads keeps its owner, so the old page's sessions stay open until the window closes. Call `host.release(owner)` on a main-frame navigation if that matters.
+`isTrustedSender` is yours: compare the frame's origin with the page you loaded. A reloaded window keeps its owner and its old sessions until it closes. Call `host.release(owner)` on a main-frame navigation if that matters.
 
-The host also asks the app before it opens a connection, touches a file or lists containers, through `authorize`, `authorizeFile` and `authorizeDiscovery`. Without `authorizeFile`, export and import are refused, and without `authorizeDiscovery`, the form finds no Docker containers. See [Security](/database/guide/security).
+The host asks the app before it opens a connection, touches a file or lists containers, through `authorize`, `authorizeFile` and `authorizeDiscovery`. Without `authorizeFile`, export and import are refused. Without `authorizeDiscovery`, the form finds no Docker containers. See [Security](/database/guide/security).
 
 ### Electron utility process
 
-A [utility process](https://www.electronjs.org/docs/latest/api/utility-process) keeps the helper's pipes and the JSON work off the main process. The host runs in the worker, and the main process forwards each request with a ticket so the answer finds its way back:
+A [utility process](https://www.electronjs.org/docs/latest/api/utility-process) keeps the helper's pipes and JSON work off the main process. The host runs in the worker, and the main process tags each request with a ticket to match the answer:
 
 ```ts
 // database-worker.ts, forked with utilityProcess.fork
@@ -146,7 +146,7 @@ Release an owner with `worker.postMessage({ release: owner })` when its window i
 
 ### Bun or Node server
 
-Over a WebSocket an owner is a socket. The server authenticates the upgrade, since the host does not know who a person is.
+Over a WebSocket an owner is a socket. The server authenticates the upgrade, since the host knows no people.
 
 ```ts
 import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';
@@ -183,7 +183,7 @@ Bun.serve<{ owner: string }>({
 
 ## Expose the channel to the page
 
-In Electron, the preload exposes one function and nothing else. `@adecore/database/protocol` holds only types and pure helpers, so a preload can import it:
+In Electron, the preload exposes one function. A preload can import `@adecore/database/protocol`, which holds only types and pure helpers:
 
 ```ts
 // preload.ts
@@ -238,19 +238,19 @@ createRoot(document.getElementById('root')!).render(
 );
 ```
 
-Call `client.dispose()` when the page goes away, to close its sessions. The views take a `Connection`, which is `{ id, name, config }`. The app keeps the list, and [`ConnectionManager`](/database/views/connection-manager) edits it; [Connections](/database/guide/connections) explains each kind of `config`.
+Call `client.dispose()` when the page goes away, to close its sessions. The views take a `Connection`, `{ id, name, config }`. The app keeps the list, [`ConnectionManager`](/database/views/connection-manager) edits it, and [Connections](/database/guide/connections) explains each `config`.
 
 ### DatabaseProvider
 
-`DatabaseProvider` hands the client and the app's hooks to every view below it, and adds the package's words to the i18next instance of `UIProvider`. A view outside one throws. A component of your own reads the client with `useDatabaseClient()`.
+`DatabaseProvider` hands the client and the app's hooks to every view below it, and adds the package's words to the i18next instance of `UIProvider`. A view outside one throws. Your own components read the client with `useDatabaseClient()`.
 
 | Prop             | Type                               | Default      |                                                                                                                                                                                 |
 | ---------------- | ---------------------------------- | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `client`         | `DatabaseClient`                   |              | Required on the outermost provider. A provider inside another takes every prop it leaves out from the one above; see [Nested providers](/database/guide/tabs#nested-providers). |
-| `onAction`       | `(action: DatabaseAction) => void` |              | Where a table, a console or the designer opens. Without it the views leave out the items that would open one. See [Opening tables as tabs](/database/guide/tabs).               |
-| `onNotice`       | `(notice: DatabaseNotice) => void` |              | Where the views' passing news goes, such as an export that finished. Without it each view shows its own. See [Notices](#notices).                                               |
-| `storage`        | `DatabaseStorage`                  |              | Where the views keep what a person set. Without it they start the same every time.                                                                                              |
-| `files`          | `DatabaseFiles`                    |              | The app's file dialogs. Without them there is no export and no import. See [Files](/database/guide/files).                                                                      |
+| `client`         | `DatabaseClient`                   |              | Required on the outermost provider. A nested provider inherits what it leaves out; see [Nested providers](/database/guide/tabs#nested-providers). |
+| `onAction`       | `(action: DatabaseAction) => void` |              | Where a table, a console or the designer opens. Without it the views hide the items that would open one. See [Opening tables as tabs](/database/guide/tabs). |
+| `onNotice`       | `(notice: DatabaseNotice) => void` |              | Receives passing news, such as a finished export. Without it each view shows its own. See [Notices](#notices). |
+| `storage`        | `DatabaseStorage`                  |              | Keeps what a person set. Without it the views start fresh every time. |
+| `files`          | `DatabaseFiles`                    |              | The app's file dialogs. Without them there is no export or import. See [Files](/database/guide/files). |
 | `numberNotation` | `NumberNotation`                   | `'database'` | How cells draw numbers. See [Number notation](#number-notation).                                                                                                                |
 | `children`       | `ReactNode`                        |              | Required.                                                                                                                                                                       |
 
@@ -258,17 +258,17 @@ Call `client.dispose()` when the page goes away, to close its sessions. The view
 
 ### Notices
 
-A view has news that passes: an export that finished or failed, an import that finished, a file it could not read, a page of results or the end of a transaction that failed. With `onNotice` on the provider the views hand each one to the app, to show where it shows such news, such as a toast, and show none themselves. Without it each view shows its own, above its content, with Dismiss.
+Passing news includes a finished or failed export or import, an unreadable file, and a failed page of results or transaction end. With `onNotice`, the views hand each to the app, such as for a toast, and show none themselves. Without it, each view shows its own above its content, with Dismiss.
 
-A `DatabaseNotice` is a `tone` (`'success'` or `'error'`), a `title` that says what happened in a few words, a `description` with what the server or the file system said for a failure, and an optional `action` of a `label` and `run()`.
+A `DatabaseNotice` has a `tone` (`'success'` or `'error'`), a short `title`, a `description` with the server's or file system's message on failure, and an optional `action` of a `label` and `run()`.
 
 ```tsx
 <DatabaseProvider client={client} onNotice={(notice) => toasts.show({ kind: notice.tone, title: notice.title, description: notice.description })}>
 ```
 
-What belongs to the state of a view stays in the view: a conflict of a submit that names the change, why a table is read only, a table that changed with Reload, a running export with Cancel, a failed apply in the designer, and the answer of Test connection.
+State of a view stays in the view: a submit conflict, why a table is read only, a changed table with Reload, a running export with Cancel, a failed apply in the designer, and the result of Test connection.
 
-`DatabaseStorage` is `get(key)`, which returns a string or `null`, and `set(key, value)`, where `null` removes the key. Both are synchronous, so `localStorage` fits behind it:
+`DatabaseStorage` is `get(key)`, returning a string or `null`, and `set(key, value)`, where `null` removes the key. Both are synchronous, so `localStorage` fits:
 
 ```tsx
 const storage: DatabaseStorage = {
@@ -277,7 +277,7 @@ const storage: DatabaseStorage = {
 };
 ```
 
-The views keep JSON under these keys, and ignore a value they do not recognize:
+The views keep JSON under these keys and ignore values they do not recognize:
 
 | Key                                               | What                                                                                             |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
@@ -290,15 +290,15 @@ The views keep JSON under these keys, and ignore a value they do not recognize:
 
 ### Number notation
 
-`numberNotation` decides how a cell draws an integer, a decimal or a float. `'database'` draws it as the server wrote it: `12900.50` stays `12900.50`. `'region'` draws it in the number format of the [format source](/ui/formatting/) of `UIProvider`, with every digit kept: `12.900,50` in a Dutch region. The type is `NumberNotation`.
+`numberNotation` (type `NumberNotation`) sets how cells draw numbers. `'database'` draws the server's text: `12900.50` stays `12900.50`. `'region'` uses the [format source](/ui/formatting/) of `UIProvider` and keeps every digit: `12.900,50` in a Dutch region.
 
 <Demo src="database/number-notation" />
 
-Only the drawing changes. Editing, copying, filters made from a cell, export and everything sent to the server keep the server's text. Row numbers, counts and the sums of a selection are the view's own numbers, so they follow the region either way.
+Only the drawing changes. Editing, copying, filters, export and everything sent to the server keep the server's text. Row numbers, counts and selection sums follow the region either way.
 
 ### Keys the views take
 
-A view that acts on a key marks it with `preventDefault()` and lets it bubble on, so the page still sees every key. Shortcuts of the app that listen on the window should skip a key whose `defaultPrevented` is set: Cmd+Shift+Enter runs every statement of a console, and the same key must not also do what the app binds it to elsewhere.
+A view that handles a key calls `preventDefault()` and lets it bubble. App shortcuts on the window should skip a key with `defaultPrevented` set, so Cmd+Shift+Enter in a console does not also trigger an app binding.
 
 ```ts
 window.addEventListener('keydown', (event) => {
@@ -312,7 +312,7 @@ window.addEventListener('keydown', (event) => {
 
 ## Tailwind
 
-The views are styled with Tailwind classes. Tell Tailwind to scan the package next to `@adecore/ui`, with a path relative to the CSS file:
+The views use Tailwind classes. Let Tailwind scan the package next to `@adecore/ui`, relative to the CSS file:
 
 ```css
 @import 'tailwindcss';
@@ -326,9 +326,9 @@ Without the second `@source` the views render unstyled.
 
 ## Words and languages
 
-The package's words live in the `database` namespace (`DATABASE_NAMESPACE`), in English and Dutch. `DatabaseProvider` adds them, and so does a [`DataGrid`](/database/views/data-grid) drawn without one; both skip a language that already has a `database` bundle.
+The words live in the `database` namespace (`DATABASE_NAMESPACE`), in English and Dutch. `DatabaseProvider` adds them, as does a [`DataGrid`](/database/views/data-grid) without one. Both skip a language that already has a `database` bundle.
 
-To add a language, add its bundle before the provider mounts. `DATABASE_RESOURCES`, keyed by language code, holds the English source to translate from:
+To add a language, add its bundle before the provider mounts. `DATABASE_RESOURCES`, keyed by language code, holds the English source:
 
 ```ts
 import { DATABASE_NAMESPACE } from '@adecore/database';
@@ -337,8 +337,8 @@ import { DATABASE_NAMESPACE } from '@adecore/database';
 i18next.addResourceBundle('de', DATABASE_NAMESPACE, germanWords);
 ```
 
-Numbers, dates and durations come from the formatters of [`@adecore/ui`](/ui/formatting/), so they follow the format source of `UIProvider`.
+Numbers, dates and durations follow the [format source](/ui/formatting/) of `UIProvider`.
 
 ## Try it without a server
 
-`fakeDatabaseTransport` answers the protocol from memory, so a page runs without a backend or a helper. See [Testing](/database/api/testing).
+`fakeDatabaseTransport` answers the protocol from memory, so a page runs without a backend or helper. See [Testing](/database/api/testing).

@@ -20,11 +20,11 @@ import { Composer } from '@adecore/agents-react/chat/ui';
 />
 ```
 
-`info` is the chat's `ChatInfo` from the store, which the composer reads its model, queue and limits from. It reads the CLIs from the scope, so a chat that has not spoken yet can still move to another CLI's model.
+`info` is the chat's `ChatInfo` from the store. The composer reads the CLIs from the scope.
 
 ## A prompt in a form
 
-`PromptEditor` is the composer's editor as a form field, for a prompt written now and sent later (a scheduled task, a template): the same `@`, `$`, `/` and `#` pickers and chips, without a chat behind it. The host hands in the CLI's `skills`, the `cwd` `@` searches and the `referables` `#` offers, and keeps the `PromptDraft` it gets back. `promptPicks(draft, referables)` turns what was picked into the `ChatSendExtras` a send takes once the prompt goes out.
+`PromptEditor` is the composer's editor as a form field, for a prompt sent later, such as a template. It has the same `@`, `$`, `/` and `#` pickers and chips, without a chat. Pass the CLI's `skills`, the `cwd` that `@` searches and the `referables` that `#` offers, and keep the `PromptDraft` it returns. `promptPicks(draft, referables)` turns the picks into `ChatSendExtras` for the send.
 
 ```tsx
 <PromptEditor value={draft} onChange={setDraft} label="Prompt" placeholder="What should the agent do?" skills={skills} cwd={folder} referables={referables} />
@@ -32,25 +32,25 @@ import { Composer } from '@adecore/agents-react/chat/ui';
 
 ## Sending
 
-`onSend(text, extras)` gets the trimmed text and `ChatSendExtras`: the `mentions`, `skills` and referenced `chats` picked, and the `attachments` as uploads. A quote becomes a Markdown quote above the text. The paths and skill names are also in the text; the lists are what the thread draws as chips.
+`onSend(text, extras)` gets the trimmed text and `ChatSendExtras`: the picked `mentions`, `skills` and `chats`, and the `attachments` as uploads. A quote becomes a Markdown quote above the text. Paths and skill names stay in the text too; the lists are what the thread draws as chips.
 
-A copy of a message, of a selection in the thread or of a selection in the composer carries its chips beside the plain text, as JSON under `application/x-adecore-chips`: the paths, the skill names and the `#` references as `id` and `name`. A paste with it makes those chips again, as long as the plain text is still the one they were copied with. A paste of plain text makes a chip of a `$name` for a skill the CLI has and of a `#Name` the way a reply does; `@path` only comes back when the paste is nothing but `@path` tokens.
+A copy from a message or the composer puts the chips as JSON under `application/x-adecore-chips` beside the plain text. Pasting it back restores the chips while the plain text is unchanged. Plain text gets chips for a known `$skill` and a `#Name`, and for `@path` only when the paste holds nothing else.
 
-`onSend` may return nothing, and the composer clears its draft at once, without waiting for the host. If a send can fail in your app, keep the text and files until `send` resolves, so a person can try again. Return a promise of whether the host took the message, and a send that also opens a new chat waits for it: Mod+Alt+Enter sends, and once the promise resolves `true` (or once `onSend` returned nothing) calls the host's `openNewChat(scopeId, chatId)`. Without `openNewChat`, Mod+Alt+Enter sends the other way, like Alt+Enter.
+When `onSend` returns nothing, the composer clears its draft at once. If a send can fail, return a promise of whether the host took the message. Mod+Alt+Enter sends and, once that promise resolves `true`, calls the host's `openNewChat(scopeId, chatId)`.
 
-A command of your own, such as a menu row, sends what a composer on screen holds the way its keys do: `sendFromComposer(key, how)` from `@adecore/agents-react/chat`, with the scope's `keyOf(chatId)` and a `ComposerSend` (`default`, `alternate` or `and-new`). It answers `false` when that chat has no composer on screen; each composer registers itself. `SEND_AND_NEW_SHORTCUT` is Mod+Alt+Enter, for a menu or a list of keys to print.
+`sendFromComposer(key, how)` from `@adecore/agents-react/chat` sends what a composer on screen holds, for a menu row of your own. Pass the scope's `keyOf(chatId)` and a `ComposerSend` (`default`, `alternate` or `and-new`). It returns `false` when that chat has no composer on screen. `SEND_AND_NEW_SHORTCUT` is Mod+Alt+Enter, for a menu to print.
 
-`stepEffortFromComposer(key, step)` steps the reasoning effort of that chat one choice `up` or `down`, within the `effort` choices of its model, as picking it in the pill does. The composer says where it landed in its notice line, and at either end, or for a model without an effort, says so and changes nothing. It answers `false` when that chat has no composer on screen. The key that runs it is the host's to bind.
+`stepEffortFromComposer(key, step)` steps the chat's reasoning effort `up` or `down` and reports it in the composer's notice line. It also returns `false` without a composer on screen. Bind its key in the host.
 
 Before the first message, picking another CLI's model calls `onRetarget(provider, selection)`, which moves the empty chat. After it, or with `providerFixed`, the picker offers only the chat's own CLI.
 
-A model picked in the composer becomes the one new chats of that CLI start on. A runtime mode picked there is the chat's own: the mode new chats start in changes only through `rememberChatPreferences`, from a settings page of your own.
+A model picked in the composer becomes the default for new chats of that CLI. A runtime mode picked there applies to that chat only; set the default with `rememberChatPreferences`.
 
 ## Keys
 
-`Mod` is Command on macOS and Control elsewhere. A key inside an IME composition belongs to the composition, and a key the host's `isAppShortcut` claims passes through.
+`Mod` is Command on macOS and Control elsewhere. A key the host's `isAppShortcut` claims passes through.
 
-Which key sends is the person's `sendKey` in the [chat preferences](/agents-react/guide/persistence): `enter` (the default) sends on Enter, `mod-enter-multiline` sends a message of one line on Enter and one of more lines on Mod+Enter only, and `mod-enter` sends on Mod+Enter only. Where Enter does not send, it adds a line. The send button's tooltip shows the key that sends what is in the box. A settings page of your own can offer the three with `CHAT_SEND_KEYS`, `sendKeyLabel` and `sendKeyHint` and `rememberSendKey` from `@adecore/agents-react/chat`.
+The send key is the person's `sendKey` in the [chat preferences](/agents-react/guide/persistence): `enter` (default), `mod-enter-multiline` (Enter sends one line, Mod+Enter several) or `mod-enter`. Where Enter does not send, it adds a line. Offer the choice in your settings with `CHAT_SEND_KEYS`, `sendKeyLabel`, `sendKeyHint` and `rememberSendKey` from `@adecore/agents-react/chat`.
 
 | Key                         |                                                                              |
 | --------------------------- | ---------------------------------------------------------------------------- |
@@ -63,20 +63,20 @@ Which key sends is the person's `sendKey` in the [chat preferences](/agents-reac
 | Mod+Alt+Enter               | Sends, then opens a new chat through the host's `openNewChat`; without it, sends the other way. |
 | Tab, Shift+Tab in a fence   | Indent and outdent. Outside a fence, Tab moves the focus.                     |
 | Up and Down in a picker     | Move through it; Enter or Tab picks.                                         |
-| Up in an empty box          | Brings back an earlier message, up to the last 50; Escape puts it back.      |
+| Up in an empty box          | Brings back an earlier message; Escape puts it back.                         |
 | PageUp, PageDown            | Scroll the thread.                                                           |
 | Mod+S                       | Stashes the draft; in an empty box, brings back the newest stashed prompt.   |
 | Mod+Shift+V                 | Pastes a long text inline instead of as a file.                              |
 
-`/model`, `/compact` and `/clear` are handled by the composer; the CLI's own commands go to it as text, except those that only make sense in its terminal (`usableSlashCommands`). `/goal` is listed for every CLI with the `goals` capability, also one that lists no commands of its own.
+The composer handles `/model`, `/compact` and `/clear`. Other CLI commands go out as text, except terminal-only ones (`usableSlashCommands`). `/goal` is listed for every CLI with the `goals` capability.
 
 ## Pointer
 
-The box reads as one text field. Its empty space shows the text cursor, and a press there puts the caret at the end of the text; a press in the text places it as the editor does. Actions keep their own cursor and never take the focus: a link, a button, a form control, an element with an interactive role or a tab stop, and anything inside one. A control of your own in the `ComposerSlot` that is none of these marks itself with `data-composer-action`. A composer that is disabled or read-only takes no focus this way.
+A press in the box's empty space puts the caret at the end of the text. Links, buttons, form controls and tab stops keep their own cursor and never take the focus. Mark a `ComposerSlot` control that is none of these with `data-composer-action`.
 
 ## Goals
 
-While the chat has a goal, `GoalDock({ chatId, info, goals })` stands at the top of the composer, which draws it itself: where the goal stands, the objective, how far it got in what the CLI counts, and the actions the CLI takes. The whole objective and what the last check said are in its tooltip. `goalView(info, goals, canAct)` answers which actions those are: pause, resume and clear on a CLI with `goals: 'native'`, clear between turns on one with `goals: 'command'`, and none where the host's actions have no `goal`. `GoalPill({ chatId })` says a goal works in a header that shows the chat without its thread, from the status every client gets.
+While the chat has a goal, the composer draws `GoalDock({ chatId, info, goals })` at its top: the goal's state, objective, progress and actions. `goalView(info, goals, canAct)` returns the actions: pause, resume and clear for `goals: 'native'`, clear between turns for `goals: 'command'`, none when the host's actions have no `goal`. `GoalPill({ chatId })` shows a running goal in a header without the thread.
 
 ```tsx
 import { GoalDock, GoalPill } from '@adecore/agents-react/chat/ui';
@@ -84,29 +84,29 @@ import { GoalDock, GoalPill } from '@adecore/agents-react/chat/ui';
 
 ## Pickers and pasting
 
-`@` searches files through the host's `searchFiles` (debounced, at most 8 results) and the chats of `useReferableChats` (at most 4, above the files). `$` lists the CLI's skills; a name starts with a letter, so `$20` stays text. A sigil only opens a picker at the start of a word.
+`@` searches files through the host's `searchFiles` and lists the chats of `useReferableChats` above them. `$` lists the CLI's skills. A sigil opens a picker only at the start of a word.
 
-A file pasted or dropped becomes an attachment, within the [limits](/agent-contracts/conversation#attachments) of the contract. Pasted text of 32 KiB or more becomes `paste-1.txt` beside the message. The box counts characters from 100,000 and refuses to send past 120,000 (`PROMPT_COUNTER_FROM`, `PROMPT_MAX_CHARS`).
+A pasted or dropped file becomes an attachment, within the contract's [limits](/agent-contracts/conversation#attachments). Long pasted text becomes a `paste-1.txt` attachment. Past `PROMPT_COUNTER_FROM` characters the box shows a counter, and past `PROMPT_MAX_CHARS` it refuses to send.
 
 ## Drafts, stash and queue
 
-Each chat keeps its draft while the composer is away; see [Persistence](/agents-react/guide/persistence). `offerDraft(chatId, text)` puts text under the draft for a person to read and send, whether the composer is mounted or not.
+Each chat keeps its draft while the composer is away; see [Persistence](/agents-react/guide/persistence). `offerDraft(chatId, text)` puts text under the draft for a person to send, mounted or not.
 
-The stash is a shelf of prompts shared by every chat: Mod+S puts the draft there and the stash picker lists them. A restored prompt brings back its text, mentions and skills, not its files.
+The stash holds prompts for every chat. Mod+S puts the draft there, and the stash picker lists them. A restored prompt brings back its text, mentions and skills, not its files.
 
-A normal send during a turn queues the message until the current turn finishes. Hold Option or Alt when clicking Send or pressing Enter to steer the running agent at its next input boundary. The host can reverse these behaviors with `useSendDelivery`. The composer passes `delivery: "steer"` or `delivery: "queue"` in `ChatSendExtras`. Steering is offered only where the provider reports the [`steer` capability](/agent-contracts/providers-and-accounts#providers); without it every send queues, and a backend without steering keeps the message queued. Queued messages can be sent at once, or taken back into the draft to edit, which merges with what was typed since.
+A send during a turn queues the message. Option or Alt with Send or Enter steers the running agent instead, and `useSendDelivery` reverses the two. The composer passes `delivery: "steer"` or `delivery: "queue"` in `ChatSendExtras`. Steering needs the provider's [`steer` capability](/agent-contracts/providers-and-accounts#providers); without it every send queues. A queued message can be sent at once or taken back into the draft.
 
 ## Holding a prompt card
 
-While a person types, a prompt card (an approval or a question) stays out of the way, so a key meant for the text never answers it. `holdsPrompt(input)` decides from the typing state, and `holdLiftsIn(input)` says how long the hold has left; `PROMPT_HOLD_PAUSE_MS` is the pause in typing that lifts it, and `HoldInput` and `HoldRelease` are the shapes it reads and reports (`send` and `blur` release at once). The composer draws a bar with a Show now button while it holds.
+While a person types, an approval or question card stays out of the way, so a key meant for the text never answers it. The composer shows a Show now bar meanwhile. `holdsPrompt(input)` decides from `HoldInput`, `holdLiftsIn(input)` returns the time left, and `PROMPT_HOLD_PAUSE_MS` is the typing pause that lifts it. A `HoldRelease` of `send` or `blur` lifts it at once.
 
 ## Menus for screen readers
 
-`composerMenuAria(input)` builds the combobox and listbox attributes of the mention, skill and command menus, and `optionIdOf` gives each option the id the input points at (`ComposerMenuAriaInput` is the input of the first). `clampMenuIndex(index, count)` holds a stale highlighted index on the last option once the list shrank.
+`composerMenuAria(input)` builds the combobox and listbox attributes of the pickers from a `ComposerMenuAriaInput`. `optionIdOf` gives each option its id. `clampMenuIndex(index, count)` keeps a highlighted index inside a shrunk list.
 
 ## Quoting
 
-`splitQuote` separates a quoted block from the text under it. The quote chip and the quote in a sent message lead back to the reply with `jumpToTimelineItem`, which takes `ItemJumpOptions` (`flash`, `onMissing`) and waits for a thread that is not drawn yet. `StashedQuote` is the quote a stashed prompt brings back.
+`splitQuote` separates a quoted block from the text under it. A quote leads back to its reply with `jumpToTimelineItem`, which takes `ItemJumpOptions` (`flash`, `onMissing`). `StashedQuote` is the quote of a stashed prompt.
 
 ## Props
 
@@ -124,7 +124,7 @@ While a person types, a prompt card (an approval or a question) stays out of the
 
 ## ComposerInput
 
-The text field alone: CodeMirror under a plain string, with the Markdown, chips and keys of the composer left to you.
+The text field alone, on a plain string. Markdown, chips and keys are up to you.
 
 <Demo src="agents/composer-input" />
 
@@ -134,6 +134,6 @@ const input = useRef<ComposerInputHandle>(null);
 <ComposerInput ref={input} value={text} placeholder="Describe the change" disabled={false} tabbable onChange={(value) => setText(value)} />;
 ```
 
-The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown(event, view)`, `onPaste(event, view)` and `onCopy(event, view)` (for a copy and a cut) run before the editor's own and return `true` for a key, paste or copy they handled. `onChange` and `onSelectionChange` get the text, the selection as `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` the same object between renders, since a new one reconfigures the editor. A `value` from outside moves the caret to the end and stays out of the undo history.
+The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown`, `onPaste` and `onCopy` (also for cut) get `(event, view)`, run before the editor's own and return `true` when they handled it. `onChange` and `onSelectionChange` get the text, an `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` stable between renders, since a new one reconfigures the editor. An outside `value` moves the caret to the end and skips the undo history.
 
-`composerEditorExtensions` is exported from `@adecore/agents-react/chat/ui` for an input of your own. `PlainTextarea` is the textarea a written answer uses unless the host's `dictation` hands another.
+`composerEditorExtensions` builds the composer's extensions for an input of your own. `PlainTextarea` is the textarea for a written answer unless the host's `dictation` hands another.

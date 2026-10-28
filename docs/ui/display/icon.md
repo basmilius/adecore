@@ -13,7 +13,7 @@ import { Folder } from 'lucide-react';
 
 Icons come in 12, 14, 16 and 20 pixels. Use 16 on its own and in a 32 pixel button, 14 next to `text-sm` or in a menu row, 12 in the smallest controls, and 20 in an empty state.
 
-An icon is decorative: it carries `aria-hidden`, and the name sits on the button or the label next to it. It is centered on the text beside it, where an inline SVG would sit on the baseline and drop below the words.
+An icon carries `aria-hidden`; the name belongs on the button or label next to it. It is centered on the text beside it.
 
 ## Props
 

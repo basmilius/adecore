@@ -21,7 +21,7 @@ const lines = readingOrder(drawing.elements);
 
 <Demo src="canvas/drawing-export" />
 
-The demo passes one drawing to `toSvg` and `readingOrder`. Switching the roughness redraws every shape, and each shape wobbles the same way on every render because it stores its own `seed`.
+The demo passes one drawing to `toSvg` and `readingOrder`. Each shape stores a `seed`, so it wobbles the same way on every render.
 
 ## What is in it
 
@@ -37,7 +37,7 @@ The demo passes one drawing to `toSvg` and `readingOrder`. Switching the roughne
 | `@adecore/drawing/protocol` | Zod schemas, types, `migrateDrawing`         | Zod                           |
 | `@adecore/drawing`          | Geometry, paths, SVG, text and reading order | Rough.js and perfect-freehand |
 
-A store that only validates files imports the protocol and never loads the renderer.
+A store that only validates files imports the protocol alone.
 
 ## What the app does
 

@@ -1,12 +1,12 @@
 # Theme
 
-`@adecore/ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`. The tables on this page are read from that file when the site builds, so they list exactly what it holds. Each swatch is drawn inside its own theme, which is why a token such as `--accent-soft`, mixed from other tokens, shows its real value in both columns.
+`@adecore/ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`. The tables below are read from that file at build time.
 
-The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-muted`, `border-border`, `shadow-float`) and clears Tailwind's default palette with `--color-*: initial`. A component can reach only these colors, and so can your app, until you add your own.
+The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-muted`, `border-border`, `shadow-float`) and clears Tailwind's default palette with `--color-*: initial`. Components and your app can reach only these colors until you add your own.
 
 ## Ground and surfaces
 
-`--bg` is the page behind everything. A panel or a card is a `--surface`, and a popup, a menu or a dialog floats on `--surface-raised`. `--surface-sunken` is the recessed track of a segmented control or a field that should not draw a box. Hover and pressed get a step each, `--surface-hover` lighter than `--surface-active`, so pressed always outranks hover. `--field` is what a person types or picks in (a field, a select, a checkbox): a step lighter than the panel in the dark theme. `--thumb` is the knob of a slider or a switch: white with an edge in the light theme, light gray in the dark theme, so it stands apart from its track in both.
+`--bg` is the page. Panels and cards are `--surface`; popups, menus and dialogs float on `--surface-raised`. `--surface-sunken` is the recessed track of a segmented control, or a field without a box. `--surface-hover` is lighter than `--surface-active`, so pressed outranks hover. `--field` is what a person types or picks in, a step lighter than the panel in the dark theme. `--thumb` is the knob of a slider or switch, set apart from its track in both themes.
 
 <TokenTable group="ground" />
 
@@ -16,7 +16,7 @@ Alpha over whatever is behind, never a gray of their own (see [Principles](/ui/g
 
 <TokenTable group="border" />
 
-`--separator` is opaque and fills the space between separated panels. A layout that needs its borders to match those gaps can opt into `--border: var(--separator)` in both theme scopes. The default border tokens keep their alpha values.
+`--separator` is opaque and fills the space between separated panels. To match borders to those gaps, set `--border: var(--separator)` in both theme scopes.
 
 ## Text
 
@@ -48,19 +48,19 @@ A control drawn over a picture rather than over the interface, such as the handl
 
 ## Chart series
 
-The colors of the series of a chart, in order: the accent first, then orange, aqua, yellow, magenta and green, an order checked for color vision deficiency on both grounds. A series without a tone of its own takes the next one, as in [`@adecore/charts`](/charts/).
+Chart series colors in order: the accent, then orange, aqua, yellow, magenta and green. The order is checked for color vision deficiency on both grounds. A series without its own tone takes the next one, as in [`@adecore/charts`](/charts/).
 
 <TokenTable group="chart" />
 
 ## File icons
 
-The file type palette, which [`FileIcon`](/ui/display/file-icon) colors a file type with. A file icon is the one thing the theme does not tint: TypeScript stays blue wherever the file shows up.
+The palette [`FileIcon`](/ui/display/file-icon) colors file types with. The theme never tints a file icon, so TypeScript stays blue everywhere.
 
 <TokenTable group="file-icon" />
 
 ## Layers
 
-Whole numbers in one place, so a new popup cannot guess where it goes. A dialog sits under the menus and selects it can open, tooltips sit over both, and the [shortcut hints](/ui/display/shortcut-hints) over everything. A component reaches the popup step with `z-(--z-popup)`.
+All z-indexes live here, so a new popup never guesses. A dialog sits under the menus and selects it opens, tooltips over both, and the [shortcut hints](/ui/display/shortcut-hints) over everything. Reach a step with `z-(--z-popup)`.
 
 <TokenTable group="layer" />
 
@@ -68,9 +68,9 @@ Whole numbers in one place, so a new popup cannot guess where it goes. A dialog 
 
 ## Type scale
 
-The sizes are rem, rounded to whole pixels, against the font size your app sets on `<html>`. 15px reads well in a desktop app. Code keeps an absolute size.
+Sizes are rem, rounded to whole pixels, against the font size your app sets on `<html>`. 15px reads well in a desktop app. Code keeps an absolute size.
 
-`2xs` (12px at a 15px root) is only for a small label inside a row of `xs`, such as a [`Pill`](/ui/actions/pill). Nothing in the theme goes below it.
+`2xs` (12px at a 15px root) is only for a small label in a row of `xs`, such as a [`Pill`](/ui/actions/pill). Nothing goes below it.
 
 <TokenTable group="type" />
 
@@ -82,13 +82,13 @@ The sizes are rem, rounded to whole pixels, against the font size your app sets 
 
 ## Code
 
-Code a person reads as code, such as an editor, a grid of database values or a statement, comes in one size apart from the type scale. `--code-font-size` and `--code-line-height` are `--text-code` and its line height until your app sets them on `<html>`, for instance from a font size setting of its code editor; every view that draws code follows at once. Utilities reach them as `text-(length:--code-font-size)` and `leading-(--code-line-height)`.
+Code (an editor, a grid of database values, a statement) has one size apart from the type scale. `--code-font-size` and `--code-line-height` default to `--text-code` and its line height. Set them on `<html>`, for example from an editor font setting, and every code view follows. Utilities reach them as `text-(length:--code-font-size)` and `leading-(--code-line-height)`.
 
 <TokenTable group="code" />
 
 ## Spacing and fonts
 
-The spacing unit is rounded, not each multiple of it, so every step lands on a whole pixel. `--font-mono` is a variable your app can override on `<html>` when a person picks a monospace font, and `font-mono` follows.
+The spacing unit is rounded, so every step lands on a whole pixel. Override `--font-mono` on `<html>` when a person picks a monospace font; `font-mono` follows.
 
 <TokenTable group="spacing" />
 
@@ -96,7 +96,7 @@ The spacing unit is rounded, not each multiple of it, so every step lands on a w
 
 ## Your own accent
 
-Set the accent in a rule after the theme import, in both forms. The second is the same color as channels, for the tokens that carry the accent with an alpha, such as the text selection.
+Set the accent after the theme import, in both forms. `--accent-rgb` is the same color as channels, for tokens that add an alpha, such as the text selection.
 
 ```css
 @import "tailwindcss";
@@ -108,11 +108,11 @@ Set the accent in a rule after the theme import, in both forms. The second is th
 }
 ```
 
-`--accent-soft` is mixed from `--accent` and follows by itself. Set `--accent-text` too if white does not read on your accent. To give the dark theme its own accent, repeat the rule under `[data-theme="dark"]`.
+`--accent-soft` follows by itself. Set `--accent-text` if white does not read on your accent. For a separate dark accent, repeat the rule under `[data-theme="dark"]`.
 
 ## Your own colors
 
-Add a token in both themes and map it onto a Tailwind color, the way the theme maps its own:
+Add a token in both themes and map it onto a Tailwind color:
 
 ```css
 :root, [data-theme="light"] {
@@ -128,11 +128,11 @@ Add a token in both themes and map it onto a Tailwind color, the way the theme m
 }
 ```
 
-Now `bg-brand`, `text-brand` and `border-brand/40` exist. `inline` makes the utility read the variable where it is used, so the value follows `data-theme`. A token derived with `var()` resolves on the element that declares it; declare it in the same rule as the tokens it reads, as the theme does, so it follows a theme change.
+Now `bg-brand`, `text-brand` and `border-brand/40` exist. `inline` makes the utility follow `data-theme`. A token derived with `var()` resolves where it is declared, so declare it in the same rule as the tokens it reads.
 
 ## Rules the utilities cannot write
 
-The theme also carries a few classes for what a utility cannot express: the states Base UI puts on a menu row, pseudo-elements, keyframes. The components use them, and you can too, for something that has to look like one of them.
+A few classes cover what a utility cannot express: Base UI state attributes, pseudo-elements, keyframes. Use them for something that has to look like a component.
 
 | Class | What it draws |
 | --- | --- |

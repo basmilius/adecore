@@ -1,6 +1,6 @@
 # Three-way merge
 
-A three-way merge compares two versions with the base they both started from. Where only one side changed a stretch, that change wins. Where both changed it differently, a person decides.
+A three-way merge compares two versions with their common base. Where one side changed a stretch, that change wins. Where both changed it differently, a person decides.
 
 ```ts
 import { bothLines, draftOf, fingerprint, sideLines, splitBlocks, wandLines } from '@adecore/merge';
@@ -9,7 +9,7 @@ import type { MergeBlock, MergeBlockKind, MergeDraft, MergeSide, MergeSpan } fro
 
 ## Blocks
 
-`splitBlocks(base, ours, theirs)` diffs each side against the base and returns the file as `MergeBlock[]` in reading order. A block is `{ kind, base, ours, theirs }`, with the lines each version has for that stretch. It holds no offsets into the inputs, and an empty stretch makes no block, so three empty inputs give `[]`.
+`splitBlocks(base, ours, theirs)` returns the file as `MergeBlock[]` in reading order. A block is `{ kind, base, ours, theirs }`, with each version's lines for that stretch. Three empty inputs give `[]`.
 
 | `MergeBlockKind` | Means | Merges to |
 | --- | --- | --- |
@@ -19,34 +19,34 @@ import type { MergeBlock, MergeBlockKind, MergeDraft, MergeSide, MergeSpan } fro
 | `both` | Both made the same change | Ours, once |
 | `conflict` | Both changed it, differently | Nothing until someone answers |
 
-Changes of the two sides become one block where they overlap in the base, or where both insert at the same line. A change of ours that ends where one of theirs begins stays a block of its own. Overlaps chain, so one block can grow over several changes of each side.
+Changes from both sides form one block where they overlap in the base or insert at the same line. Changes that only touch stay separate blocks.
 
 ## Answers
 
-An answer is the lines a block becomes, kept in a `Map<number, readonly string[]>` by the index of the block. `[]` is a valid answer that deletes the stretch.
+An answer is the lines a block becomes, in a `Map<number, readonly string[]>` keyed by block index. `[]` deletes the stretch.
 
 | Function | Returns |
 | --- | --- |
 | `sideLines(block, side)` | A copy of one side. `MergeSide` is `'ours' \| 'theirs'`. |
-| `bothLines(block, first)` | Both sides, `first` before the other, for two additions that both belong. It removes no duplicate lines. |
-| `wandLines(block)` | For a block that is no conflict, the lines it merges to by itself. For a conflict, an answer only in the two cases below, else `null`. Test for `null`: a deletion is `[]`. |
+| `bothLines(block, first)` | Both sides, `first` before the other, for two additions that both belong. Duplicates stay. |
+| `wandLines(block)` | For a non-conflict, the lines it merges to. For a conflict, an answer in the two cases below, else `null`. Test for `null`, since a deletion is `[]`. |
 
 The wand answers a conflict when:
 
-- Both sides contain exactly the same lines. Ours wins.
-- One side holds the other's lines as one run, and what it adds puts back no base line the other side deleted. That side wins. An empty side is never held.
+- Both sides hold the same lines. Ours wins.
+- One side holds the other's lines as one run and restores no base line the other deleted. That side wins. An empty side never counts as held.
 
-It compares text and knows no language, so whitespace differences need a choice. This includes indentation, string and regex contents, and trailing spaces that can carry meaning in Markdown. Earlier versions resolved some whitespace differences automatically; callers now get `null` for those conflicts and should offer their usual manual choice.
+It compares plain text, so any whitespace difference returns `null` and needs a manual choice.
 
 ## Drafts
 
-`draftOf(blocks, answers?)` builds the merged file as a `MergeDraft`, `{ lines, spans }`. Each block takes its answer, then the lines it merges to by itself, and a conflict without an answer takes our side. It writes no conflict markers, so the draft is a file a person can edit as it is. An answer may replace a block of any kind; a key with no block is ignored.
+`draftOf(blocks, answers?)` builds the merged file as a `MergeDraft`, `{ lines, spans }`. Each block takes its answer, else the lines it merges to, and an unanswered conflict takes our side. The draft has no conflict markers, so a person can edit it as a file. An answer may replace a block of any kind.
 
-A `MergeSpan` is `{ block, kind, from, to }`: the index and kind of a block and the lines it covers in this draft, `to` exclusive. A deleted block still has a span, with `from` equal to `to`. Spans describe the draft as it was built: an edit in an editor does not move them, and an answered conflict keeps `kind: 'conflict'`. Build a new draft after a new answer, or track the ranges in the editor.
+A `MergeSpan` is `{ block, kind, from, to }`: a block's index and kind and its lines in the draft, `to` exclusive. A deleted block has a span with `from` equal to `to`. Spans describe the draft as built. Edits do not move them, and an answered conflict keeps `kind: 'conflict'`. Build a new draft after each answer, or track the ranges in the editor.
 
 ## Before saving
 
-The draft looks finished while a conflict is still open, so check before you write:
+An open conflict looks finished in the draft, so check before you write:
 
 ```ts
 const unanswered = blocks.flatMap((block, index) => (block.kind === 'conflict' && !answers.has(index) ? [index] : []));
@@ -55,6 +55,6 @@ if (unanswered.length > 0) {
 }
 ```
 
-An answer belongs to the blocks it was given for. When the base or a side changes, the blocks are split again and their indices can shift, so an answer kept by index lands on the wrong stretch. Keep a version of each input with the answers, and ask again when one changed.
+When an input changes, block indices can shift and a stored answer lands on the wrong stretch. Store a version of each input with the answers, and ask again when one changed.
 
-`fingerprint(block)` gives eight hex characters from the two sides of a block, the same in a browser and in a backend. Store it with an answer and compare it before you apply the answer. It is not cryptographic and does not cover the base, so it helps catch a moved block but does not replace the version check.
+`fingerprint(block)` returns eight hex characters from a block's two sides, the same in a browser and a backend. Store it with an answer and compare before applying it. It is not cryptographic and skips the base, so it catches a moved block but does not replace the version check.

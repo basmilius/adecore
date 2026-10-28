@@ -1,6 +1,6 @@
 # Shared cursor
 
-Charts inside a `Chart.Group` share one cursor: the pointer over one draws the cursor in all of them, at the same moment. The group shares an x, not an index, because the data sets need not line up: the chart under the pointer shares the x of its bucket, and every other chart takes its own bucket at that moment. Errors per hour above, the latency every 20 minutes under it.
+Charts inside a `Chart.Group` share one cursor. The group shares an x, not an index, so the data sets need not line up: each chart takes its own bucket at that moment. Errors per hour above, latency every 20 minutes below:
 
 <Demo src="charts/shared-cursor" />
 
@@ -22,9 +22,9 @@ Charts inside a `Chart.Group` share one cursor: the pointer over one draws the c
 </Chart.Group>
 ```
 
-Only the chart under the pointer, or the one the keyboard moves in, shows its tooltip; the others draw the cursor without one.
+Only the chart under the pointer or keyboard shows its tooltip.
 
-The group also lines up the plots: the y axes take the width of the widest on each side, so the same moment stands at the same pixel in every chart. The two are apart: `shareCursor={false}` keeps a cursor per chart, and `alignAxes={false}` leaves each y axis at its own width.
+The group also aligns the plots: the y axes on each side take the width of the widest, so a moment stands at the same pixel in every chart.
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
@@ -32,6 +32,4 @@ The group also lines up the plots: the y axes take the width of the widest on ea
 | `alignAxes` | `boolean` | `true` | The y axes take the width of the widest. |
 | `className`, `ref` | | | On the `<div>` it draws. |
 
-The props are `ChartGroupProps`. A chart in the group that controls its own cursor with `activeX` stays out of the group's.
-
-A cursor across a whole screen, such as every chart on a dashboard, is the same group around all of them. To keep the cursor somewhere else, such as in a store of the app, control it on each chart with `activeX` and `onActiveXChange` instead.
+The props are `ChartGroupProps`. A chart that controls its cursor with `activeX` stays out of the group's cursor. To keep the cursor in an app store, control each chart with `activeX` and `onActiveXChange` instead of a group.

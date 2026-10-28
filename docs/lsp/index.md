@@ -1,6 +1,6 @@
 # @adecore/lsp
 
-A client for the Language Server Protocol 3.17, without a DOM and without Node or Bun APIs, so it runs in a backend process, a utility process or a page. It also defines `LanguageService`, the interface [`@adecore/editor-react`](/editor-react/) asks its features through. Starting a server is the app's: the package takes a transport and speaks the protocol over it.
+A Language Server Protocol 3.17 client that uses no DOM and no Node or Bun APIs, so it runs in a backend, a utility process or a page. It also defines `LanguageService`, the interface [`@adecore/editor-react`](/editor-react/) features call. The app starts the server and hands the package a transport.
 
 ```ts
 import { LspSession, pathToFileUri } from '@adecore/lsp';
@@ -19,19 +19,19 @@ bun add @adecore/lsp
 ## What is in it
 
 - [Sessions and transports](/lsp/sessions): `LspSession`, the handshake, capabilities, configuration and shutdown, over stdio, a WebSocket or memory.
-- [Documents and edits](/lsp/documents): `LspDocument` and its versions, the requests, stale answers, the edit helpers, workspace edits, watched files and renames.
-- [Language service](/lsp/language-service): the interface between editor features and the servers of a project, and a Vue and TypeScript pair.
+- [Documents and edits](/lsp/documents): `LspDocument`, requests, stale answers, edit helpers, workspace edits and file operations.
+- [Language service](/lsp/language-service): the interface between editor features and a project's servers, and a Vue and TypeScript pair.
 - [Testing](/lsp/testing): `FakeLanguageServer` and a memory transport.
 
-Positions are the protocol's: zero-based lines and UTF-16 characters. The edit helpers end a line at `\n`, `\r\n` or a lone `\r`; [`@adecore/editor-core`](/editor-core/documents#text-and-lines) does not count a lone `\r` as a line break, so text that holds one gets different line numbers in the two.
+Positions are zero-based lines and UTF-16 characters. The edit helpers end a line at `\n`, `\r\n` or a lone `\r`, like [`@adecore/editor-core`](/editor-core/documents#text-and-lines).
 
 ## Limits
 
-- Only the UTF-16 position encoding is offered, the one every server has to support. A server that picks another one fails to initialize.
-- Workspace edits declare no change annotations, so a server does not ask for confirmation of a change.
-- Diagnostics without a version cannot be proven fresh and are passed on while their document is open.
-- The package applies no workspace edit and touches no file. It plans one, and declares `create` and `rename` as resource operations unless the host says otherwise (a host that deletes lists `delete` too). The failure handling it announces is `abort`: the client stops at the first change that fails, and nothing that already ran is rolled back. The session can announce files the host created or deleted to the servers, as it does for renames (`willCreateFiles`, `didCreateFiles`, `willDeleteFiles`, `didDeleteFiles`).
-- A server that negotiated no document changes cannot follow an edit; `applyChanges` rejects.
-- A session does not reconnect. After the transport closes, start a new session and open the documents again.
+- Only the UTF-16 position encoding is offered. A server that picks another fails to initialize.
+- Workspace edits declare no change annotations.
+- Diagnostics without a version are passed on while their document is open.
+- The package touches no file. It plans workspace edits and leaves applying them to the host (see [workspace edits](/lsp/documents#workspace-edits)).
+- A server that negotiated no document sync cannot follow edits, so `applyChanges` rejects.
+- A session does not reconnect. After the transport closes, start a new session and reopen the documents.
 
 The package is FSL-1.1-MIT.

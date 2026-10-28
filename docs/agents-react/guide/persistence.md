@@ -1,6 +1,6 @@
 # Persistence
 
-Four records outlive a reload: the drafts of every chat, the chat preferences (the model per CLI, the runtime mode, the account per host, the reading width, the send key, the starred models), the stash of prompts put aside, and the usage page's choices. Everything else, threads included, comes from the host again.
+Four records outlive a reload: drafts, chat preferences, the stash and the usage page's choices. Threads and everything else come from the host again.
 
 ## Configure first
 
@@ -10,7 +10,7 @@ import { configureChatStorage } from '@adecore/agents-react';
 configureChatStorage({ namespace: 'my-app' });
 ```
 
-Call it before the first render, outside React, since the stores are shared by every view on the page. Importing a module reads nothing; the first read of any record (a hook, `getState`, a subscription) fixes the configuration, and configuring after that throws `Configure chat storage before using chat stores`. There is no reset: a page that needs another configuration is a new page.
+Call it before the first render, outside React. The first read of any record fixes the configuration, and configuring after that throws `Configure chat storage before using chat stores`. There is no reset.
 
 | Record        | Key                        |
 | ------------- | -------------------------- |
@@ -23,7 +23,7 @@ The namespace is `adecore` unless you set one. `keys` names a record's whole key
 
 ## Where it is kept
 
-Without `storage` the records go to `localStorage`, looked up on first use; a page without one, or one that refuses access, keeps them in memory. `storage: null` keeps them in memory on purpose. Anything else is a `ChatStorageAdapter`, `{ getItem(key), setItem(key, value) }`, and has to answer at once:
+Without `storage` the records go to `localStorage`, or to memory when it is unavailable. `storage: null` keeps them in memory. Anything else is a synchronous `ChatStorageAdapter`, `{ getItem(key), setItem(key, value) }`:
 
 ```ts
 const records = new Map<string, string>();
@@ -34,11 +34,11 @@ configureChatStorage({
 });
 ```
 
-A write that fails, such as a full storage, keeps the value in memory for the rest of the session. A draft that does not fit is written again without its attached files, so its text survives.
+A failed write keeps the value in memory for the session. A draft that does not fit is saved without its files.
 
 ## Moving from older keys
 
-An app that kept these records under other keys lists them, and the first read copies the old record over:
+List older keys, and the first read copies the old record over:
 
 ```ts
 configureChatStorage({
@@ -48,18 +48,18 @@ configureChatStorage({
 });
 ```
 
-For each record the current key wins when it holds anything, even something that no longer parses. Otherwise `legacyKeys` are tried in order, then each of `legacyNamespaces`, and the first value found is copied unchanged to the current key. The old key stays, for a window that still reads it. The copy converts nothing: a field the current version does not read is ignored until the record is written again.
+A current key that holds anything wins. Otherwise `legacyKeys` are tried in order, then `legacyNamespaces`, and the first value is copied unchanged. The old key stays.
 
 ## What the records hold
 
-- Drafts are keyed by chat id, not by scope, so two hosts with the same chat id share a draft. Pick chat ids that are unique on the page. A draft holds its text, mentions, skills, referenced chats, quote and attached files. `readDraft`, `writeDraft` and `useDrafts` read and write them; `offerDraft(chatId, text)` adds text under what is typed, for a person to read and send.
-- Preferences hold the model per CLI (`selectionByProvider`), the last CLI, the runtime mode for chats and for terminals (both `full-access` by default), the account per host and CLI (`accountByMachine`) and `changedAt`. A model belongs to its CLI, so an old record with one global model loses it rather than guessing a CLI. `chatPreferencesPayload` makes the payload of `ChatClient.setPreferences` from them.
-- The stash is at most `STASH_LIMIT` (20) prompts, newest first, shared by every chat. It keeps the text, mentions, skills and the names of attached files, not the files themselves.
-- Usage holds the period (`7d`), the metric (`cost`) and the currency (`USD`). The numbers stay in memory.
+- Drafts are keyed by chat id, not by scope, so keep chat ids unique on the page. A draft holds its text, mentions, skills, referenced chats, quote and files. `readDraft`, `writeDraft` and `useDrafts` read and write them; `offerDraft(chatId, text)` adds text under the draft.
+- Preferences hold the model per CLI (`selectionByProvider`), the last CLI, the runtime mode for chats and terminals (`full-access` by default), the account per host and CLI (`accountByMachine`), the reading width, the send key, the starred models and `changedAt`. `chatPreferencesPayload` builds the payload of `ChatClient.setPreferences`.
+- The stash holds up to `STASH_LIMIT` prompts, newest first, for every chat. It keeps text, mentions, skills and file names, not the files.
+- Usage holds the period (`7d`), the metric (`cost`) and the currency (`USD`).
 
 ## Another window
 
-A `storage` event from another window of the same origin is how a change arrives there. Reload the preferences when their key changes:
+Another window of the same origin sends a `storage` event. Reload the preferences when their key changes:
 
 ```ts
 import { CHAT_PREFERENCES_KEY, reloadChatPreferences } from '@adecore/agents-react/chat';
@@ -75,4 +75,4 @@ window.addEventListener('storage', (event) => {
 });
 ```
 
-`CHAT_PREFERENCES_KEY` and `USAGE_PREFERENCES_KEY` are live bindings: they follow the configuration. Drafts and the stash have no reload.
+`CHAT_PREFERENCES_KEY` and `USAGE_PREFERENCES_KEY` follow the configuration. Drafts and the stash have no reload.

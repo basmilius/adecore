@@ -4,7 +4,7 @@
 
 ## Mount options
 
-`engine.mount(element, options)` takes `EditorOptions`. Most options have a setter on the `Editor` that changes them later without a remount.
+`engine.mount(element, options)` takes `EditorOptions`. Most options have a setter that changes them without a remount.
 
 | Option           | Default              | Setter           | Meaning                                                                                                                                                                                                            |
 | ---------------- | -------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -30,25 +30,26 @@
 | `scrollTop`      |                      |                  | In pixels, where the view starts; without it the caret's line is in view                                                                                                                                           |
 | `todoWords`      | `DEFAULT_TODO_WORDS` | `setTodoWords`   | The words that mark a TODO comment; see below                                                                                                                                                                      |
 | `fontSize`       | the page's           | `setFontSize`    | In pixels, a zoomed size the host kept; see [zoom](#zoom)                                                                                                                                                          |
-| `zoom`           | 12 to 90, wheel on   |                  | `EditorZoom`: `{ min, max, wheel }`, how far a person may zoom and whether the wheel does                                                                                                                         |
+| `zoom`           | 12 to 90, wheel on   |                  | `EditorZoom`: `{ min, max, wheel }`, the zoom range and whether the wheel zooms                                                                                                                                   |
+| `folding`        | `true`               |                  | `false` disables all folding, for a projected document whose rows must stay visible. `foldOutline: 'off'` only hides the arrows                                                                                   |
 
-`setReadOnly` stops typing, commands and `applyEdits`. `setText` still works, since a reload from disk is not a person typing.
+`setReadOnly` blocks typing, commands and `applyEdits`. `setText` still works, for a reload from disk.
 
 ## TODO comments
 
-A comment with one of the `todoWords` in it, `TODO` and `FIXME` by default, is drawn in `--editor-todo` and in italics from the word to the end of the comment on that line, and gets a tick in the scroll track that jumps to it. The words match as whole words in any case. Only a comment counts, as the model's lexer for the `language` reads it, so a word in a string or in code is no TODO. An empty list turns it off. `findTodos(text, language, options?)` from `@adecore/editor-core`, also exported here, returns the same `TodoMatch`es for a host that lists them.
+A comment containing one of the `todoWords` (`TODO` and `FIXME` by default, whole words in any case) is drawn in `--editor-todo` italics from the word to the end of the comment's line, with a tick in the scroll track. Words in strings or code do not count. An empty list turns it off. `findTodos(text, language, options?)` returns the same `TodoMatch`es for a host that lists them.
 
 ## Zoom
 
-`runCommand('increaseFontSize')` and `runCommand('decreaseFontSize')` make the code one pixel larger or smaller, and `runCommand('resetFontSize')` goes back to the page's `--code-font-size`. Ctrl with the wheel (Cmd on macOS), or a pinch, does the same unless `zoom.wheel` is `false`; a mouse notch is one step, and the small steps of a trackpad or a pinch add up to one. The size stays in whole pixels between `zoom.min` and `zoom.max`, 12 and 90 by default, and never goes below 12. The line grows with the text, as much taller as the page's line is to its text.
+`runCommand('increaseFontSize')` and `runCommand('decreaseFontSize')` change the code size by one pixel, and `runCommand('resetFontSize')` returns to the page's `--code-font-size`. Ctrl or Cmd with the wheel, or a pinch, does the same unless `zoom.wheel` is `false`. The size stays in whole pixels between `zoom.min` and `zoom.max`, never below 12. Line height scales with it.
 
-Each step a person takes goes to `onFontSizeChange`, with the new size or `null` after a reset, so the host can keep it and hand it back as `fontSize` next time, or pass it to its other editors with `setFontSize`. `setFontSize` itself is not reported. `getFontSize()` is the size the code is drawn at. The commands have no chord in `KEYMAP`, since the zoom chords of other editors are the fold keys here; a host binds them through its keymap.
+Each zoom step goes to `onFontSizeChange` with the new size, or `null` after a reset. The host can store it and pass it back as `fontSize`, or apply it to other editors with `setFontSize`, which is not reported. `getFontSize()` returns the current size. The commands have no default chord, since other editors' zoom chords are fold keys here.
 
-`refreshFont()` reads the code font from the page again. Call it after changing `--font-mono`, `--code-font-size` or `--code-line-height`, or after a web font loads, since measured widths, wrapping and hit testing depend on it.
+`refreshFont()` measures the code font again. Call it after changing `--font-mono`, `--code-font-size` or `--code-line-height`, or after a web font loads.
 
 ## Smart keys
 
-`EditorSmartKeys` turns each typing behavior of the [model](/editor-core/commands) on or off. All are on except `camelHumps`. `setSmartKeys` takes a partial object and leaves the rest as they are.
+`EditorSmartKeys` turns each typing behavior of the [model](/editor-core/commands) on or off. All are on except `camelHumps`. `setSmartKeys` takes a partial object.
 
 | Key                  | What it does                                                        |
 | -------------------- | ------------------------------------------------------------------- |
@@ -65,9 +66,9 @@ Each step a person takes goes to `onFontSizeChange`, with the new size or `null`
 
 ## Keymaps
 
-`@adecore/editor/keymap` holds one table of every editor and language command, with a chord for macOS and one for the other platforms. `Mod` is Cmd on a Mac and Ctrl elsewhere; `Ctrl` and `Meta` are the physical keys. A `null` chord means the command has no key, such as the fold levels, `saveAsLiveTemplate`, `wrapWithAbbreviation` and the AI commands `selectionToChat`, `inlineEdit`, `suggestInline` and `acceptGhostWord`. The template commands follow IntelliJ: `insertLiveTemplate` is `Mod+J`, `surroundWith` is `Mod+Alt+T`, `surroundWithLiveTemplate` is `Mod+Alt+J` and `unwrap` is `Mod+Shift+Delete`, which is the forward delete key on a Mac. Moving `Mod+Alt+J` to `surroundWithLiveTemplate` is a [breaking change](/editor/reference#breaking-wrap-with-abbreviation-has-no-default-chord) for a host that prints the chord of `wrapWithAbbreviation`.
+`@adecore/editor/keymap` holds one table of every editor and language command, with a chord for macOS and one for other platforms. `Mod` is Cmd on a Mac and Ctrl elsewhere. `Ctrl` and `Meta` are the physical keys. A `null` chord means no key, as for the fold levels, `saveAsLiveTemplate`, `wrapWithAbbreviation` and the AI commands `selectionToChat`, `inlineEdit`, `suggestInline` and `acceptGhostWord`. The template commands follow IntelliJ: `insertLiveTemplate` is `Mod+J`, `surroundWith` is `Mod+Alt+T`, `surroundWithLiveTemplate` is `Mod+Alt+J` and `unwrap` is `Mod+Shift+Delete` (forward delete on a Mac). See the [breaking change](/editor/reference#breaking-wrap-with-abbreviation-has-no-default-chord) for `wrapWithAbbreviation`.
 
-Resolve the table once with the app's overrides, and give the same table to the engine, to [`ProjectLanguage`](/editor-react/project) and to the menus that print the keys:
+Resolve the table once with the app's overrides, and pass the same table to the engine, to [`ProjectLanguage`](/editor-react/project) and to menus that print keys:
 
 ```ts
 import { chordOf, parseChord, resolveKeymap } from '@adecore/editor/keymap';
@@ -87,13 +88,11 @@ const engine = createSmartEditorEngine({
 chordOf('duplicateLine', apple, keymap); // 'Mod+Shift+D'
 ```
 
-`resolveKeymap` fills every id the overrides leave out from `KEYMAP`. `parseChord` throws on a chord it cannot read, so validate a chord a person stored before using it. A `KeyBinding` may carry `takenMac` or `takenOther` (`{ platform, by }`) to record which app command owns a chord the platform also uses; the editor does not read it.
+`resolveKeymap` fills every id the overrides leave out from `KEYMAP`. `parseChord` throws on a chord it cannot read, so validate stored chords first. A `KeyBinding` may carry `takenMac` or `takenOther` (`{ platform, by }`) to record that a platform also uses the chord. The editor ignores it.
 
 Two hooks let the app take keys:
 
-- `handBack` chords pass through the editor untouched, with their default intact, so the app's global shortcuts keep working while the editor has focus.
-- `editor.onKeyDown(handler)` sees every other key first. A handler that returns `true` takes the key; the editor prevents its default and does nothing with it.
+- `handBack` chords pass through the editor untouched, so the app's global shortcuts work while the editor has focus.
+- `editor.onKeyDown(handler)` sees every other key first. Returning `true` takes the key; the editor prevents its default and ignores it.
 
-A key table id is not always a command name. `collapse` runs the view command `collapseRegion`, for example. To run a command from a menu, pass an `EditorRunCommand` to `runCommand`; see [Text and events](/editor/editing#commands).
-
-Set `folding: false` for a projected document whose rows must remain visible. Automatic and selection folds are disabled, remembered folds are ignored, and fold commands return false. This differs from `foldOutline: 'off'`, which only hides the gutter arrows.
+A key table id is not always a command name: `collapse` runs the view command `collapseRegion`. To run a command from a menu, pass an `EditorRunCommand` to `runCommand`; see [Text and events](/editor/editing#commands).

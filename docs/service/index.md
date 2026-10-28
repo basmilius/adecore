@@ -1,6 +1,6 @@
 # @adecore/service
 
-Runs a program as a user service: a LaunchAgent in the GUI session on macOS, a systemd user unit on Linux, a scheduled task at logon on Windows. The package writes the definition and drives `launchctl`, `systemctl` or `schtasks` through a command runner and a file adapter the app hands it, so a test runs every step without touching the machine.
+Runs a program as a user service: a LaunchAgent on macOS, a systemd user unit on Linux, a scheduled task at logon on Windows. The package writes the definition and drives `launchctl`, `systemctl` or `schtasks` through a command runner and a file adapter the app passes in, so tests never touch the machine.
 
 ```sh
 bun add @adecore/service
@@ -54,13 +54,13 @@ if (manager.install(serviceDefinition(process.platform, spec))) {
 }
 ```
 
-`install` returns `true` only when it replaced a different definition, which is when a running service has to restart to pick it up.
+`install` returns `true` only when it replaced a different definition, so a running service must restart.
 
-- [Definitions](/service/definitions) covers the spec, what the definitions contain and how values are escaped.
-- [Managers](/service/managers) covers every step on launchd, systemd and Task Scheduler, lingering, the adapters and testing.
+- [Definitions](/service/definitions): the spec, the definitions and escaping.
+- [Managers](/service/managers): each step on launchd, systemd and Task Scheduler, lingering, the adapters and testing.
 
 ## What the app owns
 
-The package derives nothing from the running process: the label, the unit name, the task name, the home folder, the user and the environment all come from the app. It decides nothing either. Where the program is copied to, who may install or replace the service and whether a person agreed to lingering are the app's checks, made before it calls a manager. Keep service control in the backend; a page that may ask for it goes through the app's own check of the sender.
+The app passes every name, path, user and the environment; the package reads nothing from the running process. The app also checks, before it calls a manager, where the program lives, who may install or replace the service and whether a person agreed to lingering. Keep service control in the backend, and let a page reach it only through the app's check of the sender.
 
 The package is licensed under [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/service/LICENSE).

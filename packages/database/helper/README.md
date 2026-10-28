@@ -31,11 +31,11 @@ docker rm -f adecore-test-mariadb adecore-test-mysql adecore-test-mariadb-np
 
 The tests also adapt to a server without TLS: `require` is then expected to fail with `connect-failed`.
 
-`tests/tunnel_docker.rs` needs two running containers with the root password `test` (`ADECORE_TEST_DOCKER_PASSWORD` changes it): one that publishes 3306 and one that publishes nothing. `tests/tunnel_ssh.rs` runs the real `ssh` against a name that cannot resolve, then a stand-in `ssh` script that honors `-W`; no SSH server is involved, so a real login is not covered by the tests.
+`tests/tunnel_docker.rs` needs two running containers with the root password `test` (`ADECORE_TEST_DOCKER_PASSWORD` changes it): one that publishes 3306 and one that publishes nothing. `tests/tunnel_ssh.rs` runs the real `ssh` against a name that cannot resolve, then a stand-in `ssh` script that honors `-W`, so no SSH server is involved.
 
 ## Shipping
 
-The release workflow builds the binary on a runner of each platform (`cargo build --release --locked --target <target>`) and places it in `bin/` of the matching package: `packages/database-<platform>-<arch>`, published as `@adecore/database-<platform>-<arch>`. `@adecore/database` lists them as optional dependencies, and `helperPath()` from `@adecore/database/host` finds the one that was installed. The Linux binaries are built on Ubuntu 22.04, so they need glibc 2.35 or newer.
+The release workflow builds the binary on a runner of each platform (`cargo build --release --locked --target <target>`) and places it in `bin/` of `packages/database-<platform>-<arch>`. The Linux runners are Ubuntu 22.04, hence glibc 2.35 or newer.
 
 | Package | Target |
 | --- | --- |
@@ -70,7 +70,7 @@ The contract lives in TypeScript, in `src/protocol` of the package, with shared 
 - `tunnel.rs`, `docker.rs`, `tools.rs`: the SSH and Docker tunnels of a MySQL session, the `docker` calls they and `discover` share, and the lookup of `docker` and `ssh`. `discover.rs` lists the containers.
 - `export.rs`, `delimited.rs`, `import.rs`: the export formats and the partial file, the CSV and TSV reader, and the import planner with `sample`.
 
-## Methods added in protocol 2
+## Methods
 
 - `discover` (`kind: "docker"`) runs `docker ps` and `docker inspect` and lists running containers whose image name holds `mysql`, `mariadb` or `percona`, or that expose 3306. `suggested` comes from `MYSQL_USER`, `MYSQL_PASSWORD` and `MYSQL_DATABASE`, then the `MARIADB_` variants, and falls back to `root` with `MYSQL_ROOT_PASSWORD` or `MARIADB_ROOT_PASSWORD`. Without Docker, or with a daemon that is not running, it answers `unsupported` with what docker said.
 - `page` wraps one statement that starts with `SELECT` or `WITH` (after comments, trailing semicolon dropped) as `SELECT * FROM (<sql>) LIMIT ? OFFSET ?`, with `AS adecore_page` on MySQL, and reads one row past the limit for `hasMore`. Anything else, several statements included, is `unsupported`. MySQL refuses a wrapped statement with two columns of the same name; SQLite renames them. MariaDB ignores the `ORDER BY` of a derived table without a `LIMIT`, so a statement with a top-level `ORDER BY` and no `LIMIT`, `FETCH`, `OFFSET` or locking or `INTO` clause takes `LIMIT ? OFFSET ?` inside the parentheses instead. `cellLimit` defaults to 65536.
@@ -91,7 +91,7 @@ The contract lives in TypeScript, in `src/protocol` of the package, with shared 
 - `docker` runs `docker [--context c] inspect`. A running container that publishes its port (3306 unless `tunnel.port` says otherwise) is reached directly on `127.0.0.1:<HostPort>` (a `HostIp` of `0.0.0.0` or `::` means localhost). Otherwise the helper uses a listener and `docker exec -i <container> bash -c 'exec 3<>/dev/tcp/127.0.0.1/<port>; cat <&3 & cat >&3; kill $! 2>/dev/null'`, which needs `bash` and `cat` in the container. When the Docker context points at another machine (`tcp://` or `ssh://`), published ports are not local, so that case always takes `docker exec`. A missing or stopped container is `tunnel-failed` with docker's message. `host`, `port` and `socket` of the config are ignored, and with `tls: "verify"` the certificate chain is checked but not the host name.
 - `docker` and `ssh` are looked up in `PATH` first, then in `/usr/local/bin`, `/opt/homebrew/bin`, `/Applications/Docker.app/Contents/Resources/bin` and `/usr/bin`, because an Electron app started from the Dock has a short `PATH`. The rest of the environment, `DOCKER_HOST` included, goes to the processes; their `PATH` gets the same directories appended. A host or container name that starts with a dash is refused with `invalid-request`, as `ssh` and `docker` would read it as an option.
 
-## Behavior worth knowing
+## Behavior
 
 - `where` and `orderBy` reach the server as written, inside one statement. Each is followed by a newline so a trailing `--` comment cannot swallow the rest. SQLite refuses a second statement when it prepares; MySQL refuses it because `rows` uses the prepared protocol.
 - Integers outside the safe range of a JSON number cross as strings. Decimals, dates, times and datetimes cross as the server's text and are never cut to a preview; text and binary values are cut at `cellLimit`.
@@ -104,6 +104,5 @@ The contract lives in TypeScript, in `src/protocol` of the package, with shared 
 
 - The splitter does not understand MySQL's client-side `DELIMITER`, so a stored routine with semicolons in its body cannot be sent through `execute`. SQLite trigger bodies are kept whole.
 - Column defaults are normalized for MariaDB 10.2.7 and newer and for MySQL 8; older servers report them differently.
-- Connections over a Unix socket are not covered by the tests.
-- The tests cannot log in over SSH: they run the real `ssh` only against a name that fails to resolve, and a stand-in script for the rest.
+- No test covers a Unix socket or a real SSH login.
 - `docker exec` starts a process per connection, so a Docker tunnel without a published port opens a little slower, and a cancel (which opens a second connection) too.

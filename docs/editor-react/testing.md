@@ -1,10 +1,10 @@
 # Testing
 
-`@adecore/editor-react/testing` holds a fake language service and a manual clock, so the features run in `bun test` without a server, a process or a browser.
+`@adecore/editor-react/testing` holds a fake language service and a manual clock, so the features run in `bun test` without a server or browser.
 
 ## FakeLanguageService
 
-`FakeLanguageService` implements [`LanguageService`](/lsp/language-service) in memory. `respond(method, answer, provider?)` registers an answer for an LSP method and the provider options the service declares for it, such as `triggerCharacters`. A method without an answer is unsupported and rejects with code `-32601`.
+`FakeLanguageService` implements [`LanguageService`](/lsp/language-service) in memory. `respond(method, answer, provider?)` registers an answer for an LSP method, with its provider options such as `triggerCharacters`. A method without an answer is unsupported and rejects with code `-32601`.
 
 ```ts
 import { expect, test } from 'bun:test';
@@ -42,8 +42,8 @@ test('the editor reports its edits and counts problems', async () => {
 | `refresh(uri)`                | Fires `onProvidersChanged`, as a server that came up                             |
 | `respond('open', answer)`     | Runs when a document opens; an answer that returns a promise delays the open     |
 
-An answer for a document whose text changed while it was pending rejects with `StaleResultError`, as a real service must. The fake does not model several clients of one document or a server that fails; for those, test the [LSP layer](/lsp/testing).
+An answer for a document whose text changed while pending rejects with `StaleResultError`, as a real service must. The fake models neither several clients of one document nor failing servers; test those in the [LSP layer](/lsp/testing).
 
 ## ManualTimers
 
-The features wait before they ask: 80 milliseconds before suggestions, 300 before a hover card. `ManualTimers` replaces the clock, passed as the last argument of `EditorLanguage`; `realTimers` is the default one, on `setTimeout`, and a subclass of `EditorLanguage` that takes a `Timers` of its own defaults to it too. `advance(ms)` runs what is due, and the test awaits the promises of the requests that started.
+The features wait before they ask: 80 ms before suggestions, 300 ms before a hover card. Pass `ManualTimers` as the `timers` argument of `EditorLanguage` to control the clock; `realTimers`, on `setTimeout`, is the default. `advance(ms)` runs what is due, and the test awaits the requests that started.

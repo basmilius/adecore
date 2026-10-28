@@ -16,6 +16,6 @@ const [measure, { width, height }] = useContentSize();
 return <div ref={measure}>{width > 0 && <Plot width={width} height={height} />}</div>;
 ```
 
-The size is rounded, so a frame fitted into the space lands on whole pixels too, and a chart that draws in real pixels keeps every line sharp. The size is `0` by `0` until the element is there.
+The size is `0` by `0` until the element is there.
 
 `ContentSize` (`{ width, height }`) is an exported type.

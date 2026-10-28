@@ -1,10 +1,10 @@
 # Coordination
 
-Modules for agents that hand each other work: an outbox that keeps a promise across restarts, tasks between a chat and the chats it opened, the lineage of who opened whom, and messages between chats. A plain `AgentHost` installs none of them; a host that lets agents work together composes them around its core. Keep their files outside every folder an agent can write to, and check who may do what before a call reaches them.
+Modules for agents that hand each other work: an outbox that survives restarts, tasks between a chat and the chats it opened, the lineage of who opened whom, and messages between chats. A plain `AgentHost` installs none of them. A host that lets agents work together composes them around its core. Keep their files outside every folder an agent can write to, and check who may do what before a call reaches them.
 
 ## Outbox
 
-`OutboxStore` keeps one record per thing owed, validated by a Zod schema of the work, under `outbox/` in the data folder. `OutboxWorker` runs them oldest first per target, different targets side by side. `enqueue` resolves once the work is on disk, not once it ran.
+`OutboxStore` keeps one record per pending job under `outbox/`, validated by a Zod schema. `OutboxWorker` runs them oldest first per target, with targets in parallel. `enqueue` resolves once the work is on disk, not once it ran.
 
 ```ts
 import { z } from 'zod';
@@ -37,13 +37,13 @@ export async function runOutboxExample(dataDir: string): Promise<string[]> {
 }
 ```
 
-A handler that throws is tried again after 1, 5 and 30 seconds (`RETRY_DELAYS_MS`); after that the entry is removed and handed to `onParked`, which is where a record of the failure belongs. A handler that answers `'wait'` keeps its entry, without using an attempt, until `wake(target)`. A handler can run again after a crash, when it finished before its entry was removed, so make it idempotent: key what it writes on the entry's id.
+A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes to `onParked`, where you record the failure. A handler that returns `'wait'` keeps its entry, without using an attempt, until `wake(target)`. A handler can run twice after a crash, so make it idempotent by keying its writes on the entry's id.
 
-`stop()` schedules nothing more but does not interrupt a handler that runs; `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
+`stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
 ## Tasks
 
-A task is what a chat asked of a chat it opened. `TaskStore` keeps them under `tasks/`, and `wireTasks` puts the parts together over a core and an outbox: the coordinator that settles tasks, the outbox work that starts and wakes chats, and the verbs a context command calls. This is all of it, with your app's placement and notifications stood in for by a set and an array:
+A task is what a chat asked of a chat it opened. `TaskStore` keeps them under `tasks/`. `wireTasks` builds the coordinator that settles tasks, the outbox work that starts and wakes chats, and the verbs a context command calls. A set and an array stand in for your app's placement and notifications here:
 
 ```ts
 import { z } from 'zod';
@@ -94,25 +94,33 @@ export async function openTaskServices(dataDir: string, chats: ChatCore, placedI
 }
 ```
 
-- `verbs.open(record)` records a task for a chat the caller just opened; starting that chat is yours. `verbs.give(record)` gives a task to a chat that exists and owes it the turn that carries it. `verbs.done(childId, text)` settles the child's open task, `chatState(nodeId)` says whether a chat is missing, idle or running, and `involving(nodeId)` lists its tasks.
-- A task settles when the child says it is done, when its first turn ends, or when its process leaves. A subagent or workflow of the child's CLI that still runs keeps it open; a background command for at most 30 minutes. An active goal keeps it open with no limit, through every turn the CLI opens toward it, until the goal is met, paused or cleared and the turn has ended; a CLI that goes while its goal is active fails the task with its last answer. A child that waits out a usage limit stays open and wakes nobody.
-- A task with a `machine` has a child that runs elsewhere: no chat observer, `done`, `agentEnded` or waiting note here touches it. `coordinator.settleFromElsewhere(taskId, result, status = 'done')` settles it from the answer that machine gave and wakes the parent once; a second call, or a task without `machine`, answers `null`. Record where the opener of a node runs with `peer: { machineId }` on `AgentLineageStore.put`, read back with `peerOf(nodeId)`.
-- A settled task wakes its parent once the parent has no turn running; tasks of one `batchId` wake it together. The wake carries the first 8 KiB of the result, and `words.restOf(childId)` says where the rest is read.
-- A child's approval or question that waits 15 seconds leaves a note in the parent, without starting a turn there.
-- `prune(projectId, ids)` cancels the tasks of chats your app removed, rather than failing them.
+- `verbs.open(record)` records a task for a chat the caller just opened. Starting that chat is yours. `verbs.give(record)` gives a task to an existing chat and owes it the turn. `verbs.done(childId, text)` settles the child's open task. `chatState(nodeId)` says whether a chat is missing, idle or running, and `involving(nodeId)` lists its tasks.
+- A task settles when the child says done, when its first turn ends, or when its process leaves. Running subagents, workflows and background commands (up to 30 minutes) keep it open. An active goal keeps it open until the goal is met, paused or cleared. A child waiting out a usage limit stays open and wakes nobody.
+- A task with a `machine` has a child that runs elsewhere, and nothing local settles it. `coordinator.settleFromElsewhere(taskId, result, status = 'done')` settles it and wakes the parent once. It returns `null` on a second call or without `machine`. Record where a node's opener runs with `peer: { machineId }` on `AgentLineageStore.put`, and read it with `peerOf(nodeId)`.
+- A settled task wakes its parent once the parent is idle. Tasks of one `batchId` wake it together. The wake carries the start of the result, and `words.restOf(childId)` says where to read the rest.
+- A child's approval or question that waits 15 seconds leaves a note in the parent without starting a turn.
+- `prune(projectId, ids)` cancels the tasks of chats your app removed.
 
-`TaskStore.subscribe` tells you of every task written; send it over your own protocol as `TaskChangedEventSchema`. `wireTasks` watches the core for the life of the core: wire it once per core.
+`TaskStore.subscribe` reports every task written. Send it over your own protocol as `TaskChangedEventSchema`. Call `wireTasks` once per core.
 
 ## Lineage
 
-`AgentLineageStore` keeps under `lineage/` which chat opened which, at what depth, in which project, with which ceiling on its runtime mode, and when it ended. A fork a person made is recorded with `relation: 'fork'` and is no descendant of the chat it came from. `depthOf` and `openedCount` let your app cap how deep and how many; the store caps nothing itself. `ceilingForOpening(opener, requested)` refuses a mode wider than the opener's: keep the ceiling it answers and clamp later starts with `narrowerMode`, so a restart never widens an agent.
+`AgentLineageStore` records under `lineage/` which chat opened which, with depth, project, runtime mode ceiling and end time. A fork a person made has `relation: 'fork'` and is no descendant. `depthOf` and `openedCount` let your app cap depth and count. The store caps nothing itself. Keep the ceiling `ceilingForOpening(opener, requested)` returns and clamp later starts with `narrowerMode`, so a restart never widens an agent.
 
-`endChildren` ends the chats a chat opened, and theirs. Add `EndChildrenWorkSchema` to the outbox; `owe(target)` writes the obligation first, and its handler marks the lineage ended, removes work that would start them again, cancels their tasks, and stops them deepest first through your `stop(nodeId, reason)`. List every kind of work of your own that would start a chat again in `reviving`.
+`endChildren` ends the chats a chat opened, recursively. Add `EndChildrenWorkSchema` to the outbox. `owe(target)` writes the obligation first. Its handler marks the lineage ended, removes work that would restart them, cancels their tasks and stops them deepest first through your `stop(nodeId, reason)`. List every kind of your own work that would restart a chat in `reviving`.
 
-`rehome(nodeId, projectId)` moves one node's record to another project with its dates as they were, for a chat your app moved; `prune` and `forksLeaving` of the old project no longer find it, and it answers false when no record exists.
+`rehome(nodeId, projectId)` moves a node's record to another project, for a chat your app moved. It returns false when no record exists.
 
 ## Messages
 
-`NoticeStore` keeps the messages waiting for a chat under `notices/`, at most ten per chat and for six hours. `take` hands them to the model once; `show` marks them seen by a person, independently.
+`NoticeStore` keeps messages waiting for a chat under `notices/`, capped per chat and in age. `take` hands them to the model once. `show` marks them seen by a person, independently.
 
-After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets(core), notice)` stores a message and answers what happens next: `wake` owes a turn (put a `DeliverMessageWorkSchema` entry in the outbox, handled by `deliverMessageHandler`), `no-chat` and `in-turn` leave it for the chat's next prompt, and `from-message` means the turn writing it was itself started by a message, which never wakes another chat, so two chats cannot wake each other forever. `NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`, and `unshownNotes` and `showNotices` show them to a person.
+After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets(core), notice)` stores a message and returns what happens next:
+
+| Result | Meaning |
+| --- | --- |
+| `wake` | A turn is owed. Enqueue a `DeliverMessageWorkSchema` entry, handled by `deliverMessageHandler`. |
+| `no-chat`, `in-turn` | The message waits for the chat's next prompt. |
+| `from-message` | The writing turn was itself started by a message, so it wakes nobody. Two chats cannot wake each other forever. |
+
+`NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person.

@@ -8,15 +8,15 @@ import { Meter } from '@adecore/ui';
 
 <Demo src="display/meter" />
 
-`value` sits between `min` and `max`, 0 and 100 unless you set them, and a level past either end is held to it. `null` draws the track without a fill, for a level not measured yet. `marks` draws a line across the track at each value, such as a target or a limit.
+`value` is clamped between `min` and `max`. `null` draws an empty track, for a level not measured yet. `marks` draws a line across the track at each value, such as a target or a limit.
 
 ```tsx
 <Meter value={loudness} min={-40} max={-4} marks={[-14]} label="Momentary loudness" valueText={`${formatDecimal(loudness)} LUFS`} />
 ```
 
-It is a thin bar of 6 pixels and has no width of its own: `className` gives it one, or a flex row stretches it. It draws only the bar, so the name and the value beside it are yours to lay out, and two meters stack in a toolbar row. The fill has no transition, so a level that updates many times a second follows without lag.
+It is a thin bar with no width of its own: `className` gives it one, or a flex row stretches it. It draws only the bar; you lay out the name and value. The fill has no transition, so fast updates follow without lag.
 
-A screen reader hears it as a meter named by `label`. `valueText` is what it hears as the value, such as "-18.2 LUFS" or "Measuring"; without it, it hears the number.
+A screen reader hears a meter named by `label`, with `valueText` as the value ("-18.2 LUFS", "Measuring"), or else the number.
 
 ## Props
 

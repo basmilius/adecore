@@ -1,36 +1,45 @@
 # Call hierarchy
 
-The callers of a symbol, or the symbols it calls, as a tree between the lines of the editor. It is the peek panel with a tree in place of the list of references: the tree on the left, the code of the active call on the right, in the row the editor leaves under the caret's line.
+The callers or callees of a symbol, as a tree in a panel between the editor's lines. It is the peek panel with a tree on the left and the code of the active call on the right.
 
-`language.callHierarchy.open(position?, direction?)` prepares the symbol at the caret with `textDocument/prepareCallHierarchy` and opens its callers (`'incoming'`, the default) or its callees (`'outgoing'`). A server that answers several symbols for one position, such as overloads, gives several roots. The chord is `callHierarchy` in the key table, `Ctrl+Alt+H` on every platform, and the context menu lists it where the service supports it. Pressing the chord while the tree is open switches between callers and callees.
+`language.callHierarchy.open(position?, direction?)` prepares the symbol at the caret with `textDocument/prepareCallHierarchy` and opens its callers (`'incoming'`, the default) or callees (`'outgoing'`). Several symbols at one position, such as overloads, give several roots. The chord is `callHierarchy` (`Ctrl+Alt+H` everywhere), and pressing it again switches direction. The context menu lists it where supported.
 
 ## Type hierarchy
 
-The same tree walks the supertypes or the subtypes of a type. `language.callHierarchy.open(position, 'supertypes')` or `'subtypes'` prepares the type with `textDocument/prepareTypeHierarchy`, and each node asks `typeHierarchy/supertypes` or `typeHierarchy/subtypes` when it opens. A type has no call sites, so the code beside the tree is the type itself and Enter goes there. The chord is `typeHierarchy` in the key table, `Ctrl+H` on every platform, as in IntelliJ; pressing it again switches between supertypes and subtypes. The context menu lists it beside the call hierarchy. `typesSupported` says whether the service has the three methods and a server answers them. `setDirection` from calls to types, or back, prepares the symbol again at the place the tree was opened.
+`language.callHierarchy.open(position, 'supertypes')` or `'subtypes'` walks a type's hierarchy through `textDocument/prepareTypeHierarchy`, `typeHierarchy/supertypes` and `typeHierarchy/subtypes`. The code beside the tree is the type itself. The chord is `typeHierarchy` (`Ctrl+H` everywhere, as in IntelliJ), and pressing it again switches direction. `typesSupported` says whether a server answers these methods.
 
 ## What it asks, and when
 
-The tree asks only when the service has `prepareCallHierarchy`, `incomingCalls` and `outgoingCalls` (all three are optional on [`LanguageService`](/lsp/language-service)) and `supports('textDocument/prepareCallHierarchy', uri)` is true, which is a server announcing `callHierarchyProvider`. `language.callHierarchy.supported` says so. Otherwise `open` shows a notification and asks nothing.
+The tree needs the service's optional `prepareCallHierarchy`, `incomingCalls` and `outgoingCalls` ([`LanguageService`](/lsp/language-service)) and a server with `callHierarchyProvider`; `language.callHierarchy.supported` says so. Otherwise `open` shows a notification.
 
-A node asks the server for its calls when it is opened, once; folding it and opening it again uses the answer it has. The roots are opened as the tree opens. Requests of different nodes run side by side (`parallel: true`). The calls of a level keep the order the server gave them. A level draws at most 50 calls and ends with a row that brings the next 50.
-
-An answer for a tree that was closed, restarted in the other direction or opened again is dropped. When the service says the text moved on (`StaleResultError`) the tree closes, as it does when the text changes: a position into text that is gone leads nowhere.
+A node asks for its calls once, when first opened. Calls keep the server's order. A level shows 50 calls, then a row for the next 50. A `StaleResultError` or a text change closes the tree.
 
 ## Rows
 
-A row has the kind of the symbol as the same letter badge the symbol picker uses, its name, the detail the server gave, the file and line of the symbol, and for a caller with several call sites the number of them (`×3`). A deprecated symbol is struck through. Under an opened node a row says `Loading…`, `No callers` or `No callees`, or the reason the server failed; a press on that row asks again.
+A row shows the symbol's kind badge, name, detail, file and line, and for a caller with several call sites their count (`×3`). Deprecated symbols are struck through. An opened node shows `Loading…`, `No callers`, `No callees` or the server's error; pressing that row retries.
 
-The code on the right is the first call site (`fromRanges`) of the active row, or the symbol itself for a root. When a row has several sites the header steps through them (`stepSite(1)`, `stepSite(-1)`). The call sites of a caller are in the caller's file; those of a callee are in the file of the symbol that was asked about. The code of other files is read through the project's [`files`](/editor-react/project#workspace-edits).
+The code on the right is the active row's first call site (`fromRanges`), or the symbol itself for a root. With several sites, the header steps through them (`stepSite(1)`, `stepSite(-1)`). Other files are read through the project's [`files`](/editor-react/project#workspace-edits).
 
 ## Keyboard
 
-The editor keeps the focus, as in the peek. Up and Down move through the rows, Home and End go to the first and last. Right opens a closed node, asks again after a failure and steps into an open one; Left folds an open node and steps out of a closed one. Enter goes to the call, in this file or through the host's `openPlace`, and on the `Show more` row brings the next calls. Escape closes the tree, as does typing. Keys with a modifier stay the editor's.
+The editor keeps focus, as in the peek.
 
-`select(id)`, `toggle(id)`, `showMore(parent)`, `retry(id)`, `setDirection(direction)`, `go(id)` and `close()` are the same actions for a host that draws its own tree from the `callHierarchy` field of `language.popups`, a `CallHierarchyView`. The tree is drawn into the editor widget row it owns, so opening a peek closes the tree and the other way round.
+| Key        | What it does                                                    |
+| ---------- | --------------------------------------------------------------- |
+| Up, Down   | Moves through the rows                                          |
+| Home, End  | Goes to the first or last row                                   |
+| Right      | Opens a node, retries after a failure, or steps into an open one |
+| Left       | Folds an open node, or steps out of a closed one                |
+| Enter      | Goes to the call, or loads more on the `Show more` row          |
+| Escape     | Closes the tree, as does typing                                 |
+
+Keys with a modifier stay the editor's.
+
+A host that draws its own tree reads `CallHierarchyView` from the `callHierarchy` field of `language.popups` and calls `select(id)`, `toggle(id)`, `showMore(parent)`, `retry(id)`, `setDirection(direction)`, `go(id)` and `close()`. The tree and the peek share one widget row, so opening one closes the other.
 
 ## Accessibility
 
-The tree is a `role="tree"` named `Call hierarchy`. A row is a `treeitem` with `aria-level`, `aria-posinset`, `aria-setsize` and, for a node that has calls, `aria-expanded`; the active row is `aria-selected`. The focus stays in the text, so the editor's input points at the tree and its active row through `aria-controls` and `aria-activedescendant` (`setInputPopup`). Each answer is announced as `3 callers of run`. The direction control is a radio group.
+The tree is a `role="tree"` named `Call hierarchy`. Rows are `treeitem`s with `aria-level`, `aria-posinset`, `aria-setsize`, `aria-expanded` where they have calls, and `aria-selected` when active. Focus stays in the text, which points at the tree through `aria-controls` and `aria-activedescendant` (`setInputPopup`). Each answer is announced, as in `3 callers of run`. The direction control is a radio group.
 
 ## Models
 

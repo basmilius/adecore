@@ -24,13 +24,13 @@ pnpm add @adecore/agents @adecore/agent-contracts
 
 :::
 
-The package brings no CLI. Install Claude Code or Codex and sign in with it the way it asks; the host finds what is installed and asks each CLI who is signed in. It has no CSS and no words.
+The package brings no CLI, CSS or words. Install Claude Code or Codex and sign in. The host finds what is installed and asks each CLI who is signed in.
 
 ## What it does and what it leaves to you
 
-The host starts a CLI on a chat's first message and keeps it running between turns. It turns what the CLI writes into the items of a thread, writes the thread to disk, replays what a reconnecting client missed, and answers approvals and questions. Around the chats it lists the CLIs and their models, keeps accounts in their own config folders, reads usage from the CLIs' transcripts and the plan limits from the CLIs.
+The host starts a CLI on a chat's first message and keeps it running between turns. It turns the CLI's output into thread items, writes the thread to disk, replays what a reconnecting client missed, and answers approvals and questions. It also lists the CLIs and their models, keeps accounts in their own config folders, and reads usage and plan limits.
 
-It registers no IPC channel and opens no server: it serves a `FramePort` your app hands it, or hands you the request handlers to put behind a channel of your own. Who may connect, which folders a chat may work in and what an agent may do are yours to decide; [Host](/agents/host) shows where each check goes.
+It registers no IPC channel and opens no server. It serves a `FramePort` your app hands it, or gives you the request handlers to put behind your own channel. You decide who may connect, which folders a chat may work in and what an agent may do. [Host](/agents/host) shows where each check goes.
 
 ## Entry points
 
@@ -45,7 +45,7 @@ It registers no IPC channel and opens no server: it serves a `FramePort` your ap
 | `@adecore/agents/context` | Context commands: verbs, arguments, help and refusals |
 | `@adecore/agents/testing` | Fake CLIs, a manual clock, a fake watcher and test accounts |
 
-The model catalogs are JSON: `@adecore/agents/providers/<kind>-models.json` for `claude`, `codex`, `grok`, `copilot` and `antigravity`. The [export reference](/agents/reference) lists every name. A module that no entry exports is internal. Keep the package out of a page: the page imports the contracts and the views, never this package.
+The model catalogs are JSON: `@adecore/agents/providers/<kind>-models.json` for `claude`, `codex`, `grok`, `copilot` and `antigravity`. The [export reference](/agents/reference) lists every name. Keep the package out of a page. The page imports the contracts and the views.
 
 ## Where to go next
 

@@ -1,6 +1,6 @@
 # Markup
 
-Writing HTML goes faster with three helpers from IntelliJ: Emmet abbreviations, end tags that write themselves, and tag names that change in pairs. `language.markup` holds them. They work in documents of the language ids `html`, `xhtml`, `xml`, `svg`, `xsl`, `vue` and `php`, and do nothing in any other language.
+`language.markup` holds three helpers from IntelliJ: Emmet abbreviations, automatic end tags and paired tag renames. They work in `html`, `xhtml`, `xml`, `svg`, `xsl`, `vue` and `php` documents.
 
 ```ts
 language.markup.supported; // whether the document is markup
@@ -9,22 +9,22 @@ language.markup.configure({ emmet: true, closeTags: true, linkedTags: true }); /
 
 ## Emmet
 
-Tab after an abbreviation expands it, through the [`emmet`](https://github.com/emmetio/emmet) package. `div>p>lipsum` becomes a `div` holding a paragraph of lorem ipsum, and `ul>li.item$*3` a list of three numbered items. `lipsum` is another name for `lorem`, as in IntelliJ. The expansion is indented with the editor's indentation and lands as a snippet, so Tab goes on through the places to fill (the text of an element, an empty `href`) and Escape ends it.
+Tab after an abbreviation expands it through the [`emmet`](https://github.com/emmetio/emmet) package. `div>p>lipsum` becomes a `div` with a paragraph of lorem ipsum, and `ul>li.item$*3` a list of three numbered items. The expansion uses the editor's indentation and lands as a snippet, so Tab walks the places to fill and Escape ends it.
 
-Tab expands only in the text of the document: not in a tag or an attribute value, a comment, `script` or `style`, the code of PHP or a `{{ }}` interpolation of Vue. The caret must be a single caret with no selection. Where nothing before the caret reads as an abbreviation, Tab does what it always does. A suggestion list, a running snippet, the [live templates](/editor-react/templates#tab) and every key handler with a higher [priority](/editor-react/editor-view#keys) see Tab first. A live template whose key starts before the abbreviation wins; one that starts at the same place, or later, gives way to it. `language.markup.expand()` does the same for a menu, and returns false when there was nothing to expand. `language.markup.abbreviationAt()` returns the position where the abbreviation that Tab would expand starts, without expanding it, or `null` where Tab expands nothing: Emmet is off, the editor is read-only, there is more than one caret or a selection, or the caret is not in markup text.
+Tab only expands in document text, with a single caret and no selection. Tags, attribute values, comments, `script`, `style`, PHP code and Vue `{{ }}` are excluded. A suggestion list, a running snippet, [live templates](/editor-react/templates#tab) and higher-[priority](/editor-react/editor-view#keys) handlers see Tab first. `language.markup.expand()` does the same for a menu and returns false when there was nothing to expand. `language.markup.abbreviationAt()` returns where the abbreviation Tab would expand starts, or `null`.
 
 ### Wrap with an abbreviation
 
-`wrapWithAbbreviation` is a key of the key table without a default chord, since `Mod+Alt+J` is Surround with Live Template, as in IntelliJ, where Emmet is the first row of that list (see [Surround With](/editor-react/templates#surround-with-and-unwrap)). A host that wants the field on a chord of its own binds one, and `language.markup.startWrap()` opens it for a menu. It opens a field over the selection, or over the text of the caret's line without one. Enter wraps the text in the abbreviation typed there. An element repeated without a count, as in `ul>li*`, takes one line each; otherwise the text goes inside the innermost element. Lines keep their indentation relative to each other. An abbreviation that does not expand leaves the field open with the reason under it. Escape or leaving the field cancels. `LanguagePopups` draws the field; a host that draws its own reads `wrap` (`WrapView`) from `language.popups` and calls `submitWrap(abbreviation)` and `cancelWrap()`.
+`wrapWithAbbreviation` has no default chord, since `Mod+Alt+J` is Surround with Live Template, whose first row is Emmet (see [Surround With](/editor-react/templates#surround-with-and-unwrap)). `language.markup.startWrap()` opens a field over the selection, or over the caret's line. Enter wraps the text in the typed abbreviation. A repeat without a count, as in `ul>li*`, puts each line in its own element; otherwise the text goes in the innermost element. An invalid abbreviation keeps the field open with the reason. Escape or blur cancels. `LanguagePopups` draws the field; a host with its own reads `wrap` (`WrapView`) from `language.popups` and calls `submitWrap(abbreviation)` and `cancelWrap()`.
 
 ## Closing tags
 
-The `>` that ends a start tag adds its end tag after the caret: typing `<div class="card">` leaves `<div class="card">|</div>`. There is no end tag for a void element of HTML (`br`, `img`, `input`, ...), a tag that closes itself with `/>`, a `>` in a quoted value, or when the same end tag already follows. `</` in text writes out the end tag of the innermost open element. Both join the undo step of the key, so one undo takes the key and the tag back.
+The `>` that ends a start tag adds its end tag after the caret: `<div class="card">` leaves `<div class="card">|</div>`. Void elements (`br`, `img`, `input`, ...), self-closing tags and an end tag that already follows get none. `</` in text writes the end tag of the innermost open element. One undo removes the key and the tag.
 
 ## Linked tags
 
-With the caret in the name of a start tag, a change of the name changes its end tag too, and the other way around, in the same undo step. The link holds while the caret stays in the name. A space, which starts the attributes, or any change outside the name ends it.
+Renaming a start tag renames its end tag, and the other way around, in one undo step. A space or a change outside the name ends the link.
 
 ## Limits
 
-The document is read by a scanner and not a parser. HTML's implied end tags, such as an `li` closing the one before it, are not known, so `</` and the linked tags go by the tags as written. A document over 1,000,000 characters is not read, and the three helpers do nothing in it. Abbreviations expand in markup only: JSX and stylesheets are not covered.
+A scanner reads the document, not a parser, so implied end tags (an `li` closing the one before) are unknown. Documents over 1,000,000 characters get no helpers. JSX and stylesheets are not covered.

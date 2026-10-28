@@ -31,11 +31,11 @@
 | `hoverFooter`      | `(view, language) => ReactNode`              | Sections of the app at the foot of the [hover card](#languagepopups)                                                             |
 | `className`, `ref` |                                              | On the outer element, which needs a height                                                                                       |
 
-A change of `engine`, `project`, `uri` or `languageId` mounts the editor again, with a fresh undo history and document. The rest is read when it mounts, so an inline `options` object or `onMount` function costs nothing on a render. A later change of `theme`, `readOnly`, `readOnlyReason`, `wrap`, `indentation`, `smartKeys`, `guides`, `stickyScroll`, `whitespace`, `rightMargin`, `foldOutline`, `label` or `messages` reaches the editor in place; the other options only count when it mounts. On unmount it runs the cleanup of `onMount`, disposes the `EditorLanguage` and then the editor. It never disposes the project.
+Changing `engine`, `project`, `uri` or `languageId` remounts the editor with a fresh document and undo history. Everything else is read at mount, so inline `options` and `onMount` cost nothing per render. Later changes of `theme`, `readOnly`, `readOnlyReason`, `wrap`, `indentation`, `smartKeys`, `guides`, `stickyScroll`, `whitespace`, `rightMargin`, `foldOutline`, `label` and `messages` apply in place; other options only count at mount. On unmount it runs the `onMount` cleanup, then disposes the `EditorLanguage` and the editor. It never disposes the project.
 
 ## EditorLanguage
 
-`new EditorLanguage(project, editor, uri, languageId, timers?, options?)` attaches every feature to an editor that the app mounted itself. It acquires the document from the project and holds the features as fields: `completion`, `signature`, `snippets`, `hover`, `diagnostics`, `highlights`, `navigation`, `peek`, `callHierarchy`, `pick`, `symbolPicker`, `rename`, `codeActions`, `contextMenu`, `history`, `definitionLink`, `symbols`, `codeVision`, `formatOnType` and `renderedDocs`. Semantic tokens, inlay hints, folds and selection ranges run without a field.
+`new EditorLanguage(project, editor, uri, languageId, timers?, options?)` attaches every feature to an editor the app mounted itself. It acquires the document from the project and holds the features as fields: `completion`, `signature`, `snippets`, `hover`, `diagnostics`, `highlights`, `navigation`, `peek`, `callHierarchy`, `pick`, `symbolPicker`, `rename`, `codeActions`, `contextMenu`, `history`, `definitionLink`, `symbols`, `codeVision`, `formatOnType` and `renderedDocs`. Semantic tokens, inlay hints, folds and selection ranges run without a field.
 
 ```ts
 const editor = engine.mount(element, options);
@@ -48,13 +48,13 @@ language.dispose();
 editor.dispose();
 ```
 
-Attach one `EditorLanguage` per editor. `EditorView` already makes one, so do not attach a second to its editor. `language.goTo(location)` and `language.jump(position)` move the caret and record where it was; `visit(place)` moves it without a record. `language.onDispose(callback)` runs a callback when the language goes.
+Attach one `EditorLanguage` per editor; `EditorView` already makes one. `language.goTo(location)` and `language.jump(position)` move the caret and record where it was; `visit(place)` moves it without a record. `language.onDispose(callback)` runs a callback when the language goes.
 
 ### Keys
 
-The features see the editor's keys through `language.onKey(handler, priority?)`, which returns the function that removes the handler. A handler with a higher priority sees a key first, of two with the same priority the one added first, and the first to return `true` takes the key. `KEY_PRIORITY` holds the priority of each feature, a hundred apart from highest to lowest, except that `templates` is 1150, between `snippets` and `markup`, since Tab has to reach the templates after a running snippet and before Emmet: `pick`, `diagnostics`, `hover`, `completion`, `snippets`, `templates`, `markup`, `signature`, `highlights`, `codeActions`, `rename`, `navigation`, `peek`, `callHierarchy`, `symbolPicker`, `history` and `renderedDocs`. Without a priority a handler comes after every feature.
+The features see keys through `language.onKey(handler, priority?)`, which returns the function that removes the handler. Higher priorities go first, ties in order of adding, and the first handler to return `true` takes the key. `KEY_PRIORITY` holds each feature's priority, from highest to lowest: `pick`, `diagnostics`, `hover`, `completion`, `snippets`, `templates`, `markup`, `signature`, `highlights`, `codeActions`, `rename`, `navigation`, `peek`, `callHierarchy`, `symbolPicker`, `history` and `renderedDocs`. A handler without a priority comes after every feature.
 
-A subclass that must see a key before a feature registers after `super()` with a priority above it:
+To see a key before a feature, a subclass registers after `super()` with a higher priority:
 
 ```ts
 class AssistedLanguage extends EditorLanguage {
@@ -66,20 +66,20 @@ class AssistedLanguage extends EditorLanguage {
 }
 ```
 
-A handler on the editor itself (`editor.onKeyDown`) runs before all of these when it was added before the `EditorLanguage`, and after them when it was added later.
+An `editor.onKeyDown` handler runs before these when added before the `EditorLanguage`, and after them when added later.
 
 ## LanguagePopups
 
-`<LanguagePopups language={language} />` draws every card a feature opens over the editor: hover, suggestions, signature help, the pick list, rename, peek, the call hierarchy, the symbol picker, the context menu and the authors card. `EditorView` renders it; an app that mounts by hand renders it next to the editor. Each card is placed from the screen position of its character and placed again when the editor scrolls or resizes.
+`<LanguagePopups language={language} />` draws every card a feature opens: hover, suggestions, signature help, the pick list, rename, peek, the call hierarchy, the symbol picker, the context menu and the authors card. `EditorView` renders it; an app that mounts by hand renders it next to the editor. Cards follow their character as the editor scrolls or resizes.
 
-An app adds its own parts through `LanguagePopupsProps`, so it never needs a copy of the component:
+An app adds its own parts through `LanguagePopupsProps`:
 
 | Prop               | Type                            | Meaning                                                                                                                                                                                                       |
 | ------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `language`         | `EditorLanguage` or a subclass  | The editor's features; the callbacks below get the same type back                                                                                                                                             |
 | `contextMenuItems` | `(language) => ReactNode`       | A group of the app in the [context menu](/editor-react/rename#context-menu)                                                                                                                                   |
-| `hoverFooter`      | `(view, language) => ReactNode` | Sections at the foot of the hover card, below its problems, such as actions on them. `view` is the `HoverView` the card shows; each element at the top level gets a divider above it, and `null` adds nothing |
-| `children`         | `ReactNode`                     | A layer of the app over the editor, drawn after the cards and before the rename field, such as an inline prompt                                                                                               |
+| `hoverFooter`      | `(view, language) => ReactNode` | Sections at the foot of the hover card, such as actions on its problems. `view` is the card's `HoverView`; each top-level element gets a divider, and `null` adds nothing |
+| `children`         | `ReactNode`                     | An app layer over the editor, drawn above the cards and below the rename field, such as an inline prompt                                                                    |
 
 ```tsx
 <EditorRenderingProvider value={rendering}>
@@ -100,13 +100,13 @@ An app adds its own parts through `LanguagePopupsProps`, so it never needs a cop
 </EditorRenderingProvider>
 ```
 
-The cards render into the page through portals, so a provider around `LanguagePopups`, such as `EditorRenderingProvider`, reaches all of them.
+The cards render through portals, so a provider around `LanguagePopups`, such as `EditorRenderingProvider`, reaches all of them.
 
-`createHolder<T>()` is the small store `EditorView` uses to hand the `EditorLanguage` it created to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`.
+`createHolder<T>()` is the store `EditorView` uses to hand its `EditorLanguage` to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`.
 
 ## AnchoredPopup
 
-`AnchoredPopup` is the card all of them stand in: a layer of the page itself, placed next to a `rect` from [`rectAt`](/editor/editing#selections) and kept inside the window. It renders into `document.body`, so it is drawn at the page's scale even when the editor sits inside a scaled canvas.
+`AnchoredPopup` is the card every popup uses. It sits next to a `rect` from [`rectAt`](/editor/editing#selections) and stays inside the window. It renders into `document.body`, so it keeps the page's scale inside a scaled canvas.
 
 <Demo src="editor/anchored-popup" />
 
@@ -118,11 +118,11 @@ The cards render into the page through portals, so a provider around `LanguagePo
 | `overflow`                         | `'scroll'` by default, or `'clip'` for content that scrolls         |
 | `onPointerEnter`, `onPointerLeave` | For a card that stays while the pointer is on it                    |
 
-Render it again when the rect changes; it measures and places itself on every render.
+Render it again when the rect changes; it places itself on every render.
 
 ## EditorRenderingProvider
 
-Code in hover cards and peeks is plain text unless an `EditorRenderingProvider` above the editors gives it colors. Its `value` is an `EditorRendering`: the syntax `theme` and an optional `highlight(code, language, theme)` that resolves to HTML, such as Shiki's `codeToHtml`. The HTML is inserted as it is, so the highlighter must be one the app trusts.
+Code in hover cards and peeks is plain text unless an `EditorRenderingProvider` colors it. Its `value` is an `EditorRendering`: the syntax `theme` and an optional `highlight(code, language, theme)` that resolves to HTML, such as Shiki's `codeToHtml`. The HTML is inserted unescaped, so use a highlighter the app trusts.
 
 ```tsx
 <EditorRenderingProvider value={{ theme: 'github-light', highlight: (code, lang, theme) => highlighter.codeToHtml(code, { lang, theme }) }}>

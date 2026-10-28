@@ -1,6 +1,6 @@
 # SettingsDialog
 
-A settings window: sections on the left, one pane on the right, and an optional search that jumps to the row it found. It lives in its own entry point, `@adecore/ui/settings`, with the parts a pane is built from.
+A settings window: sections on the left, one pane on the right, and an optional search that jumps to a row. It lives in its own entry point, `@adecore/ui/settings`, with the parts a pane is built from.
 
 ```tsx
 import { SettingsDialog } from '@adecore/ui/settings';
@@ -10,27 +10,27 @@ import { SettingsDialog } from '@adecore/ui/settings';
 
 ## Sections and panes
 
-You describe the sections, the dialog draws them. `groups` is the navigation, in order, each with an optional label (the first group usually goes without one). `footer` sections stand at the foot of the navigation. A section names a `pane`, a component the dialog renders only while that section is open, inside a `Suspense` and an [`ErrorBoundary`](/ui/display/error-boundary). A lazy pane loads when its section is first opened.
+`groups` is the navigation, in order, each group with an optional label. `footer` sections sit at the foot of the navigation. A section names a `pane` component, rendered only while open, inside a `Suspense` and an [`ErrorBoundary`](/ui/display/error-boundary). A lazy pane loads on first open.
 
-A pane is a padded column that scrolls, with a fade at its top once something scrolled under the header. A `split` section gets the whole height instead, for a [`MasterDetail`](/ui/settings/master-detail) whose two sides scroll on their own.
+A pane is a padded, scrolling column. A `split` section gets the full height instead, for a [`MasterDetail`](/ui/settings/master-detail).
 
-A section with a `hero` opens on that block, run to the edges of the pane, with the title bar floating over its top. The bar is clear at first and fills in with the dialog's surface and a hairline over the first 70 pixels of scroll. It covers the top 86 pixels of the hero, more when the description wraps, so leave that much room. The pane follows under the hero in the same padded column as any other pane. A `split` section draws no hero.
+A section with a `hero` opens on that block, edge to edge, with the title bar floating over it. The bar fills in as the pane scrolls. It covers the top 86 pixels of the hero (more when the description wraps), so leave that room. A `split` section draws no hero.
 
-You keep which section is open. `onNavigate` tells you when a person picks another, with a click or the arrow keys in the navigation.
+You hold the open section. `onNavigate` fires when a person picks another.
 
 ## Search
 
-`search.find(query)` returns the results for what a person typed. It is yours, so it can search your own words in any language. While the field holds a query, the results take the place of the navigation. A result names a section and, optionally, the `searchId` of a [`SettingsRow`](/ui/settings/settings-section) in it. Picking one calls `onNavigate` with the section and the row as `target`. Pass that back in as `target`, and the row scrolls into view and lights up for a moment, then calls `onTargetShown`, where you clear it.
+`search.find(query)` returns the results, so it can search your own words in any language. While the field holds a query, the results replace the navigation. A result names a section and optionally the `searchId` of a [`SettingsRow`](/ui/settings/settings-section). Picking one calls `onNavigate` with the row as `target`. Pass it back as `target`: the row scrolls into view and flashes, then `onTargetShown` fires, where you clear it.
 
-Escape in the search field clears the query first; only an empty field lets Escape close the dialog. Enter jumps to the first result. `search.hint` prints the shortcut that focuses the field. `search.focusAt` focuses and selects the field each time the number grows, so your shortcut handler can bump it.
+Escape clears the query first and closes the dialog only from an empty field. Enter jumps to the first result. `search.hint` prints the shortcut that focuses the field. `search.focusAt` focuses the field each time the number grows, so your shortcut handler can bump it.
 
 ## An account at the foot
 
-`account` puts one more section under the footer, past a hairline, whose tab you draw yourself, such as an avatar and a name. The tab is a Base UI `Tabs.Tab` (from `@base-ui/react/tabs`) with the section's id as its value.
+`account` adds one more section under the footer, with a tab you draw yourself, such as an avatar and a name. The tab is a Base UI `Tabs.Tab` (from `@base-ui/react/tabs`) with the section's id as value.
 
 ## Narrow windows
 
-The dialog is 1200 by 760 pixels and steps down with the viewport. Under 960 pixels the navigation narrows, and under 640 it turns into a select of sections above the pane.
+The dialog is 1200 by 760 pixels and shrinks with the viewport. Under 960 pixels the navigation narrows; under 640 it becomes a select above the pane.
 
 ## Props
 

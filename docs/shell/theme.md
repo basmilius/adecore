@@ -1,6 +1,6 @@
 # Theme
 
-The page owns its theme, light or dark, following the system or not, and reports it to the shell as a `ThemeState` (`@adecore/shell/bridge`). `createTheme` paints what only the shell can: the ground of every window, so a reload or a resize never flashes the other theme, the native window controls off macOS, and the `prefers-color-scheme` Chromium answers, so a page follows the app instead of the system it runs on.
+The page owns its theme and reports it to the shell as a `ThemeState` (`@adecore/shell/bridge`). `createTheme` paints what only the shell can. It sets each window's background, so a reload or resize never flashes the other theme. It colors the native window controls off macOS. It sets the `prefers-color-scheme` Chromium reports, so a page follows the app instead of the system.
 
 ```ts
 import { createTheme } from '@adecore/shell';
@@ -21,9 +21,9 @@ onFromApp('window:theme', (_event, state: ThemeState) => theme.apply(state));
 const window = new BrowserWindow({ ...bounds, ...theme.windowOptions(), show: false });
 ```
 
-`windowOptions()` is a new window's chrome and ground: the traffic lights inset on macOS (`trafficLights`, 17 by 17 by default), elsewhere a hidden title bar with the controls of `overlay` drawn over the page, or none without it. A new window opens in the theme the others are in, and dark with `background` before any page reported one.
+`windowOptions()` returns a new window's chrome and background. On macOS that is the inset traffic lights (`trafficLights`, 17 by 17 by default). Elsewhere it is a hidden title bar with the `overlay` controls drawn over the page, or no controls without `overlay`. A new window opens in the current theme, or dark with `background` before any page reported one.
 
-The colors of `overlay` are one pair per theme. A page whose ground can change within a theme, such as one that lets a person pick a palette, reports the colors of its controls in `overlay` on the `ThemeState` too. They win over the pair of the theme on every open window and on a window opened later, and a state without them falls back to that pair. Only `color` and `symbolColor` are taken; the height stays the shell's, and macOS, without an overlay, ignores them.
+`overlay` holds one color pair per theme. A page whose background changes within a theme, such as a palette picker, can report its control colors in `ThemeState.overlay`. Those win over the theme's pair on every window until a state without them arrives. Only `color` and `symbolColor` are read. macOS ignores them.
 
 ```ts
 // In the page, on every change of the theme or the palette.
@@ -35,6 +35,6 @@ desktop.setTheme({
 });
 ```
 
-`nativeTheme.themeSource` is `system` only while the app follows the system; otherwise it is the app's own choice, since a page inside a `<webview>` asks Chromium and not the app.
+`nativeTheme.themeSource` is `system` only while the app follows the system. Otherwise it is the app's choice, so a page inside a `<webview>` follows the app too.
 
 `current()` returns the last `ThemeState` applied, or `null` before the first. `Theme`, `ThemeOptions` and `TitleBarOverlay` are exported types.

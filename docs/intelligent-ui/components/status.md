@@ -21,11 +21,11 @@ Summarize a result or show progress. Use one leading Summary; its children are i
 </Timeline>
 ```
 
-Every `tone` is a `UiTone`: `neutral`, `info`, `success`, `warning` or `danger`. Tone expresses meaning; the agent never infers it from a number going up.
+Every `tone` is a `UiTone`: `neutral`, `info`, `success`, `warning` or `danger`. Tone states meaning; never infer it from a number going up.
 
 ## Summary
 
-The result in one sentence. Its children are the sentence. The first Summary heads the block and names it for a screen reader; a later one is a subheading.
+The result in one sentence, as its children. The first Summary heads the block and names it for a screen reader; later ones are subheadings.
 
 | Prop    | Type     | Required | Notes                               |
 | ------- | -------- | -------- | ----------------------------------- |
@@ -69,7 +69,7 @@ An ordered sequence. `Steps` has no props and holds only `Step`. A `Step` stands
 
 ## Timeline and Event
 
-Events in time order. `Timeline` has no props and holds only `Event`; a complete `Timeline` without one is refused. An `Event` stands only inside `Timeline`; its children are the title.
+Events in time order. `Timeline` has no props and holds only `Event`, at least one. An `Event` stands only inside `Timeline`; its children are the title.
 
 | Prop     | Type     | Required | Notes                                                              |
 | -------- | -------- | -------- | ------------------------------------------------------------------ |
@@ -77,12 +77,12 @@ Events in time order. `Timeline` has no props and holds only `Event`; a complete
 | `tone`   | `UiTone` | No       | The color of the dot; the tone is also spoken to a screen reader   |
 | `detail` | string   | No       | Faint text under the title                                         |
 
-The host writes the time the way the person's language and region ask for it, and the year as well once it is not the current one. A time (a lone `HH:MM:SS` keeps its seconds, fractions of a second are dropped), date or date-time without an offset reads as written, in every time zone, also when it names an hour that the reader's clocks skip. One with an offset (`Z`, `+02:00`) is an instant and shows in the reader's own time zone. An offset runs from `-12:00` to `+14:00`; any other is refused. An `Event` whose `at` is none of these still draws, with `at` written as it came (no formatting, in no zone) and its title, tone and detail. The compiler reports it as a diagnostic with the code `unreadable_time` and `severity: 'warning'`, so the agent hears about it without a failure box; the text of the part for another reader stays `at title (tone): detail`. The order is the order written, so the agent sorts.
+The host formats the time for the reader's language and region, with the year when it is not the current one. Without an offset, a time, date or date-time reads as written in every time zone. A lone `HH:MM:SS` keeps its seconds; fractions are dropped. With an offset (`Z`, `+02:00`, from `-12:00` to `+14:00`), it is an instant shown in the reader's time zone. Other offsets are refused.
 
-An agent that writes `time` where the catalog says `at` is read as if it had written `at`, so the event draws. The compiler adds a diagnostic with the code `renamed_prop` and `severity: 'warning'` ("Event takes at, not time; read as at."), which stays with the agent. When `at` is written too, `at` wins and `time` is refused with `refused_prop`. The catalog lists such spellings per component in `aliases`, and the compiler reads them from there.
+An `at` in no known format still draws as written, with an `unreadable_time` warning for the agent. Events draw in the order written, so the agent sorts them.
 
-A row is read to a screen reader as its time, its title, its tone unless it is neutral, and its detail.
+`time` is an alias of `at`: the compiler reads it as `at` with a `renamed_prop` warning, or refuses it with `refused_prop` when `at` is written too.
 
-A `Timeline` holds one `Event` at least, also after an `Each` or a `Show` drew its children: one that draws none fails as a whole and shows as text. A `Timeline` has no upper limit.
+A screen reader hears each row's time, title, tone (unless neutral) and detail. A `Timeline` that draws no `Event`, also after `Each` or `Show`, fails as a whole and shows as text.
 
-A host that draws an `Event` itself reads `at` with `parseUiEventTime(at)` from `@adecore/intelligent-ui/event-time`. It gives a `UiEventTime`, or `null` for a text that is none of the three, which a host then shows as written. `kind` is `time`, `date` or `datetime`, and `date` is a `Date`. `seconds` is true for a lone time that wrote seconds, which a host then shows. When `written` is true there was no offset, and `date` holds the parts as written in UTC: write it in `UTC` (the `timeZone` argument of the formatters of `@adecore/ui/format`) and it reads as written. When it is false `date` is the instant, to be written in the reader's zone.
+A host that draws an `Event` itself reads `at` with `parseUiEventTime(at)` from `@adecore/intelligent-ui/event-time`. It returns a `UiEventTime`, or `null` for unknown text, which the host shows as written. `kind` is `time`, `date` or `datetime`, and `date` is a `Date`. `seconds` is true when a lone time wrote seconds. When `written` is true there was no offset, and `date` holds the written parts in UTC: format it with `timeZone: 'UTC'` from `@adecore/ui/format`. When it is false, `date` is an instant for the reader's zone.

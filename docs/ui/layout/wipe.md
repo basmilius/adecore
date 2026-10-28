@@ -8,11 +8,11 @@ import { Wipe } from '@adecore/ui';
 
 <Demo src="layout/wipe" />
 
-The wipe fills the positioned element it sits in. `value` is the share of the width left of the handle, from 0 to 1. The handle is a line with a round knob on it by default; `handle="line"` draws the plain line, which a person drags anywhere along its height. The handle keeps its colors in both themes, since it sits on a picture and not on the interface.
+The wipe fills its positioned parent. `value` is the share of the width left of the handle, from 0 to 1. The handle is a line with a round knob; `handle="line"` draws only the line, draggable along its height. Its colors are the same in both themes.
 
 ## Keyboard
 
-The handle is a `slider` in the tab order. The left and right arrows move it 2 percent, Home and End to either edge. It only answers those keys while it has the focus, and stops them there, so a canvas or a timeline around it never hears them. A screen reader hears the position as a percentage.
+The handle is a `slider` in the tab order. Left and right arrows move it 2 percent, Home and End to either edge. It stops those keys from reaching surrounding handlers.
 
 ## Props
 

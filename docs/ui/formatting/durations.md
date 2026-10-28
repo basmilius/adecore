@@ -12,13 +12,13 @@ Every function takes milliseconds.
 
 | Function | Writes |
 | --- | --- |
-| `formatDuration(ms)` | How long something took, at the coarsest unit that still says something: `42 s`, `18 min`, `1.5 h`. |
-| `formatPreciseDuration(ms)` | How long a short measurement took, below a second too: `0.4 ms`, `123 ms`, `1.42 s`, and as `formatDuration` from a minute. Each unit rounds first, so 999.6 ms reads as `1 s`. |
-| `formatCountdown(ms)` | How long a window still has, tight enough for the end of a bar: `4d 3h`, `12h 8m`, `9m`. |
-| `formatElapsedShort(ms)` | How long something has been running, in two units at most: `12s`, `2m 5s`, `3h 20m`. Anything above zero reads as at least `1s`. |
-| `formatClockDuration(ms)` | A stopwatch someone watches while it runs: `00:14`, and `1:02:03` past an hour. |
-| `formatAgo(ms)` | How long ago, short enough for the right edge of a row: `now`, `3m ago`, `2d ago`. |
+| `formatDuration(ms)` | A duration in its coarsest useful unit: `42 s`, `18 min`, `1.5 h`. |
+| `formatPreciseDuration(ms)` | A short measurement, below a second too: `0.4 ms`, `123 ms`, `1.42 s`, then as `formatDuration` from a minute. 999.6 ms reads as `1 s`. |
+| `formatCountdown(ms)` | Time left, compact: `4d 3h`, `12h 8m`, `9m`. |
+| `formatElapsedShort(ms)` | Running time in at most two units: `12s`, `2m 5s`, `3h 20m`. Anything above zero reads at least `1s`. |
+| `formatClockDuration(ms)` | A stopwatch: `00:14`, or `1:02:03` past an hour. |
+| `formatAgo(ms)` | Time ago, compact: `now`, `3m ago`, `2d ago`. |
 
-The units of the first five are English abbreviations, the way the rest of the interface is written. Only the number follows the region, which is what `1,5 h` against `1.5 h` is about. `formatAgo` is words as much as a number, so the language writes all of it: `3 min. geleden` in Dutch.
+The first five use English unit abbreviations; only the number follows the region (`1,5 h` or `1.5 h`). `formatAgo` follows the language entirely: `3 min. geleden` in Dutch.
 
-To keep a duration current while it runs, redraw it on a clock with [`useNow`](/ui/hooks/use-now), or write it straight into the node with `useTickingText`.
+To keep a running duration current, redraw it with [`useNow`](/ui/hooks/use-now), or write it into the node with `useTickingText`.

@@ -4,9 +4,9 @@ Focus, selection and activation are three things in a file tree. A plain click o
 
 ## Focus and selection
 
-The arrow keys, Home and End without a modifier move the engine's focus. With `selectionFollowsFocus` (on by default) the wrapper then selects the focused row, and calls `onFocusMove(path)` when the focus landed on another row. That is the only flow that calls it. Turn `selectionFollowsFocus` off when your code manages selection itself.
+The arrow keys, Home and End without a modifier move the engine's focus. With `selectionFollowsFocus` (on by default) the wrapper selects the focused row and calls `onFocusMove(path)`; nothing else calls it. Turn it off when your code manages selection.
 
-A click with Shift, Ctrl or Cmd extends the selection and does not activate. The helpers behind this are public: `FileTree.extendsSelection(event)` recognizes those modifiers, `FileTree.movesFocus(event)` a navigation key without any modifier, and `FileTree.followFocus(model, onMoved?)` selects the focused row once the engine has moved it, returning a function that cancels. `FileTree.selectOnly(model, path)` replaces the selection, and `null` clears it. `FileTree.focusRow(model, path)` focuses a row that is drawn and returns `false` when it is not, so scroll a path into view before you focus it.
+A click with Shift, Ctrl or Cmd extends the selection and does not activate. The helpers behind this are public; see the [reference](/ui/display/file-tree/reference#helpers). `FileTree.focusRow(model, path)` returns `false` for a row that is not drawn, so scroll a path into view first.
 
 ## Checkboxes and decorations
 
@@ -53,27 +53,27 @@ export function ReviewFiles() {
 }
 ```
 
-The decoration here counts every viewed file, not the ones in that directory. A checkbox for a whole directory computes `checked` and `indeterminate` from your own set of descendants, and needs a rule for directories that are not fully loaded.
+A checkbox for a whole directory computes `checked` and `indeterminate` from your own set of descendants, and needs a rule for directories that are not fully loaded.
 
-`rowIcon` gives a row a Lucide icon of its own in place of its file icon, or of a directory's chevron, such as a repository icon on the directory of a checkout. Return `undefined` for every row that keeps its glyph. The icon lets clicks through, so a directory with one still opens and folds on a click, on Enter and on the arrow keys, and its `aria-expanded` still says which it is; only the chevron is gone.
+`rowIcon` replaces a row's file icon or chevron with a Lucide icon, such as a repository icon on a checkout. Return `undefined` to keep the glyph. A directory with an icon still opens and folds as before.
 
 ```tsx
 <FileTree.Root model={model} label="Changes" rowIcon={(row) => (repositories.has(row.path) ? FolderGit2 : undefined)} />
 ```
 
-When the model has git status, the engine draws it in a column of its own after the name, and the decoration sits between the name and that column. `decorationOrder="after-status"` moves the decoration after the column instead, for a row whose status reads first and a label of its own, such as a branch, follows it.
+With git status, the engine draws a status column after the name, and the decoration sits before it. `decorationOrder="after-status"` puts the decoration after the column.
 
-`FileTree.Checkbox` is [`Tree.Checkbox`](/ui/display/tree/reference#controls). Tab reaches it and Space toggles it, and checking it never selects, activates or folds the row. Wrap any other control in `FileTree.Control`, and put counts and status in `FileTree.Decoration`, written with the [formatters](/ui/formatting/).
+`FileTree.Checkbox` is [`Tree.Checkbox`](/ui/display/tree/reference#controls). Tab reaches it, Space toggles it, and it never selects, activates or folds the row. Wrap any other control in `FileTree.Control`, and put counts and status in `FileTree.Decoration`, written with the [formatters](/ui/formatting/).
 
 ## Slots
 
-The engine draws each row as a button inside its shadow root. The wrapper puts the control and the decoration in slots beside that button, not inside it, so they keep your React context and your stylesheet. A click or a key in a slot never reaches the row. Do not nest a button of your own inside an engine row instead.
+The wrapper puts the control and the decoration in slots beside the engine's row button, so they keep your React context and stylesheet. A click or key in a slot never reaches the row. Do not nest a button of your own inside an engine row.
 
-Give every control an accessible name and its real mixed and disabled state. Pointer and keyboard behavior in the slots is tested; how a screen reader reads them across the shadow boundary is not verified yet.
+Give every control an accessible name and its real mixed and disabled state. Screen reader behavior across the shadow boundary is not verified yet.
 
 ## Context menus and dragging
 
-`onRowContextMenu(path, targets, event)` receives the native `MouseEvent`, and `onRowDragStart(path, targets, event)` the native `DragEvent`, after the engine wrote its own drag data. `targets` is the whole selection when the row is part of a selection of more than one, and otherwise the row alone (`FileTree.menuTargetsOf`). The wrapper opens no menu: call `event.preventDefault()` and open yours at the pointer.
+`onRowContextMenu(path, targets, event)` receives the native `MouseEvent`, and `onRowDragStart(path, targets, event)` the native `DragEvent`, after the engine wrote its drag data. `targets` is the selection when it holds the row and more, otherwise the row alone (`FileTree.menuTargetsOf`). The wrapper opens no menu: call `event.preventDefault()` and open yours at the pointer.
 
 ```tsx
 import { FileTree, type FileTreeModel } from '@adecore/ui';
@@ -97,10 +97,10 @@ export function FileActions({ model, openMenu }: { model: FileTreeModel; openMen
 }
 ```
 
-`FileTree.rowPathOf(event)` finds the row path of an event inside the shadow root. Drag data alone is no drop: the engine's `dragAndDrop` option decides what a drop accepts and how it completes (`FileTreeDragAndDropConfig`, `FileTreeDropContext`, `FileTreeDropResult`). Check a dropped payload before you act on it, and keep credentials and private absolute paths out of drag data.
+`FileTree.rowPathOf(event)` finds the row path of an event inside the shadow root. The engine's `dragAndDrop` option decides what a drop accepts and how it completes (`FileTreeDragAndDropConfig`, `FileTreeDropContext`, `FileTreeDropResult`). Check a dropped payload before you act on it, and keep credentials and private absolute paths out of drag data.
 
 ## Long names
 
-A sideways swipe or Shift with the wheel shifts the names until the longest visible one fits. The rows keep their width and the decorations stay in place. A thin bar at the bottom shows the shift while it moves or while the pointer is near the bottom edge. A resize or other visible rows measure the limit again.
+A sideways swipe or Shift with the wheel shifts the names until the longest visible one fits. Rows keep their width and decorations stay in place. A thin bar at the bottom shows the shift.
 
-`resetKey` puts the shift back at zero when it changes; set it to something that names the root. It does nothing else: replacing paths, clearing the selection and cancelling requests stay yours.
+`resetKey` puts the shift back at zero when it changes; set it to something that names the root. It does nothing else.

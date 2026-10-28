@@ -10,15 +10,15 @@ import { Kbd, KeyCap, Keys } from '@adecore/ui';
 
 ## Kbd
 
-`Kbd` takes a [`Shortcut`](/ui/utilities/shortcuts) and prints it for the platform in front of the page. Without one it prints its children as they are, for a key that is no shortcut, such as `Esc` or `↑`.
+`Kbd` takes a [`Shortcut`](/ui/utilities/shortcuts) and prints it for the platform. Without one it prints its children, for a key such as `Esc` or `↑`.
 
-In a menu row (`variant="menu"`, the default) the `.menu-item kbd` rule dresses it as the quiet hint at the end of the row. Anywhere else, such as in a sentence, a tooltip or a palette's footer, use `variant="inline"` for a chip on the surface it sits on.
+`variant="menu"` (the default) is the quiet hint at the end of a menu row. Elsewhere, such as in a sentence, a tooltip or a footer, use `variant="inline"` for a chip.
 
 ## Keys and KeyCap
 
-A settings page that lists shortcuts prints them key by key, so a pointer gesture can stand beside them. `then="drag"` adds one more cap after the keys. `KeyCap` is one cap with a heavier bottom edge.
+`Keys` prints a shortcut key by key, as a settings page lists them. `then="drag"` adds a cap for a pointer gesture after the keys. `KeyCap` is one cap.
 
-`size="sm"` draws caps of 20 pixels, which fit inside a small field: the key that focuses a search field, at its end.
+`size="sm"` caps fit inside a small field, such as the hint at the end of a search field.
 
 ## Props
 

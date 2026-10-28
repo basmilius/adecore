@@ -1,6 +1,6 @@
 # IconButton
 
-A button that is an icon and no word. Its `label` is the accessible name and the tooltip at once, so the two never drift apart.
+A button with an icon and no word. Its `label` is both the accessible name and the tooltip.
 
 ```tsx
 import { IconButton } from '@adecore/ui';
@@ -10,21 +10,21 @@ import { IconButton } from '@adecore/ui';
 
 ## Sizes
 
-The size decides the square, the radius and the icon inside: a 16 pixel icon in the default 32 pixel square, 14 in 28 (`sm`), and 12 in 24 (`xs`) and 20 (`2xs`). Never set a height, a width or a radius on it. `w-auto` is the one way to widen it, for a word beside the icon handed in as `children`.
+The size sets the square, radius and icon: a 16 pixel icon in the default 32 pixel square, 14 in 28 (`sm`), and 12 in 24 (`xs`) and 20 (`2xs`). Never set a height, width or radius. To widen it for a word passed as `children`, use `w-auto`.
 
 <Demo src="actions/icon-button-sizes" />
 
 ## State
 
-`active` draws the button as a pressed key, for a toggle that is on. Where the button is a real toggle, set `aria-pressed` instead, as the bold and italic buttons above do; the theme draws both the same. `busy` draws a [`Spinner`](/ui/display/spinner) in place of the icon for a step that is running.
+`active` draws a pressed key, for a toggle that is on. For a real toggle, set `aria-pressed` instead; both look the same. `busy` replaces the icon with a [`Spinner`](/ui/display/spinner).
 
-`iconClassName` goes to the icon (or the spinner) rather than the button: a chevron that turns, a status tone, a filled glyph with `fill-current`. The icon keeps the size of the button. One that needs another size goes in as `children`, without `icon`.
+`iconClassName` goes to the icon or spinner: a rotating chevron, a status tone, `fill-current`. For an icon of another size, pass it as `children` without `icon`.
 
-`disabled` takes the button out of the pointer's reach, so its tooltip never opens. `aria-disabled` draws the same faded state but keeps focus and the tooltip, which can say why nothing happens, as the delete button above does. It does not stop `onClick`.
+`disabled` blocks the pointer, so the tooltip never opens. `aria-disabled` looks the same but keeps focus and the tooltip, which can say why. It does not stop `onClick`.
 
 ## As another element
 
-`render` makes another element the button, such as a menu trigger. The trigger's behavior and the button's look merge into one element:
+`render` merges the button into another element, such as a menu trigger:
 
 ```tsx
 <Menu.Root>
@@ -40,7 +40,7 @@ The size decides the square, the radius and the icon inside: a 16 pixel icon in 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `label` | `string` | | Required. The accessible name, and the tooltip unless `tooltip` says otherwise. |
-| `icon` | `LucideIcon` | | Left out for a button that draws something else as `children`. |
+| `icon` | `LucideIcon` | | |
 | `tooltip` | `ReactNode \| false` | `label` | A tooltip that says more than the name, or `false` for none. |
 | `kbd` | `Shortcut \| string` | | Printed in the tooltip. A `Shortcut` also shows under the button while the modifier is held ([`ShortcutHints`](/ui/display/shortcut-hints)). |
 | `tooltipSide` | `TooltipSide` | `'top'` | |

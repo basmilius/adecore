@@ -1,6 +1,6 @@
 # @adecore/charts
 
-Charts in the theme of `@adecore/ui`: a series over time or per category as lines, areas and columns, a [scatter](/charts/scatter) of points with a legend of many series beside it, a sparkline for a row or a tile, and a [heatmap](/charts/heatmap) of rows by columns. A chart takes its width from its container, draws on whole pixels, and is one stop for the keyboard that a screen reader reads bucket by bucket. `d3-scale` and `d3-shape` do the math; the package draws everything itself.
+Charts in the theme of `@adecore/ui`: series as lines, areas and columns, a [scatter](/charts/scatter) of points, a sparkline, and a [heatmap](/charts/heatmap). A chart takes its width from its container and is one tab stop that a screen reader reads bucket by bucket.
 
 ```tsx
 import { Chart, Heatmap, SeriesLegend, Sparkline, createChart, useChart } from '@adecore/charts';
@@ -10,7 +10,7 @@ import { Chart, Heatmap, SeriesLegend, Sparkline, createChart, useChart } from '
 
 ## Install
 
-`@adecore/ui`, React 19, `i18next` and `react-i18next` are peer dependencies. The package draws with the utilities of the theme, so let Tailwind scan it next to `@adecore/ui`:
+`@adecore/ui`, React 19, `i18next` and `react-i18next` are peer dependencies. Let Tailwind scan the package next to `@adecore/ui`:
 
 ```css
 @import "tailwindcss";
@@ -19,7 +19,7 @@ import { Chart, Heatmap, SeriesLegend, Sparkline, createChart, useChart } from '
 @source "../node_modules/@adecore/charts/dist";
 ```
 
-The words ("Show values", "Total", "No data" and the keyboard hint) live in a `charts` namespace in English and Dutch. Add them to the app's i18next next to its own namespaces:
+The words live in a `charts` namespace in English and Dutch. Add them to the app's i18next:
 
 ```ts
 import { CHARTS_NAMESPACE, CHARTS_RESOURCES } from '@adecore/charts';
@@ -31,7 +31,7 @@ for (const [language, words] of Object.entries(CHARTS_RESOURCES)) {
 
 ## How a chart is built
 
-A chart is a compound component, like `Menu` and `Dialog` in `@adecore/ui`. `Chart.Root` owns the data, the scales, the cursor and the keyboard; each part inside it draws one layer, in the order of the children. The parts in svg draw into one `<svg>`, so put the grid first, then bands, series and markers. `Chart.Tooltip`, `Chart.Legend` and `Chart.Table` are HTML and go to their own places around the plot whatever their order.
+`Chart.Root` owns the data, scales, cursor and keyboard. Each part inside it draws one layer, in the order of the children, so put the grid first, then bands, series and markers. `Chart.Tooltip`, `Chart.Legend` and `Chart.Table` take their own places whatever their order.
 
 | Part | Draws |
 | --- | --- |
@@ -52,15 +52,15 @@ A chart is a compound component, like `Menu` and `Dialog` in `@adecore/ui`. `Cha
 | [`Chart.Layer`](/charts/use-chart) | A group in the plot for a drawing of the app's own. |
 | [`Chart.Group`](/charts/shared-cursor) | Charts that share one cursor. |
 
-The spans of a trace are no series: [`Timeline`](/charts/timeline) draws them as a tree of rows that folds, with a bar per span on one axis of durations.
+For the spans of a trace, use [`Timeline`](/charts/timeline).
 
 ## Colors
 
-A series takes a `tone`: one of the status tones of the theme (`accent`, `error`, `needsYou`, `idle`, `running`, `muted`), or `{ color }` with a CSS value of the app's own, such as a variable. A series without a tone takes the next of `--chart-1` to `--chart-6`, the [chart series of the theme](/ui/guide/theme#chart-series), in the order of the children. Colors go through `style`, so they follow the theme.
+A series takes a `tone`: a status tone of the theme (`accent`, `error`, `needsYou`, `idle`, `running`, `muted`) or `{ color }` with any CSS value. Without a tone, series take `--chart-1` to `--chart-6` in order, the [chart series of the theme](/ui/guide/theme#chart-series).
 
 ## Types
 
-JSX cannot check `value="errors"` against the row type of the root. `createChart<Row>()` returns the same parts with `x`, `group` and `value` typed as keys of `Row`, or as accessors of it. The type is `TypedChart`. Nothing is created: it is `Chart` under another type.
+JSX cannot check `value="errors"` against the row type. `createChart<Row>()` returns `Chart` typed as a `TypedChart`, with `x`, `group` and `value` as keys or accessors of `Row`.
 
 ```tsx
 const UsageChart = createChart<UsageDay>();
@@ -70,7 +70,7 @@ const UsageChart = createChart<UsageDay>();
 </UsageChart.Root>
 ```
 
-The plain `Chart` takes any key, and says in the console outside production when the first row has no such key.
+The plain `Chart` takes any key and warns in development when the first row lacks it.
 
 ## Keyboard and screen reader
 
@@ -86,14 +86,14 @@ The plot is one tab stop, a `group` with the role description "chart" and `label
 
 A scatter moves between points instead; see [cursor, keyboard and picks](/charts/scatter#cursor-keyboard-and-picks).
 
-The keyboard and the pointer each keep their own place. While the pointer passes over the chart the cursor follows it, and when it leaves the cursor goes back to the bucket the keyboard was on; the arrow keys, Enter and the active descendant go on from there.
+The pointer and the keyboard keep separate places. When the pointer leaves, the cursor returns to the keyboard's bucket.
 
-A polite live region reads each bucket the keyboard moves to: the group, the x, then every series ("14:00, Errors 12, Warnings 3"). With `onActivate` every bucket is a button with the same words as its name, reached as the active descendant, and the live region stays quiet so nothing is read twice. `Chart.Table` makes every value readable without moving the cursor at all.
+A polite live region reads each bucket the keyboard reaches ("14:00, Errors 12, Warnings 3"). With `onActivate`, every bucket is a button with that name instead, and the live region stays quiet. `Chart.Table` makes every value readable without the cursor.
 
-An Escape that clears the cursor stops at the chart, so a dialog around it stays open; a second Escape reaches the dialog. An app that wants one Escape to clear its own state too, such as a pinned comparison, listens for it on an element around the chart.
+The Escape that clears the cursor stops at the chart, so a surrounding dialog stays open until a second Escape.
 
-A chart that only decorates, such as a small line beside a number that already says it, takes `interactive={false}`: it is an image named by `label`, with no tab stop, no keys and no live region. The pointer still moves the cursor and the tooltip.
+A decorative chart takes `interactive={false}`: an image named by `label`, with no tab stop, keys or live region. The pointer still moves the cursor and tooltip.
 
 ## Empty and loading
 
-A chart without data says "No data" in the plot. A chart fetches nothing, so loading stays with the app.
+A chart without data says "No data". Loading state stays with the app.

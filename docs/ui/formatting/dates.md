@@ -8,29 +8,29 @@ import { formatAge, formatClock, formatDay, formatDayClock, formatMoment } from 
 
 <Demo src="formatting/dates" />
 
-Every function takes a `Date` or epoch milliseconds, so a time in epoch seconds, such as a commit's, is multiplied by 1000 first. The examples are English words in a Dutch region; in `en-US` the same day reads `Sep 19 at 08:05 AM`.
+Every function takes a `Date` or epoch milliseconds; multiply epoch seconds by 1000 first. The examples are English words in a Dutch region; in `en-US` the same day reads `Sep 19 at 08:05 AM`.
 
 | Function | Writes |
 | --- | --- |
-| `formatClock(at)` | The time: `08:05`, or `08:05 AM` in a region that counts to twelve. |
-| `formatHour(at)` | An hour on its own, for the axis of a chart: `08`, or `8 AM`. |
-| `formatWeekday(at, width?)` | The day of the week on its own, for the side of a grid by weekday: `Sat`, or `Saturday` with `'long'`. |
-| `formatWeekdayClock(at)` | A time far enough off that its day is part of the answer: `Sat 08:05`. |
-| `formatDay(at)` | The short date a row falls back to once "days ago" stops meaning anything: `19 Sep`. |
-| `formatDayWithYear(at)` | The same with the year, for anything older than this year. |
+| `formatClock(at)` | The time: `08:05`, or `08:05 AM` on a 12 hour clock. |
+| `formatHour(at)` | An hour, for a chart axis: `08`, or `8 AM`. |
+| `formatWeekday(at, width?)` | The weekday: `Sat`, or `Saturday` with `'long'`. |
+| `formatWeekdayClock(at)` | Weekday and time: `Sat 08:05`. |
+| `formatDay(at)` | A short date: `19 Sep`. |
+| `formatDayWithYear(at)` | The same with the year. |
 | `formatWeekdayDay(at)` | `Sat 19 Sep`. |
-| `formatDayClock(at)` | A moment that is not today, to the minute: `19 Sep, 08:05`. |
-| `formatDayClockWithYear(at)` | The same with the year, for a moment that is not in this year: `19 Sep 2026, 08:05`. |
-| `formatNumericDate(at)` | All numbers, as a form prints it: `19-9-2026` or `9/19/2026`. |
-| `formatMoment(at, now?)` | The clock when `at` is today, and the day and the clock when it is not. |
-| `formatAge(at, now?)` | How old a row is: `3d ago` for the first week, then `19 Sep`, and `19 Sep 2025` once the year is another. An `at` ahead of `now` reads `now`. |
-| `formatDateTime(at, options)` | Any `Intl.DateTimeFormatOptions`, with the same split between words and notation. |
-| `isSameDay(a, b)` | Whether two instants fall on the same day, in the reader's time zone. |
+| `formatDayClock(at)` | Date and time: `19 Sep, 08:05`. |
+| `formatDayClockWithYear(at)` | The same with the year: `19 Sep 2026, 08:05`. |
+| `formatNumericDate(at)` | All numbers: `19-9-2026` or `9/19/2026`. |
+| `formatMoment(at, now?)` | The time when `at` is today, otherwise date and time. |
+| `formatAge(at, now?)` | A row's age: `3d ago` for the first week, then `19 Sep`, then `19 Sep 2025` in another year. A future `at` reads `now`. |
+| `formatDateTime(at, options)` | Any `Intl.DateTimeFormatOptions`, with the language's words in the region's layout. |
+| `isSameDay(a, b)` | Whether two instants fall on the same day in the reader's time zone. |
 
-`formatClock`, `formatDay`, `formatDayWithYear`, `formatDayClock` and `formatDayClockWithYear` take a time zone as a second argument. Give `'UTC'` for a moment whose parts were only written, such as `2026-03-29T02:30`: it then reads `02:30` in every zone, also one where the clocks skipped that hour.
+`formatClock`, `formatDay`, `formatDayWithYear`, `formatDayClock` and `formatDayClockWithYear` take a time zone as second argument. Pass `'UTC'` for a wall-clock value such as `2026-03-29T02:30`, so it reads `02:30` in every zone.
 
 ## How the words get in
 
-`formatDateTime` formats the instant twice with the same options: once in the region, for the order and the numbers, and once in the language, for the words. It then puts the language's month, weekday, day period and era into the region's layout. The region decides where the month goes; the language decides what it is called.
+`formatDateTime` takes the layout and numbers from the region, and the month, weekday, day period and era names from the language.
 
-Use `formatDateTime` for a format none of the others writes, and define its options object once, outside the component. The formatter is cached on that object, so a fresh object per call builds a fresh formatter.
+Use it for a format the others do not cover. Define its options object once, outside the component: the formatter is cached on that object.

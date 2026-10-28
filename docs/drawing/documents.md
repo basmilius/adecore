@@ -24,9 +24,9 @@ const drawing = migrateDrawing(JSON.parse(file));
 const duplicate = drawing && duplicateElementIdIn(drawing.elements);
 ```
 
-`migrateDrawing` returns the parsed document, or `null` for anything that is not one. There is one version so far, so it only parses. `duplicateElementIdIn` returns the first id used twice, or `null`. The schema cannot see duplicates, and two elements with one id would both be hit and selected at once, so run it after every parse.
+`migrateDrawing` returns the parsed document, or `null` for anything that is not one. `duplicateElementIdIn` returns the first id used twice, or `null`. The schema cannot see duplicates, so run it after every parse.
 
-Parsing drops keys the schema does not know and leaves optional fields out. Nothing fills in defaults; the renderer reads an absent field as its default.
+Parsing drops unknown keys and fills in no defaults; the renderer reads an absent field as its default.
 
 ## Elements
 
@@ -58,9 +58,9 @@ Every element has these fields:
 | `text`               | `text`, `size` (a whole number from 12 to 96), `font`, `align`, and `sized`, set once the box was resized by hand so the text wraps to it |
 | `note`               | `text`, `size`, `font` and `align`: a sheet of paper in `fillColor` with the text on it                                                   |
 
-A note is one element, not a shape with a text on top, so moving it moves what it says. `font` is `hand`, `sans` or `mono` and reads as `hand` when absent; `align` is `left`, `center` or `right` and reads as `left`.
+`font` defaults to `hand`, `align` to `left`.
 
-The schema does not check that `w` and `h` are positive or that the points of a line fit its box. Keep both in step when you edit an element; geometry and export read the box, not the points.
+The schema does not check that `w` and `h` are positive or that a line's points fit its box. Keep both in step when you edit an element: geometry and export read the box, not the points.
 
 ## Schemas and constants
 
@@ -81,7 +81,7 @@ The schema does not check that `w` and `h` are positive or that the points of a 
 
 ## Editing by id
 
-A writer that is not the editor on screen, such as an agent, changes a drawing with an edit instead of a whole new document, so it never overwrites what a person draws at the same time. These are on `@adecore/drawing`.
+A writer other than the editor on screen, such as an agent, sends an edit instead of a whole document, so it never overwrites what a person draws at the same time. These are on `@adecore/drawing`.
 
 ```ts
 import { DrawingEditSchema, applyDrawingEdit } from '@adecore/drawing';
@@ -94,13 +94,19 @@ const edit = DrawingEditSchema.parse({
 const outcome = applyDrawingEdit(drawing.elements, edit, { id: () => crypto.randomUUID(), seed: () => Math.floor(Math.random() * 2 ** 31) });
 ```
 
-`DrawingEditSchema` (type `DrawingEdit`) has three optional lists. `add` takes `NewDrawingElementSchema` (`NewDrawingElement`): an element without `id`, `seed` and `locked`, where `stroke` reads as `ink`, `strokeWidth` as `2` and the `size` of a text or note as `20`. `update` takes `DrawingElementPatchSchema` (`DrawingElementPatch`): an `id` and the fields that change; the kind stays. `remove` takes ids. Every level is strict, so a misspelled field fails on its path instead of being dropped.
+`DrawingEditSchema` (type `DrawingEdit`) has three optional lists:
 
-`applyDrawingEdit` returns a `DrawingEditOutcome`: `{ ok: true, elements, added }` with the new ids in the order given, or `{ ok: false, problems }`, a list of `DrawingEditProblem` with the `path` into the edit and a `message`. It applies nothing unless every part is right. An id that is unknown, locked or named twice is a problem, and so is a field of another kind, such as `text` on a `rect`. Removed elements go, updated ones keep their place in the stacking order, and added ones go on top. The `DrawingEditMint` makes the id and seed of each new element. `DRAWING_EDIT_LIMITS` caps one edit at 200 elements touched and a drawing at 5000 elements after it.
+- `add` takes `NewDrawingElementSchema` (`NewDrawingElement`), an element without `id`, `seed` and `locked`. `stroke` defaults to `ink`, `strokeWidth` to `2`, and a text or note `size` to `20`.
+- `update` takes `DrawingElementPatchSchema` (`DrawingElementPatch`), an `id` and the fields that change. The kind stays.
+- `remove` takes ids.
+
+Every level is strict: a misspelled field fails on its path.
+
+`applyDrawingEdit` returns a `DrawingEditOutcome`. That is `{ ok: true, elements, added }` with the new ids in order, or `{ ok: false, problems }`, a list of `DrawingEditProblem` with a `path` and a `message`. It applies all or nothing. An unknown, locked or repeated id is a problem, as is a field of another kind (`text` on a `rect`), and an edit beyond `DRAWING_EDIT_LIMITS`. Updated elements keep their stacking place; added ones go on top. The `DrawingEditMint` makes the id and seed of each new element.
 
 ## Rebasing unsaved edits
 
-The editor on screen keeps drawing while such a writer saves. When a newer document arrives before its own edits are saved, it puts them on top of that document by id.
+When a newer document arrives before the editor saved its own edits, the editor puts its edits on top by id.
 
 ```ts
 import { rebaseDrawingElements } from '@adecore/drawing';
@@ -108,4 +114,4 @@ import { rebaseDrawingElements } from '@adecore/drawing';
 const outcome = rebaseDrawingElements(saved.elements, onScreen.elements, incoming.elements);
 ```
 
-`rebaseDrawingElements(base, mine, theirs)` returns a `DrawingRebase`: `{ ok: true, elements }`, or `{ ok: false, conflicts }` with the ids both sides changed. `base` is the document both sides started from. An element added, changed or removed on one side only takes that side, and the same change on both sides is no conflict. Key order does not count as a change. The stacking order is the one a side changed, `theirs` when neither or both did, and an element only the other side added goes just above the element it stood on there.
+`rebaseDrawingElements(base, mine, theirs)` returns a `DrawingRebase`: `{ ok: true, elements }`, or `{ ok: false, conflicts }` with the ids both sides changed. `base` is the document both sides started from. A change on one side wins; the same change on both sides is no conflict. The stacking order follows the side that changed it, or `theirs` when neither or both did.

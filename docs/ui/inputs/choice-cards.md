@@ -1,6 +1,6 @@
 # ChoiceCards
 
-One of a few options, each a card that says what it means, for a choice where the description is what helps a person decide.
+One of a few options, each a card with a description, for a choice where the description helps decide.
 
 ```tsx
 import { ChoiceCards } from '@adecore/ui';
@@ -10,19 +10,19 @@ import { ChoiceCards } from '@adecore/ui';
 
 ## Vertical, with a detail
 
-Choices with long descriptions stand one under the other with `orientation="vertical"`. A vertical group can show a `detail` right under the checked card, for what that choice still asks for, such as a folder or an address. `radio="start"` moves the dot before the title.
+`orientation="vertical"` stacks the cards, for long descriptions. A vertical group can show a `detail` under the checked card, for what that choice still needs, such as a folder. `radio="start"` moves the dot before the title.
 
 <Demo src="inputs/choice-cards-vertical" />
 
 ## Columns
 
-More choices than one row has room for fill a set number of columns with `columns`, row by row. It takes the place of `orientation`, so a group with columns shows no `detail`.
+`columns` lays the cards out in that many columns. It replaces `orientation` and shows no `detail`.
 
 <Demo src="inputs/choice-cards-columns" />
 
 ## Keyboard
 
-The cards are a Base UI radio group. Tab moves into the group and onto the checked card, and the arrow keys move between cards and check them.
+The cards are a Base UI radio group. Tab lands on the checked card, and the arrow keys move and check.
 
 ## Props
 
@@ -33,7 +33,7 @@ The cards are a Base UI radio group. Tab moves into the group and onto the check
 | `value` | `Value` | | Required. |
 | `onValueChange` | `(value: Value) => void` | | Required. |
 | `choices` | `readonly Choice<Value>[]` | | Required. |
-| `label` | `string` | | Required. The group has no visible heading of its own. |
+| `label` | `string` | | Required. The group's accessible name. |
 | `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | |
 | `columns` | `number` | | Replaces `orientation`. |
 | `radio` | `'start' \| 'end'` | `'end'` | |

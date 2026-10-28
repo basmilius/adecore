@@ -1,6 +1,6 @@
 # Switch
 
-On or off, for a setting that takes effect the moment it flips. A change that waits for a Save button is a [`Checkbox`](/ui/inputs/checkbox).
+On or off, for a setting that applies at once. For a change that waits for Save, use a [`Checkbox`](/ui/inputs/checkbox).
 
 ```tsx
 import { Switch } from '@adecore/ui';
@@ -8,7 +8,7 @@ import { Switch } from '@adecore/ui';
 
 <Demo src="inputs/switch" />
 
-`label` is the accessible name. The row it sits in usually carries the visible one, as a [`SettingsRow`](/ui/settings/settings-section) does. Space toggles it from the keyboard.
+`label` is the accessible name; the visible one usually comes from the row, such as a [`SettingsRow`](/ui/settings/settings-section). Space toggles it.
 
 ## Props
 

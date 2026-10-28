@@ -8,7 +8,7 @@ import { CloseButton } from '@adecore/ui';
 
 <Demo src="actions/close-button" />
 
-It closes in one of two ways, and the props allow only one. With `onClick` it calls your handler, for a panel whose open state you keep. With `dialog` it is the dialog's own close part, so it closes the dialog it sits in without a handler.
+Pass either `onClick`, for a panel whose state you hold, or `dialog`, to close the dialog it sits in.
 
 ## Props
 

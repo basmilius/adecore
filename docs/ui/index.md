@@ -20,7 +20,7 @@ bun add @adecore/ui
 
 ### Base UI underneath
 
-Menus, dialogs, popovers, selects and tooltips are Base UI parts with the library's look on them, so focus, arrow keys, typeahead and Escape already work.
+Menus, dialogs, popovers, selects and tooltips are Base UI parts with the library's look, so focus, arrow keys, typeahead and Escape work.
 
 ### One theme of tokens
 
@@ -28,11 +28,11 @@ Every color is a semantic token with a light and a dark value. Tailwind's palett
 
 ### Shortcuts written once
 
-One value decides whether a key event is the shortcut and how it prints, as ⌘K on a Mac and Ctrl+K elsewhere. With [`ShortcutHints`](/ui/display/shortcut-hints) mounted, holding the modifier shows every visible button's key.
+One value matches a key event and prints the shortcut, as ⌘K on a Mac and Ctrl+K elsewhere. With [`ShortcutHints`](/ui/display/shortcut-hints) mounted, holding the modifier shows every visible button's key.
 
 ### Formatters that respect the region
 
-Numbers, dates and durations follow the language a person reads and the region they picked, separately. English words in a Dutch notation is a pair people set.
+Numbers, dates and durations follow the language and the region a person picked, separately.
 
 ### A settings dialog
 
@@ -40,4 +40,4 @@ Sections on the left, a pane on the right, search that jumps to a row, and parts
 
 ### English and Dutch
 
-The library's own words live in a `ui` namespace that [`UIProvider`](/ui/utilities/ui-provider) adds to your i18next. English is the source, and Dutch has every key.
+The library's words live in a `ui` namespace that [`UIProvider`](/ui/utilities/ui-provider) adds to your i18next, in English and Dutch.

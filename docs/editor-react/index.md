@@ -1,6 +1,6 @@
 # @adecore/editor-react
 
-Language features for [`@adecore/editor`](/editor/), over a [`LanguageService`](/lsp/language-service): suggestions and snippets, hover cards, signature help, problems, go to definition, peek, rename, code actions, symbols, semantic colors, inlay hints, folds and code vision, with the React cards that show them. The package starts no language server and touches no file; the app hands it a service and the file operations it allows.
+Language features for [`@adecore/editor`](/editor/) over a [`LanguageService`](/lsp/language-service), with the React cards that show them: suggestions and snippets, hover, signature help, problems, go to definition, peek, rename, code actions, symbols, semantic colors, inlay hints, folds and code vision. The package starts no language server and touches no file. The app hands it a service and the file operations it allows.
 
 ```tsx
 import { EditorView, ProjectLanguage } from '@adecore/editor-react';
@@ -12,7 +12,7 @@ const project = new ProjectLanguage(service, { folder: '/shop', keymap, openPlac
 
 <Demo src="editor/language-editor" fill />
 
-The demos on these pages run over [`FakeLanguageService`](/editor-react/testing), with answers worked out from the text of the file in `docs/demos/shared/order-service.ts`. No server runs.
+The demos run over [`FakeLanguageService`](/editor-react/testing), with answers from `docs/demos/shared/order-service.ts`. No server runs.
 
 ## What is in it
 
@@ -42,23 +42,23 @@ The demos on these pages run over [`FakeLanguageService`](/editor-react/testing)
 
 The features work through the editor's [accessibility methods](/editor/#accessibility) and the words of the `editor` namespace, in English and Dutch:
 
-- The suggestions list and the list of a snippet's choices are listboxes with stable option ids. While one is open the editor's textarea names it with `aria-controls` and its active option with `aria-activedescendant`, so the active option is read while focus stays in the text.
-- Moving to the next or previous problem says the severity and message, such as `Error: Cannot find name`.
-- A snippet session says `Field 2 of 3` when it moves to a field, and `Field 1 of 3, 4 choices` when the field opens a choice list. Accepting a suggestion that inserts a snippet says nothing extra.
-- `EditorView` gives the fold controls their names from `language.fold`.
+- The suggestion list and a snippet's choice list are listboxes. While one is open, the textarea points at it with `aria-controls` and at its active option with `aria-activedescendant`, so the option is read while focus stays in the text.
+- Moving to a problem says its severity and message, such as `Error: Cannot find name`.
+- A snippet says `Field 2 of 3` on each field, and `Field 1 of 3, 4 choices` when a field opens a choice list.
+- `EditorView` names the fold controls from `language.fold`.
 - [`DiffView`](/editor-react/change-review#accessibility) marks changed lines in text.
 
-The symbol picker is a dialog with its own input and is not pointed at from the editor. Nothing here has been tested with a screen reader, so how a pairing of browser and screen reader reads these attributes is unknown.
+The symbol picker is a dialog with its own input. Nothing here has been tested with a screen reader.
 
 ## Limits
 
-- What works depends on what the service supports. A feature asks only for methods the service supports; a command for one it does not support tells the person so through the app's `notify`.
-- The view's limits hold: no bidirectional text, and the [performance limits](/editor/#limits) of the editor.
-- Accessibility is [untested with a screen reader](#accessibility), as it is for the editor.
-- Snippets follow the LSP syntax: tab stops, placeholders, choices with a picker, mirrors that are edited together, variables (built-ins and host overrides) and nested sessions, with variable and field transforms run in a worker. A host without `snippetTransformWorker` keeps the raw variable values and cannot run field transforms. A snippet past the [size and nesting limits](/editor-react/completion#snippets) (for example 100,000 units, 1,000 field occurrences or 64 levels) inserts its text without a session, and at most eight nested frames stay open. Inside a nested snippet the generated final stop sorts after a target of an enclosing snippet at the same point. See [snippets](/editor-react/completion#snippets).
-- Inlay hint actions (follow, command, insert) are for the pointer; only the tooltip has a keyboard path, through Quick Info on the caret. See [inlay hints](/editor-react/hover#inlay-hints).
-- A server that offers neither deltas nor ranges is asked for the whole document after each pause in typing. Range answers are never kept across an edit: the lines in view are asked again.
-- A workspace edit that creates or moves a file over one that is there is refused unless it says `overwrite` and the host reports `supportsOverwrite`, a delete needs a host that reports unsaved work, a read only editor is refused up front when it can say so, and a failure halfway does not roll back the steps before it. See [workspace edits](/editor-react/project#workspace-edits).
+- Features depend on the service. A feature only asks for methods the service supports; a command it lacks tells the person through `notify`.
+- The editor's limits hold: no bidirectional text, and its [performance limits](/editor/#limits).
+- Accessibility is [untested with a screen reader](#accessibility).
+- Snippets follow the LSP syntax, with transforms in a worker. Without `snippetTransformWorker`, variables stay untransformed and field transforms do not run. Oversized or deeply nested snippets insert as plain text. See [snippets](/editor-react/completion#snippets).
+- Inlay hint actions need a pointer; only the tooltip has a keyboard path, through Quick Info. See [inlay hints](/editor-react/hover#inlay-hints).
+- A server with neither semantic token deltas nor ranges is asked for the whole document after each pause in typing.
+- A workspace edit is refused when it would overwrite without `supportsOverwrite` or lose unsaved work, and a failure halfway does not roll back. See [workspace edits](/editor-react/project#workspace-edits).
 - Code vision rows are skipped in files over 20,000 lines.
 
 The package is FSL-1.1-MIT.

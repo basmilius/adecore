@@ -1,6 +1,6 @@
 # Inputs
 
-Change local block state. Bind a control with `value={$name}`; see [State and inputs](/intelligent-ui/language/state). State stays in the block until a Choice sends visible context.
+Change local block state. Bind a control with `value={$name}`; see [state and inputs](/intelligent-ui/language/state).
 
 <Demo src="intelligent-ui/inputs" />
 
@@ -30,7 +30,7 @@ $kind = "bug"
 <Button action={@Reset()}>Reset</Button>
 ```
 
-A control is disabled until its tag closed, and when its `value` is anything but a bare reference to a declared variable.
+A control is disabled until its tag closes, and when its `value` is not a bare reference to a declared variable.
 
 ## Checklist and Item
 
@@ -66,7 +66,7 @@ A local number in a range. Its children are the label.
 
 ## Segmented and Option
 
-Choose one value. `Segmented` holds only `Option`, and binds the chosen option's value. An `Option` stands inside `Segmented` or [`Select`](#select); its children are its label. Option draws nothing itself: Segmented reads its options. Keep labels to a few words; an option longer than that makes the renderer of agents-react stand the options in a column.
+Choose one value. `Segmented` holds only `Option`, and binds the chosen option's value. An `Option` stands inside `Segmented` or [`Select`](#select); its children are its label. Keep labels to a few words; longer ones make the agents-react renderer stack the options in a column.
 
 | Prop    | Type   | Required | Notes    |
 | ------- | ------ | -------- | -------- |
@@ -78,7 +78,7 @@ Choose one value. `Segmented` holds only `Option`, and binds the chosen option's
 
 ## Select
 
-Choose one value from a dropdown, for more or longer options than a `Segmented` holds. `Select` holds only `Option` and binds the chosen option's value, as `Segmented` does; see [Segmented and Option](#segmented-and-option) for the option. A person can only pick one of its options, and a Choice refuses a value no option offers. Text written beside its options is its label: the renderer draws it above the dropdown and gives it to a screen reader as the name, so write `<Select value={$kind}>Kind of report<Option ...>`. Without one the dropdown is only called `Options`, so give it a label.
+A dropdown, for more or longer options than a `Segmented` holds. `Select` holds only [`Option`](#segmented-and-option) and binds the chosen option's value. A Choice refuses a value no option offers. Text beside the options is the label, drawn above the dropdown and used as its accessible name: `<Select value={$kind}>Kind of report<Option ...>`. Without one, the dropdown is only called `Options`.
 
 | Prop    | Type   | Required | Notes    |
 | ------- | ------ | -------- | -------- |
@@ -86,7 +86,7 @@ Choose one value from a dropdown, for more or longer options than a `Segmented` 
 
 ## TextField
 
-A line of text. Its children are the label. The field takes characters up to `maxLength` and no more. It does not submit: the text reaches the agent only when a person picks a Choice, and it starts again from its default when the page reloads.
+A line of text, up to `maxLength` characters. Its children are the label. It does not submit; the text reaches the agent only through a Choice.
 
 | Prop          | Type   | Required | Notes                                                              |
 | ------------- | ------ | -------- | ------------------------------------------------------------------ |
@@ -94,18 +94,18 @@ A line of text. Its children are the label. The field takes characters up to `ma
 | `maxLength`   | number | No       | A whole number from 1 to 1,024; 256 without it                      |
 | `placeholder` | string | No       | At most 128 characters; shown while the field is empty             |
 
-A count (`7 of 8 characters`) appears under the field once it is 80% full. A default longer than its limit makes the `TextField` fail alone, and it draws as its label.
+A count (`7 of 8 characters`) appears once the field is 80% full. A default over the limit makes the `TextField` fail alone and draw as its label.
 
 ## Button
 
-Runs one action on local state when pressed. Its children are the label, kept to one line: a label the button cannot hold where it stands, however short, is cut short and shown whole in its tooltip.
+Runs one action on local state when pressed. Its children are the label, on one line; a label that does not fit is truncated and shown whole in a tooltip.
 
 | Prop       | Type    | Required | Notes                                                     |
 | ---------- | ------- | -------- | --------------------------------------------------------- |
 | `action`   | action  | Yes      | `@Set($name, constant)`, `@Reset($name)` or `@Reset()`     |
 | `disabled` | boolean | No       |                                                           |
 
-`action` is kept as written and runs only when pressed. [Buttons](/intelligent-ui/language/state#buttons) gives the rules.
+`action` runs only when pressed; see the [rules for buttons](/intelligent-ui/language/state#buttons).
 
 ## Show
 

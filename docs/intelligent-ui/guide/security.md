@@ -1,6 +1,6 @@
 # Security model
 
-A block is text an agent wrote. The agent may be wrong, and the text may carry instructions it picked up from a file or a web page. So the package treats every block as untrusted input. This page lists what a block can do, what it cannot, and what the host must still check.
+A block is text an agent wrote. The agent may be wrong, and the text may carry instructions picked up from a file or a web page, so the package treats every block as untrusted input. This page lists what a block can and cannot do, and what the host must still check.
 
 ## What a block can do
 
@@ -24,13 +24,13 @@ A block is text an agent wrote. The agent may be wrong, and the text may carry i
 
 ## Budgets
 
-`UiBudget` bounds parser and interpreter work, nodes, nesting, iterations and string length against `UI_LIMITS`, inside helpers as well as in ordinary evaluation. These limits are deterministic by default. A host can additionally request an elapsed-time limit with a positive `milliseconds`. `Each` reserves all its iterations before it allocates a child. A reply is also capped as a whole by `UI_REPLY_LIMITS`, and the host's reads per block by `UI_HOST_LIMITS`. The numbers are on [Compilation and streaming](/intelligent-ui/host/compilation#limits).
+`UiBudget` bounds parser and interpreter work, nodes, nesting, iterations and string length against `UI_LIMITS`, inside helpers too. The limits are deterministic; a positive `milliseconds` adds an elapsed-time limit. `Each` reserves all its iterations before it allocates a child. `UI_REPLY_LIMITS` caps a whole reply, and `UI_HOST_LIMITS` the host reads per block. The numbers are under [limits](/intelligent-ui/host/compilation#limits).
 
-A block that exceeds its budget is replaced by its text and one `budget_exceeded` diagnosis. A part that fails alone keeps its own fallback; the parts beside it still draw.
+A block over its budget is replaced by its text and one `budget_exceeded` diagnostic. A part that fails alone shows its own fallback; the parts beside it still draw.
 
 ## Values that cross in
 
-The interpreter never touches a host object. `copyUiValue` copies every value that enters it: state defaults, query results, submitted input and the variables of `evaluateUiExpression`. It accepts finite JSON only and refuses class instances, accessors, sparse arrays, cycles and non-finite numbers, without calling a getter. Numbers that an expression produces must stay finite too.
+The interpreter never touches a host object. `copyUiValue` copies every value that enters it: state defaults, query results, submitted input and the variables of `evaluateUiExpression`. It accepts finite JSON only and refuses class instances, accessors, sparse arrays, cycles and non-finite numbers, without calling a getter. Numbers an expression produces must stay finite too.
 
 ## Inputs and choices
 
@@ -44,7 +44,7 @@ A choice sends what a person could see, and nothing else.
 
 ## Actions
 
-A Button holds one action: `@Set($name, literal)`, `@Reset($name)` or `@Reset()`. The compiler refuses anything else, and refuses a `@Set` whose value is not a constant. That keeps a pressed Button's result independent of the state it was pressed in, so the backend can check it. An action changes local state only. It never reads a query, sends a choice or calls the host.
+A Button holds one action: `@Set($name, literal)`, `@Reset($name)` or `@Reset()`. The compiler refuses anything else, including a `@Set` with a non-constant value, so the backend can check a pressed Button's result without knowing the state it was pressed in. An action changes local state only. It never reads a query, sends a choice or calls the host.
 
 ## Live queries
 
@@ -56,7 +56,7 @@ A Button holds one action: `@Set($name, literal)`, `@Reset($name)` or `@Reset()`
 
 ## Links
 
-The agent names a target; the host decides. `uiLinkTargets` lists only targets of visible, complete nodes. The host checks each against the writer's captured access and its current scope, answers a chip or plain text, and checks the stored node again when a person opens it. A client never sends a free target: it names a node, and the backend reads the target from the stored block.
+The agent names a target; the host decides. `uiLinkTargets` lists only targets of visible, complete nodes. The host checks each against the writer's captured access and current scope, answers a chip or plain text, and checks the stored node again when a person opens it. A client never sends a free target. It names a node, and the backend reads the target from the stored block.
 
 ## What the host still owns
 

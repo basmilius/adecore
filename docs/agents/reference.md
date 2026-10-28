@@ -1,10 +1,10 @@
 # Export reference
 
-Every name each entry point exports, types included, by the path you import it from. A row names the module behind it and links to its source, where each export has its full type. Anything not listed here is internal and may change in any release.
+Every name each entry point exports, types included. Each row links the module's source, which has the full types. Anything not listed is internal and may change in any release.
 
-Six entries are JSON: `@adecore/agents/providers/<kind>-models.json` for `claude`, `codex`, `grok`, `copilot` and `antigravity`, the model catalogs a host ships, and `@adecore/agents/usage/prices-snapshot.json`, the bundled prices. Import them with `with { type: 'json' }` where the runtime asks for it.
+Six entries are JSON: the model catalogs `@adecore/agents/providers/<kind>-models.json` (`claude`, `codex`, `grok`, `copilot`, `antigravity`) and the bundled prices `@adecore/agents/usage/prices-snapshot.json`. Import them with `with { type: 'json' }` where the runtime asks for it.
 
-Nothing here belongs in a page. A window imports [`@adecore/agent-contracts`](/agent-contracts/) for the shapes and [`@adecore/agents-react`](/agents-react/) for the views.
+Nothing here belongs in a page. A window imports [`@adecore/agent-contracts`](/agent-contracts/) and [`@adecore/agents-react`](/agents-react/).
 
 ## `@adecore/agents`
 
@@ -42,7 +42,7 @@ Serving the requests over a port or a wire of your own.
 
 The core, a session per chat, the thread and what is written of it, and the backends.
 
-`spawnChatProcess` calls `onExit(code, signal)`. `ChatChild` calls `onExit(code, stderr, signal)`, preserving the stderr argument for existing listeners. Real processes report `null` when no signal ended them; a custom `SpawnChatProcess` may omit the optional signal. The signal lets a host distinguish a crash from an intentional stop such as `SIGTERM`.
+`spawnChatProcess` calls `onExit(code, signal)`, and `ChatChild` calls `onExit(code, stderr, signal)`. The signal is `null` when none ended the process, and a custom `SpawnChatProcess` may omit it. Use it to tell a crash from a deliberate stop such as `SIGTERM`.
 
 | Module | Exports |
 | --- | --- |
@@ -152,7 +152,7 @@ Parsing, help and refusals of a command line.
 
 ## `@adecore/agents/testing`
 
-CLIs, a clock, a watcher and accounts for tests. Two more entries run a fake as a process and export nothing: resolve `@adecore/agents/testing/bin/fake-claude` or `@adecore/agents/testing/bin/fake-codex` and start it with `bun` where the CLI would go. The captures the fakes follow are under `@adecore/agents/testing/fixtures/`.
+CLIs, a clock, a watcher and accounts for tests. Two more entries export nothing and run a fake as a process: start `@adecore/agents/testing/bin/fake-claude` or `@adecore/agents/testing/bin/fake-codex` with `bun` in place of the CLI. The captures the fakes follow are under `@adecore/agents/testing/fixtures/`.
 
 | Module | Exports |
 | --- | --- |

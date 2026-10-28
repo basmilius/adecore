@@ -1,6 +1,6 @@
 # Getting started
 
-This page runs a host and sends it a message, in one file, without a real CLI: `fakeClaude` speaks Claude Code's protocol in the same process and answers every message with `echo:` and the text. Everything is written to a temporary folder that is removed at the end.
+This file runs a host and sends it a message without a real CLI. `fakeClaude` speaks Claude Code's protocol in the same process and answers every message with `echo:` and the text. Everything goes to a temporary folder that the script removes at the end.
 
 ```ts
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -65,18 +65,16 @@ try {
 }
 ```
 
-Run it with `bun example.ts`, or compile it for Node; it prints the reply item, with the text `echo: hello`.
+Run it with `bun example.ts`. It prints the reply item with the text `echo: hello`.
 
-What the options do here:
+- `spawn` and `command` start the fake instead of a CLI, and `detect` reports it installed.
+- `env` is the whole environment the CLI gets. Without it the host passes its own, filtered (see [Accounts and usage](/agents/accounts#the-environment)).
+- `background: false` stops the timed checks of accounts and plan limits.
+- The custom `core` turns off chat naming, which sends the CLI a question of its own.
+- `runtimeMode: 'supervised'` asks before every tool call. A new chat defaults to `full-access`.
 
-- `spawn` and `command` start the fake instead of a CLI, and `detect` says it is installed.
-- `env` is the whole environment the CLI gets. Without it the host passes on its own, filtered; see [Accounts and usage](/agents/accounts#the-environment).
-- `background: false` keeps the host from checking accounts and plan limits on a clock.
-- The custom `core` turns off naming the chat, which asks a CLI a question of its own.
-- `runtimeMode: 'supervised'` asks before every tool call. Without it a new chat runs in `full-access`.
-
-`chat.create` makes the chat; the CLI starts on the first message. Attach before you send to get the thread's events. The reply to `chat.send` says the message was taken or queued, not that the turn is done: wait for the turn item.
+The CLI starts on the first message, not on `chat.create`. Attach before you send to get the thread's events. The reply to `chat.send` means the message was taken or queued. Wait for the turn item to know the turn is done.
 
 ## A real CLI
 
-Leave out `spawn`, `command` and `detect`, and the host starts the CLI it finds on the `PATH` of the environment. Pick the runtime mode on purpose, and give the host a `dataDir` that is yours alone. A client in a window talks to it over a port; [Host](/agents/host#electron) shows the shape in Electron, and the views of [`@adecore/agents-react`](/agents-react/guide/getting-started) take the other end.
+Leave out `spawn`, `command` and `detect`, and the host starts the CLI it finds on the environment's `PATH`. Choose the runtime mode deliberately, and give the host a `dataDir` of its own. A window client talks to it over a port. [Host](/agents/host#electron) shows the Electron setup, and the views of [`@adecore/agents-react`](/agents-react/guide/getting-started) take the other end.
