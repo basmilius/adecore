@@ -112,12 +112,12 @@ describe('Tab', () => {
         expect(word.language.templates.expand()).toBe(false);
         expect(word.editor.getText()).toBe('xlog');
 
-        const member = await setup('x.log|');
+        const member = await setup('x.iter|');
 
         expect(member.press('Tab')).toBe(true);
         await settle();
 
-        expect(member.editor.getText()).toBe('x.console.log();');
+        expect(member.editor.getText()).toBe('x.for (const item of iterable) {\n    \n}');
     });
 
     test('takes the longest key, and tries no shorter one when the longest applies nowhere', async () => {

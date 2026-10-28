@@ -49,5 +49,46 @@ export const BUILT_IN_LIVE_TEMPLATES: readonly LiveTemplate[] = [
     live('xml', 'CD', ['xml'], body('<![CDATA[', '$TM_SELECTED_TEXT', ']]>'), 'Surround with CDATA section')
 ];
 
-/* The postfix templates that ship with the editor. */
-export const BUILT_IN_POSTFIX_TEMPLATES: readonly PostfixTemplate[] = [];
+/* A block statement around the expression, with the caret inside it. */
+function block(head: string): string {
+    return body(`${head} {`, '\t$0', '}');
+}
+
+function script(key: string, text: string, example: string, description: string, expression: PostfixTemplate['expression'] = 'statement'): PostfixTemplate {
+    return { id: `builtin.postfix.javascript.${key}`, key, body: text, example, description, languages: ['javascript', 'typescript'], expression };
+}
+
+function php(key: string, text: string, example: string, description: string, expression: PostfixTemplate['expression'] = 'statement'): PostfixTemplate {
+    return { id: `builtin.postfix.php.${key}`, key, body: text, example, description, languages: ['php'], expression };
+}
+
+/* The postfix templates that ship with the editor, after the ones IntelliJ has for JavaScript, TypeScript and PHP. */
+export const BUILT_IN_POSTFIX_TEMPLATES: readonly PostfixTemplate[] = [
+    script('if', block('if ($EXPR)'), 'if (expr) {}', 'Checks boolean expression to be true'),
+    script('else', block('if (!$EXPR)'), 'if (!expr) {}', 'Checks boolean expression to be false'),
+    script('null', block('if ($EXPR === null)'), 'if (expr === null) {}', 'Checks expression to be null'),
+    script('notnull', block('if ($EXPR !== null)'), 'if (expr !== null) {}', 'Checks expression to be not null'),
+    script('return', 'return $EXPR;', 'return expr;', 'Returns the expression from the function'),
+    script('throw', 'throw $EXPR;', 'throw expr;', 'Throws the expression'),
+    script('const', 'const ${1:name} = $EXPR;', 'const name = expr;', 'Creates a constant from the expression'),
+    script('let', 'let ${1:name} = $EXPR;', 'let name = expr;', 'Creates a variable from the expression'),
+    script('forof', block('for (const ${1:item} of $EXPR)'), 'for (const item of expr) {}', 'Iterates over the elements (for...of)'),
+    script('forin', block('for (const ${1:key} in $EXPR)'), 'for (const key in expr) {}', 'Iterates over the keys (for...in)'),
+    script('log', 'console.log($EXPR);', 'console.log(expr);', 'Prints the expression to the console'),
+    script('not', '!$EXPR', '!expr', 'Negates the expression', 'any'),
+    script('par', '($EXPR)', '(expr)', 'Surrounds the expression with parentheses', 'any'),
+    script('arg', '${1:fn}($EXPR)', 'fn(expr)', 'Passes the expression to a function call', 'any'),
+    script('await', 'await $EXPR', 'await expr', 'Awaits the expression', 'any'),
+    script('typeof', 'typeof $EXPR', 'typeof expr', 'Takes the type of the expression', 'any'),
+    php('if', block('if ($EXPR)'), 'if (expr) {}', 'Checks boolean expression to be true'),
+    php('isset', block('if (isset($EXPR))'), 'if (isset(expr)) {}', 'Checks that the expression is set'),
+    php('empty', block('if (empty($EXPR))'), 'if (empty(expr)) {}', 'Checks that the expression is empty'),
+    php('null', block('if ($EXPR === null)'), 'if (expr === null) {}', 'Checks expression to be null'),
+    php('notnull', block('if ($EXPR !== null)'), 'if (expr !== null) {}', 'Checks expression to be not null'),
+    php('return', 'return $EXPR;', 'return expr;', 'Returns the expression from the function'),
+    php('throw', 'throw $EXPR;', 'throw expr;', 'Throws the expression'),
+    php('var', '\\$${1:name} = $EXPR;', '$name = expr;', 'Creates a variable from the expression'),
+    php('foreach', block('foreach ($EXPR as \\$${1:value})'), 'foreach (expr as $value) {}', 'Iterates over the elements'),
+    php('not', '!$EXPR', '!expr', 'Negates the expression', 'any'),
+    php('par', '($EXPR)', '(expr)', 'Surrounds the expression with parentheses', 'any')
+];

@@ -223,6 +223,9 @@
             "none": "Geen sjablonen gedefinieerd in deze context",
             "selectToSave": "Selecteer de tekst die je als live sjabloon wilt opslaan"
         },
+        "postfix": {
+            "expressions": "Expressies"
+        },
         "surround": {
             "title": "Omring met",
             "selectTemplate": "Kies een sjabloon",
