@@ -480,6 +480,34 @@ export function Timeline({
         scrollGeometry.current = { top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight };
     }, [rows.length, totalSize, composerHeight, frame.height]);
 
+    /*
+     * A height that changes after the first paint (the composer taking its draft, a row measured again) is
+     * seen by an observer before the page paints, but the state it sets is drawn after that paint. The
+     * end is pinned here as well, so the page never paints the thread with its end out of view.
+     */
+    useLayoutEffect(() => {
+        const content = contentRef.current;
+
+        if (content === null || typeof ResizeObserver === 'undefined') {
+            return;
+        }
+
+        const observer = new ResizeObserver(() => {
+            const element = scrollRef.current;
+
+            if (!followRef.current || element === null) {
+                return;
+            }
+
+            element.scrollTop = element.scrollHeight;
+            scrollGeometry.current = { top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight };
+        });
+
+        observer.observe(content);
+
+        return () => observer.disconnect();
+    }, []);
+
     // Prepending history moves rows; keep the reader on the same row at the same height.
     useLayoutEffect(() => {
         const element = scrollRef.current;

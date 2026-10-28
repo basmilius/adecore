@@ -374,6 +374,21 @@ test('a word that adds a line moves the end of the thread down without drawing i
     });
 });
 
+test('a composer that grows after the first paint is pinned to the end by the observer, before React draws again', async () => {
+    const layout = { rowHeights: Array(12).fill(100), composerHeight: 80, clampScroll: true };
+
+    await mounted(layout, null, async ({ page }) => {
+        const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+        expect(scroller.scrollTop).toBe(scroller.scrollHeight - scroller.clientHeight);
+
+        layout.composerHeight = 150;
+        // Outside act, so nothing React schedules from the observer has run when the page would paint.
+        ManualResizeObserver.resized(scroller.firstElementChild!, VIEWPORT.width, 1350);
+
+        expect(scroller.scrollTop).toBe(scroller.scrollHeight - scroller.clientHeight);
+    });
+});
+
 test('growing a reply cannot hide earlier rows while the thread still fits without scrolling', async () => {
     const items: ChatItem[] = Array.from({ length: 20 }, (_, index) => ({
         id: `reply-${index}`,
