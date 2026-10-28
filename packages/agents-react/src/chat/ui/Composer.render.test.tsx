@@ -1286,6 +1286,17 @@ describe('the surface around the text', () => {
         expect(focus.count).toBe(0);
     });
 
+    test("the host's bar stands at the top of the composer's card, above the text, for the chat it is on", async () => {
+        const composer = await mount({
+            host: { ComposerHeaderSlot: ({ chatId }) => <div data-testid="header">bar of {chatId}</div> }
+        });
+
+        // In document order, so the first of the two is the one on top.
+        const [first, second] = composer.page.host.querySelectorAll('[data-testid="header"], .composer-input');
+        expect(first?.textContent).toBe(`bar of ${CHAT}`);
+        expect(second?.classList.contains('composer-input')).toBe(true);
+    });
+
     test('a composer that cannot be written to takes no focus and shows no text cursor', async () => {
         const composer = await mount({ disabled: true });
         const focus = watchFocus(composer);

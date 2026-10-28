@@ -80,7 +80,7 @@ import { FileLinkContext } from './file-links';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { useModelName } from '../../agents/model-name';
 import { ContextMenu, EmptyState, ErrorBoundary, Icon, SectionLabel } from '@adecore/ui';
-import { useHostContextSources, useHostHidesFolder, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
+import { useHostContextSources, useHostHidesFolder, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
 
 const ESTIMATED_ROW_PX = 56;
 // How long a jump waits for a thread that is still loading before it calls the item missing.
@@ -273,6 +273,8 @@ export function Timeline({
             });
     }, [scope, chatId, cursor]);
 
+    const hideTools = useHostHidesToolCalls(scopeId, chatId);
+
     const threadRows = useMemo(() => {
         if (!order || !items) {
             return [];
@@ -286,10 +288,11 @@ export function Timeline({
                 expandedSubagents: subagents.ids,
                 activeTurnId,
                 forkedTurns,
-                commandLooks: host.commandLooks
+                commandLooks: host.commandLooks,
+                hideTools
             }
         );
-    }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks]);
+    }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks, hideTools]);
 
     const cards = useHostThreadCards(scopeId, chatId);
     const drawsVisuals = host.visuals !== null;

@@ -84,6 +84,14 @@ interface TimelineOptions {
     forkedTurns?: ReadonlySet<string>;
     /* The host's programs drawn as tools of their own, whose runs read as their own sentences. */
     commandLooks?: readonly CommandLook[];
+    /* Leaves out the tool lines and their groups, while a settled turn still says how long it worked. */
+    hideTools?: boolean;
+}
+
+const TOOL_KINDS = new Set<TimelineRow['kind']>(['work', 'work-group', 'work-live']);
+
+function shownRows(rows: TimelineRow[], options: TimelineOptions): TimelineRow[] {
+    return options.hideTools === true ? rows.filter((row) => !TOOL_KINDS.has(row.kind)) : rows;
 }
 
 /*
@@ -599,7 +607,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
 
     for (const chunk of chunksByTurn(items)) {
         if (chunk.turnId === null) {
-            rows.push(...rowsForItems(chunk.items, options, children));
+            rows.push(...shownRows(rowsForItems(chunk.items, options, children), options));
 
             continue;
         }
@@ -616,7 +624,8 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const active = turnId === options.activeTurnId || turn?.state === 'running';
 
         if (!turn || active) {
-            const live = rowsForItems(conversation, options, children);
+            // Without its call, a thought has nothing to stand over and stays where it was thought.
+            const live = shownRows(rowsForItems(conversation, options, children), options);
             rows.push(...(active ? withLiveThought(live, conversation) : live));
 
             if (active) {
@@ -628,7 +637,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
 
         // Steering splits the conversation inside a turn. Earlier responses keep their place above it.
         const lastUser = conversation.findLastIndex((item) => item.kind === 'user');
-        rows.push(...rowsForItems(conversation.slice(0, lastUser + 1), options, children));
+        rows.push(...shownRows(rowsForItems(conversation.slice(0, lastUser + 1), options, children), options));
         const rest = conversation.slice(lastUser + 1);
         const work = rowsForItems(rest, options, children);
         // The closing answer stays visible; the work after the last input folds behind the label.
@@ -660,7 +669,8 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
             });
         }
 
-        rows.push(...(expanded ? before : standing));
+        // The fold counts the tool lines it would hide, so a turn of only tools still says how long it worked.
+        rows.push(...(expanded ? shownRows(before, options) : standing));
         const changed = changedFilesRow(turn, conversation);
 
         if (changed) {

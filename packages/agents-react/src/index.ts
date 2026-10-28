@@ -8,6 +8,7 @@ export {
     type TimelineFindOptions,
     type TimelineFind,
     type ComposerDictationProps,
+    type ComposerHeaderSlotProps,
     type ComposerSlotProps,
     type ComposerSendAction,
     type ComposerSendDraft,
