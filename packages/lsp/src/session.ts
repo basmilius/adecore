@@ -508,14 +508,26 @@ export class LspSession {
 
     /* Adds and removes folders of the workspace, and tells a server that asked to hear about it. */
     async changeWorkspaceFolders(event: WorkspaceFoldersChangeEvent): Promise<void> {
-        const removed = new Set(event.removed.map((folder) => fileUriKey(folder.uri)));
-        const kept = (this.folders ?? []).filter((folder) => !removed.has(fileUriKey(folder.uri)));
+        const asked = new Set(event.removed.map((folder) => fileUriKey(folder.uri)));
+        const current = this.folders ?? [];
+        const removed = current.filter((folder) => asked.has(fileUriKey(folder.uri)));
+        const kept = current.filter((folder) => !asked.has(fileUriKey(folder.uri)));
         const known = new Set(kept.map((folder) => fileUriKey(folder.uri)));
-        this.folders = [...kept, ...event.added.filter((folder) => !known.has(fileUriKey(folder.uri)))];
+        const added: WorkspaceFolder[] = [];
+        for (const folder of event.added) {
+            if (!known.has(fileUriKey(folder.uri))) {
+                known.add(fileUriKey(folder.uri));
+                added.push(folder);
+            }
+        }
+        this.folders = [...kept, ...added];
+        if (removed.length === 0 && added.length === 0) {
+            return;
+        }
         const notifications = this.serverCapabilities.workspace?.workspaceFolders?.changeNotifications;
         const registered = [...this.registrations.values()].some((registration) => registration.method === 'workspace/didChangeWorkspaceFolders');
         if (this.phase === 'ready' && (notifications === true || typeof notifications === 'string' || registered)) {
-            await this.notify('workspace/didChangeWorkspaceFolders', { event: { added: [...event.added], removed: [...event.removed] } });
+            await this.notify('workspace/didChangeWorkspaceFolders', { event: { added, removed } });
         }
     }
 
