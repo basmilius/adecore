@@ -60,6 +60,7 @@ Each step a person takes goes to `onFontSizeChange`, with the new size or `null`
 | `indentOnPaste`      | A pasted block takes the indentation of the line it lands on        |
 | `smartSemicolon`     | A `;` typed inside a call goes to the end of the statement          |
 | `smartArrow`         | In PHP a `-` after a variable, a member, `)` or `]` becomes `->`    |
+| `templateLiterals`   | In JavaScript and TypeScript, `${` typed in a quoted string makes it a template literal; one undo restores the quotes |
 | `camelHumps`         | Word moves also stop inside `camelCase` and `snake_case` words      |
 
 ## Keymaps

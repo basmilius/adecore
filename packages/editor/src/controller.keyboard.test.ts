@@ -19,6 +19,21 @@ describe('the keyboard', () => {
         expect(off.editor.getText()).toBe('<?php\n$user-');
     });
 
+    test('turns a quoted string into a template literal for a typed ${, and one undo gives the quotes back', () => {
+        const mounted = mountEditor({ text: "const a = 'x'", language: 'typescript', line: 1, column: 13 });
+        mounted.type('$');
+        mounted.type('{');
+        expect(mounted.editor.getText()).toBe('const a = `x${}`');
+        mounted.editor.runCommand('undo');
+        expect(mounted.editor.getText()).toBe("const a = 'x${}'");
+        mounted.editor.runCommand('undo');
+        expect(mounted.editor.getText()).toBe("const a = 'x'");
+        const off = mountEditor({ text: "const a = 'x'", language: 'typescript', line: 1, column: 13, smartKeys: { templateLiterals: false } });
+        off.type('$');
+        off.type('{');
+        expect(off.editor.getText()).toBe("const a = 'x${'");
+    });
+
     test('moves the caret with the arrow keys, over line ends and at a remembered column', () => {
         const { editor, press, type } = mountEditor({ text: 'abcd\nx\nabcd', line: 1, column: 4 });
         press('ArrowDown');

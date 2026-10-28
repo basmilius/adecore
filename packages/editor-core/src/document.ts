@@ -16,7 +16,7 @@ import { blockFolds } from './block-folds.ts';
 import { applyFoldHints, markFileHeader } from './fold-roles.ts';
 import { lexicalFolds } from './lexical-folds.ts';
 import { rangeOf, whitespaceOf } from './line-text.ts';
-import { isQuote, replacesComparison, surround, swapQuotes } from './typing-handlers.ts';
+import { isQuote, replacesComparison, surround, swapQuotes, templateLiteralEdits, templateString } from './typing-handlers.ts';
 import { scanBrackets } from './brackets.ts';
 import type { BracketIndex, BracketMatch } from './brackets.ts';
 import { BracketTracker } from './bracket-tracker.ts';
@@ -109,6 +109,8 @@ interface SelectionEdit extends TextEdit {
     paired?: boolean;
     /* A `-` the editor completes to `->` in a step of its own, once the `-` is in. */
     arrow?: boolean;
+    /* A `${` typed in a quoted string, which becomes a template literal in a step of its own; where its quotes stand before the edit. */
+    template?: { open: number; close: number };
 }
 
 interface SelectionTransaction {
@@ -130,6 +132,7 @@ interface TypingInput {
     surround: boolean;
     smartSemicolon: boolean;
     smartArrow: boolean;
+    templateLiterals: boolean;
     /* The carets right after a `->` the editor completed, where a typed `>` goes over the one that is there. */
     overArrows: ReadonlySet<number>;
     /* A closing bracket typed on a line of its own goes back to the indentation of its opener. */
@@ -185,6 +188,11 @@ function trailingBlankLength(text: string): number {
 
 function changesText(rope: TextRope, edit: TextEdit): boolean {
     return edit.text.length !== edit.to - edit.from || rope.slice(edit.from, edit.to) !== edit.text;
+}
+
+/* Where an offset stands after edits that end at or before it moved it; an insertion at the offset pushes it on. */
+function shifted(edits: readonly TextEdit[], offset: number): number {
+    return edits.reduce((moved, edit) => (edit.to <= offset ? moved + edit.text.length - (edit.to - edit.from) : moved), offset);
 }
 
 /* Merges the carets' edits into one simultaneous batch and works out where each caret lands in the result. */
@@ -883,7 +891,8 @@ export class DocumentModel {
     /*
      * Types `text` at every caret as one keystroke would: it wraps a selection in a bracket or quote,
      * closes an opener, types over a closer that is already there and, in TypeScript, JavaScript and
-     * PHP, moves a `;` to the end of a statement. In PHP a `-` after a variable becomes `->`. Comments
+     * PHP, moves a `;` to the end of a statement. In PHP a `-` after a variable becomes `->`. In JavaScript and
+     * TypeScript a `{` that completes `${` in a quoted string makes it a template literal. Comments
      * and string contents are left alone. Returns whether anything changed, a swallowed closer included.
      */
     typeText(text: string, options: TypeTextOptions = {}): boolean {
@@ -914,6 +923,7 @@ export class DocumentModel {
             surround: options.surroundSelection !== false && single,
             smartSemicolon: options.smartSemicolon !== false && hasSmartSemicolon(language),
             smartArrow: options.smartArrow !== false && single && isPhp(language),
+            templateLiterals: options.templateLiterals !== false && text === '{',
             overArrows: text === '>' ? arrows : new Set(),
             dedent: options.smartEnter !== false
         };
@@ -935,6 +945,7 @@ export class DocumentModel {
             this.rememberStatementClosers(plans, transaction, language);
             this.rememberPairs(plans, transaction);
             this.completeArrows(plans, transaction);
+            this.completeTemplates(plans, transaction, language);
         }
 
         return changed || plans.some((plan) => plan.consumed);
@@ -969,6 +980,27 @@ export class DocumentModel {
             )
         ) {
             this.arrows = new Set(at.map(moved));
+        }
+    }
+
+    /* Turns the quoted strings a `${` was typed in into template literals, as a step of their own so the first undo leaves the quotes back. */
+    private completeTemplates(plans: readonly SelectionEdit[], transaction: SelectionTransaction, language: string): void {
+        // Carets in one string find the same quotes.
+        const strings = new Map<number, number>();
+
+        for (const plan of plans) {
+            if (plan.template) {
+                strings.set(shifted(transaction.edits, plan.template.open), shifted(transaction.edits, plan.template.close));
+            }
+        }
+
+        const source = this.editSource(language);
+        const edits = [...strings].flatMap(([open, close]) => templateLiteralEdits(source, open, close));
+
+        if (edits.length > 0) {
+            // A caret right before a closing quote stays there, which the default mapping of an edit that replaces the quote would not do.
+            const selections = this.selections.map((selection) => ({ anchor: shifted(edits, selection.anchor), head: shifted(edits, selection.head) }));
+            this.applyEdits(edits, { source: 'input', selections });
         }
     }
 
@@ -1230,6 +1262,14 @@ export class DocumentModel {
 
             if (wrapped) {
                 return wrapped;
+            }
+        }
+
+        if (input.templateLiterals && from === to) {
+            const template = templateString(this.editSource(language), from, language);
+
+            if (template) {
+                return { from, to, text: input.brackets ? '{}' : '{', anchor: 1, head: 1, paired: input.brackets, template };
             }
         }
 

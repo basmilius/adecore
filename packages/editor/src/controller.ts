@@ -425,6 +425,7 @@ export class InputController {
             indentGuides: settings.guides,
             smartSemicolon: keys.smartSemicolon,
             smartArrow: keys.smartArrow,
+            templateLiterals: keys.templateLiterals,
             language: settings.language ?? 'plaintext',
             camelCase: keys.camelHumps,
             visualLine: (offset) => this.view.rowOf(offset),

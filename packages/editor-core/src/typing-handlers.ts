@@ -1,4 +1,5 @@
 import type { EditSource } from './edit-source.ts';
+import type { TextEdit } from './types.ts';
 
 /* A change of text in one place and where the caret stands in what replaces it. */
 export interface HandlerEdit {
@@ -168,4 +169,86 @@ export function surround(selected: string, typed: string): { text: string; inner
     }
 
     return { text: typed + inner + matchingDelimiter(typed), inner };
+}
+
+const scriptLanguages = /^(javascript|typescript|jsx|tsx|javascriptreact|typescriptreact|js|ts|mjs|cjs|mts|cts)$/i;
+const moduleSpecifier = /(?:\bfrom|\bimport|\brequire)\s*\(?\s*$/;
+
+/*
+ * The quotes of the string a `${` is typed in when that makes it a template literal: a single- or
+ * double-quoted string of a script, closed on its line and not the specifier of a module.
+ */
+export function templateString(source: EditSource, offset: number, language: string): { open: number; close: number } | null {
+    const line = source.lineAt(offset);
+    const script = scriptLanguages.test(language) || (/^vue$/i.test(language) && source.region(line) === 'script');
+
+    const { start, end } = source.line(line);
+    const before = source.slice(start, offset);
+
+    if (!script || !before.endsWith('$') || escapedIn(before, before.length - 1)) {
+        return null;
+    }
+
+    const context = source.context(offset);
+
+    if (context.mode !== 'quote' || context.escaped || (context.quote !== "'" && context.quote !== '"')) {
+        return null;
+    }
+
+    let open = before.length - 1;
+
+    while (open >= 0 && (before[open] !== context.quote || escapedIn(before, open))) {
+        open--;
+    }
+
+    if (open < 0 || moduleSpecifier.test(before.slice(0, open))) {
+        return null;
+    }
+
+    const after = source.slice(offset, end);
+
+    for (let at = 0; at < after.length; at++) {
+        if (after[at] === '\\') {
+            at++;
+        } else if (after[at] === context.quote) {
+            return { open: start + open, close: offset + at };
+        }
+    }
+
+    return null;
+}
+
+function escapedIn(text: string, index: number): boolean {
+    let slashes = 0;
+
+    while (index - slashes - 1 >= 0 && text[index - slashes - 1] === '\\') {
+        slashes++;
+    }
+
+    return slashes % 2 === 1;
+}
+
+/* The edits that make the string between the quotes at `open` and `close` a template literal: its backticks are escaped and its escaped old quotes are not. */
+export function templateLiteralEdits(source: EditSource, open: number, close: number): TextEdit[] {
+    const quote = source.charAt(open);
+    const body = source.slice(open + 1, close);
+    const edits: TextEdit[] = [{ from: open, to: open + 1, text: '`' }];
+
+    for (let index = 0; index < body.length; index++) {
+        const at = open + 1 + index;
+
+        if (body[index] === '\\') {
+            if (body[index + 1] === quote) {
+                edits.push({ from: at, to: at + 1, text: '' });
+            }
+
+            index++;
+        } else if (body[index] === '`') {
+            edits.push({ from: at, to: at + 1, text: '\\`' });
+        }
+    }
+
+    edits.push({ from: close, to: close + 1, text: '`' });
+
+    return edits;
 }
