@@ -473,10 +473,13 @@ function apply(source: EditSource, selections: readonly Selection[], moves: read
 
     const ordered = moves.toSorted((left, right) => left.region.first - right.region.first);
 
+    // Where a region stands after the edits of the regions before it.
+    let delta = 0;
+
     for (const { region, order } of ordered) {
         const parts: string[] = [];
         const placed: Placed[] = [];
-        let at = source.line(region.first).start;
+        let at = source.line(region.first).start + delta;
 
         for (const [index, slot] of order.entries()) {
             const info = source.line(slot.line);
@@ -492,8 +495,11 @@ function apply(source: EditSource, selections: readonly Selection[], moves: read
             }
         }
 
-        edits.push({ from: source.line(region.first).start, to: source.line(region.last).next, text: parts.join('') });
+        const edit = { from: source.line(region.first).start, to: source.line(region.last).next, text: parts.join('') };
+
+        edits.push(edit);
         moved.push(placed);
+        delta += edit.text.length - (edit.to - edit.from);
     }
 
     const mapPoint = (offset: number, keepWithLineAbove: boolean): number => {
