@@ -98,7 +98,11 @@ export class HistoryFeature {
     private edited(change: EditorTextChange): void {
         const { editor, project, uri } = this.language;
 
-        project.edits.map(uri, change.changes);
+        // The places belong to the file and the other editors of it hear the same change, so one editor moves them.
+        if (project.holdsFirst(uri, editor)) {
+            project.edits.map(uri, change.changes);
+        }
+
         this.editing = true;
 
         queueMicrotask(() => {
