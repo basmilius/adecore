@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ChatToolItem } from '@adecore/agent-contracts';
-import { summarizeGroup } from '@adecore/agents-react/chat';
+import { liveWorkflowPhase, summarizeGroup, workflowPhases, workflowPhaseState, workflowPhaseTime } from '@adecore/agents-react/chat';
+import { formatElapsedShort } from '@adecore/ui/format';
 import {
     AgentTurnRow,
     CompactionRow,
@@ -11,6 +12,7 @@ import {
     WorkRow,
     ForksRow,
     TaskRow,
+    WorkflowAgentLine,
     WorkflowRow
 } from '@adecore/agents-react/chat/ui';
 import { NOW, chatItems, taskRows, workflowTool } from '../shared/agents-data.ts';
@@ -22,6 +24,45 @@ const reads = tools.filter((tool) => tool.name === 'Read' || tool.name === 'Grep
 const workflow = workflowTool();
 const tasks = taskRows();
 
+/* A workflow's phases in a column of their own, the live one open, with the agent picked in it marked. */
+function WorkflowPhases() {
+    const [picked, setPicked] = useState<number | null>(null);
+    const running = workflow.state === 'running';
+    const phases = workflowPhases(workflow.workflow!, running);
+    const live = liveWorkflowPhase(phases, running);
+
+    return (
+        <div className="flex w-80 flex-col gap-2 rounded-lg border border-border p-2">
+            {phases.map((phase) => {
+                const { settled, total } = workflowPhaseState(phase);
+                const time = workflowPhaseTime(phase);
+
+                return (
+                    <section key={phase.key}>
+                        <div className="flex h-7 min-w-0 items-center gap-2 text-xs">
+                            <span className="min-w-0 grow truncate font-medium text-text">{phase.title}</span>
+                            <span className="shrink-0 text-text-faint tabular-nums">
+                                {settled}/{total}
+                                {time !== null && time.endedAt !== null && ` · ${formatElapsedShort(time.endedAt - time.startedAt)}`}
+                            </span>
+                        </div>
+                        {phase.key === live &&
+                            phase.agents.map((view) => (
+                                <WorkflowAgentLine
+                                    key={view.agent.index}
+                                    view={view}
+                                    provider="claude"
+                                    selected={picked === view.agent.index}
+                                    onOpen={() => setPicked(view.agent.index)}
+                                />
+                            ))}
+                    </section>
+                );
+            })}
+        </div>
+    );
+}
+
 function Rows() {
     const [expanded, setExpanded] = useState(false);
     const [openTask, setOpenTask] = useState<string | null>(null);
@@ -32,6 +73,7 @@ function Rows() {
             <WorkGroupRow tools={reads} summary={summarizeGroup(reads)} expanded={expanded} onToggle={() => setExpanded(!expanded)} />
             <WorkingRow startedAt={NOW - 14_000} />
             <WorkflowRow chatId={DEMO_CHAT} tool={workflow} workflow={workflow.workflow!} />
+            <WorkflowPhases />
             <div>
                 {tasks.map(({ item, task }) => (
                     <TaskRow

@@ -74,4 +74,5 @@ export { ReportRow, AssistantRow, NoteRow, AgentTurnRow, CompactionRow } from '.
 export { TaskRow } from './rows/TaskRow';
 export { WorkRow, WorkGroupRow, WorkingRow } from './rows/WorkRows';
 export { WorkflowRow } from './rows/WorkflowRow';
+export { WorkflowAgentLine } from './WorkflowAgentLine';
 export { useDiffSourceTokens } from './use-diff-source-tokens';

@@ -1,6 +1,16 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatWorkflow, ChatWorkflowAgent } from '@adecore/agent-contracts';
-import { workflowAgentPreview, workflowAgentState, workflowAgentTime, workflowCounts, workflowDescription, workflowPhases } from './workflow';
+import {
+    liveWorkflowPhase,
+    workflowAgentPreview,
+    workflowAgentState,
+    workflowAgentTime,
+    workflowCounts,
+    workflowDescription,
+    workflowPhases,
+    workflowPhaseState,
+    workflowPhaseTime
+} from './workflow';
 
 function agent(index: number, patch: Partial<ChatWorkflowAgent> = {}): ChatWorkflowAgent {
     return {
@@ -85,6 +95,69 @@ describe('workflowCounts', () => {
     test('counts every agent once by its state', () => {
         const phases = workflowPhases(workflow([agent(1), agent(2, { status: 'done' }), agent(3, { startedAt: null }), agent(4, { status: 'done' })]), true);
         expect(workflowCounts(phases)).toEqual({ total: 4, running: 1, waiting: 1, stopped: 0, done: 2, failed: 0 });
+    });
+});
+
+describe('workflowPhaseState', () => {
+    const phase = (agents: ChatWorkflowAgent[], running = true) => workflowPhases(workflow(agents), running).find((view) => view.title === 'Write')!;
+
+    test('a phase is at work while one of its agents is, or while some settled and others wait', () => {
+        expect(workflowPhaseState(phase([agent(1), agent(2, { status: 'done' })]))).toEqual({ state: 'running', settled: 1, total: 2 });
+        expect(workflowPhaseState(phase([agent(1, { status: 'done' }), agent(2, { startedAt: null })]))).toEqual({ state: 'running', settled: 1, total: 2 });
+    });
+
+    test('a phase waits before any of its agents started, also without any', () => {
+        expect(workflowPhaseState(phase([agent(1, { startedAt: null })]))).toEqual({ state: 'waiting', settled: 0, total: 1 });
+        expect(workflowPhaseState(phase([]))).toEqual({ state: 'waiting', settled: 0, total: 0 });
+    });
+
+    test('a settled phase is done when every agent finished, and failed when one failed or stopped with the workflow', () => {
+        expect(workflowPhaseState(phase([agent(1, { status: 'done' }), agent(2, { status: 'done' })])).state).toBe('done');
+        expect(workflowPhaseState(phase([agent(1, { status: 'done' }), agent(2, { status: 'failed' })])).state).toBe('failed');
+        expect(workflowPhaseState(phase([agent(1, { status: 'done' }), agent(2)], false))).toEqual({ state: 'failed', settled: 2, total: 2 });
+    });
+});
+
+describe('workflowPhaseTime', () => {
+    const phase = (agents: ChatWorkflowAgent[], running = true) => workflowPhases(workflow(agents), running).find((view) => view.title === 'Write')!;
+
+    test('runs from the first start to the last end, never the sum of agents that ran beside each other', () => {
+        const parallel = phase([
+            agent(1, { status: 'done', startedAt: 1000, durationMs: 4000 }),
+            agent(2, { status: 'done', startedAt: 2000, durationMs: 5000 })
+        ]);
+        expect(workflowPhaseTime(parallel)).toEqual({ startedAt: 1000, endedAt: 7000 });
+    });
+
+    test('counts on while an agent is at work, and is null before any started', () => {
+        expect(workflowPhaseTime(phase([agent(1, { status: 'done', startedAt: 500, durationMs: 100 }), agent(2, { startedAt: 900 })]))).toEqual({
+            startedAt: 500,
+            endedAt: null
+        });
+        expect(workflowPhaseTime(phase([agent(1, { startedAt: null })]))).toBeNull();
+    });
+
+    test('a phase whose agents stopped without a duration ends where it started', () => {
+        expect(workflowPhaseTime(phase([agent(1, { startedAt: 800 })], false))).toEqual({ startedAt: 800, endedAt: 800 });
+    });
+});
+
+describe('liveWorkflowPhase', () => {
+    test('follows the phase with an agent at work, the one that started last when several are', () => {
+        const phases = workflowPhases(workflow([agent(1, { phaseIndex: 1, startedAt: 2000 }), agent(2, { phaseIndex: 2, startedAt: 1000 })]), true);
+        expect(liveWorkflowPhase(phases, true)).toBe('phase-1');
+        const later = workflowPhases(workflow([agent(1, { phaseIndex: 1, startedAt: 1000 }), agent(2, { phaseIndex: 2, startedAt: 2000 })]), true);
+        expect(liveWorkflowPhase(later, true)).toBe('phase-2');
+    });
+
+    test('before an agent is at work it is the first phase that waits, the untitled one of loose agents included', () => {
+        expect(liveWorkflowPhase(workflowPhases(workflow([]), true), true)).toBe('phase-1');
+        expect(liveWorkflowPhase(workflowPhases(workflow([agent(1, { status: 'done' })]), true), true)).toBe('phase-2');
+        expect(liveWorkflowPhase(workflowPhases(workflow([agent(1, { phaseIndex: null, startedAt: null })]), true), true)).toBe('loose');
+    });
+
+    test('nothing is live once the workflow stopped running', () => {
+        expect(liveWorkflowPhase(workflowPhases(workflow([agent(1)]), false), false)).toBeNull();
     });
 });
 

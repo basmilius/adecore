@@ -1,90 +1,20 @@
 import { useState } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Bot, ChevronRight, Square, TriangleAlert, Workflow, X } from 'lucide-react';
-import { workflowAgentRef, type AgentKind, type ChatToolItem, type ChatWorkflow } from '@adecore/agent-contracts';
-import { formatElapsedShort } from '@adecore/ui/format';
-import { Icon, IconButton, useTickingText } from '@adecore/ui';
-import { AgentIcon } from '../../../agents/AgentIcon';
-import {
-    workflowAgentPreview,
-    workflowAgentTime,
-    workflowCounts,
-    workflowDescription,
-    workflowPhases,
-    type WorkflowAgentState,
-    type WorkflowAgentView,
-    type WorkflowCounts,
-    type WorkflowPhaseView
-} from '../../logic/workflow';
+import { ChevronRight, Square, TriangleAlert, Workflow } from 'lucide-react';
+import type { AgentKind, ChatToolItem, ChatWorkflow } from '@adecore/agent-contracts';
+import { Icon, IconButton } from '@adecore/ui';
+import { workflowCounts, workflowDescription, workflowPhases, type WorkflowCounts, type WorkflowPhaseView } from '../../logic/workflow';
 import { hasToolBody } from '../../logic/tools';
 import { useSubagentSupport } from '../../subagent-support';
 import type { SubagentStep } from '../../subagent-view';
 import { ROW_GUTTER } from '../icons';
+import { WorkflowAgentLine } from '../WorkflowAgentLine';
 import { ToolBody } from './WorkRows';
 import { useChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useChatActions } from '../../actions';
 import { useChatHost } from '../../../host';
-
-const DOT: Record<WorkflowAgentState, string> = {
-    running: 'bg-status-running',
-    waiting: 'bg-text-faint',
-    stopped: 'bg-text-faint',
-    done: 'bg-status-idle',
-    failed: 'bg-status-error'
-};
-
-const TIME = 'shrink-0 text-xs text-text-faint tabular-nums';
-
-function Elapsed({ startedAt }: { startedAt: number }) {
-    const ref = useTickingText(() => formatElapsedShort(Date.now() - startedAt));
-
-    return <span ref={ref} className={TIME} />;
-}
-
-function AgentLine({ view, provider, onOpen }: { view: WorkflowAgentView; provider: AgentKind | undefined; onOpen?(step: SubagentStep): void }) {
-    const { agent, state } = view;
-    const time = workflowAgentTime(view);
-    const preview = workflowAgentPreview(view);
-    const agentId = agent.agentId;
-    // One still waiting has no transcript yet.
-    const open = onOpen !== undefined && agentId !== null ? () => onOpen({ toolUseId: workflowAgentRef(agentId), description: agent.label }) : undefined;
-
-    return (
-        <button
-            className="-mx-1 mb-0.5 flex w-[calc(100%+8px)] items-start gap-2 rounded-md px-1 py-1 text-left enabled:hover:bg-surface-hover"
-            disabled={open === undefined}
-            onClick={open}
-        >
-            <span className={clsx(ROW_GUTTER, 'relative text-text')}>
-                {provider === undefined ? <Icon icon={Bot} size={14} /> : <AgentIcon kind={provider} size={14} />}
-                <span className={clsx('absolute -right-0.75 bottom-0 size-2 rounded-full ring-2 ring-surface', DOT[state])} />
-            </span>
-            <span className="flex min-w-0 grow flex-col">
-                <span data-find-field="summary" className={clsx('truncate text-xs font-medium', state === 'failed' ? 'text-status-error' : 'text-text')}>
-                    {agent.label}
-                </span>
-                {(preview.tool !== null || preview.text !== null) && (
-                    <span className="truncate text-2xs text-text-muted">
-                        {preview.tool !== null && <span className="font-mono text-code">{preview.tool}</span>}
-                        {preview.tool !== null && preview.text !== null && ' · '}
-                        {preview.text}
-                    </span>
-                )}
-            </span>
-            <span className="flex h-5 shrink-0 items-center gap-2">
-                {state === 'running' && agent.startedAt !== null ? (
-                    <Elapsed startedAt={agent.startedAt} />
-                ) : (
-                    time !== null && <span className={TIME}>{time}</span>
-                )}
-                {state === 'failed' && <Icon icon={X} size={12} className="shrink-0 text-status-error" />}
-                <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint', open === undefined && 'invisible')} />
-            </span>
-        </button>
-    );
-}
 
 function PhaseBlock({ phase, provider, onOpen }: { phase: WorkflowPhaseView; provider: AgentKind | undefined; onOpen?(step: SubagentStep): void }) {
     const { t } = useTranslation('agent-chat');
@@ -101,7 +31,7 @@ function PhaseBlock({ phase, provider, onOpen }: { phase: WorkflowPhaseView; pro
                 </div>
             )}
             {phase.agents.map((view) => (
-                <AgentLine key={view.agent.index} view={view} provider={provider} onOpen={onOpen} />
+                <WorkflowAgentLine key={view.agent.index} view={view} provider={provider} onOpen={onOpen} />
             ))}
         </div>
     );

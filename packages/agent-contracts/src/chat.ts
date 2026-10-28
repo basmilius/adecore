@@ -494,7 +494,9 @@ export const ChatWorkflowSchema = z.object({
     phases: z.array(ChatWorkflowPhaseSchema),
     agents: z.array(ChatWorkflowAgentSchema),
     lastProgressAt: z.number().optional(),
-    stalledAt: z.number().optional()
+    stalledAt: z.number().optional(),
+    // Set by the host once the Workflow call settled; a call stored before it was kept has none.
+    finishedAt: z.number().optional()
 });
 export type ChatWorkflow = z.infer<typeof ChatWorkflowSchema>;
 
@@ -775,6 +777,44 @@ export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] 
         .map(({ item }) => item);
 }
 
+/*
+ * When a workflow last did something it could be shown for: the end the host noted, else the last end
+ * of an agent, else its last report. Null for one that never reported, which counts as long ago.
+ */
+export function workflowEndedAt(workflow: ChatWorkflow): number | null {
+    if (workflow.finishedAt !== undefined) {
+        return workflow.finishedAt;
+    }
+
+    const ends = workflow.agents.flatMap((agent) => (agent.startedAt !== null && agent.durationMs !== null ? [agent.startedAt + agent.durationMs] : []));
+
+    return ends.length > 0 ? Math.max(...ends) : (workflow.lastProgressAt ?? null);
+}
+
+/*
+ * The Workflow calls a chat still speaks of beside its thread, by the rule of `activeSubagents`: every
+ * one that runs, and the ones that ended since the last message, so a finished workflow stays until the
+ * next message is sent. Only a call that reported what it runs counts. `items` is in thread order.
+ */
+export function activeWorkflows(items: readonly ChatItem[]): ChatToolItem[] {
+    const lastMessage = items.findLastIndex((item) => item.kind === 'user');
+    const lastMessageAt = lastMessage < 0 ? null : items[lastMessage]!.createdAt;
+
+    return items.filter((item, index): item is ChatToolItem => {
+        if (item.kind !== 'tool' || item.name !== 'Workflow' || item.workflow === undefined) {
+            return false;
+        }
+
+        if (item.state === 'running' || index > lastMessage) {
+            return true;
+        }
+
+        const endedAt = workflowEndedAt(item.workflow);
+
+        return lastMessageAt !== null && endedAt !== null && endedAt > lastMessageAt;
+    });
+}
+
 /* How much of a message the outline keeps: what a hover card over its tick shows. */
 export const CHAT_OUTLINE_TEXT_CHARS = 280;
 
@@ -1033,6 +1073,8 @@ export const ChatAttachResultSchema = z.object({
     visuals: ChatVisualsSchema.optional(),
     // With a page: the active sub-agents (`activeSubagents`) from before it, so the pill over the composer never waits on a scroll.
     subagents: z.array(ChatSubagentItemSchema).optional(),
+    // With a page: the active Workflow calls (`activeWorkflows`) from before it, so what shows a workflow beside the thread never waits on a scroll.
+    workflows: z.array(ChatToolItemSchema).optional(),
     // With a page: the thread before it as `outlineItems` cuts it, so the scrubber reaches the whole thread before a scroll does.
     outline: z.array(ChatItemSchema).optional()
 });
