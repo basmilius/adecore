@@ -144,6 +144,10 @@ describe('Move Statement', () => {
         expect(down('a();|\nb();\nc();\nd();|')).toBe('b();\na();|\nc();\nd();|');
     });
 
+    it('keeps a later caret on its statement after an earlier move changed the indentation and length', () => {
+        expect(down('|a();\nif (x) {\n}\n|b();\nc();\n')).toBe('if (x) {\n    |a();\n}\nc();\n|b();\n');
+    });
+
     it('moves a collapsed fold as one row', () => {
         const lineSpan = (line: number) => (line >= 1 && line <= 3 ? { first: 1, last: 3 } : { first: line, last: line });
 
