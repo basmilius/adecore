@@ -99,7 +99,7 @@ The thread has no find of its own. The host's `useTimelineFind(options)` gets th
 
 ## Rows
 
-The `Timeline` draws each `TimelineRow` itself. These rows are exported from `@adecore/agents-react/chat/ui`: `AssistantRow`, `ReportRow`, `NoteRow`, `AgentTurnRow`, `CompactionRow`, `WorkRow`, `WorkGroupRow`, `WorkingRow`, `TaskRow`, `WorkflowRow` and `ForksRow`. `deriveTimelineRows(items, options)` turns items into rows as the timeline does.
+The `Timeline` draws each `TimelineRow` itself. These rows are exported from `@adecore/agents-react/chat/ui`: `AssistantRow`, `ReportRow`, `NoteRow`, `AgentTurnRow`, `CompactionRow`, `WorkRow`, `WorkGroupRow`, `WorkingRow`, `TaskRow`, `WorkflowRow` and `ForksRow`. A workflow's agent line is exported as `WorkflowAgentLine`, for a column of phases of your own ([subagents](/agents-react/chat/subagents#workflows)). `deriveTimelineRows(items, options)` turns items into rows as the timeline does.
 
 <Demo src="agents/rows" />
 

@@ -118,6 +118,85 @@ export function workflowCounts(phases: WorkflowPhaseView[]): WorkflowCounts {
     return counts;
 }
 
+/* `running` while an agent of it is at work, `waiting` before any started, and once none can move again `failed` when one did not finish. */
+export type WorkflowPhaseStateKind = 'running' | 'waiting' | 'done' | 'failed';
+
+export interface WorkflowPhaseState {
+    state: WorkflowPhaseStateKind;
+    /* The agents of the phase that are no longer at work or waiting, of all it started so far. */
+    settled: number;
+    total: number;
+}
+
+/* A phase between two of its agents, some settled and some still waiting, is still at work. */
+export function workflowPhaseState(phase: WorkflowPhaseView): WorkflowPhaseState {
+    const total = phase.agents.length;
+    const waiting = phase.agents.filter((view) => view.state === 'waiting').length;
+    const running = phase.agents.filter((view) => view.state === 'running').length;
+    const settled = total - waiting - running;
+
+    if (running > 0 || (waiting > 0 && settled > 0)) {
+        return { state: 'running', settled, total };
+    }
+
+    if (settled === 0) {
+        return { state: 'waiting', settled, total };
+    }
+
+    return { state: phase.agents.every((view) => view.state === 'done') ? 'done' : 'failed', settled, total };
+}
+
+export interface WorkflowPhaseTime {
+    startedAt: number;
+    /* Null while an agent of it is still at work, so the time counts on from `startedAt`. */
+    endedAt: number | null;
+}
+
+/*
+ * How long the phase's agents were at work, from the first start to the last known end. Agents of a
+ * phase run beside each other, so this is never the sum of their times. Null before any started.
+ */
+export function workflowPhaseTime(phase: WorkflowPhaseView): WorkflowPhaseTime | null {
+    const started = phase.agents.flatMap((view) => (view.agent.startedAt === null ? [] : [view.agent.startedAt]));
+
+    if (started.length === 0) {
+        return null;
+    }
+
+    const startedAt = Math.min(...started);
+
+    if (phase.agents.some((view) => view.state === 'running')) {
+        return { startedAt, endedAt: null };
+    }
+
+    const ends = phase.agents.flatMap(({ agent }) => (agent.startedAt !== null && agent.durationMs !== null ? [agent.startedAt + agent.durationMs] : []));
+
+    return { startedAt, endedAt: Math.max(startedAt, ...ends) };
+}
+
+/*
+ * The phase a view beside the thread keeps open by itself: the one with an agent at work, the one whose
+ * agent started last when several are, and before any is at work the first that still waits. Null once
+ * the workflow stopped running, since then nothing is live.
+ */
+export function liveWorkflowPhase(phases: WorkflowPhaseView[], workflowRunning: boolean): string | null {
+    if (!workflowRunning) {
+        return null;
+    }
+
+    let live: { key: string; startedAt: number } | null = null;
+
+    for (const phase of phases) {
+        for (const view of phase.agents) {
+            if (view.state === 'running' && (live === null || (view.agent.startedAt ?? 0) >= live.startedAt)) {
+                live = { key: phase.key, startedAt: view.agent.startedAt ?? 0 };
+            }
+        }
+    }
+
+    return live?.key ?? phases.find((phase) => workflowPhaseState(phase).state === 'waiting')?.key ?? null;
+}
+
 const META_START = /export\s+const\s+meta\s*=\s*\{/;
 const DESCRIPTION = /\bdescription\s*:\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/;
 

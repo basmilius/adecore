@@ -261,11 +261,19 @@ export class ThreadProjector {
 
                 if (tool?.kind === 'tool') {
                     const name = event.workflow.name ?? tool.workflow?.name ?? null;
+                    // A late frame after the call settled must not wipe the end it noted.
+                    const finishedAt = event.workflow.finishedAt ?? tool.workflow?.finishedAt;
 
                     events.push(
                         this.thread.upsert({
                             ...tool,
-                            workflow: { ...event.workflow, name, taskId: event.workflow.taskId ?? tool.workflow?.taskId, lastProgressAt: this.now() }
+                            workflow: {
+                                ...event.workflow,
+                                name,
+                                taskId: event.workflow.taskId ?? tool.workflow?.taskId,
+                                lastProgressAt: this.now(),
+                                ...(finishedAt === undefined ? {} : { finishedAt })
+                            }
                         })
                     );
                 }
@@ -532,7 +540,7 @@ export class ThreadProjector {
             } else if (item.kind === 'question' && item.state === 'pending' && dropRequests) {
                 events.push(this.thread.upsert({ ...item, state: 'cancelled' }));
             } else if (item.kind === 'tool' && item.state === 'running' && (processGone || !this.backgroundCalls.has(item.id))) {
-                events.push(this.thread.upsert({ ...item, state: 'error' }));
+                events.push(this.thread.upsert(this.ended({ ...item, state: 'error' })));
             } else if (item.kind === 'subagent' && item.status === 'running' && (processGone || !this.outlivesTurn(item))) {
                 events.push(this.thread.upsert({ ...item, status: 'failed', finishedAt: this.now() }));
             }
@@ -711,7 +719,7 @@ export class ThreadProjector {
             settled.changes = event.changes;
         }
 
-        events.push(this.thread.upsert(settled));
+        events.push(this.thread.upsert(this.ended(settled)));
     }
 
     private patchProgress(generation: number, event: Extract<BackendEvent, { type: 'tool.progress' }>, events: ChatEvent[]): void {
@@ -1030,7 +1038,12 @@ export class ThreadProjector {
         const output = summary === '' ? call.output : [call.output, summary].filter((part) => part !== null && part !== '').join('\n\n');
         const settled: ChatToolItem = { ...call, output, state: event.ok ? 'done' : 'error' };
         delete settled.progress;
-        events.push(this.thread.upsert(settled));
+        events.push(this.thread.upsert(this.ended(settled)));
+    }
+
+    /* A settling Workflow call notes when, since a tool item has no end of its own to tell a finished workflow's age by. */
+    private ended(tool: ChatToolItem): ChatToolItem {
+        return tool.workflow === undefined ? tool : { ...tool, workflow: { ...tool.workflow, finishedAt: this.now() } };
     }
 
     /* A shell or a monitor, told apart by the call that started it when the CLI's frame does not say. */

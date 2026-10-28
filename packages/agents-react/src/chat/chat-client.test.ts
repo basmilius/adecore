@@ -380,7 +380,29 @@ describe('ChatClient', () => {
         const waiting: ChatItem = { id: 'q1', kind: 'question', createdAt: 0, turnId: null, requestId: 'r1', questions: [], answers: null, state: 'pending' };
         transport.attachResult = () => ({ history: { start: 40, cursor: 'g:40' }, pending: [waiting] });
         await client.open('a', {});
-        expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [], outline: [] });
+        expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [], workflows: [], outline: [] });
+    });
+
+    test('the workflows from before the page reach the store', async () => {
+        const { transport, sink, client } = setup();
+
+        const workflow: ChatItem = {
+            id: 'wf',
+            kind: 'tool',
+            createdAt: 0,
+            turnId: null,
+            toolUseId: 'wf',
+            name: 'Workflow',
+            input: {},
+            output: null,
+            state: 'running',
+            parentToolUseId: null,
+            workflow: { name: 'review', phases: [], agents: [] }
+        };
+
+        transport.attachResult = () => ({ history: { start: 40, cursor: 'g:40' }, workflows: [workflow] });
+        await client.open('a', {});
+        expect(sink.resets[0]?.page?.workflows).toEqual([workflow]);
     });
 
     test('a page before is asked for once while it is on its way and handed to the store with its cursor', async () => {

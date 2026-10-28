@@ -10,6 +10,7 @@ import type {
     ChatItem,
     ChatQuestionItem,
     ChatSubagentItem,
+    ChatToolItem,
     ChatVisual
 } from '@adecore/agent-contracts';
 import { appendToolOutput } from '@adecore/agent-contracts/text';
@@ -39,6 +40,11 @@ export interface ChatState {
      */
     subagentsBefore?: string[];
     /*
+     * Workflow calls from before that part that still run or ended since the last message, held the
+     * same way, so what shows a workflow beside the thread knows of it and sees it move.
+     */
+    workflowsBefore?: string[];
+    /*
      * The outline of the thread before that part (`outlineItems`), cut down and kept apart from
      * `items`, so the scrubber has a tick for every message before a scroll reaches it.
      */
@@ -58,6 +64,8 @@ export interface ChatPage {
     pending: ChatItem[];
     /* The active sub-agents from before the page; absent from a host that sends none. */
     subagents?: ChatSubagentItem[];
+    /* The active Workflow calls from before the page; absent from a host that sends none. */
+    workflows?: ChatToolItem[];
     /* The outline of the thread before the page; absent from a host that sends none. */
     outline?: ChatItem[];
 }
@@ -119,8 +127,9 @@ function stateOf(info: ChatInfo, items: ChatItem[], page?: ChatPage): ChatState 
 
     const before = page.pending.filter((item) => !(item.id in byId));
     const subagents = (page.subagents ?? []).filter((item) => !(item.id in byId));
+    const workflows = (page.workflows ?? []).filter((item) => !(item.id in byId) && !before.some((request) => request.id === item.id));
 
-    for (const item of [...before, ...subagents]) {
+    for (const item of [...before, ...subagents, ...workflows]) {
         byId[item.id] = item;
     }
 
@@ -132,6 +141,7 @@ function stateOf(info: ChatInfo, items: ChatItem[], page?: ChatPage): ChatState 
         history: page.history,
         waitingBefore: before.map((item) => item.id),
         subagentsBefore: subagents.map((item) => item.id),
+        workflowsBefore: workflows.map((item) => item.id),
         outlineBefore: (page.outline ?? []).filter((item) => !(item.id in byId))
     };
 }
@@ -143,12 +153,18 @@ function isBeforePage(state: ChatState, historyIndex: number | undefined): boole
 
 type ItemWriter = (state: ChatState, item: ChatItem, structural?: boolean) => ChatState;
 
-/* An item from before the page this client holds matters only as a sub-agent, a request that waits, or one that stopped waiting. */
+/* An item from before the page this client holds matters only as a sub-agent, a workflow, a request that waits, or one that stopped waiting. */
 function withEarlierItem(state: ChatState, item: ChatItem, write: ItemWriter): ChatState {
     if (item.kind === 'subagent') {
         const subagents = state.subagentsBefore ?? [];
 
         return { ...write(state, item), subagentsBefore: subagents.includes(item.id) ? subagents : [...subagents, item.id] };
+    }
+
+    if (item.kind === 'tool' && item.name === 'Workflow' && item.workflow !== undefined) {
+        const workflows = state.workflowsBefore ?? [];
+
+        return { ...write(state, item), workflowsBefore: workflows.includes(item.id) ? workflows : [...workflows, item.id] };
     }
 
     const waiting = state.waitingBefore ?? [];
@@ -181,16 +197,24 @@ export function prependPage(state: ChatState, cursor: string, page: ChatHistoryR
     const order = [...olderIds, ...state.order];
 
     if (page.history.cursor === null) {
-        const { history: _history, waitingBefore: _waitingBefore, subagentsBefore: _subagentsBefore, outlineBefore: _outlineBefore, ...rest } = loaded;
+        const {
+            history: _history,
+            waitingBefore: _waitingBefore,
+            subagentsBefore: _subagentsBefore,
+            workflowsBefore: _workflowsBefore,
+            outlineBefore: _outlineBefore,
+            ...rest
+        } = loaded;
 
         return { ...rest, items, structure: items, order };
     }
 
     const waitingBefore = (state.waitingBefore ?? []).filter((id) => !olderIds.has(id));
     const subagentsBefore = (state.subagentsBefore ?? []).filter((id) => !olderIds.has(id));
+    const workflowsBefore = (state.workflowsBefore ?? []).filter((id) => !olderIds.has(id));
     const outlineBefore = (state.outlineBefore ?? []).filter((item) => !olderIds.has(item.id));
 
-    return { ...loaded, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore, outlineBefore };
+    return { ...loaded, items, structure: items, order, history: page.history, waitingBefore, subagentsBefore, workflowsBefore, outlineBefore };
 }
 
 /* The requests that still wait, oldest first: those from before the page this client holds, then the thread's own. */

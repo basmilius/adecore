@@ -94,6 +94,30 @@ describe('chat history', () => {
         expect(thread.subagentsBefore(1)).toEqual([]);
     });
 
+    test('workflows from before the page that still run or ended since the last message are available outside it', () => {
+        const user = (i: number, createdAt: number): ChatItem => ({ id: `u${i}`, kind: 'user', text: 'Go', createdAt, turnId: null }) as ChatItem;
+
+        const call = (id: string, state: 'running' | 'done', finishedAt?: number): ChatItem =>
+            ({
+                id,
+                kind: 'tool',
+                createdAt: 0,
+                turnId: null,
+                toolUseId: id,
+                name: 'Workflow',
+                input: {},
+                output: null,
+                state,
+                parentToolUseId: null,
+                workflow: { name: id, phases: [], agents: [], ...(finishedAt === undefined ? {} : { finishedAt }) }
+            }) as ChatItem;
+
+        const thread = new ChatThread(info, [call('old', 'done', 5), call('running', 'running'), user(0, 10), call('ended', 'done', 20), message(0)]);
+        const page = thread.history(1);
+        expect(thread.workflowsBefore(page.history.start).map((item) => item.id)).toEqual(['running', 'ended']);
+        expect(thread.workflowsBefore(1)).toEqual([]);
+    });
+
     test('the outline before the page holds the messages, the wakes and the marked replies, cut down', () => {
         const long = 'x'.repeat(400);
         const user = { id: 'u0', kind: 'user', text: long, createdAt: 1, turnId: 't0', mentions: ['a.ts'] } as ChatItem;

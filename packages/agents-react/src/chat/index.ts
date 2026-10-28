@@ -35,6 +35,26 @@ export { type TimelineRow, summarizeGroup, deriveTimelineRows, type SubagentBran
 export { toolSummary, type FileChange } from './logic/tools';
 
 export {
+    workflowPhases,
+    workflowCounts,
+    workflowAgentState,
+    workflowAgentTime,
+    workflowAgentPreview,
+    workflowDescription,
+    workflowPhaseState,
+    workflowPhaseTime,
+    liveWorkflowPhase,
+    type WorkflowPhaseView,
+    type WorkflowAgentView,
+    type WorkflowAgentState,
+    type WorkflowAgentPreview,
+    type WorkflowCounts,
+    type WorkflowPhaseState,
+    type WorkflowPhaseStateKind,
+    type WorkflowPhaseTime
+} from './logic/workflow';
+
+export {
     MENTION_DRAG_TYPE,
     LEGACY_MENTION_DRAG_TYPE,
     carriesMentions,

@@ -94,12 +94,15 @@ Not every host implements every request. A host that only runs chats refuses the
 | `history` | Where the page starts, and the cursor before it |
 | `pending` | Every request still waiting, wherever it is in the thread |
 | `subagents` | Sub-agents from before the page, as `activeSubagents` names them |
+| `workflows` | Workflow calls from before the page, as `activeWorkflows` names them |
 | `outline` | The thread before the page, as `outlineItems` cuts it |
 | `bookmarks`, `visuals`, `seq` | The lists, and the last event sequence number |
 
 Keep the last `seq` applied and send it as `since` on reconnect. A host that still holds every later event returns them as `events`, with an empty `items`. Otherwise it returns a fresh snapshot. Replace the thread with that snapshot, since appending it duplicates the conversation. An older host without `seq` always returns a snapshot.
 
 `activeSubagents(items)` returns the sub-agents still relevant beside a thread: running ones, ones settled after the last message, and settled ones whose turn still runs another. A client holding only the newest page shows those next to it.
+
+`activeWorkflows(items)` returns the Workflow calls still relevant beside a thread by the same rule: running ones and ones that ended after the last message, counting only calls that reported what they run. `finishedAt` on a workflow is when its call settled. `workflowEndedAt(workflow)` returns that moment, falling back to the last end of its agents or its last report for a call stored without it, and null for one that never reported. A client holding only the newest page keeps these next to it too, and applies the events that change them.
 
 `outlineItems(items, marked)` returns the scrubber stops: every message of the person, every turn woken by tasks or messages, and the replies in `marked`, with text cut to `CHAT_OUTLINE_TEXT_CHARS`. A client holding only the newest page draws a tick for each and loads earlier pages when one is picked.
 
