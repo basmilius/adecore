@@ -443,6 +443,7 @@ exports[`the public API . exports these names 1`] = `
   "visualViewportMessage",
   "workflowAgentIdOf",
   "workflowAgentRef",
+  "workflowEndedAt",
 ]
 `;
 
@@ -716,6 +717,7 @@ exports[`the public API ./chat exports these names 1`] = `
   "type SkillsListResult",
   "workflowAgentIdOf",
   "workflowAgentRef",
+  "workflowEndedAt",
 ]
 `;
 

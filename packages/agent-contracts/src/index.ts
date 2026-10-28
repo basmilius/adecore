@@ -133,6 +133,7 @@ export {
     abortedByEnd,
     activeSubagents,
     activeWorkflows,
+    workflowEndedAt,
     CHAT_OUTLINE_TEXT_CHARS,
     outlineItems,
     WAITING_NOTE_PREFIX,

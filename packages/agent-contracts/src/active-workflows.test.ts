@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { activeWorkflows, type ChatItem, type ChatWorkflow, type ChatWorkflowAgent } from './chat.ts';
+import { activeWorkflows, workflowEndedAt, type ChatItem, type ChatWorkflow, type ChatWorkflowAgent } from './chat.ts';
 
 function user(id: string, createdAt: number): ChatItem {
     return { id, kind: 'user', text: 'Go', createdAt, turnId: null };
@@ -56,5 +56,15 @@ describe('activeWorkflows', () => {
 
     test('without a message every workflow counts', () => {
         expect(ids([call('one', 'done', { finishedAt: 1 })])).toEqual(['one']);
+    });
+});
+
+describe('workflowEndedAt', () => {
+    test('the end the host noted wins over a later end of an agent', () => {
+        expect(workflowEndedAt({ name: 'w', phases: [], agents: [agent(8, 4)], finishedAt: 5 })).toBe(5);
+    });
+
+    test('a workflow that never reported has no end', () => {
+        expect(workflowEndedAt({ name: 'w', phases: [], agents: [agent(null, null)] })).toBeNull();
     });
 });

@@ -781,7 +781,7 @@ export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] 
  * When a workflow last did something it could be shown for: the end the host noted, else the last end
  * of an agent, else its last report. Null for one that never reported, which counts as long ago.
  */
-function workflowEndedAt(workflow: ChatWorkflow): number | null {
+export function workflowEndedAt(workflow: ChatWorkflow): number | null {
     if (workflow.finishedAt !== undefined) {
         return workflow.finishedAt;
     }
