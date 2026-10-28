@@ -276,6 +276,36 @@ describe('saving', () => {
     });
 });
 
+describe('saving a document nothing serves or that is gone', () => {
+    test('sends no willSave for a document no server serves', async () => {
+        const service = new FakeLanguageService();
+        service.respond('textDocument/willSaveWaitUntil', () => [{ range: range(0, 0, 1), newText: 'y' }]);
+        const project = new ProjectLanguage(service);
+        const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'x', theme: 'light' });
+        const language = new EditorLanguage(project, editor, uri, 'plaintext', new ManualTimers(), { serve: false });
+        open.push({ service, project, editor, language, timers: new ManualTimers(), visits: [] });
+        await language.prepareSave();
+
+        expect(service.calls.map((call) => call.method)).not.toContain('textDocument/willSave');
+        expect(service.calls.map((call) => call.method)).not.toContain('textDocument/willSaveWaitUntil');
+        expect(editor.getText()).toBe('x');
+    });
+
+    test('applies no edit that arrives after the editor was disposed', async () => {
+        let answer: (edits: unknown) => void = () => undefined;
+        const { editor, language } = await setup('x', {
+            'textDocument/willSaveWaitUntil': () => new Promise((resolve) => (answer = resolve))
+        });
+        const saving = language.prepareSave();
+        await settle();
+        language.dispose();
+        answer([{ range: range(0, 0, 1), newText: 'y' }]);
+        await saving;
+
+        expect(editor.getText()).toBe('x');
+    });
+});
+
 describe('formatting a selection', () => {
     test('asks for every selection at once from a server that formats several ranges', async () => {
         const { editor, language, service } = await setup('a\nb\nc', {
