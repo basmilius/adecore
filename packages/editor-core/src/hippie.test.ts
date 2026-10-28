@@ -36,6 +36,13 @@ describe('hippieMatches', () => {
         expect(hippieMatches('foobar', 'fb')).toBe(false);
     });
 
+    test('rejects a long word of humps without trying every way through it', () => {
+        const word = 'x' + 'aB'.repeat(400);
+
+        expect(hippieMatches(word, 'xabababababz')).toBe(false);
+        expect(hippieMatches(word, 'xababababab')).toBe(true);
+    });
+
     test('wants a longer word', () => {
         expect(hippieMatches('foo', 'foo')).toBe(false);
         expect(hippieMatches('foo', '')).toBe(true);

@@ -103,9 +103,16 @@ function isHump(word: string, index: number): boolean {
     return startsHump || /[\d_-]/.test(before);
 }
 
-function continues(word: string, prefix: string, wordIndex: number, prefixIndex: number): boolean {
+/* `failed` holds the positions known to lead nowhere, so each of the word times prefix positions is tried once. */
+function continues(word: string, prefix: string, wordIndex: number, prefixIndex: number, failed: Set<number>): boolean {
     if (prefixIndex === prefix.length) {
         return true;
+    }
+
+    const position = wordIndex * prefix.length + prefixIndex;
+
+    if (failed.has(position)) {
+        return false;
     }
 
     for (let i = wordIndex; i < word.length; i++) {
@@ -114,10 +121,12 @@ function continues(word: string, prefix: string, wordIndex: number, prefixIndex:
             continue;
         }
 
-        if (word[i]!.toLowerCase() === prefix[prefixIndex]!.toLowerCase() && continues(word, prefix, i + 1, prefixIndex + 1)) {
+        if (word[i]!.toLowerCase() === prefix[prefixIndex]!.toLowerCase() && continues(word, prefix, i + 1, prefixIndex + 1, failed)) {
             return true;
         }
     }
+
+    failed.add(position);
 
     return false;
 }
@@ -128,7 +137,7 @@ export function hippieMatches(word: string, prefix: string): boolean {
         return false;
     }
 
-    return prefix === '' || (word[0] === prefix[0] && continues(word, prefix, 1, 1));
+    return prefix === '' || (word[0] === prefix[0] && continues(word, prefix, 1, 1, new Set()));
 }
 
 /* The words of this document that complete the prefix: those before the primary caret ascending, then those after it. */
