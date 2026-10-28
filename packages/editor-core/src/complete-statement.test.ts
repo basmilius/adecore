@@ -102,6 +102,28 @@ describe('Complete Current Statement', () => {
         complete('x = 1|', 'x = 1\n|', { language: 'python' });
     });
 
+    it('does not close a bracket that a later line closes', () => {
+        complete('foo(a,|\n    b);', 'foo(a,\n    b);\n    |');
+        complete('const o = {|\n    a: 1,\n};', 'const o = {\n    a: 1,\n};\n|');
+        complete('if (a &&|\n    b) {\n}', 'if (a &&\n    b) {\n    |\n}');
+    });
+
+    it('completes a statement that a later line closes at its real end', () => {
+        complete('foo(a,|\n    b)', 'foo(a,\n    b);|');
+        complete('const o = {|\n    a: 1,\n}', 'const o = {\n    a: 1,\n};|');
+        complete('foo(a, bar(|\n    b),\n    c)\nnext();', 'foo(a, bar(\n    b),\n    c);|\nnext();');
+    });
+
+    it('closes only the brackets that nothing closes', () => {
+        complete('foo(bar(a,|\n    b))', 'foo(bar(a,\n    b));|');
+        complete('foo(a,|\n    b', 'foo(a,);|\n    b');
+    });
+
+    it('closes the brackets that no later line closes in Python', () => {
+        complete('foo(a,|\n    b)', 'foo(a,\n    b)\n    |', { language: 'python' });
+        complete('foo(a,|\n    b', 'foo(a,)|\n    b', { language: 'python' });
+    });
+
     it('runs on every line a caret is on, and once per line', () => {
         const model = new DocumentModel('let a = 1\nlet b = 2\nlet c = 3');
         model.setSelections([
