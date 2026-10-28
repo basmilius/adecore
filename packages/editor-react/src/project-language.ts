@@ -323,6 +323,11 @@ export class ProjectLanguage {
         return pending.position;
     }
 
+    /* Whether the editor is the first to hold the document, the one whose changes stand for the document's. */
+    holdsFirst(uri: string, editor: Editor): boolean {
+        return this.holders.get(uri)?.editors[0] === editor;
+    }
+
     /* The editors that hold a document, one per uri in the order the documents were first opened. */
     openEditors(): readonly { uri: string; editor: Editor }[] {
         return [...this.holders].flatMap(([uri, holder]) => (holder.editors[0] === undefined ? [] : [{ uri, editor: holder.editors[0] }]));

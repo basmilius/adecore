@@ -189,6 +189,23 @@ describe('edit locations', () => {
         expect(first.getCaret().line).toBe(10);
     });
 
+    test('moves the places once for a file held by two editors', async () => {
+        const { first, project } = await editing();
+        const second = new FakeEditorEngine().mount({} as HTMLElement, { text: lines.join('\n'), theme: 'light' });
+        const secondLanguage = new EditorLanguage(project, second, uri, 'typescript', new ManualTimers());
+        open.push(secondLanguage);
+        second.focus();
+
+        first.type(withLine(8, 'a'));
+        second.setText(withLine(8, 'a'));
+        await settle();
+        first.type(`new\n${withLine(8, 'a')}`);
+        second.setText(`new\n${withLine(8, 'a')}`);
+        await settle();
+
+        expect(project.edits.places.map((place) => place.selections.at(-1)!.end.line)[0]).toBe(9);
+    });
+
     test('opens the file of an edit in another editor on its primary caret', async () => {
         const { first, second, secondLanguage, visits } = await editing();
 
