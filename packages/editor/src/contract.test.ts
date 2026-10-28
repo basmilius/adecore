@@ -422,6 +422,40 @@ describe.each(implementations)('%s', (_name, mount) => {
         });
     });
 
+    describe('what the text says about itself', () => {
+        test('tells the place of a position by the language and the lexer', () => {
+            const editor = mount({ text: 'const a = "b"; // c', language: 'typescript' });
+
+            expect(editor.placeAt?.(at(0, 3))).toEqual({ language: 'typescript', kind: 'code' });
+            expect(editor.placeAt?.(at(0, 12))).toEqual({ language: 'typescript', kind: 'string' });
+            expect(editor.placeAt?.(at(0, 18))).toEqual({ language: 'typescript', kind: 'comment' });
+            expect(mount({ text: 'a' }).placeAt?.(at(0, 1))).toEqual({ language: 'plaintext', kind: 'code' });
+        });
+
+        test('lists the operands before a dot, without the whitespace in front of it', () => {
+            const editor = mount({ text: 'a();\nb.c(d) .', language: 'typescript' });
+
+            expect(editor.postfixOperands?.(at(1, 7))).toEqual([{ range: range(1, 0, 1, 6), statement: true }]);
+            expect(editor.postfixOperands?.(at(0, 0))).toEqual([]);
+        });
+
+        test('says what a range can be surrounded with', () => {
+            const editor = mount({ text: 'if (a) {\n    b();\n}', language: 'typescript' });
+
+            expect(editor.surroundShape?.(range(1, 0, 1, 9))).toEqual({ range: range(1, 4, 1, 8), statements: true, expression: false });
+            expect(editor.surroundShape?.(range(1, 0, 1, 3))).toBeNull();
+        });
+
+        test('lists what can be unwrapped as edits that applyEdits takes, in the indentation of the editor', () => {
+            const editor = mount({ text: 'if (a) {\n  b();\n}', language: 'typescript', indentation: { tabSize: 2, insertSpaces: true } });
+            const targets = editor.unwrapTargets?.(at(1, 3)) ?? [];
+
+            expect(targets.map((target) => [target.kind, target.range])).toEqual([['if', range(0, 0, 2, 1)]]);
+            expect(editor.applyEdits(targets[0]!.edits)).toBe(true);
+            expect(editor.getText()).toBe('b();');
+        });
+    });
+
     describe('widgets', () => {
         test('draw a row once for as long as its id stays, and each owner keeps its own', () => {
             const editor = mount({ text: 'one\ntwo' });

@@ -149,6 +149,22 @@ describe('the key table', () => {
         });
     }
 
+    test('binds the template commands like IntelliJ and leaves Surround with Emmet and Save as Live Template without a chord', () => {
+        expect(KEYMAP_IDS.map((id) => [id, chordOf(id, true)]).filter(([id]) => /Template|surround|unwrap|Abbreviation/i.test(id!))).toEqual([
+            ['insertLiveTemplate', 'Mod+J'],
+            ['surroundWith', 'Mod+Alt+T'],
+            ['surroundWithLiveTemplate', 'Mod+Alt+J'],
+            ['unwrap', 'Mod+Shift+Delete'],
+            ['saveAsLiveTemplate', null],
+            ['wrapWithAbbreviation', null]
+        ]);
+        expect(chordOf('insertLiveTemplate', false)).toBe('Mod+J');
+        expect(chordOf('surroundWithLiveTemplate', false)).toBe('Mod+Alt+J');
+        expect(chordOf('unwrap', false)).toBe('Mod+Shift+Delete');
+        expect(chordOf('quickInfo', true)).toBe('Ctrl+J');
+        expect(chordMatches(parseChord('Mod+Shift+Delete'), key('Delete', { metaKey: true, shiftKey: true }), true)).toBe(true);
+    });
+
     test('matches letters and punctuation by the physical key, since Option changes the character on macOS', () => {
         expect(keyAction(key('¬', { metaKey: true, altKey: true, code: 'KeyL' }), true)).toBeNull();
         expect(chordMatches(parseChord('Mod+Alt+L'), key('¬', { metaKey: true, altKey: true, code: 'KeyL' }), true)).toBe(true);
