@@ -694,6 +694,17 @@ describe('ClaudeProtocol', () => {
         return protocol.handle({ type: 'result', subtype: 'success', is_error: true, api_error_status: 429, result: text, total_cost_usd: 0 });
     };
 
+    for (const window of ['5-hour', 'weekly', 'session', 'usage']) {
+        test(`the first explicit ${window} refusal is a usage limit without a rate-limit event`, () => {
+            const protocol = new ClaudeProtocol(null, () => 1_000_000);
+            protocol.beginPrompt('first');
+            const done = refused(protocol, 'rate_limit', `You've hit your ${window} limit · resets 8:30pm (Europe/Amsterdam)`)[0];
+
+            expect(done).toMatchObject({ state: 'error', limit: { kind: 'usage' } });
+            expect(done).not.toHaveProperty('limit.resetsAt');
+        });
+    }
+
     for (const error of ['authentication_failed', 'rate_limit', 'overloaded']) {
         test(`only an explicit main-chain authentication failure replaces the process: ${error}`, () => {
             const protocol = new ClaudeProtocol();
