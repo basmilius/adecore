@@ -147,6 +147,8 @@ export interface CommandOptions {
     smartSemicolon?: boolean;
     /* In PHP a `-` typed after a variable, a member or a `)` or `]` becomes `->`. On unless false. */
     smartArrow?: boolean;
+    /* In JavaScript and TypeScript a `${` typed in a quoted string makes it a template literal, in a second undo step. On unless false. */
+    templateLiterals?: boolean;
     /* Tab steps over a closer the editor inserted. On unless false. */
     tabOutOfClosers?: boolean;
     /* Enter computes the indentation of the new line, continues comments and closes braces. On unless false. */

@@ -83,6 +83,7 @@ The plain word commands stop at camel humps only with `camelCase: true`; the `ca
 | `surroundSelection`                          | on             | A bracket or quote typed over a selection wraps it                    |
 | `smartSemicolon`                             | on             | Only in TypeScript, JavaScript and PHP                                |
 | `smartArrow`                                 | on             | In PHP a `-` after a variable, a member, `)` or `]` becomes `->`      |
+| `templateLiterals`                           | on             | In JavaScript and TypeScript, `${` typed in a quoted string makes it a template literal |
 | `tabOutOfClosers`                            | on             | Tab steps over a closer the editor added                              |
 | `smartEnter`                                 | on             | Enter computes indentation, continues comments and closes braces      |
 | `indentOnPaste`                              | on             | A pasted block takes the indentation of its line                      |

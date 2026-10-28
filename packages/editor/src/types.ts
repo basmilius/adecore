@@ -150,6 +150,8 @@ export interface EditorSmartKeys {
     readonly smartSemicolon: boolean;
     /* In PHP a `-` typed after a variable, a member or a `)` or `]` becomes `->`. */
     readonly smartArrow: boolean;
+    /* In JavaScript and TypeScript a `${` typed in a quoted string makes it a template literal. */
+    readonly templateLiterals: boolean;
     /* Moving by word also stops inside `camelCase` and `snake_case` words. Off. */
     readonly camelHumps: boolean;
 }

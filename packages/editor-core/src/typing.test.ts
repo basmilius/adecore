@@ -577,3 +577,92 @@ it('invalidates a cached script projection when its PHP island changes', () => {
     model.typeText('(', { language: 'php' });
     expect(model.getText()).toBe('<script>call()</script>');
 });
+
+describe('turning a quoted string into a template literal', () => {
+    it.each([
+        ["'a$¦'", '`a${¦}`'],
+        ['"a$¦"', '`a${¦}`'],
+        ["'a $¦ b'", '`a ${¦} b`'],
+        ["'a`b$¦'", '`a\\`b${¦}`'],
+        ["'a\\`b$¦'", '`a\\`b${¦}`'],
+        ["'it\\'s $¦'", "`it's ${¦}`"],
+        ['"say \\"hi\\" $¦"', '`say "hi" ${¦}`'],
+        ['"it\\\'s $¦"', "`it\\'s ${¦}`"],
+        ["const a = foo('x', 'a$¦');", "const a = foo('x', `a${¦}`);"]
+    ])('turns %s into %s', (source, expected) => type(source, '{', expected));
+
+    it.each([
+        ['an unterminated string', "'a$¦"],
+        ['a template literal', '`a$¦`'],
+        ['an import specifier', "import x from 'a$¦'"],
+        ['a side effect import', "import 'a$¦'"],
+        ['an export from', "export * from 'a$¦'"],
+        ['a dynamic import', "import('a$¦')"],
+        ['a require', "require('a$¦')"],
+        ['a line comment', "// 'a$¦'"],
+        ['a block comment', "/* 'a$¦' */"],
+        ['an escaped dollar', "'a\\$¦'"],
+        ['a dollar that is not there', "'a¦'"]
+    ])('leaves %s alone', (_name, source) => {
+        const initial = parse(source);
+        const model = new DocumentModel(initial.text);
+        model.setSelections([{ anchor: initial.head, head: initial.head }]);
+        model.typeText('{', { language: 'typescript' });
+        expect(model.getText()).not.toContain('`' + '${');
+        expect(model.getText().replace('{', '').replace('}', '')).toBe(initial.text.replace('{', '').replace('}', ''));
+        expect(model.getText().startsWith('`')).toBe(source.startsWith('`'));
+    });
+
+    it('does not close the brace when pairing is off, and still converts', () => {
+        type("'a$¦'", '{', '`a${¦`', { autoClosingBrackets: false });
+    });
+
+    it('does nothing when the option is off', () => {
+        type("'a$¦'", '{', "'a${¦'", { templateLiterals: false });
+    });
+
+    it.each(['javascript', 'jsx', 'tsx', 'javascriptreact', 'typescriptreact', 'mjs', 'cjs', 'mts', 'cts'])('converts in %s', (language) => {
+        type("'a$¦'", '{', '`a${¦}`', { language });
+    });
+
+    it.each(['php', 'json', 'css', 'python', 'plaintext'])('leaves a string in %s', (language) => {
+        const model = new DocumentModel("'a$");
+        model.setSelections([{ anchor: 3, head: 3 }]);
+        model.typeText('{', { language });
+        expect(model.getText().startsWith('`')).toBe(false);
+    });
+
+    it('converts the script of a Vue file and leaves its template', () => {
+        const script = new DocumentModel("<script setup>\nconst a = 'x$'\n</script>");
+        const offset = script.getText().indexOf('$') + 1;
+        script.setSelections([{ anchor: offset, head: offset }]);
+        script.typeText('{', { language: 'vue' });
+        expect(script.getText()).toBe('<script setup>\nconst a = `x${}`\n</script>');
+
+        const template = new DocumentModel('<template>\n    <p :title="\'x$\'"></p>\n</template>');
+        const at = template.getText().indexOf('$') + 1;
+        template.setSelections([{ anchor: at, head: at }]);
+        template.typeText('{', { language: 'vue' });
+        expect(template.getText()).not.toContain('`');
+    });
+
+    it('converts every string a caret is in, once for carets in one string', () => {
+        const model = new DocumentModel('[\'a$\', "b$ c$"]');
+        const carets = [...model.getText().matchAll(/\$/g)].map((match) => match.index + 1);
+        model.setSelections(carets.map((caret) => ({ anchor: caret, head: caret })));
+        model.typeText('{', { language: 'typescript' });
+        expect(model.getText()).toBe('[`a${}`, `b${} c${}`]');
+    });
+
+    it('makes the brace one undo step and the quotes another', () => {
+        const model = new DocumentModel("'a$'");
+        model.setSelections([{ anchor: 3, head: 3 }]);
+        model.typeText('{', { language: 'typescript' });
+        expect(model.getText()).toBe('`a${}`');
+        model.undo();
+        expect(model.getText()).toBe("'a${}'");
+        expect(model.getSelections()).toEqual([{ anchor: 4, head: 4 }]);
+        model.undo();
+        expect(model.getText()).toBe("'a$'");
+    });
+});
