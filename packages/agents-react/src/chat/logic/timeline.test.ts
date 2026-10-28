@@ -79,6 +79,16 @@ describe('deriveTimelineRows', () => {
         expect(expanded.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'r1', 'image', 'r2', 'a1']);
     });
 
+    test('hidden tools leave a settled turn its fold and a running turn its working row', () => {
+        const hidden = { ...options, hideTools: true };
+        const settled = deriveTimelineRows(thread, { ...hidden, expandedTurns: new Set(['t1']) });
+        const running = deriveTimelineRows(thread.slice(0, 5), { ...hidden, activeTurnId: 't1' });
+
+        expect(settled.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'changed-files', 'assistant']);
+        expect(settled[1]).toMatchObject({ label: 'Worked for 12s' });
+        expect(running.map((row) => row.kind)).toEqual(['user', 'working']);
+    });
+
     test('a generated image interrupts tool grouping during a live turn', () => {
         const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {})];
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't1' });

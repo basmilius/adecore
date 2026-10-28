@@ -172,6 +172,12 @@ export interface ComposerSlotProps {
     insert(text: string): void;
 }
 
+/* What an app's own bar over the composer gets: the chat it stands on, which may be one the bar has nothing for. */
+export interface ComposerHeaderSlotProps {
+    scopeId: string;
+    chatId: string;
+}
+
 /* What a send action of the app's gets: the message as it stands when a person picks the action. */
 export interface ComposerSendDraft {
     scopeId: string;
@@ -402,6 +408,8 @@ export interface ChatHost {
     useStreaming(): 'words' | 'blocks' | 'whole';
     /* How Send handles a running turn; Option or Alt selects the other behavior. */
     useSendDelivery(): 'queue' | 'steer';
+    /* Whether a thread leaves out its tool lines; a settled turn still says how long it worked. */
+    useHidesToolCalls(scopeId: string, chatId: string): boolean;
     /* Paths in an answer as links; null leaves them text. */
     fileLinks: {
         /* The reference a piece of text names, where the folder it counts from lets it be opened. */
@@ -479,6 +487,8 @@ export interface ChatHost {
     useComposerPlaceholder(scopeId: string, chatId: string): string | null;
     /* The app's own control in the composer's row, after the pickers; null draws none. */
     ComposerSlot: ComponentType<ComposerSlotProps> | null;
+    /* The app's own bar at the top of the composer, inside its card, such as a switch between chats of one thing; left out, or a slot that renders nothing, draws none. */
+    ComposerHeaderSlot?: ComponentType<ComposerHeaderSlotProps> | null;
     /* Actions of the app's own behind a chevron on the send button, in the order given; left out, or none, Send stands alone. */
     useComposerSendActions?(scopeId: string, chatId: string): readonly ComposerSendAction[];
     /* The app's own chips for a chat's sub-agents over the composer; null draws the one flyout. */
@@ -514,6 +524,7 @@ const DEFAULT_HOST: ChatHost = {
     code: { useMode: () => 'light', useThemes: () => ({ light: 'github-light', dark: 'github-dark' }), custom: [] },
     useStreaming: () => 'words',
     useSendDelivery: () => 'queue',
+    useHidesToolCalls: () => false,
     fileLinks: null,
     useTimelineFind: () => NO_FIND,
     dictation: { Textarea: PlainTextarea, composer: null },
