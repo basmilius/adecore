@@ -263,13 +263,14 @@ export function planHippie(
 
     // With nothing left to offer, a cycle that is under way gives the prefix back.
     const proposal = variant?.text ?? prefix;
-    const length = cycle?.length ?? prefix.length;
     const edits: TextEdit[] = [];
     const landed: number[] = [];
     let end = 0;
     let delta = 0;
 
     for (const caret of carets) {
+        // A cycle under way holds the same text at every caret; a first press replaces what each caret has typed.
+        const length = cycle?.length ?? caret - hippiePrefixStart(text, caret, hyphenated);
         const from = Math.max(caret - length, end);
 
         edits.push({ from, to: caret, text: proposal });

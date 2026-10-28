@@ -142,6 +142,17 @@ describe('Hippie completion', () => {
         expect(model.getText()).toBe('fooBar\nfoo');
     });
 
+    test('replaces at every caret only the prefix in front of that caret', () => {
+        const model = new DocumentModel('fooBar\nfo\nxy\n');
+
+        model.setSelections([
+            { anchor: 10, head: 10 },
+            { anchor: 9, head: 9 }
+        ]);
+
+        expect(press(model)).toBe('fooBar\nfooBar|\nfooBarxy\n');
+    });
+
     test('completes an empty prefix with the nearest word', () => {
         expect(press(modelAt('alpha beta |'))).toBe('alpha beta beta|');
     });
