@@ -67,7 +67,7 @@ export type TimelineRow =
           // Set when `diff` holds back the diffs past its first few, which the host answers whole.
           heldBack?: boolean;
       }
-    | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean }
+    | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean; expandable: boolean }
     | { kind: 'forks'; id: string; turnId: string }
     | { kind: 'working'; id: string; startedAt: number }
     // A card of the app's own (`thread-cards.ts`), never derived from an item.
@@ -90,8 +90,9 @@ interface TimelineOptions {
 
 const TOOL_KINDS = new Set<TimelineRow['kind']>(['work', 'work-group', 'work-live']);
 
+// A generated image is drawn as a tool call but reads as the turn's result, so it stays.
 function shownRows(rows: TimelineRow[], options: TimelineOptions): TimelineRow[] {
-    return options.hideTools === true ? rows.filter((row) => !TOOL_KINDS.has(row.kind)) : rows;
+    return options.hideTools === true ? rows.filter((row) => !TOOL_KINDS.has(row.kind) || isImageRow(row)) : rows;
 }
 
 /*
@@ -651,7 +652,9 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         );
 
         const folded = before.length - standing.length;
-        const expanded = options.expandedTurns.has(turnId);
+        // With the tool lines left out, a turn that only ran tools has nothing behind its fold to open.
+        const expandable = shownRows(before, options).some((row) => !standing.includes(row));
+        const expanded = expandable && options.expandedTurns.has(turnId);
 
         if (folded > 0) {
             const tools = rest.filter(
@@ -665,7 +668,8 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
                 label: turnLabel(turn, chunk.items),
                 work: summarizeTurn(tools, options.commandLooks),
                 hiddenCount: folded,
-                expanded
+                expanded,
+                expandable
             });
         }
 

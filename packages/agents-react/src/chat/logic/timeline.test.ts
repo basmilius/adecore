@@ -89,6 +89,56 @@ describe('deriveTimelineRows', () => {
         expect(running.map((row) => row.kind)).toEqual(['user', 'working']);
     });
 
+    test('hidden tools leave a fold of only tool lines a label that opens nothing, and one with more a fold that opens', () => {
+        const hidden = { ...options, hideTools: true, expandedTurns: new Set(['t1']) };
+        const thought: ChatItem = { id: 'th1', kind: 'thinking', createdAt: 2000, turnId: 't1', text: 'Which file first?', streaming: false, endedAt: 3000 };
+        const onlyTools = deriveTimelineRows(thread, hidden);
+        const withThought = deriveTimelineRows([...thread.slice(0, 2), thought, ...thread.slice(2)], hidden);
+
+        expect(onlyTools[1]).toMatchObject({ kind: 'turn-fold', work: ['Read 2 files', 'Edited 1 file'], expandable: false, expanded: false });
+        expect(withThought[1]).toMatchObject({ kind: 'turn-fold', expandable: true, expanded: true });
+        expect(withThought.map((row) => row.id)).toContain('th1');
+        expect(deriveTimelineRows(thread, { ...options, expandedTurns: new Set(['t1']) })[1]).toMatchObject({ expandable: true, expanded: true });
+    });
+
+    test('hidden tools keep a generated image in a folded turn, an opened one and a live one', () => {
+        const hidden = { ...options, hideTools: true };
+        const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {}), thread[5]!];
+        const collapsed = deriveTimelineRows(items, hidden);
+        const expanded = deriveTimelineRows(items, { ...hidden, expandedTurns: new Set(['t1']) });
+        const live = deriveTimelineRows(items.slice(0, 5), { ...hidden, activeTurnId: 't1' });
+
+        expect(collapsed.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'image', 'a1']);
+        expect(collapsed[1]).toMatchObject({ expandable: false });
+        expect(expanded.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'image', 'a1']);
+        expect(live.map((row) => row.id)).toEqual(['u1', 'image', 'working-t1']);
+    });
+
+    test('hidden tools keep a generated image in a thread without turns and before steering', () => {
+        const hidden = { ...options, hideTools: true };
+        const turnless = deriveTimelineRows(
+            [
+                { ...tool('r1', 'Read', {}), turnId: null },
+                { ...tool('image', 'ImageGeneration', {}), turnId: null }
+            ],
+            hidden
+        );
+        const steered = deriveTimelineRows(
+            [
+                thread[0]!,
+                thread[1]!,
+                tool('r1', 'Read', {}),
+                tool('image', 'ImageGeneration', {}),
+                { id: 'u2', kind: 'user', createdAt: 3000, turnId: 't1', text: 'now the other one' },
+                thread[5]!
+            ],
+            hidden
+        );
+
+        expect(turnless.map((row) => row.id)).toEqual(['image']);
+        expect(steered.map((row) => row.id)).toEqual(['u1', 'image', 'u2', 'a1']);
+    });
+
     test('a generated image interrupts tool grouping during a live turn', () => {
         const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {})];
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't1' });

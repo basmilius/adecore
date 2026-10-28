@@ -56,6 +56,7 @@ export function Workspace() {
 | `code`                             | Light, `github-light` and `github-dark`            | `useMode()` follows the app's light or dark, `useThemes()` names the Shiki themes, `custom` registers your own and is read again when a theme is picked, `syntaxWorker?()` supplies the shared diff syntax runtime, `highlighter?()` lends the page highlighter to code blocks and the diff fallback, `editor?()` opts in to bounded editor edit reviews. |
 | `useStreaming()`                   | `words`                                            | How a reply appears while it streams: `words`, `blocks` or `whole`.                                    |
 | `useSendDelivery()` | `queue` | What Send does while a turn runs: `queue` waits for the turn to end, `steer` hands the message to the running turn as soon as the backend takes input. Option or Alt picks the other one. |
+| `useHidesToolCalls(scopeId, chatId)` | `false`                                          | Leave the tool lines out of a thread, a subagent's conversation and a subagent row's work. A generated image stays, and a settled turn still says how long it worked; its fold opens only when it hides more than tool lines. |
 | `commandLooks`                     | Every shell call reads as itself                   | Programs of your own drawn as tools of their own in a thread. See [Programs as tools](/agents-react/chat/timeline#programs-as-tools). |
 | `useTimelineFind(options)`         | No find in a thread                                | Find in a thread: you get the rows and refs, you hand back a `TimelineFind` with the bar to draw.      |
 | `dictation`                        | `PlainTextarea`, no dictation button               | A `Textarea` for written answers, and an editor extension plus a control for the composer.             |
@@ -81,6 +82,7 @@ export function Workspace() {
 | `useResumeAtReset(scopeId)`        | `true`                                             | Whether a chat may go on by itself once the limit it stopped on lifts.                                 |
 | `useComposerPlaceholder(scopeId, chatId)` | The chat's own                              | The first words of an empty composer.                                                                  |
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
+| `ComposerHeaderSlot`               | Nothing                                            | A bar of your own at the top of the composer's card, above the text.                                   |
 | `useComposerSendActions(scopeId, chatId)` | Send alone                                  | Actions of your own behind a chevron on the send button, each `run` with the draft. See below.         |
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
@@ -127,7 +129,7 @@ const CHAT_HOST: Partial<ChatHost> = {
 };
 ```
 
-`ComposerSlot` gets `{ scopeId, chatId, disabled, insert }`; `insert(text)` puts text at the caret, a space apart from its neighbors, and focuses the editor. `SubagentSlot` gets `{ chatId, items }` and is drawn only when there are subagents. A thread card has an `id` unique in the chat, an `at` on the clock of the items' `createdAt`, and a `render()` that runs only while the card is on screen. Return the same array from `useThreadCards` while nothing changed: a new array lays out every row again.
+`ComposerSlot` gets `{ scopeId, chatId, disabled, insert }`; `insert(text)` puts text at the caret, a space apart from its neighbors, and focuses the editor. `ComposerHeaderSlot` gets `{ scopeId, chatId, disabled, focused }`; keep its controls out of the tab order while `focused` is false. `SubagentSlot` gets `{ chatId, items }` and is drawn only when there are subagents. A thread card has an `id` unique in the chat, an `at` on the clock of the items' `createdAt`, and a `render()` that runs only while the card is on screen. Return the same array from `useThreadCards` while nothing changed: a new array lays out every row again.
 
 ```tsx
 import { Button } from '@adecore/ui';

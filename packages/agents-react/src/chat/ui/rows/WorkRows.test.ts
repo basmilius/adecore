@@ -56,9 +56,23 @@ describe('WorkRow', () => {
 });
 
 describe('TurnFoldRow', () => {
+    const turn: ChatTurnItem = { id: 't1', kind: 'turn', createdAt: 1_700_000_000_000, turnId: 't1', state: 'done', endedAt: null, costUsd: 0 };
+
     test('shows when the turn started', () => {
-        const turn: ChatTurnItem = { id: 't1', kind: 'turn', createdAt: 1_700_000_000_000, turnId: 't1', state: 'done', endedAt: null, costUsd: 0 };
-        const document = render(createElement(TurnFoldRow, { turn, label: 'Worked for 2m', work: [], expanded: false, onToggle: () => undefined }));
+        const document = render(
+            createElement(TurnFoldRow, { turn, label: 'Worked for 2m', work: [], expanded: false, expandable: true, onToggle: () => undefined })
+        );
         expect(document.querySelector('button time')).not.toBeNull();
+    });
+
+    test('a fold with nothing to open is a label, not a button', () => {
+        const document = render(
+            createElement(TurnFoldRow, { turn, label: 'Worked for 2m', work: ['Read 2 files'], expanded: false, expandable: false, onToggle: () => undefined })
+        );
+
+        expect(document.querySelector('button')).toBeNull();
+        expect(document.querySelector('svg.lucide-chevron-right')).toBeNull();
+        expect(document.documentElement.textContent).toContain('Worked for 2m · Read 2 files');
+        expect(document.querySelector('time')).not.toBeNull();
     });
 });

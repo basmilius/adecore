@@ -247,7 +247,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                 )}
                 {...files.dropTarget}
             >
-                {host.ComposerHeaderSlot && <host.ComposerHeaderSlot scopeId={scope.id} chatId={chatId} />}
+                {host.ComposerHeaderSlot && <host.ComposerHeaderSlot scopeId={scope.id} chatId={chatId} disabled={!writable} focused={focused} />}
                 <PromptComposer
                     chatId={chatId}
                     pending={pending}
