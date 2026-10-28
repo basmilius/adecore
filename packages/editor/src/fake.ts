@@ -34,6 +34,10 @@ import type {
     EditorMessages,
     EditorOptions,
     EditorPosition,
+    EditorPostfixOperand,
+    EditorSurroundShape,
+    EditorTextPlace,
+    EditorUnwrapTarget,
     EditorRemoteCursor,
     EditorRange,
     EditorReveal,
@@ -55,7 +59,8 @@ import type {
     EditorWidget
 } from './types.ts';
 import { emit, type Listener, subscribe } from './listeners.ts';
-import { changedSpan, changedSpans } from '@adecore/editor-core';
+import { changedSpan, changedSpans, DocumentModel } from '@adecore/editor-core';
+import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
 import { mapTrackedRange } from './tracked-range.ts';
 
 interface OffsetSelection {
@@ -1268,6 +1273,24 @@ export class FakeEditor implements Editor {
 
     isReadOnly(): boolean {
         return this.readOnly;
+    }
+
+    placeAt(position: EditorPosition): EditorTextPlace {
+        return placeAt(new DocumentModel(this.text), this, position, this.language ?? 'plaintext');
+    }
+
+    postfixOperands(dot: EditorPosition): readonly EditorPostfixOperand[] {
+        return postfixOperands(new DocumentModel(this.text), this, dot, this.language ?? 'plaintext');
+    }
+
+    surroundShape(range: EditorRange): EditorSurroundShape | null {
+        return surroundShape(new DocumentModel(this.text), this, range, this.language ?? 'plaintext');
+    }
+
+    unwrapTargets(position: EditorPosition): readonly EditorUnwrapTarget[] {
+        const unit = this.indentation.insertSpaces ? ' '.repeat(this.indentation.tabSize) : '\t';
+
+        return unwrapTargets(new DocumentModel(this.text), this, position, this.language ?? 'plaintext', unit);
     }
 
     /* The commands run, in order; of its own the fake carries out only undo and redo. */

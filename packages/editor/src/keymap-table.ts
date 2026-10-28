@@ -123,7 +123,13 @@ export const KEYMAP = {
     renameSymbol: bind('Shift+F6'),
     organizeImports: bind('Ctrl+Alt+O'),
     formatDocument: bind('Mod+Alt+L'),
-    wrapWithAbbreviation: bind('Mod+Alt+J'),
+    insertLiveTemplate: bind('Mod+J'),
+    surroundWith: bind('Mod+Alt+T'),
+    surroundWithLiveTemplate: bind('Mod+Alt+J'),
+    unwrap: bind('Mod+Shift+Delete'),
+    saveAsLiveTemplate: bind(null),
+    // Surround with Emmet has no chord of its own: it is a row of Surround with Live Template, which has this one.
+    wrapWithAbbreviation: bind(null),
     selectionToChat: bind(null),
     inlineEdit: bind(null),
     suggestInline: bind(null),
@@ -182,6 +188,11 @@ export type OptionalKeymapId =
     | 'codeBlockStartWithSelection'
     | 'codeBlockEndWithSelection'
     | 'wrapWithAbbreviation'
+    | 'insertLiveTemplate'
+    | 'surroundWith'
+    | 'surroundWithLiveTemplate'
+    | 'unwrap'
+    | 'saveAsLiveTemplate'
     | 'typeHierarchy';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;

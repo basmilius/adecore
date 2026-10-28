@@ -64,7 +64,7 @@ Each step a person takes goes to `onFontSizeChange`, with the new size or `null`
 
 ## Keymaps
 
-`@adecore/editor/keymap` holds one table of every editor and language command, with a chord for macOS and one for the other platforms. `Mod` is Cmd on a Mac and Ctrl elsewhere; `Ctrl` and `Meta` are the physical keys. A `null` chord means the command has no key, such as the fold levels and the AI commands `selectionToChat`, `inlineEdit`, `suggestInline` and `acceptGhostWord`.
+`@adecore/editor/keymap` holds one table of every editor and language command, with a chord for macOS and one for the other platforms. `Mod` is Cmd on a Mac and Ctrl elsewhere; `Ctrl` and `Meta` are the physical keys. A `null` chord means the command has no key, such as the fold levels, `saveAsLiveTemplate`, `wrapWithAbbreviation` and the AI commands `selectionToChat`, `inlineEdit`, `suggestInline` and `acceptGhostWord`. The template commands follow IntelliJ: `insertLiveTemplate` is `Mod+J`, `surroundWith` is `Mod+Alt+T`, `surroundWithLiveTemplate` is `Mod+Alt+J` and `unwrap` is `Mod+Shift+Delete`, which is the forward delete key on a Mac. Moving `Mod+Alt+J` to `surroundWithLiveTemplate` is a [breaking change](/editor/reference#breaking-wrap-with-abbreviation-has-no-default-chord) for a host that prints the chord of `wrapWithAbbreviation`.
 
 Resolve the table once with the app's overrides, and give the same table to the engine, to [`ProjectLanguage`](/editor-react/project) and to the menus that print the keys:
 

@@ -1,6 +1,6 @@
 import type { EditorSearchClientOptions } from './search-client.ts';
 import type { Keymap } from './keymap-table.ts';
-import type { EditorCommand, FoldRole, WhitespaceCleanupOptions } from '@adecore/editor-core';
+import type { EditorCommand, FoldRole, TextPlaceKind, UnwrapKind, WhitespaceCleanupOptions } from '@adecore/editor-core';
 
 export type { EditorCommand, FoldRole };
 
@@ -286,6 +286,37 @@ export interface EditorRange {
 export interface EditorContentChange {
     readonly range: EditorRange;
     readonly text: string;
+}
+
+/* What the text at a position is written in, with embedded regions resolved, and whether it is code, a comment or a string. */
+export interface EditorTextPlace {
+    readonly language: string;
+    readonly kind: TextPlaceKind;
+}
+
+/* An expression that ends right before a dot. */
+export interface EditorPostfixOperand {
+    /* The expression, without the whitespace before the dot. */
+    readonly range: EditorRange;
+    /* Whether it starts a statement; only the widest operand can. */
+    readonly statement: boolean;
+}
+
+/* What a range can be surrounded with: whole statements, one expression, both or neither. */
+export interface EditorSurroundShape {
+    /* The range after trimming whitespace, widened past a trailing line comment for statements. */
+    readonly range: EditorRange;
+    readonly statements: boolean;
+    readonly expression: boolean;
+}
+
+/* A construct around a position that can be unwrapped or removed. */
+export interface EditorUnwrapTarget {
+    readonly kind: UnwrapKind;
+    /* The whole construct, for a preview. */
+    readonly range: EditorRange;
+    /* Small edits in the coordinates of the text before them, which `applyEdits` takes as they are. */
+    readonly edits: readonly EditorContentChange[];
 }
 
 /* What a copy or cut put on the clipboard. */
@@ -843,6 +874,14 @@ export interface Editor {
     setReadOnly(readOnly: boolean, reason?: string): void;
     /* Whether the editor refuses edits. Optional so an editor from before it still fits. */
     isReadOnly?(): boolean;
+    /* What the text at a position is written in and whether it is code, a comment or a string. Optional so an editor from before it still fits. */
+    placeAt?(position: EditorPosition): EditorTextPlace;
+    /* Every expression that ends right before the `.` at `dot`, innermost first. Optional so an editor from before it still fits. */
+    postfixOperands?(dot: EditorPosition): readonly EditorPostfixOperand[];
+    /* What a range can be surrounded with; null for a blank range. Optional so an editor from before it still fits. */
+    surroundShape?(range: EditorRange): EditorSurroundShape | null;
+    /* What can be unwrapped or removed around a position, innermost first. Optional so an editor from before it still fits. */
+    unwrapTargets?(position: EditorPosition): readonly EditorUnwrapTarget[];
     /* Runs an editing command on every caret, as its key would. False when it changed nothing. */
     runCommand(command: EditorRunCommand): boolean;
     focus(): void;

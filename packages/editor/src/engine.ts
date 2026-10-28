@@ -1,5 +1,6 @@
 import { changedSpans, DocumentModel, type EditorSnapshot, type FoldHints, replacementText } from '@adecore/editor-core';
 import { MAX_REPLACEMENT_CHARACTERS } from './search-protocol.ts';
+import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
 import { GrammarPreparation } from './grammar-preparation.ts';
 import { InputController } from './controller.ts';
 import { resolveSmartKeys } from './smart-keys.ts';
@@ -43,6 +44,10 @@ import type {
     EditorMessages,
     EditorOptions,
     EditorPosition,
+    EditorPostfixOperand,
+    EditorSurroundShape,
+    EditorTextPlace,
+    EditorUnwrapTarget,
     EditorRemoteCursor,
     EditorRange,
     EditorReveal,
@@ -1065,6 +1070,24 @@ class SmartEditor implements Editor {
 
     isReadOnly(): boolean {
         return this.settings.readOnly;
+    }
+
+    placeAt(position: EditorPosition): EditorTextPlace {
+        return placeAt(this.model, this, position, this.settings.language ?? 'plaintext');
+    }
+
+    postfixOperands(dot: EditorPosition): readonly EditorPostfixOperand[] {
+        return postfixOperands(this.model, this, dot, this.settings.language ?? 'plaintext');
+    }
+
+    surroundShape(range: EditorRange): EditorSurroundShape | null {
+        return surroundShape(this.model, this, range, this.settings.language ?? 'plaintext');
+    }
+
+    unwrapTargets(position: EditorPosition): readonly EditorUnwrapTarget[] {
+        const unit = this.settings.insertSpaces ? ' '.repeat(this.settings.tabSize) : '\t';
+
+        return unwrapTargets(this.model, this, position, this.settings.language ?? 'plaintext', unit);
     }
 
     runCommand(command: EditorRunCommand): boolean {
