@@ -4,7 +4,7 @@ import { Maximize, Minus, Plus, Scan, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { Icon } from './Icon.tsx';
-import { IconButton } from './IconButton.tsx';
+import { IconButton, type IconButtonSize } from './IconButton.tsx';
 import { Kbd } from './Kbd.tsx';
 import { MenuItem, MenuPopup, MenuRadioGroup, MenuRadioItem, MenuRoot, MenuSeparator, MenuTrigger } from './menu/parts.tsx';
 import type { Shortcut } from './shortcut.ts';
@@ -44,7 +44,7 @@ export interface ZoomControlsProps {
     selection?: ZoomSelection;
 
     /* `md` beside the controls of a dock, `sm` beside the small buttons of a toolbar. */
-    size?: 'md' | 'sm';
+    size?: Extract<IconButtonSize, 'md' | 'sm'>;
 
     /* Where the presets open: above a dock at the bottom, below a toolbar at the top. */
     side?: 'top' | 'bottom';
