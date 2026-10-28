@@ -242,6 +242,26 @@ describe('workspace', () => {
         await plain.session.shutdown();
     });
 
+    it('tells a server only the folders that really changed', async () => {
+        const { session, transport } = await sessionWith(
+            { workspace: { workspaceFolders: { supported: true, changeNotifications: true } } },
+            { workspaceFolders: [{ uri: 'file:///one', name: 'one' }] }
+        );
+        const two = { uri: 'file:///two', name: 'two' };
+        await session.changeWorkspaceFolders({
+            added: [{ uri: 'file:///one', name: 'one' }, two, two],
+            removed: [{ uri: 'file:///three', name: 'three' }]
+        });
+        expect(session.workspaceFolders).toEqual([{ uri: 'file:///one', name: 'one' }, two]);
+        expect(transport.sent.filter((message) => 'method' in message && message.method === 'workspace/didChangeWorkspaceFolders')).toEqual([
+            { jsonrpc: '2.0', method: 'workspace/didChangeWorkspaceFolders', params: { event: { added: [two], removed: [] } } }
+        ]);
+
+        await session.changeWorkspaceFolders({ added: [two], removed: [] });
+        expect(transport.methods().filter((method) => method === 'workspace/didChangeWorkspaceFolders')).toHaveLength(1);
+        await session.shutdown();
+    });
+
     it('reads documents of a scheme the server serves', async () => {
         const { session, transport } = await sessionWith({ workspace: { textDocumentContent: { schemes: ['jdt'] } } });
         const answer = session.textDocumentContent('jdt://contents/A.class');
