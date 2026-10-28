@@ -15,6 +15,7 @@ Everything comes from the package root, `@adecore/editor-core`.
 | Folding    | `getFoldingRanges`                                                                                               |
 | Saving     | `markSaved`, `getModifiedLines`, `cleanUpWhitespace`; see [Saving](/editor-core/documents#saving)                |
 | Comments   | `findTodos`                                                                                                      |
+| Lexical    | `placeAt`, `postfixOperands`, `surroundShape`; see [Lexical queries](#lexical-queries)                           |
 
 See [Documents and edits](/editor-core/documents), [Typing and commands](/editor-core/commands) and [Search and folding](/editor-core/search-folding).
 
@@ -51,6 +52,14 @@ document.matchBracket(4); // { mate: 13 }
 document.matchBracket(13); // { mate: 4 }
 ```
 
+## Lexical queries
+
+Each takes a language id, the one the document is edited as, and reads the same lexer that typing uses.
+
+- `placeAt(offset, language)` returns a `TextPlace`: the `language` the offset is written in and its `kind`, a `TextPlaceKind` of `code`, `comment` or `string`. Embedded regions are resolved: `typescript` or `javascript` in the `<script>` of a Vue file (from its `lang`), `css`, `scss` or `less` in a `<style>`, `html` in a Vue template, in the markup of a PHP file and in JSX children, and `javascript` or `css` in the `<script>` and `<style>` of a markup file. Any other language keeps its own id. Past two million characters the answer is the document's language as code.
+- `postfixOperands(dot, language)` lists the expressions that end right before the `.` at `dot`, innermost first, as `PostfixOperand` values: `from` is where the expression starts and `statement` is true on the widest one when it starts a statement. It reads JavaScript, TypeScript and PHP code and returns nothing in a string, a comment, markup or when the dot is a decimal point. A member chain, call chain or literal is one expression, and each prefix operator or binary operator the chain can grow by adds another one, as the syntax tree would: `a * b + c` gives `c` and the whole line, never `b + c`. An assignment, a keyword such as `return` and an opening bracket end the search.
+- `surroundShape(from, to, language)` says what a range can be surrounded with, as a `SurroundShape`: the trimmed `from` and `to`, `statements` when the range is whole statements, and `expression` when it is one expression on a line. Both ends must be code inside the same bracket. It returns `null` for a blank range.
+
 ## Search helpers
 
 `findMatches`, `iterateMatches`, `findMatchFrom` and `replacementText` work with an immutable string and revision instead of a model. See [Search and folding](/editor-core/search-folding) for iteration, direction and replacement semantics.
@@ -72,7 +81,8 @@ document.matchBracket(13); // { mate: 4 }
 | `FoldingOptions`, `FoldingRange`, `FoldRole`, `FoldHints`, `FoldSymbolHint`, `FoldRangeHint` | Folding                                                                 |
 | `WhitespaceCleanupOptions`, `TrailingWhitespace`                                             | Saving                                                                  |
 | `TodoMatch`, `TodoOptions`, `DetectedIndentation`                                            | TODO comments and indentation                                           |
-| `TextSpan`, `BracketIndex`, `BracketMatch`                                     | Helper results and inputs                                               |
+| `TextSpan`, `BracketIndex`, `BracketMatch`                                                   | Helper results and inputs                                               |
+| `TextPlace`, `TextPlaceKind`, `PostfixOperand`, `SurroundShape`                              | Lexical queries                                                         |
 
 Large dense edit batches rebuild the rope in one pass and emit one `contentEdits` stretch covering the changed region. Small or sparse batches retain separate content edits and share unchanged rope branches. In both cases the snapshot keeps the individual offset changes for annotations, maps selections with their existing affinity, and records one undo step.
 

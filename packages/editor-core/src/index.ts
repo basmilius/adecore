@@ -24,3 +24,6 @@ export type {
 } from './types.ts';
 
 export { changedSpan, changedSpans, type TextSpan } from './text-span.ts';
+export type { TextPlace, TextPlaceKind } from './text-places.ts';
+export type { PostfixOperand } from './postfix-operands.ts';
+export type { SurroundShape } from './surround-shape.ts';
