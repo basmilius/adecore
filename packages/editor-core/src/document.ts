@@ -43,6 +43,7 @@ import { TypingContexts } from './typing-context.ts';
 import { placeAt, type TextPlace } from './text-places.ts';
 import { postfixOperands, type PostfixOperand } from './postfix-operands.ts';
 import { surroundShape, type SurroundShape } from './surround-shape.ts';
+import { unwrapTargets, type UnwrapTarget } from './unwrap.ts';
 import type { TypingContext } from './typing-context.ts';
 import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
 import { type LineOrder, planConvertIndents, planLineOrder } from './line-order.ts';
@@ -2166,6 +2167,11 @@ export class DocumentModel {
     /* What a range can be surrounded with: whole statements, one expression, both or neither. Null where the range is blank. */
     surroundShape(from: number, to: number, language: string): SurroundShape | null {
         return surroundShape(this.editSource(language), from, to, language);
+    }
+
+    /* What can be unwrapped or removed around an offset, innermost first, each with the edits that do it. */
+    unwrapTargets(offset: number, language: string, indentUnit: string): UnwrapTarget[] {
+        return unwrapTargets(this.editSource(language), offset, language, indentUnit);
     }
 
     private editSource(language: string): EditSource {
