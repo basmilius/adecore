@@ -78,7 +78,16 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
         case 'subagent':
             return <SubagentBranchRow chatId={chatId} branch={row} onToggle={toggleSubagent} onOpenConversation={openConversation} />;
         case 'turn-fold':
-            return <TurnFoldRow turn={row.turn} label={row.label} work={row.work} expanded={row.expanded} onToggle={() => toggleTurn(row.turn.id)} />;
+            return (
+                <TurnFoldRow
+                    turn={row.turn}
+                    label={row.label}
+                    work={row.work}
+                    expanded={row.expanded}
+                    expandable={row.expandable}
+                    onToggle={() => toggleTurn(row.turn.id)}
+                />
+            );
         case 'forks':
             return <ForksRow chatId={chatId} turnId={row.turnId} />;
         case 'changed-files':

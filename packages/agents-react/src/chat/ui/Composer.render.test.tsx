@@ -16,7 +16,15 @@ import type {
 } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { Menu } from '@adecore/ui';
-import { ChatHostProvider, type ChatActions, type ChatHost, type ChatToast, type ComposerSendAction, type ComposerSendDraft } from '../../host';
+import {
+    ChatHostProvider,
+    type ChatActions,
+    type ChatHost,
+    type ChatToast,
+    type ComposerHeaderSlotProps,
+    type ComposerSendAction,
+    type ComposerSendDraft
+} from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { useProvidersStore } from '../../state/providers';
@@ -97,6 +105,7 @@ interface Options {
     actions?: Partial<ChatActions>;
     skills?: ChatSkill[];
     items?: ChatItem[];
+    focused?: boolean;
     disabled?: boolean;
     readOnly?: boolean;
     /* The accounts of the machine and what their plans have left, for the limit bar. */
@@ -320,7 +329,7 @@ async function mount(options: Options = {}): Promise<Mounted> {
                 <Composer
                     chatId={CHAT}
                     info={info}
-                    focused={false}
+                    focused={options.focused ?? false}
                     disabled={options.disabled ?? false}
                     readOnly={options.readOnly ?? false}
                     providerFixed={false}
@@ -1295,6 +1304,20 @@ describe('the surface around the text', () => {
         const [first, second] = composer.page.host.querySelectorAll('[data-testid="header"], .composer-input');
         expect(first?.textContent).toBe(`bar of ${CHAT}`);
         expect(second?.classList.contains('composer-input')).toBe(true);
+    });
+
+    test("the host's bar hears whether the composer can be written to and whether it has the focus", async () => {
+        const Header = ({ disabled, focused }: ComposerHeaderSlotProps) => <div data-testid="header" data-disabled={disabled} data-focused={focused} />;
+        const stateOf = async (options: Options): Promise<string> => {
+            const composer = await mount({ ...options, host: { ComposerHeaderSlot: Header } });
+            const header = composer.page.host.querySelector('[data-testid="header"]');
+
+            return `${header?.getAttribute('data-disabled')} ${header?.getAttribute('data-focused')}`;
+        };
+
+        expect(await stateOf({})).toBe('false false');
+        expect(await stateOf({ focused: true })).toBe('false true');
+        expect(await stateOf({ readOnly: true })).toBe('true false');
     });
 
     test('a composer that cannot be written to takes no focus and shows no text cursor', async () => {

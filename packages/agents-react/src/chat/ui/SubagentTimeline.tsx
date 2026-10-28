@@ -18,6 +18,7 @@ import { useChatRow } from '../../state/chats';
 import { useChatPreferences } from '../preferences';
 import { readingWidthStyle } from '../reading-width';
 import { useChatHost } from '../../host';
+import { useHostHidesToolCalls } from '../../host-hooks';
 import { useChatScope } from '../../scope';
 import { EmptyState, ContextMenu, Icon } from '@adecore/ui';
 
@@ -67,12 +68,15 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
         }
     }, [state.unsupported, scope]);
 
+    const hideTools = useHostHidesToolCalls(scope.id, chatId);
+
     const rows = deriveTimelineRows(state.items, {
         expandedGroups: groups.ids,
         expandedTurns: NO_TURNS,
         expandedSubagents: subagents.ids,
         activeTurnId: null,
-        commandLooks
+        commandLooks,
+        hideTools
     });
 
     useLayoutEffect(() => {

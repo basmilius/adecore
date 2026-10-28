@@ -176,6 +176,9 @@ export interface ComposerSlotProps {
 export interface ComposerHeaderSlotProps {
     scopeId: string;
     chatId: string;
+    disabled: boolean;
+    /* Whether this composer has the focus; a bar keeps its controls out of the tab order while it does not, as the editor does. */
+    focused: boolean;
 }
 
 /* What a send action of the app's gets: the message as it stands when a person picks the action. */
