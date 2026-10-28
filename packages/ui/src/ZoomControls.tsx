@@ -1,9 +1,10 @@
 import type { Ref } from 'react';
+import clsx from 'clsx';
 import { Maximize, Minus, Plus, Scan, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { Icon } from './Icon.tsx';
-import { IconButton } from './IconButton.tsx';
+import { IconButton, type IconButtonSize } from './IconButton.tsx';
 import { Kbd } from './Kbd.tsx';
 import { MenuItem, MenuPopup, MenuRadioGroup, MenuRadioItem, MenuRoot, MenuSeparator, MenuTrigger } from './menu/parts.tsx';
 import type { Shortcut } from './shortcut.ts';
@@ -42,9 +43,18 @@ export interface ZoomControlsProps {
     /* Left out by a surface with nothing to select. */
     selection?: ZoomSelection;
 
+    /* `md` beside the controls of a dock, `sm` beside the small buttons of a toolbar. */
+    size?: Extract<IconButtonSize, 'md' | 'sm'>;
+
+    /* Where the presets open: above a dock at the bottom, below a toolbar at the top. */
+    side?: 'top' | 'bottom';
+
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
+
+/* The percentage between the buttons, at the height and radius of the buttons beside it. */
+const TRIGGER_SIZE = { md: 'h-8 min-w-14 rounded-lg', sm: 'h-7 min-w-12 rounded-md' } as const;
 
 function MenuIcon({ icon }: { icon: LucideIcon }) {
     return (
@@ -62,6 +72,8 @@ export function ZoomControls({
     labels = {},
     shortcuts = {},
     selection,
+    size = 'md',
+    side = 'top',
     className,
     ref
 }: ZoomControlsProps) {
@@ -70,14 +82,19 @@ export function ZoomControls({
 
     return (
         <ButtonGroup ref={ref} className={className}>
-            <IconButton icon={Minus} label={labels.out ?? t('zoom.out')} onClick={() => onZoomChange(steppedZoom(zoom, -10))} />
+            <IconButton icon={Minus} size={size} label={labels.out ?? t('zoom.out')} onClick={() => onZoomChange(steppedZoom(zoom, -10))} />
             <MenuRoot>
                 <Tooltip label={labels.presets ?? t('zoom.presets')}>
-                    <MenuTrigger className="h-8 min-w-14 rounded-lg px-1 text-xs text-text-muted tabular-nums hover:bg-surface-hover hover:text-text data-[popup-open]:bg-surface-active data-[popup-open]:text-text">
+                    <MenuTrigger
+                        className={clsx(
+                            TRIGGER_SIZE[size],
+                            'px-1 text-xs text-text-muted tabular-nums hover:bg-surface-hover hover:text-text data-[popup-open]:bg-surface-active data-[popup-open]:text-text'
+                        )}
+                    >
                         {Math.round(zoom * 100)}%
                     </MenuTrigger>
                 </Tooltip>
-                <MenuPopup side="top" sideOffset={10} align="center" className="min-w-44">
+                <MenuPopup side={side} sideOffset={10} align="center" className="min-w-44">
                     <MenuRadioGroup value={preset} onValueChange={(value: number) => onZoomChange(value / 100)}>
                         {presets.map((percent) => (
                             <MenuRadioItem key={percent} value={percent}>
@@ -99,8 +116,8 @@ export function ZoomControls({
                     )}
                 </MenuPopup>
             </MenuRoot>
-            <IconButton icon={Plus} label={labels.in ?? t('zoom.in')} onClick={() => onZoomChange(steppedZoom(zoom, 10))} />
-            <IconButton icon={Maximize} label={labels.fitEverything ?? t('zoom.fitEverything')} kbd={shortcuts.fitAll} onClick={onFitAll} />
+            <IconButton icon={Plus} size={size} label={labels.in ?? t('zoom.in')} onClick={() => onZoomChange(steppedZoom(zoom, 10))} />
+            <IconButton icon={Maximize} size={size} label={labels.fitEverything ?? t('zoom.fitEverything')} kbd={shortcuts.fitAll} onClick={onFitAll} />
         </ButtonGroup>
     );
 }

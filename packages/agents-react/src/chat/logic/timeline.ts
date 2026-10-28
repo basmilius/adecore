@@ -67,7 +67,7 @@ export type TimelineRow =
           // Set when `diff` holds back the diffs past its first few, which the host answers whole.
           heldBack?: boolean;
       }
-    | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean }
+    | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean; expandable: boolean }
     | { kind: 'forks'; id: string; turnId: string }
     | { kind: 'working'; id: string; startedAt: number }
     // A card of the app's own (`thread-cards.ts`), never derived from an item.
@@ -84,6 +84,15 @@ interface TimelineOptions {
     forkedTurns?: ReadonlySet<string>;
     /* The host's programs drawn as tools of their own, whose runs read as their own sentences. */
     commandLooks?: readonly CommandLook[];
+    /* Leaves out the tool lines and their groups, while a settled turn still says how long it worked. */
+    hideTools?: boolean;
+}
+
+const TOOL_KINDS = new Set<TimelineRow['kind']>(['work', 'work-group', 'work-live']);
+
+// A generated image is drawn as a tool call but reads as the turn's result, so it stays.
+function shownRows(rows: TimelineRow[], options: TimelineOptions): TimelineRow[] {
+    return options.hideTools === true ? rows.filter((row) => !TOOL_KINDS.has(row.kind) || isImageRow(row)) : rows;
 }
 
 /*
@@ -599,7 +608,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
 
     for (const chunk of chunksByTurn(items)) {
         if (chunk.turnId === null) {
-            rows.push(...rowsForItems(chunk.items, options, children));
+            rows.push(...shownRows(rowsForItems(chunk.items, options, children), options));
 
             continue;
         }
@@ -616,7 +625,8 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const active = turnId === options.activeTurnId || turn?.state === 'running';
 
         if (!turn || active) {
-            const live = rowsForItems(conversation, options, children);
+            // Without its call, a thought has nothing to stand over and stays where it was thought.
+            const live = shownRows(rowsForItems(conversation, options, children), options);
             rows.push(...(active ? withLiveThought(live, conversation) : live));
 
             if (active) {
@@ -628,7 +638,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
 
         // Steering splits the conversation inside a turn. Earlier responses keep their place above it.
         const lastUser = conversation.findLastIndex((item) => item.kind === 'user');
-        rows.push(...rowsForItems(conversation.slice(0, lastUser + 1), options, children));
+        rows.push(...shownRows(rowsForItems(conversation.slice(0, lastUser + 1), options, children), options));
         const rest = conversation.slice(lastUser + 1);
         const work = rowsForItems(rest, options, children);
         // The closing answer stays visible; the work after the last input folds behind the label.
@@ -642,7 +652,9 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         );
 
         const folded = before.length - standing.length;
-        const expanded = options.expandedTurns.has(turnId);
+        // With the tool lines left out, a turn that only ran tools has nothing behind its fold to open.
+        const expandable = shownRows(before, options).some((row) => !standing.includes(row));
+        const expanded = expandable && options.expandedTurns.has(turnId);
 
         if (folded > 0) {
             const tools = rest.filter(
@@ -656,11 +668,13 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
                 label: turnLabel(turn, chunk.items),
                 work: summarizeTurn(tools, options.commandLooks),
                 hiddenCount: folded,
-                expanded
+                expanded,
+                expandable
             });
         }
 
-        rows.push(...(expanded ? before : standing));
+        // The fold counts the tool lines it would hide, so a turn of only tools still says how long it worked.
+        rows.push(...(expanded ? shownRows(before, options) : standing));
         const changed = changedFilesRow(turn, conversation);
 
         if (changed) {

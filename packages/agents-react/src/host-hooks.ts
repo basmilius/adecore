@@ -39,6 +39,10 @@ export function useHostSendDelivery(): ReturnType<ChatHost['useSendDelivery']> {
     return useChatHost().useSendDelivery();
 }
 
+export function useHostHidesToolCalls(...args: Parameters<ChatHost['useHidesToolCalls']>): ReturnType<ChatHost['useHidesToolCalls']> {
+    return useChatHost().useHidesToolCalls(...args);
+}
+
 export function useHostTimelineFind(...args: Parameters<ChatHost['useTimelineFind']>): ReturnType<ChatHost['useTimelineFind']> {
     return useChatHost().useTimelineFind(...args);
 }

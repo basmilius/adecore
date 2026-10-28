@@ -63,6 +63,7 @@ Keyboard, typeahead and submenus come from [Menu](/ui/overlays/menu). Typeahead 
 | `children` | `ReactNode` | | Menu items in the group of Recent projects. |
 | `label` | `string` | `projectSwitcher.label` | The trigger's text while `current` is null, and the start of its accessible name next to a current project. |
 | `disabled` | `boolean` | | |
+| `tabIndex` | `number` | | On the trigger, for a switcher that leaves the tab order while its surface is not focused. |
 | `open`, `defaultOpen`, `onOpenChange` | | | As on `Menu.Root`. |
 | `className` | `string` | | On the trigger. |
 | `ref` | `Ref<HTMLButtonElement>` | | The trigger. |

@@ -949,7 +949,7 @@ export class ClaudeProtocol {
         const errors = Array.isArray(frame.errors) ? frame.errors.filter((error): error is string => typeof error === 'string') : [];
         const lastUuid = this.lastUuid;
         this.lastUuid = null;
-        const limit = failed ? this.limit() : null;
+        const limit = failed ? this.limit([str(frame.result), ...errors].join('\n')) : null;
         const replaceProcess = failed && this.apiError === 'authentication_failed';
 
         if (limit?.kind !== 'usage') {
@@ -1014,10 +1014,10 @@ export class ClaudeProtocol {
 
     /*
      * What stopped a failed turn, in the words of Claude Code 2.1.281: a window of the plan that refused
-     * the request is a usage limit, and an API error of `rate_limit` without one (a 429 the plan did
-     * not explain) or of `overloaded` is a model too busy to answer.
+     * the request or an explicit spent-plan message is a usage limit. A bare `rate_limit` (a 429
+     * the plan did not explain) or `overloaded` is a model too busy to answer.
      */
-    private limit(): ChatTurnLimit | null {
+    private limit(message: string): ChatTurnLimit | null {
         if (this.refusedWindows.size > 0) {
             let resetsAt = 0;
 
@@ -1030,6 +1030,11 @@ export class ClaudeProtocol {
             }
 
             return { kind: 'usage', resetsAt };
+        }
+
+        // The first refusal can name the spent plan before a rate_limit_event supplies its window.
+        if (this.apiError === 'rate_limit' && /you(?:'|’)ve hit your (?:5[- ]hour|weekly|session|usage) limit\b/i.test(message)) {
+            return { kind: 'usage' };
         }
 
         if (this.apiError === 'rate_limit' || this.apiError === 'overloaded') {

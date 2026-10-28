@@ -1,2 +1,3 @@
 [test]
-preload = ["./scripts/test-preload.ts"]
+# The root's preloads, so a run from this folder compiles and dedupes the way `bun run test` does.
+preload = ["../ui/src/testing/dedupe.ts", "../../scripts/test-preload.ts"]

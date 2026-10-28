@@ -561,30 +561,31 @@ export function TurnFoldRow({
     label,
     work,
     expanded,
+    expandable,
     onToggle
 }: {
     turn: ChatTurnItem;
     label: string;
     work: readonly string[];
     expanded: boolean;
+    /* False when the fold hides nothing a person may see, so it stays a label. */
+    expandable: boolean;
     onToggle(): void;
 }) {
     const { commandLooks } = useChatHost();
     const brands = commandLooks?.flatMap(({ brand }) => (brand === undefined ? [] : [brand])) ?? [];
+    const className = clsx(
+        'group group/line -mx-1 mb-2 flex h-7 w-[calc(100%+8px)] min-w-0 items-center gap-2 rounded-md px-1 text-left text-xs text-text-muted',
+        expandable && 'hover:bg-surface-hover',
+        turn.state === 'error' && 'text-status-error'
+    );
 
-    return (
-        <button
-            className={clsx(
-                'group group/line -mx-1 mb-2 flex h-7 w-[calc(100%+8px)] min-w-0 items-center gap-2 rounded-md px-1 text-left text-xs text-text-muted hover:bg-surface-hover',
-                turn.state === 'error' && 'text-status-error'
-            )}
-            aria-expanded={expanded}
-            onClick={onToggle}
-        >
+    const content = (
+        <>
             <span className={ROW_GUTTER}>
-                <Icon icon={ChevronRight} size={12} className={clsx('transition-transform', expanded && 'rotate-90')} />
+                {expandable && <Icon icon={ChevronRight} size={12} className={clsx('transition-transform', expanded && 'rotate-90')} />}
             </span>
-            <span className="shrink-0 group-hover:text-text">{label}</span>
+            <span className={clsx('shrink-0', expandable && 'group-hover:text-text')}>{label}</span>
             {work.length > 0 && (
                 <span className="min-w-0 truncate text-text-faint">
                     {work.map((part, index) => (
@@ -597,6 +598,16 @@ export function TurnFoldRow({
             )}
             <span className="grow" />
             <RowTime at={turn.createdAt} />
+        </>
+    );
+
+    if (!expandable) {
+        return <div className={className}>{content}</div>;
+    }
+
+    return (
+        <button className={className} aria-expanded={expanded} onClick={onToggle}>
+            {content}
         </button>
     );
 }

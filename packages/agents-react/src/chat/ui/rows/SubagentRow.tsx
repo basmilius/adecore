@@ -18,7 +18,7 @@ import { canOpenSubagent, crumbOf, type SubagentStep } from '../../subagent-view
 import { type SubagentTask } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { useCurrentItem } from '../../../state/chats';
-import { useHostTask } from '../../../host-hooks';
+import { useHostHidesToolCalls, useHostTask } from '../../../host-hooks';
 
 // The work of a long-running agent scrolls inside its row instead of pushing the thread away.
 const CHILDREN_MAX_PX = 320;
@@ -81,25 +81,34 @@ function StatusPill({ item, task }: { item: ChatSubagentItem; task: SubagentTask
 /* What the sub-agent did, live: its own tool calls and the text it wrote, as ordinary rows. */
 function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubagentItem; work: ChatItem[] }) {
     const { t } = useTranslation('agent-chat');
+    const { id } = useChatScope();
+    const hideTools = useHostHidesToolCalls(id, chatId);
     const scroller = useRef<HTMLDivElement>(null);
     const running = item.status === 'running';
+    // A generated image reads as a result, not as a tool line, so it stays when the lines go.
+    const shown = hideTools ? work.filter((child) => child.kind !== 'tool' || isImageGeneration(child)) : work;
 
     useLayoutEffect(() => {
         // While it works, the newest line is the one worth seeing.
         if (running && scroller.current) {
             scroller.current.scrollTop = scroller.current.scrollHeight;
         }
-    }, [work.length, running]);
+    }, [shown.length, running]);
 
     if (work.length === 0) {
         // A line inside a chat row, where the centered block of an EmptyState would outweigh the row itself.
         return <div className="ml-6 pb-1 text-xs text-text-faint">{t('rows.subagent.nothingYet')}</div>;
     }
 
+    // It did work, only none that is shown; "nothing yet" would say it did none.
+    if (shown.length === 0) {
+        return null;
+    }
+
     return (
         <div ref={scroller} className="ml-6 overflow-y-auto" style={{ maxHeight: CHILDREN_MAX_PX }}>
             {item.itemsTruncated && <div className="pb-1 text-xs text-text-faint">{t('rows.subagent.truncated')}</div>}
-            {work.map((child) => (
+            {shown.map((child) => (
                 <ChildRow key={child.id} chatId={chatId} item={child} />
             ))}
         </div>
