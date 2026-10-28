@@ -900,51 +900,83 @@ describe('background tasks', () => {
         expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'done', workflow: { ...settled, name: 'write-and-read' } });
     });
 
-    test('a workflow notes when its call settled, whether it finished, failed or went down with its process', () => {
+    describe('when a workflow call settled', () => {
         const workflow = { name: 'review', phases: [], agents: [] };
         const launched = 'Workflow launched in background. Task ID: w1';
-        const finishedAt = (thread: ChatThread) => (thread.get('1:toolu_wf') as { workflow?: { finishedAt?: number } }).workflow?.finishedAt;
 
-        const done = setup();
+        const launch = () => {
+            const chat = setup();
 
-        done.project(
-            { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
-            { type: 'workflow.progress', ref: 'toolu_wf', workflow },
-            { type: 'tool.done', ref: 'toolu_wf', output: launched, state: 'done' }
-        );
+            chat.project(
+                { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
+                { type: 'workflow.progress', ref: 'toolu_wf', workflow },
+                { type: 'tool.done', ref: 'toolu_wf', output: launched, state: 'done' }
+            );
 
-        expect(finishedAt(done.thread)).toBeUndefined();
-        done.project({ type: 'task.done', ref: 'toolu_wf', taskId: 'w1', summary: null, ok: false });
-        expect(done.thread.get('1:toolu_wf')).toMatchObject({ state: 'error', workflow: { finishedAt: expect.any(Number) } });
+            return chat;
+        };
 
-        const refused = setup();
+        test('a launched workflow has no end until its task ends', () => {
+            const { thread } = launch();
 
-        refused.project(
-            { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
-            { type: 'workflow.progress', ref: 'toolu_wf', workflow },
-            { type: 'tool.done', ref: 'toolu_wf', output: 'The script did not parse', state: 'error' }
-        );
+            expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'running', workflow: { lastProgressAt: 2 } });
+            expect(thread.get('1:toolu_wf')).not.toHaveProperty('workflow.finishedAt');
+        });
 
-        expect(finishedAt(refused.thread)).toEqual(expect.any(Number));
+        test('a launched workflow whose task succeeds is done at the moment the task ended', () => {
+            const { thread, project } = launch();
 
-        const gone = setup();
+            project({ type: 'task.done', ref: 'toolu_wf', taskId: 'w1', summary: null, ok: true });
 
-        gone.project(
-            { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
-            { type: 'workflow.progress', ref: 'toolu_wf', workflow },
-            { type: 'tool.done', ref: 'toolu_wf', output: launched, state: 'done' },
-            { type: 'exit', exitCode: 0 }
-        );
+            expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'done', workflow: { finishedAt: 3 } });
+        });
 
-        expect(gone.thread.get('1:toolu_wf')).toMatchObject({ state: 'error', workflow: { finishedAt: expect.any(Number) } });
+        test('a launched workflow whose task fails is an error at the moment the task ended', () => {
+            const { thread, project } = launch();
 
-        // Any other call settles as it did.
-        const other = setup();
-        other.project(
-            { type: 'tool.started', ref: 'toolu_ls', name: 'Bash', input: {}, parentRef: null },
-            { type: 'tool.done', ref: 'toolu_ls', output: 'a', state: 'done' }
-        );
-        expect(other.thread.get('1:toolu_ls')).not.toHaveProperty('workflow');
+            project({ type: 'task.done', ref: 'toolu_wf', taskId: 'w1', summary: null, ok: false });
+
+            expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'error', workflow: { finishedAt: 3 } });
+        });
+
+        test('a workflow the CLI refused ends with its call', () => {
+            const { thread, project } = setup();
+
+            project(
+                { type: 'tool.started', ref: 'toolu_wf', name: 'Workflow', input: {}, parentRef: null },
+                { type: 'workflow.progress', ref: 'toolu_wf', workflow },
+                { type: 'tool.done', ref: 'toolu_wf', output: 'The script did not parse', state: 'error' }
+            );
+
+            expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'error', workflow: { finishedAt: 3 } });
+        });
+
+        test('a launched workflow ends when its process goes', () => {
+            const { thread, project } = launch();
+
+            project({ type: 'exit', exitCode: 0 });
+
+            expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'error', workflow: { finishedAt: 3 } });
+        });
+
+        test('a progress frame after the call settled keeps the end', () => {
+            const { thread, project } = launch();
+
+            project({ type: 'task.done', ref: 'toolu_wf', taskId: 'w1', summary: null, ok: true }, { type: 'workflow.progress', ref: 'toolu_wf', workflow });
+
+            expect(thread.get('1:toolu_wf')).toMatchObject({ state: 'done', workflow: { finishedAt: 3, lastProgressAt: 4 } });
+        });
+
+        test('a call other than Workflow gets no workflow', () => {
+            const { thread, project } = setup();
+
+            project(
+                { type: 'tool.started', ref: 'toolu_ls', name: 'Bash', input: {}, parentRef: null },
+                { type: 'tool.done', ref: 'toolu_ls', output: 'a', state: 'done' }
+            );
+
+            expect(thread.get('1:toolu_ls')).not.toHaveProperty('workflow');
+        });
     });
 
     test('a task takes its kind and command from the call that started it and leaves with its process', () => {

@@ -261,11 +261,19 @@ export class ThreadProjector {
 
                 if (tool?.kind === 'tool') {
                     const name = event.workflow.name ?? tool.workflow?.name ?? null;
+                    // A late frame after the call settled must not wipe the end it noted.
+                    const finishedAt = event.workflow.finishedAt ?? tool.workflow?.finishedAt;
 
                     events.push(
                         this.thread.upsert({
                             ...tool,
-                            workflow: { ...event.workflow, name, taskId: event.workflow.taskId ?? tool.workflow?.taskId, lastProgressAt: this.now() }
+                            workflow: {
+                                ...event.workflow,
+                                name,
+                                taskId: event.workflow.taskId ?? tool.workflow?.taskId,
+                                lastProgressAt: this.now(),
+                                ...(finishedAt === undefined ? {} : { finishedAt })
+                            }
                         })
                     );
                 }
