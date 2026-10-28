@@ -40,6 +40,9 @@ import type {
     TextEdit
 } from './types.ts';
 import { TypingContexts } from './typing-context.ts';
+import { placeAt, type TextPlace } from './text-places.ts';
+import { postfixOperands, type PostfixOperand } from './postfix-operands.ts';
+import { surroundShape, type SurroundShape } from './surround-shape.ts';
 import type { TypingContext } from './typing-context.ts';
 import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
 import { type LineOrder, planConvertIndents, planLineOrder } from './line-order.ts';
@@ -2148,6 +2151,21 @@ export class DocumentModel {
                   });
 
         return this.applyEdits(plan.edits, { source: 'command', selections });
+    }
+
+    /* What the text at an offset is written in, with embedded regions resolved, and whether it is code, a comment or a string. */
+    placeAt(offset: number, language: string): TextPlace {
+        return placeAt(this.editSource(language), offset, language);
+    }
+
+    /* Every expression that ends right before the `.` at `dot`, innermost first; empty where none does. */
+    postfixOperands(dot: number, language: string): PostfixOperand[] {
+        return postfixOperands(this.editSource(language), dot, language);
+    }
+
+    /* What a range can be surrounded with: whole statements, one expression, both or neither. Null where the range is blank. */
+    surroundShape(from: number, to: number, language: string): SurroundShape | null {
+        return surroundShape(this.editSource(language), from, to, language);
     }
 
     private editSource(language: string): EditSource {
