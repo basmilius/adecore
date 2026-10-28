@@ -45,6 +45,7 @@ export interface ProjectSwitcherProps<Item extends ProjectSwitcherItem = Project
     label?: string;
 
     disabled?: boolean;
+    tabIndex?: number;
     open?: boolean;
     defaultOpen?: boolean;
     onOpenChange?: ComponentProps<typeof Menu.Root>['onOpenChange'];
@@ -62,6 +63,7 @@ export function ProjectSwitcher<Item extends ProjectSwitcherItem>({
     children,
     label,
     disabled,
+    tabIndex,
     open,
     defaultOpen,
     onOpenChange,
@@ -76,6 +78,7 @@ export function ProjectSwitcher<Item extends ProjectSwitcherItem>({
             <Menu.Trigger
                 ref={ref}
                 disabled={disabled}
+                tabIndex={tabIndex}
                 aria-label={current === null ? empty : label === undefined ? current.name : `${label}: ${current.name}`}
                 className={clsx('project-switcher-trigger', className)}
             >
