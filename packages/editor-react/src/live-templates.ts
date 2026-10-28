@@ -7,13 +7,13 @@ import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { textBeforeOf } from './line-text.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { bodyWithIndentUnit, dedentLines, insertSnippet, type SnippetPlacement } from './snippet-insert.ts';
+import { PostfixFeature } from './postfix.ts';
+import { bodyWithIndentUnit, dedentLines, indentUnitOf, insertSnippet, type SnippetPlacement } from './snippet-insert.ts';
 import { escapeSnippetText } from './snippet.ts';
-import { templateApplies, templateContextAt, type TemplateContext } from './template-context.ts';
+import { SNIPPET_KIND, sortAfterServer, templateApplies, templateContextAt, type TemplateContext } from './template-context.ts';
 import type { LiveTemplate } from './templates.ts';
 
 const TOAST_ID = 'language-templates';
-const SNIPPET_KIND = 15;
 const IDENTIFIER_START = /[\p{L}_$]/u;
 
 /* The live templates that apply at one caret, and where their key starts. */
@@ -26,11 +26,6 @@ interface Match {
 interface CustomKey {
     readonly start: EditorPosition;
     readonly expand: (() => boolean) | null;
-}
-
-/* Sorts a completion row after the rows of the same score that a service answers. */
-function after(key: string): string {
-    return `￿${key}`;
 }
 
 /* Sorts the rows of a list of templates by group, then key. */
@@ -62,9 +57,11 @@ function prefixLength(key: string, before: string): number {
  */
 export class TemplatesFeature {
     private readonly language: EditorLanguage;
+    private readonly postfix: PostfixFeature;
 
     constructor(language: EditorLanguage) {
         this.language = language;
+        this.postfix = new PostfixFeature(language);
 
         language.onDispose(
             language.onKey((event) => {
@@ -88,7 +85,7 @@ export class TemplatesFeature {
             }, KEY_PRIORITY.templates)
         );
 
-        language.onDispose(language.completion.addSource({ items: (request) => this.rows(request.position) }));
+        language.onDispose(language.completion.addSource({ items: (request) => [...this.rows(request.position), ...this.postfix.rows(request.position)] }));
     }
 
     /*
@@ -201,11 +198,11 @@ export class TemplatesFeature {
         return true;
     }
 
-    /* The keys that compete with a live template for Tab; the postfix key joins Emmet here. */
+    /* The keys that compete with a live template for Tab: an Emmet abbreviation, then a postfix key. */
     private customKey(): CustomKey | null {
-        const start = this.language.markup.abbreviationAt();
+        const abbreviation = this.language.markup.abbreviationAt();
 
-        return start === null ? null : { start, expand: null };
+        return abbreviation === null ? this.postfix.key() : { start: abbreviation, expand: null };
     }
 
     /* The templates every caret has the same key of, ending at the caret, in a context they apply in. */
@@ -265,9 +262,7 @@ export class TemplatesFeature {
     }
 
     private run(template: LiveTemplate, placements: readonly SnippetPlacement[]): Promise<boolean> {
-        const { tabSize, insertSpaces } = this.language.editor.getIndentation();
-
-        return insertSnippet(this.language, bodyWithIndentUnit(template.body, insertSpaces ? ' '.repeat(tabSize) : '\t'), placements);
+        return insertSnippet(this.language, bodyWithIndentUnit(template.body, indentUnitOf(this.language.editor)), placements);
     }
 
     /* The rows for the word before the caret, each a template whose key starts with it. */
@@ -299,7 +294,7 @@ export class TemplatesFeature {
             contexts.set(length, context);
 
             return templateApplies(template, context)
-                ? [this.row(template, template.key, after(template.key), { start, end: position }, () => this.expandAtCarets(template, start))]
+                ? [this.row(template, template.key, sortAfterServer(template.key), { start, end: position }, () => this.expandAtCarets(template, start))]
                 : [];
         });
     }

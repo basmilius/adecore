@@ -223,6 +223,9 @@
             "none": "No templates defined in this context",
             "selectToSave": "Select the text to save as a live template"
         },
+        "postfix": {
+            "expressions": "Expressions"
+        },
         "surround": {
             "title": "Surround With",
             "selectTemplate": "Select Template",

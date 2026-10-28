@@ -31,7 +31,7 @@ A `LiveTemplate` has an `id` that stays the same (a built-in one is `builtin.<la
 
 Tab expands the key before the caret, as IntelliJ's `TemplateManager` does:
 
-- The key is the longest text before the caret, on its line, that is the key of a template. A key that starts with a letter, an underscore or a dollar sign must not follow another identifier character, so `xlog` is not `log` while `x.log` is.
+- The key is the longest text before the caret, on its line, that is the key of a template. A key that starts with a letter, an underscore or a dollar sign must not follow another identifier character, so `xlog` is not `log` while `x.iter` is `iter`. A built-in postfix template takes `x.log` first, see [Postfix completion](#postfix-completion).
 - The template must apply to the place where the key starts. When the longest key found applies nowhere, no shorter key is tried.
 - One template expands. Several with the same key open the suggestion list with only those rows.
 - With several carets, the templates expand at every caret and the fields are mirrored. If one caret lacks the key, Tab does what it always does.
@@ -51,9 +51,22 @@ With `liveInCompletion` on, the suggestion list gets a row for each template tha
 
 `language.templates.saveSelection()` takes the selected text, removes the indentation it shares, escapes `\`, `$` and `}` so it reads back as itself, and hands the host a `LiveTemplateDraft`: the `body`, the first family of the place as `languages` and the place as `places`. The host opens its own form with it, through `LanguageHost.saveAsLiveTemplate(draft)`. It returns false, and announces that a selection is needed, without a selection, and returns false without that hook. The `saveAsLiveTemplate` key has no chord by default.
 
-## Postfix templates
+## Postfix completion
 
-A `PostfixTemplate` is expanded after a dot and its key, around the expression before the dot: `$EXPR` in the `body` stands for it. It has a `key` of identifier characters, the `languages` it applies to (`javascript`, `typescript` and `php`), an optional `example` shown at the end of its row, as in `if (expr) {}`, and an `expression` that is `'any'` or `'statement'`. The registry holds them and `settings.postfix` and `settings.postfixInCompletion` switch them. No postfix template ships yet.
+A `PostfixTemplate` is expanded after a dot and its key, around the expression before the dot: `$EXPR` in the `body` stands for it. It has a `key` of identifier characters, the `languages` it applies to (`javascript`, `typescript` and `php`), an optional `example` shown at the end of its row, as in `if (expr) {}`, and an `expression` that is `'any'` or `'statement'`. The registry holds them and `settings.postfix` and `settings.postfixInCompletion` switch them.
+
+`BUILT_IN_POSTFIX_TEMPLATES` are the ones IntelliJ ships, under the ids `builtin.postfix.<language>.<key>`:
+
+| Language                | Statements                                                                                          | Any expression                      |
+| ----------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| JavaScript, TypeScript  | `if`, `else`, `null`, `notnull`, `return`, `throw`, `const`, `let`, `forof`, `forin`, `log`          | `not`, `par`, `arg`, `await`, `typeof` |
+| PHP                     | `if`, `isset`, `empty`, `null`, `notnull`, `return`, `throw`, `var`, `foreach`                       | `not`, `par`                        |
+
+Type `x.if` and press Tab, and `x` becomes `if (x) {}` with the caret inside. The operands are the expressions that end right before the dot, as `Editor.postfixOperands` lists them: `a.b(c).d.if` takes the whole chain, also over several lines, and `1.if` is a decimal point in JavaScript and offers nothing. A `statement` template takes the widest expression and only where it starts a statement, so `x = a.if` offers nothing. An `any` template with one expression uses it. With several, such as `a` and `!a` for `!a.par`, a list titled "Expressions" opens with the innermost first, each previewed as the text it would give, and the pick decides. Nothing happens in a string or a comment, with several carets, in a read-only editor, or when `settings.postfix` is off.
+
+A postfix key competes with live templates and Emmet for the same Tab. It starts at the dot, so a live template whose key starts after it (`log` in `x.log`) gives way, and one that starts before the dot wins. An Emmet abbreviation is asked first, and when there is one, markup expands it.
+
+With `postfixInCompletion` on, the suggestion list after a dot gets a row for each template that applies to the expression, with its `example` beside the key and its description as documentation. The rows sort after the rows of equal score that a language service gave, and accepting one expands the template, with the list of expressions when there is more than one.
 
 ## Surround With and Unwrap
 

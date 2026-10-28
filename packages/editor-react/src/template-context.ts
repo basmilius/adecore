@@ -2,6 +2,14 @@ import type { EditorPosition } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
 import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './templates.ts';
 
+/* The completion item kind of a snippet. */
+export const SNIPPET_KIND = 15;
+
+/* Sorts a template row after the rows of the same score that a service answers. */
+export function sortAfterServer(key: string): string {
+    return `￿${key}`;
+}
+
 /* The families a language id counts as; TypeScript builds on JavaScript. */
 export function familiesOf(languageId: string): readonly TemplateLanguage[] {
     switch (languageId) {

@@ -1,5 +1,5 @@
 import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
-import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
+import type { Editor, EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
 import { comparePositions, shiftPosition } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
@@ -41,6 +41,13 @@ interface Draft {
 /* Each line's leading tabs become the editor's own indentation unit. */
 export function bodyWithIndentUnit(body: string, unit: string): string {
     return unit === '\t' ? body : body.replace(/^\t+/gm, (tabs) => unit.repeat(tabs.length));
+}
+
+/* One level of the editor's indentation: spaces for a tab size, or a tab. */
+export function indentUnitOf(editor: Editor): string {
+    const { tabSize, insertSpaces } = editor.getIndentation();
+
+    return insertSpaces ? ' '.repeat(tabSize) : '\t';
 }
 
 /* The lines after the first without `base` in front of them, or without the shortest indentation among them. */
