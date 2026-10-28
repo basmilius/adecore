@@ -26,8 +26,21 @@ const NO_TURNS = new Set<string>();
 /*
  * A sub-agent's whole conversation, read back from the host and grown while it is on screen. It
  * stands in the chat's own place, read-only, and a sub-agent it opened goes one level further down.
+ * Drawn anywhere else, such as in a panel of its own beside the chat, `info={false}` leaves out the bar
+ * that leads back through the chat's trail, and `onOpenConversation` opens a child in that place's
+ * own trail instead of the chat's.
  */
-export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUseId: string }) {
+export function SubagentTimeline({
+    chatId,
+    toolUseId,
+    info = true,
+    onOpenConversation
+}: {
+    chatId: string;
+    toolUseId: string;
+    info?: boolean;
+    onOpenConversation?(step: SubagentStep): void;
+}) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
     const { commandLooks } = useChatHost();
@@ -120,12 +133,16 @@ export function SubagentTimeline({ chatId, toolUseId }: { chatId: string; toolUs
     const readingWidth = useChatPreferences((preferences) => preferences.readingWidth);
 
     const openChild = (step: SubagentStep): void => {
-        show(openBelow(trail, step));
+        if (onOpenConversation === undefined) {
+            show(openBelow(trail, step));
+        } else {
+            onOpenConversation(step);
+        }
     };
 
     return (
         <div className="flex h-full min-h-0 flex-col" style={readingWidthStyle(readingWidth)}>
-            <SubagentInfo chatId={chatId} toolUseId={toolUseId} />
+            {info && <SubagentInfo chatId={chatId} toolUseId={toolUseId} />}
             {state.status === 'loading' && <div className="chat-column-content px-4 pt-4 text-xs text-text-faint">{t('subagents.loading')}</div>}
             {state.status === 'failed' && (
                 <EmptyState icon={Bot}>{state.unsupported ? t('subagents.unsupported') : (state.error ?? t('subagents.unreadable'))}</EmptyState>
