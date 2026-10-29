@@ -84,6 +84,7 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `admit(chatId, cwd)`                                           | Throws for a folder the chat may not work in.                                             |
 | `runtimeModeFor(chatId, mode)`                                 | Narrows the mode a chat runs in, whatever its record or its client says.                  |
 | `openingSelection(chatId, kind)`                               | The model a new chat starts on.                                                           |
+| `openingAccount(chatId, kind, named)`                          | The account a new chat starts on, given the one its start named; throw an `AccountError` to refuse it. Undefined leaves it to the order of the accounts. |
 | `instructionsFor`, `resumeNoteFor`, `resumeInstructionsFor`    | What an agent is told at process start, before a resumed thread, and as new instructions to a thread that keeps its first. |
 | `foldersFor(chatId)`                                           | Extra folders beside the working folder. Asked before every turn, and a change starts a new process. Claude Code gets them as `--add-dir`. |
 | `projectConfigFor(chatId)`                                     | `false` runs the chat's CLI without the configuration of its working folder; see [Folders you do not trust](/agents/providers#folders-you-do-not-trust). |
