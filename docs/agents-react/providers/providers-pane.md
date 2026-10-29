@@ -90,4 +90,4 @@ Keep the pane component the same between renders, or its forms start over.
 
 The detail and its forms are internal. A refused save shows a toast through the host's `notify`. Removing an account keeps its folder; new chats fall back to the CLI's default account.
 
-`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.
+`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. `topAccountEntry` picks the account a start without one goes to: the first in the order that is on. `AccountRule` is the shape a host's `useAccountRule` answers with, per CLI the project's default and the accounts it turned off. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.
