@@ -237,6 +237,23 @@ describe('ProviderAccountsService', () => {
         expect(saved.accounts.claude?.order).toBe(1);
     });
 
+    test('keeps the order on disk when a save sends the order it read before a reorder', async () => {
+        const service = await make();
+        const before = await service.save({ claude_personal: { kind: 'claude', label: 'Personal', home: '~/.claude_personal' } });
+        await service.reorder('claude', ['claude', 'claude_personal']);
+        const read = await service.reorder('claude', ['claude_personal', 'claude']);
+        expect(read.accounts.claude_personal?.order).toBe(0);
+        const stale = {
+            ...before.accounts,
+            claude: { kind: 'claude', order: 0 },
+            claude_personal: { kind: 'claude', label: 'Mine', home: '~/.claude_personal', order: 1 }
+        };
+        const saved = await service.save(stale);
+        expect(saved.accounts.claude_personal).toMatchObject({ label: 'Mine', order: 0 });
+        expect(saved.accounts.claude?.order).toBe(1);
+        expect(service.defaultFor('claude')).toBe('claude_personal');
+    });
+
     test('puts an account a reorder leaves out after the ones it names, and refuses another CLI or an unknown id', async () => {
         const service = await make();
         await service.save({

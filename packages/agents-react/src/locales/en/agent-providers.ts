@@ -76,6 +76,9 @@ export default {
         defaults: {
             title: 'Defaults for new chats',
             description: 'Picking a model in a chat also changes its default here.',
+            descriptionWithAccount: 'Picking a model or account in a chat also changes its default here.',
+            account: 'Account',
+            accountFor: 'Default account for {{provider}}',
             model: 'Model',
             modelFor: 'Default model for {{provider}}',
             shared: 'Shared by every {{provider}} account.',

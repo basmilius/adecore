@@ -2,10 +2,11 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AgentKind, ChatInfo, ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
+import { useHostCanReorderAccounts } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';
 import { errorCode } from '../../../transport';
 import { useChatActions } from '../../actions';
-import { rememberChatSelection } from '../../preferences';
+import { rememberChatAccount, rememberChatSelection } from '../../preferences';
 import { composerStopOf } from '../../subagent-list';
 import type { ComposerNotice } from './use-notice';
 
@@ -21,6 +22,7 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
     const { t } = useTranslation('agent-chat');
     const host = useChatHost();
     const scope = useChatScope();
+    const ordered = useHostCanReorderAccounts(scope.id);
     const actions = useChatActions();
     const configuring = useRef(false);
     const [configurationPending, setConfigurationPending] = useState(false);
@@ -48,9 +50,13 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
     const configure = (patch: { selection?: ModelSelection; runtimeMode?: RuntimeMode; account?: string }): void => {
         runConfiguration(() =>
             actions.configure(chatId, patch).then(() => {
-                // An account picked here is this chat's; new chats start on the top account of the order in the settings.
                 if (patch.selection) {
                     rememberChatSelection(info.provider, patch.selection);
+                }
+
+                // On a machine that keeps an order of its accounts an account picked here is this chat's alone; new chats start on its top one.
+                if (patch.account && !ordered) {
+                    rememberChatAccount(scope.id, info.provider, patch.account);
                 }
             })
         );

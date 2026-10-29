@@ -52,22 +52,31 @@ describe('limits per account', () => {
         ]
     };
 
-    test('a CLI lists what the machine read, then the accounts it does not read that are on', () => {
+    test('a CLI lists what the machine read and the accounts it does not read that are on, in the order of the accounts', () => {
         const groups = limitGroups(
             { providers: [entry('claude', { id: 'claude', label: 'Claude Code' }), entry('claude', { id: 'claude_work', label: 'Old name' }), entry('codex')] },
             accounts
         );
 
         expect(groups.map((group) => [group.kind, group.accounts.map((account) => account.id)])).toEqual([
-            ['claude', ['claude', 'claude_work', 'claude_out']],
+            ['claude', ['claude', 'claude_out', 'claude_work']],
             ['codex', ['codex']]
         ]);
 
-        const work = groups[0]!.accounts[1]!;
+        const work = groups[0]!.accounts[2]!;
         expect([work.name, work.color, work.status?.state]).toEqual(['Work', 'blue', 'ready']);
-        const out = groups[0]!.accounts[2]!;
+        const out = groups[0]!.accounts[1]!;
         expect([out.entry, out.status?.state]).toEqual([null, 'signed-out']);
         expect(hasSeveralAccounts(groups)).toBe(true);
+    });
+
+    test('a person who put an account on top sees it on top here too', () => {
+        const ordered: ProviderAccounts = { ...accounts, accounts: { ...accounts.accounts, claude_work: { ...accounts.accounts.claude_work!, order: 0 } } };
+        const groups = limitGroups(
+            { providers: [entry('claude', { id: 'claude', label: 'Claude Code' }), entry('claude', { id: 'claude_work', label: 'Work' })] },
+            ordered
+        );
+        expect(groups[0]!.accounts.map((account) => account.id)).toEqual(['claude_work', 'claude', 'claude_out']);
     });
 
     test('a CLI the machine reads no plan of has no group, even with an account that is on', () => {

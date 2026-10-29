@@ -76,6 +76,9 @@ export default {
         defaults: {
             title: 'Standaarden voor nieuwe chats',
             description: 'Een model kiezen in een chat verandert hier ook de standaard.',
+            descriptionWithAccount: 'Een model of account kiezen in een chat verandert hier ook de standaard.',
+            account: 'Account',
+            accountFor: 'Standaardaccount voor {{provider}}',
             model: 'Model',
             modelFor: 'Standaardmodel voor {{provider}}',
             shared: 'Gedeeld door elk {{provider}}-account.',

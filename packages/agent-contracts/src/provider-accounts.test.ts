@@ -21,6 +21,14 @@ describe('provider accounts', () => {
         expect(orderedAccountIds(accounts, 'claude')).toEqual(['claude', 'alpha', 'zeta']);
     });
 
+    test('ids without a place compare by code point, as the iPhone app compares them', () => {
+        expect(orderedAccountIds({ 'claude-a': { kind: 'claude' }, claude_a: { kind: 'claude' }, claude0: { kind: 'claude' } }, 'claude')).toEqual([
+            'claude-a',
+            'claude0',
+            'claude_a'
+        ]);
+    });
+
     test('ordered accounts come first, an account without a place after them', () => {
         const accounts = { claude: { kind: 'claude' }, alpha: { kind: 'claude', order: 1 }, zeta: { kind: 'claude', order: 0 }, beta: { kind: 'claude' } };
         expect(orderedAccountIds(accounts, 'claude')).toEqual(['zeta', 'alpha', 'claude', 'beta']);

@@ -70,6 +70,7 @@ export {
     defaultProvider,
     selectionFor,
     startingSelection,
+    accountFor,
     chatPreferencesPayload,
     useChatPreferences,
     readChatPreferences,

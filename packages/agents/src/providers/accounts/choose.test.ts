@@ -38,4 +38,8 @@ describe('the account a start takes', () => {
     test('with nothing usable the CLI default account, which the launch then judges', () => {
         expect(choose({ off: ['work', 'client'] }, { claude: 'signed out' })).toEqual({ account: 'claude' });
     });
+
+    test('never falls back on a CLI default account the project turned off', () => {
+        expect(() => choose({ preferred: 'work', off: ['claude'] }, { work: 'signed out', client: 'signed out' })).toThrow('No account this project offers');
+    });
 });

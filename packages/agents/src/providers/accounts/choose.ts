@@ -49,5 +49,9 @@ export function chooseAccount(input: AccountChoiceInput): ChosenAccount {
 
     const next = offered.find((id) => id !== known && input.unusable(id) === null) ?? kind;
 
+    if (off.includes(next)) {
+        throw new AccountError('account-off-in-project', 'No account this project offers can start right now.');
+    }
+
     return known === undefined || reason === null ? { account: next } : { account: next, passedOver: { account: known, reason } };
 }

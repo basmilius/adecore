@@ -359,7 +359,7 @@ export class ProviderAccountsService implements AccountLaunches {
 
     /* Puts the accounts of one CLI in this order; an id of another CLI or one this machine does not have refuses it. */
     reorder(kind: AgentKind, ids: readonly string[]): Promise<ProviderAccounts> {
-        return this.writes.run(() => this.commit(reorderedAccounts(this.accounts, kind, ids), this.folderExists));
+        return this.writes.run(() => this.commit(reorderedAccounts(this.accounts, kind, ids), this.folderExists, true));
     }
 
     /*
@@ -456,8 +456,8 @@ export class ProviderAccountsService implements AccountLaunches {
         return { kinds: this.kinds(), get: (kind) => this.providers.get(kind) };
     }
 
-    private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean): Promise<ProviderAccounts> {
-        const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host);
+    private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean, takeOrder = false): Promise<ProviderAccounts> {
+        const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host, takeOrder);
         const { writes, removals } = this.planSecrets(stored);
 
         for (const [key, value] of writes) {

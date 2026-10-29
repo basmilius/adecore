@@ -636,7 +636,8 @@ export class ChatCore {
             return;
         }
 
-        // As named, so a switch to the default account is refused while it is turned off.
+        // As named, so a switch to the default account is refused while it is turned off, and one the host turned off for this chat too.
+        this.hooks.openingAccount?.(session.id, kind, requested);
         this.requireAccount(kind, requested);
         if (holdsConversation(session.info) && !this.canContinue(kind, from, to)) {
             const label = this.accountLabel(kind, to);

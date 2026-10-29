@@ -1,5 +1,6 @@
 import i18next from 'i18next';
 import type { AgentKind, ProviderAccount, ProviderAccountMap } from '@adecore/agent-contracts';
+import { accountFor, readChatPreferences, rememberChatAccount } from '../chat/preferences';
 import type { ChatHost } from '../host';
 import type { ChatScope } from '../scope';
 import { providerAccountsOf, useProviderAccountsStore } from '../state/provider-accounts';
@@ -37,12 +38,19 @@ export function saveAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id
     return saveAccounts(scope, host, { ...current, [id]: account });
 }
 
-/* Forgets an account; its folder stays where it is. */
-export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string): Promise<void> {
+/*
+ * Forgets an account; its folder stays where it is. A pick for new agents that named it goes back to
+ * the CLI's default account, since no chat started from it yet.
+ */
+export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string, kind: AgentKind): Promise<void> {
     const { [id]: _gone, ...rest } = providerAccountsOf(scope.id).accounts?.accounts ?? {};
 
     if (!(await saveAccounts(scope, host, rest))) {
         throw new Error(words('account.saveFailed'));
+    }
+
+    if (accountFor(readChatPreferences(), scope.id, kind) === id) {
+        rememberChatAccount(scope.id, kind, null);
     }
 }
 

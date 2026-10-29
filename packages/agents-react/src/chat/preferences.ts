@@ -22,6 +22,8 @@ export interface ChatPreferences {
     runtimeMode: RuntimeMode;
     // What an agent started as a terminal node runs in; a chat picks its own mode in the composer.
     terminalRuntimeMode: RuntimeMode;
+    /* Per machine that keeps no order of its accounts, the account a new agent of each CLI starts under; an account id only means something on its own machine. */
+    accountByMachine: Record<string, Partial<Record<AgentKind, string>>>;
     /* How wide a chat of its own reads. It never reaches a machine. */
     readingWidth: ChatReadingWidth;
     /* Which key sends from the composer. It never reaches a machine either. */
@@ -37,6 +39,7 @@ export const DEFAULT_CHAT_PREFERENCES: ChatPreferences = {
     lastProvider: null,
     runtimeMode: 'full-access',
     terminalRuntimeMode: 'full-access',
+    accountByMachine: {},
     readingWidth: DEFAULT_READING_WIDTH,
     sendKey: DEFAULT_SEND_KEY,
     favoriteModels: {},
@@ -76,6 +79,7 @@ export function parseChatPreferences(raw: string | null): ChatPreferences {
             lastProvider: stored.lastProvider ?? null,
             runtimeMode: stored.runtimeMode ?? DEFAULT_CHAT_PREFERENCES.runtimeMode,
             terminalRuntimeMode: stored.terminalRuntimeMode ?? DEFAULT_CHAT_PREFERENCES.terminalRuntimeMode,
+            accountByMachine: { ...stored.accountByMachine },
             readingWidth: isChatReadingWidth(stored.readingWidth) ? stored.readingWidth : DEFAULT_READING_WIDTH,
             sendKey: isChatSendKey(stored.sendKey) ? stored.sendKey : DEFAULT_SEND_KEY,
             favoriteModels: parseFavoriteModels(stored.favoriteModels),
@@ -116,17 +120,54 @@ export function withSelection(preferences: ChatPreferences, provider: AgentKind,
 }
 
 /*
- * What a machine starts a chat with when it starts one with no client mounting it. A newer machine
- * takes the account from the order of its accounts; an older one still reads `accounts`, so it gets the
- * top account of each CLI from the same order.
+ * The account a new agent of this CLI starts under on this machine; null is the CLI's default account.
+ * Given the machine's accounts, a pick it turned off or removed is the default account again, so a new
+ * chat is never refused over it; `undefined` is a machine that did not say yet, where the pick stands.
  */
-export function chatPreferencesPayload(preferences: ChatPreferences, accounts?: ProviderAccounts | null): ChatPreferencesPayload {
-    const kinds = new Set(Object.values(accounts?.accounts ?? {}).map((account) => account.kind));
+export function accountFor(preferences: ChatPreferences, scopeId: string, provider: AgentKind, accounts?: ProviderAccounts | null): string | null {
+    const picked = preferences.accountByMachine[scopeId]?.[provider] ?? null;
 
-    const picks = [...kinds].flatMap((kind) => {
-        const top = accounts ? topAccountOf(accounts.accounts, kind) : kind;
+    if (picked === null || accounts === undefined) {
+        return picked;
+    }
 
-        return top === kind ? [] : [[kind, top] as const];
+    const account = accounts?.accounts[picked];
+
+    return account?.kind === provider && account.enabled !== false ? picked : null;
+}
+
+/* The default account is what an absent pick means, so picking it takes the pick away. */
+export function withAccount(preferences: ChatPreferences, scopeId: string, provider: AgentKind, account: string | null): ChatPreferences {
+    const { [provider]: _previous, ...others } = preferences.accountByMachine[scopeId] ?? {};
+    const picks = account === null || account === provider ? others : { ...others, [provider]: account };
+    const { [scopeId]: _machine, ...machines } = preferences.accountByMachine;
+
+    return { ...preferences, accountByMachine: Object.keys(picks).length === 0 ? machines : { ...machines, [scopeId]: picks } };
+}
+
+/*
+ * What a machine starts a chat with when it starts one with no client mounting it; `accounts` as
+ * `accountFor` takes them. A machine that keeps an order of the accounts (`ordered`) starts on its top
+ * account, which this sends too; an older one still starts on the account picked here.
+ */
+export function chatPreferencesPayload(
+    preferences: ChatPreferences,
+    scopeId: string,
+    accounts?: ProviderAccounts | null,
+    ordered = false
+): ChatPreferencesPayload {
+    const kinds = ordered
+        ? [...new Set(Object.values(accounts?.accounts ?? {}).map((account) => account.kind))]
+        : Object.keys(preferences.accountByMachine[scopeId] ?? {});
+
+    const picks = kinds.flatMap((provider) => {
+        const account = ordered
+            ? accounts
+                ? topAccountOf(accounts.accounts, provider)
+                : null
+            : accountFor(preferences, scopeId, provider as AgentKind, accounts);
+
+        return account === null || (ordered && account === provider) ? [] : [[provider, account] as const];
     });
 
     return {
@@ -200,6 +241,10 @@ export function rememberChatSelection(provider: AgentKind, selection: ModelSelec
     }
 
     write(withSelection(current, provider, selection));
+}
+
+export function rememberChatAccount(scopeId: string, provider: AgentKind, account: string | null): void {
+    write(withAccount(useChatPreferences.getState(), scopeId, provider, account));
 }
 
 /* The starred models of one CLI; a slug only means something inside its own catalog. */

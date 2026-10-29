@@ -4,8 +4,10 @@ import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contract
 import { ModelOptionControl } from '../agents/ModelOptionControl';
 import { carryOptions } from '../agents/model-options';
 import { optionWord } from '../agents/option-words';
-import type { AccountEntry, AccountLogin } from '../agents/accounts';
-import { forgetChatSelection, rememberChatSelection, selectionFor, useChatPreferences } from '../chat/preferences';
+import { AccountDot } from '../agents/AccountDot';
+import { accountName, offeredAccounts, type AccountEntry, type AccountLogin } from '../agents/accounts';
+import { accountFor, forgetChatSelection, rememberChatAccount, rememberChatSelection, selectionFor, useChatPreferences } from '../chat/preferences';
+import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
 import { useChatHost } from '../host';
 import { useHostCanReorderAccounts } from '../host-hooks';
 import { useChatScope } from '../scope';
@@ -60,6 +62,10 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
     const model = provider.models.find((entry) => entry.slug === selection?.model);
     const canAddAccount = login !== null;
     const ordered = canReorder && entries !== null && entries.length >= 2;
+    // A machine that keeps no order of its accounts starts a new chat on the account picked here.
+    const machineAccounts = useProviderAccounts(knownAccounts);
+    const picked = accountFor(preferences, scope.id, provider.kind, machineAccounts) ?? provider.kind;
+    const choosable = canReorder ? [] : offeredAccounts(entries ?? [], picked);
 
     return (
         <>
@@ -77,7 +83,29 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
                 }
             />
             {defaults && (
-                <SettingsSection title={t('cli.defaults.title')} description={t('cli.defaults.description')}>
+                <SettingsSection
+                    title={t('cli.defaults.title')}
+                    description={t(canReorder ? 'cli.defaults.description' : 'cli.defaults.descriptionWithAccount')}
+                >
+                    {choosable.length > 0 && (
+                        <SettingsRow
+                            searchId="providers.defaults.account"
+                            label={t('cli.defaults.account')}
+                            control={
+                                <Select
+                                    value={picked}
+                                    label={t('cli.defaults.accountFor', { provider: provider.name })}
+                                    align="end"
+                                    items={choosable.map((entry) => ({
+                                        value: entry.id,
+                                        label: accountName(entry, provider.name),
+                                        icon: <AccountDot color={entry.account.color} className="size-2" />
+                                    }))}
+                                    onValueChange={(id) => rememberChatAccount(scope.id, provider.kind, id)}
+                                />
+                            }
+                        />
+                    )}
                     {provider.models.length > 0 && (
                         <SettingsRow
                             searchId="providers.defaults.model"
@@ -111,7 +139,7 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
                         />
                     )}
                     {model && <ModelOptionRows provider={provider.kind} model={model} options={selection?.options ?? {}} />}
-                    {provider.models.length === 0 && <SettingsRow muted label={t('cli.defaults.usesCliDefault')} />}
+                    {choosable.length === 0 && provider.models.length === 0 && <SettingsRow muted label={t('cli.defaults.usesCliDefault')} />}
                 </SettingsSection>
             )}
             {entries === null ? (

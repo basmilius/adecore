@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { ModelSelection, ProviderAccounts } from '@adecore/agent-contracts';
 import {
+    accountFor,
     chatPreferencesPayload,
     DEFAULT_CHAT_PREFERENCES,
     defaultProvider,
@@ -8,6 +9,7 @@ import {
     parseChatPreferences,
     selectionFor,
     startingSelection,
+    withAccount,
     withFavoriteToggled,
     withSelection,
     type ChatPreferences
@@ -77,6 +79,7 @@ describe('reading what is stored', () => {
             lastProvider: 'claude',
             runtimeMode: 'auto',
             terminalRuntimeMode: 'supervised',
+            accountByMachine: { local: { claude: 'claude_work' }, studio: { codex: 'codex_client' } },
             readingWidth: 'narrow',
             sendKey: 'mod-enter',
             favoriteModels: { claude: ['opus'], codex: ['gpt-5-codex', 'gpt-5'] },
@@ -112,7 +115,7 @@ describe('what a machine is told', () => {
         });
 
         // The terminal mode too, since the machine starts terminal agents a verb opened on its own.
-        expect(chatPreferencesPayload(remembered)).toEqual({
+        expect(chatPreferencesPayload(remembered, 'local')).toEqual({
             runtimeMode: 'supervised',
             terminalRuntimeMode: 'auto',
             selections: { claude: sonnet, codex: gpt },
@@ -120,20 +123,58 @@ describe('what a machine is told', () => {
         });
     });
 
-    test('the top account of each CLI that is not its default, for a machine that still reads them', () => {
+    test('only the accounts picked on that machine', () => {
+        const remembered = preferences({ accountByMachine: { local: { claude: 'claude_work' }, studio: { codex: 'codex_client' } } });
+        expect(chatPreferencesPayload(remembered, 'local').accounts).toEqual({ claude: 'claude_work' });
+        expect(chatPreferencesPayload(remembered, 'elsewhere').accounts).toBeUndefined();
+    });
+
+    test('an account the machine turned off or removed is left to the default one, while one it did not list yet stands', () => {
+        const remembered = preferences({ accountByMachine: { local: { claude: 'claude_work', codex: 'codex_gone' } } });
+
+        const accounts: ProviderAccounts = {
+            accounts: { claude: { kind: 'claude' }, claude_work: { kind: 'claude', enabled: false }, codex: { kind: 'codex' } },
+            statuses: []
+        };
+
+        expect(chatPreferencesPayload(remembered, 'local', accounts).accounts).toBeUndefined();
+        expect(chatPreferencesPayload(remembered, 'local', null).accounts).toBeUndefined();
+        expect(chatPreferencesPayload(remembered, 'local').accounts).toEqual({ claude: 'claude_work', codex: 'codex_gone' });
+        const on = { ...accounts, accounts: { ...accounts.accounts, claude_work: { kind: 'claude' } } };
+        expect(accountFor(remembered, 'local', 'claude', on)).toBe('claude_work');
+        expect(accountFor(remembered, 'local', 'codex', on)).toBeNull();
+    });
+
+    test('a machine that keeps an order is told its top account of each CLI, not the one picked here', () => {
+        const remembered = preferences({ accountByMachine: { local: { claude: 'claude_home' } } });
+
         const accounts: ProviderAccounts = {
             accounts: {
                 claude: { kind: 'claude', order: 1 },
                 claude_work: { kind: 'claude', order: 0 },
-                codex: { kind: 'codex' },
-                codex_client: { kind: 'codex' }
+                claude_home: { kind: 'claude' },
+                codex: { kind: 'codex' }
             },
             statuses: []
         };
 
-        expect(chatPreferencesPayload(preferences(), accounts).accounts).toEqual({ claude: 'claude_work' });
-        expect(chatPreferencesPayload(preferences(), null).accounts).toBeUndefined();
-        expect(chatPreferencesPayload(preferences()).accounts).toBeUndefined();
+        expect(chatPreferencesPayload(remembered, 'local', accounts, true).accounts).toEqual({ claude: 'claude_work' });
+        expect(chatPreferencesPayload(remembered, 'local', null, true).accounts).toBeUndefined();
+    });
+});
+
+describe('the account for new agents', () => {
+    test('is kept per machine and per CLI', () => {
+        const picked = withAccount(withAccount(preferences(), 'local', 'claude', 'claude_work'), 'studio', 'claude', 'claude_home');
+        expect(accountFor(picked, 'local', 'claude')).toBe('claude_work');
+        expect(accountFor(picked, 'studio', 'claude')).toBe('claude_home');
+        expect(accountFor(picked, 'local', 'codex')).toBeNull();
+    });
+
+    test('picking the default account takes the pick away', () => {
+        const picked = withAccount(preferences(), 'local', 'claude', 'claude_work');
+        expect(withAccount(picked, 'local', 'claude', 'claude').accountByMachine).toEqual({});
+        expect(withAccount(picked, 'local', 'claude', null).accountByMachine).toEqual({});
     });
 });
 

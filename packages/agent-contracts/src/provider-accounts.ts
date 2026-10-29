@@ -113,11 +113,14 @@ export type ProviderAccountsReorderPayload = z.infer<typeof ProviderAccountsReor
 export function orderedAccountIds(accounts: ProviderAccountMap, kind: string): string[] {
     const rank = (id: string, account: ProviderAccount): [number, number, string] => [account.order ?? Number.POSITIVE_INFINITY, id === kind ? 0 : 1, id];
 
-    return Object.entries(accounts)
-        .filter(([, account]) => account.kind === kind)
-        .map(([id, account]) => ({ id, rank: rank(id, account) }))
-        .sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1] - b.rank[1] || a.rank[2].localeCompare(b.rank[2]))
-        .map((entry) => entry.id);
+    return (
+        Object.entries(accounts)
+            .filter(([, account]) => account.kind === kind)
+            .map(([id, account]) => ({ id, rank: rank(id, account) }))
+            // Ids compare by code point, the way the iPhone app compares them, so both name the same account first.
+            .sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1] - b.rank[1] || (a.rank[2] < b.rank[2] ? -1 : a.rank[2] > b.rank[2] ? 1 : 0))
+            .map((entry) => entry.id)
+    );
 }
 
 /* The account a start of this CLI takes when nothing names one: the first in the order that is on, else the CLI's default account. */

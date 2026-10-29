@@ -82,7 +82,14 @@ export function limitGroups(snapshot: UsageLimitsSnapshot, accounts: ProviderAcc
                 status: account.status
             }));
 
-        const rows = [...read, ...unread];
+        // In the person's order, as every other list of accounts; a read account the list does not know yet goes last.
+        const place = (id: string): number => {
+            const index = known.findIndex((account) => account.id === id);
+
+            return index === -1 ? known.length : index;
+        };
+
+        const rows = [...read, ...unread].sort((a, b) => place(a.id) - place(b.id));
 
         return rows.length === 0 ? [] : [{ kind, accounts: rows }];
     });

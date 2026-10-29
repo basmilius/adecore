@@ -153,7 +153,9 @@ export function acceptAccounts(
     providers: AccountProviders,
     env: Env,
     isDirectory: (path: string) => boolean,
-    host: AccountsHost = DEFAULT_ACCOUNTS_HOST
+    host: AccountsHost = DEFAULT_ACCOUNTS_HOST,
+    // Only `accounts.reorder` takes the order it is given.
+    takeOrder = false
 ): StoredAccounts {
     const stored: StoredAccounts = {};
     const reserved = { host, folderVariables: folderVariablesOf(providers) };
@@ -180,21 +182,21 @@ export function acceptAccounts(
             throw new InvalidAccountError(`${id}: ${problem}`);
         }
 
-        stored[id] = withKeptOrder(account, before[id]);
+        stored[id] = takeOrder ? account : withKeptOrder(account, before[id]);
     }
 
     return stored;
 }
 
-/* An older client strips `order` from what it saves, so an account saved without one keeps the place it had. */
+/*
+ * Only `accounts.reorder` moves an account, so a save keeps the place the file has: an older client
+ * strips `order`, and a newer one may send the order it read before a reorder elsewhere.
+ */
 function withKeptOrder(account: ProviderAccount, before: unknown): ProviderAccount {
-    if (account.order !== undefined || typeof before !== 'object' || before === null) {
-        return account;
-    }
+    const { order: _sent, ...rest } = account;
+    const order = typeof before === 'object' && before !== null ? (before as { order?: unknown }).order : undefined;
 
-    const order = (before as { order?: unknown }).order;
-
-    return typeof order === 'number' ? { ...account, order } : account;
+    return typeof order === 'number' ? { ...rest, order } : rest;
 }
 
 /* The map with the accounts of one CLI in this order; one of that CLI not named, such as one made meanwhile, follows in the order it had. */

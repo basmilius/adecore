@@ -4,7 +4,17 @@ export { AgentIcon } from '../agents/AgentIcon';
 export { AgentModelLabel } from '../agents/AgentModelLabel';
 export { ModelOptionControl } from '../agents/ModelOptionControl';
 export { ProviderLogo } from '../agents/ProviderLogo';
-export { type AccountEntry, accountsOfKind, ACCOUNT_TONE_CLASSES, accountStatusLine, canContinueOn, type AccountTone } from '../agents/accounts';
+export {
+    type AccountEntry,
+    type AccountRule,
+    accountsOfKind,
+    ACCOUNT_TONE_CLASSES,
+    accountStatusLine,
+    canContinueOn,
+    projectDefault,
+    topAccountEntry,
+    type AccountTone
+} from '../agents/accounts';
 export { modelName, useModelName, shortModelName } from '../agents/model-name';
 export { carryOptions } from '../agents/model-options';
 export { type ModelRequirement } from '../agents/model-requirement';
