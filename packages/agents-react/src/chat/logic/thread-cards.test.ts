@@ -57,7 +57,15 @@ describe('withThreadCards', () => {
 
     test('an open turn shows the card between the calls it came between', () => {
         const rows = deriveTimelineRows(settled, { ...options, expandedTurns: new Set(['t1']) });
-        expect(shape(withThreadCards(rows, [card('v1', 3500)]))).toEqual(['user', 'turn-fold', 'work', 'assistant', 'app-card-v1', 'work', 'assistant']);
+        expect(shape(withThreadCards(rows, [card('v1', 3500)]))).toEqual([
+            'user',
+            'turn-fold',
+            'work-group',
+            'assistant',
+            'app-card-v1',
+            'work-group',
+            'assistant'
+        ]);
     });
 
     test('a card from before the thread opens it, and one from after closes it', () => {
@@ -80,7 +88,7 @@ describe('withThreadCards', () => {
         ];
 
         const rows = deriveTimelineRows(running, { ...options, activeTurnId: 't2' });
-        expect(shape(withThreadCards(rows, [card('v2', 50_000)]))).toEqual(['user', 'work-live', 'app-card-v2', 'working']);
+        expect(shape(withThreadCards(rows, [card('v2', 50_000)]))).toEqual(['user', 'work-group', 'app-card-v2', 'working']);
     });
 
     test('cards of the same moment keep the order the app gave them', () => {
@@ -108,17 +116,13 @@ describe('visuals among the rows', () => {
         expect(shape(withTimedRows(rows, timedRowsOf([], [visual('chart', 7000)], null)))).toEqual(['user', 'turn-fold', 'visual-chart', 'assistant']);
     });
 
-    test('a running turn shows a visual between the calls around it, and keeps its working row last', () => {
+    test('a visual follows a closed tool group and keeps its place among the calls when opened', () => {
         const rows = deriveTimelineRows(running, { ...options, activeTurnId: 't2' });
 
-        expect(shape(withTimedRows(rows, timedRowsOf([], [visual('early', 3000), visual('late', 9000)], null)))).toEqual([
-            'user',
-            'work',
-            'visual-early',
-            'work-live',
-            'visual-late',
-            'working'
-        ]);
+        const timed = timedRowsOf([], [visual('early', 3000), visual('late', 9000)], null);
+        expect(shape(withTimedRows(rows, timed))).toEqual(['user', 'work-group', 'visual-early', 'visual-late', 'working']);
+        const opened = deriveTimelineRows(running, { ...options, activeTurnId: 't2', expandedGroups: new Set(['group-b3']) });
+        expect(shape(withTimedRows(opened, timed))).toEqual(['user', 'work-group', 'work', 'visual-early', 'work-live', 'visual-late', 'working']);
     });
 
     test('a visual of the same moment as an app card comes first', () => {

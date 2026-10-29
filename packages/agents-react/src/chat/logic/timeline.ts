@@ -352,31 +352,21 @@ function flushTools(buffer: ChatToolItem[], rows: TimelineRow[], options: Timeli
     }
 
     const tools = buffer.splice(0);
-    const live = tools.filter((tool) => tool.state === 'running');
-    const settled = tools.filter((tool) => tool.state !== 'running');
+    const first = tools[0]!;
+    const id = `group-${first.id}`;
+    const expanded = options.expandedGroups.has(id);
+    const looked = lookSummary(tools, options.commandLooks);
 
-    if (settled.length === 1) {
-        rows.push({ kind: 'work', id: settled[0]!.id, tool: settled[0]! });
-    } else if (settled.length > 1) {
-        const id = `group-${settled[0]!.id}`;
-        const expanded = options.expandedGroups.has(id);
-        const looked = lookSummary(settled, options.commandLooks);
+    rows.push(
+        looked === null
+            ? { kind: 'work-group', id, tools, summary: summarizeGroup(tools), expanded }
+            : { kind: 'work-group', id, tools, summary: looked.summary, expanded, look: looked.look }
+    );
 
-        rows.push(
-            looked === null
-                ? { kind: 'work-group', id, tools: settled, summary: summarizeGroup(settled), expanded }
-                : { kind: 'work-group', id, tools: settled, summary: looked.summary, expanded, look: looked.look }
-        );
-
-        if (expanded) {
-            for (const tool of settled) {
-                rows.push({ kind: 'work', id: tool.id, tool });
-            }
+    if (expanded) {
+        for (const tool of tools) {
+            rows.push({ kind: tool.state === 'running' ? 'work-live' : 'work', id: tool.id, tool });
         }
-    }
-
-    for (const tool of live) {
-        rows.push({ kind: 'work-live', id: tool.id, tool });
     }
 }
 
@@ -539,7 +529,10 @@ function lastAssistantRow(rows: TimelineRow[]): TimelineRow | null {
             continue;
         }
 
-        if (row.kind === 'work' && refused.has(row.tool.toolUseId)) {
+        if (
+            (row.kind === 'work' && refused.has(row.tool.toolUseId)) ||
+            (row.kind === 'work-group' && row.tools.length === 1 && refused.has(row.tools[0]!.toolUseId))
+        ) {
             continue;
         }
 
@@ -566,7 +559,8 @@ function withLiveThought(rows: TimelineRow[], items: readonly ChatItem[]): Timel
     }
 
     const after = new Set(items.slice(thoughtAt + 1).map((item) => item.id));
-    const index = rows.findIndex((row) => row.kind === 'work-live' && after.has(row.tool.id));
+    const grouped = new Set(rows.flatMap((row) => (row.kind === 'work-group' ? row.tools.map((tool) => tool.id) : [])));
+    const index = rows.findIndex((row) => row.kind === 'work-live' && after.has(row.tool.id) && !grouped.has(row.tool.id));
     const call = rows[index];
     const shownAt = rows.findIndex((row) => row.kind === 'thinking' && row.id === thought.id);
     const inSight = shownAt !== -1 && shownAt < index && !rows.slice(shownAt + 1, index).some((row) => row.kind === 'work' || row.kind === 'work-group');

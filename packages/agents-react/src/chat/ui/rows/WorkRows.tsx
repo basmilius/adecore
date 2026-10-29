@@ -160,9 +160,9 @@ export function ToggleLine({
 }) {
     const classes = clsx(
         // Fix the width so long commands reach the truncation inside the negative margins.
-        'group/line -mx-1 mb-0.5 flex h-7 w-[calc(100%+8px)] items-center gap-2 rounded-md px-1 text-left text-xs text-text-muted',
+        'group/line -mx-1 mb-0.5 flex h-7 w-[calc(100%+8px)] items-center gap-2 rounded-md px-1 text-left text-xs',
         onToggle !== undefined && 'hover:bg-surface-hover',
-        failed && 'text-status-error',
+        failed ? 'text-status-error' : 'text-text-muted',
         className
     );
 
@@ -208,7 +208,7 @@ export function ToggleLine({
     }
 
     return (
-        <button className={classes} onClick={onToggle}>
+        <button className={classes} onClick={onToggle} aria-expanded={open}>
             {content}
         </button>
     );
@@ -536,16 +536,23 @@ export function WorkGroupRow({
     expanded: boolean;
     onToggle(): void;
 }) {
+    const { t } = useTranslation('agent-chat');
+    const running = tools.filter((tool) => tool.state === 'running').length;
     const failed = tools.some((tool) => tool.state === 'error');
 
     return (
         <div>
             <ToggleLine
-                icon={look === undefined ? toolIcon(tools[0]!.name) : <look.Mark size={12} />}
-                label={look?.brand === undefined ? summary : withBrand(summary, [look.brand])}
+                icon={running > 0 ? <Spinner size={12} /> : look === undefined ? toolIcon(tools[0]!.name) : <look.Mark size={12} />}
+                label={
+                    <span className="tabular-nums">
+                        {running > 0 ? t('group.toolCalls', { count: tools.length }) : look?.brand === undefined ? summary : withBrand(summary, [look.brand])}
+                    </span>
+                }
                 open={expanded}
                 onToggle={onToggle}
                 failed={failed}
+                trailing={running > 0 && <span className="shrink-0 text-text-faint tabular-nums">{t('group.running', { count: running })}</span>}
                 time={tools[0]!.createdAt}
             />
         </div>

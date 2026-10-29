@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { parseHTML } from 'linkedom';
 import type { ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
-import { TurnFoldRow, WorkRow } from './WorkRows';
+import { TurnFoldRow, WorkGroupRow, WorkRow } from './WorkRows';
 
 const scope: ChatScope = {
     id: 'work-rows-test',
@@ -52,6 +52,19 @@ describe('WorkRow', () => {
         const command = `python3 -c 'print(1)'`;
         const document = render(createElement(WorkRow, { tool: tool({ command }, null) }));
         expect(document.querySelector('[data-find-field="summary"]')!.textContent).toBe(command);
+    });
+});
+
+describe('WorkGroupRow', () => {
+    test.each(['running', 'done', 'error'] as const)('a group with a %s call shows its progress or settled summary', (state) => {
+        const tools = [tool({ command: 'ls' }, null), { ...tool({ command: 'bun test' }, null), id: 'second', state }];
+        const document = render(createElement(WorkGroupRow, { tools, summary: 'Ran 2 commands', expanded: false, onToggle: () => undefined }));
+        const button = document.querySelector('button')!;
+
+        expect(button.getAttribute('aria-expanded')).toBe('false');
+        expect(button.textContent).toContain(state === 'running' ? '2 tool calls' : 'Ran 2 commands');
+        expect(button.textContent?.includes('1 running')).toBe(state === 'running');
+        expect(button.classList.contains('text-status-error')).toBe(state === 'error');
     });
 });
 

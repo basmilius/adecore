@@ -259,6 +259,8 @@ export default {
         }
     },
     group: {
+        running_one: '{{count}} running',
+        running_other: '{{count}} running',
         tools: {
             Read_one: 'Read {{count}} file',
             Read_other: 'Read {{count}} files',

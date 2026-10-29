@@ -259,6 +259,8 @@ export default {
         }
     },
     group: {
+        running_one: '{{count}} actief',
+        running_other: '{{count}} actief',
         tools: {
             Read_one: '{{count}} bestand gelezen',
             Read_other: '{{count}} bestanden gelezen',

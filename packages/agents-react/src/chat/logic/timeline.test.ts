@@ -61,6 +61,34 @@ describe('the base moving during a turn', () => {
 });
 
 describe('deriveTimelineRows', () => {
+    test('a tool run keeps its group identity and call order from the first call through completion', () => {
+        const first = tool('first', 'Read', { file_path: 'a.ts' }, 'running');
+        const second = tool('second', 'Read', { file_path: 'b.ts' }, 'running');
+        const active = { ...options, activeTurnId: 't1' };
+
+        for (const calls of [
+            [first],
+            [first, second],
+            [first, { ...second, state: 'done' as const }],
+            [
+                { ...first, state: 'error' as const },
+                { ...second, state: 'done' as const }
+            ]
+        ]) {
+            const rows = deriveTimelineRows(calls, active);
+            expect(rows.map((row) => row.id)).toEqual(['group-first', 'working-t1']);
+            expect(rows[0]).toMatchObject({ kind: 'work-group', tools: calls, expanded: false });
+        }
+
+        const open = deriveTimelineRows([first, { ...second, state: 'done' }], { ...active, expandedGroups: new Set(['group-first']) });
+        expect(open.map((row) => [row.kind, row.id])).toEqual([
+            ['work-group', 'group-first'],
+            ['work-live', 'first'],
+            ['work', 'second'],
+            ['working', 'working-t1']
+        ]);
+    });
+
     test.each(['running', 'done', 'error'] as const)('a %s image stays outside a settled turn fold', (state) => {
         const items: ChatItem[] = [
             thread[0]!,
@@ -76,7 +104,7 @@ describe('deriveTimelineRows', () => {
         expect(collapsed[1]).toMatchObject({ hiddenCount: 2, work: ['Read 2 files'] });
         expect(isBlock(collapsed[2]!)).toBe(true);
         const expanded = deriveTimelineRows(items, { ...options, expandedTurns: new Set(['t1']) });
-        expect(expanded.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'r1', 'image', 'r2', 'a1']);
+        expect(expanded.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'group-r1', 'image', 'group-r2', 'a1']);
     });
 
     test('hidden tools leave a settled turn its fold and a running turn its working row', () => {
@@ -142,8 +170,8 @@ describe('deriveTimelineRows', () => {
     test('a generated image interrupts tool grouping during a live turn', () => {
         const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {})];
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't1' });
-        expect(rows.map((row) => row.id)).toEqual(['u1', 'r1', 'image', 'r2', 'working-t1']);
-        expect(rows.map((row) => row.kind)).toEqual(['user', 'work', 'work', 'work', 'working']);
+        expect(rows.map((row) => row.id)).toEqual(['u1', 'group-r1', 'image', 'group-r2', 'working-t1']);
+        expect(rows.map((row) => row.kind)).toEqual(['user', 'work-group', 'work', 'work-group', 'working']);
     });
 
     test('a completed generation without assistant text needs no work fold', () => {
@@ -203,7 +231,7 @@ describe('deriveTimelineRows', () => {
             }
         ];
 
-        expect(deriveTimelineRows(refusal('deny'), options).map((row) => row.id)).toEqual(['u5', 'fold-t5', 'a5', 'c5', 'p5']);
+        expect(deriveTimelineRows(refusal('deny'), options).map((row) => row.id)).toEqual(['u5', 'fold-t5', 'a5', 'group-c5', 'p5']);
         expect(deriveTimelineRows(refusal('allow'), options).map((row) => row.kind)).toEqual(['user', 'turn-fold']);
     });
 
@@ -224,7 +252,7 @@ describe('deriveTimelineRows', () => {
         expect(everything.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'work-group', 'work', 'work', 'work', 'changed-files', 'assistant']);
     });
 
-    test('the active turn is never folded and ends with a working row; a running tool is live', () => {
+    test('the active turn keeps running calls in their group and ends with a working row', () => {
         const active: ChatItem[] = [
             { id: 't2', kind: 'turn', createdAt: 1, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u2', kind: 'user', createdAt: 1, turnId: 't2', text: 'go' },
@@ -234,7 +262,7 @@ describe('deriveTimelineRows', () => {
         ];
 
         const rows = deriveTimelineRows(active, { ...options, activeTurnId: 't2' });
-        expect(rows.map((row) => row.kind)).toEqual(['user', 'work', 'work-live', 'assistant', 'working']);
+        expect(rows.map((row) => row.kind)).toEqual(['user', 'work-group', 'assistant', 'working']);
     });
 
     test('a turn the agent started itself opens with a header line instead of a user bubble', () => {
@@ -258,7 +286,7 @@ describe('deriveTimelineRows', () => {
 
         // While it runs it shows its work and the working row, like any other turn.
         const running: ChatItem[] = [{ ...turn, state: 'running', endedAt: null }, work];
-        expect(deriveTimelineRows(running, { ...options, activeTurnId: 'ta' }).map((row) => row.kind)).toEqual(['turn-start', 'work', 'working']);
+        expect(deriveTimelineRows(running, { ...options, activeTurnId: 'ta' }).map((row) => row.kind)).toEqual(['turn-start', 'work-group', 'working']);
     });
 
     test('a message another node sent is said to the chat, and the turn it opened needs no line of its own', () => {
@@ -476,7 +504,7 @@ describe('deriveTimelineRows', () => {
 
         expect(deriveTimelineRows(items('done'), options).map((row) => row.kind)).toEqual(['user', 'turn-fold', 'assistant']);
         const unfolded = deriveTimelineRows(items('done'), { ...options, expandedTurns: new Set(['t1']) });
-        expect(unfolded.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'work', 'workflow', 'work', 'assistant']);
+        expect(unfolded.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'work-group', 'workflow', 'work-group', 'assistant']);
     });
 
     test('a background subagent stays out of the fold of its settled turn until it ends', () => {
@@ -653,51 +681,24 @@ describe('the live thought', () => {
 
     const kinds = (items: ChatItem[], activeTurnId: string | null = 't2') => deriveTimelineRows(items, { ...options, activeTurnId }).map((row) => row.kind);
 
-    test('stands over the running call the latest thought led to', () => {
-        const rows = deriveTimelineRows([running, asked, thought('k1'), call('r1', 'done'), call('b1', 'running')], { ...options, activeTurnId: 't2' });
-        expect(rows.map((row) => row.kind)).toEqual(['user', 'thinking', 'work', 'live-thought', 'work-live', 'working']);
-        expect(rows[3]).toMatchObject({ id: 'live-thought-k1', item: { id: 'k1' }, at: 3000 });
-    });
-
-    test('stands over the running call where a group of finished calls separates it from the thought', () => {
-        expect(kinds([running, asked, thought('k1'), call('r1', 'done'), call('r2', 'done'), call('b1', 'running')])).toEqual([
-            'user',
-            'thinking',
-            'work-group',
-            'live-thought',
-            'work-live',
-            'working'
-        ]);
-    });
-
-    test('is left out where the thought stands right above the call', () => {
-        expect(kinds([running, asked, thought('k1'), call('b1', 'running')])).toEqual(['user', 'thinking', 'work-live', 'working']);
-    });
-
-    test('is left out where only the answer stands between the thought and the call it waits to run', () => {
-        const answer: ChatItem = { id: 'a1', kind: 'assistant', createdAt: 2500, turnId: 't2', text: 'I will create probe.txt.', streaming: false };
-        expect(kinds([running, asked, thought('k1'), answer, call('b1', 'running')])).toEqual(['user', 'thinking', 'assistant', 'work-live', 'working']);
-    });
-
-    test('follows only the latest thought, and none that came after the call', () => {
-        const rows = deriveTimelineRows([running, asked, thought('k1'), call('r1', 'done'), thought('k2'), call('r2', 'done'), call('b1', 'running')], {
+    test.each([false, true])('a tool group never repeats its thought when expanded is %s', (expanded) => {
+        const rows = deriveTimelineRows([running, asked, thought('k1'), call('r1', 'done'), call('b1', 'running')], {
             ...options,
-            activeTurnId: 't2'
+            activeTurnId: 't2',
+            expandedGroups: new Set(expanded ? ['group-r1'] : [])
         });
 
-        expect(rows.find((row) => row.kind === 'live-thought')).toMatchObject({ id: 'live-thought-k2' });
-        expect(kinds([running, asked, call('r1', 'done'), call('b1', 'running'), thought('k1')])).not.toContain('live-thought');
+        expect(rows.filter((row) => row.kind === 'thinking' || row.kind === 'live-thought').map((row) => row.id)).toEqual(['k1']);
+        expect(rows.find((row) => row.kind === 'work-group')).toMatchObject({ id: 'group-r1', expanded });
     });
 
-    test('waits for a call that runs and for a thought with words', () => {
-        expect(kinds([running, asked, thought('k1'), call('r1', 'done'), call('r2', 'done')])).not.toContain('live-thought');
-        expect(kinds([running, asked, thought('k1', ''), call('r1', 'done'), call('b1', 'running')])).not.toContain('live-thought');
-    });
-
-    test('is gone once the turn settles', () => {
-        const settled: ChatItem = { ...running, state: 'done', endedAt: 9000 } as ChatTurnItem;
-        const items = [settled, asked, thought('k1'), call('r1', 'done'), call('b1', 'running')];
-        expect(deriveTimelineRows(items, { ...options, expandedTurns: new Set(['t2']) }).map((row) => row.kind)).not.toContain('live-thought');
+    test('still stands over a separate running image when earlier tools separate it from its thought', () => {
+        const image = { ...call('image', 'running'), name: 'ImageGeneration' };
+        const rows = deriveTimelineRows([running, asked, thought('k1'), call('r1', 'done'), image], { ...options, activeTurnId: 't2' });
+        expect(rows.map((row) => row.kind)).toEqual(['user', 'thinking', 'work-group', 'live-thought', 'work-live', 'working']);
+        expect(rows[3]).toMatchObject({ id: 'live-thought-k1', item: { id: 'k1' }, at: 3000 });
+        expect(kinds([running, asked, thought('k1'), image])).not.toContain('live-thought');
+        expect(kinds([running, asked, call('r1', 'done'), image, thought('k1')])).not.toContain('live-thought');
     });
 });
 
@@ -709,7 +710,7 @@ test("a subagent's handback call reads as its report, and one without a message 
     ].map((item) => ({ ...item, turnId: null }));
 
     const rows = deriveTimelineRows(items, options);
-    expect(rows.map((row) => row.kind)).toEqual(['work', 'report', 'work']);
+    expect(rows.map((row) => row.kind)).toEqual(['work-group', 'report', 'work-group']);
     expect(rows[1]).toEqual({ kind: 'report', id: 'h1', text: '## Review\n\nAll good.' });
 });
 

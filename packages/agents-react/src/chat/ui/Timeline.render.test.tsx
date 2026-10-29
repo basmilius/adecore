@@ -533,24 +533,28 @@ function linesOf(host: HTMLElement): string[] {
     });
 }
 
-test('a run of a program the host names reads as its tool, a run of them as its sentence, and any other shell call as itself', async () => {
+test('tool groups keep the host program branding, and opening a single call reveals its details', async () => {
     await mounted(
         { rowHeights: [40, 60, 40, 60, 40], composerHeight: 0 },
         null,
         async ({ page }) => {
-            expect(linesOf(page.host)).toEqual(['*Orbit* Probelaunch Main Deck(probe-1) --wait 5+ sleep, grep', 'Used *Orbit* link 2 times', 'Bashls -la']);
+            expect(linesOf(page.host)).toEqual(['Used *Orbit* probe 1 times', 'Used *Orbit* link 2 times', 'Ran 1 command']);
             expect(page.host.querySelectorAll('[data-mark="orbit"]')).toHaveLength(2);
+            const group = page.host.querySelector<HTMLButtonElement>('[aria-expanded="false"]')!;
+            await act(async () => group.click());
+            expect(group.getAttribute('aria-expanded')).toBe('true');
+            expect(linesOf(page.host)).toContain('*Orbit* Probelaunch Main Deck(probe-1) --wait 5+ sleep, grep');
         },
         { items: shellThread(), host: LOOKS_HOST }
     );
 });
 
-test('without looks every shell call reads as itself', async () => {
+test('without looks every shell run reads as a command group', async () => {
     await mounted(
         { rowHeights: [40, 60, 40, 60, 40], composerHeight: 0 },
         null,
         async ({ page }) => {
-            expect(linesOf(page.host)).toEqual(['Bashsleep 1; orbit probe launch probe-1 --wait 5 2>&1 | grep ok', 'Ran 2 commands', 'Bashls -la']);
+            expect(linesOf(page.host)).toEqual(['Ran 1 command', 'Ran 2 commands', 'Ran 1 command']);
             expect(page.host.querySelector('[data-mark]')).toBeNull();
         },
         { items: shellThread() }
