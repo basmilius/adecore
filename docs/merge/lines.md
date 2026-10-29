@@ -115,7 +115,7 @@ const display = diffDisplay(document);
 
 ## The source line under a caret
 
-`sourceLineOf(rows, line, character, side)` returns the `DiffSourceLine` (`line` and `column`, both from 1) of the new file that a caret on a display line stands for, or null where the new file has no line. `rows` are one pane's rows with both of their sides: `DiffDisplay.rows` in unified, the `row` of each `DiffSplitRow` with an `old` index for the old pane of a split. `side` is the text the pane shows for a changed line. A removed line stands for the line that took its place, or at the end of its hunk the line before it. The column carries over only where the pane shows the new text.
+`sourceLineOf(rows, hunks, line, character, side)` returns the `DiffSourceLine` (`line` and `column`, both from 1) of the new file that a caret on a display line stands for, or null where the new file has no line. `rows` are one pane's rows with both of their sides: `DiffDisplay.rows` in unified, the `row` of each `DiffSplitRow` with an `old` index for the old pane of a split. `hunks` are the document's. `side` is the text the pane shows for a changed line. A removed line stands for the line that took its place, found within its own hunk; after the last hunk, where the file may end, it is the line before it. The column carries over only where the pane shows the new text.
 
 ## Limits
 

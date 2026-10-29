@@ -67,13 +67,13 @@ function UnifiedDiffView({
     const { t } = useTranslation('editor');
     const emphasis = wordMarks(document);
     const element = useRef<HTMLDivElement>(null);
-    const current = useRef({ display, tokens, theme, wrap, label });
+    const current = useRef({ document, display, tokens, theme, wrap, label });
     const applied = useRef({ theme, wrap, label });
     const [mounted, setMounted] = useState<MountedDiff | null>(null);
     const [height, setHeight] = useState(0);
 
     useLayoutEffect(() => {
-        current.current = { display, tokens, theme, wrap, label };
+        current.current = { document, display, tokens, theme, wrap, label };
     });
 
     useLayoutEffect(() => {
@@ -254,7 +254,7 @@ function UnifiedDiffView({
             at: () => {
                 const caret = editor.getCaret();
 
-                return sourceLineOf(current.current.display.rows, caret.line, caret.character, 'new');
+                return sourceLineOf(current.current.display.rows, current.current.document.hunks, caret.line, caret.character, 'new');
             }
         });
     }, [mounted, engine, onSource]);

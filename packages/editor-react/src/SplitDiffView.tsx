@@ -48,14 +48,14 @@ export function SplitDiffView({
     const emphasis = useMemo(() => wordMarks(document), [document]);
     const oldElement = useRef<HTMLDivElement>(null);
     const newElement = useRef<HTMLDivElement>(null);
-    const current = useRef({ display, tokens, theme, wrap, label });
+    const current = useRef({ document, display, tokens, theme, wrap, label });
     const applied = useRef({ theme, wrap, label });
     const [failure, setFailure] = useState<{ error: unknown } | null>(null);
     const [mounted, setMounted] = useState<MountedSplit | null>(null);
     const [height, setHeight] = useState(0);
 
     useLayoutEffect(() => {
-        current.current = { display, tokens, theme, wrap, label };
+        current.current = { document, display, tokens, theme, wrap, label };
     });
 
     useLayoutEffect(() => {
@@ -349,7 +349,7 @@ export function SplitDiffView({
                 at: () => {
                     const caret = editor.getCaret();
 
-                    return sourceLineOf(rowsOf(side), caret.line, caret.character, side);
+                    return sourceLineOf(rowsOf(side), current.current.document.hunks, caret.line, caret.character, side);
                 }
             });
         });

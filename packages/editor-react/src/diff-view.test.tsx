@@ -212,6 +212,10 @@ test('onSource reads the line of the new file under the caret of each pane, and 
         expect([old!.side, fresh!.side]).toEqual(['old', 'new']);
         expect(old!.at()).toEqual({ line: 2, column: 1 });
         expect(fresh!.at()).toEqual({ line: 2, column: 3 });
+
+        await act(async () => root.render(null));
+
+        expect(stopped).toBe(3);
     });
 });
 
