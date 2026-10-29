@@ -721,7 +721,9 @@ export const ChatNoteItemSchema = z.object({
     // The chat a delivered summary came from, so a client can offer to open it.
     from: ChatIdSchema.optional(),
     // A message another node sent, which a client draws as said to this chat; `text` holds it as a line for one that does not know this.
-    message: ChatNoteMessageSchema.optional()
+    message: ChatNoteMessageSchema.optional(),
+    // What the host told the agent in front of a prompt, which a client draws as said by the host.
+    said: z.literal(true).optional()
 });
 
 export const ChatCompactionItemSchema = z.object({

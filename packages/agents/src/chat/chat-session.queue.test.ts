@@ -727,3 +727,14 @@ describe('what a message pointed at', () => {
         await run.session.dispose();
     });
 });
+
+test('what the agent heard in front of a prompt is a note the host said', async () => {
+    const run = rig({ preambles: ['Host: you take over a conversation'] });
+    run.session.send('Go on');
+    await flush();
+    expect(run.sent[0]?.preamble).toBe('Host: you take over a conversation');
+    expect(run.session.thread.list().filter((item) => item.kind === 'note')).toEqual([
+        expect.objectContaining({ text: 'Host: you take over a conversation', said: true })
+    ]);
+    await run.session.dispose();
+});

@@ -90,6 +90,7 @@ export function Workspace() {
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
 | `useReplyAuthor(scopeId, chatId)`  | The agent is named for screen readers only         | A header over each reply: `{ name, mark? }`.                                                           |
+| `saidBy`                           | A note line                                        | `{ name, mark? }` for what you told the agent in front of a prompt (a note with `said`), drawn as a message under that name. |
 | `visuals`                          | No visuals in a thread                             | A `VisualHost`. See [Visuals](#visuals).                                                               |
 | `accents`                          | No colors                                          | The colors an account may wear: `all`, the `featured` ones, a `label` and the `current` accent.        |
 | `isApplePlatform()`, `isAppShortcut(event)` | From `@adecore/ui`; no shortcut           | Which modifier is Mod, and keys the app keeps even while the composer has focus.                       |

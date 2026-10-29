@@ -55,7 +55,7 @@ export type TimelineRow =
     | ({ kind: 'subagent' } & SubagentBranch)
     | { kind: 'approval'; id: string; item: ChatApprovalItem }
     | { kind: 'question'; id: string; item: ChatQuestionItem }
-    | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }
+    | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string; said?: true }
     // A message another node sent the chat, drawn as said to it under the name of its sender.
     | { kind: 'message'; id: string; message: ChatNoteMessage; createdAt: number }
     | { kind: 'compaction'; id: string; preTokens: number | null }
@@ -461,7 +461,14 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
                 if (item.message !== undefined) {
                     rows.push({ kind: 'message', id: item.id, message: item.message, createdAt: item.createdAt });
                 } else {
-                    rows.push({ kind: 'note', id: item.id, level: item.level, text: item.text, ...(item.from === undefined ? {} : { from: item.from }) });
+                    rows.push({
+                        kind: 'note',
+                        id: item.id,
+                        level: item.level,
+                        text: item.text,
+                        ...(item.from === undefined ? {} : { from: item.from }),
+                        ...(item.said === undefined ? {} : { said: item.said })
+                    });
                 }
 
                 break;

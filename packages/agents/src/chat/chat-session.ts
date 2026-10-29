@@ -6,6 +6,7 @@ import type {
     ChatGoalAction,
     ChatInfo,
     ChatItem,
+    ChatNoteItem,
     ChatNoteMessage,
     ChatQueuedMessage,
     ChatQuoteSource,
@@ -155,6 +156,11 @@ function continuedNoteId(turnId: string): string {
 
 function newId(prefix: string): string {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/* The note of what the agent heard in front of a prompt, which a person reads in the turn it opened. */
+function saidNote(turnId: string, now: number, text: string): ChatNoteItem {
+    return { id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text, said: true };
 }
 
 /*
@@ -1184,7 +1190,7 @@ export class ChatSession {
         const preamble = [words.preamble, context.preamble].filter(Boolean).join('\n\n') || null;
 
         if (context.note) {
-            this.emit([this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: context.note })]);
+            this.emit([this.thread.upsert(saidNote(turnId, now, context.note))]);
         }
 
         const input: TurnInput = { promptId: randomUUID(), text: words.prompt, preamble, attachments: [], mentions: [], skills: [] };
@@ -1271,7 +1277,7 @@ export class ChatSession {
             ...(wake.note === undefined
                 ? []
                 : [this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: wake.note })]),
-            ...(note === null ? [] : [this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: note })]),
+            ...(note === null ? [] : [this.thread.upsert(saidNote(turnId, now, note))]),
             this.thread.patchInfo({ status: this.thread.statusFor(turnId), activeTurnId: turnId })
         ]);
 
@@ -1878,7 +1884,7 @@ export class ChatSession {
         const events = [this.thread.upsert({ id: turnId, kind: 'turn', createdAt: now, turnId, state: 'running', origin: 'user', endedAt: null, costUsd: 0 })];
 
         if (note !== null) {
-            events.push(this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: now, turnId, level: 'info', text: note }));
+            events.push(this.thread.upsert(saidNote(turnId, now, note)));
         }
 
         if (text !== null) {

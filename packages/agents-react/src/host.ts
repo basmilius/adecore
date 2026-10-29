@@ -522,6 +522,8 @@ export interface ChatHost {
     useThreadCards(scopeId: string, chatId: string): readonly ThreadCard[];
     /* A header over every reply with its author and how long ago it began; null names the agent for a screen reader only. */
     useReplyAuthor(scopeId: string, chatId: string): ReplyAuthor | null;
+    /* Who speaks in what the host told the agent in front of a prompt, drawn as a message under its name; left out, that stays a note. */
+    saidBy?: ReplyAuthor;
     /* The pages agents publish, drawn in the thread above their reply; null draws none. */
     visuals: VisualHost | null;
     /* Programs drawn as tools of their own; left out, every shell call reads as itself. */

@@ -9,7 +9,7 @@ import { ChatHostProvider, type ChatHost } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';
-import { AssistantRow, ReplyHeader, SentMessageRow, UserRow } from './MessageRows';
+import { AssistantRow, NoteRow, ReplyHeader, SentMessageRow, UserRow } from './MessageRows';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 
 const scope: ChatScope = {
@@ -254,5 +254,32 @@ describe('a message another node sent', () => {
     test('a sender gone since keeps the name it had', () => {
         const html = renderMessage({ from: 'term-gone', title: 'Build shell', text: 'Green' });
         expect(html).toMatch(/data-chip="gone"[^>]*>.*Build shell<\/span>/);
+    });
+});
+
+describe('what the host told the agent', () => {
+    const renderNote = (saidBy: ChatHost['saidBy']) =>
+        renderToStaticMarkup(
+            createElement(
+                ChatHostProvider,
+                { host: saidBy === undefined ? {} : { saidBy } },
+                createElement(
+                    I18nextProvider,
+                    { i18n },
+                    createElement(NoteRow, { id: 'note-1', level: 'info', text: 'Host: you take over.\nFolder: here', said: true })
+                )
+            )
+        );
+
+    test('is said under the name of the host, which the text no longer leads with', () => {
+        const html = renderNote({ name: 'Host', mark: createElement('svg', { 'data-mark': '' }) });
+        expect(html).toMatch(/<svg data-mark=""><\/svg>Host<\/span>/);
+        expect(html).toContain('you take over.');
+        expect(html).not.toContain('Host: you');
+    });
+
+    test('stays a note for a host that names no one', () => {
+        const html = renderNote(undefined);
+        expect(html).toContain('Host: you take over.');
     });
 });

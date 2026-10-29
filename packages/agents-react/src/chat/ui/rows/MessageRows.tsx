@@ -37,7 +37,9 @@ import { ROW_GUTTER } from '../icons';
 import { useOpenForFind } from '../find-reveal';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 import { UiReply } from '../intelligent-ui/UiReply';
+import { useChatHost, type ReplyAuthor } from '../../../host';
 import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
+import { REFERENCE_TONE, TOKEN_IN_MESSAGE } from '../chips';
 import { copySelectionWithChips } from '../chip-clipboard';
 import { useReferenceLookup } from '../thread-references';
 
@@ -193,31 +195,66 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
  */
 export function SentMessageRow({ chatId, id, message }: { chatId: string; id: string; message: ChatNoteMessage }) {
     const { t } = useTranslation('agent-chat');
-    const [open, setOpen] = useState(false);
-    const long = message.text.split('\n').length > USER_FOLD_LINES || message.text.length > USER_FOLD_CHARS;
     const lookup = useReferenceLookup(chatId);
-    useOpenForFind(id, 'text', setOpen);
 
     return (
         <ReferenceLookupContext value={lookup}>
-            <div data-find-item={id} className="flex flex-col items-start">
-                <MessageHeading>{t('rows.message.heading', { name: message.title || t('rows.message.unnamed') })}</MessageHeading>
-                <div className="mb-1.5 flex max-w-[80%]">
-                    <ReferenceChip id={message.from} lastName={message.title} />
-                </div>
-                <div className="relative max-w-[80%] rounded-2xl bg-surface-hover px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
-                    <div data-find-field="text" className={clsx(long && !open && FOLD)}>
-                        <MessageMarkdown text={message.text} />
-                    </div>
-                    {long && (
-                        <button className="mt-1 flex items-center gap-1 text-xs text-text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
-                            <Icon icon={ChevronDown} size={12} className={clsx('transition-transform', open && 'rotate-180')} />{' '}
-                            {open ? t('rows.user.showLess') : t('rows.user.showAll')}
-                        </button>
-                    )}
-                </div>
-            </div>
+            <SaidMessage
+                id={id}
+                name={message.title || t('rows.message.unnamed')}
+                chip={<ReferenceChip id={message.from} lastName={message.title} />}
+                text={message.text}
+            />
         </ReferenceLookupContext>
+    );
+}
+
+/* What the host told the agent in front of a prompt, said under the host's own name, which the text no longer has to lead with. */
+function HostSaidRow({ id, text, author }: { id: string; text: string; author: ReplyAuthor }) {
+    const prefix = `${author.name}: `;
+    const words = text
+        .split('\n\n')
+        .map((part) => (part.startsWith(prefix) ? part.slice(prefix.length) : part))
+        .join('\n\n');
+
+    return (
+        <SaidMessage
+            id={id}
+            name={author.name}
+            chip={
+                <span className={clsx(TOKEN_IN_MESSAGE, REFERENCE_TONE, 'inline-flex items-center gap-1')}>
+                    {author.mark}
+                    {author.name}
+                </span>
+            }
+            text={words}
+        />
+    );
+}
+
+/* A message the person did not write: a bubble on the left, quieter than theirs, under a chip of who said it. A long one folds. */
+function SaidMessage({ id, name, chip, text }: { id: string; name: string; chip: ReactNode; text: string }) {
+    const { t } = useTranslation('agent-chat');
+    const [open, setOpen] = useState(false);
+    const long = text.split('\n').length > USER_FOLD_LINES || text.length > USER_FOLD_CHARS;
+    useOpenForFind(id, 'text', setOpen);
+
+    return (
+        <div data-find-item={id} className="flex flex-col items-start">
+            <MessageHeading>{t('rows.message.heading', { name })}</MessageHeading>
+            <div className="mb-1.5 flex max-w-[80%]">{chip}</div>
+            <div className="relative max-w-[80%] rounded-2xl bg-surface-hover px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
+                <div data-find-field="text" className={clsx(long && !open && FOLD)}>
+                    <MessageMarkdown text={text} />
+                </div>
+                {long && (
+                    <button className="mt-1 flex items-center gap-1 text-xs text-text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
+                        <Icon icon={ChevronDown} size={12} className={clsx('transition-transform', open && 'rotate-180')} />{' '}
+                        {open ? t('rows.user.showLess') : t('rows.user.showAll')}
+                    </button>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -492,7 +529,17 @@ const NOTE_ICON = {
  * A line from the machine in the thread. A note of more than one line (a summary a fork sent back)
  * shows its first line and folds the rest open as markdown; one that came from a fork leads to it.
  */
-export function NoteRow({ id, level, text, from }: { id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }) {
+export function NoteRow({ id, level, text, from, said }: { id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string; said?: true }) {
+    const { saidBy } = useChatHost();
+
+    if (said && saidBy !== undefined) {
+        return <HostSaidRow id={id} text={text} author={saidBy} />;
+    }
+
+    return <NoteLine id={id} level={level} text={text} from={from} />;
+}
+
+function NoteLine({ id, level, text, from }: { id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }) {
     const { t } = useTranslation('agent-chat');
     const [open, setOpen] = useState(false);
     const breakAt = text.indexOf('\n');
