@@ -1,4 +1,5 @@
 import type { ChatFileChange } from '@adecore/agent-contracts';
+import type { DiffSource } from '@adecore/editor-react';
 import type { DiffContents } from '../full-diff';
 
 export interface UnifiedDiffProps {
@@ -13,4 +14,6 @@ export interface UnifiedDiffProps {
     fill?: boolean;
     /* Both whole texts the patch was made between, with which a person can unfold the lines between hunks. */
     contents?: DiffContents;
+    /* Runs per editor of the diff with a way to ask where its caret stands in the new file. Only the editor diff calls it; the plain fallbacks have no caret. */
+    onSource?(source: DiffSource): void | (() => void);
 }

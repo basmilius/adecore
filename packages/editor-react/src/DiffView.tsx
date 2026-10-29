@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Editor, EditorEngine, EditorLineHighlight, EditorTheme } from '@adecore/editor';
 import { parseChord } from '@adecore/editor/keymap';
-import { diffDisplay, diffSplit, type DiffDocument, type DiffDisplay } from '@adecore/merge';
+import { diffDisplay, diffSplit, sourceLineOf, type DiffDocument, type DiffDisplay, type DiffSourceLine } from '@adecore/merge';
 import { wordMarks } from './diff-wordmarks.ts';
 import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
 import { SplitDiffView } from './SplitDiffView.tsx';
@@ -29,6 +29,16 @@ export interface DiffViewProps {
     className?: string;
     ref?: Ref<HTMLDivElement>;
     onMount?(editor: Editor, side?: 'old' | 'new'): void | (() => void);
+    /* Runs per editor like `onMount`, with a way to ask where its caret stands in the new file, for a host that opens the file there. */
+    onSource?(source: DiffSource): void | (() => void);
+}
+
+export interface DiffSource {
+    readonly editor: Editor;
+    /* `old` or `new` in split, absent in unified. */
+    readonly side?: 'old' | 'new';
+    /* The line and column of the new file under the caret, or null where the new file has none. */
+    at(): DiffSourceLine | null;
 }
 
 interface UnifiedViewProps extends DiffViewProps {
@@ -51,7 +61,8 @@ function UnifiedDiffView({
     label,
     className,
     ref,
-    onMount
+    onMount,
+    onSource
 }: UnifiedViewProps) {
     const { t } = useTranslation('editor');
     const emphasis = wordMarks(document);
@@ -230,6 +241,23 @@ function UnifiedDiffView({
             return onMount?.(mounted.editor);
         }
     }, [mounted, engine, onMount]);
+
+    useLayoutEffect(() => {
+        if (mounted === null || mounted.engine !== engine || onSource === undefined) {
+            return;
+        }
+
+        const { editor } = mounted;
+
+        return onSource({
+            editor,
+            at: () => {
+                const caret = editor.getCaret();
+
+                return sourceLineOf(current.current.display.rows, caret.line, caret.character, 'new');
+            }
+        });
+    }, [mounted, engine, onSource]);
 
     const limit = maxHeight !== undefined && Number.isFinite(maxHeight) && maxHeight > 0 ? maxHeight : Infinity;
 

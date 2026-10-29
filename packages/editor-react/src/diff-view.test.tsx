@@ -6,7 +6,7 @@ import { createSmartEditorEngine, type Editor, type EditorEngine, type LineToken
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { clipboard, createPage, press } from '@adecore/editor/testing';
 import { diffDocument, parsePatch, patchOf, type DiffDocument } from '@adecore/merge';
-import { DiffView } from './DiffView.tsx';
+import { DiffView, type DiffSource } from './DiffView.tsx';
 import type { DiffSourceSide, DiffSourceTokens } from './diff-syntax.ts';
 
 async function pageTest(run: (page: ReturnType<typeof createPage>, root: ReturnType<typeof createRoot>) => Promise<void>): Promise<void> {
@@ -173,6 +173,45 @@ test('unfolding inserts real context while retaining the editor and selection on
         expect(editor!.getText()).toStartWith('line 1\n');
         expect(editor!.textInRange(editor!.getSelection())).toBe('changed');
         expect([...page.host.querySelectorAll('.se-line-number > span:first-child')].map((span) => span.textContent)).toContain('1');
+    });
+});
+
+test('onSource reads the line of the new file under the caret of each pane, and stops with the view', async () => {
+    await pageTest(async (_page, root) => {
+        const document = snapshots('keep\nold\ntail\n', 'keep\nfresh\ntail\n');
+        const engine = createSmartEditorEngine({ tokenizer: async () => null });
+        const sources: DiffSource[] = [];
+        let stopped = 0;
+
+        const onSource = (source: DiffSource) => {
+            sources.push(source);
+
+            return () => {
+                stopped++;
+            };
+        };
+
+        await act(async () => root.render(createElement(DiffView, { engine, document, theme: 'dark', label: 'Review', onSource })));
+        const unified = sources[0]!;
+        const lines = unified.editor.getText().split('\n');
+        unified.editor.setCaret({ line: lines.indexOf('fresh'), character: 3 });
+
+        expect(unified.side).toBeUndefined();
+        expect(unified.at()).toEqual({ line: 2, column: 4 });
+
+        unified.editor.setCaret({ line: lines.indexOf('old'), character: 2 });
+
+        expect(unified.at()).toEqual({ line: 2, column: 1 });
+
+        await act(async () => root.render(createElement(DiffView, { engine, document, layout: 'split', theme: 'dark', label: 'Review', onSource })));
+        const [old, fresh] = sources.slice(1);
+        old!.editor.setCaret({ line: old!.editor.getText().split('\n').indexOf('old'), character: 2 });
+        fresh!.editor.setCaret({ line: fresh!.editor.getText().split('\n').indexOf('fresh'), character: 2 });
+
+        expect(stopped).toBe(1);
+        expect([old!.side, fresh!.side]).toEqual(['old', 'new']);
+        expect(old!.at()).toEqual({ line: 2, column: 1 });
+        expect(fresh!.at()).toEqual({ line: 2, column: 3 });
     });
 });
 
