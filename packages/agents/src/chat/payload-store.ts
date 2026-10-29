@@ -9,7 +9,7 @@ import { isNotFound, writeAtomic, writeAtomicSync } from '../fs.ts';
 import { ChatError } from './errors.ts';
 
 /* How much of a value stored apart the item keeps: what a timeline shows before anyone asks for the rest. */
-export const PAYLOAD_PREVIEW_BYTES = 8 * 1024;
+export const PAYLOAD_PREVIEW_BYTES = 2 * 1024;
 
 const FOLDER_SUFFIX = '.payloads';
 const ID_PATTERN = /^[0-9a-f]{64}$/;

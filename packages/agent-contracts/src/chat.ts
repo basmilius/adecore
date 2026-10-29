@@ -512,7 +512,7 @@ export function workflowAgentIdOf(ref: string): string | null {
 }
 
 /* Past this many UTF-8 bytes a tool's output or a turn's checkpoint diff is stored apart, and the item carries its beginning. */
-export const CHAT_PAYLOAD_INLINE_BYTES = 64 * 1024;
+export const CHAT_PAYLOAD_INLINE_BYTES = 8 * 1024;
 
 // The whole of a value a host keeps apart from the thread; the item carries only its beginning.
 export const ChatPayloadRefSchema = z.object({

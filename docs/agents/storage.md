@@ -34,11 +34,11 @@ A record this version cannot read stays untouched and fails with `chat-unreadabl
 
 ## Large outputs
 
-A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (64 KiB) is stored apart. The record keeps the beginning, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn. `id` is the SHA-256 of the whole.
+A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (8 KiB) is stored apart. The record keeps the first 2 KiB, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn. `id` is the SHA-256 of the whole.
 
 - `chat.toolOutput { chatId, itemId }` returns the whole output (`ChatCore.toolOutput`), and `chat.turnDiff` the whole diff. Anyone who may send requests about the chat may send these.
 - A missing payload fails with `payload-missing`.
-- Records from earlier versions move their large values out on the next read.
+- Records from earlier versions move their large values out on the next read, also those that a higher limit kept inline.
 - A fork copies the payloads it names, so removing the original leaves the fork whole. A clear lets its payloads go.
 - A loaded chat and its attached clients keep its own outputs whole until the chat is opened again. Thread search and agents reading a chat as text see only the beginning.
 
