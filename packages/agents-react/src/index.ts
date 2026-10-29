@@ -10,6 +10,7 @@ export {
     type ComposerDictationProps,
     type ComposerHeaderSlotProps,
     type ComposerSlotProps,
+    type ReferenceIconProps,
     type ComposerSendAction,
     type ComposerSendDraft,
     type SubagentSlotProps,

@@ -3,8 +3,9 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { CircleOff } from 'lucide-react';
 import { Icon } from '@adecore/ui';
+import { useChatHost } from '../../host';
 import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_IN_MESSAGE } from './chips';
-import { REFERENCE_ICONS } from './reference-icons';
+import { referenceGlyph } from './reference-icons';
 import { ReferenceLookupContext } from './reference-lookup';
 
 interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
@@ -58,6 +59,7 @@ export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, class
 export function ReferenceChip({ id, lastName }: { id: string; lastName?: string }) {
     const { t } = useTranslation('agent-chat');
     const { items, open } = useContext(ReferenceLookupContext);
+    const { ReferenceIcon } = useChatHost();
     const item = items.find((candidate) => candidate.id === id);
 
     if (item === undefined) {
@@ -76,7 +78,7 @@ export function ReferenceChip({ id, lastName }: { id: string; lastName?: string 
             kind="reference"
             value={item.id}
             sigil="#"
-            icon={<Icon icon={REFERENCE_ICONS[item.kind]} size={14} className={TOKEN_ICON} />}
+            icon={referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: TOKEN_ICON })}
             label={item.name || t('references.untitled')}
             tone={clsx(REFERENCE_TONE, open !== null && 'hover:bg-text/12')}
             onOpen={open === null ? undefined : () => open(item.id)}

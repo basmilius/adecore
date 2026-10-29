@@ -23,7 +23,7 @@ import type {
     RuntimeMode
 } from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
-import type { Referables } from './chat/chat-references';
+import type { ReferableKind, Referables } from './chat/chat-references';
 import type { TimelineRow } from './chat/logic/timeline';
 import type { FindReveal } from './chat/ui/find-reveal';
 import type { PromptAction } from './prompts/logic/prompts';
@@ -170,6 +170,14 @@ export interface ComposerSlotProps {
     disabled: boolean;
     /* Puts text in the draft at the caret, a space apart from the words beside it, and gives the editor the focus. */
     insert(text: string): void;
+}
+
+/* What an app's own mark of a `#` reference gets: what it points at, and the size and class of the mark it stands in for. */
+export interface ReferenceIconProps {
+    id: string;
+    kind: ReferableKind;
+    size: number;
+    className?: string;
 }
 
 /* What an app's own bar over the composer gets: the chat it stands on, which may be one the bar has nothing for. */
@@ -439,6 +447,12 @@ export interface ChatHost {
     useReferableChats(): ReadonlyArray<{ id: string; title: string }>;
     /* The views and nodes a message of this chat may point at with `#`, under the names they have right now. */
     useReferables?(scopeId: string, chatId: string): Referables;
+    /*
+     * The mark of a view or node a `#` points at, in the picker, the composer and a sent message, such as the icon
+     * a person chose for it. Drawn in the composer's editor outside this provider, so it reads no context of its
+     * own; left out, every reference wears the mark of its kind.
+     */
+    ReferenceIcon?: ComponentType<ReferenceIconProps> | null;
     /* Opens a view or zooms to a node a message points at; left out, a chip opens nothing. */
     openReference?(scopeId: string, id: string): void;
     /* Opens the CLI's own login for an account, somewhere the app can run a command; null offers none. */

@@ -3,6 +3,7 @@ export { type AccountChoice, useAccountChoice, type NewAccountChoice, useNewAcco
 export { transportActions, actionsOf, useChatActions } from './actions';
 export { type ChatSendExtras, ChatClient } from './chat-client';
 export type { ProjectChat, Referable, ReferableKind, Referables } from './chat-references';
+export { REFERENCE_ICONS } from './ui/reference-icons';
 export { sendFromComposer, type ComposerSend } from './composer-send';
 export { stepEffortFromComposer } from './composer-effort';
 export type { EffortStep } from './logic/effort';

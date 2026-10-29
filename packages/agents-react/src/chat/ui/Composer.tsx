@@ -190,7 +190,10 @@ export function Composer({
     const pending = usePendingRequests(chatId);
     const compactionOffer = useCompactionOffer(chatId, info, capabilities?.compaction);
     const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, mentionable: capabilities?.mentions !== false, hasSkills: menus.hasSkills });
-    const editorExtensions = [chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips }), LEAVE_DROPS_TO_THE_CARD];
+    const editorExtensions = [
+        chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips, referenceIcon: host.ReferenceIcon }),
+        LEAVE_DROPS_TO_THE_CARD
+    ];
 
     /* The timeline owns the scroller; this is the one bit of it the composer needs to know. */
     const atEnd = useSyncExternalStore(

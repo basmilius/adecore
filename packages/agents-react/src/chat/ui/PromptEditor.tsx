@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, type SetStateAction } from 'react';
 import clsx from 'clsx';
 import { Surface } from '@adecore/ui';
 import type { ChatSkill } from '@adecore/agent-contracts';
+import { useChatHost } from '../../host';
 import type { Referables } from '../chat-references';
 import { ComposerInput, type ComposerInputHandle } from './ComposerInput';
 import { chipDecorations } from './composer/chips';
@@ -47,6 +48,7 @@ export function PromptEditor({
     disabled = false,
     className
 }: PromptEditorProps) {
+    const host = useChatHost();
     const inputRef = useRef<ComposerInputHandle>(null);
     // A pick writes twice in one event (the text, then what it picked), and the second must build on the first.
     const latest = useRef(value);
@@ -77,7 +79,7 @@ export function PromptEditor({
         label
     });
 
-    const extensions = chipDecorations({ mentions: value.mentions, skills: value.skills, references: menus.referenceChips });
+    const extensions = chipDecorations({ mentions: value.mentions, skills: value.skills, references: menus.referenceChips, referenceIcon: host.ReferenceIcon });
 
     const onKeyDown = (e: KeyboardEvent): boolean => {
         if (e.isComposing) {

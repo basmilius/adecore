@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { SquareSlash, Zap } from 'lucide-react';
 import { FileIcon, Icon, Menu, MiddleTruncate } from '@adecore/ui';
-import { REFERENCE_ICONS } from '../reference-icons';
+import { useChatHost } from '../../../host';
+import { referenceGlyph } from '../reference-icons';
 import type { ComposerMenus as Menus } from './use-composer-menus';
 import { optionIdOf } from './menu-aria';
 
@@ -108,6 +109,7 @@ function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
 /* The views, nodes and chats a `#` offers, what stands on this canvas first, each with its kind or what tells it apart. */
 function ReferenceMenu({ menus }: { menus: Menus }) {
     const { t } = useTranslation('agent-chat');
+    const { ReferenceIcon } = useChatHost();
     const { listId, referenceMatches } = menus;
 
     const groups = (['canvas', 'views'] as const)
@@ -126,7 +128,7 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
 
                                 return (
                                     <MenuOption key={item.id} menus={menus} index={index} className="items-center" onPick={() => menus.chooseReference(item)}>
-                                        <Icon icon={REFERENCE_ICONS[item.kind]} size={14} className="shrink-0 text-text-faint" />
+                                        {referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: 'shrink-0 text-text-faint' })}
                                         <span className="truncate text-text">{item.name}</span>
                                         <span className="ml-auto shrink-0 truncate pl-2 text-text-faint">
                                             {item.detail ?? t(`composer.references.kinds.${item.kind}`)}

@@ -1,13 +1,13 @@
-import { createElement } from 'react';
+import type { ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { syntaxTree } from '@codemirror/language';
 import { Facet, StateField, type EditorState, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
-import { Icon } from '@adecore/ui';
+import type { ReferenceIconProps } from '../../../host';
 import type { ReferableKind } from '../../chat-references';
 import { chipRanges, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
-import { REFERENCE_ICONS } from '../reference-icons';
+import { referenceGlyph } from '../reference-icons';
 import { codeRanges } from './editor';
 
 export interface ChipChoices {
@@ -15,6 +15,8 @@ export interface ChipChoices {
     skills: string[];
     /* Null for a kind the host no longer names, which draws the chip without its mark. */
     references?: ReadonlyArray<ReferenceToken & { kind: ReferableKind | null }>;
+    /* The host's mark of a reference, which the editor draws outside the host's provider. */
+    referenceIcon?: ComponentType<ReferenceIconProps> | null;
 }
 
 const NO_CHOICES: ChipChoices = { mentions: [], skills: [] };
@@ -28,24 +30,28 @@ const referenceMark = Decoration.mark({ class: `${REFERENCE_TONE} ${CHIP_IN_EDIT
 
 const roots = new WeakMap<HTMLElement, Root>();
 
-/* The kind's mark in place of the `#`, the way a sent message draws it. */
+/* The reference's mark in place of the `#`, the way a sent message draws it. */
 class ReferenceIcon extends WidgetType {
+    readonly id: string;
     readonly kind: ReferableKind;
+    readonly hostIcon: ComponentType<ReferenceIconProps> | null;
 
-    constructor(kind: ReferableKind) {
+    constructor(id: string, kind: ReferableKind, hostIcon: ComponentType<ReferenceIconProps> | null) {
         super();
+        this.id = id;
         this.kind = kind;
+        this.hostIcon = hostIcon;
     }
 
     override eq(other: ReferenceIcon): boolean {
-        return other.kind === this.kind;
+        return other.id === this.id && other.kind === this.kind && other.hostIcon === this.hostIcon;
     }
 
     toDOM(): HTMLElement {
         const holder = document.createElement('span');
         holder.className = TOKEN_ICON_IN_EDITOR;
         const root = createRoot(holder);
-        root.render(createElement(Icon, { icon: REFERENCE_ICONS[this.kind], size: 12 }));
+        root.render(referenceGlyph(this.hostIcon, { id: this.id, kind: this.kind, size: 12 }));
         roots.set(holder, root);
 
         return holder;
@@ -60,7 +66,7 @@ class ReferenceIcon extends WidgetType {
 }
 
 function chipMarks(state: EditorState): DecorationSet {
-    const { mentions, skills, references = [] } = state.facet(choices);
+    const { mentions, skills, references = [], referenceIcon = null } = state.facet(choices);
     const kinds = new Map(references.map((token) => [token.id, token.kind]));
     const marks: Range<Decoration>[] = [];
 
@@ -76,7 +82,7 @@ function chipMarks(state: EditorState): DecorationSet {
         const kind = kinds.get(range.value);
 
         if (kind !== undefined && kind !== null) {
-            marks.push(Decoration.replace({ widget: new ReferenceIcon(kind) }).range(range.from, range.from + 1));
+            marks.push(Decoration.replace({ widget: new ReferenceIcon(range.value, kind, referenceIcon) }).range(range.from, range.from + 1));
         }
     }
 
