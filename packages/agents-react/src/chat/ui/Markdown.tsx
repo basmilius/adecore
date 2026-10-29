@@ -1,4 +1,4 @@
-import { createContext, memo, useContext, type ComponentProps, type ReactNode } from 'react';
+import { createContext, memo, useContext, type ComponentProps, type MouseEvent, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Zap } from 'lucide-react';
 import ReactMarkdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
@@ -101,6 +101,19 @@ function languageOf(className: string | undefined): string {
 
 const INLINE_CODE = 'rounded-sm bg-surface-sunken px-1 py-px font-mono text-code box-decoration-clone';
 
+/* A double-click selects a word, which ends at a hyphen or a dot, so a flag or a command would be copied in parts. */
+function selectWholeCode(event: MouseEvent<HTMLElement>): void {
+    window.getSelection()?.selectAllChildren(event.currentTarget);
+}
+
+function PlainCode({ text }: { text: string }) {
+    return (
+        <code className={INLINE_CODE} onDoubleClick={selectWholeCode}>
+            {text}
+        </code>
+    );
+}
+
 /*
  * A path an agent wrote down. It keeps the shape of the code chip it would otherwise be, so a sentence
  * full of them does not shift; `data-file-path` is what the thread's right-click menu reads.
@@ -134,7 +147,7 @@ function InlineCode({ text }: { text: string }) {
     const target = useFileLinkTarget(text);
 
     if (target === null) {
-        return <code className={INLINE_CODE}>{text}</code>;
+        return <PlainCode text={text} />;
     }
 
     return (
@@ -244,7 +257,7 @@ function MarkdownCode({ className, children, plain = false }: { className?: stri
         return lang === 'mermaid' ? <Diagram code={code} /> : <CodeBlock code={code} lang={lang} />;
     }
 
-    return plain ? <code className={INLINE_CODE}>{text}</code> : <InlineCode text={text} />;
+    return plain ? <PlainCode text={text} /> : <InlineCode text={text} />;
 }
 
 const components = {
