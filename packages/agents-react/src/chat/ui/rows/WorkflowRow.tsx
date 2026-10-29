@@ -59,17 +59,22 @@ function Counts({ counts }: { counts: WorkflowCounts }) {
     );
 }
 
-// Keep background progress visible after the launcher turn ends.
+/*
+ * Keep background progress visible after the launcher turn ends. In the flyout over the composer it
+ * has no call to open and is no place in the thread a search jumps to.
+ */
 export function WorkflowRow({
     tool,
     workflow,
     chatId,
-    onOpenAgent
+    onOpenAgent,
+    place = 'thread'
 }: {
     tool: ChatToolItem;
     workflow: ChatWorkflow;
     chatId?: string;
     onOpenAgent?(step: SubagentStep): void;
+    place?: 'thread' | 'flyout';
 }) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
@@ -82,7 +87,7 @@ export function WorkflowRow({
     const phases = workflowPhases(workflow, running);
     const counts = workflowCounts(phases);
     const description = workflowDescription(tool.input);
-    const opens = hasToolBody(tool);
+    const opens = place === 'thread' && hasToolBody(tool);
     const onOpen = refused ? undefined : onOpenAgent;
     const actions = useChatActions();
 
@@ -119,7 +124,7 @@ export function WorkflowRow({
     );
 
     return (
-        <div data-find-item={tool.id} className="mb-1">
+        <div data-find-item={place === 'thread' ? tool.id : undefined} className="mb-1">
             <div className="flex items-center gap-1">
                 <div className="min-w-0 grow">
                     {opens ? (

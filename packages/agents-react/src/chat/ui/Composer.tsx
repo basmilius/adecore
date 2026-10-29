@@ -58,6 +58,8 @@ interface ComposerProps {
     disabled: boolean;
     /* Nothing can be written, while the chat's own prompts are still answered here. */
     readOnly?: boolean;
+    /* Off where the app shows the chat's workflows somewhere else, such as beside its node. */
+    workflowPill?: boolean;
     /* Opened for one CLI from a menu. The model is the remembered one and there is nothing to pick. */
     providerFixed: boolean;
     /* A promise says whether the host took the message, which a send that also opens a new chat waits for. */
@@ -78,7 +80,18 @@ function sendLabelKey(busy: boolean, steerable: boolean, delivery: 'queue' | 'st
     return delivery === 'steer' ? 'composer.steerButton' : 'composer.queueWithSteerButton';
 }
 
-export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabled, readOnly = false, providerFixed, onSend, onRetarget }: ComposerProps) {
+export function Composer({
+    chatId,
+    info,
+    focused,
+    answerPromptsElsewhere,
+    disabled,
+    readOnly = false,
+    workflowPill = true,
+    providerFixed,
+    onSend,
+    onRetarget
+}: ComposerProps) {
     const { t } = useTranslation('agent-chat');
     const host = useChatHost();
     const scope = useChatScope();
@@ -237,7 +250,7 @@ export function Composer({ chatId, info, focused, answerPromptsElsewhere, disabl
                     </Tooltip>
                 </div>
             )}
-            <ChatActivity chatId={chatId} />
+            <ChatActivity chatId={chatId} workflows={workflowPill} />
             <div
                 className={clsx(
                     '@container/composer pointer-events-auto flex flex-col overflow-hidden rounded-2xl border shadow-float backdrop-blur-[14px] focus-ring-within',

@@ -1,14 +1,16 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useShallow } from 'zustand/shallow';
 import { useTranslation } from 'react-i18next';
-import { Activity, MessageCircleQuestionMark, Square, SquareTerminal } from 'lucide-react';
+import { Activity, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
 import type { ChatBackgroundTask, ChatSubagentItem } from '@adecore/agent-contracts';
 import { backgroundCounts } from '../activity';
 import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskIdOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
-import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail } from '../subagent-view';
+import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
+import { flyoutWorkflows, workflowPillOf, type WorkflowCall, type WorkflowWord } from '../workflow-list';
 import { SubagentStopButton } from './SubagentStopButton';
+import { WorkflowRow } from './rows/WorkflowRow';
 import { formatElapsedShort } from '@adecore/ui/format';
 import { Icon, IconButton, Popover, Surface, useNow } from '@adecore/ui';
 import { useChatRow, useChats } from '../../state/chats';
@@ -24,14 +26,19 @@ const NO_ITEMS: readonly string[] = [];
 
 const ROW_BODY = 'flex min-h-9 min-w-0 grow items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left';
 
-/* What the chat keeps working on beside the thread, in one small line over the composer: its sub-agents and what runs in the background. */
-export function ChatActivity({ chatId }: { chatId: string }) {
+/*
+ * What the chat keeps working on beside the thread, in one small line over the composer: its sub-agents,
+ * its workflows and what runs in the background. Without `workflows` an app shows them somewhere else.
+ */
+export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { chatId: string; workflows?: boolean }) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     const order = useChatRow(chatId, (row) => row?.order) ?? NO_ITEMS;
     const before = useChatRow(chatId, (row) => row?.subagentsBefore) ?? NO_ITEMS;
+    const workflowsBefore = useChatRow(chatId, (row) => row?.workflowsBefore) ?? NO_ITEMS;
     const structure = useChatRow(chatId, (row) => row?.structure);
     const subagents = structure === undefined ? [] : flyoutSubagents([...before, ...order], structure);
+    const workflows = structure === undefined || !showsWorkflows ? [] : flyoutWorkflows([...workflowsBefore, ...order], structure);
     const { id, keyOf } = useChatScope();
     const tasks = useHostTasks(id);
     // The infos of these sub-agents' own chats, so the info of any other chat changing does not draw this again.
@@ -53,7 +60,7 @@ export function ChatActivity({ chatId }: { chatId: string }) {
 
     const background = useChatRow(chatId, (row) => row?.info.background) ?? NO_TASKS;
 
-    if (subagents.length === 0 && background.length === 0) {
+    if (subagents.length === 0 && workflows.length === 0 && background.length === 0) {
         return null;
     }
 
@@ -87,6 +94,7 @@ export function ChatActivity({ chatId }: { chatId: string }) {
                 ) : (
                     <Slot chatId={chatId} items={subagents} />
                 ))}
+            {workflows.length > 0 && <WorkflowFlyout chatId={chatId} calls={workflows} />}
             {background.length > 0 && (
                 <Flyout
                     icon={<Icon icon={shells > 0 ? SquareTerminal : Activity} size={14} />}
@@ -121,6 +129,44 @@ function Flyout({ icon, label, heading = label, children }: { icon: ReactNode; l
             <Popover.Popup side="top" className="w-80">
                 <div className="px-2.5 pt-1.5 pb-1 text-xs text-text-faint">{heading}</div>
                 {children}
+            </Popover.Popup>
+        </Popover.Root>
+    );
+}
+
+function WorkflowIcon({ word }: { word: WorkflowWord }) {
+    return word === 'stalled' ? <Icon icon={TriangleAlert} size={14} className="shrink-0 text-status-needs-you" /> : <StatusIcon word={word} />;
+}
+
+/* The workflows as the thread draws them, each with its phases; opening an agent shows its conversation in the thread's place. */
+function WorkflowFlyout({ chatId, calls }: { chatId: string; calls: readonly WorkflowCall[] }) {
+    const { t } = useTranslation('agent-chat');
+    const { show } = useSubagentTrail(chatId);
+    const [open, setOpen] = useState(false);
+    const pill = workflowPillOf(calls);
+
+    const openAgent = (step: SubagentStep): void => {
+        setOpen(false);
+        show(openFromMain(step));
+    };
+
+    return (
+        <Popover.Root open={open} onOpenChange={setOpen}>
+            <Surface
+                render={<Popover.Trigger />}
+                className="pointer-events-auto inline-flex h-7.5 max-w-full min-w-0 items-center gap-1.5 rounded-full px-3 text-xs text-text-muted tabular-nums hover:text-text"
+            >
+                <WorkflowIcon word={pill.word} />
+                <span className="truncate">{pill.label}</span>
+                {calls.length === 1 && <span className="sr-only">, {t(`rows.workflow.${pill.word}`)}</span>}
+            </Surface>
+            <Popover.Popup side="top" className="w-96">
+                <div className="px-2.5 pt-1.5 pb-1 text-xs text-text-faint">{t('activity.workflows', { count: calls.length })}</div>
+                <div className="max-h-96 overflow-auto px-2.5 pb-1.5">
+                    {calls.map((call) => (
+                        <WorkflowRow key={call.id} chatId={chatId} tool={call} workflow={call.workflow} onOpenAgent={openAgent} place="flyout" />
+                    ))}
+                </div>
             </Popover.Popup>
         </Popover.Root>
     );

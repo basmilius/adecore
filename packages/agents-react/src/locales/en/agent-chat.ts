@@ -416,6 +416,11 @@ export default {
         monitors_other: '{{count}} monitors',
         pausedUntil: 'paused until {{time}}',
         progress: '{{done}} of {{total}} sub-agents done',
+        workflow: 'Workflow',
+        workflows_one: '{{count}} workflow',
+        workflows_other: '{{count}} workflows',
+        workflowProgress: '{{name}} · {{done}}/{{total}}',
+        workflowStalled: '{{name}} · no progress',
         needsYou_one: '{{count}} needs you',
         needsYou_other: '{{count}} need you',
         took: {
