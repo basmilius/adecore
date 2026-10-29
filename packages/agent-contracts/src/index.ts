@@ -350,7 +350,11 @@ export {
     ProviderAccountCreateResultSchema,
     type ProviderAccountCreateResult,
     ProviderAccountWatchLoginPayloadSchema,
-    type ProviderAccountWatchLoginPayload
+    type ProviderAccountWatchLoginPayload,
+    ProviderAccountsReorderPayloadSchema,
+    type ProviderAccountsReorderPayload,
+    orderedAccountIds,
+    topAccountOf
 } from './provider-accounts.ts';
 export { isRecord } from './record.ts';
 export {

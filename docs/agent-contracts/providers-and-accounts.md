@@ -103,7 +103,7 @@ An account is one config folder of a CLI, passed through the variable the CLI re
 
 `ProviderAccountIdSchema` is a slug: a lowercase letter, then up to 63 lowercase letters, digits, underscores or hyphens. It is never a path. No account, or an id equal to the provider's kind, means the default account.
 
-`ProviderAccount` is `{ kind, label?, color?, enabled?, home?, shadowHome?, env? }`. Absent `enabled` is on. `home` is the config folder (`~` allowed), absent on the default account. `shadowHome` is Codex only: a separate login folder that shares everything else with `home`. `kind` is a plain string, so records of unknown CLIs still parse and round-trip.
+`ProviderAccount` is `{ kind, label?, color?, enabled?, home?, shadowHome?, env?, order? }`. Absent `enabled` is on. `order` is the account's place among the accounts of its CLI, lowest first. `home` is the config folder (`~` allowed), absent on the default account. `shadowHome` is Codex only: a separate login folder that shares everything else with `home`. `kind` is a plain string, so records of unknown CLIs still parse and round-trip.
 
 `ProviderAccountVariable` is `{ name, value, sensitive, valueRedacted? }`, set on the CLI's environment. The host never sends a sensitive value. It sends `value: ''` with `valueRedacted: true`, and saving that back keeps the stored secret. `secretsAvailable` on the snapshot says whether the host can store secrets.
 
@@ -112,7 +112,8 @@ An account is one config folder of a CLI, passed through the variable the CLI re
 | Request               | Payload and answer                                                                                     |
 | --------------------- | ------------------------------------------------------------------------------------------------------ |
 | `accounts.list`       | The snapshot: `accounts`, `statuses`, `secretsAvailable?`, `loginCommands?` (the terminal sign-in command per CLI) and `chatLogins?` (kinds that sign in from a chat). |
-| `accounts.save`       | The whole map. A missing id is removed, and its folder stays.                                          |
+| `accounts.save`       | The whole map. A missing id is removed, and its folder stays. An account saved without `order` keeps the one it had. |
+| `accounts.reorder`    | `{ kind, ids }`: the accounts of one CLI in a person's order. An account of that CLI left out follows in the order it had; an id of another CLI or one the host does not have is refused. |
 | `accounts.create`     | `{ kind, label, color? }`, with a trimmed label of 1 to 80 characters. Returns the snapshot and the new `id`. |
 | `accounts.refresh`    | Asks every CLI again and answers when all did.                                                         |
 | `accounts.watchLogin` | `{ id }`. Answers at once, then polls the CLI until the account is signed in.                          |

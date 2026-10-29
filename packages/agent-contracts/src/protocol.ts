@@ -60,6 +60,7 @@ import {
     ProviderAccountCreatePayloadSchema,
     ProviderAccountCreateResultSchema,
     ProviderAccountWatchLoginPayloadSchema,
+    ProviderAccountsReorderPayloadSchema,
     ProviderAccountsSavePayloadSchema,
     ProviderAccountsSchema
 } from './provider-accounts.ts';
@@ -114,6 +115,7 @@ export const AGENT_REQUEST_SCHEMAS = {
     'accounts.create': { payload: ProviderAccountCreatePayloadSchema, result: ProviderAccountCreateResultSchema },
     // Answers at once; what the CLI says arrives as `accounts.changed`.
     'accounts.watchLogin': { payload: ProviderAccountWatchLoginPayloadSchema, result: EmptySchema },
+    'accounts.reorder': { payload: ProviderAccountsReorderPayloadSchema, result: ProviderAccountsSchema },
     'usage.summary': { payload: UsageSummaryPayloadSchema, result: UsageSummaryResultSchema },
     'usage.subscribe': { payload: EmptySchema, result: EmptySchema },
     'usage.unsubscribe': { payload: EmptySchema, result: EmptySchema },

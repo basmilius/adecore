@@ -1,18 +1,22 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
-import { AccountDot } from '../agents/AccountDot';
 import { ModelOptionControl } from '../agents/ModelOptionControl';
 import { carryOptions } from '../agents/model-options';
 import { optionWord } from '../agents/option-words';
-import { ACCOUNT_TONE_CLASSES, accountName, accountStatusLine, offeredAccounts, type AccountEntry, type AccountLogin } from '../agents/accounts';
+import { AccountDot } from '../agents/AccountDot';
+import { accountName, offeredAccounts, type AccountEntry, type AccountLogin } from '../agents/accounts';
 import { accountFor, forgetChatSelection, rememberChatAccount, rememberChatSelection, selectionFor, useChatPreferences } from '../chat/preferences';
+import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
+import { useChatHost } from '../host';
+import { useHostCanReorderAccounts } from '../host-hooks';
 import { useChatScope } from '../scope';
+import { reorderAccounts } from './account-actions';
+import { AccountOrderList } from './AccountOrderList';
 import { providerAbilities } from './provider-abilities';
 import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
 import { Button, Icon, Select } from '@adecore/ui';
 import { CliTile } from './parts';
-import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
 
 const PROVIDER_DEFAULT = '';
 
@@ -50,14 +54,18 @@ interface CliDetailProps {
 /* One CLI: what it is, what a new chat of it starts with unless `defaults` is off, and its accounts. */
 export function CliDetail({ provider, entries, defaults, login, onAddAccount, onPickAccount }: CliDetailProps) {
     const { t } = useTranslation('agent-providers');
-    const { id: scopeId } = useChatScope();
+    const scope = useChatScope();
+    const host = useChatHost();
+    const canReorder = useHostCanReorderAccounts(scope.id);
     const preferences = useChatPreferences();
     const selection = selectionFor(preferences, provider.kind);
     const model = provider.models.find((entry) => entry.slug === selection?.model);
-    const machineAccounts = useProviderAccounts(knownAccounts);
-    const picked = accountFor(preferences, scopeId, provider.kind, machineAccounts) ?? provider.kind;
-    const choosable = offeredAccounts(entries ?? [], picked);
     const canAddAccount = login !== null;
+    const ordered = canReorder && entries !== null && entries.length >= 2;
+    // A machine that keeps no order of its accounts starts a new chat on the account picked here.
+    const machineAccounts = useProviderAccounts(knownAccounts);
+    const picked = accountFor(preferences, scope.id, provider.kind, machineAccounts) ?? provider.kind;
+    const choosable = canReorder ? [] : offeredAccounts(entries ?? [], picked);
 
     return (
         <>
@@ -75,7 +83,10 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
                 }
             />
             {defaults && (
-                <SettingsSection title={t('cli.defaults.title')} description={t('cli.defaults.description')}>
+                <SettingsSection
+                    title={t('cli.defaults.title')}
+                    description={t(canReorder ? 'cli.defaults.description' : 'cli.defaults.descriptionWithAccount')}
+                >
                     {choosable.length > 0 && (
                         <SettingsRow
                             searchId="providers.defaults.account"
@@ -90,7 +101,7 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
                                         label: accountName(entry, provider.name),
                                         icon: <AccountDot color={entry.account.color} className="size-2" />
                                     }))}
-                                    onValueChange={(id) => rememberChatAccount(scopeId, provider.kind, id)}
+                                    onValueChange={(id) => rememberChatAccount(scope.id, provider.kind, id)}
                                 />
                             }
                         />
@@ -134,24 +145,18 @@ export function CliDetail({ provider, entries, defaults, login, onAddAccount, on
             {entries === null ? (
                 <p className="text-xs text-text-faint">{t('list.noAccounts')}</p>
             ) : (
-                <SettingsSection title={t('cli.accounts')} footer={canAddAccount ? undefined : t('cli.onlyDefault', { provider: provider.name })}>
-                    {entries.map((entry) => {
-                        const status = accountStatusLine(entry.status, login === 'terminal');
-
-                        return (
-                            <button
-                                key={entry.id}
-                                type="button"
-                                className="flex w-full min-w-0 items-center gap-3 px-4.5 py-3 text-left first:rounded-t-xl last:rounded-b-xl hover:bg-surface-hover"
-                                onClick={() => onPickAccount(entry.id)}
-                            >
-                                <AccountDot color={entry.account.color} />
-                                <span className="min-w-0 grow truncate text-sm text-text">{accountName(entry, provider.name)}</span>
-                                <span className={`shrink-0 text-xs ${ACCOUNT_TONE_CLASSES[status.tone]}`}>{status.text}</span>
-                                <Icon icon={ChevronRight} size={14} className="shrink-0 text-text-faint" />
-                            </button>
-                        );
-                    })}
+                <SettingsSection
+                    title={t('cli.accounts')}
+                    description={ordered ? t('cli.accountsOrder') : undefined}
+                    footer={canAddAccount ? undefined : t('cli.onlyDefault', { provider: provider.name })}
+                >
+                    <AccountOrderList
+                        entries={entries}
+                        providerName={provider.name}
+                        login={login}
+                        onReorder={ordered ? (ids) => void reorderAccounts(scope, host, provider.kind, ids) : null}
+                        onPickAccount={onPickAccount}
+                    />
                 </SettingsSection>
             )}
         </>

@@ -53,7 +53,7 @@ A current key that holds anything wins. Otherwise `legacyKeys` are tried in orde
 ## What the records hold
 
 - Drafts are keyed by chat id, not by scope, so keep chat ids unique on the page. A draft holds its text, mentions, skills, referenced chats, quote and files. `readDraft`, `writeDraft` and `useDrafts` read and write them; `offerDraft(chatId, text)` adds text under the draft.
-- Preferences hold the model per CLI (`selectionByProvider`), the last CLI, the runtime mode for chats and terminals (`full-access` by default), the account per host and CLI (`accountByMachine`), the reading width, the send key, the starred models and `changedAt`. `chatPreferencesPayload` builds the payload of `ChatClient.setPreferences`.
+- Preferences hold the model per CLI (`selectionByProvider`), the last CLI, the runtime mode for chats and terminals (`full-access` by default), the account per host and CLI for a host that keeps no order of its accounts (`accountByMachine`), the reading width, the send key, the starred models and `changedAt`. `chatPreferencesPayload` builds the payload of `ChatClient.setPreferences`.
 - The stash holds up to `STASH_LIMIT` prompts, newest first, for every chat. It keeps text, mentions, skills and file names, not the files.
 - Usage holds the period (`7d`), the metric (`cost`) and the currency (`USD`).
 

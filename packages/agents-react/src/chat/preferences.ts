@@ -1,5 +1,13 @@
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore, onChatStorageConfiguration } from '../storage';
-import type { AgentKind, ChatPreferencesPayload, ModelSelection, ProviderInfo, ProviderAccounts, RuntimeMode } from '@adecore/agent-contracts';
+import {
+    topAccountOf,
+    type AgentKind,
+    type ChatPreferencesPayload,
+    type ModelSelection,
+    type ProviderInfo,
+    type ProviderAccounts,
+    type RuntimeMode
+} from '@adecore/agent-contracts';
 import { persistedJson } from './persisted-json';
 import { DEFAULT_READING_WIDTH, isChatReadingWidth, type ChatReadingWidth } from './reading-width';
 import { DEFAULT_SEND_KEY, isChatSendKey, type ChatSendKey } from './send-key';
@@ -14,7 +22,7 @@ export interface ChatPreferences {
     runtimeMode: RuntimeMode;
     // What an agent started as a terminal node runs in; a chat picks its own mode in the composer.
     terminalRuntimeMode: RuntimeMode;
-    /* Per machine, the account a new agent of each CLI starts under; an account id only means something on its own machine. */
+    /* Per machine that keeps no order of its accounts, the account a new agent of each CLI starts under; an account id only means something on its own machine. */
     accountByMachine: Record<string, Partial<Record<AgentKind, string>>>;
     /* How wide a chat of its own reads. It never reaches a machine. */
     readingWidth: ChatReadingWidth;
@@ -137,12 +145,29 @@ export function withAccount(preferences: ChatPreferences, scopeId: string, provi
     return { ...preferences, accountByMachine: Object.keys(picks).length === 0 ? machines : { ...machines, [scopeId]: picks } };
 }
 
-/* What a machine starts a chat with when it starts one with no client mounting it; `accounts` as `accountFor` takes them. */
-export function chatPreferencesPayload(preferences: ChatPreferences, scopeId: string, accounts?: ProviderAccounts | null): ChatPreferencesPayload {
-    const picks = Object.keys(preferences.accountByMachine[scopeId] ?? {}).flatMap((provider) => {
-        const account = accountFor(preferences, scopeId, provider as AgentKind, accounts);
+/*
+ * What a machine starts a chat with when it starts one with no client mounting it; `accounts` as
+ * `accountFor` takes them. A machine that keeps an order of the accounts (`ordered`) starts on its top
+ * account, which this sends too; an older one still starts on the account picked here.
+ */
+export function chatPreferencesPayload(
+    preferences: ChatPreferences,
+    scopeId: string,
+    accounts?: ProviderAccounts | null,
+    ordered = false
+): ChatPreferencesPayload {
+    const kinds = ordered
+        ? [...new Set(Object.values(accounts?.accounts ?? {}).map((account) => account.kind))]
+        : Object.keys(preferences.accountByMachine[scopeId] ?? {});
 
-        return account === null ? [] : [[provider, account] as const];
+    const picks = kinds.flatMap((provider) => {
+        const account = ordered
+            ? accounts
+                ? topAccountOf(accounts.accounts, provider)
+                : null
+            : accountFor(preferences, scopeId, provider as AgentKind, accounts);
+
+        return account === null || (ordered && account === provider) ? [] : [[provider, account] as const];
     });
 
     return {

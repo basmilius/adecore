@@ -3,8 +3,6 @@ import type { AgentKind, ChatPreferencesPayload, ModelSelection, RuntimeMode } f
 export interface ComposerPreference {
     runtimeMode?: RuntimeMode;
     selection?: ModelSelection;
-    // The account a new chat or agent of this CLI starts under when nothing names one.
-    account?: string;
 }
 
 interface Held {
@@ -44,11 +42,11 @@ export class ComposerPreferences {
             return {};
         }
 
-        const { runtimeMode, selections, accounts } = newest.preference;
+        // The accounts an older client still sends are left out: the order of the accounts decides where a start goes.
+        const { runtimeMode, selections } = newest.preference;
         const selection = selections?.[provider];
-        const account = accounts?.[provider];
 
-        return { ...(runtimeMode ? { runtimeMode } : {}), ...(selection ? { selection } : {}), ...(account ? { account } : {}) };
+        return { ...(runtimeMode ? { runtimeMode } : {}), ...(selection ? { selection } : {}) };
     }
 
     private newest(): Held | null {

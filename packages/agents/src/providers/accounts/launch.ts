@@ -2,7 +2,7 @@ import type { AgentKind } from '@adecore/agent-contracts';
 import { CodedError } from '../../coded-error.ts';
 import type { Env } from './accounts.ts';
 
-export class AccountError extends CodedError<'account-unavailable' | 'account-incompatible'> {}
+export class AccountError extends CodedError<'account-unavailable' | 'account-incompatible' | 'account-off-in-project'> {}
 
 /*
  * The accounts as a terminal or a chat starts a CLI under one. Absent, or the CLI's own kind, is the
@@ -21,6 +21,8 @@ export interface AccountLaunches {
     labelOf(account: string): string;
     /* A CLI started under this account a moment ago, which is what keeps its plan read. */
     launched?(kind: AgentKind, account: string | undefined): void;
+    /* The account a start of this CLI takes when nothing names one: the top one in the person's order that is on. */
+    defaultFor?(kind: AgentKind): string;
 }
 
 export function isDefaultAccountOf(kind: AgentKind, account: string | undefined): boolean {

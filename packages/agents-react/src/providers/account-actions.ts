@@ -54,6 +54,36 @@ export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'noti
     }
 }
 
+/* Puts the accounts of one CLI in this order, showing it at once; a refusal puts the host's order back and says why. */
+export async function reorderAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, kind: AgentKind, ids: readonly string[]): Promise<void> {
+    const store = useProviderAccountsStore.getState();
+    const before = providerAccountsOf(scope.id).accounts;
+
+    if (before !== null) {
+        const accounts = { ...before.accounts };
+
+        for (const [order, id] of ids.entries()) {
+            const account = accounts[id];
+
+            if (account !== undefined) {
+                accounts[id] = { ...account, order };
+            }
+        }
+
+        store.set(scope.id, { ...before, accounts });
+    }
+
+    try {
+        store.set(scope.id, await linkTo(scope).request('accounts.reorder', { kind, ids: [...ids] }));
+    } catch (e) {
+        if (before !== null) {
+            store.set(scope.id, before);
+        }
+
+        host.notify({ id: `providers-reorder-${scope.id}`, kind: 'error', title: words('account.reorderFailed'), description: errorMessage(e) });
+    }
+}
+
 /* An account in a folder the host makes for it; answers its id. Throws what the host said, for the form to show. */
 export async function createAccount(scope: ChatScope, kind: AgentKind, label: string, color: string): Promise<string> {
     const { id, ...accounts } = await linkTo(scope).request('accounts.create', { kind, label, color });

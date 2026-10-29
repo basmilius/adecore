@@ -52,7 +52,7 @@ A frame arrives as `unknown` because the receiver checks it. `onFrame` returns a
 | Delegated work         | `chat.subagent`, `chat.stopSubagent`, `chat.stopTask`, `chat.goal`                                    |
 | Bookmarks              | `chat.addBookmark`, `chat.renameBookmark`, `chat.removeBookmark`                                      |
 | Visuals                | `chat.removeVisual`                                                                                   |
-| Accounts               | `accounts.list`, `accounts.save`, `accounts.refresh`, `accounts.create`, `accounts.watchLogin`        |
+| Accounts               | `accounts.list`, `accounts.save`, `accounts.refresh`, `accounts.create`, `accounts.watchLogin`, `accounts.reorder` |
 | Usage                  | `usage.summary`, `usage.subscribe`, `usage.unsubscribe`, `usage.limits`, `usage.refreshLimits`        |
 
 Not every host implements every request. A host that only runs chats refuses the fork requests with `chat-unsupported` (see [Host](/agents/host#what-a-plain-host-refuses)). Requests without a payload or result use `EmptySchema`, `{}`.

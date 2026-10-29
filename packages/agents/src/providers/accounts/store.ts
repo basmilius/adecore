@@ -1,6 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ProviderAccountIdSchema, ProviderAccountSchema, type AgentKind, type ProviderAccount, type ProviderAccountMap } from '@adecore/agent-contracts';
+import {
+    orderedAccountIds,
+    ProviderAccountIdSchema,
+    ProviderAccountSchema,
+    type AgentKind,
+    type ProviderAccount,
+    type ProviderAccountMap
+} from '@adecore/agent-contracts';
 import { CodedError } from '../../coded-error.ts';
 import { isNotFound, writeAtomic } from '../../fs.ts';
 import type { ChatProvider } from '../provider.ts';
@@ -146,7 +153,9 @@ export function acceptAccounts(
     providers: AccountProviders,
     env: Env,
     isDirectory: (path: string) => boolean,
-    host: AccountsHost = DEFAULT_ACCOUNTS_HOST
+    host: AccountsHost = DEFAULT_ACCOUNTS_HOST,
+    // Only `accounts.reorder` takes the order it is given.
+    takeOrder = false
 ): StoredAccounts {
     const stored: StoredAccounts = {};
     const reserved = { host, folderVariables: folderVariablesOf(providers) };
@@ -173,8 +182,47 @@ export function acceptAccounts(
             throw new InvalidAccountError(`${id}: ${problem}`);
         }
 
-        stored[id] = account;
+        stored[id] = takeOrder ? account : withKeptOrder(account, before[id]);
     }
 
     return stored;
+}
+
+/*
+ * Only `accounts.reorder` moves an account, so a save keeps the place the file has: an older client
+ * strips `order`, and a newer one may send the order it read before a reorder elsewhere.
+ */
+function withKeptOrder(account: ProviderAccount, before: unknown): ProviderAccount {
+    const { order: _sent, ...rest } = account;
+    const order = typeof before === 'object' && before !== null ? (before as { order?: unknown }).order : undefined;
+
+    return typeof order === 'number' ? { ...rest, order } : rest;
+}
+
+/* The map with the accounts of one CLI in this order; one of that CLI not named, such as one made meanwhile, follows in the order it had. */
+export function reorderedAccounts(accounts: ProviderAccountMap, kind: AgentKind, ids: readonly string[]): ProviderAccountMap {
+    if (new Set(ids).size !== ids.length) {
+        throw new InvalidAccountError('an account is named twice in the order');
+    }
+
+    for (const id of ids) {
+        const account = accounts[id];
+
+        if (account === undefined) {
+            throw new InvalidAccountError(`${id}: no account on this machine has that id`);
+        }
+
+        if (account.kind !== kind) {
+            throw new InvalidAccountError(`${id}: it is an account of ${account.kind}, not of ${kind}`);
+        }
+    }
+
+    const order = [...ids, ...orderedAccountIds(accounts, kind).filter((id) => !ids.includes(id))];
+    const reordered: ProviderAccountMap = { ...accounts };
+
+    for (const [place, id] of order.entries()) {
+        reordered[id] = { ...accounts[id], order: place } as ProviderAccount;
+    }
+
+    return reordered;
 }

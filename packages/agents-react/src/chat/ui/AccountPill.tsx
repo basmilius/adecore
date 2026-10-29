@@ -6,9 +6,9 @@ import { useChats } from '../../state/chats';
 import { useChatScope } from '../../scope';
 import { Pill, Tooltip } from '@adecore/ui';
 
-function AccountPillOf({ provider, account }: { provider: AgentKind; account: string | undefined }) {
+function AccountPillOf({ chatId, provider, account }: { chatId: string; provider: AgentKind; account: string | undefined }) {
     const { t } = useTranslation('agent-chat');
-    const choice = useAccountChoice(provider, account);
+    const choice = useAccountChoice(provider, account, chatId);
 
     if (choice === null) {
         return null;
@@ -31,5 +31,5 @@ export function AccountPill({ chatId }: { chatId: string }) {
     const provider = useChats((s) => s.statusByKey[keyOf(chatId)]?.info.provider);
     const account = useChats((s) => s.statusByKey[keyOf(chatId)]?.info.account);
 
-    return provider === undefined ? null : <AccountPillOf provider={provider} account={account} />;
+    return provider === undefined ? null : <AccountPillOf chatId={chatId} provider={provider} account={account} />;
 }

@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { AgentKind, ChatInfo, ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
+import { useHostCanReorderAccounts } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';
 import { errorCode } from '../../../transport';
 import { useChatActions } from '../../actions';
@@ -21,6 +22,7 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
     const { t } = useTranslation('agent-chat');
     const host = useChatHost();
     const scope = useChatScope();
+    const ordered = useHostCanReorderAccounts(scope.id);
     const actions = useChatActions();
     const configuring = useRef(false);
     const [configurationPending, setConfigurationPending] = useState(false);
@@ -52,7 +54,8 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
                     rememberChatSelection(info.provider, patch.selection);
                 }
 
-                if (patch.account) {
+                // On a machine that keeps an order of its accounts an account picked here is this chat's alone; new chats start on its top one.
+                if (patch.account && !ordered) {
                     rememberChatAccount(scope.id, info.provider, patch.account);
                 }
             })

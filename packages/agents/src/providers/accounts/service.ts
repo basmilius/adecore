@@ -3,6 +3,7 @@ import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
     KNOWN_AGENT_KINDS,
+    topAccountOf,
     type AgentKind,
     type ProviderAccount,
     type ProviderAccountCreatePayload,
@@ -34,7 +35,16 @@ import {
 import { AccountError, isDefaultAccountOf, type AccountLaunches } from './launch.ts';
 import { prepareShadowHome, type ShadowHomeReport } from './shadow-home.ts';
 import { ASKED_KINDS, askAccountAs, type AskAccount } from './status.ts';
-import { acceptAccounts, accountsPath, InvalidAccountError, readAccounts, wireAccounts, writeAccounts, type StoredAccounts } from './store.ts';
+import {
+    acceptAccounts,
+    accountsPath,
+    InvalidAccountError,
+    readAccounts,
+    reorderedAccounts,
+    wireAccounts,
+    writeAccounts,
+    type StoredAccounts
+} from './store.ts';
 import { DEFAULT_ACCOUNTS_HOST, platformSecrets, secretKey, SecretsUnavailableError, type AccountsHost, type SecretStore } from './variables.ts';
 
 /* Who is signed in changes by hand and rarely; often enough to notice, rarely enough not to start CLIs all day. */
@@ -343,6 +353,15 @@ export class ProviderAccountsService implements AccountLaunches {
         return this.writes.run(() => this.commit(accounts, this.folderExists));
     }
 
+    defaultFor(kind: AgentKind): string {
+        return topAccountOf(this.accounts, kind);
+    }
+
+    /* Puts the accounts of one CLI in this order; an id of another CLI or one this machine does not have refuses it. */
+    reorder(kind: AgentKind, ids: readonly string[]): Promise<ProviderAccounts> {
+        return this.writes.run(() => this.commit(reorderedAccounts(this.accounts, kind, ids), this.folderExists, true));
+    }
+
     /*
      * An account in a folder of its own under `<home>/accounts`, signed in by nobody yet. A
      * Codex account is a shadow home over the CLI's own folder, so its threads go on under the other.
@@ -437,8 +456,8 @@ export class ProviderAccountsService implements AccountLaunches {
         return { kinds: this.kinds(), get: (kind) => this.providers.get(kind) };
     }
 
-    private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean): Promise<ProviderAccounts> {
-        const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host);
+    private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean, takeOrder = false): Promise<ProviderAccounts> {
+        const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host, takeOrder);
         const { writes, removals } = this.planSecrets(stored);
 
         for (const [key, value] of writes) {

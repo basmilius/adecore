@@ -144,6 +144,23 @@ describe('what a machine is told', () => {
         expect(accountFor(remembered, 'local', 'claude', on)).toBe('claude_work');
         expect(accountFor(remembered, 'local', 'codex', on)).toBeNull();
     });
+
+    test('a machine that keeps an order is told its top account of each CLI, not the one picked here', () => {
+        const remembered = preferences({ accountByMachine: { local: { claude: 'claude_home' } } });
+
+        const accounts: ProviderAccounts = {
+            accounts: {
+                claude: { kind: 'claude', order: 1 },
+                claude_work: { kind: 'claude', order: 0 },
+                claude_home: { kind: 'claude' },
+                codex: { kind: 'codex' }
+            },
+            statuses: []
+        };
+
+        expect(chatPreferencesPayload(remembered, 'local', accounts, true).accounts).toEqual({ claude: 'claude_work' });
+        expect(chatPreferencesPayload(remembered, 'local', null, true).accounts).toBeUndefined();
+    });
 });
 
 describe('the account for new agents', () => {

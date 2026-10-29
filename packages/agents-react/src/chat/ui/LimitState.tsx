@@ -81,7 +81,9 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; 
     const actions = useChatActions();
     const limits = useUsageLimits();
     const [busy, setBusy] = useState(false);
-    const targets = continueTargets(choice.accounts, limits, info.provider, info.account);
+    const targets = continueTargets(choice.accounts, limits, info.provider, info.account).filter((target) =>
+        choice.offered.some((entry) => entry.id === target.id)
+    );
     const unread = limits !== null && hasUnreadAccount(choice.accounts, limits, info.provider, info.account);
 
     useEffect(() => {
@@ -201,7 +203,7 @@ export function LimitDock({ chatId, info }: { chatId: string; info: ChatInfo }) 
     const { t } = useTranslation('agent-chat');
     useFormatLocale();
     const now = useNow(MINUTE_MS, info.limit !== undefined);
-    const choice = useAccountChoice(info.provider, info.account);
+    const choice = useAccountChoice(info.provider, info.account, chatId);
     const view = limitView(info, now);
 
     if (view === null) {

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import type { AgentKind, ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
+import type { AgentKind, ProviderAccount, ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
 import type { AgentEvent } from '../../events.ts';
 import { providerFor } from '../registry.ts';
 import { ProviderAccountsService } from './service.ts';
@@ -205,6 +205,66 @@ describe('ProviderAccountsService', () => {
         expect(stateOf(events.at(-1)!, 'claude')?.state).toBe('checking');
         await service.refresh();
         expect(stateOf(events.at(-1)!, 'claude')?.state).toBe('ready');
+    });
+
+    test("puts the accounts of one CLI in a person's order, and the top one that is on is where a start goes", async () => {
+        const service = await make();
+        await service.save({
+            claude_personal: { kind: 'claude', label: 'Personal', home: '~/.claude_personal' },
+            codex_personal: { kind: 'codex', label: 'Codex', home: '~/.codex_personal' }
+        });
+        expect(service.defaultFor('claude')).toBe('claude');
+
+        const reordered = await service.reorder('claude', ['claude_personal', 'claude']);
+        expect(reordered.accounts.claude_personal?.order).toBe(0);
+        expect(reordered.accounts.claude?.order).toBe(1);
+        expect(reordered.accounts.codex_personal?.order).toBeUndefined();
+        expect(service.defaultFor('claude')).toBe('claude_personal');
+
+        const file = JSON.parse(await readFile(join(dir, 'providers.json'), 'utf8'));
+        expect(file.accounts.claude_personal.order).toBe(0);
+
+        await service.save({ ...reordered.accounts, claude_personal: { ...reordered.accounts.claude_personal, enabled: false } as ProviderAccount });
+        expect(service.defaultFor('claude')).toBe('claude');
+    });
+
+    test('keeps the order of an account an older client saves without one', async () => {
+        const service = await make();
+        await service.save({ claude_personal: { kind: 'claude', label: 'Personal', home: '~/.claude_personal' } });
+        await service.reorder('claude', ['claude_personal', 'claude']);
+        const saved = await service.save({ claude_personal: { kind: 'claude', label: 'Mine', home: '~/.claude_personal' } });
+        expect(saved.accounts.claude_personal).toMatchObject({ label: 'Mine', order: 0 });
+        expect(saved.accounts.claude?.order).toBe(1);
+    });
+
+    test('keeps the order on disk when a save sends the order it read before a reorder', async () => {
+        const service = await make();
+        const before = await service.save({ claude_personal: { kind: 'claude', label: 'Personal', home: '~/.claude_personal' } });
+        await service.reorder('claude', ['claude', 'claude_personal']);
+        const read = await service.reorder('claude', ['claude_personal', 'claude']);
+        expect(read.accounts.claude_personal?.order).toBe(0);
+        const stale = {
+            ...before.accounts,
+            claude: { kind: 'claude', order: 0 },
+            claude_personal: { kind: 'claude', label: 'Mine', home: '~/.claude_personal', order: 1 }
+        };
+        const saved = await service.save(stale);
+        expect(saved.accounts.claude_personal).toMatchObject({ label: 'Mine', order: 0 });
+        expect(saved.accounts.claude?.order).toBe(1);
+        expect(service.defaultFor('claude')).toBe('claude_personal');
+    });
+
+    test('puts an account a reorder leaves out after the ones it names, and refuses another CLI or an unknown id', async () => {
+        const service = await make();
+        await service.save({
+            claude_personal: { kind: 'claude', label: 'Personal', home: '~/.claude_personal' },
+            codex_personal: { kind: 'codex', label: 'Codex', home: '~/.codex_personal' }
+        });
+        const reordered = await service.reorder('claude', ['claude_personal']);
+        expect(reordered.accounts.claude?.order).toBe(1);
+        expect(service.reorder('claude', ['codex_personal'])).rejects.toThrow('codex_personal');
+        expect(service.reorder('claude', ['nobody'])).rejects.toThrow('nobody');
+        expect(service.reorder('claude', ['claude', 'claude'])).rejects.toThrow('twice');
     });
 
     test('refuses a save with a mistake in it and leaves the file alone', async () => {
