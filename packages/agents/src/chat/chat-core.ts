@@ -215,6 +215,12 @@ export interface ChatCoreOptions {
     // The accounts a chat may run under; without them every chat runs under its CLI's default account.
     accounts?: AccountLaunches;
     hooks?: ChatCoreHooks;
+    /*
+     * How long a chat stays in memory once nobody reads it, its CLI is gone and nothing is under way;
+     * after that only its info stays, for `list`, until something loads it again. Without it, or
+     * without a store, a loaded chat stays until it is removed or the host stops.
+     */
+    unloadAfterMs?: number;
 }
 
 /*
@@ -272,6 +278,10 @@ export class ChatCore {
     private readonly nameChat: ChatCoreOptions['nameChat'] | null;
     private readonly onInterruptedRun: ChatCoreOptions['onInterruptedRun'] | null;
     private readonly limitResume: ChatCoreOptions['limitResume'] | null;
+    private readonly unloadAfterMs: number | null;
+    private readonly unloadTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    // The last info of each chat that left memory, so `list` still answers what it was doing.
+    private readonly unloadedInfo = new Map<string, ChatInfo>();
 
     constructor(options: ChatCoreOptions) {
         this.uiQueries = options.intelligentUi ? new ChatUiQueries(options.intelligentUi) : null;
@@ -290,6 +300,7 @@ export class ChatCore {
         this.nameChat = options.nameChat ?? null;
         this.onInterruptedRun = options.onInterruptedRun ?? null;
         this.limitResume = options.limitResume ?? null;
+        this.unloadAfterMs = options.store && options.unloadAfterMs !== undefined ? options.unloadAfterMs : null;
         this.hooks = options.hooks ?? {};
 
         this.commands = {
@@ -549,6 +560,7 @@ export class ChatCore {
         });
 
         this.chats.set(session.id, session);
+        this.unloadedInfo.delete(session.id);
 
         if (stored) {
             session.settleStored(selection, resume);
@@ -557,6 +569,8 @@ export class ChatCore {
         }
 
         await this.hooks.opened?.(session, stored ?? null);
+        // A chat loaded for someone who never attaches, such as a host reading it, leaves again on its own.
+        this.scheduleUnload(session.id);
 
         return session.info;
     }
@@ -642,6 +656,7 @@ export class ChatCore {
         // client is on the list: the text is either in the snapshot or in the stream, never both.
         this.coalescers.get(chatId)?.flush();
         clients.add(clientId);
+        this.cancelUnload(chatId);
         const log = this.logs.get(chatId)!;
         const events = since === undefined ? null : log.after(since);
 
@@ -797,6 +812,7 @@ export class ChatCore {
     detach(chatId: string, clientId: string): void {
         this.coalescers.get(chatId)?.flush();
         this.attached.get(chatId)?.delete(clientId);
+        this.scheduleUnload(chatId);
     }
 
     detachAll(clientId: string): void {
@@ -804,6 +820,7 @@ export class ChatCore {
             if (clients.has(clientId)) {
                 this.coalescers.get(chatId)?.flush();
                 clients.delete(clientId);
+                this.scheduleUnload(chatId);
             }
         }
 
@@ -930,6 +947,8 @@ export class ChatCore {
         if (this.chats.has(chatId) || this.creating.has(chatId)) {
             return false;
         }
+
+        this.unloadedInfo.delete(chatId);
 
         await Promise.all([
             this.store?.delete(chatId),
@@ -1295,21 +1314,9 @@ export class ChatCore {
         // A write already out would put the record back after the delete.
         const writing = this.writes.get(chatId);
         const ended = session.dispose();
-        this.subagents.releaseChat(chatId);
-        this.uiQueries?.forget(chatId);
-        this.coalescers.get(chatId)?.dispose();
-        this.coalescers.delete(chatId);
-        this.logs.get(chatId)?.close();
-        this.logs.delete(chatId);
-        this.cancelWaiting(chatId);
-        this.sizes.delete(chatId);
-        this.unlogged.delete(chatId);
-        this.writes.delete(chatId);
-        this.activity.delete(chatId);
-        this.chats.delete(chatId);
+        this.forgetLoaded(chatId);
         this.attached.delete(chatId);
-        this.listChanges.delete(chatId);
-        this.announced.delete(chatId);
+        this.unloadedInfo.delete(chatId);
         const snapshot = session.thread.snapshot();
         this.hooks.forgotten?.(chatId);
         await writing;
@@ -1349,7 +1356,91 @@ export class ChatCore {
     }
 
     list(): ChatInfo[] {
-        return [...this.chats.values()].map((session) => session.info);
+        return [...[...this.chats.values()].map((session) => session.info), ...this.unloadedInfo.values()];
+    }
+
+    /*
+     * Puts a chat nobody needs in memory back on disk alone: nobody reads it, it has no CLI, no turn,
+     * request, hold or move is under way, and no resume is owed. Answers whether it left. The next
+     * create, attach or note loads it again from its record, as after a restart.
+     */
+    async unloadIdle(chatId: string): Promise<boolean> {
+        this.cancelUnload(chatId);
+
+        if (!this.unloadable(chatId)) {
+            return false;
+        }
+
+        await this.persistNow(chatId, true);
+        const session = this.chats.get(chatId);
+
+        // Someone may have attached or sent while the record was written.
+        if (!session || !this.unloadable(chatId)) {
+            return false;
+        }
+
+        this.forgetLoaded(chatId);
+        this.attached.delete(chatId);
+        this.unloadedInfo.set(chatId, session.info);
+        await session.dispose();
+
+        return true;
+    }
+
+    private unloadable(chatId: string): boolean {
+        const session = this.chats.get(chatId);
+
+        return (
+            session !== undefined &&
+            this.store !== null &&
+            (this.attached.get(chatId)?.size ?? 0) === 0 &&
+            !this.creating.has(chatId) &&
+            !this.relocations.has(chatId) &&
+            session.pid === null &&
+            session.relocatable &&
+            session.info.resumeAt === undefined &&
+            (session.info.requests?.length ?? 0) === 0
+        );
+    }
+
+    private scheduleUnload(chatId: string): void {
+        if (this.unloadAfterMs === null || (this.attached.get(chatId)?.size ?? 0) > 0) {
+            return;
+        }
+
+        this.cancelUnload(chatId);
+
+        const timer = setTimeout(() => {
+            this.unloadTimers.delete(chatId);
+            void this.unloadIdle(chatId).catch((e) => console.error(`Unloading chat ${chatId} failed:`, errorText(e)));
+        }, this.unloadAfterMs);
+
+        timer.unref?.();
+        this.unloadTimers.set(chatId, timer);
+    }
+
+    private cancelUnload(chatId: string): void {
+        clearTimeout(this.unloadTimers.get(chatId));
+        this.unloadTimers.delete(chatId);
+    }
+
+    /* Drops what the core keeps of a loaded chat beside its session, which a kill and an unload share. */
+    private forgetLoaded(chatId: string): void {
+        this.subagents.releaseChat(chatId);
+        this.uiQueries?.forget(chatId);
+        this.coalescers.get(chatId)?.dispose();
+        this.coalescers.delete(chatId);
+        this.logs.get(chatId)?.close();
+        this.logs.delete(chatId);
+        this.cancelWaiting(chatId);
+        this.cancelUnload(chatId);
+        this.sizes.delete(chatId);
+        this.unlogged.delete(chatId);
+        this.writes.delete(chatId);
+        this.activity.delete(chatId);
+        this.chats.delete(chatId);
+        this.listChanges.delete(chatId);
+        this.announced.delete(chatId);
     }
 
     get(chatId: string): ChatSession | undefined {
@@ -1460,6 +1551,7 @@ export class ChatCore {
 
         for (const chatId of this.chats.keys()) {
             this.cancelWaiting(chatId);
+            this.cancelUnload(chatId);
         }
 
         // A thread that cannot be written still ends its CLI, whose process group would otherwise outlive the host.
@@ -1648,6 +1740,9 @@ export class ChatCore {
         for (const clientId of this.attached.get(chatId) ?? []) {
             this.sinks.to(clientId, { event: 'chat.event', payload });
         }
+
+        // A chat nobody reads counts its time from what it said last, such as its CLI going down.
+        this.scheduleUnload(chatId);
 
         // After the thread, so a client reading it has already had this info and the status is a no-op there.
         if (event.type === 'info' || event.type === 'reset') {

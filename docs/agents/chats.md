@@ -78,6 +78,7 @@ Clear and `chat.kill` remove a chat's visuals. A core of your own that forks cha
 | `chat.restart`                          | Ends the CLI and keeps the conversation. The next message resumes it in a fresh process that reloads skills, plugins and servers. Fails with `chat-busy` while a turn, request or background work holds the process. |
 | `chat.kill`                             | Removes the chat (record, log, attachments, bookmarks, visuals) and ends its CLI.               |
 | Detaching or disconnecting              | Stops streaming to that client. The chat goes on.                                                |
+| `ChatCoreOptions.unloadAfterMs`         | Takes a chat out of memory once nobody read it for that long and it has no CLI, turn, request, hold, move or owed resume. Its info stays in `chat.list`; the next create, attach or note loads it from its record, as after a restart. `unloadIdle(chatId)` does it at once. Needs a store. |
 | `host.close()`, `ChatCore.shutdown()`   | Writes every thread, ends every CLI and settles once they exited.                                |
 
 Ending a CLI closes its input, then sends SIGTERM and SIGKILL to its process group. `chat.kill` does not wait. `shutdown` does. Process groups are POSIX, so check ending on every platform you ship.
