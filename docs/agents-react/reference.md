@@ -10,7 +10,7 @@ Wiring the views into an app: the host adapters, the scope, the transport, stora
 
 | Module | Exports |
 | --- | --- |
-| [`host`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/host.ts) | `ChatActions`, `FileRef`, `ShellCodeBlockContext`, `ChatPlace`, `SubagentTask`, `TimelineFindOptions`, `TimelineFind`, `ComposerDictationProps`, `ComposerSlotProps`, `ComposerHeaderSlotProps`, `ComposerSendAction`, `ComposerSendDraft`, `SubagentSlotProps`, `ThreadCard`, `VisualHost`, `HostMenuAction`, `ReplyAuthor`, `ChatHost`, `UiMapSource`, `CommandLook`, `CommandLookMatch`, `CommandName`, `ChatHostProvider`, `useChatHost`, `AccentChoice`, `ChatToast`, `TextareaProps`, `ResourceUrl` |
+| [`host`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/host.ts) | `ChatActions`, `FileRef`, `ShellCodeBlockContext`, `ChatPlace`, `SubagentTask`, `TimelineFindOptions`, `TimelineFind`, `ComposerDictationProps`, `ComposerSlotProps`, `ReferenceIconProps`, `ComposerHeaderSlotProps`, `ComposerSendAction`, `ComposerSendDraft`, `SubagentSlotProps`, `ThreadCard`, `VisualHost`, `HostMenuAction`, `ReplyAuthor`, `ChatHost`, `UiMapSource`, `CommandLook`, `CommandLookMatch`, `CommandName`, `ChatHostProvider`, `useChatHost`, `AccentChoice`, `ChatToast`, `TextareaProps`, `ResourceUrl` |
 | [`scope`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/scope.ts) | `ChatScope`, `ChatScopeContext`, `useChatScope` |
 | [`transport`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/transport.ts) | `ChatRequestMap`, `ChatEventMap`, `ChatTransportStatus`, `ChatTransport`, `ChatTransportError`, `errorCode`, `isConnectionError` |
 | [`port-transport`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/port-transport.ts) | `portTransport`, `PortTransport` |
@@ -30,6 +30,7 @@ A chat outside its views: the client, actions, drafts, preferences, mentions, fo
 | [`chat/actions`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/actions.ts) | `transportActions`, `actionsOf`, `useChatActions` |
 | [`chat/chat-client`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/chat-client.ts) | `ChatSendExtras`, `ChatClient` |
 | [`chat/chat-references`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/chat-references.ts) | `ProjectChat` |
+| [`chat/ui/reference-icons`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/ui/reference-icons.ts) | `REFERENCE_ICONS` |
 | [`chat/composer-effort`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/composer-effort.ts) | `stepEffortFromComposer` |
 | [`chat/composer-send`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/composer-send.ts) | `sendFromComposer`, `ComposerSend` |
 | [`chat/drafts`](https://github.com/basmilius/adecore/blob/main/packages/agents-react/src/chat/drafts.ts) | `EMPTY_DRAFT`, `useDrafts`, `readDraft`, `writeDraft`, `offerDraft`, `ChatDraft` |
