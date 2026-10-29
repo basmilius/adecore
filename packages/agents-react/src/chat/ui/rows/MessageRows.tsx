@@ -187,7 +187,10 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
     );
 }
 
-/* A message another node sent the chat: said to it like a person's, under a chip that names and opens the sender. */
+/*
+ * A message another node sent the chat: a bubble like a person's, under a chip that names and opens the sender,
+ * but on the left, since the person did not write it.
+ */
 export function SentMessageRow({ chatId, id, message }: { chatId: string; id: string; message: ChatNoteMessage }) {
     const { t } = useTranslation('agent-chat');
     const [open, setOpen] = useState(false);
@@ -197,12 +200,12 @@ export function SentMessageRow({ chatId, id, message }: { chatId: string; id: st
 
     return (
         <ReferenceLookupContext value={lookup}>
-            <div data-find-item={id} className="flex flex-col items-end">
+            <div data-find-item={id} className="flex flex-col items-start">
                 <MessageHeading>{t('rows.message.heading', { name: message.title || t('rows.message.unnamed') })}</MessageHeading>
-                <div className="mb-1.5 flex max-w-[80%] justify-end">
+                <div className="mb-1.5 flex max-w-[80%]">
                     <ReferenceChip id={message.from} lastName={message.title} />
                 </div>
-                <div className="relative max-w-[80%] rounded-2xl bg-surface-active px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
+                <div className="relative max-w-[80%] rounded-2xl bg-surface-hover px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
                     <div data-find-field="text" className={clsx(long && !open && FOLD)}>
                         <MessageMarkdown text={message.text} />
                     </div>
