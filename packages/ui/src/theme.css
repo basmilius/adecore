@@ -613,7 +613,9 @@
 
     /* A `Spinner`: Leap from loading-dev (https://github.com/jakubkrehel/loading), MIT, Copyright (c) 2026 Jakub Krehel.
        Each dot turns half a circle over the other two, then slides back one gap at a time; the three
-       are a third of a turn apart, so at every moment one dot is in the air. */
+       are a third of a turn apart, so at every moment one dot is in the air. The hops move in steps:
+       a smooth one changes every frame and keeps the compositor drawing the window at the display's
+       rate for as long as anything works. The three share their step boundaries, so a step is one frame. */
     .spinner {
         --spinner-duration: 1800ms;
         --spinner-dot: round(calc(var(--spinner-size) * 0.22), 1px);
@@ -631,7 +633,7 @@
         left: calc(var(--spinner-size) - var(--spinner-dot) - var(--spinner-gap) * 2);
         width: calc(var(--spinner-gap) * 2 + var(--spinner-dot));
         height: var(--spinner-dot);
-        animation: spinner-hop var(--spinner-duration) ease-in-out infinite;
+        animation: spinner-hop var(--spinner-duration) steps(10) infinite;
         animation-delay: calc(var(--spinner-duration) * (var(--spinner-step) - 3) / 3);
     }
     .spinner-dot {

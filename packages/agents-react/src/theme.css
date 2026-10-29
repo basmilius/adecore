@@ -123,14 +123,16 @@
     .chat-diff { font-size: var(--text-code); --diffs-font-size: var(--text-code); --diffs-font-family: var(--font-mono); }
     .chat-diff + .chat-diff { border-top: 1px solid var(--border); }
 
-    /* Live tool rows shine once across; a paused animation costs nothing. */
+    /* Live tool rows shine once across; a paused animation costs nothing. A background position is
+       painted on the main thread, so a smooth shine repaints the row every frame; 30 steps keep it
+       moving at a fraction of the paints. */
     .chat-live-text {
         background: linear-gradient(90deg, var(--text-muted) 0%, var(--text) 50%, var(--text-muted) 100%);
         background-size: 200% 100%;
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
-        animation: chat-shine 1.6s linear infinite;
+        animation: chat-shine 1.6s steps(30) infinite;
     }
     @keyframes chat-shine { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 
