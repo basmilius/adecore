@@ -97,10 +97,35 @@ function NavTab({ section }: { section: SettingsSectionEntry }) {
 
 function SettingsNav({ groups, footer, account }: Pick<SettingsDialogProps, 'groups' | 'footer' | 'account'>) {
     const { t } = useTranslation('ui');
+    const list = useRef<HTMLDivElement>(null);
+
+    // A list cut off by the footer fades at the edge that hides a section, so the cut never reads as the end.
+    useEffect(() => {
+        const element = list.current;
+
+        if (!element) {
+            return;
+        }
+
+        const mark = (): void => {
+            element.toggleAttribute('data-fade-start', element.scrollTop > 0);
+            element.toggleAttribute('data-fade-end', Math.ceil(element.scrollTop + element.clientHeight) < element.scrollHeight);
+        };
+
+        mark();
+        const observer = new ResizeObserver(mark);
+        observer.observe(element);
+        element.addEventListener('scroll', mark, { passive: true });
+
+        return () => {
+            observer.disconnect();
+            element.removeEventListener('scroll', mark);
+        };
+    }, []);
 
     return (
         <Tabs.List aria-label={t('settings.sections')} activateOnFocus className="flex min-h-0 grow flex-col">
-            <div className="flex min-h-0 flex-col gap-3.5 overflow-y-auto">
+            <div ref={list} className="scroll-fade-y flex min-h-0 flex-col gap-3.5 overflow-y-auto">
                 {groups.map((group) => (
                     <div key={group.sections[0]!.id} className="flex flex-col gap-0.5">
                         {group.label !== null && <span className="px-2.5 pt-2.5 pb-1 text-xs font-medium text-text-faint">{group.label}</span>}
@@ -272,8 +297,9 @@ export function SettingsDialog({
             }}
         >
             {/* The width steps down with the viewport: a narrower navigation on a tablet, and a menu of
-                sections instead of the column where even that leaves the panes too little room. */}
-            <DialogPopup ref={ref} className={clsx('flex h-[760px] w-[1200px]', className)}>
+                sections instead of the column where even that leaves the panes too little room. The
+                height keeps the whole navigation in view where the screen allows it. */}
+            <DialogPopup ref={ref} className={clsx('flex h-[min(840px,calc(100dvh-64px))] w-[1200px]', className)}>
                 <Tabs.Root
                     value={meta.id}
                     onValueChange={(value) => onNavigate({ section: value as string })}
