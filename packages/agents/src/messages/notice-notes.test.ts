@@ -40,7 +40,9 @@ describe('NoticeNotes', () => {
 describe('unshownNotes', () => {
     test('a chat that loads shows what landed while nobody held it once, and leaves the model its copy', async () => {
         await store.put(left('read the plan'));
-        expect(await unshownNotes(store, 'chat-2', words)).toEqual(['Lead wrote: read the plan']);
+        expect(await unshownNotes(store, 'chat-2', words)).toEqual([
+            { text: 'Lead wrote: read the plan', message: { from: 'chat-1', title: 'Lead', text: 'read the plan' } }
+        ]);
         expect(await unshownNotes(store, 'chat-2', words)).toEqual([]);
         expect(new NoticeNotes(store, 'chat-2', words).next().heard).toEqual(['node chat-1 sent you: read the plan']);
     });

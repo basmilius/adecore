@@ -120,6 +120,10 @@ export default {
             showLess: 'Minder tonen',
             quoteGone: 'Geciteerd antwoord staat niet meer in deze chat.'
         },
+        message: {
+            heading: 'Bericht van {{name}}',
+            unnamed: 'een andere node'
+        },
         report: {
             heading: 'Rapport'
         },

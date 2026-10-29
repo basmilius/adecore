@@ -710,13 +710,18 @@ export function abortedByEnd(turn: { id: string; state: string }, items: readonl
 /* The id prefix of the note a host leaves in a parent about a child that waits on a request. */
 export const WAITING_NOTE_PREFIX = 'waiting-';
 
+/* A message another node sent a chat: its id, the name it had on the canvas then, and what it said. */
+export const ChatNoteMessageSchema = z.object({ from: z.string().min(1), title: z.string(), text: z.string() });
+
 export const ChatNoteItemSchema = z.object({
     ...base,
     kind: z.literal('note'),
     level: z.enum(['info', 'warning', 'error']),
     text: z.string(),
     // The chat a delivered summary came from, so a client can offer to open it.
-    from: ChatIdSchema.optional()
+    from: ChatIdSchema.optional(),
+    // A message another node sent, which a client draws as said to this chat; `text` holds it as a line for one that does not know this.
+    message: ChatNoteMessageSchema.optional()
 });
 
 export const ChatCompactionItemSchema = z.object({
@@ -752,6 +757,7 @@ export type ChatApprovalItem = z.infer<typeof ChatApprovalItemSchema>;
 export type ChatQuestionItem = z.infer<typeof ChatQuestionItemSchema>;
 export type ChatTurnItem = z.infer<typeof ChatTurnItemSchema>;
 export type ChatNoteItem = z.infer<typeof ChatNoteItemSchema>;
+export type ChatNoteMessage = z.infer<typeof ChatNoteMessageSchema>;
 export type ChatCompactionItem = z.infer<typeof ChatCompactionItemSchema>;
 
 /*

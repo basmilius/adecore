@@ -9,10 +9,15 @@ export const FOLLOW_THRESHOLD_PX = 40;
  * A seam where tool lines meet prose gets the block gap, and so does the row under a visual or an app's
  * card, which have no margin of their own. A question and the answer after it never take a seam.
  */
+/* A person's message, or one another node sent: both are said to the chat and drawn the same way. */
+export function saidToChat(row: TimelineRow): boolean {
+    return row.kind === 'user' || row.kind === 'message';
+}
+
 export function rowRhythm(row: TimelineRow, previous: TimelineRow | null): string {
-    const question = row.kind === 'user';
+    const question = saidToChat(row);
     const bare = previous?.kind === 'visual' || previous?.kind === 'app-card';
-    const seam = !question && previous !== null && previous.kind !== 'user' && (isBlock(row) !== isBlock(previous) || bare);
+    const seam = !question && previous !== null && !saidToChat(previous) && (isBlock(row) !== isBlock(previous) || bare);
 
     return clsx(question && 'pb-(--chat-answer-gap)', seam && 'pt-(--chat-block-gap)');
 }
@@ -23,7 +28,7 @@ export function rowRhythm(row: TimelineRow, previous: TimelineRow | null): strin
  * starts halfway through a reply has no time to show.
  */
 export function replyHeader(row: TimelineRow, previous: TimelineRow | null): { at: number | null } | null {
-    if (row.kind === 'user' || row.kind === 'turn-start') {
+    if (saidToChat(row) || row.kind === 'turn-start') {
         return null;
     }
 
@@ -33,6 +38,10 @@ export function replyHeader(row: TimelineRow, previous: TimelineRow | null): { a
 
     if (previous.kind === 'user') {
         return { at: previous.item.createdAt };
+    }
+
+    if (previous.kind === 'message') {
+        return { at: previous.createdAt };
     }
 
     if (previous.kind === 'turn-start') {

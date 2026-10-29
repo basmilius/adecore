@@ -4,6 +4,7 @@ import type {
     ChatAssistantItem,
     ChatCheckpointDiff,
     ChatItem,
+    ChatNoteMessage,
     ChatQuestionItem,
     ChatSubagentItem,
     ChatThinkingItem,
@@ -55,6 +56,8 @@ export type TimelineRow =
     | { kind: 'approval'; id: string; item: ChatApprovalItem }
     | { kind: 'question'; id: string; item: ChatQuestionItem }
     | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }
+    // A message another node sent the chat, drawn as said to it under the name of its sender.
+    | { kind: 'message'; id: string; message: ChatNoteMessage; createdAt: number }
     | { kind: 'compaction'; id: string; preTokens: number | null }
     | {
           kind: 'changed-files';
@@ -455,7 +458,11 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
 
                 break;
             case 'note':
-                rows.push({ kind: 'note', id: item.id, level: item.level, text: item.text, ...(item.from === undefined ? {} : { from: item.from }) });
+                if (item.message !== undefined) {
+                    rows.push({ kind: 'message', id: item.id, message: item.message, createdAt: item.createdAt });
+                } else {
+                    rows.push({ kind: 'note', id: item.id, level: item.level, text: item.text, ...(item.from === undefined ? {} : { from: item.from }) });
+                }
 
                 break;
             case 'compaction':
@@ -601,6 +608,29 @@ function chunksByTurn(items: ChatItem[]): TurnChunk[] {
     return chunks;
 }
 
+/* Whether every node whose message opened the turn has that message among the rows right above it. */
+function opensUnderItsMessages(turn: ChatTurnItem, rows: readonly TimelineRow[]): boolean {
+    const from = turn.messageFrom ?? [];
+
+    if (from.length === 0) {
+        return false;
+    }
+
+    const senders = new Set<string>();
+
+    for (let i = rows.length - 1; i >= 0; i--) {
+        const row = rows[i]!;
+
+        if (row.kind !== 'message') {
+            break;
+        }
+
+        senders.add(row.message.from);
+    }
+
+    return from.every((id) => senders.has(id));
+}
+
 /* The whole thread as rows; items without a turn (older records) are shown as they are. */
 export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions): TimelineRow[] {
     const rows: TimelineRow[] = [];
@@ -617,7 +647,8 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const turn = chunk.items.find((item): item is ChatTurnItem => item.kind === 'turn');
         const conversation = chunk.items.filter((item) => item.kind !== 'turn');
 
-        if (turn?.origin === 'agent') {
+        // A turn a message opened needs no line of its own when that message stands right above it.
+        if (turn?.origin === 'agent' && !opensUnderItsMessages(turn, rows)) {
             // The agent started this one itself, so there is no message of the person to show above it.
             rows.push({ kind: 'turn-start', id: `start-${turnId}`, turn, label: agentTurnLabel(turn) });
         }

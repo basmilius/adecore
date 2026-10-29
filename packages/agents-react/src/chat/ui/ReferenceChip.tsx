@@ -51,15 +51,23 @@ export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, class
     );
 }
 
-/* A view, node or chat a message points at, under the name it has now; one that went says so. */
-export function ReferenceChip({ id }: { id: string }) {
+/*
+ * A view, node or chat a message points at, under the name it has now. One that went says so, under
+ * `lastName` when the message knows what it was called.
+ */
+export function ReferenceChip({ id, lastName }: { id: string; lastName?: string }) {
     const { t } = useTranslation('agent-chat');
     const { items, open } = useContext(ReferenceLookupContext);
     const item = items.find((candidate) => candidate.id === id);
 
     if (item === undefined) {
         return (
-            <TokenChip kind="gone" icon={<Icon icon={CircleOff} size={14} className={TOKEN_ICON} />} label={t('references.gone')} tone={REFERENCE_GONE_TONE} />
+            <TokenChip
+                kind="gone"
+                icon={<Icon icon={CircleOff} size={14} className={TOKEN_ICON} />}
+                label={lastName || t('references.gone')}
+                tone={REFERENCE_GONE_TONE}
+            />
         );
     }
 

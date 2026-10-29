@@ -261,6 +261,45 @@ describe('deriveTimelineRows', () => {
         expect(deriveTimelineRows(running, { ...options, activeTurnId: 'ta' }).map((row) => row.kind)).toEqual(['turn-start', 'work', 'working']);
     });
 
+    test('a message another node sent is said to the chat, and the turn it opened needs no line of its own', () => {
+        const note = (id: string, from: string): ChatItem => ({
+            id,
+            kind: 'note',
+            createdAt: 500,
+            turnId: null,
+            level: 'info',
+            text: `${from} sent a message: go`,
+            message: { from, title: from, text: 'go' }
+        });
+
+        const turn: ChatTurnItem = {
+            id: 'tm',
+            kind: 'turn',
+            createdAt: 1000,
+            turnId: 'tm',
+            state: 'done',
+            origin: 'agent',
+            label: 'Message from Lead',
+            messageFrom: ['lead'],
+            endedAt: 2000,
+            costUsd: 0
+        };
+
+        const answer: ChatItem = { id: 'am', kind: 'assistant', createdAt: 1500, turnId: 'tm', text: 'On it.', streaming: false };
+        const rows = deriveTimelineRows([note('n1', 'lead'), turn, answer], options);
+        expect(rows.map((row) => row.kind)).toEqual(['message', 'assistant']);
+        expect(rows[0]).toMatchObject({ message: { from: 'lead', title: 'lead', text: 'go' }, createdAt: 500 });
+
+        // A turn opened by a sender whose message is not right above it keeps its line.
+        const both: ChatTurnItem = { ...turn, messageFrom: ['lead', 'docs'] };
+        expect(deriveTimelineRows([note('n1', 'lead'), both, answer], options).map((row) => row.kind)).toEqual(['message', 'turn-start', 'assistant']);
+        expect(deriveTimelineRows([note('n1', 'lead'), note('n2', 'docs'), both, answer], options).map((row) => row.kind)).toEqual([
+            'message',
+            'message',
+            'assistant'
+        ]);
+    });
+
     test('pending approvals and questions stay off the transcript, answered ones are history', () => {
         const items: ChatItem[] = [
             { id: 't3', kind: 'turn', createdAt: 1, turnId: 't3', state: 'running', endedAt: null, costUsd: 0 },

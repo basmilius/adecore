@@ -6,6 +6,7 @@ import type {
     ChatApprovalItem,
     ChatAttachment,
     ChatAssistantItem,
+    ChatNoteMessage,
     ChatQuestionItem,
     ChatThinkingItem,
     ChatUiChoiceOrigin,
@@ -181,6 +182,37 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                         )}
                     </div>
                 )}
+            </div>
+        </ReferenceLookupContext>
+    );
+}
+
+/* A message another node sent the chat: said to it like a person's, under a chip that names and opens the sender. */
+export function SentMessageRow({ chatId, id, message }: { chatId: string; id: string; message: ChatNoteMessage }) {
+    const { t } = useTranslation('agent-chat');
+    const [open, setOpen] = useState(false);
+    const long = message.text.split('\n').length > USER_FOLD_LINES || message.text.length > USER_FOLD_CHARS;
+    const lookup = useReferenceLookup(chatId);
+    useOpenForFind(id, 'text', setOpen);
+
+    return (
+        <ReferenceLookupContext value={lookup}>
+            <div data-find-item={id} className="flex flex-col items-end">
+                <MessageHeading>{t('rows.message.heading', { name: message.title || t('rows.message.unnamed') })}</MessageHeading>
+                <div className="mb-1.5 flex max-w-[80%] justify-end">
+                    <ReferenceChip id={message.from} lastName={message.title} />
+                </div>
+                <div className="relative max-w-[80%] rounded-2xl bg-surface-active px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
+                    <div data-find-field="text" className={clsx(long && !open && FOLD)}>
+                        <MessageMarkdown text={message.text} />
+                    </div>
+                    {long && (
+                        <button className="mt-1 flex items-center gap-1 text-xs text-text-muted hover:text-text" onClick={() => setOpen((o) => !o)}>
+                            <Icon icon={ChevronDown} size={12} className={clsx('transition-transform', open && 'rotate-180')} />{' '}
+                            {open ? t('rows.user.showLess') : t('rows.user.showAll')}
+                        </button>
+                    )}
+                </div>
             </div>
         </ReferenceLookupContext>
     );

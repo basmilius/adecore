@@ -6,6 +6,7 @@ import type {
     ChatGoalAction,
     ChatInfo,
     ChatItem,
+    ChatNoteMessage,
     ChatQueuedMessage,
     ChatQuoteSource,
     ChatSkill,
@@ -1470,8 +1471,18 @@ export class ChatSession {
     }
 
     /* A line in the thread outside any turn, for something the host has to say about work it gave up on. */
-    addNote(level: 'info' | 'warning' | 'error', text: string): void {
-        this.emit([this.thread.upsert({ id: newId('note'), kind: 'note', createdAt: Date.now(), turnId: null, level, text })]);
+    addNote(level: 'info' | 'warning' | 'error', text: string, message?: ChatNoteMessage): void {
+        this.emit([
+            this.thread.upsert({
+                id: newId('note'),
+                kind: 'note',
+                createdAt: Date.now(),
+                turnId: null,
+                level,
+                text,
+                ...(message === undefined ? {} : { message })
+            })
+        ]);
         this.options.persist();
     }
 

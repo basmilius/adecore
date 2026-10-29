@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ChatTurnItem } from '@adecore/agent-contracts';
+import type { ChatNoteMessage, ChatTurnItem } from '@adecore/agent-contracts';
 import type { ChatSession } from '../chat/chat-session.ts';
 import { chatNoticeTargets, deliverToChat, showNotices, turnFromMessage, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
 import { NoticeStore, type Notice } from './notice-store.ts';
@@ -122,10 +122,11 @@ describe('chatNoticeTargets', () => {
 });
 
 describe('showNotices', () => {
-    const chat = (has: boolean, lines: string[]): NoticeChat => ({
+    const chat = (has: boolean, lines: string[], messages: ChatNoteMessage[] = []): NoticeChat => ({
         has: () => Promise.resolve(has),
-        note: (_id, text) => {
+        note: (_id, text, message) => {
             lines.push(text);
+            messages.push(message);
 
             return Promise.resolve();
         }
@@ -138,6 +139,13 @@ describe('showNotices', () => {
         await showNotices(store, chat(true, lines), words, 'chat-2');
         await showNotices(store, chat(true, lines), words, 'chat-2');
         expect(lines).toEqual(['Lead wrote: the build is green', 'Lead wrote: and the tests']);
+    });
+
+    test('hands each line the message it is about, so a client can draw it as said to the chat', async () => {
+        const messages: ChatNoteMessage[] = [];
+        await store.put(left('the build is green'));
+        await showNotices(store, chat(true, [], messages), words, 'chat-2');
+        expect(messages).toEqual([{ from: 'chat-1', title: 'Lead', text: 'the build is green' }]);
     });
 
     test('an id no chat holds keeps its messages unshown, for the chat that opens on it later', async () => {

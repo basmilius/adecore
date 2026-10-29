@@ -17,6 +17,7 @@ import {
     type ChatGoalAction,
     type ChatInfo,
     type ChatItem,
+    type ChatNoteMessage,
     type ChatQueuedMessage,
     type ChatUiChoicePayload,
     type ChatUiQueryPayload,
@@ -974,7 +975,7 @@ export class ChatCore {
     }
 
     /* A line from the host in a chat's thread, loading the chat when nobody has; nothing for a chat that is gone. */
-    async addNote(chatId: string, level: 'info' | 'warning' | 'error', text: string): Promise<void> {
+    async addNote(chatId: string, level: 'info' | 'warning' | 'error', text: string, message?: ChatNoteMessage): Promise<void> {
         await this.loaded(chatId);
 
         if (!(await this.hasStored(chatId))) {
@@ -985,7 +986,7 @@ export class ChatCore {
             await this.create({ chatId });
         }
 
-        this.chats.get(chatId)?.addNote(level, text);
+        this.chats.get(chatId)?.addNote(level, text, message);
     }
 
     /*

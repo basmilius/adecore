@@ -49,6 +49,8 @@ export function messageTextOf(row: TimelineRow): string | null {
             return row.item.result ?? row.item.summary ?? null;
         case 'note':
             return row.text;
+        case 'message':
+            return row.message.text || null;
         default:
             return null;
     }

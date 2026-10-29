@@ -1,5 +1,6 @@
+import type { ChatNoteMessage } from '@adecore/agent-contracts';
 import type { PromptNotes } from '../chat/chat-session.ts';
-import type { MessageWords } from './deliver-notice.ts';
+import { noticeMessage, type MessageWords } from './deliver-notice.ts';
 import type { NoticeStore } from './notice-store.ts';
 
 /*
@@ -29,6 +30,10 @@ export class NoticeNotes implements PromptNotes {
  * The lines a chat that just loaded owes a person for what landed while nobody held it, marked so a
  * reload writes none again. The model still hears the messages themselves from the queue.
  */
-export async function unshownNotes(store: Pick<NoticeStore, 'show'>, chatId: string, words: Pick<MessageWords, 'shown'>): Promise<string[]> {
-    return (await store.show(chatId)).map((notice) => words.shown(notice));
+export async function unshownNotes(
+    store: Pick<NoticeStore, 'show'>,
+    chatId: string,
+    words: Pick<MessageWords, 'shown'>
+): Promise<{ text: string; message: ChatNoteMessage }[]> {
+    return (await store.show(chatId)).map((notice) => ({ text: words.shown(notice), message: noticeMessage(notice) }));
 }

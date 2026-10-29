@@ -1,7 +1,7 @@
 import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 import type { TimelineRow } from '../../logic/timeline';
-import { rowPosition, rowRhythm } from './row-rhythm';
+import { rowPosition, rowRhythm, saidToChat } from './row-rhythm';
 
 export interface RowContainerProps {
     row: TimelineRow;
@@ -25,7 +25,7 @@ export function RowContainer({ row, previous, index, top, ref, children }: RowCo
                 wide ? 'chat-wide-content' : 'chat-column-content',
                 rowRhythm(row, previous),
                 // Turn gaps belong inside the measurement used by the virtualizer.
-                row.kind === 'user' && index > 0 && 'pt-(--chat-turn-gap)'
+                saidToChat(row) && index > 0 && 'pt-(--chat-turn-gap)'
             )}
             style={rowPosition(row.kind, top)}
         >

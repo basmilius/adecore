@@ -120,6 +120,10 @@ export default {
             showLess: 'Show less',
             quoteGone: 'Quoted reply no longer in this chat.'
         },
+        message: {
+            heading: 'Message from {{name}}',
+            unnamed: 'another node'
+        },
         report: {
             heading: 'Report'
         },

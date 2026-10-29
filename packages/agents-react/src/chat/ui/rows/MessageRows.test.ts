@@ -3,13 +3,13 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import type { ChatInfo, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatInfo, ChatNoteMessage, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
 import { ChatHostProvider, type ChatHost } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';
-import { AssistantRow, ReplyHeader, UserRow } from './MessageRows';
+import { AssistantRow, ReplyHeader, SentMessageRow, UserRow } from './MessageRows';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 
 const scope: ChatScope = {
@@ -226,5 +226,33 @@ describe('the views and nodes a message points at', () => {
         expect(html).toMatch(/<span class="sr-only">#<\/span>Planner<\/span>/);
         expect(html).toContain('references.gone');
         expect(html.indexOf('Planner')).toBeLessThan(html.indexOf('Compare these'));
+    });
+});
+
+describe('a message another node sent', () => {
+    const referables = { items: [{ id: 'chat-lead', name: 'Commander', kind: 'chat' as const, group: 'views' as const }], chatsOnly: false };
+
+    const renderMessage = (message: ChatNoteMessage) =>
+        renderToStaticMarkup(
+            createElement(
+                ChatHostProvider,
+                { host: { useReferables: () => referables, openReference: () => {} } },
+                createElement(
+                    I18nextProvider,
+                    { i18n },
+                    createElement(ChatScopeContext.Provider, { value: scope }, createElement(SentMessageRow, { chatId: 'parent', id: 'note-1', message }))
+                )
+            )
+        );
+
+    test('stands under a chip that names and opens its sender', () => {
+        const html = renderMessage({ from: 'chat-lead', title: 'Lead', text: 'Pick up RP-42' });
+        expect(html).toMatch(/<span[^>]*data-chip="reference"[^>]*role="button"[^>]*>.*<span class="sr-only">#<\/span>Commander<\/span>/);
+        expect(html.indexOf('Commander')).toBeLessThan(html.indexOf('Pick up RP-42'));
+    });
+
+    test('a sender gone since keeps the name it had', () => {
+        const html = renderMessage({ from: 'term-gone', title: 'Build shell', text: 'Green' });
+        expect(html).toMatch(/data-chip="gone"[^>]*>.*Build shell<\/span>/);
     });
 });

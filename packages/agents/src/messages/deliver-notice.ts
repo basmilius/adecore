@@ -1,4 +1,4 @@
-import type { ChatItem } from '@adecore/agent-contracts';
+import type { ChatItem, ChatNoteMessage } from '@adecore/agent-contracts';
 import type { ChatCore } from '../chat/chat-core.ts';
 import type { Notice, NoticeStore } from './notice-store.ts';
 
@@ -111,7 +111,12 @@ export interface NoticeChat {
     /* Whether the host holds a chat under the id, running or on disk. */
     has(id: string): Promise<boolean>;
     /* Puts a line in that chat's thread, loading the chat when nobody has. */
-    note(id: string, text: string): Promise<void>;
+    note(id: string, text: string, message: ChatNoteMessage): Promise<void>;
+}
+
+/* The message itself on the line in the thread, so a client can draw it as said to the chat. */
+export function noticeMessage(notice: Notice): ChatNoteMessage {
+    return { from: notice.from, title: notice.fromTitle, text: notice.text };
 }
 
 /*
@@ -124,6 +129,6 @@ export async function showNotices(store: Pick<NoticeStore, 'show'>, chat: Notice
     }
 
     for (const notice of await store.show(targetId)) {
-        await chat.note(targetId, words.shown(notice));
+        await chat.note(targetId, words.shown(notice), noticeMessage(notice));
     }
 }
