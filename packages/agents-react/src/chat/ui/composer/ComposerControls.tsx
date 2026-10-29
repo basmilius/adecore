@@ -120,7 +120,7 @@ export function ComposerControls({
     const scope = useChatScope();
     const Slot = useChatHost().ComposerSlot;
     const providers = useProviders((row) => row.providers);
-    const accountChoice = useAccountChoice(info.provider, info.account);
+    const accountChoice = useAccountChoice(info.provider, info.account, chatId);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const busy = info.activeTurnId !== null;
     const model = providers.find((entry) => entry.kind === info.provider)?.models.find((entry) => entry.slug === info.selection.model);

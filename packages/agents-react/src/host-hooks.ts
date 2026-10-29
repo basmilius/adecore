@@ -4,6 +4,7 @@
  * hooks are called through these wrappers only. `ChatHostProvider` pins its host, so they never change.
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
+import type { AccountRule } from './agents/accounts';
 import { referablesOfChats, type Referables } from './chat/chat-references';
 import { useChatHost, type ChatHost, type CommandLook, type ComposerSendAction } from './host';
 
@@ -133,4 +134,16 @@ export function useCommandNames(
     chatId: string
 ): ReturnType<NonNullable<CommandLook['useNames']>> {
     return look.useNames(scopeId, chatId);
+}
+
+export function useHostCanReorderAccounts(scopeId: string): boolean {
+    const useCanReorder = useChatHost().useCanReorderAccounts ?? (() => true);
+
+    return useCanReorder(scopeId);
+}
+
+export function useHostAccountRule(scopeId: string, chatId: string): AccountRule | null {
+    const useRule = useChatHost().useAccountRule ?? (() => null);
+
+    return useRule(scopeId, chatId);
 }

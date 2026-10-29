@@ -75,9 +75,7 @@ export default {
         onlyDefault: '{{provider}} kent alleen zijn standaardaccount.',
         defaults: {
             title: 'Standaarden voor nieuwe chats',
-            description: 'Een model of account kiezen in een chat verandert hier ook de standaard.',
-            account: 'Account',
-            accountFor: 'Standaardaccount voor {{provider}}',
+            description: 'Een model kiezen in een chat verandert hier ook de standaard.',
             model: 'Model',
             modelFor: 'Standaardmodel voor {{provider}}',
             shared: 'Gedeeld door elk {{provider}}-account.',
@@ -85,7 +83,10 @@ export default {
             providerDefault: 'Standaard van de provider',
             legacyModel: '{{name}} (legacy)'
         },
-        accounts: 'Accounts'
+        accounts: 'Accounts',
+        accountsOrder: 'Nieuwe chats en agents starten op het bovenste account dat aanstaat.',
+        defaultTag: 'Standaard',
+        reorderHandle: 'Verplaats {{account}}. Alt+Omhoog en Alt+Omlaag verplaatsen het ook.'
     },
     account: {
         kind: '{{provider}}-account',
@@ -144,7 +145,8 @@ export default {
             confirmDescription: 'De map en de login blijven in {{folder}}.',
             confirm: 'Account verwijderen'
         },
-        saveFailed: 'Kon het account niet opslaan'
+        saveFailed: 'Kon het account niet opslaan',
+        reorderFailed: 'Kon de volgorde van de accounts niet wijzigen'
     },
     add: {
         title: '{{provider}}-account toevoegen',

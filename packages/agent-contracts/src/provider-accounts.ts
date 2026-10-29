@@ -37,7 +37,9 @@ export const ProviderAccountSchema = z.object({
     // Codex only: a folder of its own for the login, sharing everything else with `home`.
     shadowHome: z.string().min(1).optional(),
     // Set on the CLI's environment after the login variables are taken off, so a key here is one a person chose.
-    env: z.array(ProviderAccountVariableSchema).optional()
+    env: z.array(ProviderAccountVariableSchema).optional(),
+    // Its place among the accounts of its CLI, lowest first; only `accounts.reorder` sets it, and a save without it keeps it.
+    order: z.number().int().nonnegative().optional()
 });
 export type ProviderAccount = z.infer<typeof ProviderAccountSchema>;
 
@@ -96,6 +98,32 @@ export const ProviderAccountsSavePayloadSchema = z.object({
     accounts: ProviderAccountMapSchema
 });
 export type ProviderAccountsSavePayload = z.infer<typeof ProviderAccountsSavePayloadSchema>;
+
+/* The accounts of one CLI in a person's order; an account of that CLI left out loses its place and falls in after the ordered ones. */
+export const ProviderAccountsReorderPayloadSchema = z.object({
+    kind: AgentKindSchema,
+    ids: z.array(ProviderAccountIdSchema)
+});
+export type ProviderAccountsReorderPayload = z.infer<typeof ProviderAccountsReorderPayloadSchema>;
+
+/*
+ * The ids of the accounts of one CLI in a person's order: the ordered ones first, then the default
+ * account, then the rest by id, so a machine where nobody reordered keeps the default on top.
+ */
+export function orderedAccountIds(accounts: ProviderAccountMap, kind: string): string[] {
+    const rank = (id: string, account: ProviderAccount): [number, number, string] => [account.order ?? Number.POSITIVE_INFINITY, id === kind ? 0 : 1, id];
+
+    return Object.entries(accounts)
+        .filter(([, account]) => account.kind === kind)
+        .map(([id, account]) => ({ id, rank: rank(id, account) }))
+        .sort((a, b) => a.rank[0] - b.rank[0] || a.rank[1] - b.rank[1] || a.rank[2].localeCompare(b.rank[2]))
+        .map((entry) => entry.id);
+}
+
+/* The account a start of this CLI takes when nothing names one: the first in the order that is on, else the CLI's default account. */
+export function topAccountOf(accounts: ProviderAccountMap, kind: string): string {
+    return orderedAccountIds(accounts, kind).find((id) => accounts[id]?.enabled !== false) ?? kind;
+}
 
 /* An account in a folder the daemon makes for it under its account data directory; a Codex one is a shadow home over the CLI's own folder. */
 export const ProviderAccountCreatePayloadSchema = z.object({

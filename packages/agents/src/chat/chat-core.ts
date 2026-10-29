@@ -117,6 +117,11 @@ export interface ChatCoreHooks {
     admit?(chatId: string, cwd: string): Promise<void>;
     /* The model a new chat starts on when the host already knows; the explicit one still wins. */
     openingSelection?(chatId: string, kind: AgentKind): ModelSelection | undefined;
+    /*
+     * The account a new chat starts under, given the one its start named (undefined for none);
+     * undefined leaves it to the order of the accounts. Throws an `AccountError` to refuse the start.
+     */
+    openingAccount?(chatId: string, kind: AgentKind, named: string | undefined): string | undefined;
     /* The mode a chat runs in, which a host may narrow whatever its record or its client says. */
     runtimeModeFor?(chatId: string, mode: RuntimeMode): RuntimeMode;
     /* What the agent is told once at the start of every process of this chat, in place of `instructions`; null for nothing. */
@@ -387,6 +392,11 @@ export class ChatCore {
     }
 
     /* Throws for an account a CLI of this kind cannot start under on this machine. */
+    /* The account a start names, after the host had its say; with no account named, the top account of the CLI that is on. */
+    openingAccount(chatId: string, kind: AgentKind, named: string | undefined): string | undefined {
+        return this.hooks.openingAccount?.(chatId, kind, named) ?? named ?? this.accounts?.defaultFor?.(kind);
+    }
+
     requireAccount(kind: AgentKind, account: string | undefined): void {
         launchEnv(this.accounts, kind, account, this.env);
     }
@@ -479,9 +489,9 @@ export class ChatCore {
         const cwd = stored?.info.cwd ?? payload.cwd ?? homeFolder(this.env);
         await this.hooks.admit?.(payload.chatId, cwd);
         // A thread on disk keeps its account too. One it lost still opens, and says why on its next turn.
-        // A new one without an account takes the person's pick for this CLI, which is refused rather than replaced when it went.
-        // The pick is checked as named, before the default account loses its id, so one that is turned off is refused too.
-        const requested = payload.account ?? this.composerPreferences.for(kind).account;
+        // A new one without an account takes the host's choice, else the top account of this CLI that is on.
+        // It is checked as named, before the default account loses its id, so one that is turned off is refused too.
+        const requested = stored ? undefined : this.openingAccount(payload.chatId, kind, payload.account);
 
         if (!stored) {
             this.requireAccount(kind, requested);

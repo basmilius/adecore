@@ -1,6 +1,5 @@
 import i18next from 'i18next';
 import type { AgentKind, ProviderAccount, ProviderAccountMap } from '@adecore/agent-contracts';
-import { accountFor, readChatPreferences, rememberChatAccount } from '../chat/preferences';
 import type { ChatHost } from '../host';
 import type { ChatScope } from '../scope';
 import { providerAccountsOf, useProviderAccountsStore } from '../state/provider-accounts';
@@ -38,19 +37,42 @@ export function saveAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id
     return saveAccounts(scope, host, { ...current, [id]: account });
 }
 
-/*
- * Forgets an account; its folder stays where it is. A pick for new agents that named it goes back to
- * the CLI's default account, since no chat started from it yet.
- */
-export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string, kind: AgentKind): Promise<void> {
+/* Forgets an account; its folder stays where it is. */
+export async function removeAccount(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string): Promise<void> {
     const { [id]: _gone, ...rest } = providerAccountsOf(scope.id).accounts?.accounts ?? {};
 
     if (!(await saveAccounts(scope, host, rest))) {
         throw new Error(words('account.saveFailed'));
     }
+}
 
-    if (accountFor(readChatPreferences(), scope.id, kind) === id) {
-        rememberChatAccount(scope.id, kind, null);
+/* Puts the accounts of one CLI in this order, showing it at once; a refusal puts the host's order back and says why. */
+export async function reorderAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, kind: AgentKind, ids: readonly string[]): Promise<void> {
+    const store = useProviderAccountsStore.getState();
+    const before = providerAccountsOf(scope.id).accounts;
+
+    if (before !== null) {
+        const accounts = { ...before.accounts };
+
+        for (const [order, id] of ids.entries()) {
+            const account = accounts[id];
+
+            if (account !== undefined) {
+                accounts[id] = { ...account, order };
+            }
+        }
+
+        store.set(scope.id, { ...before, accounts });
+    }
+
+    try {
+        store.set(scope.id, await linkTo(scope).request('accounts.reorder', { kind, ids: [...ids] }));
+    } catch (e) {
+        if (before !== null) {
+            store.set(scope.id, before);
+        }
+
+        host.notify({ id: `providers-reorder-${scope.id}`, kind: 'error', title: words('account.reorderFailed'), description: errorMessage(e) });
     }
 }
 

@@ -1,5 +1,5 @@
 import i18next from 'i18next';
-import type { AgentKind, ProviderAccount, ProviderAccounts, ProviderAccountStatus } from '@adecore/agent-contracts';
+import { orderedAccountIds, type AgentKind, type ProviderAccount, type ProviderAccounts, type ProviderAccountStatus } from '@adecore/agent-contracts';
 import type { AccentChoice, ChatHost } from '../host';
 
 /*
@@ -24,7 +24,7 @@ export interface AccountEntry {
     isDefault: boolean;
 }
 
-/* The accounts of one CLI, its default one first and the others in the order the machine keeps them. */
+/* The accounts of one CLI in the person's order, the one every list and menu shows. */
 export function accountsOfKind(accounts: ProviderAccounts | null, kind: AgentKind): AccountEntry[] {
     if (accounts === null) {
         return [];
@@ -32,10 +32,46 @@ export function accountsOfKind(accounts: ProviderAccounts | null, kind: AgentKin
 
     const statuses = new Map(accounts.statuses.map((status) => [status.id, status]));
 
-    return Object.entries(accounts.accounts)
-        .filter(([, account]) => account.kind === kind)
-        .map(([id, account]) => ({ id, account, status: statuses.get(id) ?? null, isDefault: id === kind }))
-        .sort((a, b) => Number(b.isDefault) - Number(a.isDefault));
+    return orderedAccountIds(accounts.accounts, kind).flatMap((id) => {
+        const account = accounts.accounts[id];
+
+        return account === undefined ? [] : [{ id, account, status: statuses.get(id) ?? null, isDefault: id === kind }];
+    });
+}
+
+/* The account a new chat of this CLI starts on when nothing names one, as the machine decides it. */
+export function topAccountEntry(entries: readonly AccountEntry[]): AccountEntry | null {
+    return entries.find((entry) => entry.account.enabled !== false) ?? null;
+}
+
+/* The ids of an order with one moved to another place, clamped to the ends. */
+export function movedIds(ids: readonly string[], id: string, to: number): string[] {
+    const rest = ids.filter((candidate) => candidate !== id);
+    const place = Math.max(0, Math.min(to, rest.length));
+
+    return [...rest.slice(0, place), id, ...rest.slice(place)];
+}
+
+/* What a project says about the accounts of each CLI: the one its new chats start on, and those it never offers. */
+export type AccountRule = Partial<Record<string, { default?: string; off?: readonly string[] }>>;
+
+/* The accounts a project offers, as `offeredAccounts` gives them; the one in use stays even when the project turned it off. */
+export function projectOffered(
+    entries: readonly AccountEntry[],
+    rule: AccountRule | null | undefined,
+    kind: AgentKind,
+    current: string | undefined
+): AccountEntry[] {
+    const off = rule?.[kind]?.off ?? [];
+
+    return entries.filter((entry) => !off.includes(entry.id) || entry.id === current);
+}
+
+/* The project's own default account of a CLI, while the machine still has it and it is on. */
+export function projectDefault(entries: readonly AccountEntry[], rule: AccountRule | null | undefined, kind: AgentKind): string | null {
+    const id = rule?.[kind]?.default;
+
+    return entries.some((entry) => entry.id === id && entry.account.enabled !== false) ? (id ?? null) : null;
 }
 
 /* A default account nobody named goes by its CLI's name. */

@@ -80,7 +80,7 @@ describe('limits per account', () => {
             { providers: [entry('claude', { id: 'claude', label: 'Claude Code' }), entry('claude', { id: 'claude_off', label: 'Off' })] },
             accounts
         );
-        expect(groups[0]!.accounts.map((account) => account.id)).toEqual(['claude', 'claude_work', 'claude_out']);
+        expect(groups[0]!.accounts.map((account) => account.id)).toEqual(['claude', 'claude_out', 'claude_work']);
     });
 
     test('a CLI that is not installed on the machine has no group', () => {

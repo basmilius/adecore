@@ -150,6 +150,7 @@ export function accountHandlers(accounts: ProviderAccountsService): { [T in Acco
     return {
         'accounts.list': () => accounts.snapshot(),
         'accounts.save': (payload) => accounts.save(payload.accounts),
+        'accounts.reorder': (payload) => accounts.reorder(payload.kind, payload.ids),
         'accounts.refresh': () => accounts.refresh(),
         'accounts.create': (payload) => accounts.create(payload),
         'accounts.watchLogin': (payload) => {

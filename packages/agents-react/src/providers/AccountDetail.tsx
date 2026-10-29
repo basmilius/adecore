@@ -221,7 +221,7 @@ export function AccountDetail({ provider, entry, login, canOpenLogin, loginBlock
                 description={t('account.remove.confirmDescription', { folder })}
                 confirmLabel={t('account.remove.confirm')}
                 onConfirm={async () => {
-                    await removeAccount(scope, host, id, provider.kind);
+                    await removeAccount(scope, host, id);
                     onRemoved();
                 }}
             />

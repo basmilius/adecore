@@ -116,7 +116,7 @@ describe('a choice of account in a chat', () => {
         expect(hasAccountChoice(entries)).toBe(true);
         expect(hasAccountChoice(accountsOfKind(three, 'claude'))).toBe(false);
         expect(offeredAccounts(entries, 'codex').map((entry) => entry.id)).toEqual(['codex', 'codex_work']);
-        expect(offeredAccounts(entries, 'codex_off').map((entry) => entry.id)).toEqual(['codex', 'codex_work', 'codex_off']);
+        expect(offeredAccounts(entries, 'codex_off').map((entry) => entry.id)).toEqual(['codex', 'codex_off', 'codex_work']);
     });
 
     test('drops a turned-off default account with none in use, and keeps it only when it is the one in use', () => {
@@ -132,8 +132,8 @@ describe('a choice of account in a chat', () => {
             'claude'
         );
 
-        expect(offeredAccounts(entries, undefined).map((entry) => entry.id)).toEqual(['claude_work', 'claude_unsaid']);
-        expect(offeredAccounts(entries, 'claude').map((entry) => entry.id)).toEqual(['claude', 'claude_work', 'claude_unsaid']);
+        expect(offeredAccounts(entries, undefined).map((entry) => entry.id)).toEqual(['claude_unsaid', 'claude_work']);
+        expect(offeredAccounts(entries, 'claude').map((entry) => entry.id)).toEqual(['claude', 'claude_unsaid', 'claude_work']);
     });
 
     test('goes on under an account that writes its conversations to the same folder, and under no other', () => {

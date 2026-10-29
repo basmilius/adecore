@@ -5,7 +5,7 @@ import { useChatHost } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { errorCode } from '../../../transport';
 import { useChatActions } from '../../actions';
-import { rememberChatAccount, rememberChatSelection } from '../../preferences';
+import { rememberChatSelection } from '../../preferences';
 import { composerStopOf } from '../../subagent-list';
 import type { ComposerNotice } from './use-notice';
 
@@ -48,12 +48,9 @@ export function useChatControls({ chatId, info, notice: { setNotice, showError }
     const configure = (patch: { selection?: ModelSelection; runtimeMode?: RuntimeMode; account?: string }): void => {
         runConfiguration(() =>
             actions.configure(chatId, patch).then(() => {
+                // An account picked here is this chat's; new chats start on the top account of the order in the settings.
                 if (patch.selection) {
                     rememberChatSelection(info.provider, patch.selection);
-                }
-
-                if (patch.account) {
-                    rememberChatAccount(scope.id, info.provider, patch.account);
                 }
             })
         );

@@ -75,9 +75,7 @@ export default {
         onlyDefault: '{{provider}} supports only its default account.',
         defaults: {
             title: 'Defaults for new chats',
-            description: 'Picking a model or account in a chat also changes its default here.',
-            account: 'Account',
-            accountFor: 'Default account for {{provider}}',
+            description: 'Picking a model in a chat also changes its default here.',
             model: 'Model',
             modelFor: 'Default model for {{provider}}',
             shared: 'Shared by every {{provider}} account.',
@@ -85,7 +83,10 @@ export default {
             providerDefault: 'Provider default',
             legacyModel: '{{name}} (legacy)'
         },
-        accounts: 'Accounts'
+        accounts: 'Accounts',
+        accountsOrder: 'New chats and agents start on the top account that is on.',
+        defaultTag: 'Default',
+        reorderHandle: 'Move {{account}}. Alt+Up and Alt+Down move it too.'
     },
     account: {
         kind: '{{provider}} account',
@@ -144,7 +145,8 @@ export default {
             confirmDescription: 'Its folder and login stay at {{folder}}.',
             confirm: 'Remove account'
         },
-        saveFailed: 'Could not save the account'
+        saveFailed: 'Could not save the account',
+        reorderFailed: 'Could not change the order of the accounts'
     },
     add: {
         title: 'Add {{provider}} account',

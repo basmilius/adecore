@@ -28,7 +28,7 @@ const ids = (choice: NewAccountChoice): string[] | null => (choice.status === 'r
 
 describe('the account choice of a new chat', () => {
     test('offers only the accounts that are on, with two or more of them', () => {
-        expect(ids(newAccountChoiceOf(loaded(defaultOff), 'claude', 'Claude Code'))).toEqual(['claude_work', 'claude_home']);
+        expect(ids(newAccountChoiceOf(loaded(defaultOff), 'claude', 'Claude Code'))).toEqual(['claude_home', 'claude_work']);
     });
 
     test('offers the one account that is on, the default one too, and none when all are off', () => {
@@ -37,6 +37,17 @@ describe('the account choice of a new chat', () => {
         expect(ids(newAccountChoiceOf(loaded(defaultOff), 'codex', 'Codex'))).toEqual(['codex']);
         const none = machine({ claude: { kind: 'claude', enabled: false }, claude_work: { kind: 'claude', home: '~/.claude-work', enabled: false } });
         expect(newAccountChoiceOf(loaded(none), 'claude', 'Claude Code')).toMatchObject({ status: 'ready', offered: [] });
+    });
+
+    test('leaves out what the project turned off and names its default while it is on', () => {
+        const choice = newAccountChoiceOf(loaded(defaultOff), 'claude', 'Claude Code', { claude: { default: 'claude_home', off: ['claude_work'] } });
+        expect(ids(choice)).toEqual(['claude_home']);
+        expect(choice).toMatchObject({ projectDefault: 'claude_home' });
+        expect(newAccountChoiceOf(loaded(defaultOff), 'claude', 'Claude Code', { claude: { default: 'claude_old' } })).toMatchObject({ projectDefault: null });
+        expect(newAccountChoiceOf(loaded(defaultOff), 'codex', 'Codex', { claude: { off: ['codex'] } })).toMatchObject({
+            projectDefault: null,
+            offered: [{ id: 'codex' }]
+        });
     });
 
     test('names a default account nobody named after its CLI', () => {
@@ -68,7 +79,7 @@ describe('the hooks of an account choice', () => {
 
         function Probe() {
             seen.fresh.push(useNewAccountChoice(kind));
-            seen.chat.push(useAccountChoice(kind, account));
+            seen.chat.push(useAccountChoice(kind, account, 'chat'));
 
             return null;
         }
@@ -122,15 +133,15 @@ describe('the hooks of an account choice', () => {
         expect(seen.fresh[0]).toEqual({ status: 'loading' });
         const last = seen.fresh.at(-1)!;
         expect(last).toMatchObject({ status: 'ready', providerName: 'Claude Code' });
-        expect(ids(last)).toEqual(['claude_work', 'claude_home']);
+        expect(ids(last)).toEqual(['claude_home', 'claude_work']);
     });
 
     test('a chat on the turned-off default account still sees it, where a new chat does not', async () => {
         const seen = await rendered('claude', undefined, () => useProviderAccountsStore.getState().set(SCOPE, defaultOff));
         const chat = seen.chat.at(-1)!;
         expect(chat.currentId).toBe('claude');
-        expect(chat.offered.map((entry) => entry.id)).toEqual(['claude', 'claude_work', 'claude_home']);
-        expect(ids(seen.fresh.at(-1)!)).toEqual(['claude_work', 'claude_home']);
+        expect(chat.offered.map((entry) => entry.id)).toEqual(['claude', 'claude_home', 'claude_work']);
+        expect(ids(seen.fresh.at(-1)!)).toEqual(['claude_home', 'claude_work']);
     });
 
     test('a machine that keeps no accounts answers unsupported, not loading', async () => {

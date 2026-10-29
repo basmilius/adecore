@@ -2,6 +2,7 @@
 export { type AcpCatalogStore } from './acp-agent-state.ts';
 export { ACP_CAPABILITIES, type AcpProviderSpec, createAcpProvider } from './acp-provider.ts';
 export { type AcpAccountProbe, askAcpAccount, type ProbeTimer } from './accounts/acp-account.ts';
+export { chooseAccount, type AccountChoiceInput, type AccountUnusable, type ChosenAccount } from './accounts/choose.ts';
 export { AccountError, type AccountLaunches, storedAccount, launchEnv } from './accounts/launch.ts';
 export { ProviderAccountsService, type ProviderAccountsOptions } from './accounts/service.ts';
 export type { ShadowHomeReport } from './accounts/shadow-home.ts';

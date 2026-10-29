@@ -1,6 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ProviderAccountIdSchema, ProviderAccountSchema, type AgentKind, type ProviderAccount, type ProviderAccountMap } from '@adecore/agent-contracts';
+import {
+    orderedAccountIds,
+    ProviderAccountIdSchema,
+    ProviderAccountSchema,
+    type AgentKind,
+    type ProviderAccount,
+    type ProviderAccountMap
+} from '@adecore/agent-contracts';
 import { CodedError } from '../../coded-error.ts';
 import { isNotFound, writeAtomic } from '../../fs.ts';
 import type { ChatProvider } from '../provider.ts';
@@ -173,8 +180,47 @@ export function acceptAccounts(
             throw new InvalidAccountError(`${id}: ${problem}`);
         }
 
-        stored[id] = account;
+        stored[id] = withKeptOrder(account, before[id]);
     }
 
     return stored;
+}
+
+/* An older client strips `order` from what it saves, so an account saved without one keeps the place it had. */
+function withKeptOrder(account: ProviderAccount, before: unknown): ProviderAccount {
+    if (account.order !== undefined || typeof before !== 'object' || before === null) {
+        return account;
+    }
+
+    const order = (before as { order?: unknown }).order;
+
+    return typeof order === 'number' ? { ...account, order } : account;
+}
+
+/* The map with the accounts of one CLI in this order; one of that CLI not named, such as one made meanwhile, follows in the order it had. */
+export function reorderedAccounts(accounts: ProviderAccountMap, kind: AgentKind, ids: readonly string[]): ProviderAccountMap {
+    if (new Set(ids).size !== ids.length) {
+        throw new InvalidAccountError('an account is named twice in the order');
+    }
+
+    for (const id of ids) {
+        const account = accounts[id];
+
+        if (account === undefined) {
+            throw new InvalidAccountError(`${id}: no account on this machine has that id`);
+        }
+
+        if (account.kind !== kind) {
+            throw new InvalidAccountError(`${id}: it is an account of ${account.kind}, not of ${kind}`);
+        }
+    }
+
+    const order = [...ids, ...orderedAccountIds(accounts, kind).filter((id) => !ids.includes(id))];
+    const reordered: ProviderAccountMap = { ...accounts };
+
+    for (const [place, id] of order.entries()) {
+        reordered[id] = { ...accounts[id], order: place } as ProviderAccount;
+    }
+
+    return reordered;
 }

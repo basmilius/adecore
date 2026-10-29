@@ -76,7 +76,6 @@ exports[`the public API ./chat exports these names 1`] = `
   "REFERENCE_ICONS",
   "RUNTIME_MODES",
   "SEND_AND_NEW_SHORTCUT",
-  "accountFor",
   "actionsOf",
   "branchRefusal",
   "canOpenSubagent",

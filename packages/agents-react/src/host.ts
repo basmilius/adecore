@@ -23,6 +23,7 @@ import type {
     RuntimeMode
 } from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
+import type { AccountRule } from './agents/accounts';
 import type { ReferableKind, Referables } from './chat/chat-references';
 import type { TimelineRow } from './chat/logic/timeline';
 import type { FindReveal } from './chat/ui/find-reveal';
@@ -459,6 +460,13 @@ export interface ChatHost {
     openLogin: ((scopeId: string, kind: AgentKind, accountId: string, name: string) => Promise<void>) | null;
     /* Why a login cannot start from here right now, or null when it can. */
     useLoginBlocked(scopeId: string): string | null;
+    /* Whether the machine in scope keeps a person's order of the accounts (`accounts.reorder`); left out, it does. */
+    useCanReorderAccounts?(scopeId: string): boolean;
+    /*
+     * What the project of a chat says about its accounts: per CLI the account its new chats start on and
+     * the accounts it never offers. Left out, or null, every account that is on is offered.
+     */
+    useAccountRule?(scopeId: string, chatId: string): AccountRule | null;
     /*
      * Runs a command a provider's install page shows, its install or its sign-in, where a person sees it run,
      * such as in a new terminal on the scope's machine; left out, the page offers to copy the command only.
