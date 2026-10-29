@@ -16,6 +16,7 @@ These parts draw what an agent proposed or wrote. Asking the agent, keeping its 
 | `unfoldLimits`   | A `DiffLimits` (`rows`, `characters`, `lineLength`) for context expansion; 20,000 rows, 2,000,000 UTF-16 units, 10,000 per line |
 | `tokens`         | [Source tokens](#source-tokens)                                                               |
 | `onMount(editor, side)` | Runs per editor, to attach a find bar or commands; may return a cleanup. `side` is `old` or `new` in split, absent in unified |
+| `onSource(source)` | Runs per editor with a `DiffSource`: its `editor`, its `side` and `at()`, the line and column of the new file under the caret (`sourceLineOf`), or null where the new file has none. For a host that opens the file there; `jumpToSource` in the keymap is the key for it |
 
 `className` and `ref` belong to the outer element.
 

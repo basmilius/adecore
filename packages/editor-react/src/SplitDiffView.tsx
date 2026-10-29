@@ -2,7 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseChord } from '@adecore/editor/keymap';
 import type { EditorLineHighlight } from '@adecore/editor';
-import type { DiffSplit } from '@adecore/merge';
+import { sourceLineOf, type DiffLineRow, type DiffSplit } from '@adecore/merge';
 import type { DiffViewProps } from './DiffView.tsx';
 import { repaintOnTokens, type DiffSourceSide } from './diff-syntax.ts';
 import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
@@ -41,20 +41,21 @@ export function SplitDiffView({
     label,
     className,
     ref,
-    onMount
+    onMount,
+    onSource
 }: SplitViewProps) {
     const { t } = useTranslation('editor');
     const emphasis = useMemo(() => wordMarks(document), [document]);
     const oldElement = useRef<HTMLDivElement>(null);
     const newElement = useRef<HTMLDivElement>(null);
-    const current = useRef({ display, tokens, theme, wrap, label });
+    const current = useRef({ document, display, tokens, theme, wrap, label });
     const applied = useRef({ theme, wrap, label });
     const [failure, setFailure] = useState<{ error: unknown } | null>(null);
     const [mounted, setMounted] = useState<MountedSplit | null>(null);
     const [height, setHeight] = useState(0);
 
     useLayoutEffect(() => {
-        current.current = { display, tokens, theme, wrap, label };
+        current.current = { document, display, tokens, theme, wrap, label };
     });
 
     useLayoutEffect(() => {
@@ -327,6 +328,38 @@ export function SplitDiffView({
             }
         };
     }, [mounted, engine, onMount]);
+
+    useLayoutEffect(() => {
+        if (mounted === null || mounted.old.engine !== engine || onSource === undefined) {
+            return;
+        }
+
+        // The old pane's rows lose their new side in the split, so it reads the rows as they were aligned.
+        const rowsOf = (side: DiffSourceSide): readonly DiffLineRow[] =>
+            side === 'new'
+                ? current.current.display.new.rows
+                : current.current.display.aligned.flatMap((entry) => (entry.kind === 'line' && entry.old !== undefined ? [entry.row] : []));
+
+        const stops = SIDES.map((side) => {
+            const { editor } = mounted[side];
+
+            return onSource({
+                editor,
+                side,
+                at: () => {
+                    const caret = editor.getCaret();
+
+                    return sourceLineOf(rowsOf(side), current.current.document.hunks, caret.line, caret.character, side);
+                }
+            });
+        });
+
+        return () => {
+            for (const stop of stops) {
+                stop?.();
+            }
+        };
+    }, [mounted, engine, onSource]);
 
     const limit = maxHeight !== undefined && Number.isFinite(maxHeight) && maxHeight > 0 ? maxHeight : Infinity;
 

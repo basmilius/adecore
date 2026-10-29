@@ -19,6 +19,7 @@ A unified patch in a `ChatFileChange`. A patch without a file header gets one fr
 | `overflow`  | `'wrap' \| 'scroll'`     | `wrap` by default.                                                                  |
 | `fill`      | `boolean`                | Grow to the height of a flex column around it.                                      |
 | `contents`  | `{ old, new }`           | Both whole texts. With them a person can unfold the lines between hunks (`fullFileDiff`). |
+| `onSource`  | `(source: DiffSource) => void \| (() => void)` | Per editor of the diff, where its caret stands in the new file ([`DiffView`](/editor-react/change-review)). The Pierre and plain fallbacks never call it. |
 
 `ignoreWhitespace` accepts patches made with whitespace filtering. `allowEditor={false}` keeps the Pierre renderer.
 

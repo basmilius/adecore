@@ -113,6 +113,10 @@ const display = diffDisplay(document);
 
 `diffSplit(document, unfolded)` returns a `DiffSplit` for two synchronized editors: old and new `DiffDisplay` documents and aligned `DiffSplitRow` entries. A line entry holds a zero-based display index per side and its `DiffLineRow`. A gap entry holds its `DiffGapRow`. Each side has its own text, numbers and no-newline markers, with no placeholder lines.
 
+## The source line under a caret
+
+`sourceLineOf(rows, hunks, line, character, side)` returns the `DiffSourceLine` (`line` and `column`, both from 1) of the new file that a caret on a display line stands for, or null where the new file has no line. `rows` are one pane's rows with both of their sides: `DiffDisplay.rows` in unified, the `row` of each `DiffSplitRow` with an `old` index for the old pane of a split. `hunks` are the document's. `side` is the text the pane shows for a changed line. A removed line stands for the line that took its place, found within its own hunk; after the last hunk, where the file may end, it is the line before it. The column carries over only where the pane shows the new text.
+
 ## Limits
 
 Past 4000 edits, `diffLines` returns the whole changed middle as one change. The result still rebuilds `other`, but a three-way merge then shows that middle as one large conflict. The limit is fixed, and the call has no cancellation.

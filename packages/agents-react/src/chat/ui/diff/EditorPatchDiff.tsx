@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
 import type { ChatFileChange } from '@adecore/agent-contracts';
 import type { EditorEngine } from '@adecore/editor';
+import type { DiffSource } from '@adecore/editor-react';
 import { diffDocument, parsePatch } from '@adecore/merge';
 import type { DiffContents } from '../full-diff';
 import { diffSourceBudget, patchSourceBudget } from './diff-source-budget';
@@ -17,7 +18,8 @@ export default function EditorPatchDiff({
     maxHeight,
     layout = 'unified',
     loadEngine,
-    fallback
+    fallback,
+    onSource
 }: {
     change: ChatFileChange;
     sourceChecked?: boolean;
@@ -29,6 +31,7 @@ export default function EditorPatchDiff({
     maxHeight?: number;
     loadEngine: () => Promise<EditorEngine>;
     fallback: ReactNode;
+    onSource?(source: DiffSource): void | (() => void);
 }) {
     const oldText = contents?.old;
     const newText = contents?.new;
@@ -59,6 +62,7 @@ export default function EditorPatchDiff({
             fill={fill}
             layout={layout}
             maxHeight={maxHeight}
+            onSource={onSource}
         />
     );
 }

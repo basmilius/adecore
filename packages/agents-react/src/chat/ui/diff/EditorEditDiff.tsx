@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getFiletypeFromFileName } from '@pierre/diffs';
 import type { EditorEngine } from '@adecore/editor';
-import { DiffView } from '@adecore/editor-react';
+import { DiffView, type DiffSource } from '@adecore/editor-react';
 import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
 import type { FileChange } from '../../logic/tools';
 import { useDiffSourceTokens } from '../use-diff-source-tokens';
@@ -24,7 +24,8 @@ function ReadyDiff({
     wrap,
     fill,
     layout,
-    maxHeight
+    maxHeight,
+    onSource
 }: {
     document: DiffDocument;
     path: string;
@@ -33,6 +34,7 @@ function ReadyDiff({
     fill: boolean;
     layout: 'unified' | 'split';
     maxHeight: number;
+    onSource?(source: DiffSource): void | (() => void);
 }) {
     useReviewSettled();
     const { t } = useTranslation('agent-chat');
@@ -54,6 +56,7 @@ function ReadyDiff({
             wrap={wrap}
             fill={fill}
             className="chat-diff select-text"
+            onSource={onSource}
         />
     );
 }
@@ -66,7 +69,8 @@ export function EditorDocumentDiff({
     wrap = true,
     fill = false,
     layout = 'unified',
-    maxHeight = 480
+    maxHeight = 480,
+    onSource
 }: {
     document: DiffDocument;
     path: string;
@@ -76,6 +80,7 @@ export function EditorDocumentDiff({
     fill?: boolean;
     layout?: 'unified' | 'split';
     maxHeight?: number;
+    onSource?(source: DiffSource): void | (() => void);
 }) {
     const { t } = useTranslation('agent-chat');
     const withinLimits = canRenderEditorDiff(document);
@@ -125,7 +130,7 @@ export function EditorDocumentDiff({
     return engine === null ? (
         fallback
     ) : (
-        <ReadyDiff document={document} path={path} engine={engine} wrap={wrap} fill={fill} layout={layout} maxHeight={maxHeight} />
+        <ReadyDiff document={document} path={path} engine={engine} wrap={wrap} fill={fill} layout={layout} maxHeight={maxHeight} onSource={onSource} />
     );
 }
 

@@ -147,6 +147,8 @@ export const KEYMAP = {
     historyBack: bind('Mod+[', 'Ctrl+Alt+ArrowLeft'),
     historyForward: bind('Mod+]', 'Ctrl+Alt+ArrowRight'),
     recentLocations: bind('Mod+Shift+E'),
+    // IntelliJ's Jump to Source, from a diff to the file. Only a diff answers it, so in a file Cmd+Down stays Text End.
+    jumpToSource: bind('Meta+ArrowDown', 'F4'),
     nextProblem: bind('F2'),
     previousProblem: bind('Alt+Shift+F2'),
     nextHighlight: bind('Ctrl+Alt+ArrowDown', 'Alt+F3'),
@@ -193,6 +195,7 @@ export type OptionalKeymapId =
     | 'surroundWithLiveTemplate'
     | 'unwrap'
     | 'saveAsLiveTemplate'
+    | 'jumpToSource'
     | 'typeHierarchy';
 
 export type Keymap = Readonly<Record<Exclude<KeymapId, OptionalKeymapId>, KeyBinding> & Partial<Record<OptionalKeymapId, KeyBinding>>>;

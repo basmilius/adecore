@@ -137,7 +137,8 @@ describe('the key table', () => {
             for (const id of KEYMAP_IDS) {
                 const text = chordOf(id, apple);
 
-                if (text === null) {
+                // Only a read-only diff answers Jump to Source, where Text End has no text to edit, so it shares Cmd+Down as in IntelliJ.
+                if (text === null || id === 'jumpToSource') {
                     continue;
                 }
 
@@ -148,6 +149,12 @@ describe('the key table', () => {
             }
         });
     }
+
+    test('leaves Jump to Source to the host, so Cmd+Down in a file still reaches the end of the text', () => {
+        expect([chordOf('jumpToSource', true), chordOf('jumpToSource', false)]).toEqual(['Meta+ArrowDown', 'F4']);
+        expect(keyAction(key('ArrowDown', { metaKey: true }), true)).toEqual({ type: 'edge', end: true, extend: false });
+        expect(keyAction(key('F4'), false)).toBeNull();
+    });
 
     test('binds the template commands like IntelliJ and leaves Surround with Emmet and Save as Live Template without a chord', () => {
         expect(KEYMAP_IDS.map((id) => [id, chordOf(id, true)]).filter(([id]) => /Template|surround|unwrap|Abbreviation/i.test(id!))).toEqual([

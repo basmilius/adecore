@@ -15,7 +15,17 @@ const EditorPatchDiff = lazyNamed(() => import('./diff/EditorPatchDiff'), 'defau
 export default function UnifiedDiff(props: UnifiedDiffProps) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
-    const { change, contents, allowEditor = true, ignoreWhitespace = false, overflow = 'wrap', diffStyle = 'unified', fill = false, maxHeight } = props;
+    const {
+        change,
+        contents,
+        allowEditor = true,
+        ignoreWhitespace = false,
+        overflow = 'wrap',
+        diffStyle = 'unified',
+        fill = false,
+        maxHeight,
+        onSource
+    } = props;
     const loadEngine = host.code.editor;
     const oldText = contents?.old ?? '';
     const newText = contents?.new ?? '';
@@ -64,6 +74,7 @@ export default function UnifiedDiff(props: UnifiedDiffProps) {
                     layout={diffStyle}
                     loadEngine={loadEngine!}
                     fallback={unavailable}
+                    onSource={onSource}
                 />
             </LazyBoundary>
         </DiffFallbackBoundary>
