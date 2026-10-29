@@ -123,4 +123,6 @@ After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets
 | `no-chat`, `in-turn` | The message waits for the chat's next prompt. |
 | `from-message` | The writing turn was itself started by a message, so it wakes nobody. Two chats cannot wake each other forever. |
 
+One exception: a turn a message started wakes the sender it answers, while that sender's own turn was started by no message. A question and its answer take two steps, and the turn the answer starts wakes nobody. `ChatNoticeTargets.wokenBy(id)` names the senders whose message started a node's turn.
+
 `NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person.

@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatNoteMessage, ChatTurnItem } from '@adecore/agent-contracts';
 import type { ChatSession } from '../chat/chat-session.ts';
-import { chatNoticeTargets, deliverToChat, showNotices, turnFromMessage, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
+import { chatNoticeTargets, deliverToChat, showNotices, turnWokenBy, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
 import { NoticeStore, type Notice } from './notice-store.ts';
 
 let dataDir: string;
@@ -48,7 +48,7 @@ afterEach(async () => {
 describe('deliverToChat', () => {
     const targets = (overrides: Partial<ChatNoticeTargets> = {}): ChatNoticeTargets => ({
         chat: async () => 'none',
-        fromMessage: () => false,
+        wokenBy: () => [],
         ...overrides
     });
 
@@ -64,30 +64,43 @@ describe('deliverToChat', () => {
     });
 
     test('a sender in a turn a message started wakes nobody', async () => {
-        const delivery = await deliverToChat(store, targets({ chat: async () => 'idle', fromMessage: (id) => id === 'chat-1' }), left('and the tests'));
+        const delivery = await deliverToChat(
+            store,
+            targets({ chat: async () => 'idle', wokenBy: (id) => (id === 'chat-1' ? ['chat-3'] : []) }),
+            left('and the tests')
+        );
         expect(delivery).toEqual({ outcome: 'from-message', waiting: 1 });
         expect(store.waiting('chat-2')).toHaveLength(1);
     });
+
+    test('a turn a message opened wakes the sender it answers, once', async () => {
+        const asked = targets({ chat: async () => 'idle', wokenBy: (id) => (id === 'chat-1' ? ['chat-2'] : []) });
+        expect(await deliverToChat(store, asked, left('the answer'))).toEqual({ outcome: 'wake', waiting: 1 });
+
+        // The turn that answer opens was opened by a message too, so its own answer goes no further.
+        const answered = targets({ chat: async () => 'idle', wokenBy: (id) => (id === 'chat-1' ? ['chat-2'] : ['chat-1']) });
+        expect(await deliverToChat(store, answered, left('thanks', 'chat-2'))).toEqual({ outcome: 'from-message', waiting: 2 });
+    });
 });
 
-describe('turnFromMessage', () => {
+describe('turnWokenBy', () => {
     test('only a running turn that names senders was opened by a message', () => {
-        expect(turnFromMessage([turn('t1', ['chat-1'])], 't1')).toBe(true);
-        expect(turnFromMessage([turn('t1', [])], 't1')).toBe(false);
-        expect(turnFromMessage([turn('t1')], 't1')).toBe(false);
+        expect(turnWokenBy([turn('t1', ['chat-1'])], 't1')).toEqual(['chat-1']);
+        expect(turnWokenBy([turn('t1', [])], 't1')).toEqual([]);
+        expect(turnWokenBy([turn('t1')], 't1')).toEqual([]);
     });
 
     test('work a turn a message opened left running goes on in that step, between turns and in the turn the CLI opens about it', () => {
         const ended = { ...turn('t1', ['chat-1']), state: 'done' as const };
-        expect(turnFromMessage([ended], null)).toBe(true);
-        expect(turnFromMessage([ended, turn('t2')], 't2')).toBe(true);
+        expect(turnWokenBy([ended], null)).toEqual(['chat-1']);
+        expect(turnWokenBy([ended, turn('t2')], 't2')).toEqual(['chat-1']);
     });
 
     test('a turn a person or a settled task opened starts a step of its own', () => {
         const ended = { ...turn('t1', ['chat-1']), state: 'done' as const };
-        expect(turnFromMessage([ended, { ...turn('t2'), origin: 'user' }], 't2')).toBe(false);
-        expect(turnFromMessage([ended, { ...turn('t2'), taskIds: ['task-1'] }], 't2')).toBe(false);
-        expect(turnFromMessage([ended, { ...turn('t2'), origin: 'user', state: 'done' }, turn('t3')], 't3')).toBe(false);
+        expect(turnWokenBy([ended, { ...turn('t2'), origin: 'user' }], 't2')).toEqual([]);
+        expect(turnWokenBy([ended, { ...turn('t2'), taskIds: ['task-1'] }], 't2')).toEqual([]);
+        expect(turnWokenBy([ended, { ...turn('t2'), origin: 'user', state: 'done' }, turn('t3')], 't3')).toEqual([]);
     });
 });
 
@@ -115,9 +128,9 @@ describe('chatNoticeTargets', () => {
         ]);
 
         const targets = chatNoticeTargets({ get: (id) => held.get(id), hasStored: async () => false });
-        expect(targets.fromMessage('chat-woken')).toBe(true);
-        expect(targets.fromMessage('chat-asked')).toBe(false);
-        expect(targets.fromMessage('chat-none')).toBe(false);
+        expect(targets.wokenBy('chat-woken')).toEqual(['chat-1']);
+        expect(targets.wokenBy('chat-asked')).toEqual([]);
+        expect(targets.wokenBy('chat-none')).toEqual([]);
     });
 });
 

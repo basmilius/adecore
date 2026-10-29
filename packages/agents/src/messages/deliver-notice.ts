@@ -18,8 +18,8 @@ export interface MessageWords {
 export interface ChatNoticeTargets {
     /* What the host holds under this id: a chat between turns, one that is in a turn, or no chat at all. */
     chat(id: string): Promise<'idle' | 'running' | 'none'>;
-    /* Whether the turn this node is running was opened by a message of its own, which is where waking stops. */
-    fromMessage(id: string): boolean;
+    /* The senders whose message opened the turn this node is running, empty for a turn no message opened. */
+    wokenBy(id: string): readonly string[];
 }
 
 /*
@@ -33,12 +33,13 @@ export interface ChatDelivery {
 }
 
 /*
- * Whether the turn a chat is running was itself opened by a message, which stops two agents that
- * read each other from waking each other forever. It rides on the turn, so it survives a restart.
- * Between turns the last one counts, since work it left running (a background subagent) may still
- * write, and a turn the CLI opened by itself takes the step of the turn before it.
+ * Who sent the message that opened the turn a chat is running, empty when no message opened it,
+ * which stops two agents that read each other from waking each other forever. It rides on the turn,
+ * so it survives a restart. Between turns the last one counts, since work it left running (a
+ * background subagent) may still write, and a turn the CLI opened by itself takes the step of the
+ * turn before it.
  */
-export function turnFromMessage(items: readonly ChatItem[], activeTurnId: string | null): boolean {
+export function turnWokenBy(items: readonly ChatItem[], activeTurnId: string | null): readonly string[] {
     const from = activeTurnId === null ? items.findLastIndex((item) => item.kind === 'turn') : items.findIndex((item) => item.id === activeTurnId);
 
     for (let i = from; i >= 0; i--) {
@@ -48,16 +49,18 @@ export function turnFromMessage(items: readonly ChatItem[], activeTurnId: string
             continue;
         }
 
-        if ((turn.messageFrom ?? []).length > 0) {
-            return true;
+        const senders = turn.messageFrom ?? [];
+
+        if (senders.length > 0) {
+            return senders;
         }
 
         if (turn.origin !== 'agent' || turn.taskIds !== undefined || turn.summaryFor !== undefined) {
-            return false;
+            return [];
         }
     }
 
-    return false;
+    return [];
 }
 
 /* The chats of a core as a message sees them. */
@@ -73,10 +76,10 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
             // A chat nobody has loaded is idle: the turn opens on the thread the host reads back from disk.
             return (await chats.hasStored(id)) ? 'idle' : 'none';
         },
-        fromMessage: (id) => {
+        wokenBy: (id) => {
             const session = chats.get(id);
 
-            return session !== undefined && turnFromMessage(session.thread.list(), session.info.activeTurnId);
+            return session === undefined ? [] : turnWokenBy(session.thread.list(), session.info.activeTurnId);
         }
     };
 }
@@ -84,8 +87,10 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
 /*
  * One message on its way to a chat, and whether the chat owes a turn on it. A chat between turns gets
  * one, as for a settled task, or the message sits there until someone happens to prompt that chat.
- * One step deep: the turn a message opened wakes nobody with a message of its own. A node that runs
- * something else, such as a terminal, is the host's to deliver to before this.
+ * A turn a message opened wakes nobody with a message of its own, except the sender it answers,
+ * once: only while that sender's own turn was opened by no message, so a question and its answer
+ * take two steps and the turn the answer opens wakes nobody. A node that runs something else, such
+ * as a terminal, is the host's to deliver to before this.
  */
 export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: ChatNoticeTargets, notice: Omit<Notice, 'createdAt'>): Promise<ChatDelivery> {
     const waiting = await store.put(notice);
@@ -99,7 +104,10 @@ export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: Ch
         return { outcome: 'in-turn', waiting };
     }
 
-    if (targets.fromMessage(notice.from)) {
+    const wokenBy = targets.wokenBy(notice.from);
+    const answer = wokenBy.includes(notice.targetId) && targets.wokenBy(notice.targetId).length === 0;
+
+    if (wokenBy.length > 0 && !answer) {
         return { outcome: 'from-message', waiting };
     }
 
