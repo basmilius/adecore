@@ -137,19 +137,24 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
             return row.key;
         };
+
         const readGroup = (row: Score): string => {
             groupReads += 1;
 
             return row.model;
         };
+
         const layouts = spyOn(bands, 'bandLayout');
+
         try {
             const plot = await mount(
                 <Chart.Root data={SCORES} x={readX} group={readGroup} label="Scores" onActiveXChange={(value) => changes.push(value)}>
                     <Chart.Bar value="score" label="Score" />
                 </Chart.Root>
             );
+
             const before = { x: xReads, group: groupReads, layouts: layouts.mock.calls.length };
+
             for (const clientX of [10, 160, 500]) {
                 await act(async () => {
                     plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX, clientY: 50 }));
@@ -176,9 +181,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 <Chart.Bar value="score" label="Score" />
             </Chart.Root>
         );
+
         const plot = await mount(view(SCORES, readX, readGroup));
         const xs = (): (string | null)[] => columns().map((column) => column.getAttribute('x'));
         const initial = xs();
+
         await act(async () => root.render(wrap(view(SCORES, readX, (row) => row.effort))));
         expect(xs()).not.toEqual(initial);
 
@@ -194,17 +201,22 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
 
     test('cached bands follow width, spacing and orientation changes', async () => {
         const observers = new Map<Element, ControlledResizeObserver>();
+
         class ControlledResizeObserver implements ResizeObserver {
             private readonly callback: ResizeObserverCallback;
+
             constructor(callback: ResizeObserverCallback) {
                 this.callback = callback;
             }
+
             observe(target: Element): void {
                 observers.set(target, this);
             }
+
             unobserve(target: Element): void {
                 observers.delete(target);
             }
+
             disconnect(): void {
                 for (const [target, observer] of observers) {
                     if (observer === this) {
@@ -212,6 +224,7 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                     }
                 }
             }
+
             resize(target: Element, width: number): void {
                 this.callback(
                     [
@@ -227,10 +240,12 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                 );
             }
         }
+
         const original = globalThis.ResizeObserver;
         globalThis.ResizeObserver = ControlledResizeObserver;
+
         try {
-            const view = (gap: number, orientation: 'vertical' | 'horizontal' = 'vertical', rowHeight = 32, minBucketWidth = 0): ReactNode => (
+            const view = (gap: number, orientation: 'vertical' | 'horizontal' = 'vertical', rowHeight = 32, minBucketWidth = 0, marginLeft = 0): ReactNode => (
                 <Chart.Root
                     data={SCORES}
                     x="key"
@@ -240,15 +255,19 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
                     orientation={orientation}
                     rowHeight={rowHeight}
                     minBucketWidth={minBucketWidth}
+                    margin={{ left: marginLeft }}
                 >
                     <Chart.Bar value="score" label="Score" />
                 </Chart.Root>
             );
+
             const plot = await mount(view(16));
             const observation = [...observers.entries()].find(([target]) => target.contains(plot));
+
             if (observation === undefined) {
                 throw new Error('Chart did not observe its size');
             }
+
             const [measured, observer] = observation;
             const positions = (): (string | null)[] => columns().map((column) => column.getAttribute('x'));
             const before = positions();
@@ -258,6 +277,11 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
             const narrowed = positions();
             await act(async () => root.render(wrap(view(32))));
             expect(positions()).not.toEqual(narrowed);
+            const unmargined = positions();
+
+            await act(async () => root.render(wrap(view(32, 'vertical', 32, 0, 40))));
+            expect(positions()).not.toEqual(unmargined);
+
             await act(async () => root.render(wrap(view(32, 'vertical', 32, 200))));
             expect(plot.getAttribute('width')).toBe('864');
             const verticalHeight = plot.getAttribute('height');
@@ -269,6 +293,55 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
         } finally {
             globalThis.ResizeObserver = original;
         }
+    });
+
+    test('cached labels and point keys follow label and row-mode changes', async () => {
+        const data = SCORES.slice(0, 1);
+        const changes: (ChartX | null)[] = [];
+        const key = (row: Score): string => row.key;
+        const oldLabel = (): string => 'Old row';
+        const oldGroup = (): string => 'Old group';
+        const newLabel = (): string => 'New row';
+        const newGroup = (): string => 'New group';
+        const view = (rowLabel: () => string, groupLabel: () => string, rows: 'buckets' | 'points' = 'buckets', rowKey = key): ReactNode => (
+            <Chart.Root
+                data={data}
+                x="score"
+                xScale="linear"
+                rows={rows}
+                rowKey={rowKey}
+                rowLabel={rowLabel}
+                group="model"
+                groupLabel={groupLabel}
+                label="Scores"
+                onActiveXChange={(value) => changes.push(value)}
+            >
+                <Chart.Point value="score" label="Score" />
+                <Chart.Tooltip />
+            </Chart.Root>
+        );
+
+        const plot = await mount(view(oldLabel, oldGroup));
+        await press(plot, 'Home');
+        expect(live()).toContain('Old row');
+        expect(changes.at(-1)).toBe(40);
+
+        await act(async () => root.render(wrap(view(newLabel, oldGroup))));
+        expect(live()).toContain('New row');
+        expect(live()).not.toContain('Old row');
+
+        await act(async () => root.render(wrap(view(newLabel, oldGroup, 'points'))));
+        await press(plot, 'Home');
+        expect(changes.at(-1)).toBe('a-low');
+        expect(live()).toContain('Old group');
+
+        await act(async () => root.render(wrap(view(newLabel, newGroup, 'points'))));
+        expect(live()).toContain('New group');
+        expect(live()).not.toContain('Old group');
+
+        await act(async () => root.render(wrap(view(newLabel, newGroup, 'points', (row) => `next-${row.key}`))));
+        await press(plot, 'Home');
+        expect(changes.at(-1)).toBe('next-a-low');
     });
 
     test('reads each bucket it moves to, the group first', async () => {

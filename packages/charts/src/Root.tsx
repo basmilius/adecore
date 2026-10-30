@@ -214,7 +214,7 @@ export function ChartRoot<Row>({
         }
     }, [orientation, band, dropped]);
 
-    // The compiler leaves these maps uncached; cursor updates must reuse unchanged data.
+    // Without explicit dependencies the emitted cursor render repeats these data accessors.
     const { xs, keys, rowLabels, groupKeys, groupLabels } = useMemo(() => {
         const xs = data.map((row, index) => {
             const value = readValue(x, row, index);
@@ -230,6 +230,7 @@ export function ChartRoot<Row>({
 
         return { xs, keys, rowLabels, groupKeys, groupLabels };
     }, [data, x, points, rowKey, rowLabel, band, group, groupLabel]);
+
     const leftY = yAxes.get('left');
     const rightY = yAxes.get('right');
     // A horizontal chart has no y axis beside it: the names of its rows take that place, and its values run underneath.
@@ -246,7 +247,7 @@ export function ChartRoot<Row>({
     const marginLeft = margin.left ?? inset;
     const marginRight = margin.right ?? inset;
 
-    // Band geometry has no cursor input, but the compiler leaves this call uncached.
+    // Explicit dependencies keep the emitted band calculation out of cursor-only renders.
     const layout = useMemo(
         () =>
             horizontal
@@ -256,6 +257,7 @@ export function ChartRoot<Row>({
                   : null,
         [horizontal, band, xs.length, groupKeys, rowHeight, groupGap, room, marginLeft, marginRight, minBucketWidth]
     );
+
     const width = layout === null || horizontal ? room : Math.max(room, Math.ceil(layout.width + marginLeft + marginRight));
     const scrolls = layout !== null && width > room;
     // A scrolling plot clips what hangs out of its first buckets, such as a value label or a slanted name, so the
