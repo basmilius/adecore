@@ -16,6 +16,7 @@ import type {
     EditorLineHighlight,
     LineToken,
     EditorChangeMark,
+    EditorChangeMarkHover,
     EditorCodeVision,
     EditorClickHandler,
     EditorContextMenu,
@@ -788,6 +789,10 @@ class SmartEditor implements Editor {
 
     setRemoteCursors(cursors: readonly EditorRemoteCursor[]): void {
         this.view.setRemoteCarets(cursors.map((cursor) => ({ id: cursor.id, name: cursor.name, color: cursor.color, at: this.offsetAt(cursor.position) })));
+    }
+
+    onChangeMarkHover(listener: (hover: EditorChangeMarkHover | null) => void): () => void {
+        return this.view.onChangeMarkHover(listener);
     }
 
     onAttributionHover(listener: (hover: EditorAttributionHover | null) => void): () => void {

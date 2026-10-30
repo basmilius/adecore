@@ -266,6 +266,15 @@ export interface EditorCodeBlockOptions {
     readonly faded?: boolean;
 }
 
+/* A change mark under the pointer, even where an attribution bar takes its place. */
+export interface EditorChangeMarkHover {
+    readonly mark: EditorChangeMark;
+    readonly layer: string;
+    /* One-based line under the pointer; a deletion names its boundary line. */
+    readonly line: number;
+    readonly rect: EditorRect;
+}
+
 /* The pointer is on the bar of a run. */
 export interface EditorAttributionHover {
     readonly id: string;
@@ -763,6 +772,8 @@ export interface Editor {
      * editor's and a row as high as a line. Call it from `EditorWidget.render`.
      */
     renderCode(container: HTMLElement, text: string, options?: EditorCodeBlockOptions): void;
+    /* Optional for older implementations. Null when the pointer leaves or the mark is no longer visible. */
+    onChangeMarkHover?(listener: (hover: EditorChangeMarkHover | null) => void): () => void;
     /* The pointer rests on a bar, or null when it left it or the bar is gone. */
     onAttributionHover(listener: (hover: EditorAttributionHover | null) => void): () => void;
     /* Problems to draw, replacing the ones set before. */

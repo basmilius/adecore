@@ -14,6 +14,7 @@ import type {
     EditorLineHighlight,
     LineToken,
     EditorChangeMark,
+    EditorChangeMarkHover,
     EditorCodeVision,
     EditorClick,
     EditorClickHandler,
@@ -654,6 +655,18 @@ export class FakeEditor implements Editor {
 
     setAttributionMarks(marks: readonly EditorAttributionMark[]): void {
         this.attributionMarks = marks;
+    }
+
+    private readonly changeHovers = new Set<(hover: EditorChangeMarkHover | null) => void>();
+
+    onChangeMarkHover(listener: (hover: EditorChangeMarkHover | null) => void): () => void {
+        return subscribe(this.changeHovers, listener);
+    }
+
+    hoverChangeMark(hover: EditorChangeMarkHover | null): void {
+        for (const listener of this.changeHovers) {
+            listener(hover);
+        }
     }
 
     onAttributionHover(listener: (hover: EditorAttributionHover | null) => void): () => void {
