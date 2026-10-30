@@ -2,6 +2,7 @@ import {
     useContext,
     useEffect,
     useId,
+    useMemo,
     useRef,
     useState,
     useSyncExternalStore,
@@ -213,16 +214,22 @@ export function ChartRoot<Row>({
         }
     }, [orientation, band, dropped]);
 
-    const xs = data.map((row, index) => {
-        const value = readValue(x, row, index);
+    // The compiler leaves these maps uncached; cursor updates must reuse unchanged data.
+    const { xs, keys, rowLabels, groupKeys, groupLabels } = useMemo(() => {
+        const xs = data.map((row, index) => {
+            const value = readValue(x, row, index);
 
-        return value === null || value === undefined ? Number.NaN : xOf(value);
-    });
+            return value === null || value === undefined ? Number.NaN : xOf(value);
+        });
 
-    const keys = points ? data.map((row, index) => (rowKey === undefined ? String(index) : String(readValue(rowKey, row, index)))) : null;
-    const rowLabels = rowLabel !== undefined ? data.map((row, index) => String(readValue(rowLabel, row, index))) : null;
-    const groupKeys = (band || points) && group !== undefined ? data.map((row, index) => String(readValue(group, row, index))) : null;
-    const groupLabels = groupKeys === null ? null : groupLabel === undefined ? groupKeys : data.map((row, index) => String(readValue(groupLabel, row, index)));
+        const keys = points ? data.map((row, index) => (rowKey === undefined ? String(index) : String(readValue(rowKey, row, index)))) : null;
+        const rowLabels = rowLabel !== undefined ? data.map((row, index) => String(readValue(rowLabel, row, index))) : null;
+        const groupKeys = (band || points) && group !== undefined ? data.map((row, index) => String(readValue(group, row, index))) : null;
+        const groupLabels =
+            groupKeys === null ? null : groupLabel === undefined ? groupKeys : data.map((row, index) => String(readValue(groupLabel, row, index)));
+
+        return { xs, keys, rowLabels, groupKeys, groupLabels };
+    }, [data, x, points, rowKey, rowLabel, band, group, groupLabel]);
     const leftY = yAxes.get('left');
     const rightY = yAxes.get('right');
     // A horizontal chart has no y axis beside it: the names of its rows take that place, and its values run underneath.
@@ -239,12 +246,16 @@ export function ChartRoot<Row>({
     const marginLeft = margin.left ?? inset;
     const marginRight = margin.right ?? inset;
 
-    const layout = horizontal
-        ? bandLayout(xs.length, groupKeys, 0, rowHeight, groupGap)
-        : band
-          ? bandLayout(xs.length, groupKeys, Math.max(0, room - marginLeft - marginRight), minBucketWidth, groupGap)
-          : null;
-
+    // Band geometry has no cursor input, but the compiler leaves this call uncached.
+    const layout = useMemo(
+        () =>
+            horizontal
+                ? bandLayout(xs.length, groupKeys, 0, rowHeight, groupGap)
+                : band
+                  ? bandLayout(xs.length, groupKeys, Math.max(0, room - marginLeft - marginRight), minBucketWidth, groupGap)
+                  : null,
+        [horizontal, band, xs.length, groupKeys, rowHeight, groupGap, room, marginLeft, marginRight, minBucketWidth]
+    );
     const width = layout === null || horizontal ? room : Math.max(room, Math.ceil(layout.width + marginLeft + marginRight));
     const scrolls = layout !== null && width > room;
     // A scrolling plot clips what hangs out of its first buckets, such as a value label or a slanted name, so the

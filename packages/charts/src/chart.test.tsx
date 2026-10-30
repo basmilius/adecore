@@ -6,6 +6,7 @@ import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { Chart, SeriesLegend, type ChartX } from './index.ts';
 import { CHARTS_NAMESPACE, CHARTS_RESOURCES } from './locales.ts';
+import * as bands from './band.ts';
 
 const i18n = i18next.createInstance();
 
@@ -125,6 +126,149 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
         await act(async () => root.unmount());
         container.remove();
         restore();
+    });
+
+    test('cursor moves reuse unchanged row derivation and band layout', async () => {
+        let xReads = 0;
+        let groupReads = 0;
+        const changes: (ChartX | null)[] = [];
+        const readX = (row: Score): string => {
+            xReads += 1;
+
+            return row.key;
+        };
+        const readGroup = (row: Score): string => {
+            groupReads += 1;
+
+            return row.model;
+        };
+        const layouts = spyOn(bands, 'bandLayout');
+        try {
+            const plot = await mount(
+                <Chart.Root data={SCORES} x={readX} group={readGroup} label="Scores" onActiveXChange={(value) => changes.push(value)}>
+                    <Chart.Bar value="score" label="Score" />
+                </Chart.Root>
+            );
+            const before = { x: xReads, group: groupReads, layouts: layouts.mock.calls.length };
+            for (const clientX of [10, 160, 500]) {
+                await act(async () => {
+                    plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX, clientY: 50 }));
+                });
+            }
+
+            expect(changes).toEqual(['a-low', 'a-high', 'b-mid']);
+            expect({ x: xReads - before.x, group: groupReads - before.group, layouts: layouts.mock.calls.length - before.layouts }).toEqual({
+                x: 0,
+                group: 0,
+                layouts: 0
+            });
+        } finally {
+            layouts.mockRestore();
+        }
+    });
+
+    test('cached row derivation and geometry follow changed data and accessors', async () => {
+        const changes: (ChartX | null)[] = [];
+        const readX = (row: Score): string => row.key;
+        const readGroup = (row: Score): string => row.model;
+        const view = (data: readonly Score[], x: (row: Score) => string, group: (row: Score) => string): ReactNode => (
+            <Chart.Root data={data} x={x} group={group} label="Scores" onActiveXChange={(value) => changes.push(value)}>
+                <Chart.Bar value="score" label="Score" />
+            </Chart.Root>
+        );
+        const plot = await mount(view(SCORES, readX, readGroup));
+        const xs = (): (string | null)[] => columns().map((column) => column.getAttribute('x'));
+        const initial = xs();
+        await act(async () => root.render(wrap(view(SCORES, readX, (row) => row.effort))));
+        expect(xs()).not.toEqual(initial);
+
+        const data = SCORES.map((row, index) => ({ ...row, key: `next-${index}`, score: row.score * 2 }));
+        await act(async () => root.render(wrap(view(data, readX, readGroup))));
+        await act(async () => plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 10, clientY: 50 })));
+        expect(changes.at(-1)).toBe('next-0');
+
+        await act(async () => root.render(wrap(view(data, (row) => `${row.key}-accessor`, readGroup))));
+        await act(async () => plot.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: 160, clientY: 50 })));
+        expect(changes.at(-1)).toBe('next-1-accessor');
+    });
+
+    test('cached bands follow width, spacing and orientation changes', async () => {
+        const observers = new Map<Element, ControlledResizeObserver>();
+        class ControlledResizeObserver implements ResizeObserver {
+            private readonly callback: ResizeObserverCallback;
+            constructor(callback: ResizeObserverCallback) {
+                this.callback = callback;
+            }
+            observe(target: Element): void {
+                observers.set(target, this);
+            }
+            unobserve(target: Element): void {
+                observers.delete(target);
+            }
+            disconnect(): void {
+                for (const [target, observer] of observers) {
+                    if (observer === this) {
+                        observers.delete(target);
+                    }
+                }
+            }
+            resize(target: Element, width: number): void {
+                this.callback(
+                    [
+                        {
+                            target,
+                            contentRect: new DOMRect(0, 0, width, 200),
+                            borderBoxSize: [],
+                            contentBoxSize: [],
+                            devicePixelContentBoxSize: []
+                        }
+                    ],
+                    this
+                );
+            }
+        }
+        const original = globalThis.ResizeObserver;
+        globalThis.ResizeObserver = ControlledResizeObserver;
+        try {
+            const view = (gap: number, orientation: 'vertical' | 'horizontal' = 'vertical', rowHeight = 32, minBucketWidth = 0): ReactNode => (
+                <Chart.Root
+                    data={SCORES}
+                    x="key"
+                    group="model"
+                    label="Scores"
+                    groupGap={gap}
+                    orientation={orientation}
+                    rowHeight={rowHeight}
+                    minBucketWidth={minBucketWidth}
+                >
+                    <Chart.Bar value="score" label="Score" />
+                </Chart.Root>
+            );
+            const plot = await mount(view(16));
+            const observation = [...observers.entries()].find(([target]) => target.contains(plot));
+            if (observation === undefined) {
+                throw new Error('Chart did not observe its size');
+            }
+            const [measured, observer] = observation;
+            const positions = (): (string | null)[] => columns().map((column) => column.getAttribute('x'));
+            const before = positions();
+            await act(async () => observer.resize(measured, 420));
+            expect(plot.getAttribute('width')).toBe('420');
+            expect(positions()).not.toEqual(before);
+            const narrowed = positions();
+            await act(async () => root.render(wrap(view(32))));
+            expect(positions()).not.toEqual(narrowed);
+            await act(async () => root.render(wrap(view(32, 'vertical', 32, 200))));
+            expect(plot.getAttribute('width')).toBe('864');
+            const verticalHeight = plot.getAttribute('height');
+            await act(async () => root.render(wrap(view(32, 'horizontal', 48))));
+            expect(plot.getAttribute('height')).not.toBe(verticalHeight);
+            const rowPositions = columns().map((column) => column.getAttribute('y'));
+            await act(async () => root.render(wrap(view(32, 'horizontal', 64))));
+            expect(columns().map((column) => column.getAttribute('y'))).not.toEqual(rowPositions);
+        } finally {
+            globalThis.ResizeObserver = original;
+        }
     });
 
     test('reads each bucket it moves to, the group first', async () => {
