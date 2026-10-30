@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -20,6 +21,13 @@ import type { SpawnChatProcess } from '../chat/chat-process.ts';
 import { inProcess, type InProcessCli } from '../testing/fake-cli.ts';
 import { AgentHost } from './agent-host.ts';
 import { memoryPortPair } from './memory-port.ts';
+
+/* The prompt a CLI was handed, which Windows passes in a file. */
+function systemPromptOf(argv: string[]): string | undefined {
+    const file = argv.indexOf('--append-system-prompt-file');
+
+    return file === -1 ? argv[argv.indexOf('--append-system-prompt') + 1] : readFileSync(argv[file + 1]!, 'utf8');
+}
 
 /* The renderer's end of the port: a request answered by its reply, and every event as it came, checked against its schema. */
 class Client {
@@ -159,7 +167,7 @@ describe('AgentHost over a port', () => {
         expect(client.events.some((event) => event.event === 'chat.status')).toBe(true);
         // What the app tells every agent reaches the CLI as its system prompt.
         const argv = claude.started[0]!.argv;
-        expect(argv[argv.indexOf('--append-system-prompt') + 1]).toBe('You work in the motion editor.');
+        expect(systemPromptOf(argv)).toBe('You work in the motion editor.');
         expect(ok(await client.request('chat.list', {}))).toMatchObject({ chats: [{ chatId: 'chat-1', status: 'idle' }] });
     });
 
@@ -240,7 +248,7 @@ describe('AgentHost over a port', () => {
         ok(await client.request('chat.send', { chatId: 'chat-4', text: 'hello there' }));
         await client.until(() => [...client.items.values()].some((item) => item.kind === 'assistant' && item.text === 'echo: hello there'));
         const argv = claude.started.at(-1)!.argv;
-        expect(argv[argv.indexOf('--append-system-prompt') + 1]).toBe('You are the agent of chat-4.');
+        expect(systemPromptOf(argv)).toBe('You are the agent of chat-4.');
     });
 
     test('hands a chat the folders of its core, and a change starts the next turn in a new process', async () => {

@@ -162,7 +162,14 @@ describe('createTheme', () => {
 
     test('leaves a native frame its own title bar and asks it for no overlay', () => {
         const one = fakeWindow();
-        const theme = createTheme({ nativeTheme: { themeSource: 'system' }, windows: () => [one.window], background: '#131316', overlay: OVERLAY, nativeFrame: true, platform: 'win32' });
+        const theme = createTheme({
+            nativeTheme: { themeSource: 'system' },
+            windows: () => [one.window],
+            background: '#131316',
+            overlay: OVERLAY,
+            nativeFrame: true,
+            platform: 'win32'
+        });
 
         expect(theme.windowOptions()).toEqual({ backgroundColor: '#131316' });
         theme.apply(LIGHT);

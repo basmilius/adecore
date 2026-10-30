@@ -65,7 +65,9 @@ export const createTheme = (options: ThemeOptions) => {
         windowOptions: (): BrowserWindowConstructorOptions => {
             const overlay = overlayOf(current ?? { resolved: 'dark' });
 
-            const hidden: BrowserWindowConstructorOptions = options.nativeFrame ? {} : { titleBarStyle: 'hidden', ...(overlay ? { titleBarOverlay: overlay } : {}) };
+            const hidden: BrowserWindowConstructorOptions = options.nativeFrame
+                ? {}
+                : { titleBarStyle: 'hidden', ...(overlay ? { titleBarOverlay: overlay } : {}) };
             const chrome: BrowserWindowConstructorOptions =
                 platform === 'darwin' ? { titleBarStyle: 'hiddenInset', trafficLightPosition: options.trafficLights ?? { x: 17, y: 17 } } : hidden;
 
