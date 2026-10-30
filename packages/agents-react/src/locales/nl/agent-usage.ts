@@ -1,5 +1,6 @@
 export default {
     limits: {
+        notRead: 'Nog geen planlimieten gelezen. Lees ze opnieuw op deze machine.',
         refresh: 'Limieten opnieuw lezen',
         reading: 'Limieten lezen',
         refreshHint: 'Vraagt deze machine de geschikte accounts opnieuw te lezen.',

@@ -1,5 +1,6 @@
 export default {
     limits: {
+        notRead: 'No plan limits have been read. Read them again on this machine.',
         refresh: 'Read limits again',
         reading: 'Reading limits',
         refreshHint: 'Asks this machine to read the eligible accounts again.',
@@ -31,7 +32,7 @@ export default {
         logIn: 'Log in',
         checked: {
             unknown: 'Update time unknown',
-            updated: 'Last update · {{when}}',
+            updated: 'Last updated · {{when}}',
             old: 'May be out of date',
             now: 'now',
             ago: '{{duration}} ago',

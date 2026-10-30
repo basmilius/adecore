@@ -1,7 +1,7 @@
 import type { UsageLimitsProvider } from '@adecore/agent-contracts';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { checkedAge, checkedLabel } from './limit-groups';
+import { checkedAge, checkedLabel, showsWindows } from './limit-groups';
 
 export function LimitProvenance({ entry, now }: { entry: UsageLimitsProvider; now: number }) {
     const { t } = useTranslation('agent-usage');
@@ -9,7 +9,7 @@ export function LimitProvenance({ entry, now }: { entry: UsageLimitsProvider; no
     const when = checkedLabel(entry, now);
     const retained = entry.unavailable?.reason === 'failed' && entry.windows.length > 0;
 
-    if (entry.checkedAt === 0 && entry.windows.length === 0) {
+    if (!showsWindows(entry)) {
         return null;
     }
 
