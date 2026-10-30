@@ -41,6 +41,13 @@ function contextTokens(usage: unknown): number {
     return isRecord(usage) ? num(usage.input_tokens) + num(usage.cache_creation_input_tokens) + num(usage.cache_read_input_tokens) : 0;
 }
 
+/*
+ * Claude Code 2.1.312 says `completed` for a subagent that stopped to wait on its own background work, and
+ * notifies the same task again when it reports. No field tells them apart: `handback` is also absent from a
+ * subagent that does not report through `SubagentHandback`, and `background_tasks_changed` drops the agent too.
+ */
+const INTERIM_TASK_SUMMARY = 'This agent has not reported yet';
+
 // How long a prompt cache entry lives, by the field of `usage.cache_creation` that counts what a request wrote with it.
 const CACHE_TTL_MS: Record<string, number> = { ephemeral_5m_input_tokens: 5 * 60_000, ephemeral_1h_input_tokens: 60 * 60_000 };
 
@@ -511,12 +518,24 @@ export class ClaudeProtocol {
             }
         } else if (frame.subtype === 'task_notification') {
             const ref = str(frame.tool_use_id);
+            const taskId = str(frame.task_id);
+
+            if (str(frame.status) === 'completed' && str(frame.summary)?.startsWith(INTERIM_TASK_SUMMARY)) {
+                // `task_updated` already took it off the list of running agents.
+                if (taskId) {
+                    this.backgroundAgents.add(taskId);
+                }
+
+                if (ref) {
+                    events.push({ type: 'task.progress', ref, taskId, summary: null, lastTool: null, usage: taskUsage(frame.usage) });
+                }
+
+                return;
+            }
 
             if (ref) {
                 this.subagentModels.delete(ref);
             }
-
-            const taskId = str(frame.task_id);
 
             if (taskId) {
                 this.endBackground(taskId, events);

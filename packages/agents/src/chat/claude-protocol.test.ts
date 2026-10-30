@@ -478,6 +478,47 @@ describe('ClaudeProtocol', () => {
         ]);
     });
 
+    test('a subagent that only waits on its own background work has not settled', () => {
+        const protocol = new ClaudeProtocol();
+        const notification = {
+            type: 'system',
+            subtype: 'task_notification',
+            task_id: 'a8157591dfd0590ba',
+            tool_use_id: 'toolu_agent',
+            status: 'completed',
+            output_file: '/tmp/tasks/a8157591dfd0590ba.output',
+            usage: { total_tokens: 204758, tool_uses: 109, duration_ms: 951475 }
+        };
+
+        expect(
+            protocol.handle({
+                ...notification,
+                summary:
+                    'This agent has not reported yet: it is waiting on its own background work and will deliver its report through SubagentHandback when that finishes.'
+            })
+        ).toEqual([
+            {
+                type: 'task.progress',
+                ref: 'toolu_agent',
+                taskId: 'a8157591dfd0590ba',
+                summary: null,
+                lastTool: null,
+                usage: { totalTokens: 204758, toolUses: 109, durationMs: 951475 }
+            }
+        ]);
+        expect(protocol.handle({ ...notification, summary: 'All fixed.' })).toEqual([
+            {
+                type: 'task.done',
+                ref: 'toolu_agent',
+                taskId: 'a8157591dfd0590ba',
+                summary: 'All fixed.',
+                ok: true,
+                usage: { totalTokens: 204758, toolUses: 109, durationMs: 951475 },
+                outputFile: '/tmp/tasks/a8157591dfd0590ba.output'
+            }
+        ]);
+    });
+
     test('a task notification carries what the background task came to', () => {
         const protocol = new ClaudeProtocol();
 
