@@ -44,6 +44,7 @@ interface ProviderState {
     /* How long to wait after a failure; it doubles up to an hour and resets on the first answer. */
     backoffMs: number;
     nextAt: number;
+    liveRevision: number;
 }
 
 function blank(kind: UsageProvider): UsageLimitsProvider {
@@ -92,6 +93,8 @@ export class UsageMonitor {
     private readonly states = new Map<string, ProviderState>();
     private inFlight: Promise<void> | null = null;
     private timer: ReturnType<typeof setInterval> | null = null;
+    private forcedPass = false;
+    private queuedForce: Promise<void> | null = null;
 
     constructor(options: UsageMonitorOptions) {
         this.registry = options.providers;
@@ -133,9 +136,33 @@ export class UsageMonitor {
         }
     }
 
-    /* One pass at a time; a second caller waits for the first one's answer rather than starting a CLI. */
+    /* A force request cannot inherit the eligibility of a normal pass already in progress. */
     refresh(force: boolean): Promise<void> {
-        this.inFlight ??= this.runAll(force).finally(() => {
+        if (this.queuedForce !== null) {
+            return this.queuedForce;
+        }
+
+        if (this.inFlight === null) {
+            return this.begin(force);
+        }
+
+        if (!force || this.forcedPass) {
+            return this.inFlight;
+        }
+
+        this.queuedForce = this.inFlight
+            .catch(() => undefined)
+            .then(() => this.begin(true))
+            .finally(() => {
+                this.queuedForce = null;
+            });
+
+        return this.queuedForce;
+    }
+
+    private begin(force: boolean): Promise<void> {
+        this.forcedPass = force;
+        this.inFlight = this.runAll(force).finally(() => {
             this.inFlight = null;
         });
 
@@ -159,6 +186,7 @@ export class UsageMonitor {
 
         const state = this.stateOf(update.kind, update.account ?? update.kind);
 
+        state.liveRevision += 1;
         state.published = {
             ...state.published,
             plan: update.plan ?? state.published.plan,
@@ -190,7 +218,7 @@ export class UsageMonitor {
         let state = this.states.get(id);
 
         if (state === undefined || state.kind !== kind) {
-            state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0 };
+            state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0, liveRevision: 0 };
             this.states.set(id, state);
         }
 
@@ -217,6 +245,7 @@ export class UsageMonitor {
     }
 
     private async runAll(force: boolean): Promise<void> {
+        const listedRevisions = new Map(this.listed().map(({ id, kind }) => [id, this.stateOf(kind, id).liveRevision]));
         const installed = await this.registry.list();
         let changed = false;
 
@@ -231,8 +260,13 @@ export class UsageMonitor {
             const info = installed.find((provider) => provider.kind === kind);
 
             if (this.plans[kind] === undefined && (info === undefined || !info.installed)) {
-                state.published = { ...blank(kind), checkedAt: this.now(), unavailable: { reason: 'not-installed', message: null } };
                 state.nextAt = this.now() + PROBE_INTERVAL_MS;
+
+                if (state.liveRevision !== (listedRevisions.get(account.id) ?? 0)) {
+                    continue;
+                }
+
+                state.published = { ...blank(kind), checkedAt: this.now(), unavailable: { reason: 'not-installed', message: null } };
                 changed = true;
 
                 continue;
@@ -240,13 +274,20 @@ export class UsageMonitor {
 
             // The next read is counted from when this one started, so a read that takes a few seconds does not push the tick of the clock past its time.
             const startedAt = this.now();
+            const liveRevision = state.liveRevision;
             const result = await this.read(account);
             const failed = 'unavailable' in result && result.unavailable?.reason === 'failed';
             state.backoffMs = failed ? Math.min(MAX_BACKOFF_MS, state.backoffMs * 2) : PROBE_INTERVAL_MS;
             state.nextAt = startedAt + state.backoffMs;
 
-            if (failed && state.published.windows.length > 0) {
-                // A pass that could not reach the CLI leaves the last good numbers where they are.
+            if (liveRevision !== state.liveRevision) {
+                continue;
+            }
+
+            if (failed && 'unavailable' in result && state.published.windows.length > 0) {
+                state.published = { ...state.published, unavailable: result.unavailable };
+                changed = true;
+
                 continue;
             }
 

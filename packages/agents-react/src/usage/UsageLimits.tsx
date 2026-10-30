@@ -1,16 +1,18 @@
-import type { UsageProvider } from '@adecore/agent-contracts';
+import type { UsageLimitsSnapshot, UsageProvider } from '@adecore/agent-contracts';
 import { Button, Icon, SectionLabel, Segmented, Tooltip, useNow } from '@adecore/ui';
-import { LogIn } from 'lucide-react';
-import { useState } from 'react';
+import { ListRestart, LogIn } from 'lucide-react';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
 import { useChatHost } from '../host';
 import { useHostLoginBlocked } from '../host-hooks';
 import { useChatScope } from '../scope';
 import { useProviderAccounts } from '../state/provider-accounts';
+import { useUsageStore } from '../state/usage';
 import { ChartLogo } from './ChartLogo';
 import { PROVIDER_LABELS } from './format';
-import { accountNote, checkedLabel, hasSeveralAccounts, isSignedOut, type LimitAccount } from './limit-groups';
+import { accountNote, hasSeveralAccounts, isSignedOut, showsWindows, type LimitAccount } from './limit-groups';
+import { LimitProvenance } from './LimitProvenance';
 import { useLimitGroups, useUsageLimits } from './limits';
 import { WindowBar } from './LimitsList';
 
@@ -55,7 +57,6 @@ function LimitCard({ account, named, now, login }: { account: LimitAccount; name
     const signedOut = isSignedOut(account);
     const note = signedOut ? null : accountNote(account);
     const plan = signedOut ? null : account.entry?.plan;
-    const checked = signedOut || account.entry === null ? null : checkedLabel(account.entry, now);
 
     return (
         <div className="flex min-w-0 flex-col gap-3.5 rounded-xl border border-border bg-surface bg-clip-padding px-4 py-3.5">
@@ -70,21 +71,24 @@ function LimitCard({ account, named, now, login }: { account: LimitAccount; name
                     </>
                 )}
                 {plan && <span className="shrink-0 font-normal text-text-muted capitalize">· {plan}</span>}
-                {checked !== null && <span className="ml-auto shrink-0 pl-2 font-normal text-text-faint">{checked}</span>}
             </p>
+            {!signedOut && account.entry !== null && <LimitProvenance entry={account.entry} now={now} />}
             {signedOut ? (
                 <>
                     <p className="text-xs text-text-faint">{t('limits.signedOutDetail')}</p>
                     {login !== null && <LoginButton account={account} login={login} />}
                 </>
-            ) : note !== null ? (
-                <p className="text-xs text-text-faint">{note}</p>
             ) : (
-                <div className="flex flex-col gap-4">
-                    {account.entry?.windows.map((window) => (
-                        <WindowBar key={window.id} window={window} now={now} compact={false} />
-                    ))}
-                </div>
+                <>
+                    {note !== null && <p className="text-xs text-text-muted">{note}</p>}
+                    {showsWindows(account.entry) && (
+                        <div className="flex flex-col gap-4">
+                            {account.entry?.windows.map((window) => (
+                                <WindowBar key={window.id} window={window} now={now} compact={false} />
+                            ))}
+                        </div>
+                    )}
+                </>
             )}
         </div>
     );
@@ -106,10 +110,6 @@ export function UsageLimits() {
     const blocked = useHostLoginBlocked(scopeId);
     const [filter, setFilter] = useState<Filter>('all');
 
-    if (limits === null) {
-        return null;
-    }
-
     const filterable = groups.length > 1 && hasSeveralAccounts(groups);
     const current = filterable && groups.some((group) => group.kind === filter) ? filter : 'all';
     const shown = current === 'all' ? groups : groups.filter((group) => group.kind === current);
@@ -125,6 +125,7 @@ export function UsageLimits() {
                 <SectionLabel render={<h2 />} className="grow">
                     {t('limits.title')}
                 </SectionLabel>
+                <LimitsRefresh key={scopeId} limits={limits} />
                 {filterable && (
                     <Segmented<Filter>
                         value={current}
@@ -138,7 +139,8 @@ export function UsageLimits() {
                 )}
             </div>
             <p className="text-xs text-text-muted">{t('limits.explain')}</p>
-            <div className="grid grid-cols-2 gap-3">
+            {limits === null && <p className="text-xs text-text-faint">{t('limits.notRead')}</p>}
+            <div className="grid grid-cols-2 gap-3 max-[640px]:grid-cols-1">
                 {shown.flatMap((group) =>
                     group.accounts.map((account) => (
                         <LimitCard key={account.id} account={account} named={group.accounts.length > 1} now={now} login={loginFor(group.kind)} />
@@ -146,5 +148,73 @@ export function UsageLimits() {
                 )}
             </div>
         </section>
+    );
+}
+
+function LimitsRefresh({ limits }: { limits: UsageLimitsSnapshot | null }) {
+    const { t } = useTranslation('agent-usage');
+    const scope = useChatScope();
+    const [busy, setBusy] = useState(false);
+    const [failure, setFailure] = useState<{ snapshot: UsageLimitsSnapshot | null } | null>(null);
+    const pending = useRef(false);
+    const alive = useRef(true);
+    const answering = useSyncExternalStore(
+        (changed) => scope.transport.subscribeStatus(changed),
+        () => scope.transport.status === 'open',
+        () => false
+    );
+
+    useEffect(() => {
+        alive.current = true;
+
+        return () => {
+            alive.current = false;
+        };
+    }, []);
+
+    const read = async () => {
+        if (pending.current || scope.transport.status !== 'open') {
+            return;
+        }
+
+        pending.current = true;
+        setBusy(true);
+        setFailure(null);
+
+        try {
+            const snapshot = await scope.transport.request('usage.refreshLimits', {});
+
+            if (alive.current) {
+                useUsageStore.getState().setLimits(scope.id, snapshot);
+            }
+        } catch {
+            if (alive.current) {
+                setFailure({ snapshot: useUsageStore.getState().byScope[scope.id]?.limits ?? null });
+            }
+        } finally {
+            pending.current = false;
+
+            if (alive.current) {
+                setBusy(false);
+            }
+        }
+    };
+
+    return (
+        <div className="flex flex-col items-end gap-1">
+            <Tooltip label={answering ? t('limits.refreshHint') : t('limits.offline')}>
+                <span>
+                    <Button size="sm" variant="secondary" disabled={!answering || busy} onClick={() => void read()}>
+                        <Icon icon={ListRestart} size={14} />
+                        {busy ? t('limits.reading') : t('limits.refresh')}
+                    </Button>
+                </span>
+            </Tooltip>
+            {failure !== null && failure.snapshot === limits && (
+                <p role="alert" className="max-w-80 text-xs text-status-error">
+                    {t('limits.refreshFailed')}
+                </p>
+            )}
+        </div>
     );
 }

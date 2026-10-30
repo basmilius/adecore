@@ -119,3 +119,9 @@ A subclass of `ChatCore` can add host methods and pass its hooks to `super` as a
 Run the host in a utility process and keep the window to the contracts and views. The main process starts the utility process with the data folder and makes a `MessageChannelMain` per window. After it checked which window and frame asked, it hands one port to the utility process and the other to the window. The utility process wraps its `MessagePortMain` as a `FramePort` (`postMessage` to send, `on('message')` with `{ data }` to receive, `start()`), calls `host.connect`, and disconnects when the window goes.
 
 On quit, wait for `host.close()` before the utility process exits, so the host writes every thread and ends every CLI. Give it a time limit in case it hangs. The channel names and window checks are your app's. The package registers none.
+
+### Reading plan limits
+
+`UsageMonitor.refresh(true)` reads all eligible accounts on request. If an ordinary pass is already running, callers share one forced follow-up; they do not inherit the ordinary pass's recent-use filter. A new forced caller joins a forced pass already running. Stopping the monitor ends its timer, not a pass already requested. The original ordinary callers keep their own error if listing providers fails; a queued forced pass still gets its own attempt.
+
+A live update wins over any older in-flight probe result for that account. A failed read without a newer live update retains its last windows and their update time, with `unavailable.reason` set to `failed`. Clients can show those numbers as last known, with the failure beside them. They must not offer that account as known room until a later read succeeds. The normal five-minute pass, backoff and recent-account eligibility are unchanged.

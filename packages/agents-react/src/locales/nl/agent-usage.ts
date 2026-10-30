@@ -1,5 +1,11 @@
 export default {
     limits: {
+        refresh: 'Limieten opnieuw lezen',
+        reading: 'Limieten lezen',
+        refreshHint: 'Vraagt deze machine de geschikte accounts opnieuw te lezen.',
+        refreshFailed: 'Limieten lezen mislukt. Probeer opnieuw.',
+        offline: 'Maak verbinding met deze machine om limieten te lezen.',
+        lastKnown: 'Laatst bekende cijfers',
         title: 'Limieten',
         explain: 'De markering toont waar het verbruik bij een gelijk tempo zou staan. Voorbij de markering verbruik je sneller dan het weer vrijkomt.',
         loading: 'Limieten laden…',
@@ -24,6 +30,9 @@ export default {
         signedOutDetail: 'Niet ingelogd. Log in om limieten te zien.',
         logIn: 'Inloggen',
         checked: {
+            unknown: 'Bijwerktijd onbekend',
+            updated: 'Laatst bijgewerkt · {{when}}',
+            old: 'Mogelijk verouderd',
             now: 'nu',
             ago: '{{duration}} geleden',
             fromTurn: 'Uit een turn · {{when}}'
