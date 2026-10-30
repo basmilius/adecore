@@ -135,6 +135,14 @@ describe('CodexProtocol', () => {
         }
     });
 
+    test('says so when a sandbox that was never set up leaves a thread read-only', () => {
+        const ready = (sandbox: string, asked: string) =>
+            new CodexProtocol(1).threadReady({ thread: { id: 'root' }, approvalPolicy: 'on-request', sandbox: { type: sandbox } }, asked);
+        expect(ready('readOnly', 'workspace-write')[1]).toMatchObject({ type: 'note', level: 'warning', text: expect.stringContaining('Run `codex` once') });
+        expect(ready('workspaceWrite', 'workspace-write')).toHaveLength(1);
+        expect(ready('readOnly', 'read-only')).toHaveLength(1);
+    });
+
     test('replays a real child file approval with its diff held across root completion', () => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: nativeFileApprovalCapture.rootThreadId } });

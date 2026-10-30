@@ -83,6 +83,8 @@ function textOf(content: unknown): string {
         .join('\n');
 }
 
+const SANDBOX_NOT_SET_UP = "Codex's sandbox is not set up here, so it can only read and asks before each command. Run `codex` once in a terminal to set it up.";
+
 // What `agentsStates` says of an agent that stopped working; the call that reports it may have completed long before.
 const ENDED_AGENT_STATES = new Set(['completed', 'errored', 'interrupted', 'shutdown', 'notFound']);
 
@@ -259,7 +261,7 @@ export class CodexProtocol {
     }
 
     /* The result of `thread/start` or `thread/resume`. The thread id is what a terminal resumes. */
-    threadReady(result: unknown): BackendEvent[] {
+    threadReady(result: unknown, askedSandbox?: string): BackendEvent[] {
         const thread = isRecord(result) && isRecord(result.thread) ? result.thread : {};
         this.ownThreadId = str(thread.id) ?? this.ownThreadId;
         const policy = isRecord(result) ? str(result.approvalPolicy) : null;
@@ -274,7 +276,11 @@ export class CodexProtocol {
                 title: cleanTitle(thread.name),
                 ...(policy && sandbox ? { permissionMode: `${policy} / ${sandbox}` } : {}),
                 ...(effectiveRuntimeMode === undefined ? {} : { effectiveRuntimeMode })
-            }
+            },
+            // On Windows a sandbox that was never set up leaves a thread read-only without an error, and the question that sets it up lives in Codex's TUI.
+            ...(askedSandbox === 'workspace-write' && sandbox === 'readOnly'
+                ? [{ type: 'note' as const, level: 'warning' as const, text: SANDBOX_NOT_SET_UP }]
+                : [])
         ];
     }
 

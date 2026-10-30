@@ -180,7 +180,7 @@ export class CodexBackend implements ChatBackend {
 
         this.imageInputSupported = await this.readImageSupport(transport);
 
-        for (const event of this.protocol.threadReady(result)) {
+        for (const event of this.protocol.threadReady(result, params.sandbox)) {
             if (event.type === 'session' && event.agentSessionId) {
                 this.threadId = event.agentSessionId;
             }
