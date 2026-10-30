@@ -3,7 +3,7 @@
  * compaction, edits, subagents, interrupts and crashes through the real frame shapes.
  */
 import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FakeCli, FakeIo, FakeProgram } from './fake-cli.ts';
 
@@ -1113,7 +1113,8 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
         if (text === 'system?') {
             const at = args.indexOf('--append-system-prompt');
-            assistantText(at >= 0 ? args[at + 1]! : 'none');
+            const fileAt = args.indexOf('--append-system-prompt-file');
+            assistantText(at >= 0 ? args[at + 1]! : fileAt >= 0 ? readFileSync(args[fileAt + 1]!, 'utf8') : 'none');
             result();
 
             return;

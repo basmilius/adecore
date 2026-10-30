@@ -4,6 +4,7 @@ import { claudeArgs, claudeEnv, promptPrefix } from '../providers/claude.ts';
 import type { ApprovalDecision, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { ChatChild, MAX_LINE_LENGTH, readStreamLines } from './chat-process.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
+import { claudeSystemPromptArgs } from './claude-system-prompt.ts';
 import { buildUserMessage } from './input.ts';
 
 // Claude may echo a steer only once a slow tool returns, so a running turn sets no deadline; after the turn ended, a message
@@ -72,7 +73,11 @@ export class ClaudeBackend implements ChatBackend {
         ];
 
         if (this.launch.instructions !== null) {
-            args.push('--append-system-prompt', this.launch.instructions);
+            try {
+                args.push(...claudeSystemPromptArgs(this.launch.instructions));
+            } catch (error) {
+                return Promise.reject(error instanceof Error ? error : new Error(errorText(error)));
+            }
         }
 
         this.stdinClosed = false;
