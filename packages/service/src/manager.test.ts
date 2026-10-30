@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { scheduledTask } from './definitions.js';
 import { launchdManager, systemdManager, taskSchedulerManager, type CommandResult, type ServiceFiles } from './manager.js';
 
 function ok(stdout = ''): CommandResult {
@@ -279,12 +280,13 @@ describe('taskSchedulerManager', () => {
         ]);
     });
 
-    test('ends the tree under the cmd.exe whose title is the task name, which schtasks /End leaves running', () => {
+    test('ends the tree under the cmd.exe that runs the script, or has the title of a task from before it, which schtasks /End leaves running', () => {
         const runner = fakeRunner();
         create(runner).stop();
         const call = runner.calls.find(isEndTree)!;
         const script = Buffer.from(call.split(' ').at(-1)!, 'base64').toString('utf16le');
         expect(script).toContain("Name='cmd.exe'");
+        expect(script).toContain(".Contains('Example_Worker.cmd')");
         expect(script).toContain(".Contains('title Example^ Worker && ')");
         expect(script).toContain('taskkill.exe /PID $_.ProcessId /T /F');
     });
@@ -292,6 +294,38 @@ describe('taskSchedulerManager', () => {
     test('a refused registration is an error that says why', () => {
         const runner = fakeRunner({ [CREATE]: { code: 1, stdout: '', stderr: 'ERROR: Access is denied.' } });
         expect(() => create(runner).install('<Task/>')).toThrow('schtasks /Create failed (1): ERROR: Access is denied.');
+    });
+
+    const TASK_WITH_SCRIPT = scheduledTask({
+        label: 'Example Worker',
+        description: 'Example',
+        program: 'C:\\worker.exe',
+        args: [],
+        environment: {},
+        workingDirectory: 'C:\\Users\\bas',
+        logFile: 'C:\\log',
+        user: 'PC\\bas',
+        scriptDirectory: 'C:\\Users\\bas\\AppData\\Local\\Example'
+    });
+    const SCRIPT = 'C:\\Users\\bas\\AppData\\Local\\Example\\Example_Worker.cmd';
+
+    test('writes the script a definition carries, also when only the script went', () => {
+        const disk = memoryFiles();
+        const manager = create(fakeRunner(), disk);
+        manager.install(TASK_WITH_SCRIPT);
+        expect(disk.files.get(SCRIPT)).toStartWith('@echo off');
+        disk.files.delete(SCRIPT);
+        expect(manager.install(TASK_WITH_SCRIPT)).toBe(false);
+        expect(disk.files.has(SCRIPT)).toBe(true);
+    });
+
+    test('uninstalling takes the script with it', () => {
+        const disk = memoryFiles();
+        const manager = create(fakeRunner(), disk);
+        manager.install(TASK_WITH_SCRIPT);
+        manager.uninstall();
+        expect(disk.files.has(SCRIPT)).toBe(false);
+        expect(disk.files.has(FILE)).toBe(false);
     });
 
     test('uninstalling deletes the task and its definition', () => {

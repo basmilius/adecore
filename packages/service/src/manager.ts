@@ -1,5 +1,6 @@
 import { posix, win32 } from 'node:path';
-import { scheduledTaskMarker } from './cmd-line.js';
+import { scheduledTaskMarker, scheduledTaskScriptName } from './cmd-line.js';
+import { scheduledTaskScript } from './definitions.js';
 
 export interface CommandResult {
     code: number;
@@ -231,10 +232,11 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
     // Before `/End`, which leaves what the task's cmd.exe started running without a parent to find it by.
     const endTree = (): void => {
         const marker = scheduledTaskMarker(name).replace(/'/g, "''");
+        const scriptName = scheduledTaskScriptName(name);
 
         const script = [
             'Get-CimInstance Win32_Process -Filter "Name=\'cmd.exe\'"',
-            `Where-Object { $_.CommandLine -and $_.CommandLine.Contains('${marker}') }`,
+            `Where-Object { $_.CommandLine -and ($_.CommandLine.Contains('${scriptName}') -or $_.CommandLine.Contains('${marker}')) }`,
             'ForEach-Object { taskkill.exe /PID $_.ProcessId /T /F | Out-Null }'
         ].join(' | ');
 
@@ -255,6 +257,11 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
             // cmd.exe appends to the log but makes no folder for it, and the task ends at once without one.
             options.files.makeDirectory(win32.dirname(options.logFile));
             const previous = writeDefinition(options.files, path, definition);
+            const script = scheduledTaskScript(definition);
+
+            if (script !== null && options.files.read(script.path) !== script.text) {
+                options.files.write(script.path, script.text);
+            }
 
             if (previous !== definition || !exists()) {
                 expectSuccess(schtasks('/Create', '/TN', name, '/XML', path, '/F'), 'schtasks /Create');
@@ -281,6 +288,12 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
         },
         uninstall() {
             schtasks('/Delete', '/TN', name, '/F');
+            const script = scheduledTaskScript(options.files.read(path) ?? '');
+
+            if (script !== null) {
+                options.files.remove(script.path);
+            }
+
             options.files.remove(path);
         }
     };

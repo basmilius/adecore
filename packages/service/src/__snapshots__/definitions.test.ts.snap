@@ -5,6 +5,13 @@ exports[`scheduledTask the task of a packaged app 1`] = `
   <RegistrationInfo>
     <Description>Example worker</Description>
     <URI>\\Example Worker</URI>
+    <Documentation>@echo off
+chcp 65001 &gt;nul
+cd /d C:\\Users\\bas || exit /b 1
+set ^"WORKER_HOME=C:\\Users\\bas\\.worker^"
+set ^"PATH=C:\\Program^ Files\\Git\\cmd^;C:\\Windows\\System32^"
+^"C:\\Users\\bas\\AppData\\Local\\Programs\\Example\\resources\\bin\\worker.exe^" ^"--port^" ^"4210^" &gt;&gt;C:\\Users\\bas\\AppData\\Local\\Example\\logs\\daemon.log 2&gt;&amp;1
+</Documentation>
   </RegistrationInfo>
   <Triggers>
     <LogonTrigger>
@@ -44,9 +51,9 @@ exports[`scheduledTask the task of a packaged app 1`] = `
   </Settings>
   <Actions Context="Author">
     <Exec>
-      <Command>%SystemRoot%\\System32\\cmd.exe</Command>
-      <Arguments>/d /s /c "title Example^ Worker &amp;&amp; set ^"WORKER_HOME=C:\\Users\\bas\\.worker^" &amp;&amp; set ^"PATH=C:\\Program^ Files\\Git\\cmd^;C:\\Windows\\System32^" &amp;&amp; C:\\Users\\bas\\AppData\\Local\\Programs\\Example\\resources\\bin\\worker.exe ^"--port^" ^"4210^" &gt;&gt;C:\\Users\\bas\\AppData\\Local\\Example\\logs\\daemon.log 2&gt;&amp;1"</Arguments>
-      <WorkingDirectory>C:\\Users\\bas</WorkingDirectory>
+      <Command>%SystemRoot%\\System32\\conhost.exe</Command>
+      <Arguments>--headless cmd.exe /d /c .\\Example_Worker.cmd</Arguments>
+      <WorkingDirectory>C:\\Users\\bas\\AppData\\Local\\Example\\service</WorkingDirectory>
     </Exec>
   </Actions>
 </Task>

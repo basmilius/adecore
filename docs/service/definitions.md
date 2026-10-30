@@ -9,7 +9,7 @@ import { serviceDefinition } from '@adecore/service/platform';
 
 ## ServiceSpec
 
-Every field but `user` is required, even on platforms that ignore it.
+Every field but `user` and `scriptDirectory` is required, even on platforms that ignore it.
 
 | Field | Type | |
 | --- | --- | --- |
@@ -21,6 +21,7 @@ Every field but `user` is required, even on platforms that ignore it.
 | `workingDirectory` | `string` | The folder the program starts in. |
 | `logFile` | `string` | Where launchd and the scheduled task write stdout and stderr. systemd logs to the journal. |
 | `user` | `string`, optional | The account a scheduled task starts for at logon, as `DOMAIN\name`. Only the task reads it, and requires it. |
+| `scriptDirectory` | `string`, optional | The folder of the script a scheduled task runs. Only the task reads it, and requires it. |
 
 The systemd unit is named by the manager's `unitName`, not by the spec.
 
@@ -30,7 +31,7 @@ The systemd unit is named by the manager's `unitName`, not by the spec.
 | --- | --- |
 | `launchAgentPlist(spec)` | A property list with `ProgramArguments`, `EnvironmentVariables`, `WorkingDirectory`, `RunAtLoad` and `KeepAlive` set to true, `ProcessType` set to `Interactive` so launchd does not throttle it, and both output streams to `logFile`. |
 | `systemdUnit(spec)` | A unit with `Type=simple`, `ExecStart`, one `Environment` line per variable, `WorkingDirectory`, `Restart=always`, `RestartSec=2` and `WantedBy=default.target`. |
-| `scheduledTask(spec)` | Task Scheduler XML with a `LogonTrigger` for `user`, an `InteractiveToken` principal at `LeastPrivilege`, no time limit and `IgnoreNew` for a second instance. The trigger repeats every minute, so an ended program comes back within a minute. The action runs `cmd.exe` titled with the label, sets the environment, starts the program and appends both output streams to `logFile`. Throws without `user`. |
+| `scheduledTask(spec)` | Task Scheduler XML with a `LogonTrigger` for `user`, an `InteractiveToken` principal at `LeastPrivilege`, no time limit and `IgnoreNew` for a second instance. The trigger repeats every minute, so an ended program comes back within a minute. The action runs a script through a headless console, which sets the environment, starts the program and appends both output streams to `logFile`. Throws without `user` or `scriptDirectory`. |
 | `serviceDefinition(platform, spec)` | The property list on `darwin`, the unit on `linux`, the task on `win32`. Throws on any other platform. |
 
 A user unit stops when the person logs out, unless lingering is on; see [Lingering](/service/managers#lingering).
@@ -51,7 +52,7 @@ ExecStart="/opt/My Tools/worker" "--label" "a$$b"
 Environment="CACHE=/home/ada/cache%%/$HOME"
 ```
 
-The task escapes `cmd.exe` syntax with a caret, quotes arguments for the C runtime and escapes XML. It throws on a line break in an argument.
+The task runs `conhost.exe --headless cmd.exe /d /c .\<label>.cmd` from `scriptDirectory`, because an interactive task's console program otherwise gets a window, and closing that window ends it. A headless conhost loses inner quotes, so what needs them is in the script. The definition carries the script in `Documentation`; `scheduledTaskScript(definition)` returns its `path` and `text`, and the manager writes it on install and removes it on uninstall. The script escapes `cmd.exe` syntax with a caret, doubles `%`, quotes arguments and the program for the C runtime, and sets code page 65001. It throws on a line break. The XML is pure ASCII with character references, since `schtasks` reads a UTF-8 file in the system's code page and refuses a BOM. `definitionRunsProgram` also recognizes a task from before the script.
 
 No function checks that the program exists, and only the task rejects a newline. Pass values the app trusts.
 

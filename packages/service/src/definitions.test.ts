@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { definitionRunsProgram, launchAgentPlist, scheduledTask, systemdUnit, type ServiceSpec } from './definitions.js';
+import { definitionRunsProgram, launchAgentPlist, scheduledTask, scheduledTaskScript, systemdUnit, type ServiceSpec } from './definitions.js';
 
 const MAC: ServiceSpec = {
     label: 'com.example.worker',
@@ -29,12 +29,15 @@ const WINDOWS: ServiceSpec = {
     environment: { WORKER_HOME: 'C:\\Users\\bas\\.worker', PATH: 'C:\\Program Files\\Git\\cmd;C:\\Windows\\System32' },
     workingDirectory: 'C:\\Users\\bas',
     logFile: 'C:\\Users\\bas\\AppData\\Local\\Example\\logs\\daemon.log',
-    user: 'DESKTOP-1\\bas'
+    user: 'DESKTOP-1\\bas',
+    scriptDirectory: 'C:\\Users\\bas\\AppData\\Local\\Example\\service'
 };
 
-function taskArguments(definition: string): string {
-    return /<Arguments>([^<]*)<\/Arguments>/.exec(definition)![1]!.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
-}
+// What the task looked like before it ran a script, as a task registered back then still does.
+const OLD_FORM =
+    '<Task><Actions><Exec><Command>%SystemRoot%\\System32\\cmd.exe</Command>' +
+    '<Arguments>/d /s /c "title Example^ Worker &amp;&amp; set ^"PATH=C:\\x^" &amp;&amp; C:\\Program^ Files\\worker.exe ^"--port^" &gt;&gt;C:\\log 2&gt;&amp;1"</Arguments>' +
+    '</Exec></Actions></Task>';
 
 describe('scheduledTask', () => {
     test('the task of a packaged app', () => {
@@ -50,26 +53,54 @@ describe('scheduledTask', () => {
         expect(task).toContain('<MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>');
     });
 
-    test('sets the environment, runs the program and appends to the log through cmd.exe', () => {
-        expect(taskArguments(scheduledTask(WINDOWS))).toBe(
-            '/d /s /c "' +
-                'title Example^ Worker && ' +
-                'set ^"WORKER_HOME=C:\\Users\\bas\\.worker^" && ' +
-                'set ^"PATH=C:\\Program^ Files\\Git\\cmd^;C:\\Windows\\System32^" && ' +
-                'C:\\Users\\bas\\AppData\\Local\\Programs\\Example\\resources\\bin\\worker.exe ^"--port^" ^"4210^" ' +
-                '>>C:\\Users\\bas\\AppData\\Local\\Example\\logs\\daemon.log 2>&1"'
-        );
+    test('starts a headless console, with a script from its own folder, so no window appears and nothing needs quoting', () => {
+        const task = scheduledTask(WINDOWS);
+        expect(task).toContain('<Command>%SystemRoot%\\System32\\conhost.exe</Command>');
+        expect(task).toContain('<Arguments>--headless cmd.exe /d /c .\\Example_Worker.cmd</Arguments>');
+        expect(task).toContain('<WorkingDirectory>C:\\Users\\bas\\AppData\\Local\\Example\\service</WorkingDirectory>');
     });
 
-    test('escapes what cmd.exe and XML would read as syntax', () => {
-        const task = scheduledTask({ ...WINDOWS, args: ['a "b" & c', '100%', 'C:\\dir\\'], environment: {}, workingDirectory: 'C:\\a&b' });
-        expect(taskArguments(task)).toContain('^"a^ \\^"b\\^"^ ^&^ c^" ^"100^%^" ^"C:\\dir\\\\^"');
+    test('the script sets the environment, runs the program and appends to the log', () => {
+        expect(scheduledTaskScript(scheduledTask(WINDOWS))).toEqual({
+            path: 'C:\\Users\\bas\\AppData\\Local\\Example\\service\\Example_Worker.cmd',
+            text: [
+                '@echo off',
+                'chcp 65001 >nul',
+                'cd /d C:\\Users\\bas || exit /b 1',
+                'set ^"WORKER_HOME=C:\\Users\\bas\\.worker^"',
+                'set ^"PATH=C:\\Program^ Files\\Git\\cmd^;C:\\Windows\\System32^"',
+                '^"C:\\Users\\bas\\AppData\\Local\\Programs\\Example\\resources\\bin\\worker.exe^" ^"--port^" ^"4210^" >>C:\\Users\\bas\\AppData\\Local\\Example\\logs\\daemon.log 2>&1',
+                ''
+            ].join('\r\n')
+        });
+    });
+
+    test('escapes what a batch file and XML would read as syntax', () => {
+        const task = scheduledTask({ ...WINDOWS, args: ['a "b" & c', '100%', 'C:\\dir\\'], environment: {}, scriptDirectory: 'C:\\a&b' });
+        expect(scheduledTaskScript(task)?.text).toContain('^"a^ \\^"b\\^"^ ^&^ c^" ^"100%%^" ^"C:\\dir\\\\^"');
         expect(task).toContain('<WorkingDirectory>C:\\a&amp;b</WorkingDirectory>');
+        expect(task).toContain('2&gt;&amp;1');
+    });
+
+    test('a path outside the system code page stays ASCII in the definition and comes back whole', () => {
+        const program = 'C:\\Users\\Jé 😀\\worker.exe';
+        const task = scheduledTask({ ...WINDOWS, program, scriptDirectory: 'C:\\Users\\Jé 😀\\service' });
+        expect(task).not.toMatch(/[\u0080-\u{10ffff}]/u);
+        expect(scheduledTaskScript(task)?.path).toBe('C:\\Users\\Jé 😀\\service\\Example_Worker.cmd');
+        expect(definitionRunsProgram(task, program)).toBe(true);
     });
 
     test('needs the user it starts for, and refuses a line break cmd.exe would cut at', () => {
         expect(() => scheduledTask({ ...WINDOWS, user: undefined })).toThrow('needs the user');
+        expect(() => scheduledTask({ ...WINDOWS, scriptDirectory: undefined })).toThrow('folder of its script');
+        expect(() => scheduledTask({ ...WINDOWS, environment: { A: 'x\ny' } })).toThrow('line break');
         expect(() => scheduledTask({ ...WINDOWS, args: ['a\nb'] })).toThrow('line break');
+    });
+
+    test('a task from before the script still runs its program, and has no script', () => {
+        expect(definitionRunsProgram(OLD_FORM, 'C:\\Program Files\\worker.exe')).toBe(true);
+        expect(definitionRunsProgram(OLD_FORM, 'C:\\other.exe')).toBe(false);
+        expect(scheduledTaskScript(OLD_FORM)).toBeNull();
     });
 
     test('tells a task that runs a program from one that runs another', () => {

@@ -57,7 +57,7 @@ describe('platform selection', () => {
         });
 
         expect(manager?.kind).toBe('task-scheduler');
-        expect(serviceDefinition('win32', { ...spec, user: 'PC\\ada' })).toContain('<UserId>PC\\ada</UserId>');
+        expect(serviceDefinition('win32', { ...spec, user: 'PC\\ada', scriptDirectory: 'C:\\service' })).toContain('<UserId>PC\\ada</UserId>');
     });
 
     test('renders caller environment and description without adding product defaults', () => {

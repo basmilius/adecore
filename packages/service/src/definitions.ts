@@ -1,4 +1,4 @@
-import { cmdEscaped, scheduledTaskMarker } from './cmd-line.js';
+import { batchEscaped, cmdEscaped, scheduledTaskScriptName } from './cmd-line.js';
 
 export interface ServiceSpec {
     label: string;
@@ -11,6 +11,8 @@ export interface ServiceSpec {
     logFile: string;
     /* The scheduled task only, which needs it: the account it starts for at logon, as `DOMAIN\\name`. */
     user?: string;
+    /* The scheduled task only, which needs it: the folder of the script it runs. */
+    scriptDirectory?: string;
 }
 
 function xmlText(value: string): string {
@@ -18,7 +20,11 @@ function xmlText(value: string): string {
 }
 
 function xmlValue(text: string): string {
-    return text.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    return text
+        .replace(/&#(\d+);/g, (_, code: string) => String.fromCodePoint(Number(code)))
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&amp;/g, '&');
 }
 
 function plistString(value: string, indent: string): string {
@@ -108,23 +114,49 @@ function cmdArgument(arg: string): string {
         throw new Error('A scheduled task cannot pass on a line break');
     }
 
-    return cmdEscaped(`"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, '$1$1')}"`);
+    return batchEscaped(`"${arg.replace(/(\\*)"/g, '$1$1\\"').replace(/(\\*)$/, '$1$1')}"`);
 }
 
-function taskCommandLine(spec: ServiceSpec): string {
-    const variables = Object.entries(spec.environment).map(([name, value]) => `set ${cmdEscaped(`"${name}=${value}"`)}`);
-    const program = [cmdEscaped(spec.program), ...spec.args.map(cmdArgument)].join(' ');
+/* In quotes of its own, or the C runtime of the program splits its own path at a space, whatever the carets told cmd.exe. */
+function batchProgram(program: string): string {
+    return batchEscaped(`"${program}"`);
+}
 
-    return `${scheduledTaskMarker(spec.label)}${[...variables, `${program} >>${cmdEscaped(spec.logFile)} 2>&1`].join(' && ')}`;
+/* The code page first, or cmd.exe reads the UTF-8 of a path outside the system's code page as something else. */
+function taskScript(spec: ServiceSpec): string {
+    const variables = Object.entries(spec.environment).map(([name, value]) => `set ${batchEscaped(`"${name}=${value}"`)}`);
+    const program = [batchProgram(spec.program), ...spec.args.map(cmdArgument)].join(' ');
+    const lines = [
+        '@echo off',
+        'chcp 65001 >nul',
+        `cd /d ${batchEscaped(spec.workingDirectory)} || exit /b 1`,
+        ...variables,
+        `${program} >>${batchEscaped(spec.logFile)} 2>&1`
+    ];
+
+    if (lines.some((line) => /[\r\n]/.test(line))) {
+        throw new Error('A scheduled task cannot pass on a line break');
+    }
+
+    return `${lines.join('\r\n')}\r\n`;
 }
 
 /*
  * Started at the person's logon without a stored password, and run again every minute so it comes back
- * after a crash. RestartOnFailure would also start a task a stop ended. cmd.exe sets the environment.
+ * after a crash. RestartOnFailure would also start a task a stop ended.
+ *
+ * A task with an interactive token gives a console program a window, and closing that ends it. Only a
+ * headless conhost.exe shows none, but it joins its arguments again and loses every inner quote. So
+ * what needs quoting moves into a script, which the task starts from its own folder by a bare name.
+ * The definition carries the script in `Documentation`, and a manager writes it out on install.
  */
 export function scheduledTask(spec: ServiceSpec): string {
     if (spec.user === undefined || spec.user === '') {
         throw new Error('A scheduled task needs the user it starts for.');
+    }
+
+    if (spec.scriptDirectory === undefined || spec.scriptDirectory === '') {
+        throw new Error('A scheduled task needs the folder of its script.');
     }
 
     const user = xmlText(spec.user);
@@ -135,6 +167,7 @@ export function scheduledTask(spec: ServiceSpec): string {
         '  <RegistrationInfo>',
         `    <Description>${xmlText(spec.description)}</Description>`,
         `    <URI>\\${xmlText(spec.label)}</URI>`,
+        `    <Documentation>${xmlText(taskScript(spec))}</Documentation>`,
         '  </RegistrationInfo>',
         '  <Triggers>',
         '    <LogonTrigger>',
@@ -176,19 +209,40 @@ export function scheduledTask(spec: ServiceSpec): string {
         '  </Settings>',
         '  <Actions Context="Author">',
         '    <Exec>',
-        '      <Command>%SystemRoot%\\System32\\cmd.exe</Command>',
-        `      <Arguments>${xmlText(`/d /s /c "${taskCommandLine(spec)}"`)}</Arguments>`,
-        `      <WorkingDirectory>${xmlText(spec.workingDirectory)}</WorkingDirectory>`,
+        '      <Command>%SystemRoot%\\System32\\conhost.exe</Command>',
+        `      <Arguments>--headless cmd.exe /d /c .\\${scheduledTaskScriptName(spec.label)}</Arguments>`,
+        `      <WorkingDirectory>${xmlText(spec.scriptDirectory)}</WorkingDirectory>`,
         '    </Exec>',
         '  </Actions>',
         '</Task>',
         ''
     ];
 
-    return lines.join('\r\n');
+    // ASCII with character references: schtasks reads a UTF-8 file as the system's code page, and refuses a BOM.
+    return lines.join('\r\n').replace(/[\u0080-\u{10ffff}]/gu, (character) => `&#${character.codePointAt(0)};`);
+}
+
+/* The script a definition starts, null for any other definition and for a task from before it had one. */
+export function scheduledTaskScript(definition: string): { path: string; text: string } | null {
+    const text = /<Documentation>([^<]*)<\/Documentation>/.exec(definition)?.[1];
+    const name = /<Arguments>--headless cmd\.exe \/d \/c \.\\([^<]+)<\/Arguments>/.exec(definition)?.[1];
+    const folder = /<WorkingDirectory>([^<]*)<\/WorkingDirectory>/.exec(definition)?.[1];
+
+    if (text === undefined || name === undefined || folder === undefined) {
+        return null;
+    }
+
+    return { path: `${xmlValue(folder).replace(/\\$/, '')}\\${name}`, text: xmlValue(text) };
 }
 
 function scheduledTaskRunsProgram(definition: string, program: string): boolean {
+    const script = scheduledTaskScript(definition);
+
+    if (script !== null) {
+        return (script.text.trimEnd().split('\r\n').at(-1) ?? '').startsWith(`${batchProgram(program)} `);
+    }
+
+    // A task from before the script: its one line ends in the program.
     const exec = definition.match(/<Exec>[\s\S]*?<\/Exec>/g);
 
     if (exec?.length !== 1) {

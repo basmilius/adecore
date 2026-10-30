@@ -98,7 +98,8 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
                 environment: { EXAMPLE_VALUE: value },
                 workingDirectory: folder,
                 logFile,
-                user: `${process.env.USERDOMAIN}\\${process.env.USERNAME}`
+                user: `${process.env.USERDOMAIN}\\${process.env.USERNAME}`,
+                scriptDirectory: folder
             });
 
             expect(manager.install(definition)).toBe(false);
