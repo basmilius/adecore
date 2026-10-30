@@ -144,22 +144,25 @@ describe('host-selected chat naming', () => {
         await run.session.dispose();
     });
 
-    test('a resumed unnamed chat keeps its derived name instead of starting a new writer', async () => {
-        let requests = 0;
-        const run = rig({
-            info: { ...info(), agentSessionId: 'resumed' },
-            titlePolicy: () => 'generated',
-            nameThread: async () => {
-                requests += 1;
-                return 'Replacement';
-            }
+    for (const provider of ['claude', 'codex']) {
+        test(`a resumed unnamed ${provider} chat accepts a later native title without starting a new writer`, async () => {
+            let requests = 0;
+            const run = rig({
+                info: { ...info(), provider, agentSessionId: 'resumed' },
+                titlePolicy: () => 'generated',
+                nameThread: async () => {
+                    requests += 1;
+                    return 'Replacement';
+                }
+            });
+            run.session.send('Continue');
+            await flush();
+            run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+            await flush();
+            expect(requests).toBe(0);
+            run.event({ type: 'session', agentSessionId: 'resumed', model: null, title: 'Recovered native title' });
+            expect(run.session.info.suggestedTitle).toBe('Recovered native title');
+            await run.session.dispose();
         });
-        run.session.send('Continue');
-        await flush();
-        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
-        await flush();
-        expect(requests).toBe(0);
-        expect(run.session.info.suggestedTitle).toBeUndefined();
-        await run.session.dispose();
-    });
+    }
 });

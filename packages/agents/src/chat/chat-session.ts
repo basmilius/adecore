@@ -265,6 +265,7 @@ export class ChatSession {
     constructor(options: ChatSessionOptions) {
         this.options = options;
         this.resumedForNaming = options.info.agentSessionId !== null;
+        this.namingFailed = this.resumedForNaming && options.info.suggestedTitle === undefined;
         this.pendingPreambles = options.preambles ?? [];
         this.capturedUiAccess = new Map(Object.entries(options.uiAccess ?? {}));
         this.thread = new ChatThread(options.info, options.items);
@@ -2815,7 +2816,7 @@ export class ChatSession {
 
         if (
             !name ||
-            (this.prefersGeneratedTitle() ? this.resumedForNaming : !this.options.namedByOneShot) ||
+            (this.options.titlePolicy?.() === 'generated' ? this.resumedForNaming : !this.options.namedByOneShot) ||
             this.naming ||
             this.thread.info.suggestedTitle !== undefined
         ) {
