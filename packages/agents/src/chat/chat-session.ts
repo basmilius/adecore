@@ -262,6 +262,7 @@ export class ChatSession {
     constructor(options: ChatSessionOptions) {
         this.options = options;
         this.resumedForNaming = options.info.agentSessionId !== null;
+        this.namingFailed = this.resumedForNaming && options.info.suggestedTitle === undefined;
         this.pendingPreambles = options.preambles ?? [];
         this.capturedUiAccess = new Map(Object.entries(options.uiAccess ?? {}));
         this.thread = new ChatThread(options.info, options.items);
@@ -2817,7 +2818,7 @@ export class ChatSession {
 
         if (
             !name ||
-            (this.prefersGeneratedTitle() ? this.resumedForNaming : this.info.provider !== 'codex') ||
+            (this.options.titlePolicy?.() === 'generated' ? this.resumedForNaming : this.info.provider !== 'codex') ||
             this.naming ||
             this.thread.info.suggestedTitle !== undefined
         ) {
