@@ -1,9 +1,10 @@
-import { useId, useState, type CSSProperties, type KeyboardEvent, type Ref } from 'react';
+import { useId, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent, type Ref } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Button, Surface } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { colorOf } from './color.ts';
+import { createHeatmapCursor, type HeatmapCursor } from './heat-cursor.ts';
 import { FLOOR, heatMix, heatShare, moveCell, type HeatCell } from './heat.ts';
 import type { ChartColor } from './types.ts';
 import { tableClasses } from './values-table.ts';
@@ -62,6 +63,109 @@ const cardPlace = (toRight: boolean, down: boolean): CSSProperties => ({
     bottom: down ? undefined : 0
 });
 
+interface HeatmapGridProps extends Pick<HeatmapProps, 'rows' | 'columns' | 'values' | 'valueLabel'> {
+    readonly cursor: HeatmapCursor;
+    readonly color: string;
+    readonly top: number;
+    readonly steps: number | undefined;
+    readonly cellHeight: number;
+    readonly write: (value: number | null) => string;
+    readonly onHover: (cell: HeatCell) => void;
+}
+
+type HeatmapCellProps = Pick<HeatmapGridProps, 'cursor' | 'color' | 'top' | 'steps' | 'cellHeight' | 'valueLabel' | 'write' | 'onHover'> & {
+    readonly cell: HeatCell;
+    readonly value: number | null;
+    readonly rowLabel: string;
+    readonly columnLabel: string;
+    readonly toRight: boolean;
+    readonly down: boolean;
+};
+
+function HeatmapCellView({
+    cursor,
+    color,
+    top,
+    steps,
+    cellHeight,
+    valueLabel,
+    write,
+    onHover,
+    cell,
+    rowLabel,
+    columnLabel,
+    toRight,
+    down,
+    value
+}: HeatmapCellProps) {
+    const subscribe = (listener: () => void): (() => void) => cursor.subscribeCell(cell, listener);
+    const selected = (): boolean => cursor.isActive(cell);
+    const active = useSyncExternalStore(subscribe, selected, selected);
+    const mix = heatMix(value, top, steps);
+
+    return (
+        <span
+            data-mix={mix}
+            className={clsx('rounded-xs', mix === 0 && 'bg-surface-sunken', active && 'relative z-10 outline-1 outline-offset-1 outline-text')}
+            style={{ height: cellHeight, backgroundColor: shade(color, mix) }}
+            onPointerEnter={() => onHover(cell)}
+        >
+            {active && (
+                <Surface
+                    className="pointer-events-none absolute flex w-max min-w-36 flex-col gap-1 rounded-lg px-2.5 py-2 text-xs"
+                    style={cardPlace(toRight, down)}
+                >
+                    <p className="font-medium whitespace-nowrap text-text">
+                        {rowLabel} · {columnLabel}
+                    </p>
+                    <p className="flex items-center gap-2 text-text-muted">
+                        <span className={clsx('size-2 shrink-0 rounded-xs', mix === 0 && 'bg-surface-sunken')} style={{ backgroundColor: shade(color, mix) }} />
+                        <span className="min-w-0 truncate">{valueLabel}</span>
+                        <span className="ml-auto pl-3 text-text tabular-nums">{write(value)}</span>
+                    </p>
+                </Surface>
+            )}
+        </span>
+    );
+}
+
+function HeatmapGrid({ rows, columns, values, valueLabel, cursor, color, top, steps, cellHeight, write, onHover }: HeatmapGridProps) {
+    return (
+        <div aria-hidden className="grid gap-0.5 text-xs text-text-muted" style={{ gridTemplateColumns: `auto repeat(${columns.length}, minmax(0, 1fr))` }}>
+            <span />
+            {columns.map((column) => (
+                <span key={column.key} className="flex justify-center leading-4 whitespace-nowrap tabular-nums">
+                    {column.short === undefined ? column.label : column.short}
+                </span>
+            ))}
+            {rows.map((row, rowIndex) => (
+                <div key={row.key} className="contents">
+                    <span className="flex items-center pr-2 leading-4 whitespace-nowrap">{row.short === undefined ? row.label : row.short}</span>
+                    {columns.map((column, columnIndex) => (
+                        <HeatmapCellView
+                            key={column.key}
+                            cursor={cursor}
+                            cell={{ row: rowIndex, column: columnIndex }}
+                            rowLabel={row.label}
+                            columnLabel={column.label}
+                            value={values[rowIndex]?.[columnIndex] ?? null}
+                            color={color}
+                            top={top}
+                            steps={steps}
+                            cellHeight={cellHeight}
+                            valueLabel={valueLabel}
+                            write={write}
+                            onHover={onHover}
+                            toRight={columnIndex < columns.length / 2}
+                            down={rowIndex < rows.length / 2}
+                        />
+                    ))}
+                </div>
+            ))}
+        </div>
+    );
+}
+
 /* A grid of rows by columns, each cell shaded by its value, such as events per weekday and hour. */
 export function Heatmap({
     rows,
@@ -82,7 +186,8 @@ export function Heatmap({
 }: HeatmapProps) {
     const { t } = useTranslation('charts');
     const id = useId();
-    const [active, setActive] = useState<HeatCell | null>(null);
+    const [cursor] = useState(createHeatmapCursor);
+    const active = useSyncExternalStore(cursor.subscribe, cursor.getSnapshot, cursor.getSnapshot);
     const [announce, setAnnounce] = useState(false);
     const [shown, setShown] = useState(false);
 
@@ -105,11 +210,18 @@ export function Heatmap({
     const classes = tableClasses(table && shown);
 
     const activate = (cell: HeatCell | null): void => {
-        setActive(cell);
+        const previous = cursor.getSnapshot();
+        const before = previous !== null && previous.row < rows.length && previous.column < columns.length ? previous : null;
+        cursor.set(cell);
 
-        if (!sameCell(cell, current)) {
+        if (!sameCell(cell, before)) {
             onActiveChange?.(cell);
         }
+    };
+
+    const hover = (cell: HeatCell): void => {
+        setAnnounce(false);
+        activate(cell);
     };
 
     const onKeyDown = (e: KeyboardEvent<HTMLDivElement>): void => {
@@ -143,64 +255,19 @@ export function Heatmap({
                 {empty ? (
                     <p className="py-6 text-center text-xs text-text-faint">{t('noData')}</p>
                 ) : (
-                    <div
-                        aria-hidden
-                        className="grid gap-0.5 text-xs text-text-muted"
-                        style={{ gridTemplateColumns: `auto repeat(${columns.length}, minmax(0, 1fr))` }}
-                    >
-                        <span />
-                        {columns.map((column) => (
-                            <span key={column.key} className="flex justify-center leading-4 whitespace-nowrap tabular-nums">
-                                {column.short === undefined ? column.label : column.short}
-                            </span>
-                        ))}
-                        {rows.map((row, rowIndex) => (
-                            <div key={row.key} className="contents">
-                                <span className="flex items-center pr-2 leading-4 whitespace-nowrap">{row.short === undefined ? row.label : row.short}</span>
-                                {columns.map((column, columnIndex) => {
-                                    const value = valueAt(rowIndex, columnIndex);
-                                    const mix = heatMix(value, top, steps);
-                                    const isActive = current !== null && current.row === rowIndex && current.column === columnIndex;
-
-                                    return (
-                                        <span
-                                            key={column.key}
-                                            data-mix={mix}
-                                            className={clsx(
-                                                'rounded-xs',
-                                                mix === 0 && 'bg-surface-sunken',
-                                                isActive && 'relative z-10 outline-1 outline-offset-1 outline-text'
-                                            )}
-                                            style={{ height: cellHeight, backgroundColor: shade(color, mix) }}
-                                            onPointerEnter={() => {
-                                                setAnnounce(false);
-                                                activate({ row: rowIndex, column: columnIndex });
-                                            }}
-                                        >
-                                            {isActive && (
-                                                <Surface
-                                                    className="pointer-events-none absolute flex w-max min-w-36 flex-col gap-1 rounded-lg px-2.5 py-2 text-xs"
-                                                    style={cardPlace(columnIndex < columns.length / 2, rowIndex < rows.length / 2)}
-                                                >
-                                                    <p className="font-medium whitespace-nowrap text-text">
-                                                        {row.label} · {column.label}
-                                                    </p>
-                                                    <p className="flex items-center gap-2 text-text-muted">
-                                                        <span
-                                                            className={clsx('size-2 shrink-0 rounded-xs', mix === 0 && 'bg-surface-sunken')}
-                                                            style={{ backgroundColor: shade(color, mix) }}
-                                                        />
-                                                        <span className="min-w-0 truncate">{valueLabel}</span>
-                                                        <span className="ml-auto pl-3 text-text tabular-nums">{write(value)}</span>
-                                                    </p>
-                                                </Surface>
-                                            )}
-                                        </span>
-                                    );
-                                })}
-                            </div>
-                        ))}
-                    </div>
+                    <HeatmapGrid
+                        rows={rows}
+                        columns={columns}
+                        values={values}
+                        valueLabel={valueLabel}
+                        cursor={cursor}
+                        color={color}
+                        top={top}
+                        steps={steps}
+                        cellHeight={cellHeight}
+                        write={write}
+                        onHover={hover}
+                    />
                 )}
             </div>
             {legend && !empty && (
