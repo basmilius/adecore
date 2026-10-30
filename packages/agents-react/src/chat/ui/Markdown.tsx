@@ -1,4 +1,4 @@
-import { createContext, memo, useContext, type ComponentProps, type MouseEvent, type ReactNode } from 'react';
+import { createContext, memo, useContext, useState, type ComponentProps, type MouseEvent, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { Zap } from 'lucide-react';
 import ReactMarkdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
@@ -8,7 +8,7 @@ import { MENTION_TONE, SKILL_TONE, TOKEN_ICON } from './chips';
 import { CodeBlock } from './CodeBlock';
 import { MermaidBlock } from './MermaidBlock';
 import { CodeStreamingContext } from './code-streaming';
-import { splitMarkdownBlocks } from './markdown-blocks';
+import { createMarkdownBlockSplitter } from './markdown-blocks';
 import { ReferenceChip, TokenChip } from './ReferenceChip';
 import { ReferenceLookupContext } from './reference-lookup';
 import { rehypeChips, rehypeNamedReferences, type ChipOptions, type NamedReferenceOptions } from './rehype-chips';
@@ -469,7 +469,8 @@ export const ReplyMarkdown = memo(function ReplyMarkdown({
     arriving?: boolean;
     reply?: ShellCodeBlockReply;
 }) {
-    const blocks = splitMarkdownBlocks(text);
+    const [split] = useState(createMarkdownBlockSplitter);
+    const blocks = split(text);
 
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm" data-arriving={arriving || undefined}>

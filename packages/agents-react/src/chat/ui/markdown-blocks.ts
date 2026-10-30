@@ -93,8 +93,63 @@ const BOLD_LINE = /^ {0,3}\*\*(?:[^*]|\*(?!\*))+\*\*:?[ \t]*$/;
  * Joined back together the blocks are the text.
  */
 export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
+    return scanMarkdownBlocks(text).blocks;
+}
+
+interface MarkdownCheckpoint {
+    offset: number;
+    count: number;
+}
+
+interface MarkdownScan {
+    blocks: MarkdownBlock[];
+    checkpoint: MarkdownCheckpoint | null;
+    whole: boolean;
+}
+
+/* The source may be replaced as well as appended; only cuts with a complete, independent context line can survive an append. */
+export function createMarkdownBlockSplitter(): (text: string) => readonly MarkdownBlock[] {
+    let previous: string | null = null;
+    let offset = 0;
+    let retained: MarkdownBlock[] = [];
+    let result: MarkdownBlock[] = [];
+
+    return (text) => {
+        if (text === previous) {
+            return result;
+        }
+
+        if (previous === null || !text.startsWith(previous)) {
+            offset = 0;
+            retained = [];
+        }
+
+        let scan = scanMarkdownBlocks(text.slice(offset), true);
+
+        if (offset > 0 && scan.whole) {
+            offset = 0;
+            retained = [];
+            scan = scanMarkdownBlocks(text, true);
+        }
+
+        result = [...retained, ...scan.blocks];
+
+        if (scan.checkpoint !== null) {
+            // Retained substrings must not deliberately keep whole earlier reply versions alive.
+            const settled = scan.blocks.slice(0, scan.checkpoint.count).map((block) => structuredClone(block));
+            retained = [...retained, ...settled];
+            offset += scan.checkpoint.offset;
+        }
+
+        previous = text;
+
+        return result;
+    };
+}
+
+function scanMarkdownBlocks(text: string, checkpoints = false): MarkdownScan {
     if (DEFINITION.test(text) || LONE_RETURN.test(text)) {
-        return [{ text, openFence: isFenceOpenAtEnd(text) }];
+        return { blocks: [{ text, openFence: isFenceOpenAtEnd(text) }], checkpoint: null, whole: true };
     }
 
     const lines = text.split('\n');
@@ -119,6 +174,30 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
     let known = true;
     // Where the line above starts when it is blank.
     let blankAbove: number | null = null;
+    let completeLine = false;
+    let independentLine = false;
+    let lineStart = 0;
+    let checkpoint: MarkdownCheckpoint | null = null;
+
+    const remember = (end: number): void => {
+        if (
+            !checkpoints ||
+            !completeLine ||
+            !independentLine ||
+            end !== lineStart ||
+            !known ||
+            lineFence !== null ||
+            fence !== null ||
+            top !== null ||
+            closed !== null ||
+            item !== null ||
+            html !== null
+        ) {
+            return;
+        }
+
+        checkpoint = { offset: end, count: blocks.length };
+    };
 
     const cutAt = (end: number): void => {
         if (end > start) {
@@ -126,10 +205,24 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
         }
 
         start = end;
+        remember(end);
     };
 
     for (const [index, line] of lines.entries()) {
         const at = offset;
+        lineStart = at;
+        completeLine = index < lines.length - 1;
+        independentLine =
+            checkpoints &&
+            completeLine &&
+            index > 0 &&
+            known &&
+            lineFence === null &&
+            fence === null &&
+            top === null &&
+            item === null &&
+            html === null &&
+            BLANK.test(withoutReturn(lines[index - 1]!));
         offset += line.length + 1;
         const content = withoutReturn(line);
         const blank = BLANK.test(line);
@@ -160,6 +253,7 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
             blocks.push(fenceBlock(text.slice(start, at), closed.fence, closed.source, true));
             start = at;
             closed = null;
+            remember(at);
         }
 
         if (html !== null) {
@@ -244,7 +338,7 @@ export function splitMarkdownBlocks(text: string): MarkdownBlock[] {
         blocks.push({ text: text.slice(start), openFence: (known ? fence : lineFence) !== null });
     }
 
-    return blocks;
+    return { blocks, checkpoint, whole: false };
 }
 
 /*

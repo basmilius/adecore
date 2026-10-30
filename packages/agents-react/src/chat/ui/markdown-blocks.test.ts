@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { settledBlocksText, splitMarkdownBlocks } from './markdown-blocks';
+import { createMarkdownBlockSplitter, settledBlocksText, splitMarkdownBlocks } from './markdown-blocks';
 
 function texts(text: string): string[] {
     return splitMarkdownBlocks(text).map((block) => block.text);
@@ -170,5 +170,100 @@ describe('settledBlocksText', () => {
     test('holds a heading above a code block until the fence closes', () => {
         expect(settledBlocksText('## Code\n\n```ts\na\n\nb\n')).toBe('');
         expect(settledBlocksText('## Code\n\n```ts\na\n```\n\nAfter')).toBe('## Code\n\n```ts\na\n```\n\n');
+    });
+});
+
+describe('a streaming markdown splitter', () => {
+    const fixtures = [
+        '',
+        'First.\n\nSecond.\n\nTail\nmore',
+        'First.\n\n- item\n\n- next\n\nAfter\nmore',
+        'First.\n\n1. one\n\n2. two\n\nAfter\nmore',
+        'First.\n\n[doc]\n\nTail\nmore\n\n[doc]: https://example.com',
+        'First.\n\n[^note]\n\nTail\nmore\n\n[^note]: Footnote',
+        'First.\n\nSecond.\n\nTail\nmore\rchanged',
+        'First.\r\n\r\nSecond.\r\n\r\nTail\r\nmore',
+        'Intro.\n\n```ts\nconst a = 1;\n\nconst b = 2;\n```\n\nAfter\nmore',
+        'Intro.\n\n~~~~js\n```\n\n~~~\n~~~~~\nAfter\nmore',
+        'First.\n\n- list\n\n  ```ts\n  x\n  ```\n\nAfter\nmore',
+        '- item\n  ```\n  code\n     ```\n\nAfter\nmore',
+        'Intro.\n\n-\n```ts\nx\n```\nAfter\nmore',
+        'Intro.\n\n2. two\n   ```ts\n   x\n   ```\nAfter\nmore',
+        'First.\n\n<pre>\n```\n</pre>\n\n```ts\nx\n```\nAfter\nmore',
+        'First.\n\n<!--\n\n```\n-->\n\nAfter\nmore',
+        'First.\n\n<?instruction\n\n?>\n\nAfter\nmore',
+        'First.\n\n<div>\ntext\n\n```ts\nx\n```\nAfter\nmore',
+        'First.\n\n## Title\n\n| a | b |\n| - | - |\n| 1 | 2 |\n\nAfter\nmore',
+        'First.\n\n**Title**\n\n> quote\n> more\n\nAfter\nmore',
+        'Intro.\n\n  ```bash\n\tfour\n   three\n  ```\n\nAfter\nmore',
+        'Intro.\n\n~~~ a\\b\ncode\n~~~\nAfter\nmore',
+        'Intro.\n\n```ts\ncode\n    ```\n\nmore\n```\nAfter\nmore',
+        'First 🌍.\n\nSecond é.\n\nTail\nmore',
+        'First.\n\n\u00a0\nSecond.\n\nTail\nmore',
+        '[ref]\n    ```\n-->\n---\n```\n\n~~~\n~~~~\n```\n1.\n1\n-\n</',
+        '```ts\nx\n```\n2. item\n   ```ts\nx\n```\n\nAfter\nmore'
+    ];
+
+    test.each(fixtures)('matches a fresh split at every prefix of %j', (text) => {
+        const split = createMarkdownBlockSplitter();
+
+        for (let end = 0; end <= text.length; end++) {
+            const prefix = text.slice(0, end);
+            expect(split(prefix)).toEqual(splitMarkdownBlocks(prefix));
+        }
+    });
+
+    test('keeps parity across deterministic combinations of container lines', () => {
+        const lines = [
+            'plain',
+            '',
+            '- item',
+            '1. item',
+            '  continuation',
+            '```ts',
+            '```',
+            '~~~',
+            '<pre>',
+            '</pre>',
+            '<!--',
+            '-->',
+            '[ref]: /path',
+            '# Title',
+            '**Title**',
+            '\tcode',
+            '🌍',
+            '\r'
+        ];
+        let seed = 918_273;
+        const next = (): number => {
+            seed = (Math.imul(seed, 1_664_525) + 1_013_904_223) >>> 0;
+
+            return seed;
+        };
+
+        for (let sample = 0; sample < 40; sample++) {
+            const text = Array.from({ length: 12 }, () => lines[next() % lines.length]!).join('\n');
+            const split = createMarkdownBlockSplitter();
+
+            for (let end = 0; end <= text.length; end++) {
+                const prefix = text.slice(0, end);
+                expect(split(prefix)).toEqual(splitMarkdownBlocks(prefix));
+            }
+        }
+    });
+
+    test('resets for replacements and truncation without mutating earlier results', () => {
+        const split = createMarkdownBlockSplitter();
+        const first = split('First.\n\nSecond.\n');
+        const text = 'First.\n\nSecond.\nmore\n\nThird.\nlast';
+        expect(split(text)).toEqual(splitMarkdownBlocks(text));
+        expect(first).toEqual([
+            { text: 'First.\n\n', openFence: false },
+            { text: 'Second.\n', openFence: false }
+        ]);
+
+        for (const replacement of ['Other.\n\nTail\nmore', '', text, 'First.', '[ref]: /path\n\nText', text]) {
+            expect(split(replacement)).toEqual(splitMarkdownBlocks(replacement));
+        }
     });
 });

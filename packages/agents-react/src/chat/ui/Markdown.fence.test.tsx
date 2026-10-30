@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, mock, test } from 'bun:test';
+import { afterAll, beforeAll, describe, expect, mock, spyOn, test } from 'bun:test';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -204,6 +204,56 @@ describe('a streaming reply in a page', () => {
             await new Promise((resolve) => setTimeout(resolve, 0));
         });
     }
+
+    test('appending words does not split a settled prefix into lines again', async () => {
+        const prefix = 'CACHE_PREFIX_MARKER paragraph.\n\n' + Array.from({ length: 30 }, (_, index) => `Settled paragraph ${index}.\n\n`).join('');
+        let text = prefix + 'Tail begins\nword';
+        root = createRoot(page.host);
+        await show(text, true);
+        const original = String.prototype.split;
+        let scanned = 0;
+        const split = spyOn(String.prototype, 'split').mockImplementation(function (this: string, separator: unknown, limit?: number): string[] {
+            const source = String(this);
+
+            if (separator === '\n' && source.startsWith('CACHE_PREFIX_MARKER')) {
+                scanned += source.length;
+            }
+
+            return Reflect.apply(original, this, [separator, limit]) as string[];
+        });
+
+        try {
+            for (const word of [' one', ' two', ' three']) {
+                text += word;
+                await show(text, true);
+            }
+
+            expect(page.host.querySelector('p')!.textContent).toBe('CACHE_PREFIX_MARKER paragraph.');
+            expect(page.host.querySelector('p:last-child')!.textContent).toContain('word one two three');
+            expect(scanned).toBe(0);
+        } finally {
+            split.mockRestore();
+            await act(async () => root.unmount());
+        }
+    });
+
+    test('a late definition updates an earlier link and a replacement starts fresh', async () => {
+        const text = 'First [doc].\n\nSecond.\n\nTail\nlast';
+        root = createRoot(page.host);
+
+        try {
+            await show(text, true);
+            expect(page.host.querySelector('a')).toBeNull();
+            await show(text + '\n\n[doc]: https://example.com', true);
+            expect(page.host.querySelector('a')!.getAttribute('href')).toBe('https://example.com');
+            await show('Replacement.\n\nTail\nnew', false);
+            expect(page.host.textContent).toContain('Replacement.');
+            expect(page.host.textContent).not.toContain('First');
+            expect(page.host.querySelector('a')).toBeNull();
+        } finally {
+            await act(async () => root.unmount());
+        }
+    });
 
     test('closing a fence keeps its code block and the lines it drew', async () => {
         await mount('Intro\n```ts\nconst a = 1;\nconst b');
