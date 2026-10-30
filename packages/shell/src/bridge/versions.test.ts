@@ -9,6 +9,20 @@ describe('compareVersions', () => {
         expect(compareVersions('0.0.7', '0.0.8')).toBeLessThan(0);
     });
 
+    test('a prerelease comes before its own release and after the release before it', () => {
+        expect(compareVersions('0.29.0-beta.4', '0.29.0')).toBeLessThan(0);
+        expect(compareVersions('0.29.0', '0.29.0-beta.4')).toBeGreaterThan(0);
+        expect(compareVersions('0.29.0-beta.4', '0.28.0')).toBeGreaterThan(0);
+        expect(compareVersions('0.29.0-beta.4', '0.29.0-beta.4')).toBe(0);
+    });
+
+    test('prereleases follow semver: numbers by value and below words, and a longer list above the one it starts with', () => {
+        expect(compareVersions('0.29.0-beta.10', '0.29.0-beta.9')).toBeGreaterThan(0);
+        expect(compareVersions('0.29.0-alpha.2', '0.29.0-beta.1')).toBeLessThan(0);
+        expect(compareVersions('0.29.0-1', '0.29.0-beta')).toBeLessThan(0);
+        expect(compareVersions('0.29.0-beta', '0.29.0-beta.1')).toBeLessThan(0);
+    });
+
     test('anything that is not a version sorts below every version', () => {
         expect(compareVersions('0.0.1', 'nightly')).toBeGreaterThan(0);
         expect(compareVersions('nightly', 'nightly')).toBe(0);
@@ -24,6 +38,12 @@ describe('isVersion', () => {
         expect(isVersion('1.2.3')).toBe(true);
         expect(isVersion('v1.2.3')).toBe(false);
         expect(isVersion('1.2')).toBe(false);
-        expect(isVersion('1.2.3-beta.1')).toBe(false);
+        expect(isVersion('1.2.3-')).toBe(false);
+        expect(isVersion('1.2.3-beta..1')).toBe(false);
+        expect(isVersion('1.2.3+build')).toBe(false);
+    });
+
+    test('a prerelease is a version too', () => {
+        expect(isVersion('1.2.3-beta.1')).toBe(true);
     });
 });

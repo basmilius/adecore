@@ -7,7 +7,7 @@
 | `MenuSpec`, `MenuNode`, `MENU_ROLES`, `MenuRole`, `MenuBarRole` | The [application menu](/shell/menu) the page builds. |
 | `UpdateState`, `UpdateErrorCode` | Where [updating](/shell/updater) stands, and why it [failed](/shell/updater#errors). |
 | `ThemeState` | The [theme](/shell/theme) a page reports. |
-| `compareVersions`, `isVersion` | One version ordering for shell and page. `isVersion` accepts a plain `1.2.3` only, so strip the `v` of a git tag first. An invalid version sorts below every valid one. |
+| `compareVersions`, `isVersion` | One version ordering for shell and page. `isVersion` accepts `1.2.3` and `1.2.3-beta.1`, so strip the `v` of a git tag first. A prerelease sorts before its own release, in semver's order. An invalid version sorts below every valid one. |
 | `ipcSubscriber`, `Subscribe`, `IpcListeners` | For a preload: turns a channel the main process sends on into a subscribe function for the page. |
 
 ## Subscribing in a preload
