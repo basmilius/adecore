@@ -264,6 +264,16 @@ export class CodexBackend implements ChatBackend {
     }
 
     sendTurn(input: TurnInput): void {
+        // TUI menus are not model instructions; explain the missing host flow instead of spending a turn on it.
+        if (this.transport && input.attachments.length === 0 && /^\/usage(?:[ \t]+[^\r\n]*)?$/.test(input.text.trim())) {
+            this.reply(
+                input.promptId,
+                'This chat does not support the /usage menu. Open Codex in a terminal and run /usage to view account activity or use an available earned rate-limit reset.'
+            );
+
+            return;
+        }
+
         const command = input.attachments.length === 0 ? parseGoalCommand(input.text) : null;
 
         if (command !== null) {
