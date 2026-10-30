@@ -129,3 +129,11 @@ The recorded access lives in the chat record under `uiAccess` and never reaches 
 A reply that drew UI keeps the block source in its `text`. `readableAssistantText(item)` from `@adecore/agents/chat` returns the text with each block replaced by its fallback. Use it wherever your app hands a reply to another agent, a notification or a search index.
 
 `ChatUiHost.link` checks File, Diff, Commit and Node targets against what the writer could reach then and now. `ui.link` answers only for a stored, visible node in an attached chat. A missing or refused link stays plain text. `ChatUiHost.place` resolves a `Place` once when the reply settles (see [Live queries](/intelligent-ui/host/queries#places)). [Live queries](/intelligent-ui/host/queries) and [Links](/intelligent-ui/host/links) cover both sides.
+
+## Choosing how a chat is named
+
+Without a host policy, native titles stay native and Codex uses `ChatCoreOptions.nameChat` after its first successful turn. A host that chooses a writer can also provide `titlePolicy(chatId, provider)`, returning `generated` or `native`. The callback is read when a title arrives or a generation begins, so an already open chat follows a changed choice.
+
+Under `generated`, `nameChat` can name any provider's newly unnamed chat. Native backend titles and transcript reads wait for that result. A null result or a failed request allows an available native title afterward; it starts no second writer. Existing titles are retained. A clear invalidates pending generation and transcript reads, even before a backend reports a session id. Without `nameChat`, native titles remain available under either policy.
+
+`buildTitlePrompt(prompt, answer)` and `parseTitle(output)` let a host use its own bounded, account-aware generator while keeping the package's title format. They cap the conversation input and accept a JSON title object; output without a valid title returns null.
