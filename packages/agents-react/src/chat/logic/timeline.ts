@@ -72,7 +72,7 @@ export type TimelineRow =
       }
     | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean; expandable: boolean }
     | { kind: 'forks'; id: string; turnId: string }
-    | { kind: 'working'; id: string; startedAt: number }
+    | { kind: 'working'; id: string; startedAt: number; tool?: ChatToolItem }
     // A card of the app's own (`thread-cards.ts`), never derived from an item.
     | { kind: 'app-card'; id: string; card: ThreadCard }
     // A page an agent published, placed by when it was published (`thread-cards.ts`), never derived from an item.
@@ -662,7 +662,9 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
             rows.push(...(active ? withLiveThought(live, conversation) : live));
 
             if (active) {
-                rows.push({ kind: 'working', id: `working-${turnId}`, startedAt: turn?.createdAt ?? Date.now() });
+                const tool = conversation.findLast((item): item is ChatToolItem => item.kind === 'tool' && item.state === 'running' && parentOf(item) === null);
+
+                rows.push({ kind: 'working', id: `working-${turnId}`, startedAt: turn?.createdAt ?? Date.now(), ...(tool === undefined ? {} : { tool }) });
             }
 
             continue;

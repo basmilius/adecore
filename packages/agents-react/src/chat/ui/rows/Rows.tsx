@@ -114,7 +114,7 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
         case 'compaction':
             return <CompactionRow preTokens={row.preTokens} />;
         case 'working':
-            return <WorkingRow startedAt={row.startedAt} />;
+            return <WorkingRow startedAt={row.startedAt} {...(row.tool === undefined ? {} : { tool: row.tool })} />;
         case 'app-card':
             return <AppCardRow card={row.card} />;
         case 'visual':

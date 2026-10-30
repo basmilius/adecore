@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { parseHTML } from 'linkedom';
 import type { ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
-import { TurnFoldRow, WorkGroupRow, WorkRow } from './WorkRows';
+import { TurnFoldRow, WorkGroupRow, WorkingRow, WorkRow } from './WorkRows';
 
 const scope: ChatScope = {
     id: 'work-rows-test',
@@ -65,6 +65,29 @@ describe('WorkGroupRow', () => {
         expect(button.textContent).toContain(state === 'running' ? '2 tool calls' : 'Ran 2 commands');
         expect(button.textContent?.includes('1 running')).toBe(state === 'running');
         expect(button.classList.contains('text-status-error')).toBe(state === 'error');
+    });
+});
+
+describe('the mark of the call running last', () => {
+    const running = (id: string, name: string): ChatToolItem => ({ ...tool({}, null, name), id, toolUseId: id, state: 'running' });
+
+    test('a group wears it in the accent color, and its own mark once nothing runs', () => {
+        const tools = [running('first', 'Bash'), running('second', 'Read'), { ...tool({}, null, 'Grep'), id: 'third' }];
+        const live = render(createElement(WorkGroupRow, { tools, summary: '3 calls', expanded: false, onToggle: () => undefined }));
+        const settled = render(createElement(WorkGroupRow, { tools: [tool({}, null, 'Read')], summary: '1 call', expanded: false, onToggle: () => undefined }));
+
+        expect(live.querySelector('.text-accent svg.lucide-eye')).not.toBeNull();
+        expect(settled.querySelector('.text-accent')).toBeNull();
+        expect(settled.querySelector('svg.lucide-eye')).not.toBeNull();
+    });
+
+    test('the working row wears it too, and a spinner between calls', () => {
+        const live = render(createElement(WorkingRow, { startedAt: 1_700_000_000_000, tool: running('first', 'Read') }));
+        const between = render(createElement(WorkingRow, { startedAt: 1_700_000_000_000 }));
+
+        expect(live.querySelector('.text-accent svg.lucide-eye')).not.toBeNull();
+        expect(between.querySelector('.text-accent')).toBeNull();
+        expect(between.querySelector('.text-status-running')).not.toBeNull();
     });
 });
 

@@ -478,6 +478,14 @@ export function RunningFor({ startedAt }: { startedAt: number }) {
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
+/* The mark of one call: the look its shell command runs under, else what the tool is about. */
+function callIcon(tool: ChatToolItem, commandLooks: readonly CommandLook[] | undefined): ReactNode {
+    const shell = shellCommand(tool.name, tool.input);
+    const run = shell === null ? null : matchCommandLook(shell, commandLooks);
+
+    return run === null ? toolIcon(tool.name) : <run.look.Mark size={12} />;
+}
+
 /* A call still running: its timer on the line, and for a provider that streams output, the last lines under it. */
 export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: ChatToolItem }) {
     const [open, setOpen] = useState(false);
@@ -537,13 +545,15 @@ export function WorkGroupRow({
     onToggle(): void;
 }) {
     const { t } = useTranslation('agent-chat');
+    const { commandLooks } = useChatHost();
     const running = tools.filter((tool) => tool.state === 'running').length;
     const failed = tools.some((tool) => tool.state === 'error');
+    const latest = tools.findLast((tool) => tool.state === 'running');
 
     return (
         <div>
             <ToggleLine
-                icon={running > 0 ? <Spinner size={12} /> : look === undefined ? toolIcon(tools[0]!.name) : <look.Mark size={12} />}
+                icon={latest !== undefined ? callIcon(latest, commandLooks) : look === undefined ? toolIcon(tools[0]!.name) : <look.Mark size={12} />}
                 label={
                     <span className="tabular-nums">
                         {running > 0 ? t('group.toolCalls', { count: tools.length }) : look?.brand === undefined ? summary : withBrand(summary, [look.brand])}
@@ -552,6 +562,7 @@ export function WorkGroupRow({
                 open={expanded}
                 onToggle={onToggle}
                 failed={failed}
+                live={latest !== undefined}
                 trailing={running > 0 && <span className="shrink-0 text-text-faint tabular-nums">{t('group.running', { count: running })}</span>}
                 time={tools[0]!.createdAt}
             />
@@ -881,15 +892,16 @@ function ProviderChangedFiles({
     );
 }
 
-/* "Working for 00:14". */
-export function WorkingRow({ startedAt }: { startedAt: number }) {
+/* "Working for 00:14", under the mark of the call running last; between calls, a spinner. */
+export function WorkingRow({ startedAt, tool }: { startedAt: number; tool?: ChatToolItem }) {
     const { t } = useTranslation('agent-chat');
+    const { commandLooks } = useChatHost();
     const ref = useTickingText(() => formatClockDuration(Date.now() - startedAt));
 
     return (
         <div className="-mx-1 mb-0.5 flex h-7 items-center gap-2 px-1 text-xs text-text-muted">
-            <span className={`${ROW_GUTTER} text-status-running`}>
-                <Spinner size={12} />
+            <span className={clsx(ROW_GUTTER, tool === undefined ? 'text-status-running' : 'text-accent')}>
+                {tool === undefined ? <Spinner size={12} /> : callIcon(tool, commandLooks)}
             </span>
             <span className="chat-live-text">{t('work.workingFor')}</span>
             <span ref={ref} className="tabular-nums" />

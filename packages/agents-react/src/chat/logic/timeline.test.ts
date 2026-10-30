@@ -107,6 +107,17 @@ describe('deriveTimelineRows', () => {
         expect(expanded.map((row) => row.id)).toEqual(['u1', 'fold-t1', 'group-r1', 'image', 'group-r2', 'a1']);
     });
 
+    test("the working row carries the call running last, not a subagent's", () => {
+        const turn: ChatItem = { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'running', endedAt: null, costUsd: 0 };
+        const child: ChatItem = { ...tool('child', 'Read', {}, 'running'), parentToolUseId: 'first' };
+        const working = (items: ChatItem[]) => deriveTimelineRows([turn, ...items], { ...options, activeTurnId: 't1' }).find((row) => row.kind === 'working');
+
+        expect(working([tool('first', 'Read', {}, 'running'), tool('second', 'Grep', {}, 'running'), tool('third', 'Read', {}), child])).toMatchObject({
+            tool: { id: 'second' }
+        });
+        expect(working([tool('first', 'Read', {})])).not.toHaveProperty('tool');
+    });
+
     test('hidden tools leave a settled turn its fold and a running turn its working row', () => {
         const hidden = { ...options, hideTools: true };
         const settled = deriveTimelineRows(thread, { ...hidden, expandedTurns: new Set(['t1']) });
