@@ -43,6 +43,10 @@ The three inlay methods are optional on `Editor`. Hints are pointer-only and hid
 
 `setChangeMarks(marks, layer?)` shows how the text differs from a base version, in the gutter and scroll track. An `EditorChangeMark` has a `kind`, an `EditorChangeKind` of `added`, `modified` or `deleted`, and one-based inclusive `startLine` and `endLine`. A `deleted` mark sits on the line after the removed text, with both lines equal. Each layer holds its own marks and the editor draws their union, so Git marks and a patch decoration never overwrite each other. An empty list removes the layer. Where layers overlap, the layer that most recently became non-empty wins.
 
+The optional `onChangeMarkHover(listener)` reports an `EditorChangeMarkHover`: `mark` is the owning mark's current one-based range and kind, `layer` identifies its owner, `line` is the boundary or row under the pointer, and `rect` is in screen pixels. Adjacent painted bars keep their separate identities. The same layer and removal precedence serves painting and hovering. The event includes changes behind attribution bars, but not behind a line-highlight bar. Deleted marks are hit around the boundary between rows. Geometry follows scrolling and canvas scale; removing a mark reports `null` without another pointer move. Touch pointers do not trigger this subscription.
+
+The host owns what to show or edit. Subscribe only while the file is mounted, dispose the subscription with it, and guard the method on an older editor implementation. An empty hover is `null`.
+
 ## Gutter buttons
 
 - `setGutterAction(action)` puts one button in the gutter, an `EditorGutterAction` of `{ line, label }`, such as a code action lightbulb. `onGutterAction` reports a press with the zero-based line. `null` removes it.
