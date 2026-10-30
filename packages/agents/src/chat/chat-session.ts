@@ -121,8 +121,9 @@ export interface ChatSessionOptions {
     persistSoon(): void;
     // The name the CLI gave its session, where it writes one down; absent for a CLI that does not.
     readTitle?(agentSessionId: string): Promise<string | null>;
-    // A name asked of a one-shot CLI, for a CLI that names nothing itself; null when none came.
+    // A generated name; null leaves the native or derived name available.
     nameThread?(input: ChatTitleInput): Promise<string | null>;
+    titlePolicy?(): 'native' | 'generated';
     // How a subagent's own transcript says it ended, for a row whose CLI is gone; absent for a CLI that keeps none.
     subagentSettlement?(toolUseId: string): Promise<SubagentSettlement | null>;
     // What the host owes a turn that stopped on a limit; absent, nothing takes one up on its own.
@@ -236,6 +237,9 @@ export class ChatSession {
     private readonly checkpointWork = new Set<Promise<void>>();
     // A name is asked for once per chat this host holds; the turn count keeps it once across restarts.
     private naming = false;
+    private namingFailed = false;
+    private pendingNativeTitle: string | null = null;
+    private resumedForNaming: boolean;
     // Set while the host goes down: a CLI dying with it must not end the turn a restart takes up again.
     private frozen = false;
     // Which CLI process (generation) announced each subagent of its own, by call id; only that one can stop it.
@@ -257,6 +261,7 @@ export class ChatSession {
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
+        this.resumedForNaming = options.info.agentSessionId !== null;
         this.pendingPreambles = options.preambles ?? [];
         this.capturedUiAccess = new Map(Object.entries(options.uiAccess ?? {}));
         this.thread = new ChatThread(options.info, options.items);
@@ -1032,6 +1037,10 @@ export class ChatSession {
         const ended = this.dispose();
         this.generation = nextGeneration();
         this.projector.reset();
+        this.naming = false;
+        this.namingFailed = false;
+        this.pendingNativeTitle = null;
+        this.resumedForNaming = false;
         // The fresh CLI hears what the host tells it at launch, as it would on a first turn.
         this.options.promptNotes?.reset();
         // A cleared chat starts a new conversation, which what was waiting to be said no longer describes.
@@ -2483,7 +2492,7 @@ export class ChatSession {
         }
 
         if (event.type === 'title') {
-            this.applyTitle(event.title);
+            this.applyNativeTitle(event.title);
 
             return;
         }
@@ -2619,7 +2628,7 @@ export class ChatSession {
         }
 
         if (event.type === 'session' && typeof event.title === 'string') {
-            this.applyTitle(event.title);
+            this.applyNativeTitle(event.title);
         }
 
         if (event.type === 'session' && this.thread.info.agentSessionId !== null) {
@@ -2748,15 +2757,17 @@ export class ChatSession {
     private refreshTitle(): void {
         const agentSessionId = this.thread.info.agentSessionId;
 
-        if (!this.options.readTitle || agentSessionId === null) {
+        if (!this.options.readTitle || agentSessionId === null || this.prefersGeneratedTitle()) {
             return;
         }
+
+        const generation = this.generation;
 
         void this.options
             .readTitle(agentSessionId)
             .then((title) => {
                 // A clear in between started another session, whose name this is not.
-                if (title === null || title === this.thread.info.suggestedTitle || this.thread.info.agentSessionId !== agentSessionId) {
+                if (title === null || title === this.thread.info.suggestedTitle || this.generation !== generation || this.prefersGeneratedTitle()) {
                     return;
                 }
 
@@ -2764,6 +2775,24 @@ export class ChatSession {
                 this.options.persistSoon();
             })
             .catch(() => undefined);
+    }
+
+    private prefersGeneratedTitle(): boolean {
+        return this.options.nameThread !== undefined && !this.namingFailed && this.options.titlePolicy?.() === 'generated';
+    }
+
+    private applyNativeTitle(title: string): void {
+        if (this.prefersGeneratedTitle()) {
+            const cleaned = cleanTitle(title);
+
+            if (cleaned !== null) {
+                this.pendingNativeTitle = cleaned;
+            }
+
+            return;
+        }
+
+        this.applyTitle(title);
     }
 
     private applyTitle(raw: string): void {
@@ -2779,14 +2808,19 @@ export class ChatSession {
     }
 
     /*
-     * Names a chat whose CLI names nothing, after its first turn that went well: the prompt alone is
+     * Names a chat after its first turn that went well: the prompt alone is
      * often too little to name, and the start of the answer says what the conversation became. Once,
      * and not for a thread that already has a name, as a resumed one may.
      */
     private nameThread(): void {
         const name = this.options.nameThread;
 
-        if (!name || this.naming || this.thread.info.suggestedTitle !== undefined) {
+        if (
+            !name ||
+            (this.prefersGeneratedTitle() ? this.resumedForNaming : this.info.provider !== 'codex') ||
+            this.naming ||
+            this.thread.info.suggestedTitle !== undefined
+        ) {
             return;
         }
 
@@ -2806,19 +2840,32 @@ export class ChatSession {
             .filter((text) => text !== '')
             .join('\n\n');
 
-        const agentSessionId = this.thread.info.agentSessionId;
+        const generation = this.generation;
+        const settle = (title: string | null): void => {
+            if (this.generation !== generation || this.thread.info.suggestedTitle !== undefined) {
+                return;
+            }
 
-        void name({ cwd: this.thread.info.cwd, prompt: prompt.text, answer })
-            .then((title) => {
-                // A clear in between started another conversation, and a name that came meanwhile is the CLI's own.
-                if (title === null || this.thread.info.agentSessionId !== agentSessionId || this.thread.info.suggestedTitle !== undefined) {
-                    return;
+            if (title === null) {
+                this.namingFailed = true;
+
+                if (this.pendingNativeTitle !== null) {
+                    this.applyTitle(this.pendingNativeTitle);
                 }
 
-                this.applyTitle(title);
-                this.backend?.setTitle?.(title);
-            })
-            .catch(() => undefined);
+                this.refreshTitle();
+
+                return;
+            }
+
+            this.pendingNativeTitle = null;
+            this.applyTitle(title);
+            this.backend?.setTitle?.(title);
+        };
+
+        void name({ cwd: this.thread.info.cwd, prompt: prompt.text, answer })
+            .then(settle)
+            .catch(() => settle(null));
     }
 
     private runningBackgroundRows(): ChatSubagentItem[] {
