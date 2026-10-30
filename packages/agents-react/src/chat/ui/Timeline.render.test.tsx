@@ -1,12 +1,12 @@
 import { expect, test } from 'bun:test';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
-import { act, Profiler } from 'react';
+import { Activity, act, Profiler } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
-import { jumpToTimelineItem } from '../timeline-scroll';
+import { jumpToTimelineItem, timelineAtEnd } from '../timeline-scroll';
 import { Timeline } from './Timeline';
 
 const scope: ChatScope = {
@@ -146,6 +146,7 @@ interface Mounted {
     propsOf(name: string): Record<string, unknown> | null;
     /* Gives the row at `index` a new height and tells whoever observes it, as a browser would after a layout. */
     resizeRow(index: number, height: number): Promise<void>;
+    visibility(visible: boolean): Promise<void>;
 }
 
 /* An observer the test sets off by hand; the virtualizer measures its rows through it. */
@@ -286,26 +287,30 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
             useChats.getState().reset(KEY, setup.info ?? infoOf(activeTurnId), setup.items ?? threadOf());
         }
 
-        await act(async () =>
-            root.render(
-                <ChatHostProvider host={setup.host ?? NO_HOST}>
-                    <ChatScopeContext.Provider value={scope}>
-                        <div className="chat-column">
-                            <Profiler
-                                id="timeline"
-                                onRender={() => {
-                                    commits.push(tracker.rendered());
-                                    setup.onLayout?.(page.host);
-                                }}
-                            >
-                                <Timeline chatId="chat" composer={<div data-composer />} onContentHeight={setup.onContentHeight} />
-                            </Profiler>
-                        </div>
-                    </ChatScopeContext.Provider>
-                </ChatHostProvider>
-            )
-        );
+        const visibility = async (visible: boolean): Promise<void> =>
+            act(async () =>
+                root.render(
+                    <ChatHostProvider host={setup.host ?? NO_HOST}>
+                        <ChatScopeContext.Provider value={scope}>
+                            <Activity mode={visible ? 'visible' : 'hidden'}>
+                                <div className="chat-column">
+                                    <Profiler
+                                        id="timeline"
+                                        onRender={() => {
+                                            commits.push(tracker.rendered());
+                                            setup.onLayout?.(page.host);
+                                        }}
+                                    >
+                                        <Timeline chatId="chat" composer={<div data-composer />} onContentHeight={setup.onContentHeight} />
+                                    </Profiler>
+                                </div>
+                            </Activity>
+                        </ChatScopeContext.Provider>
+                    </ChatHostProvider>
+                )
+            );
 
+        await visibility(true);
         commits.length = 0;
 
         const resizeRow = async (index: number, height: number): Promise<void> => {
@@ -314,7 +319,7 @@ async function mounted(layout: Layout, activeTurnId: string | null, run: (mount:
             await act(async () => ManualResizeObserver.resized(row, VIEWPORT.width, height));
         };
 
-        await run({ page, commits, propsOf: tracker.propsOf, resizeRow });
+        await run({ page, commits, propsOf: tracker.propsOf, resizeRow, visibility });
     } finally {
         await act(async () => root.unmount());
         ManualResizeObserver.all.clear();
@@ -923,5 +928,22 @@ test('cached history remains visible when a later failed status arrives', async 
         expect(page.host.querySelector('[role="status"]')).toBeNull();
         expect(page.host.textContent).toContain('Answer 1');
         expect(page.host.querySelector('[data-composer]')).toBe(composer);
+    });
+});
+
+test('a retained reading position republishes its jump-to-end state after Activity reveals the thread', async () => {
+    await mounted({ rowHeights: Array(6).fill(200), composerHeight: 0, clampScroll: true }, null, async ({ page, visibility }) => {
+        const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+
+        await act(async () => {
+            scroller.scrollTop = 200;
+            scroller.dispatchEvent(new page.window.Event('scroll', { bubbles: true }));
+        });
+
+        expect(timelineAtEnd('chat')).toBe(false);
+        await visibility(false);
+        await visibility(true);
+        expect(page.host.querySelector('.chat-scroll')).toBe(scroller);
+        expect(timelineAtEnd('chat')).toBe(false);
     });
 });

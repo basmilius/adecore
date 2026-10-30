@@ -434,18 +434,19 @@ export function Timeline({
     coveredHeightRef.current = coveredHeight;
 
     // The composer pages through the thread with PageUp and PageDown; this is the element it moves.
-    useEffect(
-        () =>
-            registerTimeline(
-                chatId,
-                scrollRef.current,
-                (enabled) => {
-                    followRef.current = enabled;
-                },
-                () => coveredHeightRef.current
-            ),
-        [chatId]
-    );
+    useEffect(() => {
+        const unregister = registerTimeline(
+            chatId,
+            scrollRef.current,
+            (enabled) => {
+                followRef.current = enabled;
+            },
+            () => coveredHeightRef.current
+        );
+        setTimelineAtEnd(chatId, followRef.current);
+
+        return unregister;
+    }, [chatId]);
 
     const [measuredThread, setMeasuredThread] = useState<string | null>(null);
     const initialLayout = measuredThread !== keyOf(chatId);
