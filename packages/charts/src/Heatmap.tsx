@@ -73,14 +73,15 @@ interface HeatmapGridProps extends Pick<HeatmapProps, 'rows' | 'columns' | 'valu
     readonly onHover: (cell: HeatCell) => void;
 }
 
-type HeatmapCellProps = Pick<HeatmapGridProps, 'cursor' | 'color' | 'top' | 'steps' | 'cellHeight' | 'valueLabel' | 'write' | 'onHover'> & {
-    readonly cell: HeatCell;
+interface HeatmapCellProps extends Pick<HeatmapGridProps, 'cursor' | 'color' | 'top' | 'steps' | 'cellHeight' | 'valueLabel' | 'write' | 'onHover'> {
+    readonly row: number;
+    readonly column: number;
     readonly value: number | null;
     readonly rowLabel: string;
     readonly columnLabel: string;
     readonly toRight: boolean;
     readonly down: boolean;
-};
+}
 
 function HeatmapCellView({
     cursor,
@@ -91,13 +92,15 @@ function HeatmapCellView({
     valueLabel,
     write,
     onHover,
-    cell,
+    row,
+    column,
     rowLabel,
     columnLabel,
     toRight,
     down,
     value
 }: HeatmapCellProps) {
+    const cell = { row, column };
     const subscribe = (listener: () => void): (() => void) => cursor.subscribeCell(cell, listener);
     const selected = (): boolean => cursor.isActive(cell);
     const active = useSyncExternalStore(subscribe, selected, selected);
@@ -145,7 +148,8 @@ function HeatmapGrid({ rows, columns, values, valueLabel, cursor, color, top, st
                         <HeatmapCellView
                             key={column.key}
                             cursor={cursor}
-                            cell={{ row: rowIndex, column: columnIndex }}
+                            row={rowIndex}
+                            column={columnIndex}
                             rowLabel={row.label}
                             columnLabel={column.label}
                             value={values[rowIndex]?.[columnIndex] ?? null}

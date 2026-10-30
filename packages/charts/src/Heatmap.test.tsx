@@ -123,6 +123,25 @@ describe.skipIf(typeof document === 'undefined')('a mounted heatmap', () => {
         }
     });
 
+    test('changing one value keeps the other cell shades cached', async () => {
+        const shades = spyOn(heat, 'heatMix');
+        const view = (values: typeof VALUES): ReactNode => (
+            <Heatmap rows={ROWS} columns={COLUMNS} values={values} label="Events" valueLabel="Events" max={100} />
+        );
+
+        try {
+            await mount(view(VALUES));
+            const before = shades.mock.calls.length;
+
+            await act(async () => root.render(wrap(view([VALUES[0]!, [null, 60, 4]]))));
+
+            expect(cells()[4]!.dataset.mix).toBe('66');
+            expect(shades.mock.calls.length - before).toBe(1);
+        } finally {
+            shades.mockRestore();
+        }
+    });
+
     test('active cells read new data and labels and keep the existing bounds behavior', async () => {
         const changes: ({ row: number; column: number } | null)[] = [];
         const changedRows = [ROWS[0]!, { ...ROWS[1]!, label: 'Changed Tuesday' }];
