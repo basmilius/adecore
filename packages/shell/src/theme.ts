@@ -14,6 +14,8 @@ export interface ThemeOptions {
     background: string;
     /* Off macOS, the controls drawn over the page. Without it the window has no controls of its own there. */
     overlay?: TitleBarOverlay;
+    /* Off macOS, the system's own title bar and menu bar instead of a page that reaches the top. */
+    nativeFrame?: boolean;
     /* Where macOS puts the traffic lights, inset into the page. */
     trafficLights?: { x: number; y: number };
     platform?: NodeJS.Platform;
@@ -42,7 +44,7 @@ export const createTheme = (options: ThemeOptions) => {
         apply: (theme: ThemeState): void => {
             current = theme;
             options.nativeTheme.themeSource = theme.followsSystem ? 'system' : theme.resolved;
-            const overlay = platform === 'darwin' ? undefined : overlayOf(theme);
+            const overlay = platform === 'darwin' || options.nativeFrame ? undefined : overlayOf(theme);
 
             for (const window of options.windows()) {
                 if (window.isDestroyed()) {
@@ -63,10 +65,9 @@ export const createTheme = (options: ThemeOptions) => {
         windowOptions: (): BrowserWindowConstructorOptions => {
             const overlay = overlayOf(current ?? { resolved: 'dark' });
 
+            const hidden: BrowserWindowConstructorOptions = options.nativeFrame ? {} : { titleBarStyle: 'hidden', ...(overlay ? { titleBarOverlay: overlay } : {}) };
             const chrome: BrowserWindowConstructorOptions =
-                platform === 'darwin'
-                    ? { titleBarStyle: 'hiddenInset', trafficLightPosition: options.trafficLights ?? { x: 17, y: 17 } }
-                    : { titleBarStyle: 'hidden', ...(overlay ? { titleBarOverlay: overlay } : {}) };
+                platform === 'darwin' ? { titleBarStyle: 'hiddenInset', trafficLightPosition: options.trafficLights ?? { x: 17, y: 17 } } : hidden;
 
             return { ...chrome, backgroundColor: current?.background ?? options.background };
         }
