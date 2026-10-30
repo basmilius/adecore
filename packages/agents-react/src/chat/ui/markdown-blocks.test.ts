@@ -177,6 +177,8 @@ describe('a streaming markdown splitter', () => {
     const fixtures = [
         '',
         'First.\n\nSecond.\n\nTail\nmore',
+        '[note\n\nhello\n\nworld\nend]: x\n',
+        '[a\n\nb\n\nc\n\nd\n]: /u',
         'First.\n\n- item\n\n- next\n\nAfter\nmore',
         'First.\n\n1. one\n\n2. two\n\nAfter\nmore',
         'First.\n\n[doc]\n\nTail\nmore\n\n[doc]: https://example.com',
@@ -232,7 +234,9 @@ describe('a streaming markdown splitter', () => {
             '**Title**',
             '\tcode',
             '🌍',
-            '\r'
+            '\r',
+            '[open',
+            ']: /path'
         ];
         let seed = 918_273;
         const next = (): number => {

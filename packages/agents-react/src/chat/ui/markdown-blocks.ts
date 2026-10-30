@@ -126,7 +126,8 @@ export function createMarkdownBlockSplitter(): (text: string) => readonly Markdo
 
         let scan = scanMarkdownBlocks(text.slice(offset), true);
 
-        if (offset > 0 && scan.whole) {
+        // The existing definition guard can match a label that starts before the checkpoint.
+        if (offset > 0 && (scan.whole || DEFINITION.test(text))) {
             offset = 0;
             retained = [];
             scan = scanMarkdownBlocks(text, true);
