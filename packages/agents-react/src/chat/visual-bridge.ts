@@ -74,6 +74,9 @@ export class VisualBridge {
     private viewportReady = false;
     private viewport: VisualViewport | null = null;
     private disposed = false;
+    private suspended = false;
+    private loadedWhileSuspended = false;
+    private readFailed = false;
     private cancelSilence: () => void = () => undefined;
 
     constructor(options: VisualBridgeOptions) {
@@ -86,7 +89,9 @@ export class VisualBridge {
                 this.sendPage();
             },
             () => {
-                if (!this.disposed) {
+                this.readFailed = true;
+
+                if (!this.disposed && !this.suspended) {
                     options.onFailure();
                 }
             }
@@ -97,7 +102,7 @@ export class VisualBridge {
     receive(event: { source: unknown; data: unknown }): void {
         const frame = this.options.frame();
 
-        if (this.disposed || frame === null || event.source !== frame) {
+        if (this.disposed || this.suspended || frame === null || event.source !== frame) {
             return;
         }
 
@@ -166,7 +171,7 @@ export class VisualBridge {
     setViewport(viewport: VisualViewport | null): void {
         this.viewport = viewport;
 
-        if (!this.disposed && this.sent !== null && this.viewportReady) {
+        if (!this.disposed && !this.suspended && this.sent !== null && this.viewportReady) {
             this.options.frame()?.postMessage(visualViewportMessage(viewport), '*');
         }
     }
@@ -176,7 +181,7 @@ export class VisualBridge {
         this.theme = theme;
         const frame = this.options.frame();
 
-        if (this.disposed || this.sent === null || frame === null) {
+        if (this.disposed || this.suspended || this.sent === null || frame === null) {
             return;
         }
 
@@ -189,6 +194,12 @@ export class VisualBridge {
 
     /* The frame fired `load`. */
     loaded(): void {
+        if (this.suspended) {
+            this.loadedWhileSuspended = true;
+
+            return;
+        }
+
         if (this.heard || this.disposed) {
             return;
         }
@@ -196,10 +207,43 @@ export class VisualBridge {
         this.cancelSilence();
 
         this.cancelSilence = (this.options.after ?? timeout)(SILENCE_MS, () => {
-            if (!this.heard && !this.disposed) {
+            if (!this.heard && !this.disposed && !this.suspended) {
                 this.options.onFailure();
             }
         });
+    }
+
+    suspend(): void {
+        this.suspended = true;
+        this.cancelSilence();
+    }
+
+    /* A hidden frame may finish loading without its listener; restart only an unconfirmed document. */
+    resume(): boolean {
+        if (this.disposed || !this.suspended) {
+            return false;
+        }
+
+        this.suspended = false;
+
+        if (this.readFailed) {
+            this.options.onFailure();
+
+            return false;
+        }
+
+        if (this.loadedWhileSuspended || !this.live || (this.options.onViewportReady !== undefined && !this.viewportReady)) {
+            this.loadedWhileSuspended = false;
+            this.heard = false;
+            this.waiting = false;
+            this.sent = null;
+            this.live = false;
+            this.viewportReady = false;
+
+            return true;
+        }
+
+        return false;
     }
 
     dispose(): void {
@@ -210,7 +254,7 @@ export class VisualBridge {
     private sendPage(): void {
         const frame = this.options.frame();
 
-        if (this.disposed || !this.waiting || this.html === null || frame === null) {
+        if (this.disposed || this.suspended || !this.waiting || this.html === null || frame === null) {
             return;
         }
 

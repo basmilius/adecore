@@ -13,8 +13,9 @@ import type {
 } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { Menu } from '@adecore/ui';
+import { undo } from '@codemirror/commands';
 import { EditorView } from '@codemirror/view';
-import { act, Children, type ReactElement, type ReactNode } from 'react';
+import { Activity, act, Children, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
     ChatHostProvider,
@@ -138,6 +139,7 @@ interface Mounted {
     draw(node: ReactNode): Promise<HTMLElement>;
     text(): string;
     remount(): Promise<void>;
+    visibility(visible: boolean): Promise<void>;
 }
 
 const KEY_CODES: Record<string, number> = { Enter: 13, Tab: 9, Escape: 27, ArrowUp: 38, ArrowDown: 40 };
@@ -345,7 +347,9 @@ async function mount(options: Options = {}): Promise<Mounted> {
     );
 
     let root = createRoot(page.host);
-    await act(async () => root.render(element));
+    const visibility = async (visible: boolean): Promise<void> =>
+        act(async () => root.render(<Activity mode={visible ? 'visible' : 'hidden'}>{element}</Activity>));
+    await visibility(true);
 
     cleanups.push(async () => {
         await act(async () => root.unmount());
@@ -372,6 +376,7 @@ async function mount(options: Options = {}): Promise<Mounted> {
         sent,
         calls,
         view,
+        visibility,
         type: async (text) => {
             await act(async () => {
                 const target = view();
@@ -420,7 +425,7 @@ async function mount(options: Options = {}): Promise<Mounted> {
         remount: async () => {
             await act(async () => root.unmount());
             root = createRoot(page.host);
-            await act(async () => root.render(element));
+            await visibility(true);
         }
     };
 }
@@ -1471,4 +1476,18 @@ describe('the model menu', () => {
         const sequence = [...list.children].map((node) => (node.getAttribute('role') === 'separator' ? '--' : node.firstElementChild?.textContent));
         expect(sequence).toEqual(['Claude Code', 'Codex', '--', 'Antigravity', 'Grok', '--', 'Claude API', 'NanoGPT']);
     });
+});
+
+test('a retained composer restores its caret and undo history after Activity reveal', async () => {
+    const composer = await mount();
+    await composer.type('Draft words');
+    await composer.caret(2);
+    await composer.visibility(false);
+    await composer.visibility(true);
+    expect(composer.text()).toBe('Draft words');
+    expect(composer.view().state.selection.main.head).toBe(2);
+    await act(async () => {
+        expect(undo(composer.view())).toBe(true);
+    });
+    expect(composer.text()).toBe('');
 });
