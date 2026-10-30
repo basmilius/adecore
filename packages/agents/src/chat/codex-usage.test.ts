@@ -106,3 +106,26 @@ test('a usage explanation leaves resume context for the next real model turn', a
         await backend.dispose();
     }
 });
+
+test.each(['mentions', 'skills'] as const)('a usage message with chosen %s keeps its model context', async (picked) => {
+    const { backend, requests } = await rig();
+
+    try {
+        backend.sendTurn({
+            text: '/usage',
+            preamble: 'Selected context.',
+            attachments: [],
+            mentions: picked === 'mentions' ? ['reference'] : [],
+            skills: picked === 'skills' ? ['skill'] : []
+        });
+
+        await flush();
+        const turns = requests.filter((request) => request.method === 'turn/start');
+
+        expect(turns.map((request) => request.params?.input)).toEqual([
+            [{ type: 'text', text: 'Linked context.\n\nSelected context.\n\n/usage', text_elements: [] }]
+        ]);
+    } finally {
+        await backend.dispose();
+    }
+});
