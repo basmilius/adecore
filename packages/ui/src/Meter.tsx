@@ -34,7 +34,7 @@ export function Meter({ value, min = 0, max = 100, marks = [], label, valueText,
             aria-valuemax={max}
             aria-valuenow={value === null ? min : Math.min(max, Math.max(min, value))}
             aria-valuetext={valueText}
-            className={clsx('relative h-1.5 rounded-full bg-surface-sunken', className)}
+            className={clsx('relative h-1.5 rounded-full bg-track', className)}
         >
             {/* No transition on the width: a level that updates many times a second would lag and blur. */}
             {value !== null && <span className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${fractionOf(value) * 100}%` }} />}

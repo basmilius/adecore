@@ -127,7 +127,7 @@ function ProjectRow({ project, top, money }: { project: UsageProject; top: numbe
                 <span className="truncate">{look?.name ?? project.name}</span>
                 <span className="truncate text-text-faint">{shortPath(project.folder)}</span>
             </span>
-            <span className="mt-1 flex h-[9px] w-32 shrink-0 overflow-hidden rounded-full bg-surface-sunken">
+            <span className="mt-1 flex h-[9px] w-32 shrink-0 overflow-hidden rounded-full bg-track">
                 {USAGE_PROVIDERS.map((provider) => {
                     const share = project.byProvider[provider];
                     const width = barWidth(share?.costUsd ?? 0, top);

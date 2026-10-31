@@ -69,7 +69,7 @@ function LimitCard({ account, named, now, login }: { account: LimitAccount; name
                         <span className="truncate">{account.name}</span>
                     </>
                 )}
-                {plan && <span className="shrink-0 font-normal text-text-muted">· {plan}</span>}
+                {plan && <span className="shrink-0 font-normal text-text-muted capitalize">· {plan}</span>}
                 {checked !== null && <span className="ml-auto shrink-0 pl-2 font-normal text-text-faint">{checked}</span>}
             </p>
             {signedOut ? (

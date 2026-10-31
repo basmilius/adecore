@@ -23,7 +23,7 @@ export function SessionLine({ window, now }: { window: UsageWindow; now: number 
 
     return (
         <span className="flex items-center gap-2 text-xs text-text-faint tabular-nums">
-            <span aria-hidden className="relative h-1 w-14 shrink-0 rounded-full bg-surface-sunken">
+            <span aria-hidden className="relative h-1 w-14 shrink-0 rounded-full bg-track">
                 <span className={clsx('absolute inset-y-0 left-0 rounded-full', tone.bar)} style={{ width: `${Math.min(100, percent)}%` }} />
                 {/* Where an even spread over the window would stand, as the usage bars mark it. */}
                 {mark !== null && (

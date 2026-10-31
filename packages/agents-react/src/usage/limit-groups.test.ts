@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ProviderAccounts, ProviderAccountStatus, UsageLimitsProvider, UsageWindow } from '@adecore/agent-contracts';
-import { checkedLabel, explain, hasSeveralAccounts, limitGroups, nextReset, paceText } from './limit-groups';
+import { checkedLabel, emptyWindows, explain, hasSeveralAccounts, limitGroups, noteIsWarning, paceText, ringWindows, type LimitAccount } from './limit-groups';
 
 function status(id: string, kind: string, state: ProviderAccountStatus['state'] = 'ready'): ProviderAccountStatus {
     return {
@@ -118,13 +118,43 @@ describe('a provider with no CLI', () => {
     });
 });
 
-describe('the next reset', () => {
-    test('is the window that resets first from now', () => {
-        expect(nextReset([window('weekly', 900), window('passed', 50), window('session', 300), window('none', null)], 100)?.id).toBe('session');
+describe('an account without numbers', () => {
+    function account(id: string, provider: UsageLimitsProvider | null, state: ProviderAccountStatus['state'] = 'ready'): LimitAccount {
+        return { id, kind: 'claude', name: id, color: undefined, entry: provider, status: status(id, 'claude', state) };
+    }
+
+    const read = account('one', entry('claude', undefined, { windows: [window('weekly', 900)] }));
+    const silent = account('two', entry('claude'));
+
+    test('takes the windows of another account of its CLI, to draw them empty', () => {
+        expect(emptyWindows({ kind: 'claude', accounts: [read, silent] }, silent).map((row) => row.id)).toEqual(['weekly']);
     });
 
-    test('is nothing when no window names one ahead', () => {
-        expect(nextReset([window('passed', 50), window('none', null)], 100)).toBeNull();
+    test('has nothing to draw when no account of its CLI has windows', () => {
+        expect(emptyWindows({ kind: 'claude', accounts: [silent] }, silent)).toEqual([]);
+    });
+
+    test('that cannot be read or is signed out draws none and warns', () => {
+        const failed = account('three', entry('claude', undefined, { unavailable: { reason: 'failed', message: null } }));
+        const out = account('four', null, 'signed-out');
+        const group = { kind: 'claude' as const, accounts: [read, failed, out] };
+
+        expect(emptyWindows(group, failed)).toEqual([]);
+        expect(emptyWindows(group, out)).toEqual([]);
+        expect(noteIsWarning(failed)).toBe(true);
+        expect(noteIsWarning(out)).toBe(true);
+    });
+
+    test('on an API key is no problem to solve', () => {
+        expect(noteIsWarning(account('five', entry('claude', undefined, { unavailable: { reason: 'no-subscription', message: null } })))).toBe(false);
+    });
+});
+
+describe('the rings of a folded account', () => {
+    test('keep the three windows nearest their limit, in their own order', () => {
+        const windows = [0.1, 0.9, 0.5, 0.7].map((used, index) => ({ ...window(`w${index}`, null), used }));
+
+        expect(ringWindows(windows).map((row) => row.id)).toEqual(['w1', 'w2', 'w3']);
     });
 });
 

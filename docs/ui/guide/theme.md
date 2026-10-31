@@ -6,7 +6,7 @@ The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-mute
 
 ## Ground and surfaces
 
-`--bg` is the page. Panels and cards are `--surface`; popups, menus and dialogs float on `--surface-raised`. `--surface-sunken` is the recessed track of a segmented control, or a field without a box. `--surface-hover` is lighter than `--surface-active`, so pressed outranks hover. `--field` is what a person types or picks in, a step lighter than the panel in the dark theme. `--thumb` is the knob of a slider or switch, set apart from its track in both themes.
+`--bg` is the page. Panels and cards are `--surface`; popups, menus and dialogs float on `--surface-raised`. `--surface-sunken` is the recessed track of a segmented control, or a field without a box. `--track` is what a bar or ring fills, an alpha that holds on any surface. `--surface-hover` is lighter than `--surface-active`, so pressed outranks hover. `--field` is what a person types or picks in, a step lighter than the panel in the dark theme. `--thumb` is the knob of a slider or switch, set apart from its track in both themes.
 
 <TokenTable group="ground" />
 

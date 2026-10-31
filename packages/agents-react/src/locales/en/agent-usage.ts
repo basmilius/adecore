@@ -23,7 +23,6 @@ export default {
         signedOut: 'Not logged in',
         signedOutDetail: 'Not logged in. Log in to see limits.',
         logIn: 'Log in',
-        nextReset: '{{window}} resets {{at}}',
         checked: {
             now: 'now',
             ago: '{{duration}} ago',

@@ -562,7 +562,7 @@ function ContextRing({ usage }: { usage: ChatUsage }) {
 
     return (
         <svg width="14" height="14" viewBox="0 0 14 14" className={clsx('shrink-0', contextTone(fraction))} aria-hidden="true">
-            <circle cx="7" cy="7" r={RING_RADIUS} fill="none" strokeWidth="2" className="stroke-border-strong" />
+            <circle cx="7" cy="7" r={RING_RADIUS} fill="none" strokeWidth="2" className="stroke-track" />
             <circle
                 cx="7"
                 cy="7"
@@ -603,7 +603,7 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
                     aria-valuemin={0}
                     aria-valuemax={100}
                     aria-label={t('contextMeter.aria', { percent })}
-                    className="flex h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+                    className="flex h-1.5 overflow-hidden rounded-full bg-track"
                 >
                     {segments ? (
                         segments.map((segment) => (

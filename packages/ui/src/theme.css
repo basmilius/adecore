@@ -10,6 +10,7 @@
     --surface: #ffffff;
     --surface-raised: #ffffff;
     --surface-sunken: #ececef;
+    --track: rgb(0 0 0 / 0.09);
     /* A bar that is not the one in focus: between the sunken page behind it and a focused bar, so it
        still reads as a bar. The toolbar of a cell in the grid that does not have the keyboard. */
     --surface-idle: color-mix(in srgb, var(--surface) 50%, var(--surface-sunken));
@@ -118,6 +119,7 @@
     --surface: #131316;
     --surface-raised: #18181c;
     --surface-sunken: #0b0b0e;
+    --track: rgb(255 255 255 / 0.11);
     --surface-hover: #202024;
     --surface-active: #28282e;
     /* Derived, so an app that tints its surfaces tints its fields along. */
@@ -246,6 +248,7 @@
     --color-surface: var(--surface);
     --color-surface-raised: var(--surface-raised);
     --color-surface-sunken: var(--surface-sunken);
+    --color-track: var(--track);
     --color-surface-idle: var(--surface-idle);
     --color-surface-hover: var(--surface-hover);
     --color-surface-hover-edged: var(--surface-hover-edged);

@@ -104,17 +104,34 @@ export function isSignedOut(account: LimitAccount): boolean {
     return account.status?.state === 'signed-out';
 }
 
-/* The window that resets first from now, the one reset a line per window has no room to repeat. */
-export function nextReset(windows: readonly UsageWindow[], now: number): (UsageWindow & { resetsAt: number }) | null {
-    let next: (UsageWindow & { resetsAt: number }) | null = null;
+/* An account in a list across CLIs, where two CLIs may name an account alike. */
+export function limitAccountKey(account: LimitAccount): string {
+    return `${account.kind}:${account.id}`;
+}
 
-    for (const window of windows) {
-        if (window.resetsAt !== null && window.resetsAt > now && (next === null || window.resetsAt < next.resetsAt)) {
-            next = { ...window, resetsAt: window.resetsAt };
-        }
+/* Whether an account's words are a problem to solve, rather than how the account simply is. */
+export function noteIsWarning(account: LimitAccount): boolean {
+    return isSignedOut(account) || account.entry?.unavailable?.reason === 'failed';
+}
+
+/* The windows a signed-in account with no numbers yet will have, as far as another account of its CLI shows them. */
+export function emptyWindows(group: LimitGroup, account: LimitAccount): readonly UsageWindow[] {
+    if (isSignedOut(account) || account.entry === null || account.entry.unavailable !== null || account.entry.windows.length > 0) {
+        return [];
     }
 
-    return next;
+    return group.accounts.find((other) => (other.entry?.windows.length ?? 0) > 0)?.entry?.windows ?? [];
+}
+
+/* The windows a folded account draws a ring for. Three fit; past that the ones nearest their limit. */
+export function ringWindows(windows: readonly UsageWindow[]): readonly UsageWindow[] {
+    if (windows.length <= 3) {
+        return windows;
+    }
+
+    const fullest = [...windows].sort((a, b) => b.used - a.used).slice(0, 3);
+
+    return windows.filter((window) => fullest.includes(window));
 }
 
 /* The bar as words for whoever cannot see the mark: how much is used and how that stands against an even pace. */

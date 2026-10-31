@@ -2,13 +2,29 @@ import { Fragment } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { UsageLimitsSnapshot, UsageWindow } from '@adecore/agent-contracts';
+import { ChevronRight } from 'lucide-react';
 import { limitsAccountId } from '../agents/account-limits';
-import { AccountDot } from '../agents/AccountDot';
-import { Tooltip } from '@adecore/ui';
+import { accountColor } from '../agents/accounts';
+import { ProviderLogo } from '../agents/ProviderLogo';
+import { Icon, Tooltip } from '@adecore/ui';
 import { formatClock, formatWeekdayClock, isSameDay, formatCountdown, formatPercent } from '@adecore/ui/format';
+import { useChatHost } from '../host';
 import { ChartLogo } from './ChartLogo';
-import { PROVIDER_LABELS } from './format';
-import { accountNote, evenPace, explain, isSignedOut, nextReset, paceText, type LimitAccount, type LimitGroup, type PaceStanding } from './limit-groups';
+import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
+import {
+    accountNote,
+    emptyWindows,
+    evenPace,
+    explain,
+    isSignedOut,
+    limitAccountKey,
+    noteIsWarning,
+    paceText,
+    ringWindows,
+    type LimitAccount,
+    type LimitGroup,
+    type PaceStanding
+} from './limit-groups';
 
 /* Red where a window is nearly spent, amber where it is worth knowing; room to spare is not news and takes the text color. */
 function toneOf(used: number): string {
@@ -50,7 +66,7 @@ export function WindowBar({ window, now, compact }: { window: UsageWindow; now: 
             aria-valuemax={100}
             className={clsx('relative cursor-default', compact ? 'h-4' : 'h-6')}
         >
-            <div className={clsx('absolute inset-x-0 rounded-full bg-surface-sunken', compact ? 'inset-y-1' : 'inset-y-1.5')} />
+            <div className={clsx('absolute inset-x-0 rounded-full bg-track', compact ? 'inset-y-1' : 'inset-y-1.5')} />
             {/* Past a hundred there is nothing left to fill, so the bar stops rather than overflows. */}
             <div
                 className={clsx('absolute left-0 rounded-full', compact ? 'inset-y-1' : 'inset-y-1.5', toneOf(window.used))}
@@ -121,7 +137,7 @@ export function LimitsList({ limits, now, compact = false }: LimitsListProps) {
                         <p className="flex items-center gap-2 text-xs font-medium">
                             <ChartLogo provider={provider.kind} />
                             {PROVIDER_LABELS[provider.kind]}
-                            {provider.plan !== null && <span className="text-text-muted">· {provider.plan}</span>}
+                            {provider.plan !== null && <span className="text-text-muted capitalize">· {provider.plan}</span>}
                         </p>
                         {note === null ? (
                             <div className={clsx('flex flex-col', compact ? 'gap-3' : 'gap-4')}>
@@ -139,15 +155,28 @@ export function LimitsList({ limits, now, compact = false }: LimitsListProps) {
     );
 }
 
-/* One window on one line, for a card that holds several accounts: the label, a thin bar with the elapsed mark, the percent. */
+/* Red where a window is nearly spent, amber where it is worth knowing, in the color of a word. */
+function textToneOf(used: number): string {
+    return used >= 0.9 ? 'text-status-error' : used >= 0.7 ? 'text-status-needs-you' : 'text-text';
+}
+
+function strokeToneOf(used: number): string {
+    return used >= 0.9 ? 'stroke-status-error' : used >= 0.7 ? 'stroke-status-needs-you' : 'stroke-text';
+}
+
+const WINDOW_LINE = 'grid grid-cols-[104px_minmax(0,1fr)_34px_50px] items-center gap-x-2';
+const RING_RADII = [8.75, 5.25, 1.75];
+
+/* One window on one line: the label, a thin bar with the elapsed mark, the percent, the time left. Fixed columns, so the bars of every account line up. */
 function WindowLine({ window, now }: { window: UsageWindow; now: number }) {
     const { t } = useTranslation('agent-usage');
     const percent = Math.round(window.used * 100);
     const mark = evenPace(window, now)?.percent ?? null;
+    const resetsIn = window.resetsAt === null ? null : resetInLabel(window.resetsAt, now);
 
     return (
-        <>
-            <span className="text-text-muted">{window.label}</span>
+        <div className={WINDOW_LINE}>
+            <span className="truncate text-text-muted">{window.label}</span>
             <div
                 role="progressbar"
                 aria-label={t('limits.bar', { window: window.label, percent })}
@@ -155,7 +184,7 @@ function WindowLine({ window, now }: { window: UsageWindow; now: number }) {
                 aria-valuetext={paceText(window, now)}
                 aria-valuemin={0}
                 aria-valuemax={100}
-                className="relative h-1.5 rounded-full bg-surface-sunken"
+                className="relative h-1.5 rounded-full bg-track"
             >
                 <div className={clsx('absolute inset-y-0 left-0 rounded-full', toneOf(window.used))} style={{ width: `${Math.min(100, percent)}%` }} />
                 {mark !== null && (
@@ -167,62 +196,162 @@ function WindowLine({ window, now }: { window: UsageWindow; now: number }) {
                     />
                 )}
             </div>
-            <span className={clsx('text-right tabular-nums', window.used >= 0.9 ? 'text-status-error' : 'text-text')}>{formatPercent(percent)}</span>
-        </>
+            <span className={clsx('text-right tabular-nums', textToneOf(window.used))}>{formatPercent(percent)}</span>
+            <span className="text-right whitespace-nowrap text-text-faint tabular-nums">{resetsIn ?? '-'}</span>
+        </div>
     );
 }
 
-function AccountLines({ account, now }: { account: LimitAccount; now: number }) {
+/* A window this account has not reported on: no number to draw, so an empty bar and a dash. */
+function EmptyWindowLine({ label }: { label: string }) {
+    return (
+        <div className={WINDOW_LINE}>
+            <span className="truncate text-text-muted">{label}</span>
+            <div className="h-1.5 rounded-full bg-track" />
+            <span className="text-right text-text-faint">-</span>
+            <span className="text-right text-text-faint">-</span>
+        </div>
+    );
+}
+
+/* A ring per window, what a folded account keeps of its bars. The largest is the first window. */
+function WindowRings({ windows, empty }: { windows: readonly UsageWindow[]; empty: boolean }) {
     const { t } = useTranslation('agent-usage');
-    const signedOut = isSignedOut(account);
-    const note = signedOut ? null : accountNote(account);
-    const windows = signedOut || note !== null ? [] : (account.entry?.windows ?? []);
-    const next = nextReset(windows, now);
-    const resetsIn = next === null ? null : resetInLabel(next.resetsAt, now);
+    const rings = ringWindows(windows);
+    const label = rings.map((window) => t('limits.bar', { window: window.label, percent: Math.round(window.used * 100) })).join(', ');
 
     return (
-        <>
-            <p className="col-span-full mt-2 flex min-w-0 items-center gap-2">
-                <AccountDot color={account.color} />
-                <span className="truncate">{account.name}</span>
-                {signedOut ? (
-                    <span className="shrink-0 text-text-faint">· {t('limits.signedOut')}</span>
-                ) : (
-                    account.entry?.plan && <span className="shrink-0 text-text-muted">· {account.entry.plan}</span>
-                )}
-            </p>
-            {note !== null && <p className="col-span-full text-text-faint">{note}</p>}
-            {windows.map((window) => (
-                <WindowLine key={window.id} window={window} now={now} />
-            ))}
-            {next !== null && (
-                <p className="col-span-full whitespace-nowrap text-text-faint">
-                    {t('limits.nextReset', { window: next.label, at: resetAtLabel(next.resetsAt, now) })}
-                    {resetsIn !== null && ` · ${resetsIn}`}
-                </p>
-            )}
-        </>
+        <svg
+            viewBox="0 0 20 20"
+            width="20"
+            height="20"
+            fill="none"
+            strokeWidth="2.5"
+            role={empty ? undefined : 'img'}
+            aria-hidden={empty ? true : undefined}
+            aria-label={empty ? undefined : label}
+            className={clsx('ml-auto shrink-0', empty && 'opacity-50')}
+        >
+            {rings.map((window, index) => {
+                const radius = RING_RADII[index] ?? 0;
+                const circumference = 2 * Math.PI * radius;
+
+                return (
+                    <Fragment key={window.id}>
+                        <circle cx="10" cy="10" r={radius} className="stroke-track" />
+                        {!empty && (
+                            <circle
+                                cx="10"
+                                cy="10"
+                                r={radius}
+                                strokeDasharray={`${Math.min(1, window.used) * circumference} ${circumference}`}
+                                transform="rotate(-90 10 10)"
+                                className={strokeToneOf(window.used)}
+                            />
+                        )}
+                    </Fragment>
+                );
+            })}
+        </svg>
     );
 }
 
-/*
- * The hover card once a CLI has several accounts: a block per account, a line per window. One grid over
- * the whole card, so the bars of every account start and end at the same place whatever their labels.
- */
-export function AccountLimitsList({ groups, now }: { groups: readonly LimitGroup[]; now: number }) {
+function AccountLogo({ account, className }: { account: LimitAccount; className?: string }) {
+    const { accents } = useChatHost();
+
     return (
-        <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-1 text-xs">
-            {groups.map((group) => (
-                <Fragment key={group.kind}>
-                    <p className="col-span-full mt-3 flex items-center gap-2 font-medium first:mt-0">
-                        <ChartLogo provider={group.kind} />
-                        {PROVIDER_LABELS[group.kind]}
-                    </p>
-                    {group.accounts.map((account) => (
-                        <AccountLines key={account.id} account={account} now={now} />
-                    ))}
-                </Fragment>
-            ))}
+        <span className={className} style={{ color: accountColor(account.color, accents.all) ?? PROVIDER_COLORS[account.kind] }}>
+            <ProviderLogo provider={account.kind} />
+        </span>
+    );
+}
+
+interface AccountRowProps {
+    group: LimitGroup;
+    account: LimitAccount;
+    now: number;
+    folded: boolean;
+    onToggle: () => void;
+}
+
+/* One account: a row that folds its windows away, or only a row with the words for why it has none. */
+function AccountRow({ group, account, now, folded, onToggle }: AccountRowProps) {
+    const { t } = useTranslation('agent-usage');
+    const empty = emptyWindows(group, account);
+    const note = isSignedOut(account) ? t('limits.signedOut') : accountNote(account);
+
+    if (note !== null && empty.length === 0) {
+        return (
+            <p className="flex min-h-7 min-w-0 items-center gap-2 px-1.5">
+                <AccountLogo account={account} className="grid size-3.5 shrink-0" />
+                <span className="max-w-1/2 shrink-0 truncate font-medium">{account.name}</span>
+                <span className={clsx('ml-auto min-w-0 text-right', noteIsWarning(account) ? 'text-status-needs-you' : 'text-text-faint')}>{note}</span>
+            </p>
+        );
+    }
+
+    const windows = empty.length > 0 ? empty : (account.entry?.windows ?? []);
+
+    return (
+        <div className="flex flex-col">
+            <button
+                type="button"
+                aria-expanded={!folded}
+                className="group flex min-h-7 w-full min-w-0 items-center gap-2 rounded-md px-1.5 text-left hover:bg-surface-hover focus-visible:bg-surface-hover"
+                onClick={onToggle}
+            >
+                <span className="grid size-3.5 shrink-0">
+                    <AccountLogo account={account} className="grid group-hover:hidden group-focus-visible:hidden" />
+                    <Icon
+                        icon={ChevronRight}
+                        size={14}
+                        className={clsx('hidden text-text-muted group-hover:block group-focus-visible:block', !folded && 'rotate-90')}
+                    />
+                </span>
+                <span className="min-w-0 truncate font-medium">{account.name}</span>
+                {account.entry?.plan && <span className="shrink-0 text-text-muted capitalize">{account.entry.plan}</span>}
+                {folded && <WindowRings windows={windows} empty={empty.length > 0} />}
+            </button>
+            {!folded && (
+                <div className="flex flex-col gap-0.75 pt-0.5 pr-1.5 pb-2 pl-7">
+                    {empty.length > 0
+                        ? empty.map((window) => <EmptyWindowLine key={window.id} label={window.label} />)
+                        : windows.map((window) => <WindowLine key={window.id} window={window} now={now} />)}
+                </div>
+            )}
+        </div>
+    );
+}
+
+interface AccountLimitsListProps {
+    groups: readonly LimitGroup[];
+    now: number;
+    /* The accounts folded to their row, by `limitAccountKey`; held by the caller, so they stay folded when the list is drawn again. */
+    folded: ReadonlySet<string>;
+    onFoldedChange: (folded: ReadonlySet<string>) => void;
+}
+
+/* A flat list of accounts for a hover card, whichever CLI they belong to; the logo says which. */
+export function AccountLimitsList({ groups, now, folded, onFoldedChange }: AccountLimitsListProps) {
+    const toggle = (key: string) => {
+        const next = new Set(folded);
+
+        if (!next.delete(key)) {
+            next.add(key);
+        }
+
+        onFoldedChange(next);
+    };
+
+    return (
+        <div className="flex flex-col gap-0.5 text-xs">
+            {groups.flatMap((group) =>
+                group.accounts.map((account) => {
+                    const key = limitAccountKey(account);
+
+                    return <AccountRow key={key} group={group} account={account} now={now} folded={folded.has(key)} onToggle={() => toggle(key)} />;
+                })
+            )}
         </div>
     );
 }

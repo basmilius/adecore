@@ -23,7 +23,6 @@ export default {
         signedOut: 'Niet ingelogd',
         signedOutDetail: 'Niet ingelogd. Log in om limieten te zien.',
         logIn: 'Inloggen',
-        nextReset: '{{window}} reset {{at}}',
         checked: {
             now: 'nu',
             ago: '{{duration}} geleden',

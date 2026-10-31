@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useNow } from '@adecore/ui';
 import { AccountLimitsList, LimitsList, WindowBar, useLimitGroups, UsageLimits } from '@adecore/agents-react/usage';
 import { usageLimits } from '../shared/agents-data.ts';
@@ -8,6 +9,7 @@ const limits = usageLimits();
 function Lists() {
     const now = useNow(60_000);
     const groups = useLimitGroups(limits);
+    const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
 
     return (
         <div className="flex w-full flex-col gap-8">
@@ -19,7 +21,7 @@ function Lists() {
                 </div>
                 <div className="flex flex-col gap-2">
                     <span className="text-xs text-text-muted">AccountLimitsList</span>
-                    <AccountLimitsList groups={groups} now={now} />
+                    <AccountLimitsList groups={groups} now={now} folded={folded} onFoldedChange={setFolded} />
                 </div>
             </div>
             <div className="flex max-w-sm flex-col gap-2">
