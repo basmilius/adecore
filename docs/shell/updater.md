@@ -55,6 +55,8 @@ const updater = createUpdater({
 
 With `silentInstall`, an install on Windows shows none of the installer's windows and starts the app again after. Other platforms ignore it.
 
+`setAllowPrerelease(allow)` chooses which releases the updater offers. Without it the updater follows the running version. Leaving prereleases also drops one that is offered, downloading or waiting to install, so neither `install()` nor a quit installs it. A finished release stays. A check that runs during the change is asked again once it ends. Call `check()` after it for the answer of the new choice.
+
 ## Errors
 
 electron-updater puts the whole HTTP exchange, cookies included, in the message of a failed check. The state carries only `errorCode` and `error`, the first line of the message cut at 200 characters (or `null`). The shell sends no sentence of its own, so the page words the code in the person's language. `errorCode` is an `UpdateErrorCode`. `no-feed` is a 404 on the feed: no release is published yet, or the repository is private. Anything else is `failed`. Failures also go to `log`, `console.error` by default.

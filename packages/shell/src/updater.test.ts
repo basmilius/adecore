@@ -6,18 +6,28 @@ import { createUpdater, describeUpdateError, UPDATE_INTERVAL_MS } from './update
 const fakeUpdater = () => {
     const listeners = new Map<string, (...args: never[]) => void>();
     const calls: string[] = [];
+    let cancels = 0;
 
     const fake = {
         autoDownload: true,
+        allowPrerelease: undefined as boolean | undefined,
+        autoInstallOnAppQuit: true,
+        result: null as unknown,
+        token: {
+            cancel: () => {
+                cancels++;
+            }
+        },
+        cancels: () => cancels,
         on: (event: string, listener: (...args: never[]) => void) => {
             listeners.set(event, listener);
 
             return fake;
         },
-        checkForUpdates: async () => {
+        checkForUpdates: async (): Promise<unknown> => {
             calls.push('check');
 
-            return null;
+            return fake.result;
         },
         downloadUpdate: async () => {
             calls.push('download');
@@ -219,6 +229,131 @@ describe('createUpdater', () => {
         fake.emit('update-downloaded', { version: '1.1.0' });
         expect(updater.install()).toBe(true);
         expect(asked).toEqual([...expected]);
+    });
+
+    describe('a change of track', () => {
+        const started = () => {
+            const rig = setup();
+            rig.updater.start();
+
+            return {
+                ...rig,
+                offered: (version: string) => rig.emit('update-available', { version }),
+                ready: (version: string) => rig.emit('update-downloaded', { version })
+            };
+        };
+
+        test.each(['available', 'downloading', 'ready'] as const)('leaving prereleases drops a beta that is %s, and it can no longer install', (status) => {
+            const { updater, fake, emit, offered, ready, calls } = started();
+            offered('1.1.0-beta.1');
+
+            if (status === 'downloading') {
+                emit('download-progress', { percent: 40 });
+            }
+
+            if (status === 'ready') {
+                ready('1.1.0-beta.1');
+            }
+
+            expect(updater.state().status).toBe(status);
+            updater.setAllowPrerelease(false);
+            expect(fake.allowPrerelease).toBe(false);
+            expect(fake.autoInstallOnAppQuit).toBe(false);
+            expect(updater.state()).toMatchObject({ status: 'idle', version: undefined });
+            expect(updater.install()).toBe(false);
+            expect(calls).not.toContain('install');
+        });
+
+        test('a download stops, and what it still reports leaves the state alone', async () => {
+            const { updater, fake, emit, offered, ready } = started();
+            fake.result = { updateInfo: { version: '1.1.0-beta.1' }, cancellationToken: fake.token };
+            await updater.check();
+            offered('1.1.0-beta.1');
+            emit('download-progress', { percent: 40 });
+            updater.setAllowPrerelease(false);
+            expect(fake.cancels()).toBe(1);
+            emit('download-progress', { percent: 60 });
+            ready('1.1.0-beta.1');
+            expect(updater.state().status).toBe('idle');
+            expect(updater.install()).toBe(false);
+        });
+
+        test('a check that answers late under the old track cannot offer the beta, and is asked again', async () => {
+            const { updater, fake, calls, emit, offered } = started();
+            let answer = (): void => undefined;
+            fake.checkForUpdates = () => {
+                calls.push('check');
+
+                return calls.filter((call) => call === 'check').length > 1
+                    ? Promise.resolve(null)
+                    : new Promise((resolve) => {
+                          answer = () => resolve({ updateInfo: { version: '1.1.0-beta.1' }, cancellationToken: fake.token });
+                      });
+            };
+            const checking = updater.check();
+            emit('checking-for-update');
+            updater.setAllowPrerelease(false);
+            offered('1.1.0-beta.1');
+            expect(updater.state().status).toBe('idle');
+            answer();
+            await checking;
+            expect(fake.cancels()).toBeGreaterThan(0);
+            expect(calls.filter((call) => call === 'check')).toHaveLength(2);
+        });
+
+        test('a finished release stays ready when prereleases go, and installs on a quit again after a later download', () => {
+            const { updater, fake, offered, ready } = started();
+            offered('1.1.0');
+            ready('1.1.0');
+            updater.setAllowPrerelease(false);
+            expect(updater.state()).toMatchObject({ status: 'ready', version: '1.1.0' });
+            expect(updater.install()).toBe(true);
+
+            const other = started();
+            other.offered('1.1.0-beta.1');
+            other.updater.setAllowPrerelease(false);
+            expect(other.fake.autoInstallOnAppQuit).toBe(false);
+            other.offered('1.1.0');
+            other.ready('1.1.0');
+            expect(other.fake.autoInstallOnAppQuit).toBe(true);
+            expect(fake.allowPrerelease).toBe(false);
+        });
+
+        test('following prereleases keeps what runs, offers a beta and asks a running check again', async () => {
+            const { updater, fake, calls, emit, offered, ready } = started();
+            offered('1.1.0');
+            emit('download-progress', { percent: 40 });
+            updater.setAllowPrerelease(true);
+            expect(fake.allowPrerelease).toBe(true);
+            expect(updater.state()).toMatchObject({ status: 'downloading', version: '1.1.0' });
+            ready('1.1.0');
+            expect(updater.state().status).toBe('ready');
+
+            const fresh = started();
+            let answer = (): void => undefined;
+            fresh.fake.checkForUpdates = () => {
+                fresh.calls.push('check');
+
+                return fresh.calls.length > 1 ? Promise.resolve(null) : new Promise((resolve) => (answer = () => resolve(null)));
+            };
+            const checking = fresh.updater.check();
+            fresh.emit('checking-for-update');
+            fresh.updater.setAllowPrerelease(true);
+            fresh.emit('update-not-available');
+            answer();
+            await checking;
+            expect(fresh.calls).toHaveLength(2);
+            fresh.offered('1.1.0-beta.1');
+            expect(fresh.updater.state()).toMatchObject({ status: 'available', version: '1.1.0-beta.1' });
+            expect(calls).not.toContain('install');
+        });
+
+        test('a choice made before the start reaches the updater', () => {
+            const rig = setup();
+            rig.updater.setAllowPrerelease(true);
+            rig.updater.start();
+            expect(rig.fake.allowPrerelease).toBe(true);
+        });
     });
 
     test('before it started, checking, downloading and installing do nothing', async () => {

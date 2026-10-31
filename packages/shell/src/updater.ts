@@ -1,4 +1,4 @@
-import type { AppUpdater } from 'electron-updater';
+import type { AppUpdater, UpdateCheckResult } from 'electron-updater';
 import type { UpdateErrorCode, UpdateState } from './bridge/update.ts';
 
 /* Often enough that a release lands the same day, rarely enough to be invisible. */
@@ -55,6 +55,10 @@ export const createUpdater = (options: UpdaterOptions) => {
     let updater: AppUpdater | null = null;
     let timer: unknown = null;
     let installing = false;
+    let allowPrerelease: boolean | null = null;
+    // What stops the download a check offered, also one it started by itself.
+    let download: UpdateCheckResult['cancellationToken'] | null = null;
+    let checkAgain = false;
 
     const setState = (patch: Partial<UpdateState>): void => {
         state = { ...state, ...patch };
@@ -68,6 +72,20 @@ export const createUpdater = (options: UpdaterOptions) => {
         }
     };
 
+    const refused = (version: string | undefined): boolean => allowPrerelease === false && version?.includes('-') === true;
+
+    /* A prerelease the person no longer follows: nothing may finish it or install it, also not a quit, which installs what is downloaded. */
+    const discard = (): void => {
+        download?.cancel();
+        download = null;
+
+        if (updater) {
+            updater.autoInstallOnAppQuit = false;
+        }
+
+        setState({ status: 'idle', version: undefined, percent: undefined, error: null, errorCode: null });
+    };
+
     const check = async (): Promise<void> => {
         // Nothing to learn while a check or a download runs, or while a build waits to be installed.
         if (!updater || state.status === 'checking' || state.status === 'downloading' || state.status === 'ready') {
@@ -77,10 +95,22 @@ export const createUpdater = (options: UpdaterOptions) => {
         options.beforeCheck?.();
 
         try {
-            await updater.checkForUpdates();
+            const result = await updater.checkForUpdates();
+            download = result?.cancellationToken ?? null;
+
+            // The track changed under this check, and with autoDownload its download already runs.
+            if (refused(result?.updateInfo.version)) {
+                download?.cancel();
+                download = null;
+            }
         } catch (e) {
             // checkForUpdates rejects as well as emitting `error`; the state is already set there.
             log('Update check failed', e);
+        }
+
+        if (checkAgain) {
+            checkAgain = false;
+            await check();
         }
     };
 
@@ -96,11 +126,43 @@ export const createUpdater = (options: UpdaterOptions) => {
                 const loaded = options.load();
                 // The page sends its preference before the first check, so nothing downloads for someone who turned it off.
                 loaded.autoDownload = false;
+
+                if (allowPrerelease !== null) {
+                    loaded.allowPrerelease = allowPrerelease;
+                }
+
                 loaded.on('checking-for-update', () => setState({ status: 'checking', error: null, errorCode: null }));
-                loaded.on('update-available', (info) => setState({ status: 'available', version: info.version, error: null, errorCode: null }));
+
+                loaded.on('update-available', (info) => {
+                    if (refused(info.version)) {
+                        discard();
+
+                        return;
+                    }
+
+                    setState({ status: 'available', version: info.version, error: null, errorCode: null });
+                });
+
                 loaded.on('update-not-available', () => setState({ status: 'current', version: undefined, error: null, errorCode: null }));
-                loaded.on('download-progress', (progress) => setState({ status: 'downloading', percent: progress.percent }));
-                loaded.on('update-downloaded', (info) => setState({ status: 'ready', version: info.version, percent: 100 }));
+
+                loaded.on('download-progress', (progress) => {
+                    // What is left of a download `discard` stopped, which has no version to tell it by.
+                    if (state.version !== undefined) {
+                        setState({ status: 'downloading', percent: progress.percent });
+                    }
+                });
+
+                loaded.on('update-downloaded', (info) => {
+                    if (refused(info.version)) {
+                        discard();
+
+                        return;
+                    }
+
+                    loaded.autoInstallOnAppQuit = true;
+                    download = null;
+                    setState({ status: 'ready', version: info.version, percent: 100 });
+                });
 
                 loaded.on('error', (e) => {
                     installFailed();
@@ -128,13 +190,34 @@ export const createUpdater = (options: UpdaterOptions) => {
 
         check,
 
+        /*
+         * Which releases the updater offers. Without this call it follows the running version. Leaving
+         * prereleases also drops one that is offered, downloading or waiting to install; a check that runs
+         * under the old answer is asked again once it ends.
+         */
+        setAllowPrerelease: (allow: boolean): void => {
+            allowPrerelease = allow;
+
+            if (!updater) {
+                return;
+            }
+
+            updater.allowPrerelease = allow;
+
+            if (refused(state.version)) {
+                discard();
+            } else if (state.status === 'checking') {
+                checkAgain = true;
+            }
+        },
+
         download: async (): Promise<void> => {
             if (!updater) {
                 return;
             }
 
             try {
-                await updater.downloadUpdate();
+                await updater.downloadUpdate(download ?? undefined);
             } catch (e) {
                 log('Update download failed', e);
             }
