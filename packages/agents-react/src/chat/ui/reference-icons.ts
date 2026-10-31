@@ -9,6 +9,7 @@ import {
     PenTool,
     Smartphone,
     StickyNote,
+    SwatchBook,
     Terminal,
     Type,
     Workflow,
@@ -22,6 +23,7 @@ import type { ReferableKind } from '../chat-references';
 export const REFERENCE_ICONS: Record<ReferableKind, LucideIcon> = {
     project: Folder,
     canvas: Frame,
+    design: SwatchBook,
     chat: MessageSquare,
     terminal: Terminal,
     note: StickyNote,

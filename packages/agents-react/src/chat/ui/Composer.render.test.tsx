@@ -641,6 +641,20 @@ describe('# references', () => {
         expect(composer.page.host.textContent).toContain('Views');
     });
 
+    test('a pick that was deleted is offered again', async () => {
+        const composer = await mount({ host: { useReferables: () => referables } });
+        await composer.type('#Ske');
+        await composer.press('Enter');
+
+        for (let i = 0; i < '#Sketch '.length; i++) {
+            await composer.press('Backspace');
+        }
+
+        expect(composer.text()).toBe('');
+        await composer.type('#Ske');
+        expect(optionTexts(composer)).toEqual(['Sketch']);
+    });
+
     test('a pick lands as a chip with its whole name, and the send carries a view in references and a chat in chats', async () => {
         const composer = await mount({ host: { useReferables: () => referables } });
         await composer.type('Draw in #Ske');

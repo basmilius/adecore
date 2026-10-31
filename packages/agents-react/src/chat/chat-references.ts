@@ -6,7 +6,20 @@ export interface ProjectChat {
     title: string;
 }
 
-export type ReferableKind = 'project' | 'canvas' | 'chat' | 'terminal' | 'note' | 'text' | 'drawing' | 'diagram' | 'browser' | 'device' | 'file' | 'database';
+export type ReferableKind =
+    | 'project'
+    | 'canvas'
+    | 'design'
+    | 'chat'
+    | 'terminal'
+    | 'note'
+    | 'text'
+    | 'drawing'
+    | 'diagram'
+    | 'browser'
+    | 'device'
+    | 'file'
+    | 'database';
 
 /* One place on the way to a reference, such as the project or the canvas it stands in. */
 export interface ReferenceStep {

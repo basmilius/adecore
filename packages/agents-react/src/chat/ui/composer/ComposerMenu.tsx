@@ -132,7 +132,7 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
                                 ) : (
                                     <>
                                         {referenceGlyph(ReferenceIcon, { id: items[0].section.id, kind: 'project', size: 14, className: 'shrink-0' })}
-                                        <span className="truncate">{items[0].section.name}</span>
+                                        <span className="truncate font-semibold text-text">{items[0].section.name}</span>
                                         {items[0].section.current === true && (
                                             <span className="ml-auto shrink-0 pl-2 font-normal">{t('composer.references.currentProject')}</span>
                                         )}

@@ -18,6 +18,7 @@ import {
     insertSkill,
     mentionPick,
     NO_MENTION_SEARCH,
+    presentReferences,
     queryOutsideChips,
     type MentionQuery,
     type MentionSearch,
@@ -30,7 +31,7 @@ import { clampMenuIndex, composerMenuAria } from './menu-aria';
 const SEARCH_DEBOUNCE_MS = 80;
 // What fits above the box without turning the picker into a file tree.
 const MENTION_RESULTS = 8;
-const REFERENCE_RESULTS = 8;
+const REFERENCE_RESULTS = 20;
 
 /* The text of a prompt and what the person picked in it with `@`, `$` and `#`. */
 export type PromptDraft = Pick<ChatDraft, 'text' | 'mentions' | 'skills' | 'chats' | 'references' | 'referenceNames'>;
@@ -175,8 +176,6 @@ export function usePromptMenus<D extends PromptDraft>({
     // A host with nothing to point at keeps `#fff` out of the way rather than saying nothing matches.
     const offersReferences = referables.items.some((item) => !referables.chatsOnly || item.kind === 'chat');
     const referenceMenuOpen = !commandMenuOpen && !skillMenuOpen && !mentionMenuOpen && referenceQuery !== null && offersReferences;
-    const excluded = ownId === undefined ? [...draft.chats, ...draft.references] : [ownId, ...draft.chats, ...draft.references];
-    const referenceMatches = referenceMenuOpen ? referenceSuggestions(referables, referenceQuery.query, excluded, REFERENCE_RESULTS) : [];
 
     // What the editor draws as chips and the send checks are still in the text, under the name each was picked with.
     const referenceChips = referenceTokens([...draft.chats, ...draft.references], referables.items, draft.referenceNames).map((token) => {
@@ -184,6 +183,11 @@ export function usePromptMenus<D extends PromptDraft>({
 
         return { ...token, kind: item?.kind ?? null, trail: item?.trail };
     });
+
+    // Only what is still in the text: a pick a person deleted stays in the draft, and would stay out of the menu for good.
+    const picked = presentReferences(text, [...draft.chats, ...draft.references], referenceChips);
+    const excluded = ownId === undefined ? picked : [ownId, ...picked];
+    const referenceMatches = referenceMenuOpen ? referenceSuggestions(referables, referenceQuery.query, excluded, REFERENCE_RESULTS) : [];
 
     // One menu is open at a time, so they share an id.
     const listId = useId();
