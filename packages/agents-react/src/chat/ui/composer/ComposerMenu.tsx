@@ -153,7 +153,8 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
                                         {referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: 'shrink-0 text-text-faint' })}
                                         <span className="truncate text-text">{item.name}</span>
                                         <span className="ml-auto shrink-0 truncate pl-2 text-text-faint">
-                                            {item.detail ?? t(`composer.references.kinds.${item.kind}`)}
+                                            {/* A search can leave a node without its canvas above it. */}
+                                            {item.trail?.findLast((step) => step.kind === 'canvas')?.name ?? item.detail ?? t(`composer.references.kinds.${item.kind}`)}
                                         </span>
                                     </MenuOption>
                                 );
