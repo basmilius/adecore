@@ -53,6 +53,8 @@ const updater = createUpdater({
 });
 ```
 
+With `silentInstall`, an install on Windows shows none of the installer's windows and starts the app again after. Other platforms ignore it.
+
 ## Errors
 
 electron-updater puts the whole HTTP exchange, cookies included, in the message of a failed check. The state carries only `errorCode` and `error`, the first line of the message cut at 200 characters (or `null`). The shell sends no sentence of its own, so the page words the code in the person's language. `errorCode` is an `UpdateErrorCode`. `no-feed` is a 404 on the feed: no release is published yet, or the repository is private. Anything else is `failed`. Failures also go to `log`, `console.error` by default.

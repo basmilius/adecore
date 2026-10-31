@@ -198,6 +198,29 @@ describe('createUpdater', () => {
         expect(quits).toEqual([true, false, true, false]);
     });
 
+    test.each([
+        [undefined, []],
+        [true, [true, true]]
+    ] as const)('with silentInstall %s, the install asks the updater for %j', (silentInstall, expected) => {
+        const fake = fakeUpdater();
+        let asked: unknown[] = [];
+        fake.fake.quitAndInstall = (...args: unknown[]) => {
+            asked = args;
+        };
+        const updater = createUpdater({
+            currentVersion: '1.0.0',
+            packaged: true,
+            load: () => fake.updater,
+            publish: () => undefined,
+            setInterval: () => 0,
+            ...(silentInstall === undefined ? {} : { silentInstall })
+        });
+        updater.start();
+        fake.emit('update-downloaded', { version: '1.1.0' });
+        expect(updater.install()).toBe(true);
+        expect(asked).toEqual([...expected]);
+    });
+
     test('before it started, checking, downloading and installing do nothing', async () => {
         const { updater, calls, intervals } = setup();
         updater.configure(true);

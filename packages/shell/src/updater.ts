@@ -38,6 +38,8 @@ export interface UpdaterOptions {
      * windows learns the quit is coming: pass `windows.quitForUpdate`.
      */
     onQuit?: (quitting: boolean) => void;
+    /* Installs without the installer's windows and starts the app again after. Only Windows reads it. */
+    silentInstall?: boolean;
     log?: (message: string, error: unknown) => void;
     setInterval?: (run: () => void, ms: number) => unknown;
 }
@@ -148,7 +150,11 @@ export const createUpdater = (options: UpdaterOptions) => {
             options.onQuit?.(true);
 
             try {
-                updater.quitAndInstall();
+                if (options.silentInstall) {
+                    updater.quitAndInstall(true, true);
+                } else {
+                    updater.quitAndInstall();
+                }
 
                 return true;
             } catch (e) {
