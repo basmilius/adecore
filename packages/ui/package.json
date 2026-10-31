@@ -61,15 +61,15 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun check --no-script",
     "test": "bun test"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
     "@pierre/trees": "1.0.0-beta.6",
-    "@tanstack/react-virtual": "^3.14.23",
+    "@tanstack/react-virtual": "^3.14.24",
     "clsx": "^2.1.1",
-    "lucide-react": "^1.61.0",
+    "lucide-react": "^1.65.0",
     "zustand": "^5.0.16"
   },
   "peerDependencies": {
@@ -84,7 +84,7 @@
     "@types/opentype.js": "^1.3.10",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
-    "i18next": "^26.5.11",
+    "i18next": "^26.5.12",
     "opentype.js": "2.0.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

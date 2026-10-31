@@ -49,7 +49,7 @@
         }
     },
     "scripts": {
-        "typecheck": "tsc --noEmit",
+        "typecheck": "bun check --no-script",
         "build": "bun scripts/build.ts",
         "test": "bun test --conditions=source"
     },
@@ -60,7 +60,7 @@
     },
     "devDependencies": {
         "@types/bun": "^1.4.4",
-        "@types/node": "^24.19.2",
+        "@types/node": "^26.6.6",
         "typescript": "^7.0.2"
     },
     "license": "FSL-1.1-MIT",

@@ -15,7 +15,7 @@
         }
     },
     "scripts": {
-        "typecheck": "tsc --noEmit",
+        "typecheck": "bun check --no-script",
         "build": "bun scripts/build.ts",
         "test": "bun test --conditions=source"
     },

@@ -34,7 +34,7 @@
   },
   "scripts": {
     "build": "bun scripts/build.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun check --no-script",
     "test": "bun test"
   },
   "peerDependencies": {
@@ -51,8 +51,8 @@
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",
-    "@types/node": "^24.19.2",
-    "electron": "^45.0.0",
+    "@types/node": "^26.6.6",
+    "electron": "^45.2.0",
     "electron-updater": "^6.8.11",
     "typescript": "^7.0.2"
   }

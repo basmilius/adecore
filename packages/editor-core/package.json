@@ -10,7 +10,7 @@
         }
     },
     "scripts": {
-        "typecheck": "tsc --noEmit",
+        "typecheck": "bun check --no-script",
         "benchmark": "bun --expose-gc scripts/benchmark.ts",
         "build": "bun scripts/build.ts",
         "test": "bun test --conditions=source"
