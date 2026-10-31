@@ -122,7 +122,9 @@ export default {
         },
         message: {
             heading: 'Message from {{name}}',
-            unnamed: 'another node'
+            unnamed: 'another node',
+            waiting: 'Waiting for the next turn',
+            dropped: 'Expired before the agent read it'
         },
         report: {
             heading: 'Report'

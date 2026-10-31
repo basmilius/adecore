@@ -122,7 +122,9 @@ export default {
         },
         message: {
             heading: 'Bericht van {{name}}',
-            unnamed: 'een andere node'
+            unnamed: 'een andere node',
+            waiting: 'Wacht op de volgende beurt',
+            dropped: 'Vervallen voordat de agent het las'
         },
         report: {
             heading: 'Rapport'

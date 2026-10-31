@@ -205,6 +205,7 @@ export function SentMessageRow({ chatId, id, message }: { chatId: string; id: st
                 chip={<ReferenceChip id={message.from} lastName={message.title} />}
                 text={message.text}
             />
+            {message.state !== undefined && <div className="mt-1 text-xs text-text-muted">{t(`rows.message.${message.state}`)}</div>}
         </ReferenceLookupContext>
     );
 }

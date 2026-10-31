@@ -18,28 +18,35 @@ export interface MessageWords {
 export interface ChatNoticeTargets {
     /* What the host holds under this id: a chat between turns, one that is in a turn, or no chat at all. */
     chat(id: string): Promise<'idle' | 'running' | 'none'>;
-    /* The senders whose message opened the turn this node is running, empty for a turn no message opened. */
-    wokenBy(id: string): readonly string[];
+    /* How many messages led to the turn this node is running; 0 for a turn no message opened. */
+    hop(id: string): number;
 }
 
 /*
- * Where a message for a chat went, and how many now wait for it. Only `wake` owes the chat a turn,
- * which the host opens through a `deliver-message` entry; every other outcome waits in the queue for
- * the chat's next turn.
+ * How far a chain of messages may wake chats: enough for a question, an answer and a report on each,
+ * and a bound on two agents reading each other, which nothing but a person should be able to keep going.
+ */
+export const MAX_MESSAGE_HOPS = 4;
+
+/* Where a turn from before hops stood: its message and the answer it could still get. */
+const HOP_OF_OLDER_TURN = 2;
+
+/*
+ * Where a message for a chat went, and how many now wait for it. Only `wake` owes the chat a turn now,
+ * which the host opens through a `deliver-message` entry; `in-turn` is owed one when that turn ends,
+ * or may join it; every other outcome waits in the queue for the chat's next turn.
  */
 export interface ChatDelivery {
-    outcome: 'wake' | 'no-chat' | 'in-turn' | 'from-message';
+    outcome: 'wake' | 'no-chat' | 'in-turn' | 'hop-limit';
     waiting: number;
 }
 
 /*
- * Who sent the message that opened the turn a chat is running, empty when no message opened it,
- * which stops two agents that read each other from waking each other forever. It rides on the turn,
- * so it survives a restart. Between turns the last one counts, since work it left running (a
- * background subagent) may still write, and a turn the CLI opened by itself takes the step of the
- * turn before it.
+ * How many messages led to the turn a chat is running. It rides on the turn, so it survives a restart.
+ * Between turns the last one counts, since work it left running (a background subagent) may still
+ * write, and a turn the CLI opened by itself takes the step of the turn before it.
  */
-export function turnWokenBy(items: readonly ChatItem[], activeTurnId: string | null): readonly string[] {
+export function turnHop(items: readonly ChatItem[], activeTurnId: string | null): number {
     const from = activeTurnId === null ? items.findLastIndex((item) => item.kind === 'turn') : items.findIndex((item) => item.id === activeTurnId);
 
     for (let i = from; i >= 0; i--) {
@@ -49,18 +56,25 @@ export function turnWokenBy(items: readonly ChatItem[], activeTurnId: string | n
             continue;
         }
 
-        const senders = turn.messageFrom ?? [];
+        if (turn.messageHop !== undefined) {
+            return turn.messageHop;
+        }
 
-        if (senders.length > 0) {
-            return senders;
+        if ((turn.messageFrom ?? []).length > 0) {
+            return HOP_OF_OLDER_TURN;
         }
 
         if (turn.origin !== 'agent' || turn.taskIds !== undefined || turn.summaryFor !== undefined) {
-            return [];
+            return 0;
         }
     }
 
-    return [];
+    return 0;
+}
+
+/* Whether a message may still move a chat. One of an older host has no hop and waits, as it always did. */
+export function withinHops(notice: Pick<Notice, 'hop'>): boolean {
+    return notice.hop !== undefined && notice.hop <= MAX_MESSAGE_HOPS;
 }
 
 /* The chats of a core as a message sees them. */
@@ -76,10 +90,10 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
             // A chat nobody has loaded is idle: the turn opens on the thread the host reads back from disk.
             return (await chats.hasStored(id)) ? 'idle' : 'none';
         },
-        wokenBy: (id) => {
+        hop: (id) => {
             const session = chats.get(id);
 
-            return session === undefined ? [] : turnWokenBy(session.thread.list(), session.info.activeTurnId);
+            return session === undefined ? 0 : turnHop(session.thread.list(), session.info.activeTurnId);
         }
     };
 }
@@ -87,31 +101,67 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
 /*
  * One message on its way to a chat, and whether the chat owes a turn on it. A chat between turns gets
  * one, as for a settled task, or the message sits there until someone happens to prompt that chat.
- * A turn a message opened wakes nobody with a message of its own, except the sender it answers,
- * once: only while that sender's own turn was opened by no message, so a question and its answer
- * take two steps and the turn the answer opens wakes nobody. A node that runs something else, such
- * as a terminal, is the host's to deliver to before this.
+ * Each message is one hop further than the turn that sent it, and past `MAX_MESSAGE_HOPS` it only
+ * waits. A node that runs something else, such as a terminal, is the host's to deliver to before this.
  */
-export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: ChatNoticeTargets, notice: Omit<Notice, 'createdAt'>): Promise<ChatDelivery> {
-    const waiting = await store.put(notice);
+export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: ChatNoticeTargets, notice: Omit<Notice, 'createdAt' | 'hop'>): Promise<ChatDelivery> {
+    const hop = targets.hop(notice.from) + 1;
+    const waiting = await store.put({ ...notice, hop });
     const chat = await targets.chat(notice.targetId);
 
     if (chat === 'none') {
         return { outcome: 'no-chat', waiting };
     }
 
-    if (chat === 'running') {
-        return { outcome: 'in-turn', waiting };
+    if (hop > MAX_MESSAGE_HOPS) {
+        return { outcome: 'hop-limit', waiting };
     }
 
-    const wokenBy = targets.wokenBy(notice.from);
-    const answer = wokenBy.includes(notice.targetId) && targets.wokenBy(notice.targetId).length === 0;
+    return { outcome: chat === 'running' ? 'in-turn' : 'wake', waiting };
+}
 
-    if (wokenBy.length > 0 && !answer) {
-        return { outcome: 'from-message', waiting };
+/* The chat a message may join while it runs. False when it cannot take one now, which leaves the message waiting. */
+export interface SteerChat {
+    steer(chatId: string, steer: { text: string; preamble: string; messageHop: number }): Promise<boolean>;
+}
+
+const steering = new Set<string>();
+
+/*
+ * Hands what waits for a running chat to its running turn, one batch at a time per chat, so a message
+ * landing during a slow acknowledgement goes in the next batch and not twice. What the CLI did not take
+ * stays in the queue, for the turn that opens when this one ends.
+ */
+export async function steerNotices(store: Pick<NoticeStore, 'waiting' | 'remove'>, chat: SteerChat, words: Pick<MessageWords, 'heard' | 'prompt'>, targetId: string): Promise<void> {
+    if (steering.has(targetId)) {
+        return;
     }
 
-    return { outcome: 'wake', waiting };
+    steering.add(targetId);
+
+    try {
+        for (;;) {
+            const batch = store.waiting(targetId).filter(withinHops);
+
+            if (batch.length === 0) {
+                return;
+            }
+
+            const accepted = await chat.steer(targetId, {
+                text: words.prompt(batch.length),
+                preamble: batch.map((notice) => words.heard(notice)).join('\n\n'),
+                messageHop: Math.max(...batch.map((notice) => notice.hop ?? 0))
+            });
+
+            if (!accepted) {
+                return;
+            }
+
+            await store.remove(targetId, batch);
+        }
+    } finally {
+        steering.delete(targetId);
+    }
 }
 
 /* The chat a message was left for, as the two things showing it needs: whether it is there, and a line in its thread. */
@@ -124,7 +174,7 @@ export interface NoticeChat {
 
 /* The message itself on the line in the thread, so a client can draw it as said to the chat. */
 export function noticeMessage(notice: Notice): ChatNoteMessage {
-    return { from: notice.from, title: notice.fromTitle, text: notice.text };
+    return { from: notice.from, title: notice.fromTitle, text: notice.text, state: 'waiting' };
 }
 
 /*

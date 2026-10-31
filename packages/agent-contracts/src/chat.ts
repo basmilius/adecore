@@ -669,6 +669,8 @@ export const ChatTurnItemSchema = z.object({
     taskIds: z.array(z.string()).optional(),
     // The nodes whose messages woke the chat for this turn, which is where waking on a message stops: a turn with one wakes nobody.
     messageFrom: z.array(z.string()).optional(),
+    // How many messages led to this turn, which is what bounds a chain of them.
+    messageHop: z.number().optional(),
     // The CLI's own name for where this turn ended, which is what a fork after this turn is cut at.
     native: z.object({ turnId: z.string().optional(), lastUuid: z.string().optional() }).optional(),
     // The git tree of the chat's folder when the turn settled: what a fork after this turn starts its files from.
@@ -711,7 +713,12 @@ export function abortedByEnd(turn: { id: string; state: string }, items: readonl
 export const WAITING_NOTE_PREFIX = 'waiting-';
 
 /* A message another node sent a chat: its id, the name it had on the canvas then, and what it said. */
-export const ChatNoteMessageSchema = z.object({ from: z.string().min(1), title: z.string(), text: z.string() });
+export const ChatNoteMessageSchema = z.object({
+    from: z.string().min(1),
+    title: z.string(),
+    // Absent once the agent heard it, and on every message from before this; `dropped` never reached it.
+    state: z.enum(['waiting', 'dropped']).optional(),
+    text: z.string() });
 
 export const ChatNoteItemSchema = z.object({
     ...base,

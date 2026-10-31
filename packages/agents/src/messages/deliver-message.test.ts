@@ -50,7 +50,7 @@ describe('deliverMessageHandler', () => {
     test('opens one turn for everything waiting, with the senders on it and the words of the host', async () => {
         const { woken, handler } = fixture([notice('chat-1', 'Lead'), notice('chat-3', 'Builder'), notice('chat-1', 'Lead')]);
         expect(await handler(entry)).toBeUndefined();
-        expect(woken).toEqual([{ text: '3 messages above', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'] }]);
+        expect(woken).toEqual([{ text: '3 messages above', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'], messageHop: 0 }]);
     });
 
     test('waits while the chat is being moved to another folder, and wakes nobody yet', async () => {

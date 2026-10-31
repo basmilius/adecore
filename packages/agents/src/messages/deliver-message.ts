@@ -60,7 +60,8 @@ export function deliverMessageHandler(deps: DeliverMessageDeps) {
             text: deps.words.prompt(waiting.length),
             label: deps.words.label(waiting),
             taskIds: [],
-            messageFrom: [...new Set(waiting.map((notice) => notice.from))]
+            messageFrom: [...new Set(waiting.map((notice) => notice.from))],
+            messageHop: Math.max(...waiting.map((notice) => notice.hop ?? 0))
         });
     };
 }

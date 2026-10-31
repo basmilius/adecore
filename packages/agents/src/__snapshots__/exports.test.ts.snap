@@ -183,6 +183,7 @@ exports[`the public API ./coordination exports these names 1`] = `
   "DeliverWaitingWorkSchema",
   "EndChildrenWorkSchema",
   "GiveTaskWorkSchema",
+  "MAX_MESSAGE_HOPS",
   "MAX_NOTICES",
   "NOTICE_MAX_AGE_MS",
   "NoticeNotes",
@@ -203,6 +204,7 @@ exports[`the public API ./coordination exports these names 1`] = `
   "endChildren",
   "restartBackgroundLimits",
   "showNotices",
+  "steerNotices",
   "systemClock",
   "type AnyOutboxEntry",
   "type BackgroundLimitEntry",
@@ -232,6 +234,7 @@ exports[`the public API ./coordination exports these names 1`] = `
   "type OutboxWorkShape",
   "type OutboxWorkerOptions",
   "type RestartedOutbox",
+  "type SteerChat",
   "type TaskChats",
   "type TaskCoordinatorDeps",
   "type TaskEvent",
@@ -251,6 +254,7 @@ exports[`the public API ./coordination exports these names 1`] = `
   "unshownNotes",
   "wakePrompt",
   "wireTasks",
+  "withinHops",
 ]
 `;
 

@@ -9,7 +9,7 @@ import type { ChatSession } from './chat-session.ts';
 export interface WakeChat {
     items(): ChatItem[];
     persist?(): Promise<void>;
-    wake(wake: { text: string; label: string; note?: string; taskIds: string[]; messageFrom?: string[] }): boolean;
+    wake(wake: { text: string; label: string; note?: string; taskIds: string[]; messageFrom?: string[]; messageHop?: number }): boolean;
     /* Whether the host is moving the chat to another folder, which turns every wake away until it ends. */
     relocating?(): boolean;
 }

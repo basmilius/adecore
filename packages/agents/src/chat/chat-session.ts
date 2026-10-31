@@ -34,6 +34,7 @@ import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
+import { turnHop } from '../messages/deliver-notice.ts';
 import { ChatThread } from './thread.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
 import { asError, errorText } from '../error-text.ts';
@@ -1246,6 +1247,7 @@ export class ChatSession {
         taskIds: string[];
         summaryFor?: string;
         messageFrom?: string[];
+        messageHop?: number;
         mentions?: string[];
         skills?: string[];
     }): string | null {
@@ -1270,6 +1272,7 @@ export class ChatSession {
                 label: wake.label,
                 ...(wake.taskIds.length === 0 ? {} : { taskIds: wake.taskIds }),
                 ...(wake.messageFrom === undefined || wake.messageFrom.length === 0 ? {} : { messageFrom: wake.messageFrom }),
+                ...(wake.messageHop === undefined ? {} : { messageHop: wake.messageHop }),
                 ...(wake.summaryFor === undefined ? {} : { summaryFor: wake.summaryFor }),
                 endedAt: null,
                 costUsd: 0
@@ -1317,7 +1320,8 @@ export class ChatSession {
         const opened = this.wake({
             ...wake,
             taskIds: turn.taskIds ?? [],
-            ...(turn.messageFrom === undefined ? {} : { messageFrom: turn.messageFrom })
+            ...(turn.messageFrom === undefined ? {} : { messageFrom: turn.messageFrom }),
+            ...(turn.messageHop === undefined ? {} : { messageHop: turn.messageHop })
         });
 
         if (opened === null) {
@@ -1459,6 +1463,59 @@ export class ChatSession {
             })
         ]);
 
+        this.options.persist();
+
+        return true;
+    }
+
+    /*
+     * What became of messages that were shown as waiting: the oldest line of each that still says so.
+     * Dropped stays on the line, heard is the plain line it is for every message from before this.
+     */
+    settleMessages(messages: ReadonlyArray<{ from: string; text: string }>, state: 'heard' | 'dropped'): void {
+        const items = messages.flatMap(({ from, text }) => {
+            const line = this.thread.list().find((item) => item.kind === 'note' && item.message?.state === 'waiting' && item.message.from === from && item.message.text === text);
+
+            if (line?.kind !== 'note' || line.message === undefined) {
+                return [];
+            }
+
+            const { state: _waiting, ...message } = line.message;
+
+            return [this.thread.upsert({ ...line, message: state === 'dropped' ? { ...message, state } : message })];
+        });
+
+        if (items.length > 0) {
+            this.emit(items);
+            this.options.persist();
+        }
+    }
+
+    /*
+     * Lets messages join the running turn, under the same limits as a person's steer. The turn then
+     * stands as far along the chain as they do, so what it sends next counts on from there.
+     */
+    async steerMessages(steer: { text: string; preamble: string; messageHop: number }): Promise<boolean> {
+        const backend = this.backend;
+        const turnId = this.info.activeTurnId;
+
+        if (this.info.queuePaused || this.goalWorks() || !this.busy || !turnId || !backend?.steerTurn || this.pendingStart || this.replacementWaits()) {
+            return false;
+        }
+
+        const accepted = await backend
+            .steerTurn({ promptId: newId('steer'), text: steer.text, preamble: steer.preamble, attachments: [], mentions: [], skills: [] })
+            // A lost acknowledgement proves nothing. The message waits on, and is at worst heard twice rather than never.
+            .catch(() => false);
+
+        const turn = this.thread.get(turnId);
+
+        if (!accepted || turn?.kind !== 'turn') {
+            return accepted;
+        }
+
+        // Only the hop: `messageFrom` says what woke a turn, and this one was running already.
+        this.emit([this.thread.upsert({ ...turn, messageHop: Math.max(turnHop(this.thread.list(), turnId), steer.messageHop) })]);
         this.options.persist();
 
         return true;

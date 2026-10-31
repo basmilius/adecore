@@ -67,6 +67,10 @@ export {
     type ChatNoticeTargets,
     type ChatDelivery,
     chatNoticeTargets,
+    MAX_MESSAGE_HOPS,
+    steerNotices,
+    withinHops,
+    type SteerChat,
     deliverToChat,
     showNotices,
     type NoticeChat

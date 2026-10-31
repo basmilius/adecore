@@ -26,7 +26,9 @@ const NoticeSchema = z.object({
      * emptied by the model reading the message, and the two readers must not take it from each
      * other. Absent is unshown, so a message left by an older host is still shown once.
      */
-    shown: z.boolean().optional()
+    shown: z.boolean().optional(),
+    /* How many messages led here since a person or a task last started something; absent for a message of an older host. */
+    hop: z.number().optional()
 });
 
 export type Notice = z.infer<typeof NoticeSchema>;
@@ -46,6 +48,7 @@ export class NoticeStore {
     private readonly queues: RecordDirectory<NoticeFile>;
     private readonly now: () => number;
     private lastDrop: Promise<void> = Promise.resolve();
+    private settledListener: ((targetId: string, notices: readonly Notice[], state: 'heard' | 'dropped') => void) | null = null;
 
     constructor(dataDir: string, now: () => number = Date.now) {
         this.dir = join(dataDir, 'notices');
@@ -70,10 +73,38 @@ export class NoticeStore {
 
     /* Puts one message in a node's queue and answers how many now wait for it. */
     async put(notice: Omit<Notice, 'createdAt'>): Promise<number> {
-        const queue = [...this.waiting(notice.targetId), { ...notice, createdAt: this.now() }].slice(-MAX_NOTICES);
+        const before = this.waiting(notice.targetId);
+        const queue = [...before, { ...notice, createdAt: this.now() }].slice(-MAX_NOTICES);
+        const dropped = [...this.stale(notice.targetId), ...before.slice(0, Math.max(0, before.length + 1 - MAX_NOTICES))];
         await this.persist(notice.targetId, queue);
+        this.tell(notice.targetId, dropped, 'dropped');
 
         return queue.length;
+    }
+
+    /* Who hears that a message left the queue, read or not, so a thread can say what became of it. */
+    onSettled(listener: (targetId: string, notices: readonly Notice[], state: 'heard' | 'dropped') => void): void {
+        this.settledListener = listener;
+    }
+
+    /* Takes these messages out of the queue once their model heard them while others stay behind. */
+    async remove(targetId: string, notices: readonly Notice[]): Promise<void> {
+        const gone = new Set(notices.map((notice) => notice.createdAt));
+        await this.persist(
+            targetId,
+            this.waiting(targetId).filter((notice) => !gone.has(notice.createdAt))
+        );
+        this.tell(targetId, notices, 'heard');
+    }
+
+    private tell(targetId: string, notices: readonly Notice[], state: 'heard' | 'dropped'): void {
+        if (notices.length > 0) {
+            this.settledListener?.(targetId, notices, state);
+        }
+    }
+
+    private stale(targetId: string): Notice[] {
+        return (this.queues.get(targetId)?.notices ?? []).filter((notice) => !this.fresh(notice));
     }
 
     /*
@@ -84,11 +115,13 @@ export class NoticeStore {
      */
     take(targetId: string): Notice[] {
         const queue = this.waiting(targetId);
+        this.tell(targetId, this.stale(targetId), 'dropped');
 
         if (queue.length === 0) {
             return [];
         }
 
+        this.tell(targetId, queue, 'heard');
         this.lastDrop = this.persist(targetId, []).catch((e) => console.error(`Dropping the messages of ${targetId} failed:`, errorText(e)));
 
         return queue;

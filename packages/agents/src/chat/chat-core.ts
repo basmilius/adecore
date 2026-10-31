@@ -985,6 +985,16 @@ export class ChatCore {
         return stored?.items.findLast((item): item is ChatTurnItem => item.kind === 'turn') ?? null;
     }
 
+    /* What became of messages shown as waiting in a chat. One nobody has loaded catches up when it next takes a turn. */
+    settleMessages(chatId: string, messages: ReadonlyArray<{ from: string; text: string }>, state: 'heard' | 'dropped'): void {
+        this.chats.get(chatId)?.settleMessages(messages, state);
+    }
+
+    /* Lets messages join a chat's running turn; false when it holds none that can take them. */
+    steerMessages(chatId: string, steer: { text: string; preamble: string; messageHop: number }): Promise<boolean> {
+        return this.chats.get(chatId)?.steerMessages(steer) ?? Promise.resolve(false);
+    }
+
     /* A line from the host in a chat's thread, loading the chat when nobody has; nothing for a chat that is gone. */
     async addNote(chatId: string, level: 'info' | 'warning' | 'error', text: string, message?: ChatNoteMessage): Promise<void> {
         await this.loaded(chatId);
