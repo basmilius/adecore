@@ -368,6 +368,7 @@ export default {
             canvas: 'On this canvas',
             views: 'Views',
             noMatch: 'No view or node matches',
+            currentProject: 'This project',
             kinds: {
                 canvas: 'canvas',
                 chat: 'chat',

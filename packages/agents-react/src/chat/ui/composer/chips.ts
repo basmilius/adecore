@@ -1,20 +1,21 @@
-import type { ComponentType } from 'react';
+import { createElement, Fragment, type ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { syntaxTree } from '@codemirror/language';
 import { Facet, StateField, type EditorState, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import type { ReferenceIconProps } from '../../../host';
-import type { ReferableKind } from '../../chat-references';
+import type { ReferableKind, ReferenceStep } from '../../chat-references';
 import { chipRanges, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
 import { referenceGlyph } from '../reference-icons';
+import { ReferenceTrail } from '../ReferenceTrail';
 import { codeRanges } from './editor';
 
 export interface ChipChoices {
     mentions: string[];
     skills: string[];
     /* Null for a kind the host no longer names, which draws the chip without its mark. */
-    references?: ReadonlyArray<ReferenceToken & { kind: ReferableKind | null }>;
+    references?: ReadonlyArray<ReferenceToken & { kind: ReferableKind | null; trail?: readonly ReferenceStep[] }>;
     /* The host's mark of a reference, which the editor draws outside the host's provider. */
     referenceIcon?: ComponentType<ReferenceIconProps> | null;
 }
@@ -35,23 +36,36 @@ class ReferenceIcon extends WidgetType {
     readonly id: string;
     readonly kind: ReferableKind;
     readonly hostIcon: ComponentType<ReferenceIconProps> | null;
+    readonly trail: readonly ReferenceStep[];
 
-    constructor(id: string, kind: ReferableKind, hostIcon: ComponentType<ReferenceIconProps> | null) {
+    constructor(id: string, kind: ReferableKind, hostIcon: ComponentType<ReferenceIconProps> | null, trail: readonly ReferenceStep[]) {
         super();
         this.id = id;
         this.kind = kind;
         this.hostIcon = hostIcon;
+        this.trail = trail;
     }
 
     override eq(other: ReferenceIcon): boolean {
-        return other.id === this.id && other.kind === this.kind && other.hostIcon === this.hostIcon;
+        return (
+            other.id === this.id &&
+            other.kind === this.kind &&
+            other.hostIcon === this.hostIcon &&
+            JSON.stringify(other.trail) === JSON.stringify(this.trail)
+        );
     }
 
     toDOM(): HTMLElement {
         const holder = document.createElement('span');
-        holder.className = TOKEN_ICON_IN_EDITOR;
         const root = createRoot(holder);
-        root.render(referenceGlyph(this.hostIcon, { id: this.id, kind: this.kind, size: 12 }));
+        const glyph = referenceGlyph(this.hostIcon, { id: this.id, kind: this.kind, size: 12, className: this.trail.length > 0 ? TOKEN_ICON_IN_EDITOR : undefined });
+
+        holder.className = this.trail.length > 0 ? 'inline' : TOKEN_ICON_IN_EDITOR;
+        root.render(
+            this.trail.length > 0
+                ? createElement(Fragment, null, createElement(ReferenceTrail, { trail: this.trail, hostIcon: this.hostIcon, size: 12, iconClassName: TOKEN_ICON_IN_EDITOR }), glyph)
+                : glyph
+        );
         roots.set(holder, root);
 
         return holder;
@@ -67,7 +81,7 @@ class ReferenceIcon extends WidgetType {
 
 function chipMarks(state: EditorState): DecorationSet {
     const { mentions, skills, references = [], referenceIcon = null } = state.facet(choices);
-    const kinds = new Map(references.map((token) => [token.id, token.kind]));
+    const tokens = new Map(references.map((token) => [token.id, token]));
     const marks: Range<Decoration>[] = [];
 
     // `@a.ts` in backticks is code, not a mention.
@@ -79,10 +93,10 @@ function chipMarks(state: EditorState): DecorationSet {
         }
 
         marks.push(referenceMark.range(range.from, range.to));
-        const kind = kinds.get(range.value);
+        const token = tokens.get(range.value);
 
-        if (kind !== undefined && kind !== null) {
-            marks.push(Decoration.replace({ widget: new ReferenceIcon(range.value, kind, referenceIcon) }).range(range.from, range.from + 1));
+        if (token?.kind !== undefined && token.kind !== null) {
+            marks.push(Decoration.replace({ widget: new ReferenceIcon(range.value, token.kind, referenceIcon, token.trail ?? []) }).range(range.from, range.from + 1));
         }
     }
 

@@ -26,6 +26,21 @@ describe('referenceSuggestions', () => {
     });
 });
 
+describe('referenceSuggestions over projects', () => {
+    test('stops at the limit per project, so a large project keeps no other out of the menu', () => {
+        const current = { id: 'project-a', name: 'A', current: true };
+        const other = { id: 'project-b', name: 'B' };
+
+        const items: Referable[] = [
+            { id: 'a1', name: 'One', kind: 'chat', group: 'views', section: current },
+            { id: 'a2', name: 'Two', kind: 'chat', group: 'views', section: current },
+            { id: 'b1', name: 'Three', kind: 'chat', group: 'views', section: other }
+        ];
+
+        expect(referenceSuggestions({ items, chatsOnly: false }, '', [], 1).map((item) => item.id)).toEqual(['a1', 'b1']);
+    });
+});
+
 describe('referablesOfChats', () => {
     test('a host without views offers its chats, and only chats', () => {
         expect(referablesOfChats([{ id: 'chat-a', title: 'Planner' }])).toEqual({

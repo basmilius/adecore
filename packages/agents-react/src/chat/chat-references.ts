@@ -6,7 +6,22 @@ export interface ProjectChat {
     title: string;
 }
 
-export type ReferableKind = 'canvas' | 'chat' | 'terminal' | 'note' | 'text' | 'drawing' | 'diagram' | 'browser' | 'device' | 'file' | 'database';
+export type ReferableKind = 'project' | 'canvas' | 'chat' | 'terminal' | 'note' | 'text' | 'drawing' | 'diagram' | 'browser' | 'device' | 'file' | 'database';
+
+/* One place on the way to a reference, such as the project or the canvas it stands in. */
+export interface ReferenceStep {
+    id: string;
+    name: string;
+    kind: ReferableKind;
+}
+
+/* The heading a reference is offered under when a host offers more than one project. */
+export interface ReferenceSection {
+    id: string;
+    name: string;
+    /* The project of the chat that asks, which comes first and says so. */
+    current?: boolean;
+}
 
 /* What a message may point at with `#`, under the name it has right now. */
 export interface Referable {
@@ -17,6 +32,9 @@ export interface Referable {
     detail?: string;
     /* `canvas` for what stands on the canvas the chat is a node of, `views` for a view of the project. */
     group: 'canvas' | 'views';
+    /* Where it stands, outermost first; its chip draws these in front of its name. */
+    trail?: readonly ReferenceStep[];
+    section?: ReferenceSection;
 }
 
 export interface Referables {
@@ -51,5 +69,14 @@ export function referenceSuggestions(referables: Referables, query: string, excl
         (item) => item.name !== '' && (!referables.chatsOnly || item.kind === 'chat') && !exclude.includes(item.id) && item.name.toLowerCase().includes(needle)
     );
 
-    return [...matches.filter((item) => item.group === 'canvas'), ...matches.filter((item) => item.group === 'views')].slice(0, limit);
+    const taken = new Map<string, number>();
+
+    // Per section, or a large first project would keep every other one out of the menu.
+    return [...matches.filter((item) => item.group === 'canvas'), ...matches.filter((item) => item.group === 'views')].filter((item) => {
+        const section = item.section?.id ?? '';
+        const count = taken.get(section) ?? 0;
+        taken.set(section, count + 1);
+
+        return count < limit;
+    });
 }

@@ -4,6 +4,7 @@ import clsx from 'clsx';
 import { SquareSlash, Zap } from 'lucide-react';
 import { FileIcon, Icon, Menu, MiddleTruncate } from '@adecore/ui';
 import { useChatHost } from '../../../host';
+import type { Referable } from '../../chat-references';
 import { referenceGlyph } from '../reference-icons';
 import type { ComposerMenus as Menus } from './use-composer-menus';
 import { optionIdOf } from './menu-aria';
@@ -112,22 +113,43 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
     const { ReferenceIcon } = useChatHost();
     const { listId, referenceMatches } = menus;
 
-    const groups = (['canvas', 'views'] as const)
-        .map((group) => ({ group, items: referenceMatches.filter((item) => item.group === group) }))
-        .filter((entry) => entry.items.length > 0);
+    const groups = new Map<string, Referable[]>();
+
+    for (const item of referenceMatches) {
+        const key = item.section?.id ?? item.group;
+        groups.set(key, [...(groups.get(key) ?? []), item]);
+    }
 
     return (
-        <div className="border-b border-border px-1.5 py-1.5">
+        <div className="max-h-96 overflow-y-auto border-b border-border px-1.5 py-1.5">
             {referenceMatches.length > 0 ? (
                 <div id={listId} role="listbox" aria-label={t('composer.menu.references')}>
-                    {groups.map(({ group, items }) => (
-                        <div key={group} role="group" aria-labelledby={`${listId}-${group}`}>
-                            <Menu.Label id={`${listId}-${group}`}>{t(`composer.references.${group}`)}</Menu.Label>
+                    {[...groups].map(([key, items]) => (
+                        <div key={key} role="group" aria-labelledby={`${listId}-${key}`}>
+                            <Menu.Label id={`${listId}-${key}`} className="flex items-center gap-1.5">
+                                {items[0]?.section === undefined ? (
+                                    t(`composer.references.${items[0]?.group ?? 'views'}`)
+                                ) : (
+                                    <>
+                                        {referenceGlyph(ReferenceIcon, { id: items[0].section.id, kind: 'project', size: 14, className: 'shrink-0' })}
+                                        <span className="truncate">{items[0].section.name}</span>
+                                        {items[0].section.current === true && (
+                                            <span className="ml-auto shrink-0 pl-2 font-normal">{t('composer.references.currentProject')}</span>
+                                        )}
+                                    </>
+                                )}
+                            </Menu.Label>
                             {items.map((item) => {
                                 const index = referenceMatches.indexOf(item);
 
                                 return (
-                                    <MenuOption key={item.id} menus={menus} index={index} className="items-center" onPick={() => menus.chooseReference(item)}>
+                                    <MenuOption
+                                        key={item.id}
+                                        menus={menus}
+                                        index={index}
+                                        className={clsx('items-center', item.trail?.at(-1)?.kind === 'canvas' && 'pl-6')}
+                                        onPick={() => menus.chooseReference(item)}
+                                    >
                                         {referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: 'shrink-0 text-text-faint' })}
                                         <span className="truncate text-text">{item.name}</span>
                                         <span className="ml-auto shrink-0 truncate pl-2 text-text-faint">

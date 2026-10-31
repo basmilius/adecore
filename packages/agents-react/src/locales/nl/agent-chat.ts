@@ -368,6 +368,7 @@ export default {
             canvas: 'Op dit canvas',
             views: 'Views',
             noMatch: 'Geen view of node gevonden',
+            currentProject: 'Dit project',
             kinds: {
                 canvas: 'canvas',
                 chat: 'chat',

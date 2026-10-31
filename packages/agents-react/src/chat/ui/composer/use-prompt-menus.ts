@@ -179,10 +179,11 @@ export function usePromptMenus<D extends PromptDraft>({
     const referenceMatches = referenceMenuOpen ? referenceSuggestions(referables, referenceQuery.query, excluded, REFERENCE_RESULTS) : [];
 
     // What the editor draws as chips and the send checks are still in the text, under the name each was picked with.
-    const referenceChips = referenceTokens([...draft.chats, ...draft.references], referables.items, draft.referenceNames).map((token) => ({
-        ...token,
-        kind: referables.items.find((item) => item.id === token.id)?.kind ?? null
-    }));
+    const referenceChips = referenceTokens([...draft.chats, ...draft.references], referables.items, draft.referenceNames).map((token) => {
+        const item = referables.items.find((candidate) => candidate.id === token.id);
+
+        return { ...token, kind: item?.kind ?? null, trail: item?.trail };
+    });
 
     // One menu is open at a time, so they share an id.
     const listId = useId();

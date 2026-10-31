@@ -1,11 +1,12 @@
 import { createElement, type ComponentType, type ReactNode } from 'react';
-import { Database, FileText, Frame, Globe, MessageSquare, PenTool, Smartphone, StickyNote, Terminal, Type, Workflow, type LucideIcon } from 'lucide-react';
+import { Database, FileText, Folder, Frame, Globe, MessageSquare, PenTool, Smartphone, StickyNote, Terminal, Type, Workflow, type LucideIcon } from 'lucide-react';
 import { Icon } from '@adecore/ui';
 import type { ReferenceIconProps } from '../../host';
 import type { ReferableKind } from '../chat-references';
 
 /* The mark of what a `#` points at, in the picker and on its chip, when the host draws none of its own. */
 export const REFERENCE_ICONS: Record<ReferableKind, LucideIcon> = {
+    project: Folder,
     canvas: Frame,
     chat: MessageSquare,
     terminal: Terminal,

@@ -7,6 +7,7 @@ import { useChatHost } from '../../host';
 import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_IN_MESSAGE } from './chips';
 import { referenceGlyph } from './reference-icons';
 import { ReferenceLookupContext } from './reference-lookup';
+import { ReferenceTrail } from './ReferenceTrail';
 
 interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
     /* `gone` for a reference that stands for nothing any more, which a copy leaves as text. */
@@ -78,7 +79,12 @@ export function ReferenceChip({ id, lastName }: { id: string; lastName?: string 
             kind="reference"
             value={item.id}
             sigil="#"
-            icon={referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: TOKEN_ICON })}
+            icon={
+                <>
+                    {item.trail !== undefined && <ReferenceTrail trail={item.trail} hostIcon={ReferenceIcon} size={14} iconClassName={TOKEN_ICON} />}
+                    {referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: TOKEN_ICON })}
+                </>
+            }
             label={item.name || t('references.untitled')}
             tone={clsx(REFERENCE_TONE, open !== null && 'hover:bg-text/12')}
             onOpen={open === null ? undefined : () => open(item.id)}
