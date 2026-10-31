@@ -26,6 +26,9 @@ export const TOKEN_IN_MESSAGE = 'box-decoration-clone rounded-md px-1.5 py-0.5 t
    of the x-height `Icon` aligns on sits low next to a capital. */
 export const TOKEN_ICON = 'mr-1 inline align-[calc(0.5cap-7px)]!';
 
+/* The same for a box around a 14px mark, which has no baseline but its bottom edge. */
+export const TOKEN_ICON_BOX = 'mr-1 inline-block align-[calc(0.5cap-7px)]';
+
 /* The same middle for the 12px mark the composer draws, in a box whose bottom edge is its baseline. */
 export const TOKEN_ICON_IN_EDITOR = 'mr-1 inline-block align-[calc(0.5cap-6px)]';
 

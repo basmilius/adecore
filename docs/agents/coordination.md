@@ -120,9 +120,10 @@ After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets
 | Result | Meaning |
 | --- | --- |
 | `wake` | A turn is owed. Enqueue a `DeliverMessageWorkSchema` entry, handled by `deliverMessageHandler`. |
-| `no-chat`, `in-turn` | The message waits for the chat's next prompt. |
-| `from-message` | The writing turn was itself started by a message, so it wakes nobody. Two chats cannot wake each other forever. |
+| `no-chat` | The message waits for the chat's next prompt. |
+| `in-turn` | The running turn may take the message through `steerNotices`. Otherwise enqueue the same entry when that turn finishes, for a chat whose waiting messages pass `withinHops`. |
+| `hop-limit` | The chain went past `MAX_MESSAGE_HOPS`. The message waits, so two chats cannot wake each other forever. |
 
-One exception: a turn a message started wakes the sender it answers, while that sender's own turn was started by no message. A question and its answer take two steps, and the turn the answer starts wakes nobody. `ChatNoticeTargets.wokenBy(id)` names the senders whose message started a node's turn.
+Every message counts one hop past the turn that sent it, which `ChatNoticeTargets.hop(id)` answers. A turn a person or a settled task started counts from zero. `SteerChat` is what `steerNotices` needs of a chat, and `NoticeStore.onSettled` says when a message was heard or dropped, so a thread can stop showing it as waiting.
 
 `NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person.

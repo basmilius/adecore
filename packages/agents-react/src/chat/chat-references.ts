@@ -65,9 +65,18 @@ export function referenceTokens(ids: readonly string[], items: readonly Referabl
 export function referenceSuggestions(referables: Referables, query: string, exclude: readonly string[], limit: number): Referable[] {
     const needle = query.toLowerCase();
 
-    const matches = referables.items.filter(
-        (item) => item.name !== '' && (!referables.chatsOnly || item.kind === 'chat') && !exclude.includes(item.id) && item.name.toLowerCase().includes(needle)
+    // A name on the way counts as well, so typing a project or a canvas finds what stands in it.
+    const found = referables.items.filter(
+        (item) =>
+            item.name !== '' &&
+            (!referables.chatsOnly || item.kind === 'chat') &&
+            !exclude.includes(item.id) &&
+            [item.name, ...(item.trail ?? []).map((step) => step.name)].some((name) => name.toLowerCase().includes(needle))
     );
+
+    // A node never stands in the menu without its canvas above it, even a canvas that does not match or is picked.
+    const canvases = new Set(found.flatMap((item) => item.trail?.filter((step) => step.kind === 'canvas').map((step) => step.id) ?? []));
+    const matches = referables.items.filter((item) => found.includes(item) || canvases.has(item.id));
 
     const taken = new Map<string, number>();
 

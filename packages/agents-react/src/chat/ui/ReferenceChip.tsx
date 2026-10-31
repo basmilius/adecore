@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CircleOff } from 'lucide-react';
 import { Icon } from '@adecore/ui';
 import { useChatHost } from '../../host';
-import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_IN_MESSAGE } from './chips';
+import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_ICON_BOX, TOKEN_IN_MESSAGE } from './chips';
 import { referenceGlyph } from './reference-icons';
 import { ReferenceLookupContext } from './reference-lookup';
 import { ReferenceTrail } from './ReferenceTrail';
@@ -81,7 +81,7 @@ export function ReferenceChip({ id, lastName }: { id: string; lastName?: string 
             sigil="#"
             icon={
                 <>
-                    {item.trail !== undefined && <ReferenceTrail trail={item.trail} hostIcon={ReferenceIcon} size={14} iconClassName={TOKEN_ICON} />}
+                    {item.trail !== undefined && <ReferenceTrail trail={item.trail} hostIcon={ReferenceIcon} size={14} iconClassName={TOKEN_ICON_BOX} />}
                     {referenceGlyph(ReferenceIcon, { id: item.id, kind: item.kind, size: 14, className: TOKEN_ICON })}
                 </>
             }

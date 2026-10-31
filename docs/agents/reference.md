@@ -137,7 +137,7 @@ The outbox, tasks between chats, lineage and messages.
 | [`tasks/wake-parent`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wake-parent.ts) | `RESULT_PREVIEW_BYTES`, `wakePrompt` |
 | [`tasks/wiring`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wiring.ts) | `TaskVerbs`, `TaskWords`, `wireTasks`, `TaskChats`, `TaskRecord`, `TaskWiringDeps`, `TaskWiring` |
 | [`messages/deliver-message`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/deliver-message.ts) | `DeliverMessageWorkSchema`, `deliverMessageHandler`, `DeliverMessageWork`, `DeliverMessageEntry`, `DeliverMessageDeps` |
-| [`messages/deliver-notice`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/deliver-notice.ts) | `MessageWords`, `ChatNoticeTargets`, `ChatDelivery`, `chatNoticeTargets`, `deliverToChat`, `showNotices`, `NoticeChat` |
+| [`messages/deliver-notice`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/deliver-notice.ts) | `MessageWords`, `ChatNoticeTargets`, `ChatDelivery`, `chatNoticeTargets`, `deliverToChat`, `showNotices`, `NoticeChat`, `MAX_MESSAGE_HOPS`, `withinHops`, `steerNotices`, `SteerChat` |
 | [`messages/notice-notes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/notice-notes.ts) | `NoticeNotes`, `unshownNotes` |
 | [`messages/notice-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/notice-store.ts) | `MAX_NOTICES`, `NOTICE_MAX_AGE_MS`, `Notice`, `NoticeStore` |
 | [`lineage`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/lineage.ts) | `AgentLineageStore` |

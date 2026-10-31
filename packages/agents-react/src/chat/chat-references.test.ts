@@ -41,6 +41,22 @@ describe('referenceSuggestions over projects', () => {
     });
 });
 
+describe('referenceSuggestions over a canvas', () => {
+    const items: Referable[] = [
+        { id: 'board', name: 'Board', kind: 'canvas', group: 'views' },
+        { id: 'runner', name: 'Runner', kind: 'terminal', group: 'views', trail: [{ id: 'board', name: 'Board', kind: 'canvas' }] }
+    ];
+
+    test('a node comes with its canvas above it, also one that does not match or is picked', () => {
+        expect(referenceSuggestions({ items, chatsOnly: false }, 'run', [], 8).map((item) => item.id)).toEqual(['board', 'runner']);
+        expect(referenceSuggestions({ items, chatsOnly: false }, 'run', ['board'], 8).map((item) => item.id)).toEqual(['board', 'runner']);
+    });
+
+    test('typing the name of a canvas finds what stands on it', () => {
+        expect(referenceSuggestions({ items, chatsOnly: false }, 'boa', [], 8).map((item) => item.id)).toEqual(['board', 'runner']);
+    });
+});
+
 describe('referablesOfChats', () => {
     test('a host without views offers its chats, and only chats', () => {
         expect(referablesOfChats([{ id: 'chat-a', title: 'Planner' }])).toEqual({

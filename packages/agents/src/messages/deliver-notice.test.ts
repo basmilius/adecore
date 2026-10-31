@@ -4,7 +4,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatNoteMessage, ChatTurnItem } from '@adecore/agent-contracts';
 import type { ChatSession } from '../chat/chat-session.ts';
-import { chatNoticeTargets, deliverToChat, MAX_MESSAGE_HOPS, showNotices, steerNotices, turnHop, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
+import {
+    chatNoticeTargets,
+    deliverToChat,
+    MAX_MESSAGE_HOPS,
+    showNotices,
+    steerNotices,
+    turnHop,
+    type ChatNoticeTargets,
+    type NoticeChat
+} from './deliver-notice.ts';
 import { MAX_NOTICES, NoticeStore, type Notice } from './notice-store.ts';
 
 let dataDir: string;
@@ -83,7 +92,17 @@ describe('steerNotices', () => {
         await store.put({ ...left('one'), hop: 1 });
         const steers: { preamble: string; messageHop: number }[] = [];
 
-        await steerNotices(store, { steer: async (_id, steer) => { steers.push(steer); return true; } }, steerWords, 'chat-2');
+        await steerNotices(
+            store,
+            {
+                steer: async (_id, steer) => {
+                    steers.push(steer);
+                    return true;
+                }
+            },
+            steerWords,
+            'chat-2'
+        );
 
         expect(steers).toMatchObject([{ preamble: 'one', messageHop: 1 }]);
         expect(store.waiting('chat-2')).toEqual([]);
@@ -97,7 +116,17 @@ describe('steerNotices', () => {
         await store.remove('chat-2', store.waiting('chat-2'));
         await store.put({ ...left('late'), hop: MAX_MESSAGE_HOPS + 1 });
         let asked = false;
-        await steerNotices(store, { steer: async () => { asked = true; return true; } }, steerWords, 'chat-2');
+        await steerNotices(
+            store,
+            {
+                steer: async () => {
+                    asked = true;
+                    return true;
+                }
+            },
+            steerWords,
+            'chat-2'
+        );
         expect(asked).toBe(false);
     });
 });

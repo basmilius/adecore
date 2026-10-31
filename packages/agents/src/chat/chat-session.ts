@@ -1474,7 +1474,9 @@ export class ChatSession {
      */
     settleMessages(messages: ReadonlyArray<{ from: string; text: string }>, state: 'heard' | 'dropped'): void {
         const items = messages.flatMap(({ from, text }) => {
-            const line = this.thread.list().find((item) => item.kind === 'note' && item.message?.state === 'waiting' && item.message.from === from && item.message.text === text);
+            const line = this.thread
+                .list()
+                .find((item) => item.kind === 'note' && item.message?.state === 'waiting' && item.message.from === from && item.message.text === text);
 
             if (line?.kind !== 'note' || line.message === undefined) {
                 return [];

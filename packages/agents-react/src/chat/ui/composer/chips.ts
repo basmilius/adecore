@@ -48,22 +48,24 @@ class ReferenceIcon extends WidgetType {
 
     override eq(other: ReferenceIcon): boolean {
         return (
-            other.id === this.id &&
-            other.kind === this.kind &&
-            other.hostIcon === this.hostIcon &&
-            JSON.stringify(other.trail) === JSON.stringify(this.trail)
+            other.id === this.id && other.kind === this.kind && other.hostIcon === this.hostIcon && JSON.stringify(other.trail) === JSON.stringify(this.trail)
         );
     }
 
     toDOM(): HTMLElement {
         const holder = document.createElement('span');
         const root = createRoot(holder);
-        const glyph = referenceGlyph(this.hostIcon, { id: this.id, kind: this.kind, size: 12, className: this.trail.length > 0 ? TOKEN_ICON_IN_EDITOR : undefined });
+        const glyph = referenceGlyph(this.hostIcon, { id: this.id, kind: this.kind, size: 12 });
 
         holder.className = this.trail.length > 0 ? 'inline' : TOKEN_ICON_IN_EDITOR;
         root.render(
             this.trail.length > 0
-                ? createElement(Fragment, null, createElement(ReferenceTrail, { trail: this.trail, hostIcon: this.hostIcon, size: 12, iconClassName: TOKEN_ICON_IN_EDITOR }), glyph)
+                ? createElement(
+                      Fragment,
+                      null,
+                      createElement(ReferenceTrail, { trail: this.trail, hostIcon: this.hostIcon, size: 12, iconClassName: TOKEN_ICON_IN_EDITOR }),
+                      createElement('span', { className: TOKEN_ICON_IN_EDITOR }, glyph)
+                  )
                 : glyph
         );
         roots.set(holder, root);
@@ -96,7 +98,9 @@ function chipMarks(state: EditorState): DecorationSet {
         const token = tokens.get(range.value);
 
         if (token?.kind !== undefined && token.kind !== null) {
-            marks.push(Decoration.replace({ widget: new ReferenceIcon(range.value, token.kind, referenceIcon, token.trail ?? []) }).range(range.from, range.from + 1));
+            marks.push(
+                Decoration.replace({ widget: new ReferenceIcon(range.value, token.kind, referenceIcon, token.trail ?? []) }).range(range.from, range.from + 1)
+            );
         }
     }
 

@@ -104,7 +104,11 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
  * Each message is one hop further than the turn that sent it, and past `MAX_MESSAGE_HOPS` it only
  * waits. A node that runs something else, such as a terminal, is the host's to deliver to before this.
  */
-export async function deliverToChat(store: Pick<NoticeStore, 'put'>, targets: ChatNoticeTargets, notice: Omit<Notice, 'createdAt' | 'hop'>): Promise<ChatDelivery> {
+export async function deliverToChat(
+    store: Pick<NoticeStore, 'put'>,
+    targets: ChatNoticeTargets,
+    notice: Omit<Notice, 'createdAt' | 'hop'>
+): Promise<ChatDelivery> {
     const hop = targets.hop(notice.from) + 1;
     const waiting = await store.put({ ...notice, hop });
     const chat = await targets.chat(notice.targetId);
@@ -132,7 +136,12 @@ const steering = new Set<string>();
  * landing during a slow acknowledgement goes in the next batch and not twice. What the CLI did not take
  * stays in the queue, for the turn that opens when this one ends.
  */
-export async function steerNotices(store: Pick<NoticeStore, 'waiting' | 'remove'>, chat: SteerChat, words: Pick<MessageWords, 'heard' | 'prompt'>, targetId: string): Promise<void> {
+export async function steerNotices(
+    store: Pick<NoticeStore, 'waiting' | 'remove'>,
+    chat: SteerChat,
+    words: Pick<MessageWords, 'heard' | 'prompt'>,
+    targetId: string
+): Promise<void> {
     if (steering.has(targetId)) {
         return;
     }

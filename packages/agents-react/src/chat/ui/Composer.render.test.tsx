@@ -633,10 +633,10 @@ describe('# references', () => {
         chatsOnly: false
     };
 
-    test('offers what stands on the canvas, then the views, each with its kind or what tells it apart', async () => {
+    test('offers what stands on the canvas, then the views, under a heading each', async () => {
         const composer = await mount({ host: { useReferables: () => referables } });
         await composer.type('See #Res');
-        expect(optionTexts(composer)).toEqual(['Researchnote', 'Research Q3Planning']);
+        expect(optionTexts(composer)).toEqual(['Research', 'Research Q3']);
         expect(composer.page.host.textContent).toContain('On this canvas');
         expect(composer.page.host.textContent).toContain('Views');
     });
@@ -677,7 +677,7 @@ describe('# references', () => {
     test('a machine that only takes chats is offered only chats', async () => {
         const composer = await mount({ host: { useReferables: () => ({ ...referables, chatsOnly: true }) } });
         await composer.type('#Res');
-        expect(optionTexts(composer)).toEqual(['Research Q3Planning']);
+        expect(optionTexts(composer)).toEqual(['Research Q3']);
     });
 
     test('a heading, a number or a name that matches nothing', async () => {
@@ -691,7 +691,7 @@ describe('# references', () => {
     test('a host without views offers its chats behind #', async () => {
         const composer = await mount({ host: { useReferableChats: () => [{ id: 'other', title: 'Other chat' }] } });
         await composer.type('#Oth');
-        expect(optionTexts(composer)).toEqual(['Other chatchat']);
+        expect(optionTexts(composer)).toEqual(['Other chat']);
     });
 
     test('punctuation after a name closes the picker, and so does a caret back on a picked chip', async () => {

@@ -718,7 +718,8 @@ export const ChatNoteMessageSchema = z.object({
     title: z.string(),
     // Absent once the agent heard it, and on every message from before this; `dropped` never reached it.
     state: z.enum(['waiting', 'dropped']).optional(),
-    text: z.string() });
+    text: z.string()
+});
 
 export const ChatNoteItemSchema = z.object({
     ...base,
