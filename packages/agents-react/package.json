@@ -100,7 +100,7 @@
         "zustand": "^5.0.16"
     },
     "peerDependencies": {
-        "@adecore/ui": "^0.15.0",
+        "@adecore/ui": "workspace:*",
         "i18next": "^26.4.2",
         "react": "^19.3.0",
         "react-dom": "^19.3.0",
