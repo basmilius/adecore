@@ -377,6 +377,12 @@ export interface ChatHost {
     /* Commands of the host's own after `/`, which turn into the prompt instead of reaching the CLI. */
     useExpandingCommands?(): readonly { name: string; hint: string; expand(args: string): Promise<string> }[];
 
+    /* Under an empty thread's own words. */
+    renderEmptyThread?(chatId: string): ReactNode;
+
+    /* Over a tool call's body. */
+    renderToolActions?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
+
     /* A tool call the host draws itself, under its line; null leaves it to the thread. */
     renderToolResult?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
 

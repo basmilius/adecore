@@ -384,13 +384,14 @@ function ToolOutput({ tool, chatId }: { tool: ChatToolItem; chatId: string | und
 
 /* An opened call without a card: what it was asked in the foreground, what it answered muted below. With `chatId` it can ask for an output the thread keeps only the beginning of. */
 export function ToolBody({ tool, chatId }: { tool: ChatToolItem; chatId?: string | undefined }) {
-    const custom = useChatHost().renderToolResult?.(tool, chatId) ?? null;
+    const { renderToolActions, renderToolResult } = useChatHost();
 
-    if (custom !== null) {
-        return custom;
-    }
-
-    return <OwnToolBody tool={tool} chatId={chatId} />;
+    return (
+        <>
+            {renderToolActions?.(tool, chatId)}
+            {renderToolResult?.(tool, chatId) ?? <OwnToolBody tool={tool} chatId={chatId} />}
+        </>
+    );
 }
 
 function OwnToolBody({ tool, chatId }: { tool: ChatToolItem; chatId?: string | undefined }) {

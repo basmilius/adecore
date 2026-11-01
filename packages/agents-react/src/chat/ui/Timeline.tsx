@@ -97,6 +97,7 @@ function showRowAtTop(virtualizer: Virtualizer<HTMLDivElement, Element>, followR
  * and the folder it works in, so a first question can lean on all three.
  */
 function EmptyThread({ chatId }: { chatId: string }) {
+    const { renderEmptyThread } = useChatHost();
     const { t } = useTranslation('agent-chat');
     const info = useChatRow(chatId, (row) => row?.info ?? null);
     const model = useModelName(info?.provider, info?.selection.model ?? '');
@@ -109,6 +110,7 @@ function EmptyThread({ chatId }: { chatId: string }) {
                 <EmptyState icon={info ? <AgentIcon kind={info.provider} /> : undefined} className="p-0">
                     {info ? t('timeline.empty.ready', { model }) : t('timeline.empty.ask')}
                 </EmptyState>
+                {renderEmptyThread?.(chatId)}
                 {sources.length > 0 && (
                     <div className="flex max-w-full flex-col items-center gap-1">
                         <SectionLabel>{t('timeline.empty.canRead')}</SectionLabel>
