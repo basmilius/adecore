@@ -221,6 +221,14 @@ describe('readingOrder', () => {
         expect(readingOrder(elements).at(-1)).toBe('Client -> Daemon');
     });
 
+    test('an arrow reaches a rotated box and the text inside its rotated bounds', () => {
+        const box: DrawingElement = { ...base, kind: 'rect', id: 'rotated', x: 0, y: 0, w: 200, h: 40, angle: Math.PI / 2 };
+        const source: DrawingElement = { ...text('source', 'Source', 90, 70), w: 20, h: 20 };
+        const target = text('target', 'Target', 300, 70);
+
+        expect(readingOrder([box, source, target, line('arrow', [100, -70], [340, 82])])).toEqual(['Source', 'Target', 'Source -> Target']);
+    });
+
     test('a line without a head is not a connection', () => {
         const elements: DrawingElement[] = [text('a', 'Client', 0, 0), text('b', 'Daemon', 300, 0), line('line', [80, 10], [300, 10], false)];
         expect(readingOrder(elements)).toEqual(['Client', 'Daemon']);

@@ -380,8 +380,9 @@ export function applyPlanOps(plan: Plan, ops: readonly PlanOp[], options: PlanAp
             return problem;
         }
 
-        for (const item of allItems(next.items)) {
-            taken.add(item.id);
+        // The minter reserves its own ids; only an explicit add introduces another one.
+        if (op.op === 'add' && op.id !== undefined) {
+            taken.add(op.id);
         }
     }
 
@@ -495,7 +496,9 @@ export function createPlan(draft: PlanDraft, options: PlanCreateOptions): PlanAp
     const minted: string[] = [];
     const taken = new Set<string>();
 
-    for (const item of allDraftItems(source.items)) {
+    const draftItems = allDraftItems(source.items);
+
+    for (const item of draftItems) {
         if (item.id !== undefined) {
             if (taken.has(item.id)) {
                 return refuse('duplicate-id', `Two items share the id "${item.id}"`);
@@ -509,7 +512,7 @@ export function createPlan(draft: PlanDraft, options: PlanCreateOptions): PlanAp
     // Minted up front so a refusal stops here; the tree below takes them in the same order, parents first.
     const fresh: string[] = [];
 
-    for (const item of allDraftItems(source.items)) {
+    for (const item of draftItems) {
         if (item.id === undefined) {
             const id = mint();
 
@@ -577,5 +580,20 @@ export function createPlan(draft: PlanDraft, options: PlanCreateOptions): PlanAp
 }
 
 function allDraftItems(items: readonly PlanDraftItem[]): PlanDraftItem[] {
-    return items.flatMap((item) => [item, ...allDraftItems(item.type === 'section' ? item.items : item.type === 'step' ? (item.steps ?? []) : [])]);
+    const result: PlanDraftItem[] = [];
+    const visit = (siblings: readonly PlanDraftItem[]): void => {
+        for (const item of siblings) {
+            result.push(item);
+
+            if (item.type === 'section') {
+                visit(item.items);
+            } else if (item.type === 'step' && item.steps !== undefined) {
+                visit(item.steps);
+            }
+        }
+    };
+
+    visit(items);
+
+    return result;
 }

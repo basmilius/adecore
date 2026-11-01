@@ -173,6 +173,15 @@ test('a draft of a block too long to spread into one call', () => {
 });
 
 describe('wandLines', () => {
+    test('a large superset never restores a line the other side deleted, even after many unrelated additions', () => {
+        const base = Array.from({ length: 300 }, (_, index) => `base-${index}`);
+        const retained = base.slice(0, -1);
+        const extra = Array.from({ length: 300 }, (_, index) => `added-${index}`);
+        const ours = [...retained, ...extra, base.at(-1)!];
+        expect(wandLines({ kind: 'conflict', base, ours, theirs: retained })).toBeNull();
+        expect(wandLines({ kind: 'conflict', base, ours: [...base, ...extra], theirs: base })).toEqual([...base, ...extra]);
+    });
+
     test('leaves whitespace in regexes, multiline strings and plain text for a person', () => {
         const cases = [
             { ours: ['const pattern = /a  b/;'], theirs: ['const pattern = /a b/;'] },

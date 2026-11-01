@@ -67,7 +67,7 @@ export function unionOf(rects: readonly Rect[]): Rect | null {
 }
 
 export function boundsOfElements(elements: readonly DrawingElement[]): Rect | null {
-    return unionOf(elements.map(boundsOf));
+    return unionOf(elements);
 }
 
 function cornersOf(rect: Rect): Point[] {

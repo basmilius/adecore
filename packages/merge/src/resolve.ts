@@ -53,6 +53,20 @@ function covers(base: readonly string[], outer: readonly string[], inner: readon
 
     const added = [...outer.slice(0, start), ...outer.slice(start + inner.length)];
 
+    if (added.length > 16 && added.length * base.length > 4096) {
+        // Most rejected candidates fail immediately; avoid indexing the whole conflict for them.
+        for (const line of added.slice(0, 4)) {
+            if (base.includes(line) && !inner.includes(line)) {
+                return false;
+            }
+        }
+
+        const original = new Set(base);
+        const retained = new Set(inner);
+
+        return added.every((line) => !original.has(line) || retained.has(line));
+    }
+
     return added.every((line) => !base.includes(line) || inner.includes(line));
 }
 

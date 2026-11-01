@@ -1,10 +1,11 @@
+import type { ProviderAccounts } from '@adecore/agent-contracts';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ProviderAccountsService } from '../providers/accounts/service.ts';
 import { testAccounts } from '../testing/accounts.ts';
-import { chatSessionAccounts, limitAccountsOf, usageAccountsOf, usageRootsOf } from './accounts.ts';
+import { chatSessionAccounts, machineAccounts, limitAccountsOf, usageAccountsOf, usageRootsOf } from './accounts.ts';
 
 let root: string;
 let home: string;
@@ -44,6 +45,37 @@ describe('the accounts of the usage page and the limits', () => {
             { id: 'claude_off', kind: 'claude', label: 'Off' },
             { id: 'codex_work', kind: 'codex', label: 'Work' }
         ]);
+    });
+
+    test('uses the first status, preserves account order and names only an unnamed default', () => {
+        for (const size of [6, 40]) {
+            const ids = Array.from({ length: size }, (_, index) => (index === 0 ? 'claude' : `account-${index}`));
+            const status = {
+                id: 'claude',
+                kind: 'claude',
+                state: 'signed-out' as const,
+                email: null,
+                plan: null,
+                organization: null,
+                home: '',
+                message: null,
+                checkedAt: 0
+            };
+            const snapshot: ProviderAccounts = {
+                accounts: { ...Object.fromEntries(ids.map((id) => [id, { kind: 'claude' }])), unsupported: { kind: 'other' } },
+                statuses: [status, ...ids.slice(1).map((id) => ({ ...status, id, state: 'ready' as const })), { ...status, state: 'ready' }]
+            };
+            const named: string[] = [];
+            const rows = machineAccounts(snapshot, (kind) => {
+                named.push(kind);
+                return 'CLI';
+            });
+
+            expect(rows.map((row) => row.id)).toEqual(ids);
+            expect(rows[0]).toMatchObject({ label: 'CLI', signedIn: false, isDefault: true });
+            expect(rows[1]).toMatchObject({ label: 'account-1', signedIn: true });
+            expect(named).toEqual(['claude']);
+        }
     });
 
     test('walks the transcripts of every account once, with the accounts that share a folder', () => {

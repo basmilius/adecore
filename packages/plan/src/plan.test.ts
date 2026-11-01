@@ -22,7 +22,7 @@ import {
     type PlanDraftText,
     type PlanRefusal
 } from './index.ts';
-import { deriveState } from './tree.ts';
+import { deriveState, locateItem } from './tree.ts';
 
 const NOW = '2026-09-16T14:30:00Z';
 
@@ -65,6 +65,40 @@ function codeOf(result: { ok: boolean; code?: string }): string | undefined {
 function stepIn(plan: Plan, id: string): PlanStep {
     return findItem(plan, id) as PlanStep;
 }
+
+test('locating a nested step keeps its parent, sibling array, index and depth', () => {
+    const nested = step('nested', { steps: [] });
+    const parent = step('parent', { steps: [nested] });
+    const section: PlanItem = { type: 'section', id: 'section', title: 'Section', items: [{ type: 'text', id: 'intro', title: 'Intro' }, parent] };
+    const plan = planOf([section, step('last')]);
+    const location = locateItem(plan, 'nested');
+    expect(location?.item).toBe(nested);
+    expect(location?.parent).toBe(parent);
+    expect(location?.siblings).toBe(parent.steps);
+    expect(location?.index).toBe(0);
+    expect(location?.depth).toBe(2);
+    expect(locateItem(plan, 'missing')).toBeNull();
+});
+
+test('an empty child list still carries the leaf state a person set', () => {
+    const leaf = step('leaf', { steps: [], state: 'open', by: 'person', at: NOW });
+    const plan = planOf([leaf]);
+    expect(codeOf(canDeletePlan(plan, 'agent'))).toBe('set-by-person');
+    expect(codeOf(canDeletePlan(plan, 'person'))).toBeUndefined();
+    leaf.state = undefined;
+    expect(codeOf(canDeletePlan(plan, 'agent'))).toBeUndefined();
+});
+
+test('inherited parent checks stay protected until that parent is unlocked', () => {
+    const parent = step('parent', { steps: [step('child', { checks: 'anyone' })] });
+    const plan = planOf([parent], { checks: 'person' });
+    expect(codeOf(canApply({ op: 'remove', id: 'parent' }, 'agent', plan))).toBe('person-only');
+    expect(codeOf(canApply({ op: 'meta', checks: 'agent' }, 'agent', plan))).toBe('person-only');
+    expect(codeOf(canApply({ op: 'meta', title: 'Retitled' }, 'agent', plan))).toBeUndefined();
+    parent.unlocked = true;
+    expect(codeOf(canApply({ op: 'remove', id: 'parent' }, 'agent', plan))).toBeUndefined();
+    expect(codeOf(canApply({ op: 'meta', checks: 'agent' }, 'agent', plan))).toBeUndefined();
+});
 
 describe('who may set a step', () => {
     const rows: { checks: PlanChecks; agent: string | undefined; person: string | undefined }[] = [
@@ -290,6 +324,27 @@ describe('deleting a plan', () => {
 });
 
 describe('minting ids', () => {
+    test('explicit ids stay reserved for generated ids after removal in the same batch', () => {
+        const plan = planOf([step('base')]);
+        const ids = ['base', 'taken', 'free'];
+        const result = applied(
+            applyPlanOps(
+                plan,
+                [
+                    { op: 'add', type: 'step', id: 'taken', title: 'Temporary' },
+                    { op: 'remove', id: 'taken' },
+                    { op: 'meta', summary: 'Next' },
+                    { op: 'add', type: 'step', title: 'Generated' }
+                ],
+                { actor: 'agent', now: NOW, mintId: () => ids.shift()! }
+            )
+        );
+
+        expect(result.minted).toEqual(['free']);
+        expect(result.plan.items.map((item) => item.id)).toEqual(['base', 'free']);
+        expect(plan.items.map((item) => item.id)).toEqual(['base']);
+    });
+
     test('a mintId that keeps giving a taken id is refused, not thrown', () => {
         const plan = planOf([step('a')]);
 

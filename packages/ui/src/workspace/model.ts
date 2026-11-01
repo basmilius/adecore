@@ -53,7 +53,17 @@ export function findSplitNode(node: SplitNode, id: string): SplitNode | undefine
         return node;
     }
 
-    return node.type === 'split' ? node.children.map((child) => findSplitNode(child, id)).find(Boolean) : undefined;
+    if (node.type === 'split') {
+        for (const child of node.children) {
+            const found = findSplitNode(child, id);
+
+            if (found !== undefined) {
+                return found;
+            }
+        }
+    }
+
+    return undefined;
 }
 
 function shares(values: number[], length: number): number[] {

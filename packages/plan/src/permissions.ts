@@ -1,4 +1,4 @@
-import type { Plan, PlanActor, PlanChecks, PlanOp, PlanStep, PlanStepState } from './protocol.ts';
+import type { Plan, PlanActor, PlanChecks, PlanItem, PlanOp, PlanStep, PlanStepState } from './protocol.ts';
 import { allSteps, effectiveChecks, holdsPersonState, isParentStep, locateItem, missingItem, refuse, type PlanRefusal } from './tree.ts';
 
 export type PlanVerdict = { ok: true } | PlanRefusal;
@@ -7,6 +7,20 @@ const ALLOWED: PlanVerdict = { ok: true };
 
 const PERSON_OPS: ReadonlySet<PlanOp['op']> = new Set(['set', 'note', 'unlock']);
 const AGENT_OPS: ReadonlySet<PlanOp['op']> = new Set(['set', 'note', 'add', 'edit', 'move', 'remove', 'meta']);
+
+function someStep(items: readonly PlanItem[], predicate: (step: PlanStep) => boolean): boolean {
+    for (const item of items) {
+        if (item.type === 'step') {
+            if (predicate(item) || (item.steps !== undefined && someStep(item.steps, predicate))) {
+                return true;
+            }
+        } else if (item.type === 'section' && someStep(item.items, predicate)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 function stepFor(plan: Plan, id: string, leaf: boolean): PlanStep | PlanRefusal {
     const location = locateItem(plan, id);
@@ -189,16 +203,19 @@ export function canApply(op: PlanOp, actor: PlanActor, plan: Plan): PlanVerdict 
                 return refuse('set-by-person', `A person checked "${op.id}" or a step under it, so it stays`);
             }
 
-            if (allSteps([location.item]).some((step) => effectiveChecks(plan, step) === 'person')) {
+            if (someStep([location.item], (step) => effectiveChecks(plan, step) === 'person')) {
                 return refuse('person-only', `Only a person checks "${op.id}" or a step under it, so it stays`);
             }
 
             return ALLOWED;
         }
         case 'meta': {
-            const inherits = allSteps(plan.items).some((step) => step.checks === undefined && !step.unlocked);
-
-            if (op.checks !== undefined && op.checks !== 'person' && plan.meta.checks === 'person' && inherits) {
+            if (
+                op.checks !== undefined &&
+                op.checks !== 'person' &&
+                plan.meta.checks === 'person' &&
+                someStep(plan.items, (step) => step.checks === undefined && !step.unlocked)
+            ) {
                 return refuse('person-only', 'Only a person checks the steps of this plan, and that stays so');
             }
 

@@ -11,6 +11,15 @@ function labelOf(element: DrawingElement): string | null {
     return element.kind === 'text' || element.kind === 'note' ? element.text.trim() || null : null;
 }
 
+function hitsLabel(element: DrawingElement, point: Point, tolerance: number): boolean {
+    // Filled, unrotated rectangles, texts and notes use the same inclusive box test.
+    if ((element.angle ?? 0) === 0 && (element.kind === 'rect' || element.kind === 'text' || element.kind === 'note')) {
+        return point.x >= element.x && point.x <= element.x + element.w && point.y >= element.y && point.y <= element.y + element.h;
+    }
+
+    return hitsElement({ ...element, fill: 'solid' }, point, tolerance);
+}
+
 /* A shape says what it is by the text inside it, which is how a box on a diagram is named. */
 function labelInside(element: DrawingElement, elements: readonly DrawingElement[]): string | null {
     for (const candidate of elements) {
@@ -20,7 +29,7 @@ function labelInside(element: DrawingElement, elements: readonly DrawingElement[
 
         const center = centerOf(boundsOf(candidate));
 
-        if (hitsElement({ ...element, fill: 'solid' }, center, 0)) {
+        if (hitsLabel(element, center, 0)) {
             return labelOf(candidate);
         }
     }
@@ -38,9 +47,17 @@ function labelAt(point: Point, elements: readonly DrawingElement[], arrowId: str
         }
 
         const center = centerOf(boundsOf(element));
-        const distance = Math.hypot(center.x - point.x, center.y - point.y);
+        const dx = center.x - point.x;
+        const dy = center.y - point.y;
+        const beyondReach = Math.abs(dx) > LABEL_REACH || Math.abs(dy) > LABEL_REACH;
 
-        if (distance > LABEL_REACH && !hitsElement({ ...element, fill: 'solid' }, point, LABEL_REACH)) {
+        if (beyondReach && !hitsLabel(element, point, LABEL_REACH)) {
+            continue;
+        }
+
+        const distance = Math.hypot(dx, dy);
+
+        if (!beyondReach && distance > LABEL_REACH && !hitsLabel(element, point, LABEL_REACH)) {
             continue;
         }
 

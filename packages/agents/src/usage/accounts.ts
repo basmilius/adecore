@@ -16,26 +16,40 @@ interface MachineAccount extends UsageAccount {
 
 /* The accounts of the CLIs whose usage the host reads; a default account nobody named is called after its CLI. */
 export function machineAccounts(snapshot: ProviderAccounts, nameOf: (kind: UsageProvider) => string): MachineAccount[] {
-    return Object.entries(snapshot.accounts).flatMap(([id, account]) => {
+    const entries = Object.entries(snapshot.accounts);
+    let states: Map<string, string> | null = null;
+
+    const accounts: MachineAccount[] = [];
+
+    for (const [id, account] of entries) {
         if (!isUsageProvider(account.kind)) {
-            return [];
+            continue;
+        }
+
+        if (states === null && entries.length >= 32 && snapshot.statuses.length >= 32) {
+            states = new Map();
+
+            for (const status of snapshot.statuses) {
+                if (!states.has(status.id)) {
+                    states.set(status.id, status.state);
+                }
+            }
         }
 
         const isDefault = id === account.kind;
-        const state = snapshot.statuses.find((status) => status.id === id)?.state;
+        const state = states === null ? snapshot.statuses.find((status) => status.id === id)?.state : states.get(id);
+        accounts.push({
+            id,
+            kind: account.kind,
+            label: account.label ?? (isDefault ? nameOf(account.kind) : id),
+            ...(account.color === undefined ? {} : { color: account.color }),
+            isDefault,
+            enabled: account.enabled !== false,
+            signedIn: state === 'ready'
+        });
+    }
 
-        return [
-            {
-                id,
-                kind: account.kind,
-                label: account.label ?? (isDefault ? nameOf(account.kind) : id),
-                ...(account.color === undefined ? {} : { color: account.color }),
-                isDefault,
-                enabled: account.enabled !== false,
-                signedIn: state === 'ready'
-            }
-        ];
-    });
+    return accounts;
 }
 
 function usageAccount({ id, kind, label, color }: MachineAccount): UsageAccount {

@@ -195,15 +195,28 @@ function plainKey(rowPath: string): string | null {
 }
 
 export function collapsedPathsOf(rows: readonly FileTreeVisibleRow[], keyOf: FoldKeyOf = plainKey): string[] {
-    return rows.flatMap((row) => {
+    const paths: string[] = [];
+
+    for (const row of rows) {
         const key = row.kind === 'directory' && !row.isExpanded ? keyOf(row.path) : null;
 
-        return key === null ? [] : [key];
-    });
+        if (key !== null) {
+            paths.push(key);
+        }
+    }
+
+    return paths;
 }
 
 export function mergeCollapsedPaths(current: string[], rows: readonly FileTreeVisibleRow[], keyOf: FoldKeyOf = plainKey): string[] {
-    const known = new Set(rows.flatMap((row) => (row.kind === 'directory' ? [keyOf(row.path)] : [])));
+    const known = new Set<string | null>();
+
+    for (const row of rows) {
+        if (row.kind === 'directory') {
+            known.add(keyOf(row.path));
+        }
+    }
+
     const folded = new Set(collapsedPathsOf(rows, keyOf));
     const next = current.filter((dir) => !known.has(dir) || folded.has(dir));
     const existing = new Set(current);

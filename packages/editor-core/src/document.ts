@@ -2778,9 +2778,19 @@ export class DocumentModel {
             candidates.push({ from: range.innerFrom, to: range.innerTo }, range);
         }
 
-        return candidates
-            .filter((range) => range.from <= from && range.to >= to && (range.from < from || range.to > to))
-            .sort((left, right) => left.to - left.from - (right.to - right.from))[0];
+        let smallest: OffsetRange | undefined;
+
+        for (const range of candidates) {
+            if (range.from > from || range.to < to || (range.from === from && range.to === to)) {
+                continue;
+            }
+
+            if (smallest === undefined || range.to - range.from < smallest.to - smallest.from) {
+                smallest = range;
+            }
+        }
+
+        return smallest;
     }
 
     private shrinkSelection(): boolean {

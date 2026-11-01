@@ -71,9 +71,11 @@ export function timelineTree<Span extends TimelineSpan>(spans: readonly Span[]):
     visit(children.get(null) ?? [], []);
 
     // Spans of a parent cycle reach no root; each that is left starts a tree of its own.
-    for (const span of spans.toSorted(byStart)) {
-        if (!placed.has(span.id)) {
-            visit([span], []);
+    if (placed.size < known.size) {
+        for (const span of spans.filter((span) => !placed.has(span.id)).toSorted(byStart)) {
+            if (!placed.has(span.id)) {
+                visit([span], []);
+            }
         }
     }
 
@@ -96,8 +98,15 @@ export function timelineExtent(spans: readonly TimelineSpan[], fixedEnd?: number
         return { origin: 0, total: 1 };
     }
 
-    const origin = Math.min(...spans.map((span) => span.start));
-    const end = fixedEnd ?? Math.max(...spans.map((span) => span.start + span.duration));
+    let origin = Infinity;
+    let latest = -Infinity;
+
+    for (const span of spans) {
+        origin = Math.min(origin, span.start);
+        latest = Math.max(latest, span.start + span.duration);
+    }
+
+    const end = fixedEnd ?? latest;
 
     return { origin, total: Math.max(end - origin, 0.001) };
 }

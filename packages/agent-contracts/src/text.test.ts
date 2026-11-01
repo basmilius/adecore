@@ -21,6 +21,17 @@ describe('clipText', () => {
         expect(clipText('aéb', 2)).toBe('a');
         expect(clipText('aéb', 3)).toBe('aé');
     });
+
+    test('keeps CRLF together and checks a combining mark just beyond an ASCII cut', () => {
+        expect(clipText('ab\r\ncd', 3)).toBe('ab');
+        expect(clipText('ab\r\ncd', 4)).toBe('ab\r\n');
+        expect(clipText('ab\rcd', 3)).toBe('ab\r');
+        expect(clipText('abc\u0301d', 3)).toBe('ab');
+        expect(clipText('abc\u200dd', 3)).toBe('ab');
+        expect(clipText('abcdef', 0)).toBe('');
+        expect(clipText('abcdef', 2.5)).toBe('ab');
+        expect(clipText('abcdef', Number.NaN)).toBe('abcdef');
+    });
 });
 
 describe('appendToolOutput', () => {

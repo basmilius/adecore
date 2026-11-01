@@ -17,6 +17,21 @@ import {
 } from './helpers.ts';
 
 describe('file tree model behavior', () => {
+    test('merges custom fold keys without duplicates, keeps hidden folds and reuses an unchanged result', () => {
+        const rows = [
+            { path: 'old/', kind: 'directory', isExpanded: true },
+            { path: 'first/', kind: 'directory', isExpanded: false },
+            { path: 'second/', kind: 'directory', isExpanded: false },
+            { path: 'ignored/', kind: 'directory', isExpanded: false },
+            { path: 'file', kind: 'file', isExpanded: false }
+        ] as unknown as Parameters<typeof mergeCollapsedPaths>[1];
+
+        const keyOf = (path: string) => (path === 'old/' ? 'old' : path === 'ignored/' ? null : 'shared');
+        const merged = mergeCollapsedPaths(['old', 'hidden'], rows, keyOf);
+        expect(merged).toEqual(['hidden', 'shared']);
+        expect(mergeCollapsedPaths(merged, rows, keyOf)).toBe(merged);
+    });
+
     test('uses the terminal path of a flattened directory and preserves hidden folds', () => {
         const model = new Model({ paths: ['src/deep/one.ts', 'src/deep/two.ts', 'other/a.ts'], flattenEmptyDirectories: true, initialExpansion: 'open' });
         const rows = visibleRows(model);

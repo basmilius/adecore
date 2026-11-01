@@ -141,7 +141,24 @@ export class ChatLog {
             return null;
         }
 
-        return this.lines.filter((line) => line.seq > since).map((line) => line.event);
+        return this.lines.slice(this.indexAfter(since)).map((line) => line.event);
+    }
+
+    private indexAfter(seq: number): number {
+        let first = 0;
+        let end = this.lines.length;
+
+        while (first < end) {
+            const middle = first + Math.floor((end - first) / 2);
+
+            if (this.lines[middle]!.seq > seq) {
+                end = middle;
+            } else {
+                first = middle + 1;
+            }
+        }
+
+        return first;
     }
 
     /*

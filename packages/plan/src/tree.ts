@@ -63,7 +63,13 @@ export function locateItem(plan: Pick<Plan, 'items'>, id: string): PlanLocation 
                 return { item, siblings, index, parent, depth: itemDepth };
             }
 
-            const found = search(childrenOf(item), item.type === 'text' ? null : item, item.type === 'step' ? itemDepth : depth);
+            const children = childrenOf(item);
+
+            if (children.length === 0) {
+                continue;
+            }
+
+            const found = search(children, item.type === 'text' ? null : item, item.type === 'step' ? itemDepth : depth);
 
             if (found) {
                 return found;
@@ -82,11 +88,48 @@ export function findItem(plan: Pick<Plan, 'items'>, id: string): PlanItem | null
 
 /* Every item in document order, parents before their children. */
 export function allItems(items: readonly PlanItem[]): PlanItem[] {
-    return items.flatMap((item) => [item, ...allItems(childrenOf(item))]);
+    const result: PlanItem[] = [];
+
+    const visit = (siblings: readonly PlanItem[]): void => {
+        for (const item of siblings) {
+            result.push(item);
+
+            if (item.type === 'section') {
+                visit(item.items);
+            } else if (item.type === 'step' && item.steps !== undefined) {
+                visit(item.steps);
+            }
+        }
+    };
+
+    visit(items);
+
+    return result;
+}
+
+function visitSteps(items: readonly PlanItem[], visit: (step: PlanStep) => void, leavesOnly: boolean): void {
+    for (const item of items) {
+        if (item.type === 'section') {
+            visitSteps(item.items, visit, leavesOnly);
+        } else if (item.type === 'step') {
+            const parent = isParentStep(item);
+
+            if (!leavesOnly || !parent) {
+                visit(item);
+            }
+
+            if (parent) {
+                visitSteps(item.steps!, visit, leavesOnly);
+            }
+        }
+    }
 }
 
 export function allSteps(items: readonly PlanItem[]): PlanStep[] {
-    return allItems(items).filter((item): item is PlanStep => item.type === 'step');
+    const steps: PlanStep[] = [];
+    visitSteps(items, (step) => steps.push(step), false);
+
+    return steps;
 }
 
 export function isParentStep(step: PlanStep): boolean {
@@ -147,15 +190,19 @@ export interface PlanProgress {
 export function planProgress(items: readonly PlanItem[]): PlanProgress {
     const progress: PlanProgress = { total: 0, open: 0, active: 0, done: 0, failed: 0, skipped: 0, blocked: 0, warning: 0, info: 0, finished: 0 };
 
-    for (const step of leafSteps(items)) {
-        const state = step.state ?? 'open';
-        progress.total++;
-        progress[state]++;
+    visitSteps(
+        items,
+        (step) => {
+            const state = step.state ?? 'open';
+            progress.total++;
+            progress[state]++;
 
-        if (state === 'failed' || isFinishedOutcome(state)) {
-            progress.finished++;
-        }
-    }
+            if (state === 'failed' || isFinishedOutcome(state)) {
+                progress.finished++;
+            }
+        },
+        true
+    );
 
     return progress;
 }
@@ -165,18 +212,45 @@ export function planProgress(items: readonly PlanItem[]): PlanProgress {
  * own: it is a heading, and what it says about progress is whatever its leaves say.
  */
 export function leafSteps(items: readonly PlanItem[]): PlanStep[] {
-    return allSteps(items).filter((step) => !isParentStep(step));
+    const steps: PlanStep[] = [];
+    visitSteps(items, (step) => steps.push(step), true);
+
+    return steps;
 }
 
 export function activeStepIds(plan: Pick<Plan, 'items'>): string[] {
-    return leafSteps(plan.items)
-        .filter((step) => step.state === 'active')
-        .map((step) => step.id);
+    const ids: string[] = [];
+
+    visitSteps(
+        plan.items,
+        (step) => {
+            if (step.state === 'active') {
+                ids.push(step.id);
+            }
+        },
+        true
+    );
+
+    return ids;
 }
 
-/* True when the item, or any step under it, carries a state a person set. */
+/* True when a leaf step, here or underneath, carries a state a person set. */
 export function holdsPersonState(item: PlanItem): boolean {
-    return allItems([item]).some((entry) => entry.type === 'step' && !isParentStep(entry) && entry.by === 'person' && entry.state !== undefined);
+    if (item.type === 'step' && !isParentStep(item)) {
+        return item.by === 'person' && item.state !== undefined;
+    }
+
+    const children = item.type === 'section' ? item.items : item.type === 'step' ? item.steps : undefined;
+
+    if (children !== undefined) {
+        for (const child of children) {
+            if (holdsPersonState(child)) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 
 /* The rules of a plan the schema cannot say, because they need the whole tree. */

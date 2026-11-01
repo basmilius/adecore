@@ -779,18 +779,31 @@ export type ChatCompactionItem = z.infer<typeof ChatCompactionItemSchema>;
 export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] {
     const lastMessage = items.findLastIndex((item) => item.kind === 'user');
     const lastMessageAt = lastMessage < 0 ? null : items[lastMessage]!.createdAt;
-    const rows = items.flatMap((item, index) => (item.kind === 'subagent' ? [{ item, index }] : []));
-    const turns = new Set(rows.flatMap(({ item }) => (item.status === 'running' && item.turnId !== null ? [item.turnId] : [])));
+    const turns = new Set<string>();
 
-    return rows
-        .filter(
-            ({ item, index }) =>
-                item.status === 'running' ||
+    for (const item of items) {
+        if (item.kind === 'subagent' && item.status === 'running' && item.turnId !== null) {
+            turns.add(item.turnId);
+        }
+    }
+
+    const active: ChatSubagentItem[] = [];
+
+    for (let index = 0; index < items.length; index++) {
+        const item = items[index]!;
+
+        if (
+            item.kind === 'subagent' &&
+            (item.status === 'running' ||
                 index > lastMessage ||
                 (lastMessageAt !== null && item.finishedAt !== null && item.finishedAt > lastMessageAt) ||
-                (item.turnId !== null && turns.has(item.turnId))
-        )
-        .map(({ item }) => item);
+                (item.turnId !== null && turns.has(item.turnId)))
+        ) {
+            active.push(item);
+        }
+    }
+
+    return active;
 }
 
 /*
@@ -840,27 +853,33 @@ export const CHAT_OUTLINE_TEXT_CHARS = 280;
  * A message of only attachments keeps their names. `items` is in thread order.
  */
 export function outlineItems(items: readonly ChatItem[], marked: ReadonlySet<string> = new Set()): ChatItem[] {
-    return items.flatMap((item): ChatItem[] => {
+    const outline: ChatItem[] = [];
+
+    for (const item of items) {
         const { id, createdAt, turnId } = item;
 
         if (item.kind === 'user') {
             const text = item.text.slice(0, CHAT_OUTLINE_TEXT_CHARS);
 
-            return [{ id, createdAt, turnId, kind: 'user', text, ...(text === '' && item.attachments ? { attachments: item.attachments } : {}) }];
+            outline.push({ id, createdAt, turnId, kind: 'user', text, ...(text === '' && item.attachments ? { attachments: item.attachments } : {}) });
+
+            continue;
         }
 
         if (item.kind === 'turn' && ((item.taskIds?.length ?? 0) > 0 || (item.messageFrom?.length ?? 0) > 0)) {
             const { checkpointDiff: _checkpointDiff, ...turn } = item;
 
-            return [turn];
+            outline.push(turn);
+
+            continue;
         }
 
         if (item.kind === 'assistant' && marked.has(id)) {
-            return [{ id, createdAt, turnId, kind: 'assistant', text: item.text.slice(0, CHAT_OUTLINE_TEXT_CHARS), streaming: false }];
+            outline.push({ id, createdAt, turnId, kind: 'assistant', text: item.text.slice(0, CHAT_OUTLINE_TEXT_CHARS), streaming: false });
         }
+    }
 
-        return [];
-    });
+    return outline;
 }
 
 // Events apply after the `chat.attach` snapshot; item ids make upserts and streamed deltas replayable.

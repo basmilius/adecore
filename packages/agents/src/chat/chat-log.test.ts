@@ -22,6 +22,21 @@ afterEach(async () => {
 });
 
 describe('ChatLog', () => {
+    test('replays only the contiguous suffix of a damaged log and keeps cursor boundaries after compaction', () => {
+        const lines = [1, 2, 5, 6, 9, 10].map((seq) => ({ seq, at: seq, event: delta(String(seq)) }));
+        const log = new ChatLog(null, { seq: 10, resetSeq: 0, lines });
+        expect(log.after(5)).toBeNull();
+        expect(log.after(8)).toEqual([delta('9'), delta('10')]);
+        expect(log.after(9)).toEqual([delta('10')]);
+        expect(log.after(10)).toEqual([]);
+        log.compact(9);
+        expect(log.after(8)).toBeNull();
+        expect(log.after(9)).toEqual([delta('10')]);
+        log.append(delta('11'), 11);
+        expect(log.after(10)).toEqual([delta('11')]);
+        expect(log.after(9)).toEqual([delta('10'), delta('11')]);
+    });
+
     test('numbers every event from one and writes a line for each', async () => {
         const log = new ChatLog(path);
         expect([log.append(delta('a'), 10), log.append(delta('b'), 11)]).toEqual([1, 2]);

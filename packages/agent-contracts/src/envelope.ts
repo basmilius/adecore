@@ -56,5 +56,17 @@ export function parseRequest(input: unknown): ParseResult<Request> {
 }
 
 export function parseServerFrame(input: unknown): ParseResult<ServerFrame> {
+    if (typeof input === 'object' && input !== null) {
+        const frame = input as { type?: unknown; event?: unknown };
+
+        if (!('ok' in input) && frame.type === 'event' && typeof frame.event === 'string' && frame.event !== '') {
+            const event = EventSchema.safeParse(input);
+
+            if (event.success) {
+                return toResult(event);
+            }
+        }
+    }
+
     return toResult(ServerFrameSchema.safeParse(input));
 }

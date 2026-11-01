@@ -10,6 +10,11 @@ export function clipText(text: string, max: number): string {
         return text;
     }
 
+    if (Number.isInteger(max) && max >= 0 && /^\p{ASCII}*$/u.test(text.slice(0, max + 1))) {
+        // CRLF is the only multi-unit ASCII grapheme; inspect the next unit before cutting.
+        return text.slice(0, text[max - 1] === '\r' && text[max] === '\n' ? max - 1 : max);
+    }
+
     graphemes ??= new Intl.Segmenter(undefined, { granularity: 'grapheme' });
     let end = 0;
 
