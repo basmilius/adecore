@@ -882,6 +882,8 @@
     .ade-workspace-sidebar[data-auto], .ade-workspace-side-panel[data-auto] { display: contents; }
     .ade-workspace[data-layout="roomy"],
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { background: var(--separator); }
+    /* The gaps already set the sheet apart, and a shadow over them reads as a smudge. */
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { box-shadow: 0 0 0 1px var(--border); }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center { gap: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-sidebar:not([data-auto]) { margin-right: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-side-panel:not([data-auto]) { margin-left: 8px; }
