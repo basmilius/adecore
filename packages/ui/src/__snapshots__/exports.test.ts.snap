@@ -111,6 +111,7 @@ exports[`the public API . exports these names 1`] = `
   "sameDropPreview",
   "selectAllWithin",
   "selectionWithin",
+  "setFileIconOverride",
   "shortcut",
   "shortcutParts",
   "splitPanes",

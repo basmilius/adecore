@@ -34,6 +34,8 @@ const MENTION_RESULTS = 8;
 const REFERENCE_RESULTS = 20;
 
 /* The text of a prompt and what the person picked in it with `@`, `$` and `#`. */
+const NO_EXPANDING: readonly { name: string; hint: string; expand(args: string): Promise<string> }[] = [];
+
 export type PromptDraft = Pick<ChatDraft, 'text' | 'mentions' | 'skills' | 'chats' | 'references' | 'referenceNames'>;
 
 export interface PromptDraftBox<D extends PromptDraft> {
@@ -47,6 +49,7 @@ export interface ComposerCommand {
     name: string;
     hint: string;
     local: boolean;
+    expand?(args: string): Promise<string>;
     skill: boolean;
 }
 
@@ -146,6 +149,12 @@ export function usePromptMenus<D extends PromptDraft>({
 
     const commandQuery = text.startsWith('/') && !text.includes('\n') ? text.slice(1).trim().toLowerCase() : null;
 
+    const expanding = useChatHost().useExpandingCommands?.() ?? NO_EXPANDING;
+    const expandInto = (command: ComposerCommand): void => {
+        const args = text.replace(/^\/\S*\s*/, '');
+
+        void command.expand?.(args).then((expanded) => setText(expanded));
+    };
     const commandsOf = (query: string): ComposerCommand[] => {
         const known = new Set(skills.map((skill) => skill.name));
         const own = localCommands.map((name) => ({ name, hint: t(`composer.commands.${name}`), local: true, skill: false }));
@@ -161,7 +170,9 @@ export function usePromptMenus<D extends PromptDraft>({
                 skill: known.has(name)
             }));
 
-        return [...own, ...goal, ...cli].filter((command) => command.name.startsWith(query)).slice(0, 8);
+        const hosted = expanding.map((command) => ({ name: command.name, hint: command.hint, local: false, skill: false, expand: command.expand }));
+
+        return [...hosted, ...own, ...goal, ...cli].filter((command) => command.name.startsWith(query)).slice(0, 8);
     };
 
     const commands = commandQuery === null ? [] : commandsOf(commandQuery);
@@ -252,6 +263,14 @@ export function usePromptMenus<D extends PromptDraft>({
         }
 
         const result = insertReference(text, referenceQuery, item.name);
+
+        if (item.read !== undefined) {
+            setReferenceQuery(null);
+            void item.read().then((content) => setText(result.text.replace(`#${item.name}`, content)));
+
+            return;
+        }
+
         const chat = item.kind === 'chat';
 
         const add = (ids: string[]): string[] => (ids.includes(item.id) ? ids : [...ids, item.id]);
@@ -291,6 +310,12 @@ export function usePromptMenus<D extends PromptDraft>({
     const pickCommand = (command: ComposerCommand, index: number): void => {
         setMenuIndex(index);
 
+        if (command.expand !== undefined) {
+            expandInto(command);
+
+            return;
+        }
+
         if (command.skill) {
             chooseSkill(command.name);
 
@@ -303,6 +328,12 @@ export function usePromptMenus<D extends PromptDraft>({
 
     /* Tab on a command: a skill becomes its chip, any other is written out with a space for its arguments. */
     const completeCommand = (command: ComposerCommand): void => {
+        if (command.expand !== undefined) {
+            expandInto(command);
+
+            return;
+        }
+
         if (command.skill) {
             chooseSkill(command.name);
 

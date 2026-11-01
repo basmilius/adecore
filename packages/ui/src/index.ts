@@ -51,7 +51,7 @@ export { DockShell, type DockShellProps } from './DockShell.tsx';
 export { EmptyState, type EmptyStateProps } from './EmptyState.tsx';
 export { ErrorBoundary, type ErrorBoundaryProps } from './ErrorBoundary.tsx';
 export { Field, FieldHint, FormError, type FieldHintProps, type FieldProps, type FormErrorProps } from './Field.tsx';
-export { FileIcon, type FileIconProps } from './FileIcon.tsx';
+export { FileIcon, setFileIconOverride, type FileIconProps } from './FileIcon.tsx';
 export { Icon, type IconProps } from './Icon.tsx';
 export { IconButton, type IconButtonProps, type IconButtonSize } from './IconButton.tsx';
 export { IconPicker, type IconPickerGroup, type IconPickerProps } from './IconPicker.tsx';

@@ -48,6 +48,8 @@ export interface Referable {
     /* Where it stands, outermost first; its chip draws these in front of its name. */
     trail?: readonly ReferenceStep[];
     section?: ReferenceSection;
+    /* What it comes down to in the prompt, for a thing from outside the project that nothing else can read. */
+    read?(): Promise<string>;
 }
 
 export interface Referables {

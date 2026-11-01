@@ -374,6 +374,9 @@ export interface UiModelViewProps {
  * serve several scopes, so a function that is about one host of chats is told its scope id.
  */
 export interface ChatHost {
+    /* Commands of the host's own after `/`, which turn into the prompt instead of reaching the CLI. */
+    useExpandingCommands?(): readonly { name: string; hint: string; expand(args: string): Promise<string> }[];
+
     /* A tool call the host draws itself, under its line; null leaves it to the thread. */
     renderToolResult?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
 

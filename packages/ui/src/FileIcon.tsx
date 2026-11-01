@@ -15,9 +15,22 @@ export interface FileIconProps {
  * The one place the library steps outside Lucide. The glyphs are Seti's, and so are their colors: a
  * TypeScript blue is the mark of the file type, not a theme choice. Decorative like every other icon here.
  */
+let override: ((path: string) => string | null) | null = null;
+
+/* What an app knows better about a file's icon: the address of an svg, or null for the icon this set has. */
+export function setFileIconOverride(next: ((path: string) => string | null) | null): void {
+    override = next;
+}
+
 export function FileIcon({ path, size = 16, className, ref }: FileIconProps) {
     // Before the browser paints, so a `<use>` never points at a symbol that is not in the document yet.
     useInsertionEffect(mountFileIconSprite, []);
+
+    const own = override?.(path) ?? null;
+
+    if (own !== null) {
+        return <img src={own} alt="" width={size} height={size} className={clsx('file-icon', className)} />;
+    }
 
     return (
         <svg ref={ref} className={clsx('file-icon', className)} width={size} height={size} viewBox="0 0 16 16" aria-hidden>
