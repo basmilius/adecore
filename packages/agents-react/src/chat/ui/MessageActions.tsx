@@ -98,6 +98,7 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
                     )}
                 </ButtonGroup>
             )}
+            {host.renderMessageActions?.({ chatId, id: row.id, kind: row.kind, text: row.item.text })}
             <Tooltip label={formatDateTime(row.item.createdAt, TIMESTAMP_FORMAT)}>
                 <time
                     dateTime={new Date(row.item.createdAt).toISOString()}

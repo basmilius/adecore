@@ -374,6 +374,12 @@ export interface UiModelViewProps {
  * serve several scopes, so a function that is about one host of chats is told its scope id.
  */
 export interface ChatHost {
+    /* A tool call the host draws itself, under its line; null leaves it to the thread. */
+    renderToolResult?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
+
+    /* Beside a message's own actions. */
+    renderMessageActions?(message: { chatId: string; id: string; kind: 'user' | 'assistant'; text: string }): ReactNode;
+
     /* A fenced block the host draws itself, by its language; null leaves it to the code block. */
     renderCodeFence?(language: string | undefined, code: string): ReactNode;
 
