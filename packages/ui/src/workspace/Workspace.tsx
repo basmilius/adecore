@@ -85,8 +85,8 @@ export function Workspace({
         }
     });
 
-    // The content ends at the sheet's own edge, whatever stands beside it.
-    const context = { layout, edges: { top: !hasToolbar, right: true, bottom: true, left: !leftOpen } };
+    // The sheet's right edge is rounded, so panes along it keep their corners, whatever stands beside the sheet.
+    const context = { layout, edges: { top: !hasToolbar, right: false, bottom: true, left: !leftOpen } };
 
     return (
         <WorkspaceContext value={context}>
