@@ -130,7 +130,7 @@ describe('the frame of a block', () => {
             })
         );
 
-        const order = ['Live', 'Not read', 'Answered with “Fix 2”', '2 notes', 'Shown as text', 'The block is too large to draw'];
+        const order = ['Live', 'Not read', 'Fix 2', '2 notes', 'Shown as text', 'The block is too large to draw'];
         expect(order.map((words) => html.indexOf(words))).toEqual([...order.map((words) => html.indexOf(words))].sort((a, b) => a - b));
         expect(order.every((words) => html.includes(words))).toBe(true);
         expect(html).toContain('unknown_prop');
