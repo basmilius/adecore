@@ -1007,7 +1007,8 @@
         color: var(--text-muted);
     }
     .ade-document-tab:hover { color: var(--text); background: var(--surface-raised); }
-    .ade-document-tab[data-active] { color: var(--text); }
+    /* The weight of a pane's title, so a view reads the same as a tab and as the only view of its pane. */
+    .ade-document-tab[data-active] { color: var(--text); font-weight: 500; }
     .ade-document-tab[data-active]::after {
         content: "";
         position: absolute;
