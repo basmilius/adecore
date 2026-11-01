@@ -29,6 +29,7 @@ You hold the width. During a drag, `onWidthChange` reports whole pixels within `
 | `open` | `boolean` | | Required. |
 | `width` | `number` | | Required. In pixels, already clamped. |
 | `gap` | `number` | `0` | Space before the surface, in whole pixels. |
+| `edge` | `boolean` | `true` | The left border without a gap. Off in a `Workspace` side panel, whose left edge is the sheet's. |
 | `bounds` | `{ min: number; max(): number }` | | Required. `max` is read at drag time. |
 | `onWidthChange` | `(width: number) => void` | | Required. |
 | `instant` | `boolean` | `false` | |

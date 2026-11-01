@@ -16,6 +16,9 @@ export interface SlidingColumnProps {
     /* Space before the surface, in pixels. Replaces the border and carries the resize handle. */
     gap?: number;
 
+    /* The line before the surface without a gap; off beside something that draws an edge of its own, such as a workspace's sheet. */
+    edge?: boolean;
+
     bounds: { min: number; max(): number };
     onWidthChange(width: number): void;
 
@@ -40,7 +43,7 @@ export interface SlidingColumnProps {
  * The contents sit in an inner column of the stored width, so they do not reflow while the outer one
  * moves, and stay mounted until the slide is over, so a close plays out.
  */
-export function SlidingColumn({ open, width, gap = 0, bounds, onWidthChange, instant = false, body, className, ref, children }: SlidingColumnProps) {
+export function SlidingColumn({ open, width, gap = 0, edge = true, bounds, onWidthChange, instant = false, body, className, ref, children }: SlidingColumnProps) {
     /* Closed and done animating. */
     const [settled, setSettled] = useState(!open);
 
@@ -92,7 +95,7 @@ export function SlidingColumn({ open, width, gap = 0, bounds, onWidthChange, ins
                 <div
                     ref={body?.ref}
                     tabIndex={body ? -1 : undefined}
-                    className={clsx('relative flex h-full shrink-0 flex-col bg-surface outline-none', spacing === 0 && 'border-l border-border')}
+                    className={clsx('relative flex h-full shrink-0 flex-col bg-surface outline-none', spacing === 0 && edge && 'border-l border-border')}
                     style={{ width, marginLeft: spacing }}
                     onKeyDown={body?.onKeyDown}
                 >
