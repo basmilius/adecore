@@ -10,7 +10,7 @@ import { UsageLimits, UsageLimitsCard } from '@adecore/agents-react/usage';
 
 `UsageLimits()` is the usage page's section: a card per account with a bar and reset time per window, or why an account has no numbers, with sign-in when the host has `openLogin`. It reads the scope in context.
 
-`UsageLimitsCard({ children })` shows the same numbers in a hover card over your own trigger. It asks the host only once opened.
+`UsageLimitsCard({ side, children })` shows the same numbers in a hover card over your own trigger. It asks the host only once opened. `side` is `'top'` by default; `'left'` opens it beside a trigger at the window's right edge.
 
 ```tsx
 <UsageLimitsCard>

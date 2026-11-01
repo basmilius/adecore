@@ -27,14 +27,21 @@ function CardBody({ folded, onFoldedChange }: { folded: ReadonlySet<string>; onF
  * What is left of each plan, without opening the usage dialog. A hover card rather than a tooltip:
  * the bars take a moment to read, and it stays open while the pointer travels to it.
  */
-export function UsageLimitsCard({ children }: { children: ReactElement<Record<string, unknown>> }) {
+export function UsageLimitsCard({
+    side = 'top',
+    children
+}: {
+    /* Where the card opens: above a button in a footer, or `left` beside one in a column at the window's right edge. */
+    side?: 'top' | 'left';
+    children: ReactElement<Record<string, unknown>>;
+}) {
     const [opened, setOpened] = useState(false);
     const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
 
     return (
         <PreviewCard.Root onOpenChange={(open) => open && setOpened(true)}>
             <PreviewCard.Trigger render={children} delay={500} />
-            <PreviewCard.Popup side="top" align="end" className="w-85 p-2">
+            <PreviewCard.Popup side={side} align="end" className="w-85 p-2">
                 {opened && <CardBody folded={folded} onFoldedChange={setFolded} />}
             </PreviewCard.Popup>
         </PreviewCard.Root>
