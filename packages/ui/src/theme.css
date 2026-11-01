@@ -842,8 +842,7 @@
         min-width: 0;
         min-height: 0;
         overflow: hidden;
-        /* Rounded where it meets the window's top, square where it stands on the window's bottom. */
-        border-radius: 0 12px 0 0;
+        border-radius: 0 12px 12px 0;
         /* The surface its regions draw, so no lighter ground shows where the rounded edge cuts them. Roomy shows its gaps in it. */
         background: var(--surface);
         box-shadow: 0 0 0 1px var(--border), var(--sheet-shadow);
@@ -884,6 +883,8 @@
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { background: var(--separator); }
     /* The gaps already set the sheet apart, and a shadow over them reads as a smudge. */
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { box-shadow: 0 0 0 1px var(--border); }
+    /* Roomy's panes round their own corners, so the sheet's corner on the window's bottom stays square. */
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { border-bottom-right-radius: 0; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center { gap: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-sidebar:not([data-auto]) { margin-right: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-side-panel:not([data-auto]) { margin-left: 8px; }
