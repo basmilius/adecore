@@ -126,6 +126,16 @@ export default {
             waiting: 'Wacht op de volgende beurt',
             dropped: 'Vervallen voordat de agent het las'
         },
+        sent: {
+            heading: 'Bericht aan {{name}}',
+            to: 'Aan',
+            sending: 'Bezig met versturen',
+            delivered: 'Afgeleverd',
+            waiting: 'Wacht tot de volgende beurt',
+            failed: 'Niet verstuurd',
+            showCall: 'Aanroep tonen',
+            hideCall: 'Aanroep verbergen'
+        },
         report: {
             heading: 'Rapport'
         },
@@ -293,6 +303,8 @@ export default {
         calls_other: '{{name}}, {{count}} aanroepen',
         edited_one: '{{count}} bestand bewerkt',
         edited_other: '{{count}} bestanden bewerkt',
+        sent_one: '{{count}} bericht verstuurd',
+        sent_other: '{{count}} berichten verstuurd',
         toolCalls_one: '{{count}} tool-aanroep',
         toolCalls_other: '{{count}} tool-aanroepen',
         otherCalls_one: '{{count}} andere tool-aanroep',

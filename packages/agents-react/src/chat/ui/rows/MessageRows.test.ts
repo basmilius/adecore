@@ -3,13 +3,13 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import type { ChatInfo, ChatNoteMessage, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatInfo, ChatNoteMessage, ChatToolItem, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
-import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatHost, type CommandLookSent } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';
-import { AssistantRow, NoteRow, ReplyHeader, SentMessageRow, UserRow } from './MessageRows';
+import { AssistantRow, NoteRow, ReplyHeader, SentByAgentRow, SentMessageRow, UserRow } from './MessageRows';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 
 const scope: ChatScope = {
@@ -254,6 +254,59 @@ describe('a message another node sent', () => {
     test('a sender gone since keeps the name it had', () => {
         const html = renderMessage({ from: 'term-gone', title: 'Build shell', text: 'Green' });
         expect(html).toMatch(/data-chip="gone"[^>]*>.*Build shell<\/span>/);
+    });
+});
+
+describe('a message this chat sent', () => {
+    const referables = { items: [{ id: 'chat-lead', name: 'Commander', kind: 'chat' as const, group: 'views' as const }], chatsOnly: false };
+    const call = {
+        id: 'call',
+        kind: 'tool',
+        createdAt: 1,
+        turnId: null,
+        toolUseId: 'call',
+        name: 'Bash',
+        input: { command: 'x' },
+        output: '',
+        state: 'done',
+        parentToolUseId: null
+    } as ChatToolItem;
+
+    const renderSent = (sent: CommandLookSent) =>
+        renderToStaticMarkup(
+            createElement(
+                ChatHostProvider,
+                { host: { useReferables: () => referables, openReference: () => {} } },
+                createElement(
+                    I18nextProvider,
+                    { i18n },
+                    createElement(
+                        ChatScopeContext.Provider,
+                        { value: scope },
+                        createElement(SentByAgentRow, { chatId: 'parent', id: 'call', tool: call, sent })
+                    )
+                )
+            )
+        );
+
+    test('names where it went above the outlined text, and how it went below', () => {
+        const html = renderSent({ to: 'chat-lead', text: 'Pick up RP-42', state: 'delivered' });
+        expect(html).toMatch(/data-chip="reference"[^>]*>.*Commander<\/span>/);
+        expect(html).toContain('border border-border');
+        expect(html.indexOf('Commander')).toBeLessThan(html.indexOf('Pick up RP-42'));
+        expect(html.indexOf('Pick up RP-42')).toBeLessThan(html.indexOf('rows.sent.delivered'));
+    });
+
+    test('a target gone since keeps the name it had', () => {
+        const html = renderSent({ to: 'term-gone', title: 'Build shell', text: 'Green', state: 'waiting' });
+        expect(html).toMatch(/data-chip="gone"[^>]*>.*Build shell<\/span>/);
+        expect(html).toContain('rows.sent.waiting');
+    });
+
+    test('a failed one says why, and reads as not sent', () => {
+        const html = renderSent({ to: 'chat-lead', text: 'Hello', state: 'failed', reason: 'That runs no agent' });
+        expect(html).toContain('rows.sent.failed · That runs no agent');
+        expect(html).toContain('opacity-60');
     });
 });
 

@@ -22,6 +22,8 @@ export {
     type UiMapSource,
     type UiModelViewProps,
     type CommandLook,
+    type CommandLookCall,
+    type CommandLookSent,
     type CommandLookMatch,
     type CommandName,
     ChatHostProvider,

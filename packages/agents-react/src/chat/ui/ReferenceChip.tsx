@@ -2,7 +2,7 @@ import { useContext, type HTMLAttributes, type KeyboardEvent, type ReactNode } f
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { CircleOff } from 'lucide-react';
-import { Icon } from '@adecore/ui';
+import { Icon, Tooltip } from '@adecore/ui';
 import { useChatHost } from '../../host';
 import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_ICON_BOX, TOKEN_IN_MESSAGE } from './chips';
 import { referenceGlyph } from './reference-icons';
@@ -55,22 +55,30 @@ export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, class
 
 /*
  * A view, node or chat a message points at, under the name it has now. One that went says so, under
- * `lastName` when the message knows what it was called.
+ * `lastName` when the message knows what it was called, with `goneHint` on its tooltip when there is one.
  */
-export function ReferenceChip({ id, lastName }: { id: string; lastName?: string }) {
+export function ReferenceChip({ id, lastName, goneHint }: { id: string; lastName?: string; goneHint?: string }) {
     const { t } = useTranslation('agent-chat');
     const { items, open } = useContext(ReferenceLookupContext);
     const { ReferenceIcon } = useChatHost();
     const item = items.find((candidate) => candidate.id === id);
 
     if (item === undefined) {
-        return (
+        const chip = (
             <TokenChip
                 kind="gone"
                 icon={<Icon icon={CircleOff} size={14} className={TOKEN_ICON} />}
                 label={lastName || t('references.gone')}
                 tone={REFERENCE_GONE_TONE}
             />
+        );
+
+        return goneHint === undefined ? (
+            chip
+        ) : (
+            <Tooltip label={goneHint}>
+                <span className="inline-flex">{chip}</span>
+            </Tooltip>
         );
     }
 

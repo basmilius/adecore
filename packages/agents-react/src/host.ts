@@ -278,6 +278,30 @@ export interface CommandLookMatch {
     languages?: Readonly<Record<string, string>>;
 }
 
+/* A call of a look's program that may be a message, as `CommandLook.sent` gets it. */
+export interface CommandLookCall {
+    /* The words after the program, quotes taken out. */
+    readonly args: readonly string[];
+    /* The lines a heredoc feeds the command; null without one. */
+    readonly heredoc: string | null;
+    readonly state: 'running' | 'done' | 'error';
+    readonly output: string | null;
+}
+
+/* A message a call sent to another node of the app, drawn as said rather than as a tool line. */
+export interface CommandLookSent {
+    /* The id of the node it went to, for its chip. */
+    readonly to: string;
+    /* What the node was called when the message went, shown once the chip finds no node under `to`. */
+    readonly title?: string;
+    /* On the chip of a node it cannot find; the id `to` when left out. */
+    readonly hint?: string;
+    readonly text: string;
+    readonly state: 'sending' | 'delivered' | 'waiting' | 'failed';
+    /* Why a failed one did not go, in the app's words. */
+    readonly reason?: string;
+}
+
 /* A program the app recognizes inside a shell call and draws as a tool of its own. */
 export interface CommandLook {
     /* The program as it is run, matched on its last path segment. */
@@ -296,6 +320,11 @@ export interface CommandLook {
      * option the word is the value of, or null for a word that follows none.
      */
     useNames?(scopeId: string, chatId: string): (word: string, option: string | null) => CommandName | null;
+    /*
+     * The message a call sent, for a line that holds only this call and nothing the shell fills in; null
+     * leaves it a tool line. Asked again as the call goes on, so it answers from the state and the output.
+     */
+    sent?(call: CommandLookCall): CommandLookSent | null;
 }
 
 /*

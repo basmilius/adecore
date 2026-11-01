@@ -725,6 +725,81 @@ test("a subagent's handback call reads as its report, and one without a message 
     expect(rows[1]).toEqual({ kind: 'report', id: 'h1', text: '## Review\n\nAll good.' });
 });
 
+describe('a message sent with a command of a look', () => {
+    /* An invented CLI whose `say <id> <text>` is a message, read back from its state. */
+    const CHATTER: CommandLook = {
+        program: 'chatter',
+        Mark: () => null,
+        describe: ([verb]) =>
+            verb === undefined ? null : { label: verb, detailFrom: 1, group: { key: verb, sentence: (count) => `Used ${verb} ${count} times` } },
+        sent: ({ args, heredoc, state }) => {
+            const [verb, to, words] = args;
+
+            if (verb !== 'say' || to === undefined || (words ?? heredoc) === undefined) {
+                return null;
+            }
+
+            const said = words ?? heredoc;
+
+            return said === null ? null : { to, text: said, state: state === 'error' ? 'failed' : 'delivered' };
+        }
+    };
+
+    const LOOKS = [CHATTER];
+    const looked = { ...options, commandLooks: LOOKS };
+    const bash = (id: string, command: string, state: ChatToolItem['state'] = 'done'): ChatToolItem => tool(id, 'Bash', { command }, state);
+
+    test('a line of only that call becomes a row of its own, with tool lines kept apart around it', () => {
+        const items: ChatItem[] = [bash('1', 'ls'), bash('2', "chatter say chat-b 'on it'"), bash('3', 'ls')].map((call) => ({ ...call, turnId: null }));
+        const rows = deriveTimelineRows(items, looked);
+        expect(rows.map((row) => row.kind)).toEqual(['work-group', 'sent', 'work-group']);
+        expect(rows[1]).toMatchObject({ id: '2', sent: { to: 'chat-b', text: 'on it', state: 'delivered' } });
+    });
+
+    test.each([
+        ['another program in front', "cd x && chatter say chat-b 'hi'"],
+        ['a second call', "chatter say chat-b 'hi'; chatter say chat-c 'hi'"],
+        ['a pipe into it', 'echo hi | chatter say chat-b'],
+        ['a variable', 'chatter say chat-b "$MESSAGE"'],
+        ['a command substitution', 'chatter say chat-b "$(cat note.md)"'],
+        ['a verb that sends nothing', 'chatter read chat-b']
+    ])('%s stays a tool line', (_label, command) => {
+        const rows = deriveTimelineRows([{ ...bash('1', command), turnId: null }], looked);
+        expect(rows.map((row) => row.kind)).toEqual(['work-group']);
+    });
+
+    test('a dollar in single quotes is text, and the body of a quoted heredoc is the message', () => {
+        const dollar = deriveTimelineRows([{ ...bash('1', "chatter say chat-b 'costs $5'"), turnId: null }], looked);
+        expect(dollar[0]).toMatchObject({ kind: 'sent', sent: { text: 'costs $5' } });
+        const fed = deriveTimelineRows([{ ...bash('1', "chatter say chat-b <<'EOF'\ncosts $5\nEOF"), turnId: null }], looked);
+        expect(fed[0]).toMatchObject({ kind: 'sent', sent: { text: 'costs $5\n' } });
+        const filled = deriveTimelineRows([{ ...bash('1', 'chatter say chat-b <<EOF\ncosts $PRICE\nEOF'), turnId: null }], looked);
+        expect(filled.map((row) => row.kind)).toEqual(['work-group']);
+    });
+
+    test('a settled turn folds it with the work and says how many went, failed ones among the calls', () => {
+        const turn: ChatItem[] = [
+            { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 13_000, costUsd: 0 },
+            { id: 'u1', kind: 'user', createdAt: 1000, turnId: 't1', text: 'tell them' },
+            bash('1', "chatter say chat-b 'one'"),
+            bash('2', "chatter say chat-c 'two'"),
+            bash('3', "chatter say chat-d 'three'", 'error'),
+            { id: 'a1', kind: 'assistant', createdAt: 5000, turnId: 't1', text: 'Told them.', streaming: false }
+        ];
+
+        const rows = deriveTimelineRows(turn, looked);
+        expect(rows.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'assistant']);
+        expect(rows[1]).toMatchObject({ work: ['Sent 2 messages', '1 other tool call'] });
+        const open = deriveTimelineRows(turn, { ...looked, expandedTurns: new Set(['t1']) });
+        expect(open.filter((row) => row.kind === 'sent')).toHaveLength(3);
+    });
+
+    test('hiding the tool lines keeps it', () => {
+        const rows = deriveTimelineRows([{ ...bash('1', "chatter say chat-b 'hi'"), turnId: null }], { ...looked, hideTools: true });
+        expect(rows.map((row) => row.kind)).toEqual(['sent']);
+    });
+});
+
 describe('runs of a command look', () => {
     /* An invented CLI whose areas are its group keys. */
     const ORBIT: CommandLook = {

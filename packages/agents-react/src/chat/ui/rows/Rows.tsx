@@ -12,6 +12,7 @@ import {
     NoteRow,
     QuestionHistoryRow,
     ReportRow,
+    SentByAgentRow,
     SentMessageRow,
     ThinkingRow,
     UserRow
@@ -111,6 +112,8 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
             return <NoteRow id={row.id} level={row.level} text={row.text} from={row.from} said={row.said} />;
         case 'message':
             return <SentMessageRow chatId={chatId} id={row.id} message={row.message} />;
+        case 'sent':
+            return <SentByAgentRow chatId={chatId} id={row.id} tool={row.tool} sent={row.sent} />;
         case 'compaction':
             return <CompactionRow preTokens={row.preTokens} />;
         case 'working':

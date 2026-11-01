@@ -15,9 +15,9 @@ import type {
     ChatWorkflow
 } from '@adecore/agent-contracts';
 import { abortedByMachine } from '@adecore/agent-contracts';
-import type { CommandLook, ThreadCard } from '../../host';
+import type { CommandLook, CommandLookSent, ThreadCard } from '../../host';
 import { formatElapsedShort } from '@adecore/ui/format';
-import { matchCommandLook } from './command-looks';
+import { matchCommandLook, sentMessageOf } from './command-looks';
 import { isImageGeneration } from './generated-image';
 import { handbackReportOf } from './handback';
 import { toolEntry } from './tool-catalog';
@@ -58,6 +58,8 @@ export type TimelineRow =
     | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string; said?: true }
     // A message another node sent the chat, drawn as said to it under the name of its sender.
     | { kind: 'message'; id: string; message: ChatNoteMessage; createdAt: number }
+    // A message this chat's agent sent another node with a command of a look, drawn as said instead of as its call.
+    | { kind: 'sent'; id: string; tool: ChatToolItem; sent: CommandLookSent }
     | { kind: 'compaction'; id: string; preTokens: number | null }
     | {
           kind: 'changed-files';
@@ -103,7 +105,7 @@ function shownRows(rows: TimelineRow[], options: TimelineOptions): TimelineRow[]
  * against each other; prose and cards are blocks and need room around them. Where the two meet,
  * the block gap marks the seam, so an answer never looks glued to the call above it.
  */
-const BLOCK_KINDS = new Set<TimelineRow['kind']>(['assistant', 'report', 'thinking', 'changed-files', 'compaction', 'app-card', 'visual']);
+const BLOCK_KINDS = new Set<TimelineRow['kind']>(['assistant', 'report', 'sent', 'thinking', 'changed-files', 'compaction', 'app-card', 'visual']);
 
 export function isBlock(row: TimelineRow): boolean {
     return BLOCK_KINDS.has(row.kind) || isImageRow(row);
@@ -210,8 +212,13 @@ export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly C
         const command = shellCommand(tool.name, tool.input);
         const run = command === null ? null : matchCommandLook(command, looks);
         const group = run?.match.group;
+        const sent = sentMessageOf(tool, looks);
 
-        if (run !== null && group !== undefined) {
+        if (sent !== null && sent.state !== 'failed') {
+            add('agent-chat:group.sent', (count) => i18next.t('agent-chat:group.sent', { count }));
+        } else if (sent !== null) {
+            other += 1;
+        } else if (run !== null && group !== undefined) {
             // Keyed by the program too, so two looks with a key in common keep their own sentences.
             add(`look:${run.look.program}:${group.key}`, group.sentence);
         } else if (failedFileChange(tool)) {
@@ -385,6 +392,14 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
         }
 
         const report = handbackReportOf(item);
+        const sent = item.kind === 'tool' ? sentMessageOf(item, options.commandLooks) : null;
+
+        if (item.kind === 'tool' && sent !== null) {
+            flushTools(tools, rows, options);
+            rows.push({ kind: 'sent', id: item.id, tool: item, sent });
+
+            continue;
+        }
 
         if (item.kind === 'tool' && item.workflow !== undefined) {
             flushTools(tools, rows, options);

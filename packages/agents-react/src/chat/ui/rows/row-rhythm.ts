@@ -7,7 +7,8 @@ export const FOLLOW_THRESHOLD_PX = 40;
 
 /*
  * A seam where tool lines meet prose gets the block gap, and so does the row under a visual or an app's
- * card, which have no margin of their own. A question and the answer after it never take a seam.
+ * card, which have no margin of their own, and each end of a run of sent messages, which sit as tight as
+ * work lines so a fan-out reads as one stretch. A question and the answer after it never take a seam.
  */
 /* A person's message, or one another node sent: both are said to the chat and drawn the same way. */
 export function saidToChat(row: TimelineRow): boolean {
@@ -17,7 +18,11 @@ export function saidToChat(row: TimelineRow): boolean {
 export function rowRhythm(row: TimelineRow, previous: TimelineRow | null): string {
     const question = saidToChat(row);
     const bare = previous?.kind === 'visual' || previous?.kind === 'app-card';
-    const seam = !question && previous !== null && !saidToChat(previous) && (isBlock(row) !== isBlock(previous) || bare);
+    const seam =
+        !question &&
+        previous !== null &&
+        !saidToChat(previous) &&
+        (isBlock(row) !== isBlock(previous) || bare || (row.kind === 'sent') !== (previous.kind === 'sent'));
 
     return clsx(question && 'pb-(--chat-answer-gap)', seam && 'pt-(--chat-block-gap)');
 }

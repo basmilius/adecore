@@ -59,6 +59,7 @@ A program matches only where the shell runs it, by its last path segment, so `gr
 - `fold` options get their value shortened, `languages` options get it highlighted.
 - `useNames` is a hook. Its function gets each non-option word with the option before it, and may return a display name. The word stays on a tooltip and in find.
 - Calls of one look with the same `group.key` read as that group's `sentence`. Calls under different keys use the look's own `sentence`.
+- `sent` draws a call as a message the agent sent to another node, with the node's chip, its text and how it went, and the call one click away. It is asked only for a line that is exactly that one call with no word the shell fills in, and null leaves the call a tool line. A folded turn counts such messages in its summary.
 
 The opened call still shows the whole command. `matchCommandLook(command, looks)` returns what a row draws, for a find of your own.
 

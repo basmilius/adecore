@@ -126,6 +126,16 @@ export default {
             waiting: 'Waiting for the next turn',
             dropped: 'Expired before the agent read it'
         },
+        sent: {
+            heading: 'Message to {{name}}',
+            to: 'To',
+            sending: 'Sending',
+            delivered: 'Delivered',
+            waiting: 'Waiting until it takes its next turn',
+            failed: 'Not sent',
+            showCall: 'Show the call',
+            hideCall: 'Hide the call'
+        },
         report: {
             heading: 'Report'
         },
@@ -293,6 +303,8 @@ export default {
         calls_other: '{{name}} {{count}} calls',
         edited_one: 'Edited {{count}} file',
         edited_other: 'Edited {{count}} files',
+        sent_one: 'Sent {{count}} message',
+        sent_other: 'Sent {{count}} messages',
         toolCalls_one: '{{count}} tool call',
         toolCalls_other: '{{count}} tool calls',
         otherCalls_one: '{{count}} other tool call',

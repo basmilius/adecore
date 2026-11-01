@@ -86,3 +86,23 @@ describe('where a reply gets its header', () => {
         expect(replyHeader(prose('a1'), null)).toEqual({ at: null });
     });
 });
+
+describe('a run of sent messages', () => {
+    const sent = (id: string): TimelineRow => ({
+        kind: 'sent',
+        id,
+        tool: { id, kind: 'tool' } as ChatToolItem,
+        sent: { to: 'chat-b', text: 'hi', state: 'delivered' }
+    });
+
+    test('sits tight inside and takes the block gap at each end', () => {
+        expect(rowRhythm(sent('b'), sent('a'))).toBe('');
+        expect(rowRhythm(sent('a'), prose('p'))).toContain('chat-block-gap');
+        expect(rowRhythm(prose('p'), sent('a'))).toContain('chat-block-gap');
+        expect(rowRhythm(sent('a'), call('c'))).toContain('chat-block-gap');
+    });
+
+    test('takes no reply header of its own after it', () => {
+        expect(replyHeader(prose('p'), sent('a'))).toBeNull();
+    });
+});

@@ -1,7 +1,21 @@
 import { useContext, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Bot, Brain, Check, ChevronDown, CircleAlert, File, Info, MessageCircleQuestionMark, Reply, TriangleAlert, X } from 'lucide-react';
+import {
+    Bot,
+    Brain,
+    Check,
+    ChevronDown,
+    CircleAlert,
+    File,
+    Info,
+    MessageCircleQuestionMark,
+    Reply,
+    Send,
+    SquareTerminal,
+    TriangleAlert,
+    X
+} from 'lucide-react';
 import type {
     ChatApprovalItem,
     ChatAttachment,
@@ -9,6 +23,7 @@ import type {
     ChatNoteMessage,
     ChatQuestionItem,
     ChatThinkingItem,
+    ChatToolItem,
     ChatUiChoiceOrigin,
     ChatUserItem
 } from '@adecore/agent-contracts';
@@ -30,18 +45,19 @@ import { settledBlocksText } from '../markdown-blocks';
 import { WHOLE_FADE_CLASS } from '../rehype-fade';
 import { useRevealedText } from '../reveal';
 import { formatAgo, formatElapsedShort, formatMoment, formatTokens } from '@adecore/ui/format';
-import { Icon, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
+import { Icon, IconButton, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
 import { thoughtLine, thoughtPreview } from '../../logic/thought';
-import { toolSummary, toolSummaryIsPath } from '../../logic/tools';
+import { toolStartedAt, toolSummary, toolSummaryIsPath } from '../../logic/tools';
 import { ROW_GUTTER } from '../icons';
 import { useOpenForFind } from '../find-reveal';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
 import { UiReply } from '../intelligent-ui/UiReply';
-import { useChatHost, type ReplyAuthor } from '../../../host';
+import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host';
 import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
 import { REFERENCE_TONE, TOKEN_IN_MESSAGE } from '../chips';
 import { copySelectionWithChips } from '../chip-clipboard';
 import { useReferenceLookup } from '../thread-references';
+import { RunningFor, ToolBody } from './WorkRows';
 
 // A long prompt folds so the answer stays in view; the reader can open it.
 const USER_FOLD_LINES = 8;
@@ -201,7 +217,7 @@ export function SentMessageRow({ chatId, id, message }: { chatId: string; id: st
         <ReferenceLookupContext value={lookup}>
             <SaidMessage
                 id={id}
-                name={message.title || t('rows.message.unnamed')}
+                heading={t('rows.message.heading', { name: message.title || t('rows.message.unnamed') })}
                 chip={<ReferenceChip id={message.from} lastName={message.title} />}
                 text={message.text}
             />
@@ -210,8 +226,51 @@ export function SentMessageRow({ chatId, id, message }: { chatId: string; id: st
     );
 }
 
+/*
+ * A message this chat's agent sent another node: said by the agent, so outlined rather than filled like what is
+ * said to it, under a chip that names and opens where it went, with how it went and its call below.
+ */
+export function SentByAgentRow({ chatId, id, tool, sent }: { chatId: string; id: string; tool: ChatToolItem; sent: CommandLookSent }) {
+    const { t } = useTranslation('agent-chat');
+    const lookup = useReferenceLookup(chatId);
+    const [open, setOpen] = useState(false);
+    const name = sent.title || t('rows.message.unnamed');
+    const status = t(`rows.sent.${sent.state}`);
+
+    return (
+        <ReferenceLookupContext value={lookup}>
+            <SaidMessage
+                id={id}
+                heading={t('rows.sent.heading', { name })}
+                chip={
+                    <span className="flex items-center gap-1.5 text-xs text-text-muted">
+                        <Icon icon={Send} size={12} />
+                        {t('rows.sent.to')}
+                        <ReferenceChip id={sent.to} lastName={sent.title ?? ''} goneHint={sent.hint ?? sent.to} />
+                    </span>
+                }
+                text={sent.text}
+                outlined
+                dimmed={sent.state === 'failed'}
+            />
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-text-muted">
+                <span>{sent.reason === undefined ? status : `${status} · ${sent.reason}`}</span>
+                {sent.state === 'sending' && <RunningFor startedAt={toolStartedAt(tool)} />}
+                <IconButton
+                    icon={SquareTerminal}
+                    size="sm"
+                    label={t(open ? 'rows.sent.hideCall' : 'rows.sent.showCall')}
+                    onClick={() => setOpen((was) => !was)}
+                />
+            </div>
+            {open && <ToolBody tool={tool} chatId={chatId} />}
+        </ReferenceLookupContext>
+    );
+}
+
 /* What the host told the agent in front of a prompt, said under the host's own name, which the text no longer has to lead with. */
 function HostSaidRow({ id, text, author }: { id: string; text: string; author: ReplyAuthor }) {
+    const { t } = useTranslation('agent-chat');
     const prefix = `${author.name}: `;
     const words = text
         .split('\n\n')
@@ -221,7 +280,7 @@ function HostSaidRow({ id, text, author }: { id: string; text: string; author: R
     return (
         <SaidMessage
             id={id}
-            name={author.name}
+            heading={t('rows.message.heading', { name: author.name })}
             chip={
                 <span className={clsx(TOKEN_IN_MESSAGE, REFERENCE_TONE, 'inline-flex items-center gap-1')}>
                     {author.mark}
@@ -234,7 +293,21 @@ function HostSaidRow({ id, text, author }: { id: string; text: string; author: R
 }
 
 /* A message the person did not write: a bubble on the left, quieter than theirs, under a chip of who said it. A long one folds. */
-function SaidMessage({ id, name, chip, text }: { id: string; name: string; chip: ReactNode; text: string }) {
+function SaidMessage({
+    id,
+    heading,
+    chip,
+    text,
+    outlined = false,
+    dimmed = false
+}: {
+    id: string;
+    heading: string;
+    chip: ReactNode;
+    text: string;
+    outlined?: boolean;
+    dimmed?: boolean;
+}) {
     const { t } = useTranslation('agent-chat');
     const [open, setOpen] = useState(false);
     const long = text.split('\n').length > USER_FOLD_LINES || text.length > USER_FOLD_CHARS;
@@ -242,9 +315,15 @@ function SaidMessage({ id, name, chip, text }: { id: string; name: string; chip:
 
     return (
         <div data-find-item={id} className="flex flex-col items-start">
-            <MessageHeading>{t('rows.message.heading', { name })}</MessageHeading>
+            <MessageHeading>{heading}</MessageHeading>
             <div className="mb-1.5 flex max-w-[80%]">{chip}</div>
-            <div className="relative max-w-[80%] rounded-2xl bg-surface-hover px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text">
+            <div
+                className={clsx(
+                    'relative max-w-[80%] rounded-2xl px-3.5 py-2.5 text-sm wrap-anywhere text-text select-text',
+                    outlined ? 'border border-border' : 'bg-surface-hover',
+                    dimmed && 'opacity-60'
+                )}
+            >
                 <div data-find-field="text" className={clsx(long && !open && FOLD)}>
                     <MessageMarkdown text={text} />
                 </div>

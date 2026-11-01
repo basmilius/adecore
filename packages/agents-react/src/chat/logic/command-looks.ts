@@ -1,5 +1,7 @@
-import type { CommandLook, CommandLookMatch } from '../../host';
+import type { ChatToolItem } from '@adecore/agent-contracts';
+import type { CommandLook, CommandLookMatch, CommandLookSent } from '../../host';
 import { EMBEDDED_CODE_LIMIT, shellCommands, type EmbeddedCode, type ShellSimpleCommand, type ShellWord } from './embedded-code';
+import { shellCommand } from './tools';
 
 // A folded value keeps this many characters of what it says.
 const FOLD_LENGTH = 40;
@@ -32,6 +34,12 @@ export interface CommandLookRun {
     readonly more: number;
     /* Whether the command is fed a heredoc, which the detail leaves out. */
     readonly heredoc: boolean;
+    /* The words after the program, quotes taken out. */
+    readonly args: readonly string[];
+    /* The lines of its one heredoc, or null without one, with more, or with one the shell fills in. */
+    readonly heredocText: string | null;
+    /* Whether the shell fills in a part of a word, so its text here is not what the program gets. */
+    readonly expands: boolean;
 }
 
 const caches = new WeakMap<readonly CommandLook[], Map<string, CommandLookRun | null>>();
@@ -121,6 +129,43 @@ function detailOf(source: string, command: ShellSimpleCommand, match: CommandLoo
     return { detail, code, words };
 }
 
+/* Whether the shell would fill in a part of this source: a `$` or backtick outside single quotes and not escaped. */
+function expandsInShell(source: string): boolean {
+    let quote: "'" | '"' | null = null;
+
+    for (let i = 0; i < source.length; i++) {
+        const char = source[i];
+
+        if (quote === "'") {
+            quote = char === "'" ? null : quote;
+        } else if (char === '\\') {
+            i++;
+        } else if (char === '$' || char === '`') {
+            return true;
+        } else if (char === "'" && quote === null) {
+            quote = "'";
+        } else if (char === '"') {
+            quote = quote === null ? '"' : null;
+        }
+    }
+
+    return false;
+}
+
+/* The text of a command's only heredoc, as long as a quoted delimiter or plain text says the shell leaves it alone. */
+function heredocTextOf(source: string, command: ShellSimpleCommand): string | null {
+    const heredoc = command.heredocs.length === 1 ? command.heredocs[0] : undefined;
+
+    if (heredoc === undefined) {
+        return null;
+    }
+
+    const text = source.slice(heredoc.body.start, heredoc.body.end);
+    const quoted = /['"\\]/.test(source.slice(heredoc.start, heredoc.end));
+
+    return quoted || !/[$`\\]/.test(text) ? text : null;
+}
+
 function read(command: string, looks: readonly CommandLook[]): CommandLookRun | null {
     let found: { command: ShellSimpleCommand; look: CommandLook; match: CommandLookMatch } | null = null;
     let more = 0;
@@ -148,7 +193,10 @@ function read(command: string, looks: readonly CommandLook[]): CommandLookRun | 
         ...detailOf(command, found.command, found.match),
         others,
         more,
-        heredoc: found.command.heredocs.length > 0
+        heredoc: found.command.heredocs.length > 0,
+        args: found.command.words.slice(found.command.program!.index + 1).map(({ text }) => text),
+        heredocText: heredocTextOf(command, found.command),
+        expands: found.command.words.some((word) => expandsInShell(command.slice(word.start, word.end)))
     };
 }
 
@@ -183,4 +231,16 @@ export function matchCommandLook(command: string, looks: readonly CommandLook[] 
     }
 
     return run;
+}
+
+/* The message a shell call sent, per its look: only for a line that is exactly that one call, whose words are all known. */
+export function sentMessageOf(tool: ChatToolItem, looks: readonly CommandLook[] | undefined): CommandLookSent | null {
+    const command = shellCommand(tool.name, tool.input);
+    const run = command === null ? null : matchCommandLook(command, looks);
+
+    if (run === null || run.look.sent === undefined || run.others.length > 0 || run.more > 0 || run.expands) {
+        return null;
+    }
+
+    return run.look.sent({ args: run.args, heredoc: run.heredocText, state: tool.state, output: tool.output });
 }
