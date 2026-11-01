@@ -915,6 +915,9 @@
     }
     .ade-workspace-rail > :nth-child(1 of .ade-workspace-rail-separator) { margin-top: 3px; }
     .ade-workspace-rail-spacer { flex: 1; }
+    /* The window drags by the top row, except where a control or a pane's title answers the pointer. */
+    .ade-workspace-top-row { -webkit-app-region: drag; }
+    .ade-workspace-top-row :is(button, input, a, [role="tab"], .ade-pane-title) { -webkit-app-region: no-drag; }
     .ade-split-view {
         position: relative;
         isolation: isolate;

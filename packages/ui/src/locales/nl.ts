@@ -86,6 +86,9 @@ export default {
         pane: 'Paneel',
         movePane: 'Paneel verplaatsen',
         maximize: 'Paneel maximaliseren',
-        restore: 'Panelen herstellen'
+        restore: 'Panelen herstellen',
+        moreActions: 'Meer acties',
+        closePane: 'Paneel sluiten',
+        tools: 'Gereedschappen'
     }
 };

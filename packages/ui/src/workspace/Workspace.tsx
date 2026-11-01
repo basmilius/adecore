@@ -1,7 +1,7 @@
-import { type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
-import { WorkspaceContext, type WorkspaceLayout } from './context.ts';
+import { TopRowSlotContext, WorkspaceContext, type WorkspaceLayout } from './context.ts';
 
 export interface WorkspaceProps extends useRender.ComponentProps<'div'> {
     layout?: WorkspaceLayout;
@@ -46,6 +46,7 @@ export function Workspace({
     const leftOpen = hasSidebar && (sidebarOpen ?? true);
     const rightOpen = hasPanel && (sidePanelOpen ?? true);
     const hasToolbar = isPresent(toolbar);
+    const [topRowSlot, setTopRowSlot] = useState<HTMLElement | null>(null);
 
     const element = useRender({
         render,
@@ -87,5 +88,9 @@ export function Workspace({
     // The content ends at the sheet's own edge, whatever stands beside it.
     const context = { layout, edges: { top: !hasToolbar, right: true, bottom: true, left: !leftOpen } };
 
-    return <WorkspaceContext value={context}>{element}</WorkspaceContext>;
+    return (
+        <WorkspaceContext value={context}>
+            <TopRowSlotContext value={{ slot: topRowSlot, register: setTopRowSlot }}>{element}</TopRowSlotContext>
+        </WorkspaceContext>
+    );
 }

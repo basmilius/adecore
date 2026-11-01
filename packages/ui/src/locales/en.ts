@@ -86,6 +86,9 @@ export default {
         pane: 'Panel',
         movePane: 'Move panel',
         maximize: 'Maximize panel',
-        restore: 'Restore panels'
+        restore: 'Restore panels',
+        moreActions: 'More actions',
+        closePane: 'Close panel',
+        tools: 'Tools'
     }
 };

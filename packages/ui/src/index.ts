@@ -33,6 +33,7 @@ export type {
 export type { KeyValueListItemProps, KeyValueListNameProps, KeyValueListRootProps, KeyValueListValueProps } from './key-value-list/parts.tsx';
 export type { PopoverPopupProps, PopupVariant, PreviewCardPopupProps } from './popover/parts.tsx';
 export type { TabsCountProps, TabsListProps, TabsRootProps, TabsTabProps, TabsValue, TabsVariant } from './tabs/parts.tsx';
+export { tabDropIndex, useTabDrag, type TabDrag, type TabDragOptions } from './tabs/use-tab-drag.ts';
 
 export { AccentSwatches, type AccentSwatchesProps } from './AccentSwatches.tsx';
 export { Banner, type BannerProps, type BannerTone } from './Banner.tsx';
@@ -142,6 +143,9 @@ export type {
 
 export { Workspace, type WorkspaceProps } from './workspace/Workspace.tsx';
 export { WorkspaceRail, WorkspaceRailSeparator, WorkspaceRailSpacer, type WorkspaceRailProps } from './workspace/WorkspaceRail.tsx';
+export { WorkspaceTopRow, type WorkspaceTopRowProps } from './workspace/WorkspaceTopRow.tsx';
+export { useTopRowSlot } from './workspace/top-row-slot.ts';
+export { PaneBar, type PaneBarProps } from './workspace/PaneBar.tsx';
 export type { WorkspaceLayout } from './workspace/context.ts';
 export { DocumentTab, TabStrip, type DocumentTabProps, type TabStripProps, type TabStripItem } from './workspace/TabStrip.tsx';
 export { SplitView, type SplitViewProps, type SplitViewInfo, type SplitViewBounds, type SplitDropTarget, type SplitDrag } from './workspace/SplitView.tsx';
