@@ -1,6 +1,20 @@
 import { useState } from 'react';
-import { FileText, Moon, PanelLeft, PanelRight, Sun } from 'lucide-react';
-import { Button, Icon, IconButton, SplitView, Workspace, createSplitLayout, updateSplitLayout, type SplitLayout, type WorkspaceLayout } from '@adecore/ui';
+import { FileText, Folder, Moon, PanelLeft, Search, Settings, Sun } from 'lucide-react';
+import {
+    Button,
+    Icon,
+    IconButton,
+    SplitView,
+    Workspace,
+    WorkspaceRail,
+    WorkspaceRailSeparator,
+    WorkspaceRailSpacer,
+    WorkspaceTopRow,
+    createSplitLayout,
+    updateSplitLayout,
+    type SplitLayout,
+    type WorkspaceLayout
+} from '@adecore/ui';
 
 function initialLayout(): SplitLayout {
     const first = createSplitLayout(['Brief', 'Notes'], 'documents');
@@ -99,11 +113,20 @@ export default function WorkspaceDemo() {
                         }
                         sidePanel={panel && <div className="p-3 text-xs text-text-muted">Details</div>}
                         toolbar={
-                            <div className="flex h-12 items-center gap-2 px-2">
-                                <IconButton icon={PanelLeft} label="Toggle sidebar" active={sidebar} onClick={() => setSidebar(!sidebar)} />
-                                <span className="min-w-0 grow truncate text-sm">Project workspace</span>
-                                <IconButton icon={PanelRight} label="Toggle details" active={panel} onClick={() => setPanel(!panel)} />
-                            </div>
+                            <WorkspaceTopRow
+                                leading={<IconButton icon={PanelLeft} label="Toggle sidebar" active={sidebar} onClick={() => setSidebar(!sidebar)} />}
+                            >
+                                <span className="min-w-0 truncate text-sm text-text">Project workspace</span>
+                            </WorkspaceTopRow>
+                        }
+                        rail={
+                            <WorkspaceRail>
+                                <IconButton icon={Search} label="Search" tooltipSide="left" />
+                                <WorkspaceRailSeparator />
+                                <IconButton icon={Folder} label="Details" tooltipSide="left" active={panel} onClick={() => setPanel(!panel)} />
+                                <WorkspaceRailSpacer />
+                                <IconButton icon={Settings} label="Settings" tooltipSide="left" />
+                            </WorkspaceRail>
                         }
                     >
                         <SplitView

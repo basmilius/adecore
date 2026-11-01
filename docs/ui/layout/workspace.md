@@ -18,9 +18,74 @@ Type in a document, then move its tab. The text goes with it.
 
 The sidebar, the toolbar and the content lie on one sheet with a 12 pixel rounded right edge, a hairline and `--sheet-shadow`. The side panel and the `rail` sit behind it in a slightly darker well, and `--surface` inside the panel resolves to that well.
 
-`rail` is a column at the right edge, after the side panel. `WorkspaceRail` draws it 48 pixels wide, with `WorkspaceRailSeparator` between groups and `WorkspaceRailSpacer` to push the last group down. With 32 pixel buttons and one button before the first separator, that separator lands on the bottom line of a 47 pixel toolbar. The rail makes no stacking context, so a hover on it never covers the sheet's edge. Give its buttons `tooltipSide="left"`.
-
 Give the container a height; both components fill it. A page can hold several.
+
+## The top row, the rail and pane bars
+
+An app shell puts three parts around the content: a top row with the project, a rail with its tools, and a bar over each pane.
+
+`WorkspaceTopRow` is the 47 pixel band to pass as `toolbar`. `WorkspaceTopRowProps` takes `leading`, `children` and `slotless`, plus the props of a `<header>`. `leading` comes first: room for a window's own controls, or a button that brings a closed sidebar back. `children` is the project, a `ProjectSwitcher` or a strip of project tabs. After it the row keeps a slot, where the bar of a lone pane goes. `slotless` leaves the slot out, for project tabs that take the whole row. The window drags by every part of the row that is not a button, an input, a link, a tab or a pane's title.
+
+`rail` is a column at the right edge, after the side panel. `WorkspaceRail` draws it 48 pixels wide, labeled "Tools" unless you pass an `aria-label`; `WorkspaceRailProps` are the props of a `<nav>`. `WorkspaceRailSeparator` goes between groups and `WorkspaceRailSpacer` pushes the last group down. With 32 pixel buttons and one button before the first separator, that separator lands on the bottom line of the top row. The rail makes no stacking context, so a hover on it never covers the sheet's edge. Give its buttons `tooltipSide="left"`. A line stands between the rail and an open side panel, and fades with it.
+
+`PaneBar` is the bar over a pane. `PaneBarProps` take the props of a `<header>`, plus:
+
+| Prop | Type | |
+| --- | --- | --- |
+| `title` | `ReactNode` | Required. A glyph and a name, or a `TabStrip` with `tabs`. |
+| `tabs` | `boolean` | The title is a strip of tabs, which takes the bar's room. |
+| `actions` | `ReactNode` | The pane's own controls. Once the title has shrunk to its glyph and they still do not fit, they fold into a "More actions" popover. |
+| `compactActions` | `boolean` | Keeps the actions of a pane with tabs in the bar. Otherwise they get a bar of their own under it. |
+| `separated` | `boolean` | A separator between the title and the actions. |
+| `accessory`, `trailing` | `ReactNode` | After the title, and before the close button. |
+| `focused` | `boolean` | The pane has the focus; an unfocused bar is drawn on `--surface-idle`. |
+| `onClose`, `closeLabel`, `closeShortcut` | | The close button, drawn only with `onClose`. |
+| `menu` | `ReactNode` | The items of the bar's context menu. |
+| `onDragStart`, `onDragEnd` | | Makes the bar a handle that drags the pane. A press on a control inside it never starts a drag. |
+| `container` | `HTMLElement \| null` | An element to draw the bar in instead of over the pane. |
+
+`useTopRowSlot()` returns the top row's slot inside a `Workspace`, or null. Pass it as `container` when a pane stands alone, and its bar joins the project in the top row, after a separator. The bar stays the pane's in the React tree, so its drag events still reach the pane's handlers. In a split, leave `container` null and every pane keeps its own bar.
+
+```tsx
+import { useState } from 'react';
+import { Folder, GitBranch, Search, Settings } from 'lucide-react';
+import { IconButton, PaneBar, ProjectSwitcher, Workspace, WorkspaceRail, WorkspaceRailSeparator, WorkspaceRailSpacer, WorkspaceTopRow, useTopRowSlot } from '@adecore/ui';
+
+function ViewBar({ name, alone, onClose }: { name: string; alone: boolean; onClose(): void }) {
+    const slot = useTopRowSlot();
+    return <PaneBar title={name} focused onClose={onClose} closeLabel="Close view" container={alone ? slot : null} />;
+}
+
+function Shell() {
+    const [panel, setPanel] = useState<'files' | 'git' | null>(null);
+    const toggle = (kind: 'files' | 'git') => setPanel(panel === kind ? null : kind);
+    return (
+        <Workspace
+            toolbar={
+                <WorkspaceTopRow>
+                    <ProjectSwitcher current={project} groups={groups} onSelect={open} />
+                </WorkspaceTopRow>
+            }
+            rail={
+                <WorkspaceRail>
+                    <IconButton icon={Search} label="Search" tooltipSide="left" />
+                    <WorkspaceRailSeparator />
+                    <IconButton icon={Folder} label="Files" tooltipSide="left" active={panel === 'files'} onClick={() => toggle('files')} />
+                    <IconButton icon={GitBranch} label="Git" tooltipSide="left" active={panel === 'git'} onClick={() => toggle('git')} />
+                    <WorkspaceRailSpacer />
+                    <IconButton icon={Settings} label="Settings" tooltipSide="left" />
+                </WorkspaceRail>
+            }
+            sidePanel={panel && <SidePanel kind={panel} />}
+        >
+            <ViewBar name="Admin" alone onClose={close} />
+            <ViewBody />
+        </Workspace>
+    );
+}
+```
+
+A panel that has a toggle in the rail closes from there and needs no close button in its header. Give one to a panel that opens from a menu or a command instead.
 
 ## Controlled state
 

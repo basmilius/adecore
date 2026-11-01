@@ -60,6 +60,44 @@ The strip reads tabs from their props, so they must be direct children of `Tabs.
 
 <Demo src="layout/tabs-pinned" />
 
+## Dragging tabs
+
+`useTabDrag(options)` lets a person reorder a strip of tabs by dragging them, and drag one out into a window of its own. Spread `tabProps(key)` on each `Tabs.Tab`, put `strip` on the element around the tabs, and draw an element with the class `ade-tab-insertion` at `insertion` pixels from the strip's left while it is not null. The strip stays put while a tab is held; the line says where the tab lands, and the release moves it once. A press on a button inside a tab, such as its close button, stays that button's.
+
+`TabDragOptions` take `keys()` and `landingOf(key, index)`, which says where among the other tabs a drop before the `index`th of them lands, or null where it stays, so pinned tabs keep their own run. `onReorder(key, landing)` moves it. Leave out the rest for a strip that only reorders:
+
+- `onTearOut(key, center, width)`: the tab leaves the strip while held, pulled 24 pixels above or below it or out of the window. For a shell that follows a held tab into a new window.
+- `onTearOff(key, at)`: a release outside the window, for a shell that cannot follow while it is held; `at` is where the new window would stand on screen.
+- `dragsWindow(key)` and `onWindowDrag(key, grab)`: dragging this tab moves its window instead, as for the only tab in a window.
+- `onRelease(key, window)`: the pointer let go after a tear-out or a window drag.
+
+`tabDropIndex(strip, key, x)` counts the other tabs whose middle is left of `x`, for a drop that comes from another window. `TabDrag` is the return type.
+
+```tsx
+import { Tabs, useTabDrag } from '@adecore/ui';
+
+function ProjectTabs({ projects, active, onSelect, onMove, onOpenWindow }: ProjectTabsProps) {
+    const { strip, insertion, tabProps } = useTabDrag({
+        keys: () => projects.map((project) => project.key),
+        landingOf: (key, index) => index,
+        onReorder: onMove,
+        onTearOff: (key, at) => onOpenWindow(key, at)
+    });
+    return (
+        <Tabs.Root ref={strip} value={active} onValueChange={(value) => onSelect(String(value))} className="relative flex min-w-0 grow">
+            <Tabs.List variant="pill" overflow="scroll">
+                {projects.map((project) => (
+                    <Tabs.Tab key={project.key} value={project.key} {...tabProps(project.key)}>
+                        {project.name}
+                    </Tabs.Tab>
+                ))}
+            </Tabs.List>
+            {insertion !== null && <span aria-hidden className="ade-tab-insertion" style={{ left: insertion }} />}
+        </Tabs.Root>
+    );
+}
+```
+
 ## Panels
 
 `Tabs.Panel` holds one tab's view and links it to the tab for screen readers. Only the picked panel is mounted, unless it has `keepMounted`. A screen that draws its own view below the strip can leave the panels out.
