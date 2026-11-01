@@ -374,6 +374,9 @@ export interface UiModelViewProps {
  * serve several scopes, so a function that is about one host of chats is told its scope id.
  */
 export interface ChatHost {
+    /* A fenced block the host draws itself, by its language; null leaves it to the code block. */
+    renderCodeFence?(language: string | undefined, code: string): ReactNode;
+
     intelligentUi?: {
         subscribe?(scopeId: string, chatId: string, changed: () => void): () => void;
         link?(scopeId: string, payload: ChatUiLinkPayload): Promise<ChatUiLinkReading>;

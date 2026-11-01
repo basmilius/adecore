@@ -248,13 +248,14 @@ function Diagram({ code }: { code: string }) {
 
 function MarkdownCode({ className, children, plain = false }: { className?: string; children?: ReactNode; plain?: boolean }) {
     const block = useContext(BlockCodeContext);
+    const { renderCodeFence } = useChatHost();
     const text = String(children ?? '');
 
     if (block) {
         const lang = languageOf(className);
         const code = text.replace(/\n$/, '');
 
-        return lang === 'mermaid' ? <Diagram code={code} /> : <CodeBlock code={code} lang={lang} />;
+        return renderCodeFence?.(lang, code) ?? (lang === 'mermaid' ? <Diagram code={code} /> : <CodeBlock code={code} lang={lang} />);
     }
 
     return plain ? <PlainCode text={text} /> : <InlineCode text={text} />;
