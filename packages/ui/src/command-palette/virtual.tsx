@@ -90,8 +90,29 @@ export function CommandPaletteVirtualList<ItemValue, Group extends { items: read
         const highlight = (index: number, reason: string): void => {
             const row = itemRows[index];
 
-            if (row !== undefined && reason !== 'pointer') {
-                virtualizer.scrollToIndex(row, { align: reason === 'none' ? 'start' : 'auto' });
+            if (row === undefined || reason === 'pointer') {
+                return;
+            }
+
+            // The first item of a group brings its label along, so the list never opens on half a label.
+            const label = row > 0 && rows[row - 1]!.index === -1 ? row - 1 : null;
+
+            if (reason === 'none') {
+                const target = label ?? row;
+
+                if (target === 0) {
+                    virtualizer.scrollToOffset(0);
+                } else {
+                    virtualizer.scrollToIndex(target, { align: 'start' });
+                }
+
+                return;
+            }
+
+            virtualizer.scrollToIndex(row, { align: 'auto' });
+
+            if (label !== null) {
+                virtualizer.scrollToIndex(label, { align: 'auto' });
             }
         };
 
@@ -102,7 +123,7 @@ export function CommandPaletteVirtualList<ItemValue, Group extends { items: read
                 scroll.current = null;
             }
         };
-    }, [scroll, virtualizer, itemRows]);
+    }, [scroll, virtualizer, itemRows, rows]);
 
     const visible = virtualizer.getVirtualItems();
     const visibleGroups = new Map<number, typeof visible>();
