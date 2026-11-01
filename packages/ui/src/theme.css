@@ -821,15 +821,30 @@
 }
 
 @layer components {
+    /* The sidebar and the content lie on one sheet, which stands over the side panel and the rail with its
+       own edge and shadow; those two sit a step darker, in the well behind it. */
     .ade-workspace {
+        --workspace-well: color-mix(in srgb, var(--surface) 70%, var(--surface-sunken));
         display: flex;
         width: 100%;
         height: 100%;
         min-width: 0;
         min-height: 0;
         overflow: hidden;
-        background: var(--separator);
+        background: var(--workspace-well);
         --border: var(--separator);
+    }
+    .ade-workspace-sheet {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex: 1;
+        min-width: 0;
+        min-height: 0;
+        overflow: hidden;
+        border-radius: 0 12px 12px 0;
+        background: var(--separator);
+        box-shadow: 0 0 0 1px var(--border), var(--sheet-shadow);
     }
     .ade-workspace-center {
         display: flex;
@@ -846,7 +861,8 @@
         background: var(--surface);
     }
     .ade-workspace-sidebar { border-right: 1px solid var(--separator); }
-    .ade-workspace-side-panel { border-left: 1px solid var(--separator); }
+    /* What draws a surface inside the panel draws the well instead. Its left edge is the sheet's. */
+    .ade-workspace-side-panel { --surface: var(--workspace-well); }
     .ade-workspace-toolbar {
         flex: none;
         overflow: hidden;
@@ -861,44 +877,15 @@
         overflow: hidden;
         background: var(--surface);
     }
-    /* Flat, the sheet is only there to keep the tree the same for both variants. */
-    .ade-workspace-sheet { display: contents; }
+    .ade-workspace-sidebar[data-auto], .ade-workspace-side-panel[data-auto] { display: contents; }
+    .ade-workspace[data-layout="roomy"] { background: var(--separator); }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center { gap: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-sidebar:not([data-auto]) { margin-right: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-side-panel:not([data-auto]) { margin-left: 8px; }
-    .ade-workspace-sidebar[data-auto], .ade-workspace-side-panel[data-auto] { display: contents; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-sidebar,
-    .ade-workspace[data-layout="roomy"] > .ade-workspace-side-panel,
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-toolbar { border: 0; }
-    .ade-workspace[data-layout="roomy"][data-sidebar] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-toolbar { border-bottom-left-radius: 8px; }
-    .ade-workspace[data-layout="roomy"]:is([data-side-panel], [data-rail]) > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-toolbar { border-bottom-right-radius: 8px; }
-
-    /* Sheet: the sidebar and the content lie on one sheet, which stands over the side panel and the rail
-       with its own edge and shadow; those two sit a step darker, in the well behind it. */
-    .ade-workspace[data-variant="sheet"] {
-        --workspace-well: color-mix(in srgb, var(--surface) 70%, var(--surface-sunken));
-        background: var(--workspace-well);
-    }
-    .ade-workspace[data-variant="sheet"][data-layout="roomy"] { background: var(--separator); }
-    .ade-workspace[data-variant="sheet"] > .ade-workspace-sheet {
-        position: relative;
-        z-index: 1;
-        display: flex;
-        flex: 1;
-        min-width: 0;
-        min-height: 0;
-        overflow: hidden;
-        border-radius: 0 12px 12px 0;
-        background: var(--separator);
-        box-shadow: 0 0 0 1px var(--border), var(--sheet-shadow);
-    }
-    /* What draws a surface inside the panel draws the well instead. */
-    .ade-workspace[data-variant="sheet"] > .ade-workspace-side-panel {
-        --surface: var(--workspace-well);
-        border-left: 0;
-    }
-    .ade-workspace[data-variant="sheet"][data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-toolbar { border-radius: 0 0 8px 8px; }
-    .ade-workspace[data-variant="sheet"][data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-content { border-radius: 8px 8px 0 0; }
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-toolbar { border-radius: 0 0 8px 8px; }
+    .ade-workspace[data-layout="roomy"][data-toolbar] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-content { border-radius: 8px 8px 0 0; }
 
     .ade-workspace-rail {
         display: flex;
@@ -912,10 +899,9 @@
         padding: 7px 0 8px;
         background: var(--workspace-well, var(--surface));
     }
-    .ade-workspace[data-variant="flat"] > .ade-workspace-rail { border-left: 1px solid var(--separator); }
     /* No line beside the sheet, whose rounded edge shows while the panel is closed; one beside an open panel. */
-    .ade-workspace[data-variant="sheet"][data-side-panel] > .ade-workspace-rail { box-shadow: inset 1px 0 var(--separator); }
-    .ade-workspace[data-layout="roomy"] > .ade-workspace-rail { margin-left: 8px; border-left: 0; box-shadow: none; }
+    .ade-workspace[data-side-panel] > .ade-workspace-rail { box-shadow: inset 1px 0 var(--separator); }
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-rail { margin-left: 8px; box-shadow: none; }
     .ade-workspace-rail-separator {
         flex: none;
         width: 20px;
@@ -973,8 +959,6 @@
     .ade-split-divider[aria-orientation="horizontal"]::after { inset-inline: 0; top: -1px; height: 2px; }
     .ade-split-view[data-layout="roomy"] > .ade-split-divider[aria-orientation="vertical"]::after { left: 3px; }
     .ade-split-view[data-layout="roomy"] > .ade-split-divider[aria-orientation="horizontal"]::after { top: 3px; }
-    .ade-workspace[data-layout="roomy"][data-toolbar][data-sidebar] > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-content { border-top-left-radius: 8px; }
-    .ade-workspace[data-layout="roomy"][data-toolbar]:is([data-side-panel], [data-rail]) > .ade-workspace-sheet > .ade-workspace-center > .ade-workspace-content { border-top-right-radius: 8px; }
     .ade-split-divider:is(:hover, :focus-visible, [data-resizing])::after { background: var(--accent); }
     .ade-drop-preview {
         position: absolute;

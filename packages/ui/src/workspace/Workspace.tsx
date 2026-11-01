@@ -1,14 +1,10 @@
 import { type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
-import { WorkspaceContext, type WorkspaceLayout, type WorkspaceVariant } from './context.ts';
+import { WorkspaceContext, type WorkspaceLayout } from './context.ts';
 
 export interface WorkspaceProps extends useRender.ComponentProps<'div'> {
     layout?: WorkspaceLayout;
-
-    /** `sheet` lays the sidebar and the content on one raised sheet, with the side panel and the rail behind it. */
-    variant?: WorkspaceVariant;
-
     toolbar?: ReactNode;
     sidebar?: ReactNode;
     sidePanel?: ReactNode;
@@ -26,9 +22,9 @@ export interface WorkspaceProps extends useRender.ComponentProps<'div'> {
 
 const isPresent = (node: ReactNode): boolean => node !== undefined && node !== null && node !== false;
 
+/** The sidebar, the toolbar and the content on one raised sheet, with the side panel and the rail behind it. */
 export function Workspace({
     layout = 'standard',
-    variant = 'flat',
     toolbar,
     sidebar,
     sidePanel,
@@ -50,7 +46,6 @@ export function Workspace({
     const leftOpen = hasSidebar && (sidebarOpen ?? true);
     const rightOpen = hasPanel && (sidePanelOpen ?? true);
     const hasToolbar = isPresent(toolbar);
-    const sheet = variant === 'sheet';
 
     const element = useRender({
         render,
@@ -61,14 +56,12 @@ export function Workspace({
             className: clsx('ade-workspace', className),
             style,
             'data-layout': layout,
-            'data-variant': variant,
             'data-toolbar': hasToolbar || undefined,
             'data-sidebar': leftOpen || undefined,
             'data-side-panel': rightOpen || undefined,
             'data-rail': hasRail || undefined,
             children: (
                 <>
-                    {/* Also there while flat, where it takes no box, so a change of variant remounts nothing inside it. */}
                     <div className="ade-workspace-sheet">
                         {hasSidebar && (
                             <aside className="ade-workspace-sidebar" data-auto={sidebarWidth === 'auto' || undefined} style={{ width: sidebarWidth }}>
@@ -91,8 +84,8 @@ export function Workspace({
         }
     });
 
-    // On a sheet the content ends at the sheet's own edge, whatever stands beside it.
-    const context = { layout, edges: { top: !hasToolbar, right: sheet || (!rightOpen && !hasRail), bottom: true, left: !leftOpen } };
+    // The content ends at the sheet's own edge, whatever stands beside it.
+    const context = { layout, edges: { top: !hasToolbar, right: true, bottom: true, left: !leftOpen } };
 
     return <WorkspaceContext value={context}>{element}</WorkspaceContext>;
 }

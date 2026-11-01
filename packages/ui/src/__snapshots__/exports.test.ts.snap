@@ -279,7 +279,6 @@ exports[`the public API . exports these names 1`] = `
   "type WorkspaceLayout",
   "type WorkspaceProps",
   "type WorkspaceRailProps",
-  "type WorkspaceVariant",
   "type ZoomControlsProps",
   "type ZoomLabels",
   "type ZoomSelection",
