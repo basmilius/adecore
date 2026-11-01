@@ -43,7 +43,19 @@ export interface SlidingColumnProps {
  * The contents sit in an inner column of the stored width, so they do not reflow while the outer one
  * moves, and stay mounted until the slide is over, so a close plays out.
  */
-export function SlidingColumn({ open, width, gap = 0, edge = true, bounds, onWidthChange, instant = false, body, className, ref, children }: SlidingColumnProps) {
+export function SlidingColumn({
+    open,
+    width,
+    gap = 0,
+    edge = true,
+    bounds,
+    onWidthChange,
+    instant = false,
+    body,
+    className,
+    ref,
+    children
+}: SlidingColumnProps) {
     /* Closed and done animating. */
     const [settled, setSettled] = useState(!open);
 
