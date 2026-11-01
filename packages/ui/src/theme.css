@@ -842,7 +842,8 @@
         min-width: 0;
         min-height: 0;
         overflow: hidden;
-        border-radius: 0 12px 12px 0;
+        /* Rounded where it meets the window's top, square where it stands on the window's bottom. */
+        border-radius: 0 12px 0 0;
         /* The surface its regions draw, so no lighter ground shows where the rounded edge cuts them. Roomy shows its gaps in it. */
         background: var(--surface);
         box-shadow: 0 0 0 1px var(--border), var(--sheet-shadow);

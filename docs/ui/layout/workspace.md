@@ -16,7 +16,7 @@ Type in a document, then move its tab. The text goes with it.
 
 `WorkspaceLayout` is `'standard' | 'roomy'`. Standard, the default, draws a 1 pixel `--separator` line between surfaces. Roomy puts 8 pixel gaps between them and rounds their corners by 8, except a corner on a flush outer edge.
 
-The sidebar, the toolbar and the content lie on one sheet with a 12 pixel rounded right edge, a hairline and `--sheet-shadow`. The side panel and the `rail` sit behind it in a slightly darker well, and `--surface` inside the panel resolves to that well.
+The sidebar, the toolbar and the content lie on one sheet with a 12 pixel rounded top right corner, a hairline and `--sheet-shadow`. The side panel and the `rail` sit behind it in a slightly darker well, and `--surface` inside the panel resolves to that well.
 
 Give the container a height; both components fill it. A page can hold several.
 
