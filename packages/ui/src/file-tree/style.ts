@@ -22,6 +22,8 @@ export const FILE_TREE_CSS = `
     [data-item-section="content"] [data-truncate-content] { direction: ltr; }
     [data-item-section="content"] :where([data-truncate-content="overflow"], [data-truncate-marker-cell], [data-truncate-fill]) { display: none; }
     [data-item-section="git"] { margin-inline-end: var(--adecore-tree-status-space, 0px); }
+    /* The engine lifts the dot to the text's x-height; in a row of marks it belongs in the middle, with them. */
+    [data-item-section="git"] [data-icon-name="file-tree-icon-dot"] { transform: none; }
     ::highlight(${MATCH_HIGHLIGHT}) { background-color: var(--match); color: inherit; }
     [data-tree-port] { position: absolute; z-index: 4; display: flex; align-items: center; height: 25px; pointer-events: none; }
     [data-tree-port] > slot { pointer-events: auto; }
