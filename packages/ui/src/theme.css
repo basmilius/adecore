@@ -1005,10 +1005,11 @@
         gap: 4px;
         padding: 0 8px 0 12px;
         color: var(--text-muted);
+        /* The weight of a pane's title, so a view reads the same as a tab and as the only view of its pane. */
+        font-weight: 500;
     }
     .ade-document-tab:hover { color: var(--text); background: var(--surface-raised); }
-    /* The weight of a pane's title, so a view reads the same as a tab and as the only view of its pane. */
-    .ade-document-tab[data-active] { color: var(--text); font-weight: 500; }
+    .ade-document-tab[data-active] { color: var(--text); }
     .ade-document-tab[data-active]::after {
         content: "";
         position: absolute;
@@ -1024,7 +1025,8 @@
         min-width: 0;
         max-width: 160px;
         align-items: center;
-        gap: 6px;
+        /* As far from its icon as a pane's title stands from its glyph. */
+        gap: 8px;
         font-size: var(--text-sm);
         color: inherit;
         outline-offset: -2px;
