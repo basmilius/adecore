@@ -16,7 +16,7 @@ export interface SlidingColumnProps {
     /* Space before the surface, in pixels. Replaces the border and carries the resize handle. */
     gap?: number;
 
-    /* The line before the surface without a gap; off beside something that draws an edge of its own, such as a workspace's sheet. */
+    /* The line before the surface without a gap; off beside something that draws an edge of its own over that pixel, such as a workspace's sheet. */
     edge?: boolean;
 
     bounds: { min: number; max(): number };
@@ -107,7 +107,11 @@ export function SlidingColumn({
                 <div
                     ref={body?.ref}
                     tabIndex={body ? -1 : undefined}
-                    className={clsx('relative flex h-full shrink-0 flex-col bg-surface outline-none', spacing === 0 && edge && 'border-l border-border')}
+                    className={clsx(
+                        'relative flex h-full shrink-0 flex-col bg-surface outline-none',
+                        // Without its line the pixel stays, under the edge beside it, so the contents keep their place.
+                        spacing === 0 && clsx('border-l', edge ? 'border-border' : 'border-transparent')
+                    )}
                     style={{ width, marginLeft: spacing }}
                     onKeyDown={body?.onKeyDown}
                 >
