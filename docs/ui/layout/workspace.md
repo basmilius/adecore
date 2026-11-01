@@ -12,9 +12,13 @@ Type in a document, then move its tab. The text goes with it.
 
 ## Layout and appearance
 
-`WorkspaceProps` takes `layout`, `toolbar`, `sidebar`, `sidePanel`, `sidebarWidth`, `sidePanelWidth` and `children`, plus `className`, `ref`, `render` and the props of a `<div>`. A region left out, `false` or `null` is closed. The sidebar is 248 pixels wide and the side panel 320. For a resizable region, bring your own handle. Width `'auto'` is for contents that size and animate themselves, such as `SlidingColumn`s. Those stay mounted when closed, so pass `sidebarOpen` or `sidePanelOpen` for the corners and flush edges to follow.
+`WorkspaceProps` takes `layout`, `variant`, `toolbar`, `sidebar`, `sidePanel`, `rail`, `sidebarWidth`, `sidePanelWidth` and `children`, plus `className`, `ref`, `render` and the props of a `<div>`. A region left out, `false` or `null` is closed. The sidebar is 248 pixels wide and the side panel 320. For a resizable region, bring your own handle. Width `'auto'` is for contents that size and animate themselves, such as `SlidingColumn`s. Those stay mounted when closed, so pass `sidebarOpen` or `sidePanelOpen` for the corners and flush edges to follow.
 
 `WorkspaceLayout` is `'standard' | 'roomy'`. Standard, the default, draws a 1 pixel `--separator` line between surfaces. Roomy puts 8 pixel gaps between them and rounds their corners by 8, except a corner on a flush outer edge.
+
+`WorkspaceVariant` is `'flat' | 'sheet'`. Flat, the default, lays every region side by side. Sheet puts the sidebar and the content on one sheet with a 12 pixel rounded right edge, a hairline and `--sheet-shadow`. The side panel and the `rail` sit behind it in a slightly darker well, and `--surface` inside the panel resolves to that well. Both variants render the same tree, so a switch remounts nothing.
+
+`rail` is a column at the right edge, after the side panel. `WorkspaceRail` draws it 48 pixels wide, with `WorkspaceRailSeparator` between groups and `WorkspaceRailSpacer` to push the last group down. With 32 pixel buttons and one button before the first separator, that separator lands on the bottom line of a 47 pixel toolbar. The rail makes no stacking context, so a hover on it never covers the sheet's edge. Give its buttons `tooltipSide="left"`.
 
 Give the container a height; both components fill it. A page can hold several.
 

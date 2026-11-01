@@ -141,7 +141,8 @@ export type {
 } from './tree/parts.tsx';
 
 export { Workspace, type WorkspaceProps } from './workspace/Workspace.tsx';
-export type { WorkspaceLayout } from './workspace/context.ts';
+export { WorkspaceRail, WorkspaceRailSeparator, WorkspaceRailSpacer, type WorkspaceRailProps } from './workspace/WorkspaceRail.tsx';
+export type { WorkspaceLayout, WorkspaceVariant } from './workspace/context.ts';
 export { DocumentTab, TabStrip, type DocumentTabProps, type TabStripProps, type TabStripItem } from './workspace/TabStrip.tsx';
 export { SplitView, type SplitViewProps, type SplitViewInfo, type SplitViewBounds, type SplitDropTarget, type SplitDrag } from './workspace/SplitView.tsx';
 export { DropPreview, type DropPreviewProps } from './workspace/DropPreview.tsx';

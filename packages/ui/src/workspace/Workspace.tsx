@@ -1,13 +1,20 @@
 import { type ReactNode } from 'react';
 import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
-import { WorkspaceContext, type WorkspaceLayout } from './context.ts';
+import { WorkspaceContext, type WorkspaceLayout, type WorkspaceVariant } from './context.ts';
 
 export interface WorkspaceProps extends useRender.ComponentProps<'div'> {
     layout?: WorkspaceLayout;
+
+    /** `sheet` lays the sidebar and the content on one raised sheet, with the side panel and the rail behind it. */
+    variant?: WorkspaceVariant;
+
     toolbar?: ReactNode;
     sidebar?: ReactNode;
     sidePanel?: ReactNode;
+
+    /** A column at the window's right edge, after the side panel, usually a `WorkspaceRail`. */
+    rail?: ReactNode;
 
     /** Auto-sized regions keep their own width, separators and opening animation. */
     sidebarWidth?: number | 'auto';
@@ -21,9 +28,11 @@ const isPresent = (node: ReactNode): boolean => node !== undefined && node !== n
 
 export function Workspace({
     layout = 'standard',
+    variant = 'flat',
     toolbar,
     sidebar,
     sidePanel,
+    rail,
     sidebarWidth = 248,
     sidePanelWidth = 320,
     sidebarOpen,
@@ -37,9 +46,11 @@ export function Workspace({
 }: WorkspaceProps) {
     const hasSidebar = isPresent(sidebar);
     const hasPanel = isPresent(sidePanel);
+    const hasRail = isPresent(rail);
     const leftOpen = hasSidebar && (sidebarOpen ?? true);
     const rightOpen = hasPanel && (sidePanelOpen ?? true);
     const hasToolbar = isPresent(toolbar);
+    const sheet = variant === 'sheet';
 
     const element = useRender({
         render,
@@ -50,31 +61,38 @@ export function Workspace({
             className: clsx('ade-workspace', className),
             style,
             'data-layout': layout,
+            'data-variant': variant,
             'data-toolbar': hasToolbar || undefined,
             'data-sidebar': leftOpen || undefined,
             'data-side-panel': rightOpen || undefined,
+            'data-rail': hasRail || undefined,
             children: (
                 <>
-                    {hasSidebar && (
-                        <aside className="ade-workspace-sidebar" data-auto={sidebarWidth === 'auto' || undefined} style={{ width: sidebarWidth }}>
-                            {sidebar}
-                        </aside>
-                    )}
-                    <div className="ade-workspace-center">
-                        {hasToolbar && <div className="ade-workspace-toolbar">{toolbar}</div>}
-                        <div className="ade-workspace-content">{children}</div>
+                    {/* Also there while flat, where it takes no box, so a change of variant remounts nothing inside it. */}
+                    <div className="ade-workspace-sheet">
+                        {hasSidebar && (
+                            <aside className="ade-workspace-sidebar" data-auto={sidebarWidth === 'auto' || undefined} style={{ width: sidebarWidth }}>
+                                {sidebar}
+                            </aside>
+                        )}
+                        <div className="ade-workspace-center">
+                            {hasToolbar && <div className="ade-workspace-toolbar">{toolbar}</div>}
+                            <div className="ade-workspace-content">{children}</div>
+                        </div>
                     </div>
                     {hasPanel && (
                         <aside className="ade-workspace-side-panel" data-auto={sidePanelWidth === 'auto' || undefined} style={{ width: sidePanelWidth }}>
                             {sidePanel}
                         </aside>
                     )}
+                    {hasRail && rail}
                 </>
             )
         }
     });
 
-    const context = { layout, edges: { top: !hasToolbar, right: !rightOpen, bottom: true, left: !leftOpen } };
+    // On a sheet the content ends at the sheet's own edge, whatever stands beside it.
+    const context = { layout, edges: { top: !hasToolbar, right: sheet || (!rightOpen && !hasRail), bottom: true, left: !leftOpen } };
 
     return <WorkspaceContext value={context}>{element}</WorkspaceContext>;
 }

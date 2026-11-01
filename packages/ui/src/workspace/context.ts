@@ -3,6 +3,8 @@ import type { SplitEdges } from './geometry.ts';
 
 export type WorkspaceLayout = 'standard' | 'roomy';
 
+export type WorkspaceVariant = 'flat' | 'sheet';
+
 export const WorkspaceContext = createContext<{ layout: WorkspaceLayout; edges: SplitEdges }>({
     layout: 'standard',
     edges: { top: true, right: true, bottom: true, left: true }
