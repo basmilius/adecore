@@ -15,7 +15,7 @@ import nl from './locales/nl.json';
 
 for (const labels of [
     { language: 'en', input: 'Replace with', one: 'Replace', all: 'Replace all', preserve: 'Preserve case' },
-    { language: 'nl', input: 'Vervangen door', one: 'Vervang', all: 'Alles vervangen', preserve: 'Hoofdletters behouden' }
+    { language: 'nl', input: 'Vervangen door', one: 'Vervangen', all: 'Alles vervangen', preserve: 'Hoofdletters behouden' }
 ]) {
     test(`find and replace renders usable ${labels.language} labels`, async () => {
         const i18n = createInstance();

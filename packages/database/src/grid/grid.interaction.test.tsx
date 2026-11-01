@@ -264,7 +264,7 @@ describe.skipIf(typeof document === 'undefined')('DataGrid copying a preview', (
         expect(notices).toEqual([
             {
                 tone: 'error',
-                title: 'Copied a value cut off',
+                title: 'Copied a cut-off value',
                 description: 'Only the start of some values was copied. Could not load the full values.'
             }
         ]);

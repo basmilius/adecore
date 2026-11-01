@@ -76,7 +76,7 @@ describe('opening', () => {
         clipboard.add('x'.repeat(100));
         editor.press(keyOf(language.shortcuts.pasteFromHistory));
 
-        expect(view().title).toBe('Choose Content to Paste');
+        expect(view().title).toBe('Choose content to paste');
         expect(labels()).toEqual([`${'x'.repeat(80)}…`, 'line one⏎line two', 'first']);
         expect(view().active).toBe(view().groups[0]!.rows[0]!.id);
     });
@@ -85,7 +85,7 @@ describe('opening', () => {
         const { editor, language } = setup();
 
         expect(editor.press(keyOf(language.shortcuts.pasteFromHistory))).toBe(true);
-        expect(editor.announcements).toEqual(['Nothing was copied yet']);
+        expect(editor.announcements).toEqual(['Nothing copied yet']);
         expect(language.pick.isOpen).toBe(false);
     });
 

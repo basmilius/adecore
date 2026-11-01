@@ -20,9 +20,9 @@
             "notSaved": "Kon {{name}} niet opslaan"
         },
         "actions": {
-            "show": "Toon code actions",
-            "none": "Geen code actions hier",
-            "unavailable": "Hier geen code actions beschikbaar",
+            "show": "Codeacties tonen",
+            "none": "Hier geen codeacties",
+            "unavailable": "Hier geen codeacties beschikbaar",
             "organized": "Imports zijn al georganiseerd",
             "noFormatter": "Geen formatter voor dit bestand",
             "readOnly": "Bestand is alleen-lezen",
@@ -58,10 +58,10 @@
             "occurrences_other": "{{formatted}} voorkomens",
             "occurrencesFiles_one": "{{formatted}} voorkomen in {{files}} bestanden",
             "occurrencesFiles_other": "{{formatted}} voorkomens in {{files}} bestanden",
-            "rename": "Hernoem",
+            "rename": "Hernoemen",
             "preview": "Voorbeeld",
-            "cancel": "Annuleer",
-            "apply": "Hernoem",
+            "cancel": "Annuleren",
+            "apply": "Hernoemen",
             "suggestions": "Voorgestelde namen",
             "useSuggestion": "Suggestie gebruiken",
             "operations": {
@@ -97,7 +97,7 @@
             "failed": "Kon de referenties niet opzoeken: {{message}}",
             "references_one": "{{formatted}} referentie",
             "references_other": "{{formatted}} referenties",
-            "close": "Sluit",
+            "close": "Sluiten",
             "collapse": "Inklappen",
             "expand": "Uitklappen",
             "definitions_one": "{{formatted}} definitie",
@@ -113,7 +113,7 @@
             "direction": "Richting",
             "incoming": "Aanroepers",
             "outgoing": "Aangeroepen",
-            "close": "Sluit",
+            "close": "Sluiten",
             "loading": "Laden…",
             "noIncoming": "Geen aanroepers",
             "noOutgoing": "Roept niets aan",
@@ -187,9 +187,9 @@
         },
         "context": {
             "refactor": "Refactor",
-            "cut": "Knip",
-            "copy": "Kopieer",
-            "paste": "Plak",
+            "cut": "Knippen",
+            "copy": "Kopiëren",
+            "paste": "Plakken",
             "renameSymbol": "Symbool hernoemen…",
             "goTo": {
                 "menu": "Ga naar",
@@ -217,7 +217,7 @@
         },
         "pasteHistory": {
             "title": "Kies wat je plakt",
-            "empty": "Er is nog niets gekopieerd"
+            "empty": "Nog niets gekopieerd"
         },
         "templates": {
             "none": "Geen sjablonen gedefinieerd in deze context",
@@ -232,7 +232,7 @@
             "liveTemplates": "Live sjablonen",
             "configure": "Live sjablonen instellen…",
             "comments": "{{construct}}-commentaar",
-            "none": "Geen Omring met-varianten gevonden voor de huidige context",
+            "none": "Omring met heeft hier geen opties",
             "noTemplates": "Geen omringende sjablonen gedefinieerd in deze context",
             "unwrap": {
                 "title": "Kies het statement om uit te pakken of te verwijderen",
@@ -317,7 +317,7 @@
         "close": "Sluiten",
         "replace": {
             "label": "Vervangen door",
-            "one": "Vervang",
+            "one": "Vervangen",
             "all": "Alles",
             "allLabel": "Alles vervangen",
             "preserveCase": "Hoofdletters behouden",

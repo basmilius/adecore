@@ -5,7 +5,7 @@ export default {
         copied: 'Gekopieerd',
         copyError: 'Fout kopiëren',
         dismiss: 'Sluiten',
-        reload: 'Herladen',
+        reload: 'Opnieuw laden',
         retry: 'Opnieuw proberen',
         select: 'Selecteren',
         selectAll: 'Alles selecteren'
@@ -22,7 +22,7 @@ export default {
         search: {
             placeholder: 'Instellingen zoeken',
             clear: 'Zoekopdracht wissen',
-            none: 'Geen resultaten voor “{{query}}”',
+            none: 'Geen resultaten voor "{{query}}"',
             results: 'Zoekresultaten',
             pane: 'Onderdeel'
         }
@@ -37,7 +37,7 @@ export default {
     },
     select: {
         search: 'Zoeken',
-        noMatch: 'Geen resultaat voor “{{query}}”'
+        noMatch: 'Geen resultaat voor "{{query}}"'
     },
     combobox: {
         suggestions: 'Suggesties'
@@ -52,7 +52,7 @@ export default {
         placeholder: 'Geen',
         search: 'Iconen zoeken',
         clear: 'Zoekopdracht wissen',
-        noMatch: 'Geen icoon past bij “{{query}}”'
+        noMatch: 'Geen icoon past bij "{{query}}"'
     },
     zoom: {
         out: 'Uitzoomen',

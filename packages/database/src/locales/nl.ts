@@ -116,12 +116,12 @@ export default {
         tables: 'Tabellen',
         views: 'Views',
         primaryKey: 'Primaire sleutel',
-        foreignKey: 'Refererende sleutel',
-        primaryAndForeignKey: 'Primaire en refererende sleutel',
+        foreignKey: 'Foreign key',
+        primaryAndForeignKey: 'Primaire sleutel en foreign key',
         parts: {
             columns: 'Kolommen',
             keys: 'Sleutels',
-            foreignKeys: 'Refererende sleutels',
+            foreignKeys: 'Foreign keys',
             indexes: 'Indexen',
             checks: 'Checks',
             triggers: 'Triggers'
@@ -235,7 +235,7 @@ export default {
             nullable: 'Mag NULL zijn',
             notNull: 'Niet NULL',
             default: 'Standaard: {{value}}',
-            autoIncrement: 'Automatisch ophogend'
+            autoIncrement: 'Auto-increment'
         },
         copyAs: {
             label: 'Kopiëren als',
@@ -272,7 +272,7 @@ export default {
         revert: 'Terugdraaien',
         retry: 'Opnieuw proberen',
         dismiss: 'Sluiten',
-        changed: 'De tabel is gewijzigd; laad opnieuw om dit te zien',
+        changed: 'De tabel is gewijzigd. Laad opnieuw om dit te zien.',
         reload: 'Opnieuw laden',
         conflict: 'Wijziging {{number}} ({{row}}) paste niet op precies één rij. Er is niets opgeslagen. Vernieuw en probeer het opnieuw.',
         queryTime: 'Querytijd',
@@ -405,14 +405,14 @@ export default {
         schema: 'Schema',
         schemaPlaceholder: 'Schema',
         transaction: {
-            autoCommit: 'Automatisch vastleggen',
-            hint: 'Staat het uit, dan blijft een transactie open tot je vastlegt of terugdraait.',
+            autoCommit: 'Auto-commit',
+            hint: 'Staat het uit, dan blijft een transactie open tot je commit of terugdraait.',
             open: 'Transactie open',
-            commit: 'Vastleggen',
+            commit: 'Commit',
             rollback: 'Terugdraaien',
             endTitle: 'Transactie afsluiten?',
-            endDescription: 'Leg vast om de wijzigingen te bewaren, of draai terug om ze weg te gooien.',
-            commitFailed: 'Kon niet vastleggen',
+            endDescription: 'Commit om de wijzigingen te bewaren, of draai terug om ze weg te gooien.',
+            commitFailed: 'Kon niet committen',
             rollbackFailed: 'Kon niet terugdraaien'
         },
         destructive: {
@@ -492,13 +492,13 @@ export default {
         applying: 'Bezig met toepassen',
         revert: 'Terugdraaien',
         dismiss: 'Sluiten',
-        changed: 'De tabel is elders gewijzigd; laad opnieuw om dit te zien. Je wijzigingen gaan verloren.',
+        changed: 'De tabel is elders gewijzigd. Opnieuw laden gooit je wijzigingen weg.',
         reload: 'Opnieuw laden',
         failed: 'Kon de wijzigingen niet toepassen.',
         copy: 'Kopiëren',
         sql: 'SQL',
         noChanges: 'Geen wijzigingen',
-        fixProblems: 'Los eerst de problemen in de tabs op.',
+        fixProblems: 'Los eerst de problemen in de tabbladen op.',
         noColumnsToPick: 'Voeg eerst een kolom toe.',
         readOnly: {
             connection: 'Verbinding is alleen-lezen.',

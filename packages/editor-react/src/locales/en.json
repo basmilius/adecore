@@ -216,8 +216,8 @@
             "recent": "Recent locations"
         },
         "pasteHistory": {
-            "title": "Choose Content to Paste",
-            "empty": "Nothing was copied yet"
+            "title": "Choose content to paste",
+            "empty": "Nothing copied yet"
         },
         "templates": {
             "none": "No templates defined in this context",
@@ -227,15 +227,15 @@
             "expressions": "Expressions"
         },
         "surround": {
-            "title": "Surround With",
-            "selectTemplate": "Select Template",
+            "title": "Surround with",
+            "selectTemplate": "Select template",
             "liveTemplates": "Live templates",
             "configure": "Configure live templates…",
-            "comments": "{{construct}} Comments",
-            "none": "Couldn't find Surround With variants applicable to the current context",
+            "comments": "{{construct}} comments",
+            "none": "Surround with has no options here",
             "noTemplates": "No surround templates defined in this context",
             "unwrap": {
-                "title": "Choose the statement to unwrap/remove",
+                "title": "Choose the statement to unwrap or remove",
                 "if": "Unwrap 'if...'",
                 "else": "Unwrap 'else...'",
                 "removeElse": "Remove 'else...'",

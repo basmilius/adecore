@@ -57,7 +57,7 @@ export default {
             active: 'Werkt aan een doel',
             paused: 'Doel gepauzeerd',
             blocked: 'Doel geblokkeerd',
-            'usage-limited': 'Doel gestopt op een gebruikslimiet',
+            'usage-limited': 'Doel gestopt op een verbruikslimiet',
             'budget-limited': 'Doel heeft zijn tokenbudget op',
             complete: 'Doel bereikt'
         },
@@ -123,7 +123,7 @@ export default {
         message: {
             heading: 'Bericht van {{name}}',
             unnamed: 'een andere node',
-            waiting: 'Wacht op de volgende beurt',
+            waiting: 'Wacht op de volgende turn',
             dropped: 'Vervallen voordat de agent het las'
         },
         sent: {
@@ -131,7 +131,7 @@ export default {
             to: 'Aan',
             sending: 'Bezig met versturen',
             delivered: 'Afgeleverd',
-            waiting: 'Wacht tot de volgende beurt',
+            waiting: 'Wacht op de volgende turn',
             failed: 'Niet verstuurd',
             showCall: 'Aanroep tonen',
             hideCall: 'Aanroep verbergen'
@@ -211,7 +211,7 @@ export default {
         diffLabel: 'Wijzigingen in {{path}}',
         showDiff: 'Diff tonen',
         loadingDiff: 'Diff laden',
-        diffUnavailable: 'Deze diff kon niet worden geladen',
+        diffUnavailable: 'Kon deze diff niet laden',
         runningFor: 'loopt al {{elapsed}}',
         awaitingApproval: 'wacht op jou',
         forksAfter_one: 'Fork na deze turn',
@@ -222,9 +222,9 @@ export default {
         },
         changedFiles_one: '{{count}} gewijzigd bestand',
         changedFiles_other: '{{count}} gewijzigde bestanden',
-        folderChanges_one: '{{count}} mapwijziging tijdens deze beurt',
-        folderChanges_other: '{{count}} mapwijzigingen tijdens deze beurt',
-        baseMoved: 'Branch verplaatst tijdens deze beurt ({{from}} naar {{to}}). Inclusief wat daarmee binnenkwam.',
+        folderChanges_one: '{{count}} mapwijziging tijdens deze turn',
+        folderChanges_other: '{{count}} mapwijzigingen tijdens deze turn',
+        baseMoved: 'Branch verplaatst tijdens deze turn ({{from}} naar {{to}}). Inclusief wat daarmee binnenkwam.',
         andMore: 'en meer',
         edits_one: '{{count}} bewerking',
         edits_other: '{{count}} bewerkingen',
@@ -234,11 +234,11 @@ export default {
         heredoc: 'heredoc',
         moreRuns_one: '+{{count}}',
         moreRuns_other: '+{{count}}',
-        showFullOutput: 'Volledige uitvoer tonen',
+        showFullOutput: 'Volledige output tonen',
         showFullDiff: 'Volledige diff tonen',
         wholeSize: '{{size}} in totaal',
-        fullOutputFailed: 'De volledige uitvoer kon niet worden geladen',
-        fullDiffFailed: 'De volledige diff kon niet worden geladen',
+        fullOutputFailed: 'Kon de volledige output niet laden',
+        fullDiffFailed: 'Kon de volledige diff niet laden',
         retry: 'Opnieuw proberen'
     },
     timeline: {
@@ -330,7 +330,7 @@ export default {
             commands: "Commando's",
             skills: 'Skills',
             mentions: 'Vermeldingen',
-            references: 'Views en nodes'
+            references: 'Weergaven en nodes'
         },
         held: {
             question: 'Er wacht een vraag. Opent zodra je stopt met typen.',
@@ -380,8 +380,8 @@ export default {
         },
         references: {
             canvas: 'Op dit canvas',
-            views: 'Views',
-            noMatch: 'Geen view of node gevonden',
+            views: 'Weergaven',
+            noMatch: 'Geen weergave of node gevonden',
             currentProject: 'Dit project',
             kinds: {
                 canvas: 'canvas',
@@ -416,7 +416,7 @@ export default {
         stop: 'Stoppen. Shift-klik stopt ook de sub-agents',
         queueButton: 'In de wachtrij zetten',
         continue: 'Doorgaan',
-        continueHint: 'Ga verder met de gestopte beurt',
+        continueHint: 'Ga verder met de gestopte turn',
         send: 'Versturen',
         sendActions: 'Meer verzendopties',
         clear: {
@@ -426,7 +426,7 @@ export default {
         },
         waitingBelow: 'Antwoord hieronder',
         steerButton: 'Nu versturen. Houd Option of Alt ingedrukt om in de wachtrij te zetten.',
-        queueWithSteerButton: 'In de wachtrij na deze beurt. Houd Option of Alt ingedrukt om nu te versturen.'
+        queueWithSteerButton: 'In de wachtrij na deze turn. Houd Option of Alt ingedrukt om nu te versturen.'
     },
     activity: {
         subagents_one: '{{count}} sub-agent',
@@ -559,7 +559,7 @@ export default {
         more: 'Meer acties',
         remove: 'Visualisatie verwijderen',
         removeTitle: 'Visualisatie verwijderen?',
-        removeDescription: '{{title}} wordt uit de chat verwijderd. Dit kan niet ongedaan worden gemaakt.',
+        removeDescription: 'Verwijdert {{title}} uit de chat. Dit kan niet ongedaan worden gemaakt.',
         removeFailed: 'Kon de visualisatie niet verwijderen',
         loading: '{{title}} wordt geladen',
         failed: 'Kon {{title}} niet laden',
@@ -723,13 +723,13 @@ export default {
             failed: 'Versturen lukte niet. Probeer het opnieuw.',
             ready: 'De keuzes staan klaar'
         },
-        answered: 'Beantwoord met “{{label}}”',
-        chose: 'Gekozen: “{{label}}”',
-        choseOlder: 'Gekozen: “{{label}}”, bij het antwoord van {{time}}',
+        answered: 'Beantwoord met "{{label}}"',
+        chose: 'Gekozen: "{{label}}"',
+        choseOlder: 'Gekozen: "{{label}}", bij het antwoord van {{time}}',
         notes_one: '{{count}} opmerking',
         notes_other: '{{count}} opmerkingen',
         shownAsText: 'Als tekst getoond',
-        unknownComponent: 'Deze versie kan {{component}} niet tekenen',
+        unknownComponent: 'Deze versie kan {{component}} niet tonen',
         renderFailed: 'Kon dit deel niet tonen',
         unreadable: 'Kon het blok niet lezen',
         live: {

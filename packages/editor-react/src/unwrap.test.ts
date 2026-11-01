@@ -64,7 +64,7 @@ describe('Unwrap/Remove', () => {
         expect(language.surround.unwrap()).toBe(true);
 
         expect(labels()).toEqual(["Unwrap 'if...'"]);
-        expect(language.popups.getState().pick?.title).toBe('Choose the statement to unwrap/remove');
+        expect(language.popups.getState().pick?.title).toBe('Choose the statement to unwrap or remove');
 
         await choose("Unwrap 'if...'");
 

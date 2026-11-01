@@ -38,6 +38,6 @@ export default {
         waiting_one: '{{count}} verzoek wacht',
         waiting_other: '{{count}} verzoeken wachten',
         question: 'Vraag {{index}} van {{total}}',
-        draftSaved: 'Concept bewaard'
+        draftSaved: 'Concept opgeslagen'
     }
 };

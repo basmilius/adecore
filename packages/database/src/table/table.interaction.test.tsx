@@ -77,7 +77,7 @@ describe.skipIf(typeof document === 'undefined')('the views of a table in a DOM,
             const rowsBefore = recorded.of('rows').length;
             await notify({ connectionId: 'one', schema: 'main' });
 
-            expect(document.body.textContent).toContain('The table changed; reload to see it');
+            expect(document.body.textContent).toContain('The table changed. Reload to see it.');
             expect(recorded.of('rows')).toHaveLength(rowsBefore);
 
             await click(byText('button', 'Reload'));

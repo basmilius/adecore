@@ -122,8 +122,8 @@ describe('Surround With', () => {
         language.surround.open();
 
         expect(labels().slice(0, 4)).toEqual(['1 if', '2 if / else', '3 while', '4 do / while']);
-        expect(labels().slice(8, 14)).toEqual(['9 { }', '0 function', 'A region...endregion Comments', 'B <editor-fold...> Comments']);
-        expect(language.popups.getState().pick?.title).toBe('Surround With');
+        expect(labels().slice(8, 14)).toEqual(['9 { }', '0 function', 'A region...endregion comments', 'B <editor-fold...> comments']);
+        expect(language.popups.getState().pick?.title).toBe('Surround with');
 
         expect(press('2')).toBe(true);
         await settle();
@@ -197,7 +197,7 @@ describe('Surround With', () => {
         expect(language.surround.open()).toBe(true);
 
         expect(rows()).toEqual([]);
-        expect(notifications.map((notification) => notification.title)).toEqual(["Couldn't find Surround With variants applicable to the current context"]);
+        expect(notifications.map((notification) => notification.title)).toEqual(['Surround with has no options here']);
     });
 
     test('refuses two carets on one line, and a blank line', async () => {
@@ -279,7 +279,7 @@ describe('Surround with Live Template', () => {
 
         expect(labels()).toEqual(['E Emmet', 'T T', 'W wrap', 'Configure live templates…']);
         expect(rows().find((row) => row.id === 'template:own.wrap')?.detail).toBe('Bold');
-        expect(language.popups.getState().pick?.title).toBe('Select Template');
+        expect(language.popups.getState().pick?.title).toBe('Select template');
     });
 
     test('puts the live templates in a group of their own below the constructs in Surround With', async () => {

@@ -180,7 +180,7 @@ describe.skipIf(typeof document === 'undefined')('an icon picker in a page', () 
         await type('back');
         expect([...document.querySelectorAll('[role="radio"]')].map((radio) => radio.getAttribute('aria-label'))).toEqual(['server']);
         await type('nothing');
-        expect(document.body.textContent).toContain('No icon matches “nothing”');
+        expect(document.body.textContent).toContain('No icon matches "nothing"');
     });
 
     test('empties the search on the first Escape and closes on the next', async () => {

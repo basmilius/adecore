@@ -245,8 +245,8 @@ export default {
             sql: 'SQL INSERT statements'
         },
         copyPreviews: {
-            title_one: 'Copied a value cut off',
-            title_other: 'Copied {{formatted}} values cut off',
+            title_one: 'Copied a cut-off value',
+            title_other: 'Copied {{formatted}} cut-off values',
             unavailable: 'Only the start of some values was copied. Could not load the full values.',
             tooLarge: 'Only the start of some values was copied. The full values are too large.'
         },
@@ -272,7 +272,7 @@ export default {
         revert: 'Revert',
         retry: 'Try again',
         dismiss: 'Dismiss',
-        changed: 'The table changed; reload to see it',
+        changed: 'The table changed. Reload to see it.',
         reload: 'Reload',
         conflict: 'Change {{number}} ({{row}}) matched no single row. Nothing was saved. Refresh and try again.',
         queryTime: 'Query time',
@@ -492,7 +492,7 @@ export default {
         applying: 'Applying',
         revert: 'Revert',
         dismiss: 'Dismiss',
-        changed: 'The table changed elsewhere; reload to see it. Your edits are lost.',
+        changed: 'The table changed elsewhere. Reloading discards your edits.',
         reload: 'Reload',
         failed: 'Could not apply changes.',
         copy: 'Copy',

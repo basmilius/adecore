@@ -22,7 +22,7 @@ export default {
         search: {
             placeholder: 'Search settings',
             clear: 'Clear search',
-            none: 'No results for “{{query}}”',
+            none: 'No results for "{{query}}"',
             results: 'Search results',
             pane: 'Section'
         }
@@ -37,7 +37,7 @@ export default {
     },
     select: {
         search: 'Search',
-        noMatch: 'No match for “{{query}}”'
+        noMatch: 'No match for "{{query}}"'
     },
     combobox: {
         suggestions: 'Suggestions'
@@ -52,7 +52,7 @@ export default {
         placeholder: 'None',
         search: 'Search icons',
         clear: 'Clear search',
-        noMatch: 'No icon matches “{{query}}”'
+        noMatch: 'No icon matches "{{query}}"'
     },
     zoom: {
         out: 'Zoom out',
