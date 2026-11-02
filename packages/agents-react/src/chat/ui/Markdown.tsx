@@ -321,7 +321,7 @@ const replyComponents = {
 function ReplyCode({ className, children, node }: { className?: string; children?: ReactNode } & ExtraProps) {
     const reply = useContext(ShellCodeBlockReplyContext);
     const block = useContext(BlockCodeContext);
-    const { renderShellCodeBlock } = useChatHost();
+    const { renderCodeFence, renderShellCodeBlock } = useChatHost();
     const properties = node?.properties;
     const language = properties?.['data-shell-language'];
     const code = properties?.['data-shell-code'];
@@ -333,12 +333,20 @@ function ReplyCode({ className, children, node }: { className?: string; children
 
     const text = String(children ?? '');
 
-    if (block && languageOf(className) === 'mermaid') {
-        return <Diagram code={text.replace(/\n$/, '')} />;
-    }
-
     if (block) {
-        return <CodeBlock code={text.replace(/\n$/, '')} lang={languageOf(className)} actions={shellCodeBlockActions(reply, shell, renderShellCodeBlock)} />;
+        const lang = languageOf(className);
+        const body = text.replace(/\n$/, '');
+        const drawn = renderCodeFence?.(lang, body);
+
+        if (drawn !== undefined && drawn !== null) {
+            return drawn;
+        }
+
+        if (lang === 'mermaid') {
+            return <Diagram code={body} />;
+        }
+
+        return <CodeBlock code={body} lang={lang} actions={shellCodeBlockActions(reply, shell, renderShellCodeBlock)} />;
     }
 
     return <InlineCode text={text} />;
@@ -437,10 +445,16 @@ const ReplyFence = memo(function ReplyFence({
     open: boolean;
     reply?: ShellCodeBlockReply;
 }) {
-    const { renderShellCodeBlock } = useChatHost();
+    const { renderCodeFence, renderShellCodeBlock } = useChatHost();
     // The class markdown gives the code, read back the way a parsed fence's is.
     const lang = languageOf(`language-${info.split(/[ \t]/, 1)[0]}`);
     const shell = reply === undefined ? null : shellFence(source);
+    // The host gets a fence only once it closed, so it never draws a body that is still being written.
+    const drawn = open ? null : renderCodeFence?.(lang, body);
+
+    if (drawn !== undefined && drawn !== null) {
+        return drawn;
+    }
 
     return (
         <CodeStreamingContext.Provider value={open}>

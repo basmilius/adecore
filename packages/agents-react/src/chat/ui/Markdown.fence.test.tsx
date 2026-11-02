@@ -144,6 +144,51 @@ describe('a top-level code fence drawn without parsing', () => {
     });
 });
 
+describe('a fence the host draws', () => {
+    /* A host that draws a `card` fence itself and leaves every other language to the code block. */
+    function renderWithCards(text: string, streaming: boolean): { html: string; asked: string[] } {
+        const asked: string[] = [];
+
+        const host: Partial<ChatHost> = {
+            renderCodeFence: (language, code) => {
+                asked.push(`${language}:${code}`);
+
+                return language === 'card' ? createElement('aside', { 'data-card': code }) : null;
+            }
+        };
+
+        const html = renderToStaticMarkup(
+            createElement(ChatHostProvider, { host }, createElement(ReplyMarkdown, { text, streaming, reply: { ...REPLY, streaming } }))
+        );
+
+        return { html, asked };
+    }
+
+    test.each([
+        ['at the top level', 'Proposed:\n\n```card\n0002\n```'],
+        ['inside a list item', '- Proposed:\n\n  ```card\n  0002\n  ```']
+    ])('draws one %s in place of the code block', (_, text) => {
+        const { html } = renderWithCards(text, false);
+
+        expect(html).toContain('<aside data-card="0002"></aside>');
+        expect(html).not.toContain('chat-code');
+    });
+
+    test('leaves a language it answers null for to the code block', () => {
+        const { html, asked } = renderWithCards('```ts\nconst a = 1;\n```', false);
+
+        expect(asked).toEqual(['ts:const a = 1;']);
+        expect(html).toContain('chat-code');
+    });
+
+    test('is not asked for a top-level fence that is still open', () => {
+        const { html, asked } = renderWithCards('Proposed:\n\n```card\n00', true);
+
+        expect(asked).toEqual([]);
+        expect(html).toContain('chat-code');
+    });
+});
+
 /* A highlighter of the host with the grammar and the theme already in, so a code block draws its lines at once. */
 const highlighter = {
     getLoadedLanguages: () => ['typescript'],
