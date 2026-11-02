@@ -328,8 +328,9 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Overview', '/editor-core/'],
             ['Documents and edits', '/editor-core/documents'],
             ['Typing and commands', '/editor-core/commands'],
-            ['Search and folding', '/editor-core/search-folding'],
-            ['API reference', '/editor-core/api']
+            ['Search and folding', '/editor-core/search-folding']
+        ]),
+        group('Reference', [['Exports', '/editor-core/api']
         ])
     ],
     '/editor/': [
@@ -341,7 +342,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Theme and syntax', '/editor/theme'],
             ['Testing', '/editor/testing']
         ]),
-        group('Drawing', [
+        group('Rendering', [
             ['Decorations', '/editor/decorations'],
             ['Rows and widgets', '/editor/rows'],
             ['Agents', '/editor/agents'],

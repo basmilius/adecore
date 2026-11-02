@@ -80,12 +80,8 @@ export default defineConfig({
             { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
             category('Interface', [
                 ['UI', 'ui'],
-                ['Terminal', 'terminal'],
-                ['Charts', 'charts']
-            ]),
-            category('Desktop', [
-                ['Shell', 'shell'],
-                ['Service', 'service']
+                ['Charts', 'charts'],
+                ['Terminal', 'terminal']
             ]),
             category('Agents', [
                 ['Agent contracts', 'agent-contracts'],
@@ -100,7 +96,11 @@ export default defineConfig({
                 ['LSP', 'lsp'],
                 ['Merge', 'merge']
             ]),
-            category('Data', [['Database', 'database']]),
+            category('Platform', [
+                ['Shell', 'shell'],
+                ['Service', 'service'],
+                ['Database', 'database']
+            ]),
             category('Canvas', [
                 ['Drawing', 'drawing'],
                 ['Diagram', 'diagram'],
