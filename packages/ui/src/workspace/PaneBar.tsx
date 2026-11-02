@@ -221,7 +221,7 @@ export function PaneBar({
                        stands before it: 16 pixels, of which the gap brings 8 and a tab 12 of its own. */
                     inContainer ? (tabs ? '-ml-1' : 'pl-2') : !tabs && 'pl-1',
                     // A weight rather than `shrink`, since controls whose labels truncate shrink as well.
-                    tabs || ((folded || !hasActions) && !inContainer) ? 'grow' : 'shrink-100'
+                    !inContainer && (tabs || folded || !hasActions) ? 'grow' : 'shrink-100'
                 )}
             >
                 {title}
@@ -229,7 +229,7 @@ export function PaneBar({
             {accessory}
             {!separate && actionsPart}
             {/* The room the title leaves in a container, which the window drags by. */}
-            {inContainer && !tabs && (folded || !hasActions) && <span aria-hidden="true" className="grow self-stretch" />}
+            {inContainer && (tabs || folded || !hasActions) && <span aria-hidden="true" className="grow self-stretch" />}
             {trailing}
             {onClose && (
                 <CloseButton label={closeLabel ?? t('workspace.closePane')} kbd={closeShortcut} size="sm" className="cursor-default" onClick={onClose} />

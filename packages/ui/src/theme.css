@@ -825,6 +825,8 @@
        own edge and shadow; those two sit a step darker, in the well behind it. */
     .ade-workspace {
         --workspace-well: color-mix(in srgb, var(--surface) 70%, var(--surface-sunken));
+        /* What shows beyond the sheet's rounded corners. */
+        --workspace-ground: var(--workspace-well);
         display: flex;
         width: 100%;
         height: 100%;
@@ -841,11 +843,30 @@
         flex: 1;
         min-width: 0;
         min-height: 0;
-        overflow: hidden;
+        /* No rounded clip: Chromium leaves tiles of a scaled canvas inside one unpainted while it zooms. The
+           corners are drawn over the content instead. */
         border-radius: 0 12px 12px 0;
         /* The surface its regions draw, so no lighter ground shows where the rounded edge cuts them. Roomy shows its gaps in it. */
         background: var(--surface);
         box-shadow: 0 0 0 1px var(--border), var(--sheet-shadow);
+    }
+    .ade-workspace-sheet::before, .ade-workspace-sheet::after {
+        content: "";
+        position: absolute;
+        right: 0;
+        z-index: 1;
+        width: 12px;
+        height: 12px;
+        pointer-events: none;
+    }
+    /* The arc, its hairline just outside it, and the ground beyond, as the box shadow draws them along the straight edges. */
+    .ade-workspace-sheet::before {
+        top: 0;
+        background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--border) 12px, var(--border) 12.5px, var(--workspace-ground) 13px);
+    }
+    .ade-workspace-sheet::after {
+        bottom: 0;
+        background: radial-gradient(circle at 0 0, transparent 11.5px, var(--border) 12px, var(--border) 12.5px, var(--workspace-ground) 13px);
     }
     .ade-workspace-center {
         display: flex;
@@ -853,6 +874,8 @@
         min-width: 0;
         min-height: 0;
         flex-direction: column;
+        /* Keeps what the content stacks under the sheet's corners. */
+        isolation: isolate;
     }
     .ade-workspace-sidebar, .ade-workspace-side-panel {
         flex: none;
@@ -885,6 +908,8 @@
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { box-shadow: 0 0 0 1px var(--border); }
     /* Roomy's panes round their own corners, so the sheet's corner on the window's bottom stays square. */
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { border-bottom-right-radius: 0; }
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet::after { display: none; }
+    .ade-workspace[data-layout="roomy"] { --workspace-ground: var(--separator); }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center { gap: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-sidebar:not([data-auto]) { margin-right: 8px; }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-side-panel:not([data-auto]) { margin-left: 8px; }
@@ -1039,6 +1064,9 @@
         outline-offset: -2px;
         white-space: nowrap;
     }
+    /* Only the label gives way; an icon, a detail or a mark keeps its size. */
+    .ade-document-tab-open > * { flex-shrink: 0; }
+    .ade-document-tab-open > .ade-document-tab-label { flex-shrink: 1; min-width: 0; }
     .ade-document-tab-close { opacity: 0; }
     .ade-document-tab:is(:hover, :focus-within, [data-active]) .ade-document-tab-close { opacity: 1; }
     .ade-document-tab[data-detail] .ade-document-tab-open { max-width: 200px; }

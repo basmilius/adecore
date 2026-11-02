@@ -382,7 +382,7 @@ export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDra
                             }}
                         >
                             {item.icon}
-                            <span className="truncate">{item.label}</span>
+                            <span className="ade-document-tab-label truncate">{item.label}</span>
                             {item.detail}
                             {item.attention}
                             {item.unsaved && (
