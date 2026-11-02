@@ -92,6 +92,63 @@ describe('folding', () => {
         expect([...host.querySelectorAll('.se-line[data-line="1"] .se-run')].map((run) => run.textContent).join('')).toBe('use App\\A;');
     });
 
+    test.each([
+        ['typescript', '/* License.\n * Details.\n */', '/*…*/'],
+        ['javascript', '/** Documentation.\n * Details.\n */', '/**…*/'],
+        ['typescript', "import { a } from 'a';\nimport b from 'b';", 'import…;'],
+        ['javascript', "import a from 'a'\nimport b from 'b'", 'import…'],
+        ['typescript', "import {\n    a,\n    b\n} from 'a';", 'import…;'],
+        ['php', 'use App\\A;\nuse App\\B;', 'use…;'],
+        ['python', 'from a import one\nfrom b import two', 'from…'],
+        ['typescript', 'const value = { first: 1,\n    second: 2\n};', 'const value = {…};'],
+        ['javascript', 'const values = [1,\n    2\n];', 'const values = […];']
+    ])('keeps recognizable syntax in a %s fold: %s', (language, source, expected) => {
+        const { host, model, view } = mount(source + '\nnext();', { language });
+        const endLine = source.split('\n').length - 1;
+        const summary = () => host.querySelector('.se-line[data-line="0"]')?.textContent;
+
+        view.refreshFolds();
+        view.toggleFold(0);
+        expect(summary()).toBe(expected);
+        expect(rendered(host)).toEqual(['0', String(endLine + 1)]);
+
+        // Some servers hide the entire first and last lines, including the syntax that identifies the fold.
+        view.setFoldHints({ ranges: [{ from: 0, to: model.getLine(endLine).end, head: 0, tail: model.getLine(endLine).end }] });
+        expect(summary()).toBe(expected);
+
+        const chip = host.querySelector<HTMLButtonElement>('.se-fold-chip')!;
+        chip.click();
+        expect(host.querySelector('.se-fold-chip') === null).toBe(true);
+        expect(model.getText()).toBe(source + '\nnext();');
+        expect(host.querySelector('.se-line[data-line="0"]')?.textContent).toBe(model.getLine(0).text);
+        view.dispose();
+    });
+
+    test('reveals text hidden on the first line of a compact fold', () => {
+        const source = "import { a } from 'a';\nimport b from 'b';\nnext();";
+        const { host, view } = mount(source);
+
+        view.refreshFolds();
+        view.toggleFold(0);
+        view.revealOffset(source.indexOf('a'));
+        expect(host.querySelector('.se-fold-chip') === null).toBe(true);
+        expect(rendered(host)).toEqual(['0', '1', '2']);
+        view.dispose();
+    });
+
+    test('keeps syntax colors on both sides of a compact comment fold', () => {
+        const { host, model, view } = mount('/** Documentation.\n * Details.\n */');
+
+        view.setLineTokens((line) => [{ length: model.getLine(line).text.length, color: 'gray', fontStyle: 1 }]);
+        view.refreshFolds();
+        view.toggleFold(0);
+        const tokens = [...host.querySelectorAll<HTMLElement>('.se-line[data-line="0"] .se-run span')];
+
+        expect(tokens.map((token) => token.textContent)).toEqual(['/**', '*/']);
+        expect(tokens.every((token) => token.style.color === 'gray' && token.style.fontStyle === 'italic')).toBe(true);
+        view.dispose();
+    });
+
     test('draws no tail for a fold that has no closer', () => {
         const { host, view } = mount('def a():\n    one\n    two\nb = 1', { language: 'python' });
         view.refreshFolds();

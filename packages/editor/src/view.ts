@@ -1083,8 +1083,8 @@ export class EditorView {
                 startLine: range.startLine,
                 endLine: range.endLine,
                 collapsed,
-                closer: collapsed ? (range.tail ?? this.closerOf(range)) : undefined,
-                ...(collapsed && range.head !== undefined ? { head: range.head } : {})
+                closer: collapsed ? this.closerOf(range) : undefined,
+                head: collapsed ? this.headOf(range) : undefined
             };
         });
     }
@@ -1150,14 +1150,40 @@ export class EditorView {
         return [...ranges, ...custom].sort((left, right) => left.startLine - right.startLine || right.endLine - left.endLine);
     }
 
-    /* Where what stays visible of a collapsed range starts on its last line: its closer, with any closers right before it, so `])` is kept whole. */
+    private headOf(range: ViewFold): number | undefined {
+        if (range.kind === 'imports' || range.role === 'imports') {
+            const line = this.model.getLine(range.startLine);
+            const keyword = /^\s*(?:import|from|use|using)\b/.exec(line.text);
+
+            return keyword === null ? range.head : line.start + keyword[0].length;
+        }
+
+        if (range.kind === 'comment') {
+            return range.from + (this.model.slice(range.from, range.from + 3) === '/**' ? 3 : 2);
+        }
+
+        if (range.kind === 'bracket') {
+            return range.from + 1;
+        }
+
+        return range.head;
+    }
+
+    /* Known syntax stays visible even when a server's range hides its delimiters. */
     private closerOf(range: ViewFold): number | undefined {
+        if (range.kind === 'imports' || range.role === 'imports') {
+            const line = this.model.getLine(range.endLine);
+            const terminator = /;[\t ]*$/.exec(line.text);
+
+            return terminator === null ? undefined : line.start + terminator.index;
+        }
+
         if (range.kind === 'comment') {
             return range.to - 2;
         }
 
         if (range.kind !== 'bracket') {
-            return undefined;
+            return range.tail;
         }
 
         const lineStart = this.model.getLine(range.endLine).start;
@@ -1569,7 +1595,9 @@ export class EditorView {
         }
 
         for (const range of this.foldRanges) {
-            if ((range.startLine < line && range.endLine >= line) || (range.startLine === line && range.head !== undefined && offset > range.head)) {
+            const head = this.headOf(range);
+
+            if ((range.startLine < line && range.endLine >= line) || (range.startLine === line && head !== undefined && offset > head)) {
                 this.collapsed.delete(range.from);
                 this.settled.add(range.from);
             }
