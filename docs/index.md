@@ -3,8 +3,8 @@ layout: home
 titleTemplate: false
 
 hero:
-    text: Packages for desktop apps
-    tagline: What desktop apps for working with agents share, on Electron, React 19 and Tailwind 4, released together under one version.
+    text: Build agentic apps
+    tagline: 'React and Electron packages for apps where people and coding agents work side by side: chats, an editor, a terminal and the interface around them.'
     actions:
         -   theme: brand
             text: Get started
