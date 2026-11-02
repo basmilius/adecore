@@ -40,7 +40,7 @@ Doubled separators, and separators at the top or bottom, are hidden, so conditio
 
 ## Parts that are not rows
 
-`unstyled` on `Menu.Item`, `Menu.CheckboxItem` and `Menu.RadioItem` drops the row's padding, highlight and indicator. The part stays an item: arrow keys and typeahead reach it, and picking it closes the menu unless `closeOnClick={false}`. Style it yourself on `data-highlighted` and `data-checked`. Use it for an icon button in a heading row, a link at the foot, or a [`ColorSwatch`](/ui/inputs/color-swatch) in a grid. `Menu.GroupLabel` takes `unstyled` too.
+`unstyled` on `Menu.Item`, `Menu.CheckboxItem` and `Menu.RadioItem` drops the row's padding, highlight and indicator. The part stays an item: arrow keys and typeahead reach it, and picking it closes the menu unless `closeOnClick={false}`. Style it yourself on `data-highlighted` and `data-checked`. Use it for an icon button in a heading row, a link at the foot, or a [`ColorSwatch`](/ui/pickers/color-swatch) in a grid. `Menu.GroupLabel` takes `unstyled` too.
 
 <Demo src="overlays/menu-unstyled" />
 

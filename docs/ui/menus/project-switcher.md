@@ -48,7 +48,7 @@ The menu has three groups: the projects, the items in `before`, and Recent proje
 </Menu.Root>
 ```
 
-Keyboard, typeahead and submenus come from [Menu](/ui/overlays/menu). Typeahead matches the project name, not its hint.
+Keyboard, typeahead and submenus come from [Menu](/ui/menus/menu). Typeahead matches the project name, not its hint.
 
 ## Props
 

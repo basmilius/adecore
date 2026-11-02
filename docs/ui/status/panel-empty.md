@@ -1,6 +1,6 @@
 # PanelEmpty
 
-An [`EmptyState`](/ui/display/empty-state) that fills a panel or a card, centered in the room left under the panel's header.
+An [`EmptyState`](/ui/status/empty-state) that fills a panel or a card, centered in the room left under the panel's header.
 
 ```tsx
 import { PanelEmpty } from '@adecore/ui';

@@ -1,6 +1,6 @@
 # Tree reference
 
-The parts take state and own none. Turn your model into a list of visible nodes with a stable id, a depth, a position among siblings, selection and expansion, and draw that list with `Tree.Row`. There is no model hook and there are no path helpers; for files, use [`FileTree`](/ui/display/file-tree).
+The parts take state and own none. Turn your model into a list of visible nodes with a stable id, a depth, a position among siblings, selection and expansion, and draw that list with `Tree.Row`. There is no model hook and there are no path helpers; for files, use [`FileTree`](/ui/trees/file-tree).
 
 ## Root and rows
 
@@ -63,11 +63,11 @@ Store expansion by stable ids, including open branches whose parents have not lo
 
 ## Menus and dragging
 
-The parts install no context menu or drag handler. Add your own, or render a row through a [`ContextMenu.Trigger`](/ui/overlays/context-menu) with `render`, keeping the row's `role`, ref, state attributes and focus handlers. Put the focus back when the menu closes.
+The parts install no context menu or drag handler. Add your own, or render a row through a [`ContextMenu.Trigger`](/ui/menus/context-menu) with `render`, keeping the row's `role`, ref, state attributes and focus handlers. Put the focus back when the menu closes.
 
 ## Long names
 
-`Tree.Label` cuts a long name off at the end. `overflow="scroll"` on `Tree.Root` shifts the rows sideways instead; see [rows wider than the tree](/ui/display/tree#rows-wider-than-the-tree).
+`Tree.Label` cuts a long name off at the end. `overflow="scroll"` on `Tree.Root` shifts the rows sideways instead; see [rows wider than the tree](/ui/trees/tree#rows-wider-than-the-tree).
 
 ## Accessibility
 

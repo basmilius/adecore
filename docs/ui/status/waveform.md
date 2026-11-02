@@ -18,7 +18,7 @@ It fills the height `className` gives it, so it works as a player and as a timel
 
 ## A part of the audio
 
-`range` shows only a stretch of the audio, such as the visible part of a zoomable timeline. Bars, marks, playhead and seeking all follow it. A [`SegmentBar`](/ui/display/segment-bar) takes the same `range`.
+`range` shows only a stretch of the audio, such as the visible part of a zoomable timeline. Bars, marks, playhead and seeking all follow it. A [`SegmentBar`](/ui/status/segment-bar) takes the same `range`.
 
 ```tsx
 <Waveform label="Score" levels={levels} duration={225} range={[70, 150]} className="h-8" />

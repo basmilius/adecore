@@ -1,6 +1,6 @@
 # Tree
 
-The rows of a [`FileTree`](/ui/display/file-tree), as parts, for nodes whose identity is not a file path: connections, schemas, objects in a store. The parts draw; selection, expansion, loading and keyboard navigation are yours.
+The rows of a [`FileTree`](/ui/trees/file-tree), as parts, for nodes whose identity is not a file path: connections, schemas, objects in a store. The parts draw; selection, expansion, loading and keyboard navigation are yours.
 
 ```tsx
 import { Tree } from '@adecore/ui';
@@ -25,7 +25,7 @@ Every part takes `className`, `ref` and Base UI's `render` prop, except `Tree.Ch
 
 ## Rows wider than the tree
 
-By default `Tree.Label` cuts a long name off at the end. With `overflow="scroll"` on `Tree.Root`, rows stay whole and slide sideways together on a sideways scroll, as in a [`FileTree`](/ui/display/file-tree). A thin bar at the bottom edge shows the shift, so give the tree the height it may fill and `overflow-y-auto`, and leave its bottom padding off.
+By default `Tree.Label` cuts a long name off at the end. With `overflow="scroll"` on `Tree.Root`, rows stay whole and slide sideways together on a sideways scroll, as in a [`FileTree`](/ui/trees/file-tree). A thin bar at the bottom edge shows the shift, so give the tree the height it may fill and `overflow-y-auto`, and leave its bottom padding off.
 
 `level` starts at 1; each level indents and draws a guide for every ancestor. `joinedStart` and `joinedEnd` square the corners between adjacent selected rows; compute them from the visible rows.
 
@@ -161,4 +161,4 @@ export function ObjectTree() {
 
 This example has no selection with a modifier, typeahead or virtualization. A larger tree draws a row before it focuses it. When a branch closes or a node disappears, move the focus to a parent or neighbor first.
 
-The [reference](/ui/display/tree/reference) lists every prop and covers loading, controls and menus. [`DatabaseExplorer`](/database/views/explorer) is a complete tree built on these parts.
+The [reference](/ui/trees/tree/reference) lists every prop and covers loading, controls and menus. [`DatabaseExplorer`](/database/views/explorer) is a complete tree built on these parts.

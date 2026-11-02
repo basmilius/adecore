@@ -8,7 +8,7 @@ import { Surface } from '@adecore/ui';
 
 <Demo src="display/surface" />
 
-[`Banner`](/ui/display/banner), [`DockShell`](/ui/layout/dock-shell) and [`Toasts`](/ui/overlays/toasts) are drawn on it. For a card that sits in the layout rather than over it, use `bg-surface` and a border.
+[`Banner`](/ui/status/banner), [`DockShell`](/ui/layout/dock-shell) and [`Toasts`](/ui/status/toasts) are drawn on it. For a card that sits in the layout rather than over it, use `bg-surface` and a border.
 
 `Surface` takes the props of a `<div>`, plus `render`. `SurfaceProps` is an exported type.
 

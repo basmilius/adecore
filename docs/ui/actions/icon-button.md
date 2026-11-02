@@ -16,7 +16,7 @@ The size sets the square, radius and icon: a 16 pixel icon in the default 32 pix
 
 ## State
 
-`active` draws a pressed key, for a toggle that is on. For a real toggle, set `aria-pressed` instead; both look the same. `busy` replaces the icon with a [`Spinner`](/ui/display/spinner).
+`active` draws a pressed key, for a toggle that is on. For a real toggle, set `aria-pressed` instead; both look the same. `busy` replaces the icon with a [`Spinner`](/ui/status/spinner).
 
 `iconClassName` goes to the icon or spinner: a rotating chevron, a status tone, `fill-current`. For an icon of another size, pass it as `children` without `icon`.
 

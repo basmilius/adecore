@@ -1,24 +1,18 @@
 # Introduction
 
-The packages that desktop apps for working with agents share.
+The packages that desktop apps for working with agents share. Each one installs on its own, and all of them release under one version.
 
-## Packages
+The packages build on each other in layers. A contract package holds the shapes, a host runs in the backend, and a React package draws the views. The editor goes from a document model without a DOM, through a DOM view, to React editors with language features. Every view draws on the theme of `@adecore/ui`.
 
-### Interface
+## Interface
 
 | Package | What it holds |
 |---|---|
 | [UI](/ui/) (`@adecore/ui`) | React components, a theme, formatters and a settings dialog |
+| [Charts](/charts/) (`@adecore/charts`) | Series, heatmaps, timelines and sparklines, drawn as SVG on the theme |
 | [Terminal](/terminal/) (`@adecore/terminal`) | A terminal pane on xterm.js in the colors of the theme, fed by the app through a handle |
 
-### Desktop
-
-| Package | What it holds |
-|---|---|
-| [Shell](/shell/) (`@adecore/shell`) | The main process of an Electron app: its menu, its updater, its windows and the guards around its page |
-| [Service](/service/) (`@adecore/service`) | Definitions and managers for a launchd job on macOS or a systemd user service on Linux |
-
-### Agents
+## Agents
 
 | Package | What it holds |
 |---|---|
@@ -27,7 +21,7 @@ The packages that desktop apps for working with agents share.
 | [Agent views](/agents-react/) (`@adecore/agents-react`) | React views for agent chats: threads, the composer, approvals, provider accounts and usage |
 | [Intelligent UI](/intelligent-ui/) (`@adecore/intelligent-ui`) | The component catalog, compiler and bounded interpreter for blocks of UI in an agent's reply |
 
-### Editor
+## Editor
 
 | Package | What it holds |
 |---|---|
@@ -37,13 +31,15 @@ The packages that desktop apps for working with agents share.
 | [LSP](/lsp/) (`@adecore/lsp`) | A Language Server Protocol client with no DOM, and the language service interface the editor asks |
 | [Merge](/merge/) (`@adecore/merge`) | Line diffs, three-way merge blocks and conflict resolution for text |
 
-### Data
+## Platform
 
 | Package | What it holds |
 |---|---|
+| [Shell](/shell/) (`@adecore/shell`) | The main process of an Electron app: its menu, its updater, its windows and the guards around its page |
+| [Service](/service/) (`@adecore/service`) | Definitions and managers for a launchd job on macOS or a systemd user service on Linux |
 | [Database](/database/) (`@adecore/database`) | Views to browse, query and edit SQLite and MySQL databases, a host for the backend and a native helper |
 
-### Canvas
+## Canvas
 
 | Package | What it holds |
 |---|---|
@@ -51,40 +47,6 @@ The packages that desktop apps for working with agents share.
 | [Diagram](/diagram/) (`@adecore/diagram`) | Directed graphs on top of drawing, with layered layout and SVG export |
 | [Plan](/plan/) (`@adecore/plan`) | Plan trees with atomic operations, permissions for people and agents, and Markdown |
 
-## One version
+## Next
 
-Every package is released under the same version, from one tag, and tested against the same version of the others. Upgrade them together.
-
-While the version is `0.x`, a breaking change bumps the minor and everything else the patch. The GitHub release notes say how to migrate each breaking change.
-
-## Installing
-
-Install each package from npm on its own:
-
-```sh
-bun add @adecore/ui
-```
-
-Each package page lists its peer dependencies and how to wire it into an app.
-
-## Working on a local checkout
-
-Every package has a `source` export condition that points into its `src`, so an app can use a checkout without building it. Link the package from its own folder:
-
-```sh
-# in packages/<name> of the adecore checkout
-bun link
-
-# in your app
-bun link @adecore/<name>
-```
-
-Then turn the condition on wherever the app resolves modules: `resolve.conditions` in Vite, `customConditions` in TypeScript and `--conditions=source` for `bun test`. A package page lists what else it needs, such as a single copy of React.
-
-## The React Compiler
-
-The packages with React views (UI, Terminal, Agent views and Editor views) ship a `dist` built with the [React Compiler](https://react.dev/learn/react-compiler), so their components and hooks memoize themselves. The compiled code imports `react/compiler-runtime`, which comes with React 19.
-
-The `source` condition serves uncompiled TypeScript, which has no hand-written `useMemo` or `useCallback`. Without the compiler the views still work, but redraw whenever their parent does. To keep the memoization, run `babel-plugin-react-compiler` with `target: '19'` over these sources, in Vite through `reactCompilerPreset` of `@vitejs/plugin-react`. If your bundler setup skips `node_modules`, include the `src` of these packages. A production build without the `source` condition uses the compiled `dist`.
-
-A function that starts with `'use no memo'` stays uncompiled, in `dist` too, and so does one the compiler cannot prove safe.
+[Installing](/guide/installing) covers versions and a local checkout, [Styles](/guide/styles) the CSS each package needs, and [React Compiler](/guide/react-compiler) what changes when an app reads the sources.

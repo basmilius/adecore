@@ -8,7 +8,7 @@ import { SegmentBar } from '@adecore/ui';
 
 <Demo src="display/segment-bar" />
 
-The parts follow each other from 0, each as long as its `value`. Their bounds line up with anything drawn over the same stretch, such as the marks of a [`Waveform`](/ui/display/waveform). A very narrow part may not show.
+The parts follow each other from 0, each as long as its `value`. Their bounds line up with anything drawn over the same stretch, such as the marks of a [`Waveform`](/ui/status/waveform). A very narrow part may not show.
 
 A part with its own `start` begins there, and the stretch before it stays empty. The parts still go in order.
 

@@ -84,7 +84,7 @@ Without one, the formatters write English. [Format source](/ui/formatting/) expl
 
 ## Optional pieces
 
-Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once to print every visible button's shortcut while Cmd (Ctrl elsewhere) is held. Mount [`<Toasts store={toasts} />`](/ui/overlays/toasts) once for toasts from `createToastStore()`.
+Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once to print every visible button's shortcut while Cmd (Ctrl elsewhere) is held. Mount [`<Toasts store={toasts} />`](/ui/status/toasts) once for toasts from `createToastStore()`.
 
 ## Working on a local checkout
 

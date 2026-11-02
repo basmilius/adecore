@@ -1,6 +1,6 @@
 # Popover
 
-A popup of content anchored to a trigger, as a compound component on Base UI's popover. For a list of actions, use a [`Menu`](/ui/overlays/menu).
+A popup of content anchored to a trigger, as a compound component on Base UI's popover. For a list of actions, use a [`Menu`](/ui/menus/menu).
 
 ```tsx
 import { Popover } from '@adecore/ui';
@@ -27,7 +27,7 @@ import { Popover } from '@adecore/ui';
 
 ## Placement
 
-A popover opens 8 pixels under its trigger, start-aligned. `Popover.Popup` takes the placement props of [`Menu.Popup`](/ui/overlays/menu#placement).
+A popover opens 8 pixels under its trigger, start-aligned. `Popover.Popup` takes the placement props of [`Menu.Popup`](/ui/menus/menu#placement).
 
 ## Keyboard
 

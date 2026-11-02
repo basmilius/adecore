@@ -8,7 +8,14 @@ function group(text: string, items: [string, string][]): DefaultTheme.SidebarIte
     };
 }
 
-const guide: DefaultTheme.SidebarItem[] = [group('Guide', [['Introduction', '/guide/']])];
+const guide: DefaultTheme.SidebarItem[] = [
+    group('Guide', [
+        ['Introduction', '/guide/'],
+        ['Installing', '/guide/installing'],
+        ['Styles', '/guide/styles'],
+        ['React Compiler', '/guide/react-compiler']
+    ])
+];
 
 const desktopUi: DefaultTheme.SidebarItem[] = [
     group('UI', [
@@ -19,97 +26,111 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     ]),
     group('Actions', [
         ['Button', '/ui/actions/button'],
-        ['IconButton', '/ui/actions/icon-button'],
         ['ButtonGroup', '/ui/actions/button-group'],
-        ['SplitButton', '/ui/actions/split-button'],
         ['CloseButton', '/ui/actions/close-button'],
         ['CopyButton', '/ui/actions/copy-button'],
+        ['IconButton', '/ui/actions/icon-button'],
         ['Pill', '/ui/actions/pill'],
+        ['SplitButton', '/ui/actions/split-button'],
         ['Tile', '/ui/actions/tile']
     ]),
     group('Inputs', [
+        ['Checkbox', '/ui/inputs/checkbox'],
+        ['ChoiceCards', '/ui/inputs/choice-cards'],
+        ['Combobox', '/ui/inputs/combobox'],
         ['Field', '/ui/inputs/field'],
         ['Input and TextArea', '/ui/inputs/input'],
-        ['Select', '/ui/inputs/select'],
-        ['Combobox', '/ui/inputs/combobox'],
-        ['Switch', '/ui/inputs/switch'],
-        ['Checkbox', '/ui/inputs/checkbox'],
         ['Segmented', '/ui/inputs/segmented'],
-        ['Stepper', '/ui/inputs/stepper'],
+        ['Select', '/ui/inputs/select'],
         ['Slider', '/ui/inputs/slider'],
-        ['ChoiceCards', '/ui/inputs/choice-cards'],
-        ['IconPicker', '/ui/inputs/icon-picker'],
-        ['ColorSwatch', '/ui/inputs/color-swatch'],
-        ['AccentSwatches', '/ui/inputs/accent-swatches'],
-        ['ColorWheelPicker', '/ui/inputs/color-wheel-picker']
+        ['Stepper', '/ui/inputs/stepper'],
+        ['Switch', '/ui/inputs/switch']
+    ]),
+    group('Pickers', [
+        ['AccentSwatches', '/ui/pickers/accent-swatches'],
+        ['ColorSwatch', '/ui/pickers/color-swatch'],
+        ['ColorWheelPicker', '/ui/pickers/color-wheel-picker'],
+        ['IconPicker', '/ui/pickers/icon-picker']
+    ]),
+    group('Menus', [
+        ['CommandPalette', '/ui/menus/command-palette'],
+        ['ContextMenu', '/ui/menus/context-menu'],
+        ['Menu', '/ui/menus/menu'],
+        ['ProjectSwitcher', '/ui/menus/project-switcher'],
+        ['TextMenu', '/ui/menus/text-menu']
     ]),
     group('Overlays', [
-        ['Menu', '/ui/overlays/menu'],
-        ['ProjectSwitcher', '/ui/overlays/project-switcher'],
-        ['ContextMenu', '/ui/overlays/context-menu'],
+        ['ConfirmDialog', '/ui/overlays/confirm-dialog'],
         ['Dialog', '/ui/overlays/dialog'],
-        ['PromptDialog', '/ui/overlays/prompt-dialog'],
-        ['CommandPalette', '/ui/overlays/command-palette'],
+        ['DisabledReason', '/ui/overlays/disabled-reason'],
         ['Popover', '/ui/overlays/popover'],
         ['PreviewCard', '/ui/overlays/preview-card'],
-        ['Tooltip', '/ui/overlays/tooltip'],
-        ['DisabledReason', '/ui/overlays/disabled-reason'],
-        ['TextMenu', '/ui/overlays/text-menu'],
-        ['Toasts', '/ui/overlays/toasts']
+        ['PromptDialog', '/ui/overlays/prompt-dialog'],
+        ['Tooltip', '/ui/overlays/tooltip']
     ]),
     group('Display', [
-        ['Kbd, KeyCap and Keys', '/ui/display/kbd'],
-        ['ShortcutHints', '/ui/display/shortcut-hints'],
-        ['Icon', '/ui/display/icon'],
         ['FileIcon', '/ui/display/file-icon'],
-        ['SectionLabel', '/ui/display/section-label'],
-        ['Surface', '/ui/display/surface'],
-        ['ListRow', '/ui/display/list-row'],
+        ['Icon', '/ui/display/icon'],
+        ['Kbd, KeyCap and Keys', '/ui/display/kbd'],
         ['KeyValueList', '/ui/display/key-value-list'],
+        ['ListRow', '/ui/display/list-row'],
         ['MiddleTruncate', '/ui/display/middle-truncate'],
-        ['RelativeTime', '/ui/display/relative-time'],
         ['PanelHeader', '/ui/display/panel-header'],
+        ['RelativeTime', '/ui/display/relative-time'],
+        ['SectionLabel', '/ui/display/section-label'],
         ['Separator', '/ui/display/separator'],
-        ['Skeleton', '/ui/display/skeleton'],
-        ['Spinner', '/ui/display/spinner'],
-        ['SegmentBar', '/ui/display/segment-bar'],
-        ['Meter', '/ui/display/meter'],
-        ['Waveform', '/ui/display/waveform'],
-        ['EmptyState', '/ui/display/empty-state'],
-        ['PanelEmpty', '/ui/display/panel-empty'],
-        ['Banner', '/ui/display/banner'],
-        ['ErrorBoundary', '/ui/display/error-boundary']
+        ['ShortcutHints', '/ui/display/shortcut-hints'],
+        ['Surface', '/ui/display/surface']
     ]),
-    group('FileTree and Tree', [
-        ['FileTree', '/ui/display/file-tree'],
-        ['Models, loading and expansion', '/ui/display/file-tree/models-loading'],
-        ['Interaction and row controls', '/ui/display/file-tree/interaction-controls'],
-        ['FileTree reference', '/ui/display/file-tree/reference'],
-        ['Tree', '/ui/display/tree'],
-        ['Tree reference', '/ui/display/tree/reference']
+    group('Status', [
+        ['Banner', '/ui/status/banner'],
+        ['EmptyState', '/ui/status/empty-state'],
+        ['ErrorBoundary', '/ui/status/error-boundary'],
+        ['Meter', '/ui/status/meter'],
+        ['PanelEmpty', '/ui/status/panel-empty'],
+        ['SegmentBar', '/ui/status/segment-bar'],
+        ['Skeleton', '/ui/status/skeleton'],
+        ['Spinner', '/ui/status/spinner'],
+        ['Toasts', '/ui/status/toasts'],
+        ['Waveform', '/ui/status/waveform']
+    ]),
+    group('Trees', [
+        ['FileTree', '/ui/trees/file-tree'],
+        ['Models, loading and expansion', '/ui/trees/file-tree/models-loading'],
+        ['Interaction and row controls', '/ui/trees/file-tree/interaction-controls'],
+        ['FileTree reference', '/ui/trees/file-tree/reference'],
+        ['Tree', '/ui/trees/tree'],
+        ['Tree reference', '/ui/trees/tree/reference']
     ]),
     group('Layout', [
-        ['Tabs', '/ui/layout/tabs'],
-        ['TabStrip', '/ui/layout/tab-strip'],
-        ['SplitView', '/ui/layout/split-view'],
-        ['Workspace', '/ui/layout/workspace'],
-        ['SlidingColumn', '/ui/layout/sliding-column'],
         ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
         ['DockShell', '/ui/layout/dock-shell'],
-        ['ZoomControls', '/ui/layout/zoom-controls'],
-        ['Wipe', '/ui/layout/wipe']
+        ['SlidingColumn', '/ui/layout/sliding-column'],
+        ['SplitView', '/ui/layout/split-view'],
+        ['TabStrip', '/ui/layout/tab-strip'],
+        ['Tabs', '/ui/layout/tabs'],
+        ['Wipe', '/ui/layout/wipe'],
+        ['Workspace', '/ui/layout/workspace'],
+        ['ZoomControls', '/ui/layout/zoom-controls']
     ]),
     group('Settings', [
-        ['SettingsDialog', '/ui/settings/settings-dialog'],
-        ['SettingsSection and SettingsRow', '/ui/settings/settings-section'],
         ['MasterDetail', '/ui/settings/master-detail'],
-        ['ConfirmDialog', '/ui/settings/confirm-dialog']
+        ['SettingsDialog', '/ui/settings/settings-dialog'],
+        ['SettingsSection and SettingsRow', '/ui/settings/settings-section']
+    ]),
+    group('Foundations', [
+        ['Clipboard and selection', '/ui/utilities/clipboard'],
+        ['Error messages', '/ui/utilities/error-messages'],
+        ['Floating layers', '/ui/utilities/floating-layers'],
+        ['Lazy loading', '/ui/utilities/lazy-loading'],
+        ['Shortcuts', '/ui/utilities/shortcuts'],
+        ['UIProvider', '/ui/utilities/ui-provider']
     ]),
     group('Formatting', [
         ['Format source', '/ui/formatting/'],
-        ['Numbers', '/ui/formatting/numbers'],
         ['Dates and times', '/ui/formatting/dates'],
         ['Durations', '/ui/formatting/durations'],
+        ['Numbers', '/ui/formatting/numbers'],
         ['Regions', '/ui/formatting/regions']
     ]),
     group('Hooks', [
@@ -118,15 +139,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['useContentSize', '/ui/hooks/use-content-size'],
         ['useNow', '/ui/hooks/use-now']
     ]),
-    group('Utilities', [
-        ['UIProvider', '/ui/utilities/ui-provider'],
-        ['Shortcuts', '/ui/utilities/shortcuts'],
-        ['Lazy loading', '/ui/utilities/lazy-loading'],
-        ['Clipboard and selection', '/ui/utilities/clipboard'],
-        ['Floating layers', '/ui/utilities/floating-layers'],
-        ['Error messages', '/ui/utilities/error-messages'],
-        ['Testing', '/ui/utilities/testing']
-    ])
+    group('Testing', [['Testing', '/ui/utilities/testing']])
 ];
 
 const desktopShell: DefaultTheme.SidebarItem[] = [
@@ -330,8 +343,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Typing and commands', '/editor-core/commands'],
             ['Search and folding', '/editor-core/search-folding']
         ]),
-        group('Reference', [['Exports', '/editor-core/api']
-        ])
+        group('Reference', [['Exports', '/editor-core/api']])
     ],
     '/editor/': [
         group('Editor', [

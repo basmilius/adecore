@@ -8,7 +8,7 @@ import { FileTree, useFileTree } from '@adecore/ui';
 
 <Demo src="display/file-tree" />
 
-For nodes that are not file paths, such as connections or database objects, use [`Tree`](/ui/display/tree), which shares the look and leaves the model to you.
+For nodes that are not file paths, such as connections or database objects, use [`Tree`](/ui/trees/tree), which shares the look and leaves the model to you.
 
 ## A file browser
 
@@ -39,7 +39,7 @@ The view virtualizes, so it needs a height to scroll in. With `fitContent` it ta
 
 ## Defaults and ownership
 
-`useFileTree` starts with closed directories, directories first in numeric order ([`FileTree.compareRows`](/ui/display/file-tree/models-loading#sorting-and-flattened-paths)), the [`FileIcon`](/ui/display/file-icon) set (`FILE_TREE_ICONS`), and the engine's search, sticky folders and context menu off. You can override each. Density and row height are fixed. `unsafeCSS` is appended to the wrapper's styles inside the shadow root.
+`useFileTree` starts with closed directories, directories first in numeric order ([`FileTree.compareRows`](/ui/trees/file-tree/models-loading#sorting-and-flattened-paths)), the [`FileIcon`](/ui/display/file-icon) set (`FILE_TREE_ICONS`), and the engine's search, sticky folders and context menu off. You can override each. Density and row height are fixed. `unsafeCSS` is appended to the wrapper's styles inside the shadow root.
 
 The options only create the model. A new `paths` or `initialExpansion` on a later render does not rebuild it; use the model's methods (`resetPaths`, `add`, `remove`, `move`, `batch`, `setGitStatus`, `setIcons`).
 
@@ -58,16 +58,16 @@ export function Files({ paths }: { paths: readonly string[] }) {
 }
 ```
 
-`resetPaths` replaces the listing and its expansion; [Models, loading and expansion](/ui/display/file-tree/models-loading) shows how to keep folds. The model never touches the filesystem.
+`resetPaths` replaces the listing and its expansion; [Models, loading and expansion](/ui/trees/file-tree/models-loading) shows how to keep folds. The model never touches the filesystem.
 
 Your code owns filesystem changes, listings, search requests, caches and permissions. The model owns the displayed paths, selection and expansion. The hook cleans up its model on unmount, so never call `cleanUp()` yourself. Unsubscribe your own listeners and cancel your requests when the root changes.
 
 ## Guides
 
-- [Models, loading and expansion](/ui/display/file-tree/models-loading): sorting, changes, lazy listings, empty directories, remembered folds and search.
-- [Interaction and row controls](/ui/display/file-tree/interaction-controls): activation, selection, checkboxes, context menus, dragging and long names.
-- [Reference](/ui/display/file-tree/reference): every option, prop and helper.
+- [Models, loading and expansion](/ui/trees/file-tree/models-loading): sorting, changes, lazy listings, empty directories, remembered folds and search.
+- [Interaction and row controls](/ui/trees/file-tree/interaction-controls): activation, selection, checkboxes, context menus, dragging and long names.
+- [Reference](/ui/trees/file-tree/reference): every option, prop and helper.
 
 ## Limits
 
-Screen reader behavior across the row control slots is not verified yet. The wrapper relies on internals of the [pinned engine version](/ui/display/file-tree/reference#engine-updates).
+Screen reader behavior across the row control slots is not verified yet. The wrapper relies on internals of the [pinned engine version](/ui/trees/file-tree/reference#engine-updates).

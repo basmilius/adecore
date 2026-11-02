@@ -20,7 +20,7 @@ setFileIconOverride((path) => (path.endsWith('.acme') ? '/icons/acme.svg' : null
 
 ## With a file tree
 
-`useFileTree` already hands a [`FileTree`](/ui/display/file-tree) `FILE_TREE_ICONS`. Pass it as the `icons` option yourself only for a `@pierre/trees` model built without `useFileTree`.
+`useFileTree` already hands a [`FileTree`](/ui/trees/file-tree) `FILE_TREE_ICONS`. Pass it as the `icons` option yourself only for a `@pierre/trees` model built without `useFileTree`.
 
 ## Props
 

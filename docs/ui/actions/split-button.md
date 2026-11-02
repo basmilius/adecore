@@ -8,7 +8,7 @@ import { Menu, SplitButton } from '@adecore/ui';
 
 <Demo src="actions/split-button" />
 
-It draws as one button with a divider. The two halves are separate buttons: each takes focus, can be disabled and has its own hint. The children are the action half's content, as in a [`Button`](/ui/actions/button). `menu` holds the rows of the [`Menu`](/ui/overlays/menu) the chevron opens, under the whole control and end-aligned unless `menuAlign` says otherwise.
+It draws as one button with a divider. The two halves are separate buttons: each takes focus, can be disabled and has its own hint. The children are the action half's content, as in a [`Button`](/ui/actions/button). `menu` holds the rows of the [`Menu`](/ui/menus/menu) the chevron opens, under the whole control and end-aligned unless `menuAlign` says otherwise.
 
 ```tsx
 <SplitButton

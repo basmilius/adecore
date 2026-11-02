@@ -6,7 +6,7 @@
 
 `useFileTree(options)` returns `{ model }`. `FileTreeOptions` is every option of the engine except `density` and `itemHeight`: `paths` (or its prepared form), `initialExpansion`, `initialExpandedPaths`, `initialSelectedPaths`, `flattenEmptyDirectories`, `sort`, `gitStatus`, `icons`, `search`, `stickyFolders`, `composition`, `renaming`, `dragAndDrop`, `onSelectionChange`, `unsafeCSS` and the rest.
 
-The options create the model once; they are not controlled. The hook keeps only `onSelectionChange` current, so read changing values in other callbacks through a ref. The defaults are on the [overview](/ui/display/file-tree#defaults-and-ownership).
+The options create the model once; they are not controlled. The hook keeps only `onSelectionChange` current, so read changing values in other callbacks through a ref. The defaults are on the [overview](/ui/trees/file-tree#defaults-and-ownership).
 
 ## FileTree.Root
 
@@ -27,7 +27,7 @@ The options create the model once; they are not controlled. The hook keeps only 
 | `rowIcon` | `(row: FileTreeVisibleRow) => LucideIcon \| undefined` | | A 14 pixel icon in place of the row's file icon or chevron; `undefined` keeps it. |
 | `fitContent` | `boolean` | `false` | As tall as its rows, up to the height its container leaves it. |
 | `highlight` | `string` | `''` | Marks where this occurs in every name, ignoring case, in `--match`. |
-| `emptyLabel` | `(row: FileTreeVisibleRow) => string \| undefined` | | A muted line under an open directory with nothing in it; `undefined` draws none. See [empty directories](/ui/display/file-tree/models-loading#empty-directories). |
+| `emptyLabel` | `(row: FileTreeVisibleRow) => string \| undefined` | | A muted line under an open directory with nothing in it; `undefined` draws none. See [empty directories](/ui/trees/file-tree/models-loading#empty-directories). |
 | `decorationOrder` | `'before-status' \| 'after-status'` | `'before-status'` | Whether the decoration comes before or after the git status column. |
 | `treeProps` | engine React props without `model` | | For the engine's own tree element, such as its header or context menu rendering. |
 | `render` | `RenderProp` | | Another element to be the frame. |
@@ -36,7 +36,7 @@ Every other prop goes to the frame, a `<div>`. There is no `onLoadError` and no 
 
 ## Parts
 
-`FileTree.Checkbox`, `FileTree.Control` and `FileTree.Decoration` are the [`Tree`](/ui/display/tree/reference#controls) parts of the same name, drawn in the row slots. See [Interaction and row controls](/ui/display/file-tree/interaction-controls#checkboxes-and-decorations).
+`FileTree.Checkbox`, `FileTree.Control` and `FileTree.Decoration` are the [`Tree`](/ui/trees/tree/reference#controls) parts of the same name, drawn in the row slots. See [Interaction and row controls](/ui/trees/file-tree/interaction-controls#checkboxes-and-decorations).
 
 ## Helpers
 

@@ -8,7 +8,7 @@ import { EmptyState } from '@adecore/ui';
 
 <Demo src="display/empty-state" />
 
-The sentence says what is missing and what puts something there. A `title` is for an outcome, such as a search with no results. The icon is a Lucide icon or another mark that takes a `size`, drawn at 20 pixels. `busy` draws a [`Spinner`](/ui/display/spinner) in its place.
+The sentence says what is missing and what puts something there. A `title` is for an outcome, such as a search with no results. The icon is a Lucide icon or another mark that takes a `size`, drawn at 20 pixels. `busy` draws a [`Spinner`](/ui/status/spinner) in its place.
 
 ## Props
 

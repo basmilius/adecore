@@ -18,7 +18,7 @@ The fields reset to `field.initial` and `area.initial` each time `open` turns tr
 
 ## A confirm
 
-Without `field` the dialog is a plain confirm. `danger` turns the confirm button red. [`ConfirmDialog`](/ui/settings/confirm-dialog) wraps this for a destructive step over another dialog.
+Without `field` the dialog is a plain confirm. `danger` turns the confirm button red. [`ConfirmDialog`](/ui/overlays/confirm-dialog) wraps this for a destructive step over another dialog.
 
 ## Props
 

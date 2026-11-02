@@ -10,7 +10,7 @@ import { SettingsDialog } from '@adecore/ui/settings';
 
 ## Sections and panes
 
-`groups` is the navigation, in order, each group with an optional label. `footer` sections sit at the foot of the navigation. A section names a `pane` component, rendered only while open, inside a `Suspense` and an [`ErrorBoundary`](/ui/display/error-boundary). A lazy pane loads on first open.
+`groups` is the navigation, in order, each group with an optional label. `footer` sections sit at the foot of the navigation. A section names a `pane` component, rendered only while open, inside a `Suspense` and an [`ErrorBoundary`](/ui/status/error-boundary). A lazy pane loads on first open.
 
 A pane is a padded, scrolling column. A `split` section gets the full height instead, for a [`MasterDetail`](/ui/settings/master-detail).
 

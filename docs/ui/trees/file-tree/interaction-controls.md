@@ -6,7 +6,7 @@ Focus, selection and activation are three things in a file tree. A plain click o
 
 The arrow keys, Home and End without a modifier move the engine's focus. With `selectionFollowsFocus` (on by default) the wrapper selects the focused row and calls `onFocusMove(path)`; nothing else calls it. Turn it off when your code manages selection.
 
-A click with Shift, Ctrl or Cmd extends the selection and does not activate. The helpers behind this are public; see the [reference](/ui/display/file-tree/reference#helpers). `FileTree.focusRow(model, path)` returns `false` for a row that is not drawn, so scroll a path into view first.
+A click with Shift, Ctrl or Cmd extends the selection and does not activate. The helpers behind this are public; see the [reference](/ui/trees/file-tree/reference#helpers). `FileTree.focusRow(model, path)` returns `false` for a row that is not drawn, so scroll a path into view first.
 
 ## Checkboxes and decorations
 
@@ -66,7 +66,7 @@ A checkbox for a whole directory computes `checked` and `indeterminate` from you
 
 With git status, the engine draws a status column after the name, and the decoration sits before it. `decorationOrder="after-status"` puts the decoration after the column.
 
-`FileTree.Checkbox` is [`Tree.Checkbox`](/ui/display/tree/reference#controls). Tab reaches it, Space toggles it, and it never selects, activates or folds the row. Wrap any other control in `FileTree.Control`, and put counts and status in `FileTree.Decoration`, written with the [formatters](/ui/formatting/).
+`FileTree.Checkbox` is [`Tree.Checkbox`](/ui/trees/tree/reference#controls). Tab reaches it, Space toggles it, and it never selects, activates or folds the row. Wrap any other control in `FileTree.Control`, and put counts and status in `FileTree.Decoration`, written with the [formatters](/ui/formatting/).
 
 ## Slots
 

@@ -18,7 +18,7 @@ Without a `label` it is hidden from screen readers, for a spinner next to words 
 </Tooltip>
 ```
 
-An [`IconButton`](/ui/actions/icon-button), an [`EmptyState`](/ui/display/empty-state) and a [`PanelEmpty`](/ui/display/panel-empty) draw one in place of their icon with `busy`.
+An [`IconButton`](/ui/actions/icon-button), an [`EmptyState`](/ui/status/empty-state) and a [`PanelEmpty`](/ui/status/panel-empty) draw one in place of their icon with `busy`.
 
 ## Props
 
