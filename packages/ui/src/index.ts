@@ -51,7 +51,7 @@ export { DockShell, type DockShellProps } from './DockShell.tsx';
 export { EmptyState, type EmptyStateProps } from './EmptyState.tsx';
 export { ErrorBoundary, type ErrorBoundaryProps } from './ErrorBoundary.tsx';
 export { Field, FieldHint, FormError, type FieldHintProps, type FieldProps, type FormErrorProps } from './Field.tsx';
-export { FileIcon, setFileIconOverride, type FileIconProps } from './FileIcon.tsx';
+export { FileIcon, type FileIconProps } from './FileIcon.tsx';
 export { Icon, type IconProps } from './Icon.tsx';
 export { IconButton, type IconButtonProps, type IconButtonSize } from './IconButton.tsx';
 export { IconPicker, type IconPickerGroup, type IconPickerProps } from './IconPicker.tsx';
@@ -92,7 +92,7 @@ export { ZoomControls, type ZoomControlsProps, type ZoomLabels, type ZoomSelecti
 export { copyText, readClipboardText } from './clipboard.ts';
 export { messageOf } from './error-message.ts';
 export type { ResetKeys } from './error-boundary.ts';
-export { FILE_TREE_ICONS } from './file-icon.ts';
+export { FILE_TREE_ICONS, setFileIconOverride } from './file-icon.ts';
 export { cameThroughPortal, isInFloatingLayer } from './floating.ts';
 export { LoadedComponent, lazyDialog, lazyNamed, onLazyOpenError } from './lazy.tsx';
 export type { LazyComponent } from './lazy.tsx';

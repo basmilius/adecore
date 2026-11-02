@@ -65,6 +65,16 @@ export function useHostLoginBlocked(...args: Parameters<ChatHost['useLoginBlocke
     return useChatHost().useLoginBlocked(...args);
 }
 
+const NO_EXPANDING: ReturnType<NonNullable<ChatHost['useExpandingCommands']>> = [];
+const noExpanding = (): ReturnType<NonNullable<ChatHost['useExpandingCommands']>> => NO_EXPANDING;
+
+/* None where the host has no commands of its own. */
+export function useHostExpandingCommands(): ReturnType<NonNullable<ChatHost['useExpandingCommands']>> {
+    const useExpanding = useChatHost().useExpandingCommands ?? noExpanding;
+
+    return useExpanding();
+}
+
 const noPlatform = (): ProviderPlatform | null => null;
 
 /* Null where the host does not say, as it need not. */

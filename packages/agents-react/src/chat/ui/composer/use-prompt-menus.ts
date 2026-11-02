@@ -4,6 +4,7 @@ import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import type { ChatSkill } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
+import { useHostExpandingCommands } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';
 import { referenceSuggestions, referenceTokens, type Referable, type Referables } from '../../chat-references';
 import type { ChatDraft } from '../../drafts';
@@ -34,7 +35,6 @@ const MENTION_RESULTS = 8;
 const REFERENCE_RESULTS = 20;
 
 /* The text of a prompt and what the person picked in it with `@`, `$` and `#`. */
-const NO_EXPANDING: readonly { name: string; hint: string; expand(args: string): Promise<string> }[] = [];
 
 export type PromptDraft = Pick<ChatDraft, 'text' | 'mentions' | 'skills' | 'chats' | 'references' | 'referenceNames'>;
 
@@ -149,7 +149,7 @@ export function usePromptMenus<D extends PromptDraft>({
 
     const commandQuery = text.startsWith('/') && !text.includes('\n') ? text.slice(1).trim().toLowerCase() : null;
 
-    const expanding = useChatHost().useExpandingCommands?.() ?? NO_EXPANDING;
+    const expanding = useHostExpandingCommands();
     const expandInto = (command: ComposerCommand): void => {
         const args = text.replace(/^\/\S*\s*/, '');
 

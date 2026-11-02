@@ -29,6 +29,17 @@ const resolveIcon: ReturnType<typeof createFileTreeIconResolver>['resolveIcon'] 
  */
 export const fileIconFor = (path: string): string => resolveIcon('file-tree-icon-file', path).name;
 
+let override: ((path: string) => string | null) | null = null;
+
+/* What an app knows better about a file's icon: the address of an svg, or null for the icon this set has. */
+export function setFileIconOverride(next: ((path: string) => string | null) | null): void {
+    override = next;
+}
+
+export function fileIconOverrideFor(path: string): string | null {
+    return override?.(path) ?? null;
+}
+
 /* The tree carries the sprite into its own shadow root, out of reach of anything that draws an
    icon next to it, so the document gets a copy of the same sheet to point `<use>` at. */
 export const mountFileIconSprite = (): void => {
