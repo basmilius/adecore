@@ -27,26 +27,36 @@ function tokenizeLine(text: string, state: unknown): TokenizedLine {
     const tokens: LineToken[] = [];
     let inComment = state === true;
     let at = 0;
+
     const push = (end: number, color: string, fontStyle = 0): void => {
         if (end > at) {
             tokens.push({ length: end - at, color, fontStyle });
             at = end;
         }
     };
+
     while (at < text.length) {
         if (inComment) {
             const close = text.indexOf('*/', at);
+
             push(close < 0 ? text.length : close + 2, 'var(--text-faint)', ITALIC);
             inComment = close < 0;
+
             continue;
         }
+
         TOKEN.lastIndex = at;
+
         const match = TOKEN.exec(text);
+
         if (match === null) {
             push(text.length, '');
+
             break;
         }
+
         push(match.index, '');
+
         const end = match.index + match[0].length;
         if (match[1] !== undefined) {
             push(end, 'var(--text-faint)', ITALIC);
@@ -61,6 +71,7 @@ function tokenizeLine(text: string, state: unknown): TokenizedLine {
             push(end, KEYWORDS.has(match[0]) ? 'var(--accent)' : '');
         }
     }
+
     return { tokens, state: inComment };
 }
 
@@ -102,9 +113,12 @@ export function useEditor(
         if (element === null) {
             return;
         }
+
         const mounted = demoEngine.mount(element, options);
         const cleanup = setup?.(mounted);
+
         setEditor(mounted);
+
         return () => {
             setEditor(null);
             cleanup?.();

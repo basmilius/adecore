@@ -8,6 +8,7 @@ const FILES = ['Button.tsx', 'ButtonGroup.tsx', 'Input.tsx', 'Select.tsx', 'Spli
 export default function InputEndDemo() {
     const [query, setQuery] = useState('button');
     const matches = FILES.filter((name) => name.toLowerCase().includes(query.toLowerCase())).length;
+
     return (
         <div className="w-80">
             <Input

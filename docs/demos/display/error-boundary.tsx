@@ -5,6 +5,7 @@ function Chart({ broken }: { broken: boolean }) {
     if (broken) {
         throw new Error('Cannot read the series "memory" of an empty sample.');
     }
+
     return <div className="grid h-full place-items-center text-xs text-text-muted">The chart draws here.</div>;
 }
 

@@ -43,9 +43,11 @@ function nowIso(): string {
 
 function initialPlan(): Plan {
     const created = createPlan(DRAFT, { id: 'release', now: '2026-10-05T09:00:00.000Z' });
+
     if (!created.ok) {
         throw new Error(created.message);
     }
+
     return created.plan;
 }
 
@@ -56,6 +58,7 @@ export default function PlanChecklistDemo() {
 
     function apply(ops: PlanOp[]) {
         const result = applyPlanOps(plan, ops, { actor, now: nowIso() });
+
         if (result.ok) {
             setPlan(result.plan);
             setRefusal(null);
@@ -73,6 +76,7 @@ export default function PlanChecklistDemo() {
             ...(step.by === 'person' ? ['set by a person'] : [])
         ];
         const progress = planProgress(step.steps ?? []);
+
         return (
             <li key={step.id} className="flex flex-col gap-1.5" style={{ paddingLeft: depth * 24 }}>
                 <label className="flex items-center gap-2">
@@ -97,6 +101,7 @@ export default function PlanChecklistDemo() {
         if (item.type === 'step') {
             return stepRow(item, 0);
         }
+
         if (item.type === 'text') {
             return (
                 <li key={item.id} className="text-text-muted">
@@ -104,6 +109,7 @@ export default function PlanChecklistDemo() {
                 </li>
             );
         }
+
         return (
             <li key={item.id} className="flex flex-col gap-1.5">
                 <span className="font-medium">{item.title}</span>

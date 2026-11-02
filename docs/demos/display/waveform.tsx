@@ -17,6 +17,7 @@ const STARTS = SECTIONS.map((_, i) => SECTIONS.slice(0, i).reduce((sum, section)
 const LEVELS = Array.from({ length: DURATION * 10 }, (_, i) => {
     const swell = 0.55 + 0.35 * Math.sin((i / (DURATION * 10)) * Math.PI * 3);
     const grain = 0.3 * Math.abs(Math.sin(i * 1.7) * Math.cos(i * 0.9));
+
     return Math.min(1, swell * 0.75 + grain);
 });
 

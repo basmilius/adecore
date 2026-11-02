@@ -27,6 +27,7 @@ const INITIAL: SplitLayout = {
 
 export default function SplitViewDemo() {
     const [value, setValue] = useState(INITIAL);
+
     return (
         <div className="h-64 w-full overflow-hidden rounded-lg border border-border">
             <SplitView

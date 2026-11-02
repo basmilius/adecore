@@ -4,7 +4,7 @@ Every name each entry point exports, types included. Each row links the module's
 
 Six entries are JSON: the model catalogs `@adecore/agents/providers/<kind>-models.json` (`claude`, `codex`, `grok`, `copilot`, `antigravity`) and the bundled prices `@adecore/agents/usage/prices-snapshot.json`. Import them with `with { type: 'json' }` where the runtime asks for it.
 
-Nothing here belongs in a page. A window imports [`@adecore/agent-contracts`](/agent-contracts/) and [`@adecore/agents-react`](/agents-react/).
+These entries run in the backend, never in a window. A window imports [`@adecore/agent-contracts`](/agent-contracts/) and [`@adecore/agents-react`](/agents-react/).
 
 ## `@adecore/agents`
 

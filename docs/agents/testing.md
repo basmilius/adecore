@@ -29,9 +29,11 @@ import { settled } from '@adecore/agents';
 
 const seams = new FakeWatch();
 let scans = 0;
+
 const refresh = settled(seams, 100, () => {
     scans += 1;
 });
+
 refresh.nudge();
 refresh.nudge();
 await seams.settle();

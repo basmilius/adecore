@@ -5,6 +5,7 @@ import { Icon, Tree } from '@adecore/ui';
 export default function TreeDemo() {
     const [expanded, setExpanded] = useState(true);
     const [selected, setSelected] = useState('customers');
+
     return (
         <Tree.Root aria-label="Database objects" className="w-72 py-2">
             <Tree.Row selected={selected === 'store'} aria-expanded={expanded} tabIndex={0} onClick={() => setSelected('store')}>

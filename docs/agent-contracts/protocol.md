@@ -18,6 +18,7 @@ const frame = parseRequest(incoming);
 if (!frame.ok) {
     throw new Error(frame.message);
 }
+
 if (frame.value.type === 'chat.send') {
     const payload = AGENT_REQUEST_SCHEMAS['chat.send'].payload.parse(frame.value.payload);
 }

@@ -15,6 +15,7 @@ function Chat() {
 
     useEffect(() => {
         void scope.chats.open(DEMO_CHAT, {});
+
         return () => void scope.chats.detach(DEMO_CHAT);
     }, [scope]);
 

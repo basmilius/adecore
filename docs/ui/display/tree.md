@@ -49,19 +49,24 @@ export function ObjectTree() {
         setFocused(id);
         elements.current.get(id)?.focus();
     };
+
     const activate = (id: string): void => {
         setSelected(id);
+
         if (id === 'group') {
             setExpanded((value) => !value);
         } else {
             setOpened(id);
         }
     };
+
     const onKey = (event: KeyboardEvent<HTMLDivElement>, id: string): void => {
         if (event.target !== event.currentTarget || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) {
             return;
         }
+
         const index = rows.indexOf(id);
+
         switch (event.key) {
             case 'ArrowDown':
                 focus(rows[Math.min(index + 1, rows.length - 1)]!);
@@ -100,6 +105,7 @@ export function ObjectTree() {
             default:
                 return;
         }
+
         event.preventDefault();
     };
 
@@ -136,6 +142,7 @@ export function ObjectTree() {
                                     if (!value && focused !== 'group') {
                                         focus('group');
                                     }
+
                                     setExpanded(value);
                                 }}
                             />

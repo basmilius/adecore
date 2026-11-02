@@ -35,6 +35,7 @@ export default function DecorationsDemo() {
     const [pressed, setPressed] = useState<number | null>(null);
     const setup = useCallback((editor: Editor) => {
         decorate(editor);
+
         return editor.onGutterAction(setPressed);
     }, []);
     const { host } = useEditor(OPTIONS, setup);

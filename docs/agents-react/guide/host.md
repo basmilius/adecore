@@ -108,6 +108,7 @@ import { transportActions } from '@adecore/agents-react/chat';
 import type { ChatActions, ChatHost } from '@adecore/agents-react';
 
 const base = transportActions(transport);
+
 const actions: ChatActions = {
     ...base,
     stopTurn: async (chatId, subagents) => {

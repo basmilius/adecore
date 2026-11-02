@@ -1,6 +1,6 @@
 # SegmentBar
 
-A whole split into parts, each as wide as it lasts, so a person compares them at a glance: the sections of a song, the steps of a job, what fills a budget.
+A whole split into parts, each as wide as its share, so a person compares them at a glance: the sections of a song, the steps of a job, what fills a budget.
 
 ```tsx
 import { SegmentBar } from '@adecore/ui';

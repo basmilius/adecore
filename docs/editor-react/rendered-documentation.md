@@ -12,7 +12,7 @@ language.renderedDocs.toggleAt(line); // the comment that starts on a line
 
 ## Which comments
 
-A `/** ... */` comment on lines of its own, in TypeScript, JavaScript, Vue scripts, PHP and other languages with slash-star comments (Java, C#, Go, Rust, Kotlin, Swift, Dart). Not `/* */`, `//`, banners of three or more stars, comments sharing a line with code, or text in a PHP heredoc or nowdoc. Limitation: a quote inside a heredoc can hide the comments after it. `findDocComments(text, languageId)` of `@adecore/editor-core` and `@adecore/editor` returns them as `DocComment`s.
+A `/** ... */` comment on lines of its own is formatted, in TypeScript, JavaScript, Vue scripts, PHP and other languages with slash-star comments (Java, C#, Go, Rust, Kotlin, Swift, Dart). Plain `/* */` and `//` comments, banners of three or more stars, comments sharing a line with code, and text in a PHP heredoc or nowdoc are not. A quote inside a heredoc can hide the comments after it. `findDocComments(text, languageId)` of `@adecore/editor-core` and `@adecore/editor` returns them as `DocComment`s.
 
 At most `MAX_DOC_COMMENTS` (500) comments per document are formatted; the rest stay text.
 

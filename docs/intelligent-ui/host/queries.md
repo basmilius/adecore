@@ -134,6 +134,7 @@ const intelligentUi: ChatUiHost = {
     // One lookup of one address; `signal` aborts after five seconds.
     place: async (info, { address, name }, signal) => {
         const match = await geocode(address, signal);
+
         return match ? { state: 'found', lat: match.lat, lon: match.lon, label: match.label } : { state: 'missing', code: 'no-match' };
     }
 };

@@ -60,6 +60,7 @@ window.addEventListener('message', (event) => {
     if (event.source !== frame.contentWindow) {
         return;
     }
+
     const message = parseVisualMessage(event.data);
     if (message?.method === 'ui/open-link') {
         openInBrowser(message.url);

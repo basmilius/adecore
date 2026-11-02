@@ -16,6 +16,7 @@ export default function AnchoredPopupDemo() {
         if (editor === null) {
             return;
         }
+
         const stops = [
             editor.onCaret(() => {
                 setShown(true);
@@ -24,6 +25,7 @@ export default function AnchoredPopupDemo() {
             editor.onViewChange(redraw),
             editor.onBlur(() => setShown(false))
         ];
+
         return () => stops.forEach((stop) => stop());
     }, [editor]);
 

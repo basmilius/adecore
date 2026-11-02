@@ -19,6 +19,7 @@ export default function MenuRowDemo() {
                 <Menu.Popup className="min-w-64">
                     {TASKS.map((task) => {
                         const live = running.includes(task);
+
                         return (
                             <Menu.Row key={task} aria-label={task}>
                                 <Menu.Item onClick={() => setMessage(`Show the output of ${task}`)}>

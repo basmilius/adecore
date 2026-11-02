@@ -44,6 +44,7 @@ target.addEventListener('dragover', (event) => {
         event.preventDefault();
     }
 });
+
 target.addEventListener('drop', (event) => insert(droppedMentions(event.dataTransfer!)));
 ```
 

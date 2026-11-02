@@ -10,7 +10,7 @@ The popup shows the matched letters, a kind per row and the documentation of the
 
 | Key                | What it does                                                                                        |
 | ------------------ | --------------------------------------------------------------------------------------------------- |
-| Up, Down           | Moves through the list, round at the ends                                                           |
+| Up, Down           | Moves through the list and wraps at the ends                                                        |
 | Page Up, Page Down | Moves eight rows                                                                                    |
 | Enter              | Inserts the active row                                                                              |
 | Tab                | Replaces the word after the caret with the active row                                               |
@@ -63,7 +63,7 @@ Completion inside an active field updates its mirrors and keeps the outer stops.
 
 A signature help trigger character, such as `(` or `,`, asks for the signatures of the call around the caret. `signature.invoke()` asks at once, as Mod+P does, and `close()` closes the card. `SignatureCard` takes a `SignatureViewModel` and shows the active signature with its active parameter in bold, its documentation and its place among overloads.
 
-### Isolated snippet transforms
+## Isolated snippet transforms
 
 Transforms (`${1/(.*)/${1:/upcase}/}`) run server regular expressions, so they run in a worker, never on the page. `LanguageHost.snippetTransformWorker` supplies the worker factory, and the worker calls `serveSnippetTransforms(self)`. Without a worker, or on a timeout, values stay untransformed. A syntax error, an oversized batch or a crashed worker refuses the insertion with a notice. A full queue refuses it with a busy notice. Editors of one project share one client and must inject the same clock.
 
@@ -85,10 +85,10 @@ A timeout terminates the worker. `release` frees it and keeps the client usable;
 
 A transformed mirror shows the raw value while its field is active. Tab or Shift+Tab transforms it, and navigation goes on without waiting. Applying the result is its own undo step: the first undo restores the raw text. Escape, undo and other edits cancel a pending exit. A failed field-exit transform leaves the raw value without a notice.
 
-Limitation: inside a nested snippet, a `$0` generated after unlinking sorts after a stop of the enclosing snippet at the same point.
+Inside a nested snippet, a `$0` generated after unlinking sorts after a stop of the enclosing snippet at the same point.
 
 ## Words from open text
 
-`hippieCompletion` (`Alt+/`) and `hippieBackwardCompletion` (`Alt+Shift+/`) complete the word before each caret from words in the text, without a language server. The first press takes the nearest matching word above the caret, or below it for the backward command. A word matches when it is longer, starts with the same character and matches the rest case-insensitively or by camel humps (`fb` completes `fooBar`). Each press steps on, through the other open editors of the project and back. Each press is one undo step. In CSS, Markdown and plain text, `-` and `*` count as word characters.
+`hippieCompletion` (`Alt+/`) and `hippieBackwardCompletion` (`Alt+Shift+/`) complete the word before each caret from words in the text, without a language server. The first press takes the nearest matching word above the caret, or below it for the backward command. A word matches when it is longer, starts with the same character and matches the rest case-insensitively or by camel humps (`fb` completes `fooBar`). Each press steps on, through the other open editors of the project and back, and is one undo step. In CSS, Markdown and plain text, `-` and `*` count as word characters.
 
 `EditorLanguage` passes the texts of the project's other open editors through `setWordSources`. An app that mounts the editor itself passes its own to `Editor.setWordSources`, or `null`.

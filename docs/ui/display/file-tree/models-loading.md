@@ -18,6 +18,7 @@ export function addGeneratedFiles(model: FileTreeModel) {
         { type: 'add', path: 'generated/types.ts' },
         { type: 'add', path: 'generated/schema.ts' }
     ]);
+
     model.move('generated/schema.ts', 'generated/schema-v2.ts', { collision: 'error' });
     model.remove('generated/types.ts');
 }
@@ -42,16 +43,20 @@ export function createListingLoader(model: FileTreeModel, listChildren: Listing,
     const cached = new Set<string>();
     const pending = new Set<string>();
     const controller = new AbortController();
+
     const load = (path: string): void => {
         if (cached.has(path) || pending.has(path) || controller.signal.aborted) {
             return;
         }
+
         pending.add(path);
+
         void listChildren(path, controller.signal)
             .then((paths) => {
                 if (controller.signal.aborted) {
                     return;
                 }
+
                 model.batch(paths.map((child) => ({ type: 'add' as const, path: child })));
                 model.remove(`${path}__pending__`);
                 cached.add(path);
@@ -65,6 +70,7 @@ export function createListingLoader(model: FileTreeModel, listChildren: Listing,
                 pending.delete(path);
             });
     };
+
     return {
         load,
         invalidate: (path: string) => {
@@ -98,9 +104,11 @@ import { FileTree, type FileTreeModel } from '@adecore/ui';
 
 export function restoreExpanded(model: FileTreeModel, paths: readonly string[], remembered: ReadonlySet<string>) {
     FileTree.resetExpandedPaths(model, paths, remembered);
+
     const rows = FileTree.visibleRows(model).filter((row) => row.kind === 'directory');
     const known = new Set(rows.map((row) => row.path));
     const reported = new Set(rows.filter((row) => row.isExpanded).map((row) => row.path));
+
     return FileTree.withoutClosedBranches(FileTree.mergeExpanded(remembered, reported, known), known);
 }
 ```

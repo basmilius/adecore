@@ -31,7 +31,9 @@ import { createHighlighter, type Highlighter } from 'shiki';
 import { createSmartEditorEngine, shikiScopeColors, shikiTokenizers } from '@adecore/editor';
 
 let highlighter: Promise<Highlighter> | undefined;
-const getHighlighter = (): Promise<Highlighter> => (highlighter ??= createHighlighter({ themes: [], langs: [] }));
+function getHighlighter(): Promise<Highlighter> {
+    return (highlighter ??= createHighlighter({ themes: [], langs: [] }));
+}
 
 const engine = createSmartEditorEngine({
     tokenizer: shikiTokenizers(getHighlighter),
@@ -76,6 +78,7 @@ For a patch without whole-file snapshots, set `options.reset` to the indexes of 
 ```ts
 // syntax.worker.ts
 import { serveDiffSyntax } from '@adecore/editor/shiki-worker';
+
 serveDiffSyntax(self);
 ```
 

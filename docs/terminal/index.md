@@ -27,7 +27,7 @@ Import xterm's stylesheet and the package's own after the [theme](/ui/guide/them
 
 ## Feeding it
 
-`write` on the handle draws output, and `onData` reports what the person types or pastes. A pty takes two lines:
+`write` on the handle draws output, and `onData` reports what the person types or pastes. Wiring a pty takes two calls:
 
 ```tsx
 const view = useRef<TerminalViewHandle>(null);

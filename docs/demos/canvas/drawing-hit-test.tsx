@@ -19,6 +19,7 @@ export default function DrawingHitTestDemo() {
             x: VIEW.x + ((event.clientX - area.left) / area.width) * VIEW.w,
             y: VIEW.y + ((event.clientY - area.top) / area.height) * VIEW.h
         };
+
         setHovered(elementAt(SKETCH, point, 6) ?? null);
     }
 
@@ -33,6 +34,7 @@ export default function DrawingHitTestDemo() {
                         <rect x={box.x} y={box.y} width={box.w} height={box.h} fill="none" stroke="var(--accent)" strokeDasharray="4 4" />
                         {RESIZE_HANDLES.map((handle) => {
                             const at = handlePoint(box, handle);
+
                             return <rect key={handle} x={at.x - 4} y={at.y - 4} width={8} height={8} fill="var(--surface)" stroke="var(--accent)" />;
                         })}
                     </svg>

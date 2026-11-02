@@ -36,7 +36,7 @@ app.whenReady().then(() => {
 | `headers`    | none                   | Headers on every response of the page, such as its policy, or a function of the file         |
 | `hosts`      | none                   | Other hosts on the same scheme, by name: a `SchemeFolder` or a `SchemeResolver`               |
 | `pageUrl`    | the page's host        | The URL the window loads instead, such as a dev server; the guards take its origin           |
-| `privileges` | standard and secure       | What Chromium allows the scheme                                                              |
+| `privileges` | standard and secure    | What Chromium allows the scheme                                                               |
 | `read`       | reads the file whole   | Answers with a file it found; `(file) => net.fetch(pathToFileURL(file).href)` streams it      |
 
 The default privileges give a real origin, a secure context, fetch and CORS, streaming, the code cache and service workers.
@@ -56,6 +56,7 @@ const scheme = createAppScheme({
         attachment: async (request, url) => {
             const [folder, id] = segmentsOf(url.pathname) ?? [];
             const file = folder && id ? await findAttachment(folder, id) : null;
+
             return file === null ? new Response('Not found', { status: 404 }) : scheme.serveFile(attachmentsRoot, file, request);
         }
     }

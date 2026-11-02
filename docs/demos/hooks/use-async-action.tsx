@@ -9,6 +9,7 @@ let attempts = 0;
 async function publish(): Promise<void> {
     await wait(900);
     attempts += 1;
+
     if (attempts % 2 === 1) {
         throw new Error('The registry refused the upload: the version already exists.');
     }

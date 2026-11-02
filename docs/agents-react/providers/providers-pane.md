@@ -78,6 +78,7 @@ import { PROVIDERS_SECTION, settingsSection } from '@adecore/agents-react';
 
 function ProvidersSettings() {
     const { target } = useSettingsTarget();
+
     return <ProvidersPane target={target} />;
 }
 

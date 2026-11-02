@@ -23,6 +23,7 @@ export function ReviewFiles() {
         paths: ['src/index.ts', 'src/helpers.ts', 'README.md'],
         initialExpansion: 'open'
     });
+
     return (
         <FileTree.Root
             model={model}
@@ -36,11 +37,13 @@ export function ReviewFiles() {
                         onCheckedChange={(checked) =>
                             setViewed((current) => {
                                 const next = new Set(current);
+
                                 if (checked) {
                                     next.add(row.path);
                                 } else {
                                     next.delete(row.path);
                                 }
+
                                 return next;
                             })
                         }

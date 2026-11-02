@@ -73,6 +73,7 @@ import { app, ipcMain } from 'electron';
 import { createDatabaseHost, helperPath, spawnHelper } from '@adecore/database/host';
 
 const path = helperPath()!;
+
 const host = createDatabaseHost({
     start: () => spawnHelper(path, { onLog: (line) => console.error(`[database] ${line}`) })
 });
@@ -122,6 +123,7 @@ process.parentPort.on('message', async ({ data }) => {
 const worker = utilityProcess.fork(join(__dirname, 'database-worker.js'), [], {
     env: { ...process.env, ADECORE_DATABASE_HELPER: helperPath()! }
 });
+
 const waiting = new Map<number, (response: unknown) => void>();
 let ticket = 0;
 

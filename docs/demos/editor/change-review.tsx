@@ -20,6 +20,7 @@ export default function ChangeReviewDemo() {
         const host = new RowHost(editor, 'review');
         host.set([{ id: 'proposal', line: 7, placement: 'below', height: 120 }]);
         setRows(host);
+
         return () => {
             host.clear();
             setRows(null);

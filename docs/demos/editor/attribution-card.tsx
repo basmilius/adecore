@@ -24,10 +24,13 @@ export default function AttributionCardDemo() {
         ]);
         const stop = editor.onAttributionHover((next) => {
             clearTimeout(timer.current);
+
             if (next !== null) {
                 setHover(next);
+
                 return;
             }
+
             // A moment to reach the card before it goes.
             timer.current = setTimeout(() => {
                 if (!held.current) {
@@ -35,6 +38,7 @@ export default function AttributionCardDemo() {
                 }
             }, 250);
         });
+
         return () => {
             clearTimeout(timer.current);
             stop();

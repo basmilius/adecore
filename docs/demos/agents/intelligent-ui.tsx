@@ -4,6 +4,7 @@ import { bound, ui } from '../shared/intelligent-ui-tree.ts';
 
 export default function IntelligentUiDemo() {
     const [selected, setSelected] = useState<unknown[]>(['links', 'preload']);
+
     return (
         <DemoBlock
             nodes={[

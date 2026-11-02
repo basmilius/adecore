@@ -67,6 +67,7 @@ The stores are Zustand stores shared by every scope.
 ```tsx
 function Title({ chatId }: { chatId: string }) {
     const title = useChatRow(chatId, (row) => row?.info.suggestedTitle ?? 'New chat');
+
     return <span>{title}</span>;
 }
 ```

@@ -11,6 +11,7 @@ import { DEFAULT_PALETTE, readingOrder, toSvg } from '@adecore/drawing';
 import { duplicateElementIdIn, migrateDrawing } from '@adecore/drawing/protocol';
 
 const drawing = migrateDrawing(JSON.parse(file));
+
 if (drawing === null || duplicateElementIdIn(drawing.elements) !== null) {
     throw new Error('Not a drawing');
 }

@@ -34,10 +34,12 @@ async function sample(_path: string, _format: 'csv' | 'tsv', header: boolean) {
 function withFiles(session: DatabaseSession): DatabaseSession {
     const exportRows = async (request: ExportRequest, options?: RequestOptions) => {
         const source = request.source;
+
         const rows =
             source.kind === 'table'
                 ? await session.count(source.schema, source.table, source.where, options)
                 : (await session.page(source.sql, { schema: source.schema, offset: 0, limit: 10000 }, options)).rows.length;
+
         return { rows, bytes: 0, elapsedMs: 0 };
     };
 
@@ -46,6 +48,7 @@ function withFiles(session: DatabaseSession): DatabaseSession {
             kind: 'insert',
             values: Object.fromEntries(request.columns.flatMap((column, i) => (column === null ? [] : [[column, line[i] === '' ? null : line[i]!]])))
         }));
+
         return session.apply(schema, table, changes, options);
     };
 
@@ -64,10 +67,12 @@ export function withDemoFiles(client: DatabaseClient): DatabaseClient {
         session: (connection, channel) => {
             const session = client.session(connection, channel);
             let found = wrapped.get(session);
+
             if (found === undefined) {
                 found = withFiles(session);
                 wrapped.set(session, found);
             }
+
             return found;
         }
     };

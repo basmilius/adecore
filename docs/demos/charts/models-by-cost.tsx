@@ -23,6 +23,7 @@ export default function ModelsByCostDemo() {
     const [highlighted, setHighlighted] = useState<string | null>(null);
     const [picked, setPicked] = useState<string[]>(['Atlas 5:high']);
     const drawn = points.filter((point) => !hidden.includes(point.model));
+
     const pick = (row: ModelCost): void =>
         setPicked((current) => (current.includes(row.key) ? current.filter((key) => key !== row.key) : [...current.slice(-1), row.key]));
 
@@ -78,6 +79,7 @@ export default function ModelsByCostDemo() {
                 search="Find models"
                 items={models.map((model) => {
                     const lab = points.find((point) => point.model === model)!.lab;
+
                     return { key: model, label: model, name: `${lab} ${model}`, group: lab, color: MODEL_COLORS[model] };
                 })}
                 groups={LABS.map((lab) => ({ key: lab, label: lab }))}

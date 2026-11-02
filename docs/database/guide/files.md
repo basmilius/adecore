@@ -56,12 +56,14 @@ import { createDatabaseHost, spawnHelper } from '@adecore/database/host';
 
 const chosen = new Map<string, Set<string>>();
 
-const allow = (owner: string, path: string, access: 'read' | 'write'): string => {
+function allow(owner: string, path: string, access: 'read' | 'write'): string {
     const owned = chosen.get(owner) ?? new Set<string>();
+
     owned.add(`${access}:${path}`);
     chosen.set(owner, owned);
+
     return path;
-};
+}
 
 const host = createDatabaseHost({
     start: () => spawnHelper(helperPath),
@@ -69,7 +71,9 @@ const host = createDatabaseHost({
 });
 
 // Next to `host.release(owner)`.
-const forget = (owner: string): void => void chosen.delete(owner);
+function forget(owner: string): void {
+    chosen.delete(owner);
+}
 ```
 
 Keep a path allowed while its owner exists, since an import reads the file twice: for the sample and to insert. An app can allow a whole folder, such as Downloads, but a looser `'read'` rule lets the page read the first lines of any file there. By the time the check runs, `path` is absolute and `format` is valid.
@@ -108,6 +112,7 @@ Import from file sits in the same menu for editable tables. It first asks whethe
 
 ```ts
 const { columns: fileColumns } = await client.sample('/Users/me/orders.csv', 'csv', true);
+
 const inserted = await session.import('main', 'orders', {
     path: '/Users/me/orders.csv',
     format: 'csv',

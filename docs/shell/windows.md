@@ -18,6 +18,7 @@ const windows = createWindows({
         const window = new BrowserWindow({ ...bounds, minWidth: 800, minHeight: 500, show: false });
         window.once('ready-to-show', () => window.show());
         void window.loadURL(urlFor(key, origin));
+
         return window;
     },
     onFront: (window) => drawMenuOf(window)
@@ -50,6 +51,7 @@ A window can switch to another key, as when its page opens a project from a star
 // The app's own handler; `fromPage` is its check of the sender.
 handleFromApp('window:claim', (event, key: unknown) => {
     const window = windows.fromPage(event.sender);
+
     return window !== null && (key === null || typeof key === 'string') && windows.claim(window, key);
 });
 ```
@@ -91,6 +93,7 @@ windows.attach(app, {
             return false;
         }
         await server.close();
+
         return true;
     }
 });

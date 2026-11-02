@@ -12,6 +12,7 @@ export default function AnsiOutputDemo() {
 
     useEffect(() => {
         const timer = setInterval(() => setShown((count) => (count >= words.length + 6 ? 0 : count + 1)), 180);
+
         return () => clearInterval(timer);
     }, [words.length]);
 

@@ -49,8 +49,10 @@ export default function ProjectSwitcherDemo() {
                 onSelect={(project, event) => {
                     if (event.metaKey || event.ctrlKey) {
                         setMessage(`Open ${project.name} in another window`);
+
                         return;
                     }
+
                     setCurrent(project);
                     setProjects((rows) => (rows.some((row) => row.id === project.id) ? rows : [...rows, project]));
                     setRecent((rows) => rows.filter((row) => row.id !== project.id));

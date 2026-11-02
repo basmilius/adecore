@@ -12,6 +12,7 @@ function regionLabel(region: string, language: string): string {
     if (region === FORMAT_LANGUAGE) {
         return 'Follow the language';
     }
+
     return region === FORMAT_SYSTEM ? 'Follow the system' : regionName(region, language);
 }
 

@@ -32,6 +32,7 @@ document.setSelections([
     { anchor: 0, head: 3 },
     { anchor: 9, head: 12 }
 ]);
+
 document.typeText('green', { language: 'text' });
 document.getText(); // 'green blue green'
 ```
@@ -105,8 +106,10 @@ It leaves the marks alone. Call `markSaved()` once the text is written.
 ```ts
 const subscription = document.subscribe((snapshot) => {
     if (snapshot.contentEdits === undefined) {
-        return; // only the selection moved
+        // Only the selection moved.
+        return;
     }
+
     send(snapshot.contentEdits);
 });
 

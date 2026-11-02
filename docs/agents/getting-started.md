@@ -53,9 +53,11 @@ try {
     await request('chat.create', { chatId: 'first', provider: 'claude', cwd: dataDir, runtimeMode: 'supervised' });
     await request('chat.attach', { chatId: 'first' });
     await request('chat.send', { chatId: 'first', text: 'hello' });
+
     while (!turnDone()) {
         await new Promise((resolve) => setTimeout(resolve, 50));
     }
+
     const { items } = await request('chat.attach', { chatId: 'first' });
     console.log(items.filter((item: { kind: string }) => item.kind === 'assistant'));
 } finally {
@@ -77,4 +79,4 @@ The CLI starts on the first message, not on `chat.create`. Attach before you sen
 
 ## A real CLI
 
-Leave out `spawn`, `command` and `detect`, and the host starts the CLI it finds on the environment's `PATH`. Choose the runtime mode deliberately, and give the host a `dataDir` of its own. A window client talks to it over a port. [Host](/agents/host#electron) shows the Electron setup, and the views of [`@adecore/agents-react`](/agents-react/guide/getting-started) take the other end.
+Leave out `spawn`, `command` and `detect`, and the host starts the CLI it finds on the environment's `PATH`. Pick the runtime mode yourself, and give the host a `dataDir` of its own. A window client talks to it over a port. [Host](/agents/host#electron) shows the Electron setup, and the views of [`@adecore/agents-react`](/agents-react/guide/getting-started) take the other end.

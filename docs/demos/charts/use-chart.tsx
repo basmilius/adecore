@@ -8,10 +8,13 @@ const BUDGET = 300;
 function Budget() {
     const { plot, y } = useChart();
     const pixel = y(BUDGET);
+
     if (pixel === null) {
         return null;
     }
+
     const top = Math.round(pixel) + 0.5;
+
     return (
         <g className="text-status-error">
             <line x1={plot.left} x2={plot.right} y1={top} y2={top} stroke="currentColor" strokeDasharray="6 4" />

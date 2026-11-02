@@ -16,6 +16,7 @@ const ROWS: { name: string; ago: number | null }[] = [
 
 export default function RelativeTimeDemo() {
     const [now] = useState(Date.now);
+
     return (
         <ul className="flex w-full max-w-80 flex-col gap-1.5 text-sm">
             {ROWS.map((row) => (

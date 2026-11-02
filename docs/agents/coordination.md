@@ -14,9 +14,12 @@ import { ManualClock } from '@adecore/agents/testing';
 export async function runOutboxExample(dataDir: string): Promise<string[]> {
     const WorkSchema = z.object({ kind: z.literal('record-result'), payload: z.object({ text: z.string() }) });
     const store = new OutboxStore({ dataDir, work: WorkSchema });
+
     await store.load();
+
     const completed = new Map<string, string>();
     const clock = new ManualClock();
+
     const worker = new OutboxWorker({
         store,
         clock,
@@ -26,7 +29,9 @@ export async function runOutboxExample(dataDir: string): Promise<string[]> {
             }
         }
     });
+
     worker.start();
+
     try {
         await worker.enqueue('project-1', 'child-1', { kind: 'record-result', payload: { text: 'Checked the fixture.' } });
         await worker.settled();
@@ -57,8 +62,10 @@ export async function openTaskServices(dataDir: string, chats: ChatCore, placedI
     await outbox.load();
     await tasks.load();
     await restartBackgroundLimits(outbox, Date.now());
+
     const alerts: Array<{ nodeId: string; title: string; body: string }> = [];
     let worker: OutboxWorker<z.infer<typeof WorkSchema>>;
+
     const wiring = wireTasks({
         tasks,
         chats,
@@ -75,9 +82,11 @@ export async function openTaskServices(dataDir: string, chats: ChatCore, placedI
         },
         words: { app: 'Example host', cli: 'app-context' }
     });
+
     worker = new OutboxWorker({ store: outbox, handlers: wiring.handlers, onParked: wiring.onParked });
     await wiring.recover();
     worker.start();
+
     return {
         tasks,
         wiring,

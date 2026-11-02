@@ -1,6 +1,6 @@
 # Security
 
-A page that opens connections and runs SQL holds a lot of power. This page lists what the host checks, what the app must check, and which inputs are raw SQL by design.
+A page that opens connections and runs SQL can read, change and delete data. This page lists what the host checks, what the app must check, and which inputs are raw SQL by design.
 
 ## The host is the boundary
 
@@ -52,6 +52,7 @@ const host = createDatabaseHost({
         }
 
         const inside = relative(dataFolder, resolve(connection.path));
+
         return !inside.startsWith('..') && connection.create !== true;
     }
 });

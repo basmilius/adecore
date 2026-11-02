@@ -9,6 +9,7 @@ export default function InputsDemo() {
     const [scope, setScope] = useState<unknown>('failed');
     const [name, setName] = useState<unknown>('Ada');
     const [kind, setKind] = useState<unknown>('bug');
+
     // A Button's action runs on the block's state; here it puts the demo's values back.
     const reset = {
         ...ui('Button', {}, 'Reset'),
@@ -21,6 +22,7 @@ export default function InputsDemo() {
             setKind('bug');
         }
     };
+
     return (
         <DemoBlock
             nodes={[

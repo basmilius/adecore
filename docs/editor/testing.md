@@ -18,10 +18,13 @@ test('typing replaces every selection', () => {
         { start: { line: 0, character: 9 }, end: { line: 0, character: 12 } }
     ]);
     type('green');
+
     expect(editor.getText()).toBe('green blue green');
 
     press('z', { ctrlKey: true });
+
     expect(editor.getText()).toBe('red blue red');
+
     editor.dispose();
 });
 ```

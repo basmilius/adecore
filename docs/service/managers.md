@@ -106,6 +106,7 @@ const files: ServiceFiles = {
     },
     makeDirectory: () => {}
 };
+
 // A nonzero exit of `launchctl print` means the label is not loaded.
 const run: CommandRunner = (command, args) => {
     commands.push([command, ...args]);

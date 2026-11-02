@@ -16,7 +16,7 @@ const config: ConnectionConfig = { engine: 'sqlite', path: '/Users/me/shop.sqlit
 
 ## TCP
 
-The default for MySQL and MariaDB: `host` and `port` (default 3306).
+TCP is the default for MySQL and MariaDB. Set `host` and `port` (3306 when left out).
 
 ```ts
 const config: ConnectionConfig = { engine: 'mysql', host: 'db.example.com', user: 'shop', password, database: 'shop', tls: 'require' };

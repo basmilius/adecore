@@ -59,10 +59,10 @@ The manager hands over every edit at once, so its list can hold an unfinished co
 ```tsx
 import { isValidConfig, type Connection } from '@adecore/database';
 
-function onValueChange(next: readonly Connection[]): void {
+const onValueChange = (next: readonly Connection[]): void => {
     setConnections(next);
-    save(next.flatMap((connection) => (isValidConfig(connection.config) ? [connection] : saved.filter((old) => old.id === connection.id))));
-}
+    save(next.flatMap((connection) => (isValidConfig(connection.config) ? [connection] : saved.filter((previous) => previous.id === connection.id))));
+};
 ```
 
 The form reports problems as a `ConfigProblems` object with a `ConfigProblem` code per field, empty when valid.

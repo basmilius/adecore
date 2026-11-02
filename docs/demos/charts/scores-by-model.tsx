@@ -21,6 +21,7 @@ function LabMark({ lab }: { lab: string }) {
 
 export default function ScoresByModelDemo() {
     const [picked, setPicked] = useState<string[]>(['Lumen Pro:high', 'Atlas 5 mini:high']);
+
     const toggle = (row: ModelScore): void =>
         setPicked((current) => (current.includes(row.key) ? current.filter((key) => key !== row.key) : [...current.slice(-1), row.key]));
 

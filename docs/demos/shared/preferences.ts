@@ -16,12 +16,14 @@ export const preferences = {
     set(next: Partial<Preferences>): void {
         current = { ...current, ...next };
         void i18n.changeLanguage(current.language);
+
         for (const listener of listeners) {
             listener();
         }
     },
     subscribe(listener: () => void): () => void {
         listeners.add(listener);
+
         return () => {
             listeners.delete(listener);
         };

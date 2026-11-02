@@ -26,9 +26,11 @@ export default function PromptDialogDemo() {
                 confirmBusyLabel="Renaming..."
                 onConfirm={async (value) => {
                     await wait(800);
+
                     if (value === 'HEAD') {
                         throw new Error('HEAD is not a valid branch name.');
                     }
+
                     setName(value);
                     setOpen(false);
                 }}

@@ -21,7 +21,7 @@ Summarize a result or show progress. Use one leading Summary; its children are i
 </Timeline>
 ```
 
-Every `tone` is a `UiTone`: `neutral`, `info`, `success`, `warning` or `danger`. Tone states meaning; never infer it from a number going up.
+Every `tone` is a `UiTone`: `neutral`, `info`, `success`, `warning` or `danger`. A tone states a meaning. Never infer one from a number going up.
 
 ## Summary
 

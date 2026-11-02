@@ -14,6 +14,7 @@ const lastWord = (text: string): { start: number; key: string | null; prefix: st
     const start = text.lastIndexOf(' ') + 1;
     const word = text.slice(start);
     const colon = word.indexOf(':');
+
     return colon === -1 ? { start, key: null, prefix: word } : { start, key: word.slice(0, colon), prefix: word.slice(colon + 1) };
 };
 

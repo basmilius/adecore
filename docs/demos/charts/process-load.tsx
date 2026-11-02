@@ -10,6 +10,7 @@ const samples = Array.from({ length: 61 }, (_, index) => {
     const at = END - WINDOW + index * 10_000;
     const unmeasured = index >= 24 && index < 28;
     const machine = 38 + 22 * Math.sin(index / 6) + (index % 7) * 2;
+
     return { at, machine: unmeasured ? null : machine, app: unmeasured ? null : machine * (0.35 + 0.15 * Math.cos(index / 9)) };
 });
 

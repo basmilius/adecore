@@ -27,6 +27,7 @@ test('the editor reports its edits and counts problems', async () => {
         source: 'fake',
         diagnostics: [{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } }, message: 'A problem', severity: 1 }]
     });
+
     expect(language.diagnostics.counts().error).toBe(1);
 
     language.dispose();

@@ -66,7 +66,7 @@ A local number in a range. Its children are the label.
 
 ## Segmented and Option
 
-Choose one value. `Segmented` holds only `Option`, and binds the chosen option's value. An `Option` stands inside `Segmented` or [`Select`](#select); its children are its label. Keep labels to a few words; longer ones make the agents-react renderer stack the options in a column.
+Choose one value. `Segmented` holds only `Option`, and binds the chosen option's value. An `Option` stands inside `Segmented` or [`Select`](#select); its children are its label. Keep labels to a few words. Longer ones make the renderer stack the options in a column.
 
 | Prop    | Type   | Required | Notes    |
 | ------- | ------ | -------- | -------- |
@@ -78,7 +78,7 @@ Choose one value. `Segmented` holds only `Option`, and binds the chosen option's
 
 ## Select
 
-A dropdown, for more or longer options than a `Segmented` holds. `Select` holds only [`Option`](#segmented-and-option) and binds the chosen option's value. A Choice refuses a value no option offers. Text beside the options is the label, drawn above the dropdown and used as its accessible name: `<Select value={$kind}>Kind of report<Option ...>`. Without one, the dropdown is only called `Options`.
+A dropdown, for more or longer options than a `Segmented` holds. `Select` holds only [`Option`](#segmented-and-option) and binds the chosen option's value. A Choice refuses a value no option offers. Text beside the options is the label, drawn above the dropdown and used as its accessible name, as in `<Select value={$kind}>Kind of report<Option ...>`. Without it, the accessible name is `Options`.
 
 | Prop    | Type   | Required | Notes    |
 | ------- | ------ | -------- | -------- |

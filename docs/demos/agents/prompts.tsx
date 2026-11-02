@@ -81,7 +81,9 @@ export default function PromptsDemo() {
             </div>
         );
     }
+
     const id = promptIdOf(active);
+
     return (
         <div className="w-full max-w-xl" onPointerDownCapture={session.onPointerDownCapture} onClickCapture={session.onClickCapture}>
             <PromptView

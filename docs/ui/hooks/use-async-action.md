@@ -13,11 +13,11 @@ import { useAsyncAction } from '@adecore/ui';
 ```tsx
 const step = useAsyncAction();
 
-async function save(): Promise<void> {
+const save = async (): Promise<void> => {
     if (await step.run(() => api.save(draft))) {
         onClose();
     }
-}
+};
 ```
 
 A rejection becomes `failure`, through [`messageOf`](/ui/utilities/error-messages). The `fallback` you pass the hook is the message when the rejection is not an `Error`.

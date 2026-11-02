@@ -9,6 +9,7 @@ export default function FloatingLayersDemo() {
         if (isInFloatingLayer(event.target)) {
             return;
         }
+
         setClicks((count) => count + 1);
     };
 

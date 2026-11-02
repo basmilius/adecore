@@ -91,6 +91,7 @@ import type { PlanActor, PlanOp } from '@adecore/plan/protocol';
 async function update(id: string, ops: PlanOp[], actor: PlanActor): Promise<PlanApplied | PlanRefusal> {
     return store.transaction(async (latest) => {
         const plan = await latest(id);
+
         return plan ? applyPlanOps(plan, ops, { actor, now: new Date().toISOString() }) : refuse('plan-not-found', `No plan "${id}"`);
     });
 }

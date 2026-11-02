@@ -23,6 +23,7 @@ export function ProjectFiles() {
         initialExpansion: 'open',
         flattenEmptyDirectories: true
     });
+
     return (
         <div>
             <FileTree.Root model={model} label="Project files" className="h-64" onActivate={setOpened} />
@@ -48,9 +49,11 @@ import { FileTree, useFileTree } from '@adecore/ui';
 
 export function Files({ paths }: { paths: readonly string[] }) {
     const { model } = useFileTree({ paths });
+
     useEffect(() => {
         model.resetPaths(paths);
     }, [model, paths]);
+
     return <FileTree.Root model={model} label="Files" className="h-64" />;
 }
 ```

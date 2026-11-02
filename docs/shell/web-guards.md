@@ -22,10 +22,13 @@ Where the app window's page may go. A dropped link or file navigates the top fra
 ```ts
 contents.on('will-navigate', (event) => {
     const verdict = appWindowNavigation(event.url, appOrigin);
+
     if (verdict === 'allow') {
         return;
     }
+
     event.preventDefault();
+
     if (verdict === 'external') {
         void shell.openExternal(event.url);
     }
@@ -53,11 +56,13 @@ Whether a link the page wants to open externally follows a real press. Without i
 
 ```ts
 const gesture = createGestureGate();
+
 contents.on('input-event', (_event, input) => gesture.saw(input.type));
 contents.setWindowOpenHandler(({ url }) => {
     if (isExternalLink(url) && gesture.consume()) {
         void shell.openExternal(url);
     }
+
     return { action: 'deny' };
 });
 ```

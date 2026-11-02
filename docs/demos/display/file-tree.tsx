@@ -4,11 +4,13 @@ import { FileTree, useFileTree } from '@adecore/ui';
 export default function FileTreeDemo() {
     const [viewed, setViewed] = useState<ReadonlySet<string>>(new Set());
     const [opened, setOpened] = useState<string | null>(null);
+
     const { model } = useFileTree({
         paths: ['src/components/Button.tsx', 'src/components/Checkbox.tsx', 'src/utilities/path.ts', 'README.md'],
         initialExpansion: 'open',
         flattenEmptyDirectories: true
     });
+
     return (
         <div className="w-80">
             <FileTree.Root
@@ -24,11 +26,13 @@ export default function FileTreeDemo() {
                             onCheckedChange={(checked) =>
                                 setViewed((current) => {
                                     const next = new Set(current);
+
                                     if (checked) {
                                         next.add(row.path);
                                     } else {
                                         next.delete(row.path);
                                     }
+
                                     return next;
                                 })
                             }

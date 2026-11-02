@@ -25,20 +25,25 @@ const PEOPLE: Person[] = [
 /* Stands in for a request: the answer lands a moment after the last key. */
 function useSearch(query: string): { groups: Group[]; searching: boolean } {
     const [answer, setAnswer] = useState<{ query: string; groups: Group[] }>({ query: '', groups: [] });
+
     useEffect(() => {
         if (query.trim() === '') {
             return;
         }
+
         const timer = window.setTimeout(() => {
             const found = PEOPLE.filter((person) => matchScore(person.name, query) !== null);
+
             const groups = [
                 { value: 'People', items: found.filter((person) => !person.team) },
                 { value: 'Teams', items: found.filter((person) => person.team) }
             ].filter((group) => group.items.length > 0);
             setAnswer({ query, groups });
         }, 400);
+
         return () => window.clearTimeout(timer);
     }, [query]);
+
     // The last answer stays until the next one lands, so the list does not flicker while typing.
     return { groups: query.trim() === '' ? [] : answer.groups, searching: query.trim() !== '' && answer.query !== query };
 }

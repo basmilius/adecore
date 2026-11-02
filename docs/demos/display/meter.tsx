@@ -13,6 +13,7 @@ function loudnessAt(seconds: number, speed: number): number {
 export default function MeterDemo() {
     const now = useNow(100);
     const seconds = now / 1000;
+
     const rows = [
         { letter: 'M', name: 'Momentary loudness', loudness: loudnessAt(seconds, 2.3) },
         { letter: 'S', name: 'Short-term loudness', loudness: loudnessAt(seconds, 0.6) }

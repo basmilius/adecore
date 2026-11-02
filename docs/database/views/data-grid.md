@@ -30,7 +30,7 @@ The grid draws `rows` in the given order. With `onSortsChange`, a header's menu 
 
 ```tsx
 const [sorts, setSorts] = useState<readonly GridSort[]>([]);
-const sorted = useMemo(() => sortRows(rows, sorts), [rows, sorts]);
+const sorted = sortRows(rows, sorts);
 
 <DataGrid label="cities.csv" columns={columns} rows={sorted} sorts={sorts} onSortsChange={setSorts} />;
 ```
@@ -52,4 +52,4 @@ const sorted = useMemo(() => sortRows(rows, sorts), [rows, sorts]);
 | `className`           | `string`                                   |         | Its size.                                                                             |
 | `ref`                 | `Ref<HTMLDivElement>`                      |         |                                                                                       |
 
-`DataGridProps` describes further props for editing and table rows. `DataGridProps`, `GridColumn`, `GridRow`, `GridRowState`, `GridSort`, `SortDirection`, `GridLayout`, `FocusedCell`, `GridMenuContext`, `Cell`, `Value` and `ValueKind` are exported types.
+`DataGridProps` also has props for editing and table rows. `DataGridProps`, `GridColumn`, `GridRow`, `GridRowState`, `GridSort`, `SortDirection`, `GridLayout`, `FocusedCell`, `GridMenuContext`, `Cell`, `Value` and `ValueKind` are exported types.

@@ -24,11 +24,14 @@ Everything that has to happen before a version goes out.
 
 function readPlan(markdown: string): string {
     const parsed = parsePlanMarkdown(markdown);
+
     if (!parsed.ok) {
         return `${parsed.code}: ${parsed.message}`;
     }
+
     let count = 0;
     const created = createPlan(parsed.draft, { id: 'release', now: '2026-10-05T09:00:00.000Z', mintId: () => `item-${++count}` });
+
     return created.ok ? renderPlanText(created.plan) : `${created.code}: ${created.message}`;
 }
 

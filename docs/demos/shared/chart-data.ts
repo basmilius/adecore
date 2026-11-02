@@ -7,10 +7,11 @@ const DAY = 24 * HOUR;
 /* The first hour of the day the demos show, in the reader's own time zone. */
 const START = new Date(2026, 9, 23).getTime();
 
-const noise = (seed: number): number => {
+function noise(seed: number): number {
     const value = Math.sin(seed * 12.9898) * 43758.5453;
+
     return value - Math.floor(value);
-};
+}
 
 export interface HourBucket {
     readonly at: number;
@@ -30,8 +31,10 @@ export function errorsPerHour(): HourBucket[] {
         if (at >= GAP.start && at < GAP.end) {
             return { at, errors: null, warnings: null };
         }
+
         const day = Math.sin(((hour - 6) / 24) * Math.PI * 2) * 0.5 + 0.5;
         const spike = hour === 15 ? 38 : hour === 16 ? 21 : hour === 17 ? 9 : 0;
+
         return {
             at,
             errors: Math.round(4 + day * 14 + noise(hour) * 5 + spike),
@@ -53,8 +56,10 @@ export function runsPerHour(): RunBucket[] {
         if (at >= GAP.start && at < GAP.end) {
             return { at, succeeded: null, failed: null };
         }
+
         const day = Math.sin(((hour - 6) / 24) * Math.PI * 2) * 0.5 + 0.5;
         const failed = hour === 15 ? 14 : hour === 16 ? 6 : Math.round(noise(hour + 70) * 3);
+
         return { at, succeeded: Math.round(20 + day * 40 + noise(hour + 90) * 10), failed };
     });
 }
@@ -83,11 +88,14 @@ export function transactionPerHalfHour(): TransactionBucket[] {
         const runs = Math.round(6 + day * 140 + noise(slot + 300) * 25);
         const slow = at >= TRANSACTION_DEPLOYS[0]!.at - 30 * 60_000 && at < TRANSACTION_DEPLOYS[1]!.at;
         const failed = slow ? Math.round(runs * (0.06 + noise(slot + 400) * 0.05)) : Math.round(noise(slot + 500) * 2.4);
+
         if (runs < 12 && noise(slot + 600) > 0.6) {
             return { at, p50: null, p95: null, succeeded: 0, failed: 0 };
         }
+
         const p50 = 92 + day * 26 + noise(slot + 100) * 14 + (slow ? 64 : 0);
         const p95 = p50 * (2.6 + noise(slot + 200) * 0.6) + (slow ? 520 : 0);
+
         return { at, p50: Math.round(p50), p95: Math.round(p95), succeeded: runs - failed, failed };
     });
 }
@@ -120,6 +128,7 @@ export function tokensPerDay(): TokenDay[] {
         const day = START - (13 - index) * DAY;
         const weekday = new Date(day).getDay();
         const weekend = weekday === 0 || weekday === 6 ? 0.3 : 1;
+
         return {
             day,
             input: Math.round((1_400_000 + noise(index) * 900_000) * weekend),
@@ -134,6 +143,7 @@ export function eventsPerService(): { name: string; perDay: number[] }[] {
         name,
         perDay: Array.from({ length: 14 }, (_, day) => {
             const quiet = service === 3 && day > 3 && day < 7;
+
             return quiet ? 0 : Math.round(noise(day + service * 31) * (40 + service * 25) + (day === 11 && service === 0 ? 120 : 0));
         })
     }));

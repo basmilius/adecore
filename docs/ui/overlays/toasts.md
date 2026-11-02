@@ -40,6 +40,7 @@ Keep one toast from progress to outcome. `show` returns the id, and `update` mov
 
 ```ts
 const id = toasts.getState().show({ kind: 'progress', title: 'Pushing to origin' });
+
 try {
     await push();
     toasts.getState().update(id, { kind: 'success', title: 'Pushed to origin' });

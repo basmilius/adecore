@@ -17,13 +17,15 @@ export default function TabsPinnedDemo() {
     ]);
     const [picked, setPicked] = useState('orders');
 
-    function close(id: string): void {
+    const close = (id: string): void => {
         const rest = pages.filter((page) => page.id !== id);
+
         setPages(rest);
+
         if (picked === id) {
             setPicked(rest.at(-1)?.id ?? 'home');
         }
-    }
+    };
 
     return (
         <Tabs.Root value={picked} onValueChange={(value) => setPicked(String(value))} className="w-full max-w-md">

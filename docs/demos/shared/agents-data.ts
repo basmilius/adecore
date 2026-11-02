@@ -227,6 +227,7 @@ The four tests in \`src/http.test.ts\` pass.`;
 /* The thread of a chat that took two turns: one with tools, an edit and a reply; one that ran a helper agent. */
 export function chatItems(): ChatItem[] {
     const at = (minutes: number): number => NOW - minutes * MINUTE;
+
     const subagent: ChatSubagentItem = {
         id: 'item-subagent',
         createdAt: at(8),
@@ -247,6 +248,7 @@ export function chatItems(): ChatItem[] {
         lastTool: 'Grep',
         itemsTruncated: false
     };
+
     return [
         { id: 'turn-1', createdAt: at(30), turnId: 'turn-1', kind: 'turn', state: 'done', endedAt: at(28), costUsd: 0.31 },
         {
@@ -321,6 +323,7 @@ function tool(id: string, turnId: string, createdAt: number, name: string, input
 /* The conversation of the helper agent, as `chat.subagent` reads it from the CLI's own transcript. */
 export function subagentItems(): ChatItem[] {
     const at = NOW - 8 * MINUTE;
+
     return [
         { id: 'sub-user', createdAt: at, turnId: null, kind: 'user', text: 'List every caller of fetchJson and say which ones handle errors.' },
         tool('sub-grep', 'sub', at + 2000, 'Grep', { pattern: 'fetchJson\\(' }, 'src/sensors/barometer.ts:14\nsrc/sensors/thermometer.ts:9\nsrc/station.ts:31'),
@@ -340,6 +343,7 @@ export function subagentItems(): ChatItem[] {
 /* A workflow halfway: the first phase done, two agents of the second at work and one waiting for its turn. */
 export function workflowTool(): ChatToolItem {
     const at = NOW - 6 * MINUTE;
+
     return {
         id: 'item-workflow',
         createdAt: at,
@@ -416,6 +420,7 @@ export function taskRows(): { item: ChatSubagentItem; task: SubagentTask }[] {
         lastTool: null,
         itemsTruncated: false
     });
+
     return [
         {
             item: task('task-docs', 'Write the changelog for the retry', NOW - 3 * MINUTE, null),
@@ -455,9 +460,11 @@ export function commandApproval(turnId: string): ChatApprovalItem {
 /* A weight between 0 and 1 that stays the same for a slot, so every load draws the same weeks of work. */
 function seeded(slot: string, salt: number): number {
     let hash = salt;
+
     for (const char of slot) {
         hash = (hash * 31 + char.charCodeAt(0)) % 9973;
     }
+
     return hash / 9973;
 }
 
@@ -477,13 +484,16 @@ function slotsOf(payload: UsageSummaryPayload): string[] {
     if (payload.resolution === 'hour') {
         return Array.from({ length: new Date().getHours() + 1 }, (_, hour) => `${payload.to}T${String(hour).padStart(2, '0')}`);
     }
+
     const slots: string[] = [];
     const day = new Date(`${payload.from}T00:00:00`);
     const end = new Date(`${payload.to}T00:00:00`);
+
     while (day <= end) {
         slots.push(`${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`);
         day.setDate(day.getDate() + 1);
     }
+
     return slots;
 }
 
@@ -495,6 +505,7 @@ const MODELS: { provider: UsageProvider; model: string; account: string; perToke
 
 export function usageSummary(payload: UsageSummaryPayload): UsageSummaryResult {
     const scale = payload.resolution === 'hour' ? 0.12 : 1;
+
     const buckets: UsageBucket[] = slotsOf(payload).flatMap((slot) =>
         MODELS.filter((model) => payload.accounts === undefined || payload.accounts.includes(model.account)).flatMap((model, index) => {
             const weight = seeded(slot, index + 7);
@@ -516,9 +527,11 @@ export function usageSummary(payload: UsageSummaryPayload): UsageSummaryResult {
             ];
         })
     );
+
     const models = MODELS.map((model) => {
         const own = buckets.filter((bucket) => bucket.model === model.model);
         const tokens = own.reduce((sum, bucket) => sum + bucket.totals.input + bucket.totals.cacheRead + bucket.totals.cacheWrite + bucket.totals.output, 0);
+
         return {
             provider: model.provider,
             model: model.model,
@@ -528,19 +541,23 @@ export function usageSummary(payload: UsageSummaryPayload): UsageSummaryResult {
             pricedAs: null
         };
     }).filter((model) => model.costUsd > 0);
+
     const cost = (provider: UsageProvider, factor: number): { costUsd: number; tokens: number } => {
         const own = buckets.filter((bucket) => bucket.provider === provider);
+
         return {
             costUsd: Math.round(own.reduce((sum, bucket) => sum + (bucket.costUsd ?? 0), 0) * factor * 100) / 100,
             tokens: Math.round(own.reduce((sum, bucket) => sum + bucket.totals.cacheRead, 0) * factor)
         };
     };
+
     const projects = [
         { folder: DEMO_CWD, name: 'weather-station', factor: 0.7 },
         { folder: '/home/sam/projects/garden-planner', name: 'garden-planner', factor: 0.3 }
     ].map(({ folder, name, factor }) => {
         const claude = cost('claude', factor);
         const codex = cost('codex', factor);
+
         return {
             folder,
             name,
@@ -550,6 +567,7 @@ export function usageSummary(payload: UsageSummaryPayload): UsageSummaryResult {
             costUsd: claude.costUsd + codex.costUsd
         };
     });
+
     return {
         ...payload,
         buckets,
@@ -573,6 +591,7 @@ export function usageSummary(payload: UsageSummaryPayload): UsageSummaryResult {
 
 export function usageLimits(): UsageLimitsSnapshot {
     const HOUR = 60 * MINUTE;
+
     return {
         providers: [
             {
@@ -643,6 +662,7 @@ export function generatedImageTools(): Record<'generating' | 'ready' | 'transpar
         parentToolUseId: null,
         ...patch
     });
+
     const attachment = (id: string, name: string, size: number, width: number, height: number) => ({
         id,
         name,
@@ -652,6 +672,7 @@ export function generatedImageTools(): Record<'generating' | 'ready' | 'transpar
         width,
         height
     });
+
     return {
         generating: tool('image-generating', { state: 'running', createdAt: NOW - 8_000 }),
         ready: tool('image-ready', {

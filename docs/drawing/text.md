@@ -18,7 +18,7 @@ A `text` and a `note` are both a `WrittenElement`: they carry `text`, a `size` a
 
 ## Measuring
 
-A `MeasureLine` takes a line and returns its width in world units. `approximateMeasure(size, font)` estimates from the character count. That is fine for a backend, but wraps differently from a browser. To match what a person sees, give `toSvg` a measure from a canvas once the fonts have loaded:
+A `MeasureLine` takes a line and returns its width in world units. `approximateMeasure(size, font)` estimates from the character count. That suffices for a backend, but it wraps differently from a browser. To match what a person sees, give `toSvg` a measure from a canvas once the fonts have loaded:
 
 ```ts
 import { DEFAULT_FONT_STACKS, DEFAULT_PALETTE, fontOf, toSvg } from '@adecore/drawing';

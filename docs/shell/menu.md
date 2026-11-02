@@ -57,6 +57,7 @@ onFromApp('menu:set', (_event, spec: MenuSpec<ShellAction>) => {
         shellItem: (action, label) =>
             action === 'devtools' ? { label, accelerator: devToolsAccelerator(), click: () => window.webContents.toggleDevTools() } : null
     });
+
     if (template) {
         Menu.setApplicationMenu(Menu.buildFromTemplate(template));
     }

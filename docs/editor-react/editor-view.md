@@ -9,10 +9,7 @@
     project={project}
     uri="file:///shop/src/order.ts"
     languageId="typescript"
-    onMount={(editor, language) => {
-        const stop = editor.onSave(() => save(editor.getText()));
-        return stop;
-    }}
+    onMount={(editor) => editor.onSave(() => save(editor.getText()))}
     className="h-96"
 />
 ```

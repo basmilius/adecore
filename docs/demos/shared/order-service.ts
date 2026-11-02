@@ -26,11 +26,13 @@ function position(call: LanguageCall): Position {
 /* The word under a position, with where it starts and ends on its line. */
 function wordAt(text: string, position: Position): { word: string; from: number; to: number } | null {
     const line = text.split('\n')[position.line] ?? '';
+
     for (const match of line.matchAll(/[A-Za-z_$][\w$]*/g)) {
         if (match.index <= position.character && position.character <= match.index + match[0].length) {
             return { word: match[0], from: match.index, to: match.index + match[0].length };
         }
     }
+
     return null;
 }
 
@@ -48,13 +50,17 @@ function usesOf(text: string, word: string, uri: string, first = WHOLE_FILE.firs
 /* The functions of the file, from `export function name(` to the `}` that closes it at the start of a line. */
 function functionsOf(text: string): DocumentSymbol[] {
     const lines = text.split('\n');
+
     return lines.flatMap((line, index) => {
         const match = /^export function (\w+)/.exec(line);
+
         if (match === null) {
             return [];
         }
+
         const end = lines.findIndex((other, at) => at > index && other.startsWith('}'));
         const last = end < 0 ? lines.length - 1 : end;
+
         return [
             {
                 name: match[1]!,
@@ -69,6 +75,7 @@ function functionsOf(text: string): DocumentSymbol[] {
 /* The function a line is in, so a local name is renamed and lit only there. */
 function scopeOf(text: string, line: number): { first: number; last: number } {
     const symbol = functionsOf(text).find((candidate) => candidate.range.start.line <= line && line <= candidate.range.end.line);
+
     return symbol === undefined ? WHOLE_FILE : { first: symbol.range.start.line, last: symbol.range.end.line };
 }
 
@@ -85,6 +92,7 @@ export function respondHover(service: FakeLanguageService): void {
     service.respond('textDocument/hover', (call) => {
         const found = wordAt(textOf(service, call.uri), position(call));
         const value = found === null ? undefined : DOCS[found.word];
+
         return value === undefined ? null : { contents: { kind: 'markdown', value }, range: range(position(call).line, found!.from, found!.to) };
     });
 }
@@ -110,6 +118,7 @@ export function respondCompletion(service: FakeLanguageService): void {
         (call) => {
             const at = position(call);
             const line = textOf(service, call.uri).split('\n')[at.line] ?? '';
+
             return /\.[\w$]*$/.test(line.slice(0, at.character)) ? MEMBERS : NAMES;
         },
         { triggerCharacters: ['.'] }
@@ -133,9 +142,11 @@ export function respondSignatureHelp(service: FakeLanguageService): void {
             const before = (textOf(service, call.uri).split('\n')[at.line] ?? '').slice(0, at.character);
             const open = /(\w+)\(([^()]*)$/.exec(before);
             const signature = open === null ? undefined : SIGNATURES[open[1]!];
+
             if (signature === undefined) {
                 return null;
             }
+
             return {
                 signatures: [{ label: signature.label, documentation: signature.documentation, parameters: signature.parameters.map((label) => ({ label })) }],
                 activeSignature: 0,
@@ -149,26 +160,33 @@ export function respondSignatureHelp(service: FakeLanguageService): void {
 export function respondNavigation(service: FakeLanguageService): void {
     service.respond('textDocument/definition', (call) => {
         const found = wordAt(textOf(service, call.uri), position(call));
+
         if (found?.word === 'formatNumber') {
             return [
                 { uri: DEMO_URI, range: range(0, 9, 21) },
                 { uri: FORMAT_URI, range: range(0, 16, 28) }
             ];
         }
+
         const symbol = functionsOf(textOf(service, call.uri)).find((candidate) => candidate.name === found?.word);
+
         return symbol === undefined ? null : { uri: call.uri, range: symbol.selectionRange };
     });
+
     service.respond('textDocument/references', (call) => {
         const text = textOf(service, call.uri);
         const found = wordAt(text, position(call));
+
         if (found === null) {
             return null;
         }
+
         const scope = DOCS[found.word]?.includes('function') === true ? WHOLE_FILE : scopeOf(text, position(call).line);
         const all = usesOf(text, found.word, call.uri, scope.first, scope.last);
         const uses = found.word === 'formatNumber' ? [...all, ...usesOf(FORMAT_SOURCE, found.word, FORMAT_URI)] : all;
         const { context } = call.params as { context: { includeDeclaration?: boolean } };
         const declaration = functionsOf(text).find((symbol) => symbol.name === found.word)?.selectionRange.start;
+
         return context.includeDeclaration === false && declaration !== undefined
             ? uses.filter((use) => use.uri !== call.uri || use.range.start.line !== declaration.line || use.range.start.character !== declaration.character)
             : uses;
@@ -183,10 +201,13 @@ export function respondHighlights(service: FakeLanguageService): void {
     service.respond('textDocument/documentHighlight', (call) => {
         const text = textOf(service, call.uri);
         const found = wordAt(text, position(call));
+
         if (found === null) {
             return null;
         }
+
         const scope = scopeOf(text, position(call).line);
+
         return usesOf(text, found.word, call.uri, scope.first, scope.last).map((use) => ({ range: use.range }));
     });
 }
@@ -194,19 +215,24 @@ export function respondHighlights(service: FakeLanguageService): void {
 export function respondRename(service: FakeLanguageService): void {
     service.respond('textDocument/prepareRename', (call) => {
         const found = wordAt(textOf(service, call.uri), position(call));
+
         return found === null ? null : { range: range(position(call).line, found.from, found.to), placeholder: found.word };
     });
+
     service.respond(
         'textDocument/rename',
         (call) => {
             const { newName } = call.params as { newName: string };
             const text = textOf(service, call.uri);
             const found = wordAt(text, position(call));
+
             if (found === null) {
                 return null;
             }
+
             const scope = scopeOf(text, position(call).line);
             const edits: TextEdit[] = usesOf(text, found.word, call.uri, scope.first, scope.last).map((use) => ({ range: use.range, newText: newName }));
+
             return { changes: { [call.uri]: edits } };
         },
         { prepareProvider: true }

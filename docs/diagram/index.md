@@ -12,6 +12,7 @@ import { diagramProblemIn, migrateDiagram } from '@adecore/diagram/protocol';
 
 const diagram = migrateDiagram(JSON.parse(file));
 const problem = diagram && diagramProblemIn(diagram);
+
 if (diagram === null || problem) {
     throw new Error(problem ?? 'Not a diagram');
 }

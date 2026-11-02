@@ -27,10 +27,12 @@ const other = ['first', 'new', 'extra', 'last'];
 
 const rebuilt: string[] = [];
 let cursor = 0;
+
 for (const change of diffLines(base, other)) {
     rebuilt.push(...base.slice(cursor, change.baseStart), ...other.slice(change.otherStart, change.otherEnd));
     cursor = change.baseEnd;
 }
+
 rebuilt.push(...base.slice(cursor));
 ```
 

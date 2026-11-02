@@ -53,12 +53,14 @@ import { IconButton, PaneBar, ProjectSwitcher, Workspace, WorkspaceRail, Workspa
 
 function ViewBar({ name, alone, onClose }: { name: string; alone: boolean; onClose(): void }) {
     const slot = useTopRowSlot();
+
     return <PaneBar title={name} focused onClose={onClose} closeLabel="Close view" container={alone ? slot : null} />;
 }
 
 function Shell() {
     const [panel, setPanel] = useState<'files' | 'git' | null>(null);
     const toggle = (kind: 'files' | 'git') => setPanel(panel === kind ? null : kind);
+
     return (
         <Workspace
             toolbar={
@@ -95,6 +97,7 @@ import { SplitView, Workspace, createSplitLayout } from '@adecore/ui';
 
 function EditorWorkspace() {
     const [value, setValue] = useState(() => createSplitLayout(['notes']));
+
     return (
         <Workspace layout="roomy" toolbar={<EditorToolbar />}>
             <SplitView

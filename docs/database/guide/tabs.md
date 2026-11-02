@@ -18,7 +18,7 @@ import type { DatabaseAction, ExplorerSelection } from '@adecore/database';
 | `edit-table`        | `ref`                                                                         | The explorer's Edit table item, and the designer after it created or renamed a table |
 | `manage-connection` | `connectionId`                                                                | The explorer's Edit connection item                                                  |
 
-`ref` is a `TableRef`: `connectionId`, `schema` and `table`. `where` is a condition as typed after `WHERE`; open the table filtered by it. `tableKind` is `'table'` or `'view'` when the sender knows it. `preview` comes only from an explorer with [`openOnClick`](/database/views/explorer#selecting-and-opening): `true` for a click, `false` for a double click or Enter. `sql` is the console's starting text, such as a `SELECT` of the right-clicked table.
+`ref` is a `TableRef`: `connectionId`, `schema` and `table`. `where` is a condition as typed after `WHERE`, and the table opens filtered by it. `tableKind` is `'table'` or `'view'` when the sender knows it. `preview` comes only from an explorer with [`openOnClick`](/database/views/explorer#selecting-and-opening): `true` for a click, `false` for a double click or Enter. `sql` is the console's starting text, such as a `SELECT` of the right-clicked table.
 
 Without `onAction`, the views hide the items that would send one: Open data, New console and Go to referenced row.
 
@@ -48,7 +48,7 @@ type Tab =
     | { id: string; kind: 'console'; connectionId: string; schema?: string; sql: string }
     | { id: string; kind: 'design'; connectionId: string; schema: string; table?: string };
 
-const tabOf = (action: DatabaseAction): Tab | null => {
+function tabOf(action: DatabaseAction): Tab | null {
     const id = crypto.randomUUID();
 
     switch (action.kind) {
@@ -63,25 +63,27 @@ const tabOf = (action: DatabaseAction): Tab | null => {
         case 'manage-connection':
             return null;
     }
-};
+}
 
 export function DatabasePane({ client, connections }: { client: DatabaseClient; connections: readonly Connection[] }) {
     const [tabs, setTabs] = useState<readonly Tab[]>([]);
     const [picked, setPicked] = useState<string | null>(null);
     const [selection, setSelection] = useState<ExplorerSelection | null>(null);
 
-    function onAction(action: DatabaseAction): void {
+    const onAction = (action: DatabaseAction): void => {
         if (action.kind === 'manage-connection') {
             openSettings(action.connectionId);
+
             return;
         }
 
         const tab = tabOf(action);
+
         if (tab !== null) {
             setTabs((current) => [...current, tab]);
             setPicked(tab.id);
         }
-    }
+    };
 
     return (
         <DatabaseProvider client={client} onAction={onAction}>

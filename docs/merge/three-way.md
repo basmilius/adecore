@@ -50,6 +50,7 @@ An open conflict looks finished in the draft, so check before you write:
 
 ```ts
 const unanswered = blocks.flatMap((block, index) => (block.kind === 'conflict' && !answers.has(index) ? [index] : []));
+
 if (unanswered.length > 0) {
     throw new Error(`${unanswered.length} conflicts have no answer`);
 }

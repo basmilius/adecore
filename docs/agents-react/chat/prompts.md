@@ -37,10 +37,13 @@ function Stack({ subjects }: { subjects: PromptSubject[] }) {
     const host = useChatHost();
     const session = usePromptSession({ prompts: subjects, idOf: promptIdOf, pick, disabled: false });
     const active = session.active;
+
     if (!active) {
         return null;
     }
+
     const id = promptIdOf(active);
+
     return (
         <div onPointerDownCapture={session.onPointerDownCapture} onClickCapture={session.onClickCapture}>
             <PromptView

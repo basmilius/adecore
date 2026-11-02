@@ -1,6 +1,6 @@
 # FileIcon
 
-The icon a file gets in a file tree, for anywhere else the file's name shows up: a tab, a picker row, a search result. It is the only icon outside Lucide.
+The icon a file gets in a file tree, and anywhere else its name shows up: a tab, a picker row, a search result. It is the only icon outside Lucide.
 
 ```tsx
 import { FILE_TREE_ICONS, FileIcon } from '@adecore/ui';

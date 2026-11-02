@@ -48,12 +48,14 @@ const WORDS = {
 if (!globalI18next.isInitialized) {
     void globalI18next.init({ lng: i18n.language || 'en', fallbackLng: 'en', resources: {}, interpolation: { escapeValue: false }, initAsync: false });
 }
+
 for (const [language, namespaces] of Object.entries(WORDS)) {
     for (const [namespace, words] of Object.entries(namespaces)) {
         i18n.addResourceBundle(language, namespace, words, true, true);
         globalI18next.addResourceBundle(language, namespace, words, true, true);
     }
 }
+
 i18n.on('languageChanged', (language) => void globalI18next.changeLanguage(language));
 
 /* The chats a host starts with, by id. */
@@ -66,6 +68,7 @@ function wait(ms: number): Promise<void> {
 function subscribeTheme(changed: () => void): () => void {
     const observer = new MutationObserver(changed);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
     return () => observer.disconnect();
 }
 
@@ -109,9 +112,11 @@ export const DEMO_CHAT_HOST: Partial<ChatHost> = {
         useUrl: (_scopeId, _chatId, attachmentId) => attachmentUrl(attachmentId),
         read: async (_scopeId, _chatId, attachmentId) => {
             const { url } = attachmentUrl(attachmentId);
+
             if (url === null) {
                 throw new Error(NO_FILE);
             }
+
             return (await fetch(url)).blob();
         },
         open: () => undefined,
@@ -171,6 +176,7 @@ export class FakeAgentHost implements ChatTransport {
 
     chat(chatId: string): Chat {
         let chat = this.chats.get(chatId);
+
         if (chat === undefined) {
             chat = {
                 info: chatInfo(chatId, { agentSessionId: null, usage: { contextTokens: 0, contextWindow: 200_000, costUsd: 0, turns: 0 } }),
@@ -179,15 +185,18 @@ export class FakeAgentHost implements ChatTransport {
             };
             this.chats.set(chatId, chat);
         }
+
         return chat;
     }
 
     async request<T extends AgentRequestType>(type: T, payload: ChatRequestMap[T]['payload']): Promise<ChatRequestMap[T]['result']> {
         await wait(type === 'usage.summary' ? 350 : 60);
         const handler = (this.handlers as Record<string, ((payload: unknown) => unknown) | undefined>)[type];
+
         if (handler === undefined) {
             throw new ChatTransportError('unknown-request', `This demo host does not answer ${type}`);
         }
+
         return (await handler(payload)) as ChatRequestMap[T]['result'];
     }
 
@@ -210,6 +219,7 @@ export class FakeAgentHost implements ChatTransport {
 
     private apply(chatId: string, event: ChatEvent): void {
         const chat = this.chat(chatId);
+
         if (event.type === 'item') {
             const index = chat.items.findIndex((item) => item.id === event.item.id);
             chat.items = index < 0 ? [...chat.items, event.item] : chat.items.map((item, at) => (at === index ? event.item : item));
@@ -219,6 +229,7 @@ export class FakeAgentHost implements ChatTransport {
             chat.info = event.info;
             this.emit('chat.status', { chatId, info: event.info });
         }
+
         this.seq += 1;
         this.emit('chat.event', { chatId, event, seq: this.seq });
     }
@@ -233,6 +244,7 @@ export class FakeAgentHost implements ChatTransport {
         this.apply(chatId, { type: 'item', item: { id: turnId, createdAt: now, turnId, kind: 'turn', state: 'running', endedAt: null, costUsd: 0 } });
         this.apply(chatId, { type: 'item', item: { id: `${turnId}-user`, createdAt: now, turnId, kind: 'user', text } });
         this.setInfo(chatId, { activeTurnId: turnId, status: 'running' });
+
         if (/\b(check|test|lint)/i.test(text)) {
             await wait(700);
             this.apply(chatId, { type: 'item', item: commandApproval(turnId) });
@@ -240,6 +252,7 @@ export class FakeAgentHost implements ChatTransport {
         } else {
             void this.reply(chatId, turnId, REPLIES[this.replies++ % REPLIES.length]!);
         }
+
         return turnId;
     }
 
@@ -247,10 +260,12 @@ export class FakeAgentHost implements ChatTransport {
         await wait(600);
         const id = `${turnId}-reply`;
         this.apply(chatId, { type: 'item', item: { id, createdAt: Date.now(), turnId, kind: 'assistant', text: '', streaming: true, parentToolUseId: null } });
+
         for (const word of text.match(/\S+\s*/g) ?? []) {
             await wait(35);
             this.apply(chatId, { type: 'delta', itemId: id, text: word });
         }
+
         this.apply(chatId, { type: 'item', item: { id, createdAt: Date.now(), turnId, kind: 'assistant', text, streaming: false, parentToolUseId: null } });
         this.finishTurn(chatId, turnId, 'done');
     }
@@ -260,6 +275,7 @@ export class FakeAgentHost implements ChatTransport {
         if (turn?.kind !== 'turn' || turn.state !== 'running') {
             return;
         }
+
         this.apply(chatId, { type: 'item', item: { ...turn, state, endedAt: Date.now(), costUsd: 0.02 } });
         const { usage } = this.chat(chatId).info;
         this.setInfo(chatId, { activeTurnId: null, status: 'idle', usage: { ...usage, turns: usage.turns + 1, costUsd: usage.costUsd + 0.02 } });
@@ -282,6 +298,7 @@ export class FakeAgentHost implements ChatTransport {
         'chat.list': () => ({ chats: [...this.chats.values()].map((chat) => chat.info) }),
         'chat.create': (payload) => {
             const chat = this.chat(payload.chatId);
+
             if (chat.items.length === 0 && payload.provider !== undefined) {
                 chat.info = {
                     ...chat.info,
@@ -289,6 +306,7 @@ export class FakeAgentHost implements ChatTransport {
                     ...(payload.selection ? { selection: payload.selection, model: payload.selection.model } : {})
                 };
             }
+
             return chat.info;
         },
         'chat.attach': (payload) => {
@@ -304,15 +322,18 @@ export class FakeAgentHost implements ChatTransport {
         'chat.send': async (payload) => ({ queued: false, turnId: await this.startTurn(payload.chatId, payload.text) }),
         'chat.cancel': (payload) => {
             const turnId = this.chat(payload.chatId).info.activeTurnId;
+
             if (turnId !== null) {
                 this.finishTurn(payload.chatId, turnId, 'aborted');
             }
+
             return {};
         },
         'chat.clear': (payload) => {
             const chat = this.chat(payload.chatId);
             chat.items = [];
             this.apply(payload.chatId, { type: 'reset', info: { ...chat.info, activeTurnId: null, status: 'idle' }, items: [] });
+
             return {};
         },
         'chat.compact': (payload) => {
@@ -327,6 +348,7 @@ export class FakeAgentHost implements ChatTransport {
                 }
             });
             this.setInfo(payload.chatId, { usage: { ...this.chat(payload.chatId).info.usage, contextTokens: 8_000, breakdown: undefined } });
+
             return {};
         },
         'chat.configure': (payload) => {
@@ -337,12 +359,16 @@ export class FakeAgentHost implements ChatTransport {
         'chat.approve': (payload) => {
             const chat = this.chat(payload.chatId);
             const item = chat.items.find((entry) => entry.kind === 'approval' && entry.requestId === payload.requestId);
+
             if (item?.kind !== 'approval' || item.decision !== 'pending') {
                 throw new ChatTransportError('request-not-found', 'Nothing waits for this approval any more.');
             }
+
             this.apply(payload.chatId, { type: 'item', item: { ...item, decision: payload.decision } });
             this.setInfo(payload.chatId, { status: 'running' });
+
             const turnId = item.turnId ?? '';
+
             if (payload.decision === 'deny') {
                 void this.reply(payload.chatId, turnId, `Understood, I left the check out.${payload.message ? ` You said: "${payload.message}"` : ''}`);
             } else {
@@ -363,6 +389,7 @@ export class FakeAgentHost implements ChatTransport {
                 });
                 void this.reply(payload.chatId, turnId, 'The type check and the linter both pass. Nothing to fix.');
             }
+
             return {};
         },
         'chat.answer': () => ({}),
@@ -378,9 +405,11 @@ export class FakeAgentHost implements ChatTransport {
             const chat = this.chat(payload.chatId);
             const item = chat.items.find((entry) => entry.id === payload.itemId);
             const excerpt = item !== undefined && 'text' in item ? item.text.slice(0, 160) : '';
+
             if (chat.bookmarks.some((bookmark) => bookmark.itemId === payload.itemId)) {
                 return this.setBookmarks(payload.chatId, chat.bookmarks);
             }
+
             return this.setBookmarks(payload.chatId, [
                 ...chat.bookmarks,
                 { itemId: payload.itemId, excerpt, createdAt: Date.now(), ...(payload.name ? { name: payload.name } : {}) }
@@ -418,6 +447,7 @@ export class FakeAgentHost implements ChatTransport {
                     { id, kind: payload.kind, state: 'signed-out', email: null, plan: null, organization: null, home, message: null, checkedAt: Date.now() }
                 ]
             });
+
             return { ...next, id };
         },
         'accounts.watchLogin': () => ({}),

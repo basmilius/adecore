@@ -13,6 +13,7 @@ function find(nodes: readonly DemoNode[], id: string): DemoNode | undefined {
             return found;
         }
     }
+
     return undefined;
 }
 
@@ -26,7 +27,9 @@ function drawn(nodes: readonly DemoNode[], context: UiRenderContext): ReactNode 
         if (child.type === '$text') {
             return <Fragment key={child.id}>{String(child.props.text)}</Fragment>;
         }
+
         const Renderer = UI_RENDERERS[child.type as keyof typeof UI_RENDERERS] as ComponentType<UiRendererProps<unknown>> | null;
+
         return Renderer === null ? null : (
             <Renderer key={child.id} node={child} context={context}>
                 {drawn(child.children, context)}
@@ -45,6 +48,7 @@ export function DemoBlock({ nodes, context = {} }: { nodes: DemoNode[]; context?
     const [answer, setAnswer] = useState<{ choiceId: string; at: number } | null>(null);
     const tree = withIds(nodes, 'node-');
     const chosen = answer === null ? undefined : find(tree, answer.choiceId);
+
     const full: UiRenderContext = {
         scopeId: 'demo',
         chatId: 'chat',
@@ -55,6 +59,7 @@ export function DemoBlock({ nodes, context = {} }: { nodes: DemoNode[]; context?
         onChoose: (choiceId) => setAnswer({ choiceId, at: answeredAt() }),
         ...context
     };
+
     return (
         <div className="w-full max-w-xl">
             <UiBlockFrame nodes={tree} phase={full.phase} answered={answer === null || chosen === undefined ? null : { label: textOf(chosen), at: answer.at }}>

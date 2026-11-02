@@ -25,6 +25,7 @@ import { DiffView } from '@adecore/editor-react';
 import { diffDocument, patchOf } from '@adecore/merge';
 
 const document = diffDocument(patchOf(before, after), { old: before, new: after });
+
 <DiffView engine={engine} document={document} theme="github-dark" label="Proposed changes" />;
 ```
 

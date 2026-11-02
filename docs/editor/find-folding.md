@@ -37,6 +37,7 @@ Set `searchWorker` on `createSmartEditorEngine` to a factory for a worker entry 
 ```ts
 // search.worker.ts
 import { serveEditorSearch } from '@adecore/editor/search-worker';
+
 serveEditorSearch(self);
 ```
 
@@ -45,6 +46,7 @@ import { createSearchClient } from '@adecore/editor/search-worker';
 
 const search = createSearchClient({ workerFactory: () => new Worker(workerUrl, { type: 'module' }) });
 const result = await search.search({ revision: 1, text: 'Name: Ada' }, { text: 'Name: (\\w+)', regex: true, caseSensitive: false, wholeWord: false });
+
 search.dispose();
 ```
 

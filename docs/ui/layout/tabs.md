@@ -83,6 +83,7 @@ function ProjectTabs({ projects, active, onSelect, onMove, onOpenWindow }: Proje
         onReorder: onMove,
         onTearOff: (key, at) => onOpenWindow(key, at)
     });
+
     return (
         <Tabs.Root ref={strip} value={active} onValueChange={(value) => onSelect(String(value))} className="relative flex min-w-0 grow">
             <Tabs.List variant="pill" overflow="scroll">

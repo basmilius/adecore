@@ -63,13 +63,17 @@ const rank = (groups: Group[], query: string): Group[] =>
 /* Issues come from a request, a moment after the last key; the last answer stays until the next one lands. */
 function useIssues(query: string): Command[] {
     const [found, setFound] = useState<Command[]>([]);
+
     useEffect(() => {
         if (query.trim() === '') {
             return;
         }
+
         const timer = window.setTimeout(() => setFound(ISSUES.filter((issue) => matchScore(`${issue.label} ${issue.hint}`, query) !== null)), 200);
+
         return () => window.clearTimeout(timer);
     }, [query]);
+
     return query.trim() === '' ? [] : found;
 }
 

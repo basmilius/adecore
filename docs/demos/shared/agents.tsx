@@ -25,14 +25,17 @@ function openScope(chats: DemoChats, providers: ProviderInfo[]): { scope: ChatSc
     const id = `demo-${++scopes}`;
     const transport = new FakeAgentHost(chats);
     const keyOf = (chatId: string): string => `${id}:${chatId}`;
+
     for (const [chatId, chat] of Object.entries(chats)) {
         useChats.getState().reset(keyOf(chatId), chat.info, chat.items);
     }
+
     useProvidersStore.getState().setProviders(id, providers);
     useProviderAccountsStore.getState().set(id, initialAccounts());
     const client = new ChatClient(transport, chatSink(keyOf), providerSinkFor(id));
     const stopAccounts = watchProviderAccounts(id, transport);
     const scope: ChatScope = { id, keyOf, owns: (key) => key.startsWith(`${id}:`), transport, chats: client };
+
     return {
         scope,
         close: () => {
@@ -63,6 +66,7 @@ export function AgentDemo({
 }) {
     const [opened] = useState(() => openScope(chats(), providers));
     useEffect(() => opened.close, [opened]);
+
     return (
         <DemoChatHost>
             <ChatScopeContext.Provider value={opened.scope}>{children}</ChatScopeContext.Provider>

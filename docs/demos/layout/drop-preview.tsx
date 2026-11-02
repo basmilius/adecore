@@ -15,18 +15,22 @@ export default function DropPreviewDemo() {
         const width = Math.round(bounds.width);
         const height = Math.round(bounds.height);
         const y = event.clientY - bounds.top;
+
         if (y < BAR_HEIGHT) {
             const rects = Array.from(strip.current!.children, (tab) => tab.getBoundingClientRect());
             const gap = tabGapAt(rects, event.clientX);
             const left = (rects[gap]?.left ?? rects.at(-1)!.right) - bounds.left;
+
             setShape(
                 tabDropPreview(
                     { gap, left: Math.round(Math.min(left, width - TAB_WIDTH)), tabWidth: TAB_WIDTH, width, height, barHeight: BAR_HEIGHT },
                     { x: 0, y: 0 }
                 )
             );
+
             return;
         }
+
         const half = Math.round(width / 2);
         const right = event.clientX - bounds.left > half;
         setShape(rectDropPreview({ x: right ? half : 0, y: BAR_HEIGHT, width: right ? width - half : half, height: height - BAR_HEIGHT }));

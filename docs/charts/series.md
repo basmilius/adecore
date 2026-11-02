@@ -1,6 +1,6 @@
 # Series chart
 
-Values per bucket on a shared x axis of moments, numbers or categories. Here, errors and warnings per hour, with a deploy and a gap in the data:
+Values per bucket on a shared x axis of moments, numbers or categories. Errors and warnings per hour, with a deploy and a gap in the data:
 
 <Demo src="charts/errors-per-hour" />
 

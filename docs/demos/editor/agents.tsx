@@ -16,28 +16,31 @@ export default function AgentsDemo() {
             { id: 'summary', startLine: 12, endLine: 15, color: AGENT_COLORS[1] }
         ]);
         editor.setRemoteCursors([{ id: 'writer', position: { line: 13, character: 11 }, name: 'Writer', color: AGENT_COLORS[1] }]);
-        const suggest = (): void =>
-            editor.setGhostText({
-                position: { line: 9, character: 1 },
-                text: SUGGESTION,
-                accessory: (container) => {
-                    container.textContent = 'Tab';
-                }
-            });
-        suggest();
+        editor.setGhostText({
+            position: { line: 9, character: 1 },
+            text: SUGGESTION,
+            accessory: (container) => {
+                container.textContent = 'Tab';
+            }
+        });
+
         const stops = [
             editor.onAttributionHover(setHover),
             // The editor never takes a suggestion itself: the host binds the key and inserts the text.
             editor.onKeyDown((event) => {
                 const caret = editor.getCaret();
+
                 if (event.key !== 'Tab' || caret.line !== 9 || caret.character !== 1) {
                     return false;
                 }
+
                 return editor.applyEdits([{ range: { start: caret, end: caret }, text: SUGGESTION }]);
             })
         ];
+
         return () => stops.forEach((stop) => stop());
     }, []);
+
     const { host } = useEditor(OPTIONS, setup);
 
     return (

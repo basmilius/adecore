@@ -8,17 +8,19 @@ interface TraceSpan extends TimelineSpan {
 
 const START = Date.UTC(2026, 9, 24, 14, 12, 3, 120);
 
-const span = (id: string, parent: string | null, op: string, label: string, offset: number, duration: number, ok = true): TraceSpan => ({
-    id,
-    parent,
-    op,
-    label,
-    start: START + offset,
-    duration,
-    kind: op.startsWith('db') ? 'db' : op.startsWith('http') ? 'http' : 'code',
-    tone: ok ? undefined : 'error',
-    ok
-});
+function span(id: string, parent: string | null, op: string, label: string, offset: number, duration: number, ok = true): TraceSpan {
+    return {
+        id,
+        parent,
+        op,
+        label,
+        start: START + offset,
+        duration,
+        kind: op.startsWith('db') ? 'db' : op.startsWith('http') ? 'http' : 'code',
+        tone: ok ? undefined : 'error',
+        ok
+    };
+}
 
 /* An order page: two queries up front, the price worked out by a service that calls the tax API, and a payment check that times out. */
 const SPANS: TraceSpan[] = [
@@ -52,6 +54,7 @@ function SpanDetail({ span: detail }: { span: TraceSpan }) {
         { name: 'Status', value: detail.ok ? 'OK' : 'Failed' },
         { name: 'Span id', value: detail.id }
     ];
+
     return (
         <>
             <p className="mb-3 font-mono text-code break-all text-text">{detail.label}</p>

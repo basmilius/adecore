@@ -36,6 +36,7 @@ A formatter is a plain function, so a component that calls one does not rerender
 ```tsx
 function LastSaved({ at }: { at: number }) {
     useFormatLocale();
+
     return <span>{formatMoment(at)}</span>;
 }
 ```

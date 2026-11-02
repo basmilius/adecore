@@ -20,6 +20,7 @@ interface Call extends VerbCallBase {
 }
 
 export const registry = createVerbRegistry<Call>({ cli: 'app-context' });
+
 export const note = registry.defineVerb({
     name: 'note',
     usage: '--text T',
@@ -33,9 +34,11 @@ export const note = registry.defineVerb({
         if (!call.authorized) {
             throw new VerbRefusal('not-permitted', 'This caller may not write this document.');
         }
+
         if (!dryRun) {
             await call.write(flags.text, call.expectedRevision);
         }
+
         return [dryRun ? 'preview\tvalidated' : 'note\twritten'];
     }
 });
@@ -47,6 +50,7 @@ export async function runNote(argv: readonly string[], call: Call): Promise<{ ex
         if (error instanceof VerbRefusal) {
             return { exitCode: 3, stdout: '', stderr: refusalBody(error.code, error.message, error.lines) };
         }
+
         throw error;
     }
 }

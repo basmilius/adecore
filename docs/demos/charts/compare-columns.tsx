@@ -7,15 +7,23 @@ const ScoreChart = createChart<ModelScore>();
 const scores = scoresByModel();
 const EFFORTS: Record<string, string> = { low: 'Low', medium: 'Medium', high: 'High', max: 'Max' };
 const SHORT: Record<string, string> = { low: 'L', medium: 'M', high: 'H', max: 'X' };
-const scoreOf = (key: string): number => scores.find((row) => row.key === key)!.score;
-const signed = (value: number): string => `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatNumber(Math.abs(value))}`;
+
+function scoreOf(key: string): number {
+    return scores.find((row) => row.key === key)!.score;
+}
+
+function signed(value: number): string {
+    return `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatNumber(Math.abs(value))}`;
+}
 
 export default function CompareColumnsDemo() {
     const [reference, setReference] = useState<string | null>('Atlas 5:high');
     const [candidate, setCandidate] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(null);
+
     // A column under the pointer or the keyboard stands in for B until one is picked.
     const shown = reference === null ? null : ((preview !== reference ? preview : null) ?? candidate);
+
     const pick = (row: ModelScore): void => {
         if (reference === null || row.key === reference) {
             setReference(reference === null ? row.key : null);

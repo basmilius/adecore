@@ -4,6 +4,7 @@ A live template is a text a short key expands into, as in IntelliJ. Type `iter` 
 
 ```ts
 const templates = new TemplateRegistry();
+
 templates.set({
     live: [{ id: 'own.todo', key: 'todo', body: '// TODO($1): $0', languages: ['javascript'], places: ['comment', 'code'] }]
 });

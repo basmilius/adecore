@@ -91,6 +91,7 @@ const edit = DrawingEditSchema.parse({
     update: [{ id: 'box', stroke: 'blue' }],
     remove: ['arrow']
 });
+
 const outcome = applyDrawingEdit(drawing.elements, edit, { id: () => crypto.randomUUID(), seed: () => Math.floor(Math.random() * 2 ** 31) });
 ```
 

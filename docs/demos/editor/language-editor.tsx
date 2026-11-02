@@ -1,3 +1,4 @@
+import type { FakeLanguageService } from '@adecore/editor-react/testing';
 import { LanguageFrame } from '../shared/editor-frame.tsx';
 import { useDemoLanguage } from '../shared/editor.ts';
 import {
@@ -11,7 +12,6 @@ import {
     respondSignatureHelp,
     respondSymbols
 } from '../shared/order-service.ts';
-import type { FakeLanguageService } from '@adecore/editor-react/testing';
 
 /* Every feature the fake service answers for, as a real TypeScript server would. */
 function configure(service: FakeLanguageService): void {

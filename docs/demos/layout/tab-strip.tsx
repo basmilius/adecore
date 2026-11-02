@@ -9,6 +9,7 @@ export default function TabStripDemo() {
         { id: 'theme', label: 'theme.css' }
     ]);
     const [value, setValue] = useState<string | null>('index');
+
     return (
         <div className="h-10 w-full overflow-hidden rounded-lg border border-border bg-surface">
             <TabStrip
@@ -33,6 +34,7 @@ export default function TabStripDemo() {
                 onClose={(id) => {
                     const next = items.filter((item) => item.id !== id);
                     setItems(next);
+
                     if (value === id) {
                         setValue(next[0]?.id ?? null);
                     }

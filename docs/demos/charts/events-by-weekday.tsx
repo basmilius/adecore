@@ -9,13 +9,17 @@ const total = counts.flat().reduce((sum, count) => sum + count, 0);
 export default function EventsByWeekdayDemo() {
     useFormatLocale();
     const [active, setActive] = useState<HeatmapCell | null>(null);
+
     // 19 October 2026 is a Monday, so the rows start on Monday.
     const rows = Array.from({ length: 7 }, (_, day) => {
         const at = new Date(2026, 9, 19 + day);
+
         return { key: day, label: formatWeekday(at, 'long'), short: formatWeekday(at) };
     });
+
     const columns = Array.from({ length: 24 }, (_, hour) => {
         const at = new Date(2026, 9, 19, hour);
+
         return { key: hour, label: formatClock(at), short: hour % 6 === 0 ? formatHour(at) : null };
     });
 

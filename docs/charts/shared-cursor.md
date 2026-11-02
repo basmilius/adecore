@@ -24,7 +24,7 @@ Charts inside a `Chart.Group` share one cursor. The group shares an x, not an in
 
 Only the chart under the pointer or keyboard shows its tooltip.
 
-The group also aligns the plots: the y axes on each side take the width of the widest, so a moment stands at the same pixel in every chart.
+The group also aligns the plots. The y axes on each side take the width of the widest, so a moment stands at the same pixel in every chart.
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |

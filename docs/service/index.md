@@ -25,6 +25,7 @@ import { join } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 
 const home = homedir();
+
 const spec: ServiceSpec = {
     label: 'com.example.worker',
     description: 'Example worker',
@@ -39,14 +40,17 @@ const manager = platformServiceManager(process.platform, {
     launchd: { label: spec.label, logFile: spec.logFile, uid: userInfo().uid, home, run: runCommand, files: diskFiles, sleep: (ms) => setTimeout(ms) },
     systemd: { unitName: 'example-worker.service', configHome: join(home, '.config'), user: userInfo().username, run: runCommand, files: diskFiles }
 });
+
 if (manager === null) {
     throw new Error('No user services on this platform.');
 }
 
 const existing = manager.read();
+
 if (existing !== null && !definitionRunsProgram(existing, spec.program)) {
     throw new Error(`${manager.path} runs another program.`);
 }
+
 if (manager.install(serviceDefinition(process.platform, spec))) {
     await manager.restart();
 } else {

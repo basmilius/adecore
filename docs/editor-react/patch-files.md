@@ -34,6 +34,7 @@ Editing a patch breaks its counts, and the reading copes. A hunk whose lines no 
 import { patchLayoutOf } from '@adecore/editor-react/models';
 
 const layout = patchLayoutOf(text);
+
 for (const file of layout.files) {
     console.log(file.status, file.newPath, `+${file.added} -${file.removed}`);
 }

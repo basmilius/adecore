@@ -58,13 +58,16 @@ export async function writeCounter(dataDir: string): Promise<number> {
     const path = join(dataDir, 'counter.json');
     await writeAtomic(path, JSON.stringify({ count: 0 }));
     const writes = new Serializer();
+
     const increment = (): Promise<void> =>
         writes.run(async () => {
             const current = JSON.parse(await readFile(path, 'utf8')) as { count: number };
             await writeAtomic(path, JSON.stringify({ count: current.count + 1 }), 0o600, { durable: true });
         });
+
     await Promise.all([increment(), increment()]);
     await writes.idle();
+
     return (JSON.parse(await readFile(path, 'utf8')) as { count: number }).count;
 }
 ```

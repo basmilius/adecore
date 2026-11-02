@@ -16,20 +16,22 @@ export default function TabsClosableDemo() {
     const [picked, setPicked] = useState<number>(1);
     const [next, setNext] = useState(4);
 
-    function add(): void {
+    const add = (): void => {
         setQueries([...queries, { id: next, name: `Query ${next}` }]);
         setPicked(next);
         setNext(next + 1);
-    }
+    };
 
-    function close(id: number): void {
+    const close = (id: number): void => {
         const at = queries.findIndex((query) => query.id === id);
         const rest = queries.filter((query) => query.id !== id);
+
         setQueries(rest);
+
         if (picked === id) {
             setPicked(rest[Math.min(at, rest.length - 1)]?.id ?? 0);
         }
-    }
+    };
 
     return (
         <Tabs.Root value={picked} onValueChange={(value) => setPicked(Number(value))} className="w-full max-w-md rounded-lg border border-border bg-surface">

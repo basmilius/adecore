@@ -33,6 +33,7 @@ editor.onKeyDown((event) => {
     if (event.key !== 'Tab') {
         return false;
     }
+
     return editor.applyEdits([{ range: { start: position, end: position }, text: suggestion }]);
 });
 ```

@@ -108,10 +108,13 @@ export function openScope(id: string, port: MessagePort): ChatScope {
             return () => port.removeEventListener('message', receive);
         }
     };
+
     const transport = portTransport(frames);
     const keyOf = (chatId: string): string => `${id}:${chatId}`;
     const chats = new ChatClient(transport, chatSink(keyOf), providerSinkFor(id));
+
     watchProviderAccounts(id, transport);
+
     return { id, keyOf, owns: (key) => key.startsWith(`${id}:`), transport, chats };
 }
 ```
@@ -134,6 +137,7 @@ function Chat({ chatId, cwd }: { chatId: string; cwd: string }) {
 
     useEffect(() => {
         void scope.chats.open(chatId, { cwd, runtimeMode: 'supervised' });
+
         return () => void scope.chats.detach(chatId);
     }, [scope, chatId, cwd]);
 

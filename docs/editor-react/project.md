@@ -85,7 +85,7 @@ The host tells the servers, inside these methods. After `rename`, `create` or `d
 
 A target is an absolute path, or `{ path, directory: true }` for a folder. Only files the servers' filters take are sent. A service without the matching optional `willCreateFiles`, `didCreateFiles`, `willDeleteFiles` and `didDeleteFiles` makes these no-ops.
 
-`WorkspaceEditHost` also takes `versionOf(uri)`, `isReadOnly(uri)` and `openUris()`. A read only editor, from `isReadOnly(uri)` or the editor's own `isReadOnly()`, refuses the edit before any step runs.
+`WorkspaceEditHost` also takes `versionOf(uri)`, `isReadOnly(uri)` and `openUris()`. A read-only editor, from `isReadOnly(uri)` or the editor's own `isReadOnly()`, refuses the edit before any step runs.
 
 ## Problems
 

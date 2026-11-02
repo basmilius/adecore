@@ -13,8 +13,10 @@ const windowState = createWindowState({
 
 const createWindow = (): BrowserWindow => {
     const window = new BrowserWindow({ ...windowState.bounds('main'), minWidth: 800, minHeight: 500, show: false });
+
     windowState.track('main', window);
     window.once('ready-to-show', () => window.show());
+
     return window;
 };
 

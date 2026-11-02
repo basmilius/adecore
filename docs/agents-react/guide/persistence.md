@@ -69,6 +69,7 @@ window.addEventListener('storage', (event) => {
     if (event.key === CHAT_PREFERENCES_KEY) {
         reloadChatPreferences();
     }
+
     if (event.key === USAGE_PREFERENCES_KEY) {
         reloadUsagePreferences();
     }

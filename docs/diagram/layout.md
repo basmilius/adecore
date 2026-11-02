@@ -22,7 +22,7 @@ To rank a cycle, the layout leaves out the edges that point back, walking in fil
 
 ## Order and placement
 
-Inside a column, nodes are sorted to cross fewer edges, with ties kept in file order. Group members stay together, and groups keep their order across columns. Then nodes shift towards their neighbors, so a chain lines up straight. This is a heuristic: dense graphs can still cross edges, and spacing has no options.
+Inside a column, nodes are sorted to cross fewer edges, with ties kept in file order. Group members stay together, and groups keep their order across columns. Then nodes shift towards their neighbors, so a chain lines up straight. The ordering is a heuristic, so dense graphs can still cross edges, and spacing has no options.
 
 A `down` diagram is a `right` one mirrored across the diagonal, with boxes and text kept upright.
 

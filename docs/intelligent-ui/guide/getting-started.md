@@ -1,6 +1,6 @@
 # Getting started
 
-This page wires blocks end to end: the agent learns the language, the backend compiles replies, the wire carries blocks and the page draws them. With [`@adecore/agents`](/agents/) and [`@adecore/agents-react`](/agents-react/) most of it is configuration. Each step also shows the package used on its own.
+This page wires blocks end to end. The agent learns the language, the backend compiles replies, the wire carries blocks and the page draws them. With [`@adecore/agents`](/agents/) and [`@adecore/agents-react`](/agents-react/) most of it is configuration. Each step also shows the package used on its own.
 
 ## Install
 
@@ -32,12 +32,13 @@ import { uiSessionNote } from '@adecore/intelligent-ui/text';
 
 const fenceLanguage = 'ui';
 
-const core = (options) =>
-    new ChatCore({
+function core(options) {
+    return new ChatCore({
         ...options,
         instructions: [appInstructions, uiSessionNote({ fenceLanguage })].join('\n\n'),
         uiFenceLanguage: fenceLanguage
     });
+}
 ```
 
 `fenceLanguage` is the info string after the opening backticks, `UI_FENCE_LANGUAGE` (`ui`) by default. Pass the same value to the note, the compiler and the session; a fence the compiler does not look for stays code.

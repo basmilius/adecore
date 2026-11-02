@@ -114,6 +114,7 @@ function SqlCodeEditor({ ref, value, onValueChange, run, label, autoFocus }: Que
 
     const handleKeyDown = (event: KeyboardEvent<HTMLElement>): void => {
         const scope = runScopeOf(event, isApplePlatform());
+
         if (scope !== null) {
             event.preventDefault();
             run(scope);

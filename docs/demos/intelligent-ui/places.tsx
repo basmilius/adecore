@@ -4,6 +4,7 @@ import { bound, ui } from '../shared/intelligent-ui-tree.ts';
 
 export default function PlacesDemo() {
     const [picked, setPicked] = useState<unknown>('');
+
     return (
         <DemoBlock
             nodes={[

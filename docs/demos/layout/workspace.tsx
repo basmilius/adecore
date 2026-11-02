@@ -18,6 +18,7 @@ import {
 
 function initialLayout(): SplitLayout {
     const first = createSplitLayout(['Brief', 'Notes'], 'documents');
+
     const second = updateSplitLayout(first, {
         type: 'split',
         paneId: 'documents',
@@ -25,6 +26,7 @@ function initialLayout(): SplitLayout {
         newPane: { type: 'pane', id: 'preview', views: ['Preview'], active: 'Preview' },
         splitId: 'columns'
     });
+
     return updateSplitLayout(second, {
         type: 'split',
         paneId: 'preview',
@@ -36,6 +38,7 @@ function initialLayout(): SplitLayout {
 
 function Document({ name }: { name: string }) {
     const [text, setText] = useState(`Working notes for ${name}.\n\nEdit this text, then move its tab into another panel. The text stays with the view.`);
+
     return (
         <textarea
             aria-label={`${name} contents`}
@@ -53,8 +56,10 @@ export default function WorkspaceDemo() {
     const [sidebar, setSidebar] = useState(true);
     const [panel, setPanel] = useState(false);
     const [serial, setSerial] = useState(1);
+
     const split = (side: 'right' | 'bottom'): void => {
         const name = `Draft ${serial}`;
+
         setValue((current) =>
             updateSplitLayout(current, {
                 type: 'split',
@@ -64,8 +69,10 @@ export default function WorkspaceDemo() {
                 splitId: `split-${serial}`
             })
         );
+
         setSerial(serial + 1);
     };
+
     return (
         <div data-theme={appearance} className="flex w-full flex-col gap-3 bg-bg p-4 text-text">
             <div className="flex flex-wrap items-center gap-2">
