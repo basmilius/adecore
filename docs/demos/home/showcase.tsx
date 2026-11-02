@@ -55,7 +55,8 @@ const VIEWS: Record<ViewId, { label: string; icon: typeof FileCode }> = {
     terminal: { label: 'Tests', icon: SquareTerminal }
 };
 
-const OUTPUT = '\x1b[1mbun test src/http.test.ts\x1b[0m\r\n\r\n\x1b[32m✓\x1b[0m retries a server error\r\n\x1b[32m✓\x1b[0m throws a client error at once\r\n\x1b[32m✓\x1b[0m waits longer each attempt\r\n\x1b[32m✓\x1b[0m stops after three attempts\r\n\r\n\x1b[32m 4 pass\x1b[0m\r\n\x1b[2m 0 fail\x1b[0m\r\n';
+const OUTPUT =
+    '\x1b[1mbun test src/http.test.ts\x1b[0m\r\n\r\n\x1b[32m✓\x1b[0m retries a server error\r\n\x1b[32m✓\x1b[0m throws a client error at once\r\n\x1b[32m✓\x1b[0m waits longer each attempt\r\n\x1b[32m✓\x1b[0m stops after three attempts\r\n\r\n\x1b[32m 4 pass\x1b[0m\r\n\x1b[2m 0 fail\x1b[0m\r\n';
 
 const HTTP_SOURCE = `/** Fetches JSON, and retries a server error with a growing wait. */
 export async function fetchJson<T>(url: string, attempts = 3): Promise<T> {
@@ -321,7 +322,9 @@ export default function ShowcaseDemo() {
             return;
         }
 
-        setLayout((current) => updateSplitLayout(updateSplitLayout(current, { type: 'activate', paneId: pane.id, viewId: id }), { type: 'focus', paneId: pane.id }));
+        setLayout((current) =>
+            updateSplitLayout(updateSplitLayout(current, { type: 'activate', paneId: pane.id, viewId: id }), { type: 'focus', paneId: pane.id })
+        );
     };
 
     return (
