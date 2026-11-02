@@ -5,6 +5,7 @@ import {
     AcpProtocol,
     acpStopWords,
     autoAllows,
+    mcpServerOf,
     parseInitialize,
     parseSessionInfo,
     promptUsageOf,
@@ -62,6 +63,7 @@ describe('AcpProtocol', () => {
             closeSession: false,
             images: true,
             embeddedContext: true,
+            mcp: { http: false, sse: false },
             authMethods: ['api-key'],
             agent: { name: 'example-agent', title: 'Example Agent', version: '1.4.0' }
         });
@@ -448,6 +450,51 @@ describe('modes', () => {
         expect(autoAllows('auto', 'fetch')).toBe(true);
         expect(autoAllows('auto', 'delete')).toBe(false);
         expect(autoAllows('full-access', null)).toBe(true);
+    });
+});
+
+describe('the MCP server of a tool call', () => {
+    test('comes from what the agent marks, as Antigravity 1.4.1 and Grok 1.0.70 sent it', () => {
+        const antigravity = {
+            toolCallId: '17f06ebf',
+            title: 'ruimte_probe_echo',
+            kind: 'other',
+            rawInput: { arguments: { text: 'hi' }, text: 'hi' },
+            _meta: { mcp: { tool: 'probe_echo', server: 'ruimte' }, is_mcp_tool_call: true }
+        };
+
+        const grok = {
+            toolCallId: 'call-21b19a5c-1',
+            title: 'ruimte__probe_echo',
+            kind: 'other',
+            rawInput: { variant: 'UseTool', tool_name: 'ruimte__probe_echo', tool_input: { text: 'hi' } },
+            _meta: { 'x.ai/tool': { version: 1, name: 'use_tool', kind: 'use_tool', namespace: 'grok_build' } }
+        };
+
+        expect(mcpServerOf(antigravity)).toBe('ruimte');
+        expect(mcpServerOf(grok)).toBe('ruimte');
+    });
+
+    test('is null where only a title or a command could name it', () => {
+        const copilot = { toolCallId: 'toolu_01', title: 'probe_echo', kind: 'other', rawInput: { text: 'hi' } };
+        const shell = {
+            toolCallId: 'call-1',
+            title: 'ruimte__probe_echo',
+            kind: 'execute',
+            rawInput: { command: 'ruimte__probe_echo', tool_name: 'ruimte__probe_echo' }
+        };
+
+        const otherGrokTool = {
+            toolCallId: 'call-2',
+            title: 'search_tool',
+            rawInput: { tool_name: 'ruimte__probe_echo' },
+            _meta: { 'x.ai/tool': { name: 'search_tool' } }
+        };
+
+        expect(mcpServerOf(copilot)).toBeNull();
+        expect(mcpServerOf(shell)).toBeNull();
+        expect(mcpServerOf(otherGrokTool)).toBeNull();
+        expect(mcpServerOf({ toolCallId: 'call-3', rawInput: { tool_name: '__probe_echo' }, _meta: { 'x.ai/tool': { name: 'use_tool' } } })).toBeNull();
     });
 });
 

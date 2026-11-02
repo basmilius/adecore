@@ -183,6 +183,7 @@ const InitializeResponseSchema = z.looseObject({
         .looseObject({
             loadSession: z.boolean().optional(),
             promptCapabilities: z.looseObject({ image: z.boolean().optional(), embeddedContext: z.boolean().optional() }).optional(),
+            mcpCapabilities: z.looseObject({ http: z.boolean().optional(), sse: z.boolean().optional() }).optional(),
             sessionCapabilities: z
                 .looseObject({
                     resume: z.unknown().optional(),
@@ -224,6 +225,8 @@ export interface AcpAgentCapabilities {
     images: boolean;
     // Whether a prompt may carry a file's text as a `resource` block.
     embeddedContext: boolean;
+    // The MCP transports a session request may name besides stdio, which every agent takes.
+    mcp: { http: boolean; sse: boolean };
     authMethods: string[];
     agent: AcpAgentInfo | null;
 }
@@ -247,6 +250,7 @@ export function parseInitialize(result: unknown): AcpAgentCapabilities {
         closeSession: sessions?.close !== undefined && sessions.close !== null,
         images: capabilities?.promptCapabilities?.image === true,
         embeddedContext: capabilities?.promptCapabilities?.embeddedContext === true,
+        mcp: { http: capabilities?.mcpCapabilities?.http === true, sse: capabilities?.mcpCapabilities?.sse === true },
         authMethods: validItems(AuthMethodSchema, parsed.data.authMethods).map((method) => method.id),
         agent: agent ? { name: agent.name, title: agent.title ?? null, version: agent.version } : null
     };
@@ -671,6 +675,37 @@ export interface AcpPermissionRequest {
     // Every text the call carries that may be what it runs: the command in its raw input and each text in its
     // content. The agent decides which one it runs, so a host allows the call only when every one passes.
     commands: string[];
+    // The MCP server whose tool the call runs, where the agent names it (`mcpServerOf`); null for any other call.
+    mcpServer: string | null;
+}
+
+/*
+ * The MCP server a tool call goes to, as the agent itself marks it, never as a title reads: Antigravity's ACP
+ * server 1.4.1 names it in `_meta.mcp.server`, and Grok 1.0.70 runs every MCP tool through its `use_tool`, whose
+ * input names the tool `<server>__<tool>`. Copilot 1.0.104 names no server; its `--allow-tool=<server>` covers that.
+ */
+export function mcpServerOf(toolCall: unknown): string | null {
+    if (!isRecord(toolCall)) {
+        return null;
+    }
+
+    const meta = isRecord(toolCall._meta) ? toolCall._meta : {};
+    const named = isRecord(meta.mcp) ? filledStr(meta.mcp.server) : null;
+
+    if (named !== null) {
+        return named;
+    }
+
+    const grokTool = meta['x.ai/tool'];
+    const toolName = isRecord(toolCall.rawInput) ? filledStr(toolCall.rawInput.tool_name) : null;
+
+    if (!isRecord(grokTool) || grokTool.name !== 'use_tool' || toolName === null) {
+        return null;
+    }
+
+    const separator = toolName.indexOf('__');
+
+    return separator > 0 ? toolName.slice(0, separator) : null;
 }
 
 /* A permission request as the backend acts on it: the event it raises, and the tool kind a runtime mode may answer it by. */
@@ -985,7 +1020,13 @@ export class AcpProtocol {
         });
 
         const command = rawField(tool.rawInput, ...COMMAND_KEYS);
-        const asked = { kind: tool.kind, title: tool.title === '' ? null : tool.title, commands: [...(command === null ? [] : [command]), ...tool.text] };
+
+        const asked: AcpPermissionRequest = {
+            kind: tool.kind,
+            title: tool.title === '' ? null : tool.title,
+            commands: [...(command === null ? [] : [command]), ...tool.text],
+            mcpServer: mcpServerOf(request.data.toolCall)
+        };
 
         return { requestId, rpcId, kind: tool.kind, request: asked, events };
     }

@@ -33,6 +33,8 @@ export interface FakeAcpOptions {
     commands?: readonly string[];
     // Advertises `promptCapabilities.embeddedContext`, so a prompt may carry files as `resource` blocks.
     embeddedContext?: boolean;
+    // The MCP transports `mcpCapabilities` advertises; absent advertises neither.
+    mcp?: { http?: boolean; sse?: boolean };
 }
 
 export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
@@ -251,6 +253,21 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                 return;
             }
 
+            // A tool of an MCP server, marked the way Antigravity's ACP server marks one.
+            if (last.startsWith('mcp:')) {
+                const [server = '', tool = ''] = last.slice(4).trim().split(' ');
+                const toolCallId = `call-${++callCounter}`;
+                const toolCall = { toolCallId, title: `${server}_${tool}`, kind: 'other', rawInput: {}, _meta: { mcp: { server, tool } } };
+                update({ sessionUpdate: 'tool_call', status: 'pending', ...toolCall });
+
+                askPermission(toolCall, (outcome) => {
+                    update({ sessionUpdate: 'tool_call_update', toolCallId, status: outcome.optionId === 'no' ? 'failed' : 'completed' });
+                    endTurn(outcome.outcome === 'cancelled' ? 'cancelled' : 'end_turn');
+                });
+
+                return;
+            }
+
             update({ sessionUpdate: 'agent_thought_chunk', content: { type: 'text', text: 'Thinking.' } });
             say(`echo: ${text}${images > 0 ? ` (${images} images)` : ''}`);
             endTurn('end_turn');
@@ -279,6 +296,7 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                         agentCapabilities: {
                             loadSession: options.loadSession ?? true,
                             promptCapabilities: { image: true, audio: false, embeddedContext: options.embeddedContext === true },
+                            mcpCapabilities: { http: options.mcp?.http === true, sse: options.mcp?.sse === true },
                             sessionCapabilities: { ...(options.resumeSession ? { resume: {} } : {}), ...(options.closeSession ? { close: {} } : {}) }
                         },
                         authMethods: options.authMethod === undefined ? [] : [{ id: options.authMethod, name: 'Sign in' }],

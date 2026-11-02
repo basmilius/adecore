@@ -144,17 +144,17 @@ function questionLine(question: ChatQuestionItem['questions'][number]): string {
     return `- question ${question.id}: ${quoted(question.question)} (${how})`;
 }
 
-/*
- * The words a host speaks in: its name, at the head of what a parent's CLI hears, and the command an
- * agent types, whose `answer <child> <request> --answer A` or `--answers JSON` answers a child's question.
- */
-export interface WaitingWords {
-    app: string;
-    cli: string;
-}
+/* The call that answers a child's question, in the shape it takes for this many questions. */
+export type WaitingAnswerCall = (childId: string, item: ChatQuestionItem) => string;
 
-/* The call that answers it, in the shape the verb takes for this many questions. */
-function answerCall(cli: string, childId: string, item: ChatQuestionItem): string {
+/*
+ * The words a host speaks in: its name, at the head of what a parent's CLI hears, and how an agent answers a
+ * child's question. That is the command an agent types, whose `answer <child> <request> --answer A` or
+ * `--answers JSON` answers it, or the whole call in the host's own words, such as a tool and its fields.
+ */
+export type WaitingWords = { app: string } & ({ cli: string; answerCall?: undefined } | { cli?: undefined; answerCall: WaitingAnswerCall });
+
+function cliAnswerCall(cli: string, childId: string, item: ChatQuestionItem): string {
     if (item.questions.length === 1) {
         const multi = item.questions[0]!.multiSelect ? ', several labels in one --answer separated by a comma' : '';
 
@@ -186,10 +186,11 @@ export function waitingTexts(child: { id: string; title: string }, item: Waiting
     }
 
     const asked = item.questions.length === 1 ? quotedShort(item.questions[0]!.question) : `${item.questions.length} questions`;
+    const call = words.answerCall === undefined ? cliAnswerCall(words.cli, child.id, item) : words.answerCall(child.id, item);
 
     const how = [
         ...item.questions.map(questionLine),
-        `A person can answer it in that node, and this chat with ${answerCall(words.cli, child.id, item)}. Whoever answers first wins; the verb refuses a question that was answered already.`
+        `A person can answer it in that node, and this chat with ${call}. Whoever answers first wins; the verb refuses a question that was answered already.`
     ];
 
     return {

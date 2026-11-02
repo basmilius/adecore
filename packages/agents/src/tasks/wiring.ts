@@ -40,12 +40,12 @@ export interface TaskVerbs {
     involving(nodeId: string): Task[];
 }
 
-export interface TaskWords extends WaitingWords {
+export type TaskWords = WaitingWords & {
     /* What a running agent's CLI is sent with a task given to it; the prompt alone when absent. */
     assignment?: (task: Task) => string;
     /* Where the rest of a result that was cut is read, after the line in the wake that says so. */
     restOf?: (childId: string) => string;
-}
+};
 
 export interface TaskWiringDeps {
     tasks: TaskStore;
@@ -252,7 +252,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                 request: requests.request,
                 titleFor: deps.titleFor,
                 deliver: (chatId, delivery) => chats.deliverNote(chatId, delivery),
-                words: { app: deps.words.app, cli: deps.words.cli }
+                words: deps.words
             })
         },
         onParked: (entry, error) => {

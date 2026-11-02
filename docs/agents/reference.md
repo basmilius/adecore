@@ -49,7 +49,7 @@ The core, a session per chat, the thread and what is written of it, and the back
 | [`chat/acp-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-backend.ts) | `AcpAgentSpec`, `AcpClientInfo`, `AcpUsageReport`, `createAcpBackend` |
 | [`chat/acp-protocol`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-protocol.ts) | `AcpAgentInfo`, `AcpModel`, `AcpModelState`, `AcpMode`, `AcpModeState`, `AcpSessionInfo`, `AcpModeMap`, `AcpTurnUsage` |
 | [`chat/attachment-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/attachment-store.ts) | `AttachmentStore` |
-| [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) | `BackendLaunch`, `TurnInput`, `ApprovalDecision`, `BackendEvent`, `BackendHost`, `ChatBackend` |
+| [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) | `BackendLaunch`, `ChatMcpServer`, `TurnInput`, `ApprovalDecision`, `BackendEvent`, `BackendHost`, `ChatBackend` |
 | [`chat/background-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/background-work.ts) | `runningInBackground`, `BackgroundWork` |
 | [`chat/bookmark-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/bookmark-store.ts) | `BookmarkStore`, `BookmarkListener` |
 | [`chat/chat-core`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-core.ts) | `InterruptedRun`, `ChatCoreHooks`, `ChatCoreOptions`, `ChatCore` |
@@ -133,7 +133,7 @@ The outbox, tasks between chats, lineage and messages.
 | [`tasks/task-coordinator`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-coordinator.ts) | `TaskCoordinatorDeps`, `TaskCoordinator` |
 | [`tasks/task-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-store.ts) | `TaskStore`, `TaskListener`, `TaskEvent`, `TaskSink` |
 | [`tasks/task-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-work.ts) | `BackgroundLimitWorkSchema`, `WakeParentWorkSchema`, `GiveTaskWorkSchema`, `DeliverWaitingWorkSchema`, `BackgroundLimitWork`, `WakeParentWork`, `GiveTaskWork`, `DeliverWaitingWork`, `TaskWork`, `BackgroundLimitEntry`, `AnyOutboxEntry`, `TaskOutbox` |
-| [`tasks/waiting-child`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/waiting-child.ts) | `ChatRequests`, `chatRequests`, `WAITING_GRACE_MS`, `WaitingObserver`, `WaitingRequest`, `WaitingObserverDeps`, `WaitingWords` |
+| [`tasks/waiting-child`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/waiting-child.ts) | `ChatRequests`, `chatRequests`, `WAITING_GRACE_MS`, `WaitingObserver`, `WaitingRequest`, `WaitingObserverDeps`, `WaitingAnswerCall`, `WaitingWords` |
 | [`tasks/wake-parent`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wake-parent.ts) | `RESULT_PREVIEW_BYTES`, `wakePrompt` |
 | [`tasks/wiring`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wiring.ts) | `TaskVerbs`, `TaskWords`, `wireTasks`, `TaskChats`, `TaskRecord`, `TaskWiringDeps`, `TaskWiring` |
 | [`messages/deliver-message`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/deliver-message.ts) | `DeliverMessageWorkSchema`, `deliverMessageHandler`, `DeliverMessageWork`, `DeliverMessageEntry`, `DeliverMessageDeps` |

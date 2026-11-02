@@ -48,6 +48,7 @@ export {
     WaitingObserver,
     type WaitingRequest,
     type WaitingObserverDeps,
+    type WaitingAnswerCall,
     type WaitingWords
 } from '../tasks/waiting-child.ts';
 

@@ -50,7 +50,9 @@ A host that builds its `ChatProvider` by hand uses `createAcpBackend(spec)` as i
 
 ## A session
 
-`start` runs `initialize` and opens the session before the first turn. Only protocol version 1 is accepted. The client advertises no file system or terminal and passes no MCP servers, so the agent uses its own tools.
+`start` runs `initialize` and opens the session before the first turn. Only protocol version 1 is accepted. The client advertises no file system or terminal, so the agent uses its own tools.
+
+Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it.
 
 A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The history a load replays is dropped, as the thread already holds it. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
 
@@ -77,7 +79,9 @@ Everything else becomes an approval in the thread.
 
 ## Calls the host guards
 
-A host that checks some calls itself, such as its own command line tool, passes `autoAllow`. The backend calls it for every permission request the runtime mode leaves open, with an `AcpPermissionRequest`: the tool `kind`, the `title`, and in `commands` every text the call may run. True answers with allow once (never allow always), and the call shows in the thread without an approval. False or a throw leaves it to the person.
+A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it: Antigravity in the tool call's `_meta.mcp.server`, Grok in the `<server>__<tool>` name of its `use_tool`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`. A server of the agent's own configuration with the same name is never allowed this way.
+
+A host that checks some calls itself, such as its own command line tool, passes `autoAllow`. The backend calls it for every permission request the runtime mode leaves open, with an `AcpPermissionRequest`: the tool `kind`, the `title`, in `commands` every text the call may run, and in `mcpServer` the server of an MCP tool where the agent names it. True answers with allow once (never allow always), and the call shows in the thread without an approval. False or a throw leaves it to the person.
 
 `isOnlyCommands(command, allowed)` from `@adecore/agents/providers` returns true when a command line is only simple commands joined by `&&`, `||`, `;` or newlines, each starting with a word in `allowed`. It reads quotes and escapes as a shell does. Anything it cannot prove simple returns false, such as pipes, redirects, substitutions, subshells, `&`, globs and unbalanced quotes.
 
@@ -186,4 +190,4 @@ A reading carries no email or plan. `askAcpAccount` also takes a `spawn` and a `
 
 Plan limits, file system and terminal client capabilities, MCP servers for the agent, `elicitation/create`, notices and compaction updates. `compaction` is `none` unless the agent lists a `compact` command.
 
-`@adecore/agents/testing` has `fakeAcp`, an agent for backend tests, and `fakeAcpWith`, which can also require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`) or list slash commands (`commands`).
+`@adecore/agents/testing` has `fakeAcp`, an agent for backend tests, and `fakeAcpWith`, which can also require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server.

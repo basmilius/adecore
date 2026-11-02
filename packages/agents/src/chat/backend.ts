@@ -21,6 +21,18 @@ import type { SpawnChatProcess } from './chat-process.ts';
  * Everything a provider does differently lives behind this interface.
  */
 
+/* An MCP server a chat's agent loads beside the ones of its own configuration. */
+export interface ChatMcpServer {
+    name: string;
+    url: string;
+    // Streamable HTTP, or the older SSE transport; absent is `http`.
+    transport?: 'http' | 'sse';
+    // Sent with every request to the server, such as a bearer token.
+    headers?: Readonly<Record<string, string>>;
+    // True runs every tool of the server without asking, in any runtime mode, for a server that checks each call itself.
+    allowTools?: boolean;
+}
+
 export interface BackendLaunch {
     command: string[];
     cwd: string;
@@ -54,6 +66,9 @@ export interface BackendLaunch {
     folders?: readonly string[];
     // False keeps the CLI from loading configuration out of `cwd` (settings, hooks, MCP servers); absent loads it.
     projectConfig?: boolean;
+    // MCP servers the session loads. Only the ACP backend takes them, in its session requests; a CLI that reads
+    // its servers from its command line gets them there from the host.
+    mcpServers?: readonly ChatMcpServer[];
     spawn?: SpawnChatProcess;
     saveGeneratedImage?(ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment>;
 }

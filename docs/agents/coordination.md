@@ -107,7 +107,7 @@ export async function openTaskServices(dataDir: string, chats: ChatCore, placedI
 - A task settles when the child says done, when its first turn ends, or when its process leaves. Running subagents, workflows and background commands (up to 30 minutes) keep it open. An active goal keeps it open until the goal is met, paused or cleared. A child waiting out a usage limit stays open and wakes nobody.
 - A task with a `machine` has a child that runs elsewhere, and nothing local settles it. `coordinator.settleFromElsewhere(taskId, result, status = 'done')` settles it and wakes the parent once. It returns `null` on a second call or without `machine`. Record where a node's opener runs with `peer: { machineId }` on `AgentLineageStore.put`, and read it with `peerOf(nodeId)`.
 - A settled task wakes its parent once the parent is idle. Tasks of one `batchId` wake it together. The wake carries the start of the result, and `words.restOf(childId)` says where to read the rest.
-- A child's approval or question that waits 15 seconds leaves a note in the parent without starting a turn.
+- A child's approval or question that waits 15 seconds leaves a note in the parent without starting a turn. The note on a question tells the parent how to answer it: `words.cli` names the command line tool, whose `answer <child> <request> --answer A` the note spells out. A host whose agents answer another way passes `answerCall(childId, item)` in place of `cli`, a `WaitingAnswerCall` that returns the whole call for the item's questions.
 - `prune(projectId, ids)` cancels the tasks of chats your app removed.
 
 `TaskStore.subscribe` reports every task written. Send it over your own protocol as `TaskChangedEventSchema`. Call `wireTasks` once per core.

@@ -28,7 +28,7 @@ import {
     type AcpThoughtLevel,
     type AcpTurnUsage
 } from './acp-protocol.ts';
-import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
+import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
 import { attachmentNote } from './input.ts';
 import { JsonRpcError, JsonRpcTransport, type JsonRpcFrame } from './json-rpc-transport.ts';
 
@@ -100,6 +100,16 @@ function nameOf(client: AcpClientInfo): string {
     return client.title ?? client.name;
 }
 
+/* A server as ACP's `McpServerHttp` or `McpServerSse` names it in a session request. */
+function acpMcpServer(server: ChatMcpServer): Record<string, unknown> {
+    return {
+        type: server.transport ?? 'http',
+        name: server.name,
+        url: server.url,
+        headers: Object.entries(server.headers ?? {}).map(([name, value]) => ({ name, value }))
+    };
+}
+
 /*
  * One ACP agent process on JSON-RPC over stdio. `start` runs `initialize` and opens the session
  * (new, or the chat's own resumed or loaded), sets the mode and the model, and only then takes a turn.
@@ -114,6 +124,8 @@ export class AcpBackend implements ChatBackend {
     private readonly protocol: AcpProtocol;
     private transport: JsonRpcTransport | null = null;
     private capabilities: AcpAgentCapabilities | null = null;
+    // The launch's MCP servers whose transport the agent takes, which every session request names.
+    private mcpServers: readonly ChatMcpServer[] = [];
     private sessionId = '';
     // A loaded session replays its history as updates the thread already holds.
     private replaying = false;
@@ -189,6 +201,7 @@ export class AcpBackend implements ChatBackend {
         }
 
         this.capabilities = capabilities;
+        this.mcpServers = this.reachableMcpServers(capabilities);
         const info = await this.openSession(transport, capabilities);
         const modeId = await this.applyMode(transport, info);
         const { model, thoughtLevel } = await this.applyModel(transport, info);
@@ -214,9 +227,33 @@ export class AcpBackend implements ChatBackend {
 
         return {
             cwd: this.launch.cwd,
-            mcpServers: [],
+            mcpServers: this.mcpServers.map(acpMcpServer),
             ...(folders.length > 0 && this.capabilities?.additionalDirectories ? { additionalDirectories: folders } : {})
         };
+    }
+
+    /* The servers the agent can reach. One over a transport it does not take is left out with a note, and the session starts without it. */
+    private reachableMcpServers(capabilities: AcpAgentCapabilities): ChatMcpServer[] {
+        return (this.launch.mcpServers ?? []).filter((server) => {
+            const transport = server.transport ?? 'http';
+
+            if (capabilities.mcp[transport]) {
+                return true;
+            }
+
+            this.emit({
+                type: 'note',
+                level: 'warning',
+                text: `${this.spec.name} takes no MCP servers over ${transport.toUpperCase()}, so it runs without ${server.name}.`
+            });
+
+            return false;
+        });
+    }
+
+    /* A call to a tool of a server the launch passed with `allowTools`; a server of the agent's own configuration never counts. */
+    private allowsMcpTool(request: AcpPermissionRequest): boolean {
+        return request.mcpServer !== null && this.mcpServers.some((server) => server.allowTools === true && server.name === request.mcpServer);
     }
 
     private async openSession(transport: JsonRpcTransport, capabilities: AcpAgentCapabilities): Promise<AcpSessionInfo> {
@@ -689,7 +726,7 @@ export class AcpBackend implements ChatBackend {
             return;
         }
 
-        if (autoAllows(this.launch.runtimeMode, permission.kind) || this.hostAllows(permission.request)) {
+        if (autoAllows(this.launch.runtimeMode, permission.kind) || this.allowsMcpTool(permission.request) || this.hostAllows(permission.request)) {
             this.emitAll(permission.events.filter((event) => event.type !== 'approval.requested'));
             const answer = this.protocol.answer(permission.requestId, 'allow');
 

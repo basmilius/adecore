@@ -200,7 +200,7 @@ test("a request the host's autoAllow passes is allowed once without an approval,
     await fake.backend.start();
     fake.backend.sendTurn(turn('tool: ruimte-context help'));
     await fake.next('turn.done');
-    expect(asked).toEqual([{ kind: 'execute', title: 'Run ruimte-context help', commands: ['ruimte-context help'] }]);
+    expect(asked).toEqual([{ kind: 'execute', title: 'Run ruimte-context help', commands: ['ruimte-context help'], mcpServer: null }]);
     expect(fake.events.some((event) => event.type === 'approval.requested')).toBe(false);
     expect(fake.events.find((event) => event.type === 'tool.started')).toMatchObject({ name: 'Bash', input: { command: 'ruimte-context help' } });
     expect(fake.sent.find((frame) => frame.method === undefined)).toMatchObject({ result: { outcome: { outcome: 'selected', optionId: 'once' } } });
@@ -222,6 +222,61 @@ for (const [label, autoAllow] of [
         fake.backend.sendTurn(turn('tool: rm -rf build'));
         expect(await fake.next('approval.requested')).toMatchObject({ toolName: 'Bash', input: { command: 'rm -rf build' } });
         expect(fake.sent.some((frame) => frame.method === undefined)).toBe(false);
+        await fake.backend.dispose();
+    });
+}
+
+const RUIMTE_LIKE: BackendLaunch['mcpServers'] = [
+    { name: 'own', url: 'http://127.0.0.1:4210/mcp', headers: { Authorization: 'Bearer token' }, allowTools: true },
+    { name: 'events', url: 'http://127.0.0.1:9000/sse', transport: 'sse' }
+];
+
+test('every session request names the MCP servers over a transport the agent takes, and leaves the rest out with a note', async () => {
+    const fake = run({ mcp: { http: true } }, { mcpServers: RUIMTE_LIKE });
+    await fake.backend.start();
+    expect(fake.sent.find((frame) => frame.method === 'session/new')?.params?.mcpServers).toEqual([
+        { type: 'http', name: 'own', url: 'http://127.0.0.1:4210/mcp', headers: [{ name: 'Authorization', value: 'Bearer token' }] }
+    ]);
+    expect(fake.events[0]).toEqual({ type: 'note', level: 'warning', text: 'Fake takes no MCP servers over SSE, so it runs without events.' });
+    const sessionId = sessionOf(fake.events);
+    await fake.backend.dispose();
+
+    const resumed = run({ mcp: { http: true, sse: true } }, { resume: sessionId, generation: 2, mcpServers: RUIMTE_LIKE });
+    await resumed.backend.start();
+    expect(resumed.sent.find((frame) => frame.method === 'session/load')?.params?.mcpServers).toHaveLength(2);
+    expect(resumed.events.some((event) => event.type === 'note')).toBe(false);
+    await resumed.backend.dispose();
+});
+
+test('an agent without HTTP gets no servers and still starts', async () => {
+    const fake = run({}, { mcpServers: RUIMTE_LIKE });
+    await fake.backend.start();
+    expect(fake.sent.find((frame) => frame.method === 'session/new')?.params?.mcpServers).toEqual([]);
+    expect(fake.events.filter((event) => event.type === 'note')).toHaveLength(2);
+    expect(fake.events.some((event) => event.type === 'session')).toBe(true);
+    await fake.backend.dispose();
+});
+
+test('a tool of a server passed with allowTools runs without an approval in supervised mode', async () => {
+    const fake = run({ mcp: { http: true } }, { mcpServers: RUIMTE_LIKE });
+    await fake.backend.start();
+    fake.backend.sendTurn(turn('mcp: own node_new'));
+    await fake.next('turn.done');
+    expect(fake.events.some((event) => event.type === 'approval.requested')).toBe(false);
+    expect(fake.sent.find((frame) => frame.method === undefined)).toMatchObject({ result: { outcome: { outcome: 'selected', optionId: 'once' } } });
+    await fake.backend.dispose();
+});
+
+for (const [label, servers] of [
+    ['a server of its own configuration', [{ name: 'own', url: 'http://127.0.0.1:4210/mcp', allowTools: true }]],
+    ['a server passed without allowTools', [{ name: 'other', url: 'http://127.0.0.1:4210/mcp' }]],
+    ['a server the agent could not take', [{ name: 'other', url: 'http://127.0.0.1:4210/mcp', transport: 'sse', allowTools: true }]]
+] as Array<[string, BackendLaunch['mcpServers']]>) {
+    test(`a tool of ${label} still asks`, async () => {
+        const fake = run({ mcp: { http: true } }, { mcpServers: servers });
+        await fake.backend.start();
+        fake.backend.sendTurn(turn('mcp: other node_new'));
+        expect(await fake.next('approval.requested')).toMatchObject({ description: 'other_node_new' });
         await fake.backend.dispose();
     });
 }
