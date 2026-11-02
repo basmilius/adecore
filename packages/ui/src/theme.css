@@ -862,11 +862,11 @@
     /* The arc, its hairline just outside it, and the ground beyond, as the box shadow draws them along the straight edges. */
     .ade-workspace-sheet::before {
         top: 0;
-        background: radial-gradient(circle at 0 100%, transparent 11.5px, var(--border) 12px, var(--border) 12.5px, var(--workspace-ground) 13px);
+        background: radial-gradient(circle at 0 100%, transparent 11px, var(--border) 12px, var(--workspace-ground) 13px);
     }
     .ade-workspace-sheet::after {
         bottom: 0;
-        background: radial-gradient(circle at 0 0, transparent 11.5px, var(--border) 12px, var(--border) 12.5px, var(--workspace-ground) 13px);
+        background: radial-gradient(circle at 0 0, transparent 11px, var(--border) 12px, var(--workspace-ground) 13px);
     }
     .ade-workspace-center {
         display: flex;
