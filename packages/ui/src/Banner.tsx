@@ -34,8 +34,13 @@ export interface BannerProps {
 export function Banner({ icon, tone, message, children, placement = 'overlay', className, ref }: BannerProps) {
     const line = (
         <>
-            <Icon icon={icon} size={16} className={clsx('shrink-0', TONE[tone])} />
-            <span className="grow">{message}</span>
+            {/* The mark sits at the first line, so a message that wraps does not pull it down to its middle. */}
+            <span className="flex min-w-0 grow items-start gap-3">
+                <span className="flex h-(--text-sm--line-height) shrink-0 items-center">
+                    <Icon icon={icon} size={16} className={TONE[tone]} />
+                </span>
+                <span className="min-w-0 grow">{message}</span>
+            </span>
             {children}
         </>
     );
