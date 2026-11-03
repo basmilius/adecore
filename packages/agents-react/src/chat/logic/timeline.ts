@@ -12,7 +12,8 @@ import type {
     ChatTurnItem,
     ChatUserItem,
     ChatVisual,
-    ChatWorkflow
+    ChatWorkflow,
+    ModelSelection
 } from '@adecore/agent-contracts';
 import { abortedByMachine } from '@adecore/agent-contracts';
 import type { CommandLook, CommandLookSent, ThreadCard, ToolLook } from '../../host';
@@ -20,6 +21,7 @@ import { formatElapsedShort } from '@adecore/ui/format';
 import { lookKey, lookRunOf, sentMessageOf, type Look } from './command-looks';
 import { isImageGeneration } from './generated-image';
 import { handbackReportOf } from './handback';
+import { switchesSelection } from './selection-switch';
 import { toolEntry } from './tool-catalog';
 import { hasFileChanges, isFileChange } from './tools';
 
@@ -61,6 +63,8 @@ export type TimelineRow =
     // A message this chat's agent sent another node with a command of a look, drawn as said instead of as its call.
     | { kind: 'sent'; id: string; tool: ChatToolItem; sent: CommandLookSent }
     | { kind: 'compaction'; id: string; preTokens: number | null }
+    // The turn below ran on another model or effort than the turn before it.
+    | { kind: 'selection-switch'; id: string; from: ModelSelection; to: ModelSelection }
     | {
           kind: 'changed-files';
           id: string;
@@ -107,7 +111,17 @@ function shownRows(rows: TimelineRow[], options: TimelineOptions): TimelineRow[]
  * against each other; prose and cards are blocks and need room around them. Where the two meet,
  * the block gap marks the seam, so an answer never looks glued to the call above it.
  */
-const BLOCK_KINDS = new Set<TimelineRow['kind']>(['assistant', 'report', 'sent', 'thinking', 'changed-files', 'compaction', 'app-card', 'visual']);
+const BLOCK_KINDS = new Set<TimelineRow['kind']>([
+    'assistant',
+    'report',
+    'sent',
+    'thinking',
+    'changed-files',
+    'compaction',
+    'selection-switch',
+    'app-card',
+    'visual'
+]);
 
 export function isBlock(row: TimelineRow): boolean {
     return BLOCK_KINDS.has(row.kind) || isImageRow(row);
@@ -663,6 +677,7 @@ function opensUnderItsMessages(turn: ChatTurnItem, rows: readonly TimelineRow[])
 export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions): TimelineRow[] {
     const rows: TimelineRow[] = [];
     const children = groupChildren(items);
+    let selection: ModelSelection | null = null;
 
     for (const chunk of chunksByTurn(items)) {
         if (chunk.turnId === null) {
@@ -674,6 +689,15 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const turnId = chunk.turnId;
         const turn = chunk.items.find((item): item is ChatTurnItem => item.kind === 'turn');
         const conversation = chunk.items.filter((item) => item.kind !== 'turn');
+
+        // A turn without a selection (older ones, or one the CLI started on its own) compares the next with the one before it.
+        if (turn?.selection !== undefined) {
+            if (selection !== null && switchesSelection(selection, turn.selection)) {
+                rows.push({ kind: 'selection-switch', id: `switch-${turnId}`, from: selection, to: turn.selection });
+            }
+
+            selection = turn.selection;
+        }
 
         // A turn a message opened needs no line of its own when that message stands right above it.
         if (turn?.origin === 'agent' && !opensUnderItsMessages(turn, rows)) {

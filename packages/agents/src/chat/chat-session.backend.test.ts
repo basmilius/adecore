@@ -366,6 +366,23 @@ describe('backend replacement with live work', () => {
         await run.session.dispose();
     });
 
+    test('each turn keeps the selection it ran on, also a message queued across a change', async () => {
+        const run = replacementRig();
+        const original = run.session.info.selection;
+        run.session.send('first');
+        await flush();
+        run.session.configure({ selection: { model: 'haiku', options: {} } });
+        run.session.send('second');
+        run.done();
+        await flush();
+
+        const turns = run.session.thread.list().filter((item) => item.kind === 'turn');
+
+        expect(turns.map((turn) => turn.selection)).toEqual([original, run.session.info.selection]);
+        expect(run.session.info.selection).not.toEqual(original);
+        await run.session.dispose();
+    });
+
     test('work launched after a settings change still holds the next queued message', async () => {
         const run = replacementRig();
         run.session.send('start');

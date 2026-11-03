@@ -645,6 +645,8 @@ export const ChatTurnItemSchema = z.object({
     state: z.enum(['running', 'done', 'aborted', 'error']),
     // Who started the turn. Absent means the person did, which is what every turn written before this field was.
     origin: z.enum(['user', 'agent']).optional(),
+    // The model and options the turn ran on, so a client can mark where they changed. Absent on turns from before this field.
+    selection: ModelSelectionSchema.optional(),
     // What the CLI woke up about (the summary of a background task that settled); only an agent turn has one.
     label: z.string().optional(),
     // The Agent call the CLI woke up about, so the header can point at the subagent row it belongs to.

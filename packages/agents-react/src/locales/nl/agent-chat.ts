@@ -159,6 +159,10 @@ export default {
             from: 'Context gecomprimeerd vanaf {{tokens}} tokens',
             summary: 'Alles hierboven kent de agent alleen nog als samenvatting'
         },
+        selectionSwitch: {
+            label: '{{from}} → {{to}}',
+            summary: 'Model of reasoning effort gewijzigd vóór deze turn'
+        },
         approval: {
             allow: 'Toegestaan',
             'allow-always': 'Altijd toegestaan',

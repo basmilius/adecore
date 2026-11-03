@@ -25,7 +25,8 @@ import type {
     ChatThinkingItem,
     ChatToolItem,
     ChatUiChoiceOrigin,
-    ChatUserItem
+    ChatUserItem,
+    ModelSelection
 } from '@adecore/agent-contracts';
 import { WAITING_NOTE_PREFIX } from '@adecore/agent-contracts';
 import { fileBadge, formatBytes, isImageAttachment } from '../../attachments';
@@ -46,6 +47,7 @@ import { WHOLE_FADE_CLASS } from '../rehype-fade';
 import { useRevealedText } from '../reveal';
 import { formatAgo, formatElapsedShort, formatMoment, formatTokens } from '@adecore/ui/format';
 import { Icon, IconButton, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
+import { selectionSwitchText } from '../../logic/selection-switch';
 import { thoughtLine, thoughtPreview } from '../../logic/thought';
 import { toolStartedAt, toolSummary, toolSummaryIsPath } from '../../logic/tools';
 import { ROW_GUTTER } from '../icons';
@@ -713,6 +715,28 @@ export function CompactionRow({ preTokens }: { preTokens: number | null }) {
                 <span>{preTokens ? t('rows.compaction.from', { tokens: formatTokens(preTokens) }) : t('rows.compaction.plain')}</span>
             </Tooltip>
             <span className="grow border-t border-dashed border-border" />
+        </div>
+    );
+}
+
+/* A solid line where the model or effort changed, so a reader can tell which answers came from which. */
+export function SelectionSwitchRow({ chatId, from, to }: { chatId: string; from: ModelSelection; to: ModelSelection }) {
+    const { t } = useTranslation('agent-chat');
+    const provider = useChatRow(chatId, (row) => row?.info.provider);
+    const models = useProviders((s) => s.providers.find((entry) => entry.kind === provider)?.models);
+    const text = selectionSwitchText(from, to, models);
+
+    if (text === null) {
+        return null;
+    }
+
+    return (
+        <div className="flex items-center gap-3 pb-3 text-xs text-text-faint">
+            <span className="grow border-t border-border" />
+            <Tooltip label={t('rows.selectionSwitch.summary')}>
+                <span>{t('rows.selectionSwitch.label', { from: text.from, to: text.to })}</span>
+            </Tooltip>
+            <span className="grow border-t border-border" />
         </div>
     );
 }

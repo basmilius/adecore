@@ -503,6 +503,7 @@ export class ThreadProjector {
         this.taskSummary = null;
         this.taskToolUseId = null;
 
+        // No `selection`: the process that woke may still run on an older pick than the chat's.
         events.push(
             this.thread.upsert({
                 id: turnId,

@@ -12,6 +12,7 @@ import {
     NoteRow,
     QuestionHistoryRow,
     ReportRow,
+    SelectionSwitchRow,
     SentByAgentRow,
     SentMessageRow,
     ThinkingRow,
@@ -116,6 +117,8 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
             return <SentByAgentRow chatId={chatId} id={row.id} tool={row.tool} sent={row.sent} />;
         case 'compaction':
             return <CompactionRow preTokens={row.preTokens} />;
+        case 'selection-switch':
+            return <SelectionSwitchRow chatId={chatId} from={row.from} to={row.to} />;
         case 'working':
             return <WorkingRow startedAt={row.startedAt} {...(row.tool === undefined ? {} : { tool: row.tool })} />;
         case 'app-card':

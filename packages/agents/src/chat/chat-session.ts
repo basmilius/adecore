@@ -1297,6 +1297,7 @@ export class ChatSession {
                 turnId,
                 state: 'running',
                 origin: 'agent',
+                selection: this.thread.info.selection,
                 deliveryPending: true,
                 label: wake.label,
                 ...(wake.taskIds.length === 0 ? {} : { taskIds: wake.taskIds }),
@@ -1973,7 +1974,19 @@ export class ChatSession {
         this.turnOpened();
         const turnId = requestedTurnId ?? newId('turn');
         const now = Date.now();
-        const events = [this.thread.upsert({ id: turnId, kind: 'turn', createdAt: now, turnId, state: 'running', origin: 'user', endedAt: null, costUsd: 0 })];
+        const events = [
+            this.thread.upsert({
+                id: turnId,
+                kind: 'turn',
+                createdAt: now,
+                turnId,
+                state: 'running',
+                origin: 'user',
+                selection: this.thread.info.selection,
+                endedAt: null,
+                costUsd: 0
+            })
+        ];
 
         if (note !== null) {
             events.push(this.thread.upsert(saidNote(turnId, now, note)));

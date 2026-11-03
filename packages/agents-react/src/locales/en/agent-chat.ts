@@ -159,6 +159,10 @@ export default {
             from: 'Context compacted from {{tokens}} tokens',
             summary: 'Everything above reaches the agent only as a summary'
         },
+        selectionSwitch: {
+            label: '{{from}} → {{to}}',
+            summary: 'The model or reasoning effort changed before this turn'
+        },
         approval: {
             allow: 'Allowed',
             'allow-always': 'Always allowed',
