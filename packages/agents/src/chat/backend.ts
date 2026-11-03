@@ -87,6 +87,12 @@ export interface TurnInput {
 
 export type ApprovalDecision = 'allow' | 'allow-always' | 'deny';
 
+/* What a person may change about a chat while its process runs. */
+export interface BackendChange {
+    selection: ModelSelection;
+    runtimeMode: RuntimeMode;
+}
+
 /*
  * What a CLI told us, in one vocabulary. `ref` is the backend's own key for an item (a tool use id,
  * a message id plus block ordinal, a native item id); the projector turns it into a thread item id.
@@ -232,6 +238,12 @@ export interface ChatBackend {
     goal?(action: ChatGoalAction): Promise<void>;
     // Ends one command or monitor the CLI runs beside its turns, for a protocol that can name one.
     stopTask?(taskId: string): void;
+    /*
+     * Moves the running process onto another selection or runtime mode, for a protocol that can change them in place.
+     * Resolves true once the process took the whole change, false when it needs a new process for it; nothing else
+     * about the launch (account, folders, project configuration) ever comes this way.
+     */
+    reconfigure?(change: BackendChange): Promise<boolean>;
     // Turns down a request the CLI still holds after a person stopped the turn, for a protocol that leaves one open past it.
     declineRequest?(requestId: string, message: string): boolean;
     // Drops an asynchronous question without telling the CLI, for a protocol that keeps one waiting.

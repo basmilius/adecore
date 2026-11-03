@@ -2,14 +2,16 @@ import { describe, expect, test } from 'bun:test';
 import { abortedByEnd, abortedByMachine, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
-import type { BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
+import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 
-function replacementRig(provider = claudeProvider, options: Partial<ChatSessionOptions> = {}) {
+// `reconfigure` is what the backend answers a change it is asked to take in place; absent, it has no such call.
+function replacementRig(provider = claudeProvider, options: Partial<ChatSessionOptions> = {}, reconfigure?: (change: BackendChange) => boolean) {
     let folders: readonly string[] = [];
     let failNextStart = false;
+    const changes: BackendChange[] = [];
 
     const instances: {
         launch: BackendLaunch;
@@ -54,7 +56,16 @@ function replacementRig(provider = claudeProvider, options: Partial<ChatSessionO
                     },
                     dispose: async () => {
                         instance.stopped = true;
-                    }
+                    },
+                    ...(reconfigure
+                        ? {
+                              reconfigure: async (change: BackendChange) => {
+                                  changes.push(change);
+
+                                  return reconfigure(change);
+                              }
+                          }
+                        : {})
                 };
 
                 return backend;
@@ -80,6 +91,7 @@ function replacementRig(provider = claudeProvider, options: Partial<ChatSessionO
     return {
         session,
         instances,
+        changes,
         event,
         agent,
         done,
@@ -741,6 +753,77 @@ describe('backend replacement with live work', () => {
         expect(run.session.thread.pending()).toEqual([]);
         await run.session.dispose();
     });
+});
+
+describe('a settings change a running process takes in place', () => {
+    const haiku = () => claudeProvider.catalog.normalize({ model: 'haiku', options: {} });
+
+    test('reaches the next turn on the same process', async () => {
+        const run = replacementRig(claudeProvider, {}, () => true);
+        run.session.send('first');
+        await flush();
+        run.done();
+        await flush();
+        run.session.configure({ selection: haiku(), runtimeMode: 'auto' });
+        run.session.send('second');
+        await flush();
+        expect(run.instances).toHaveLength(1);
+        expect(run.changes).toEqual([{ selection: haiku(), runtimeMode: 'auto' }]);
+        expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first', 'second']);
+        await run.session.dispose();
+    });
+
+    test('made during a turn waits for it, and the queued message goes out on the changed process', async () => {
+        const run = replacementRig(claudeProvider, {}, () => true);
+        run.session.send('first');
+        await flush();
+        run.session.configure({ selection: haiku() });
+        expect(run.changes).toEqual([]);
+        expect(run.session.send('second').queued).toBe(true);
+        run.done();
+        await flush();
+        expect(run.changes.map((change) => change.selection)).toEqual([haiku()]);
+        expect(run.instances).toHaveLength(1);
+        expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first', 'second']);
+        await run.session.dispose();
+    });
+
+    test('one the process refuses starts a new one as before', async () => {
+        const run = replacementRig(claudeProvider, {}, () => false);
+        run.session.send('first');
+        await flush();
+        run.done();
+        await flush();
+        run.session.configure({ selection: haiku() });
+        run.session.send('second');
+        await flush();
+        expect(run.changes).toHaveLength(1);
+        expect(run.instances).toHaveLength(2);
+        expect(run.instances[0]!.stopped).toBe(true);
+        expect(run.instances[1]!.launch.selection).toEqual(haiku());
+        expect(run.instances[1]!.sent.map((input) => input.text)).toEqual(['second']);
+        await run.session.dispose();
+    });
+
+    for (const [name, change] of [
+        ['an account', (run: ReturnType<typeof replacementRig>) => run.session.setAccount('other')],
+        ['folders', (run: ReturnType<typeof replacementRig>) => run.setFolders(['/extra'])]
+    ] as const) {
+        test(`a change of ${name} starts a new process without asking the running one`, async () => {
+            const run = replacementRig(claudeProvider, {}, () => true);
+            run.session.send('first');
+            await flush();
+            run.done();
+            await flush();
+            run.session.configure({ selection: haiku() });
+            change(run);
+            run.session.send('second');
+            await flush();
+            expect(run.changes).toEqual([]);
+            expect(run.instances).toHaveLength(2);
+            await run.session.dispose();
+        });
+    }
 });
 
 describe('a message sent while a settings change waits', () => {

@@ -258,6 +258,29 @@ describe('AgentHost over a port', () => {
         expect(await systemPromptIn('chat-4')).toBe('You are the agent of chat-4.');
     });
 
+    test('moves a running Claude chat onto another model and mode without a new process', async () => {
+        const answered = (text: string): boolean => [...client.items.values()].some((item) => item.kind === 'assistant' && item.text === `echo: ${text}`);
+
+        ok(await client.request('chat.create', { chatId: 'chat-m', provider: 'claude', cwd: dataDir }));
+        ok(await client.request('chat.attach', { chatId: 'chat-m' }));
+        ok(await client.request('chat.send', { chatId: 'chat-m', text: 'first' }));
+        await client.until(() => answered('first') && client.info?.activeTurnId === null);
+        const launches = claude.started.length;
+
+        ok(
+            await client.request('chat.configure', {
+                chatId: 'chat-m',
+                selection: { model: 'claude-opus-5-5', options: { effort: 'low', contextWindow: '200k' } },
+                runtimeMode: 'auto'
+            })
+        );
+        ok(await client.request('chat.send', { chatId: 'chat-m', text: 'second' }));
+        await client.until(() => answered('second') && client.info?.activeTurnId === null);
+
+        expect(claude.started.length).toBe(launches);
+        expect(client.info).toMatchObject({ model: 'claude-opus-5-5', runtimeMode: 'auto' });
+    });
+
     test('hands a chat the folders of its core, and a change starts the next turn in a new process', async () => {
         const reading: string[] = ['/brand/kit'];
         await host.close();

@@ -680,6 +680,73 @@ describe('the Claude backend on an API key', () => {
     }
 });
 
+describe('a change to a running Claude process', () => {
+    const sonnet = { model: 'claude-sonnet-5', options: { effort: 'high', contextWindow: '1m' } };
+
+    test('takes the model, the effort, fast mode and the permission mode without a new process', async () => {
+        const script = scripted();
+        const run = open(script.cli, { selection: sonnet, runtimeMode: 'supervised' });
+        await run.backend.start();
+
+        const took = await run.backend.reconfigure({
+            selection: { model: 'claude-opus-5', options: { effort: 'xhigh', contextWindow: '1m', fastMode: true } },
+            runtimeMode: 'auto-accept-edits'
+        });
+
+        expect(took).toBe(true);
+        expect(run.cli.started).toHaveLength(1);
+        expect(script.sent('set_model').map((line) => line.request)).toEqual([{ subtype: 'set_model', model: 'claude-opus-5[1m]' }]);
+        expect(script.sent('apply_flag_settings').map((line) => line.request)).toEqual([
+            { subtype: 'apply_flag_settings', settings: { effortLevel: 'xhigh', fastMode: true } }
+        ]);
+        expect(script.sent('set_permission_mode').map((line) => line.request)).toEqual([{ subtype: 'set_permission_mode', mode: 'acceptEdits' }]);
+        await run.backend.dispose();
+    });
+
+    test('puts ultrathink in front of the next prompt once the effort moved there', async () => {
+        const script = scripted();
+        const run = open(script.cli, { selection: sonnet });
+        await run.backend.start();
+        expect(
+            await run.backend.reconfigure({ selection: { ...sonnet, options: { ...sonnet.options, effort: 'ultrathink' } }, runtimeMode: 'supervised' })
+        ).toBe(true);
+        expect(script.sent('apply_flag_settings').map((line) => line.request)).toEqual([{ subtype: 'apply_flag_settings', settings: { effortLevel: null } }]);
+        run.backend.sendTurn(turn('think hard', 'p1'));
+        await until(() => script.users().length === 1);
+        const user = script.lines.find((line) => line.type === 'user') as { message: { content: Array<{ text: string }> } };
+        expect(user.message.content[0]!.text).toBe('ultrathink\n\nthink hard');
+        await run.backend.dispose();
+    });
+
+    for (const [name, change, launched] of [
+        [
+            'a context window that moves where it compacts',
+            { selection: { ...sonnet, options: { ...sonnet.options, contextWindow: '200k' } }, runtimeMode: 'supervised' },
+            'supervised'
+        ],
+        ['bypassing permissions in a process started without it', { selection: sonnet, runtimeMode: 'full-access' }, 'auto']
+    ] as const) {
+        test(`needs a new process for ${name}`, async () => {
+            const script = scripted();
+            const run = open(script.cli, { selection: sonnet, runtimeMode: launched });
+            await run.backend.start();
+            expect(await run.backend.reconfigure(change)).toBe(false);
+            expect(script.sent('set_model')).toEqual([]);
+            expect(script.sent('set_permission_mode')).toEqual([]);
+            await run.backend.dispose();
+        });
+    }
+
+    test('leaves full access for a narrower mode in place', async () => {
+        const script = scripted();
+        const run = open(script.cli, { selection: sonnet, runtimeMode: 'full-access' });
+        await run.backend.start();
+        expect(await run.backend.reconfigure({ selection: sonnet, runtimeMode: 'supervised' })).toBe(true);
+        expect(script.sent('set_permission_mode').map((line) => line.request)).toEqual([{ subtype: 'set_permission_mode', mode: 'default' }]);
+        await run.backend.dispose();
+    });
+});
+
 describe('the entrypoint the CLI names its host by', () => {
     const entrypointOf = async (options: ClaudeBackendOptions): Promise<string | undefined> => {
         const cli = recording();

@@ -16,7 +16,7 @@ export type {
 } from './acp-protocol.ts';
 
 export { AttachmentStore } from './attachment-store.ts';
-export type { BackendLaunch, ChatMcpServer, TurnInput, ApprovalDecision, BackendEvent, BackendHost, ChatBackend } from './backend.ts';
+export type { BackendChange, BackendLaunch, ChatMcpServer, TurnInput, ApprovalDecision, BackendEvent, BackendHost, ChatBackend } from './backend.ts';
 export { runningInBackground, type BackgroundWork } from './background-work.ts';
 export { BookmarkStore, type BookmarkListener } from './bookmark-store.ts';
 export { type InterruptedRun, type ChatCoreHooks, type ChatCoreOptions, ChatCore } from './chat-core.ts';

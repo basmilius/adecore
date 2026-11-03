@@ -2272,7 +2272,47 @@ export class ChatSession {
         return this.requiresReplacement() && (this.info.activeTurnId !== null || this.processInUse());
     }
 
+    /* Whether what changed since the launch is only what a running process may take in place. */
+    private reconfigurable(): boolean {
+        return (
+            this.backend?.reconfigure !== undefined &&
+            !this.replaceProcess &&
+            this.info.account === this.launchedAccount &&
+            this.info.cwd === this.launchedCwd &&
+            sameFolders(this.options.folders?.() ?? [], this.launchedFolders) &&
+            this.loadsProjectConfig() === this.launchedProjectConfig
+        );
+    }
+
+    /*
+     * Hands a changed selection or mode to the running process, at the same moment a new one would start; one that
+     * cannot take it is replaced as before.
+     */
+    private async reconfigureBackend(backend: ChatBackend): Promise<ChatBackend> {
+        const change = { selection: this.info.selection, runtimeMode: this.info.runtimeMode };
+        const took = await backend.reconfigure!(change).catch(() => false);
+
+        if (this.backend !== backend) {
+            return this.ensureBackend();
+        }
+
+        if (!took) {
+            this.replaceProcess = true;
+
+            return this.ensureBackend();
+        }
+
+        this.launchedSelection = change.selection;
+        this.launchedRuntimeMode = change.runtimeMode;
+
+        return this.starting ?? backend;
+    }
+
     private ensureBackend(): Promise<ChatBackend> {
+        if (this.backend && this.requiresReplacement() && this.reconfigurable()) {
+            return this.reconfigureBackend(this.backend);
+        }
+
         if (this.backend && this.requiresReplacement()) {
             if (this.processInUse()) {
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));

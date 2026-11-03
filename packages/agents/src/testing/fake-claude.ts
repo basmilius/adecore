@@ -21,7 +21,8 @@ function flagValue(args: readonly string[], flag: string): string | undefined {
 export function fakeClaude(io: FakeIo): FakeProgram {
     const args = io.argv;
     const sessionId = flagValue(args, '--resume') ?? `fake-${Math.random().toString(36).slice(2, 8)}`;
-    const model = flagValue(args, '--model') ?? 'fake-model';
+    let model = flagValue(args, '--model') ?? 'fake-model';
+    let switched = false;
     const out = io.out;
     // What the handshake appended to the system prompt.
     let initializedPrompt: string | null = null;
@@ -1196,12 +1197,33 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     out(frame);
                 }
 
+                // The CLI opens a turn with its init frame, which names the model a `set_model` switched to.
+                if (switched) {
+                    switched = false;
+                    out({
+                        type: 'system',
+                        subtype: 'init',
+                        session_id: sessionId,
+                        model,
+                        cwd: io.cwd,
+                        tools: ['Bash'],
+                        slash_commands: ['compact', 'review'],
+                        argv: args
+                    });
+                }
+
                 const message = frame.message as { content: Array<{ text: string }> };
                 handleUser(message.content[0]?.text ?? '');
             } else if (frame.type === 'control_response') {
                 handleControlResponse(frame.response as Record<string, unknown>);
             } else if (frame.type === 'control_request') {
-                const request = frame.request as { subtype: string; task_id?: string; appendSystemPrompt?: unknown };
+                const request = frame.request as { subtype: string; task_id?: string; appendSystemPrompt?: unknown; model?: unknown };
+
+                // Answers from here on come from the model the host switched to.
+                if (request.subtype === 'set_model' && typeof request.model === 'string') {
+                    model = request.model;
+                    switched = true;
+                }
 
                 // The handshake a host opens with before its first message; the answer says what this CLI offers.
                 if (request.subtype === 'initialize') {

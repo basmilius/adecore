@@ -49,7 +49,7 @@ The core, a session per chat, the thread and what is written of it, and the back
 | [`chat/acp-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-backend.ts) | `AcpAgentSpec`, `AcpClientInfo`, `AcpUsageReport`, `createAcpBackend` |
 | [`chat/acp-protocol`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-protocol.ts) | `AcpAgentInfo`, `AcpModel`, `AcpModelState`, `AcpMode`, `AcpModeState`, `AcpSessionInfo`, `AcpModeMap`, `AcpTurnUsage` |
 | [`chat/attachment-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/attachment-store.ts) | `AttachmentStore` |
-| [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) | `BackendLaunch`, `ChatMcpServer`, `TurnInput`, `ApprovalDecision`, `BackendEvent`, `BackendHost`, `ChatBackend` |
+| [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) | `BackendChange`, `BackendLaunch`, `ChatMcpServer`, `TurnInput`, `ApprovalDecision`, `BackendEvent`, `BackendHost`, `ChatBackend` |
 | [`chat/background-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/background-work.ts) | `runningInBackground`, `BackgroundWork` |
 | [`chat/bookmark-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/bookmark-store.ts) | `BookmarkStore`, `BookmarkListener` |
 | [`chat/chat-core`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-core.ts) | `InterruptedRun`, `ChatCoreHooks`, `ChatCoreOptions`, `ChatCore` |

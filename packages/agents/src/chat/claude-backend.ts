@@ -15,10 +15,10 @@ import type {
     SpawnedProcess,
     SpawnOptions
 } from '@anthropic-ai/claude-agent-sdk';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord, type ModelSelection, type RuntimeMode } from '@adecore/agent-contracts';
 import { asError, errorText } from '../error-text.ts';
 import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from '../providers/claude.ts';
-import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
+import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
 import { ChatChild } from './chat-process.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { buildUserMessage } from './input.ts';
@@ -201,11 +201,16 @@ export class ClaudeBackend implements ChatBackend {
     private readonly permissions = new Map<string, (result: PermissionResult) => void>();
     // Moves on with every stop and dispose, so a start still waiting finds out it was let go.
     private generation = 0;
+    // What the process runs on now, which `reconfigure` moves on from the launch.
+    private selection: ModelSelection;
+    private runtimeMode: RuntimeMode;
 
     constructor(launch: BackendLaunch, host: BackendHost, options: ClaudeBackendOptions = {}) {
         this.launch = launch;
         this.host = host;
         this.options = options;
+        this.selection = launch.selection;
+        this.runtimeMode = launch.runtimeMode;
         this.protocol = new ClaudeProtocol(launch.goal ?? null, launch.now, launch.cacheTtlMs ?? null);
     }
 
@@ -334,6 +339,64 @@ export class ClaudeBackend implements ChatBackend {
 
     declineRequest(requestId: string, message: string): boolean {
         return this.answer(requestId, this.protocol.declineResponse(requestId, message));
+    }
+
+    /*
+     * Model, effort, fast mode and permission mode change in the running CLI. What it only reads at its start needs a
+     * new process: a context window that moves `CLAUDE_CODE_AUTO_COMPACT_WINDOW` or auto-compact, and bypassing
+     * permissions in a process started without `--allow-dangerously-skip-permissions`.
+     */
+    async reconfigure(change: BackendChange): Promise<boolean> {
+        const running = this.query;
+
+        if (running === null || this.inputBroken) {
+            return false;
+        }
+
+        const from = this.selection;
+        const to = change.selection;
+        const startsOnly =
+            JSON.stringify(claudeEnv(from)) !== JSON.stringify(claudeEnv(to)) ||
+            claudeSettings(from)?.autoCompactEnabled !== claudeSettings(to)?.autoCompactEnabled;
+        const bypass =
+            claudePermissionMode(change.runtimeMode) === 'bypassPermissions' && claudePermissionMode(this.launch.runtimeMode) !== 'bypassPermissions';
+
+        if (startsOnly || bypass) {
+            return false;
+        }
+
+        try {
+            if (claudeModel(from) !== claudeModel(to)) {
+                await running.setModel(claudeModel(to));
+            }
+
+            const flags = {
+                ...(claudeEffort(from) === claudeEffort(to) ? {} : { effortLevel: claudeEffort(to) as EffortLevel | null }),
+                ...((claudeSettings(from)?.fastMode ?? false) === (claudeSettings(to)?.fastMode ?? false)
+                    ? {}
+                    : { fastMode: claudeSettings(to)?.fastMode ?? null })
+            };
+
+            if (Object.keys(flags).length > 0) {
+                await running.applyFlagSettings(flags);
+            }
+
+            if (change.runtimeMode !== this.runtimeMode) {
+                await running.setPermissionMode((claudePermissionMode(change.runtimeMode) ?? 'default') as PermissionMode);
+            }
+        } catch {
+            // Part of it may have taken; a new process takes all of it.
+            return false;
+        }
+
+        if (this.query !== running) {
+            return false;
+        }
+
+        this.selection = to;
+        this.runtimeMode = change.runtimeMode;
+
+        return true;
     }
 
     stop(): void {
@@ -606,7 +669,7 @@ export class ClaudeBackend implements ChatBackend {
 
     private userMessage(input: TurnInput, promptId: string): SDKUserMessage {
         // What the CLI must see first (ultrathink), then the preamble, then what was typed.
-        const prefix = `${promptPrefix(this.launch.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
+        const prefix = `${promptPrefix(this.selection)}${input.preamble === null ? '' : `${input.preamble}\n\n`}`;
 
         return buildUserMessage({ text: input.text, attachments: input.attachments, prefix, skills: input.skills, promptId }) as SDKUserMessage;
     }

@@ -116,4 +116,6 @@ A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilitie
 
 The optional `ChatBackend.steerTurn(input)` adds user input to the running turn without interrupting it. Resolve `true` only once the CLI accepted it, `false` only when no turn is active, and reject when the outcome is unknown.
 
+A changed model, option or runtime mode applies when the next turn starts, as a new process would. With the optional `ChatBackend.reconfigure(change)`, a `BackendChange` of the selection and the mode, the session first asks the running process to take it. Resolve `true` once it took all of it, `false` for a new process. A change of account, working folder, folders or project configuration always starts a new one. The Claude backend changes the model, effort, fast mode and permission mode in place. It needs a new process for a context window that moves where the CLI compacts, and for full access in a process that was not started with it.
+
 `LineSplitter` from `@adecore/agents/chat` cuts stdout into frames. A line longer than `MAX_LINE_LENGTH` is dropped and reported as `failed`, and reading goes on.
