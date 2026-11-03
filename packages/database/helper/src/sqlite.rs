@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
+use rusqlite::hooks::{AuthAction, AuthContext, Authorization};
 use rusqlite::types::{Value as SqlValue, ValueRef};
 use rusqlite::{Connection, InterruptHandle, OpenFlags, OptionalExtension, Row, Statement, params_from_iter};
 
@@ -79,6 +80,24 @@ impl SqliteEngine {
         if config.read_only {
             connection.execute_batch("PRAGMA query_only = 1").map_err(connect_failed)?;
         }
+
+        // SQL has no file grant. Imports and exports use the host-authorized methods instead.
+        let read_only = config.read_only;
+        connection
+            .authorizer(Some(move |context: AuthContext<'_>| match context.action {
+                AuthAction::Attach { filename } if !filename.is_empty() && filename != ":memory:" => Authorization::Deny,
+                AuthAction::Pragma {
+                    pragma_name,
+                    pragma_value: Some(_),
+                } if pragma_name.eq_ignore_ascii_case("temp_store_directory")
+                    || pragma_name.eq_ignore_ascii_case("data_store_directory")
+                    || (read_only && pragma_name.eq_ignore_ascii_case("query_only")) =>
+                {
+                    Authorization::Deny
+                }
+                _ => Authorization::Allow,
+            }))
+            .map_err(connect_failed)?;
 
         let version: String = connection.query_row("SELECT sqlite_version()", [], |row| row.get(0)).map_err(connect_failed)?;
         let interrupt = Arc::new(connection.get_interrupt_handle());

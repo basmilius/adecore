@@ -95,13 +95,15 @@ The host calls `authorizeDiscovery(kind, owner)` on every `discover`, and refuse
 - A sample shows the page the first lines of a file, so a readable secret leaks if it parses as CSV.
 - The helper reads and writes as its own user.
 
+SQLite also checks file access inside SQL. Its authorizer refuses attachments to named files, including `VACUUM INTO`, and changes to `temp_store_directory` or `data_store_directory`. This applies to writable and read only connections. Plain `VACUUM` and attachments to temporary or in-memory databases remain available. Use the `export`, `import` and `sample` methods for file access authorized by the host.
+
 The safe rule is to allow exactly the paths the person picked in an app dialog. [Files](/database/guide/files#allowing-a-path) has that check.
 
 ## Read only connections
 
 The helper enforces `readOnly: true`, not the views:
 
-- SQLite opens the file read only and sets `PRAGMA query_only`.
+- SQLite opens the file read only, sets `PRAGMA query_only` and refuses changes to that pragma through SQL.
 - MySQL and MariaDB start the session with `SET SESSION TRANSACTION READ ONLY`.
 - `apply` and `import` fail with `read-only`, and so does a statement the server refuses on a read only session.
 

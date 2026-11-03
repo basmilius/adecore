@@ -1013,3 +1013,53 @@ async fn sqlite_an_import_that_fails_on_its_release_leaves_nothing_to_commit() {
 
     assert_eq!(db.count("child").await, 0);
 }
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sql_cannot_open_or_create_other_files_even_after_disabling_query_only() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    let (writable, path) = seeded(&mut client, &directory).await;
+    let readonly = client.open(json!({ "engine": "sqlite", "path": path, "readOnly": true })).await;
+
+    for session in [writable, readonly] {
+        let target = directory.path().join(format!("{session}-copy.sqlite"));
+        let sql = format!("PRAGMA query_only=0; VACUUM INTO '{}';", target.display());
+        let result = client.ok("execute", json!({ "session": session, "sql": sql })).await;
+
+        assert!(!target.exists(), "SQL created a file outside the connection: {result}");
+        assert!(result["results"].as_array().unwrap().iter().any(|item| item["kind"] == "error"));
+
+        let sql = format!("ATTACH DATABASE '{}' AS other", path.display());
+        let result = client.ok("execute", json!({ "session": session, "sql": sql })).await;
+
+        assert_eq!(result["results"][0]["kind"], "error");
+        assert_eq!(
+            client.ok("count", json!({ "session": session, "schema": "main", "table": "users" })).await["count"],
+            3
+        );
+    }
+}
+
+#[tokio::test(flavor = "multi_thread")]
+async fn sql_file_restrictions_keep_vacuum_and_memory_databases_available() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut client = Client::new();
+    let (session, _) = seeded(&mut client, &directory).await;
+    let result = client
+        .ok(
+            "execute",
+            json!({ "session": session, "sql": "VACUUM; ATTACH ':memory:' AS memory; CREATE TABLE memory.example (id INTEGER); DETACH memory;" }),
+        )
+        .await;
+
+    for item in result["results"].as_array().unwrap() {
+        assert_ne!(item["kind"], "error", "{item}");
+    }
+
+    for pragma in ["temp_store_directory", "data_store_directory"] {
+        let sql = format!("PRAGMA {pragma}='{}'", directory.path().display());
+        let result = client.ok("execute", json!({ "session": session, "sql": sql })).await;
+
+        assert_eq!(result["results"][0]["kind"], "error");
+    }
+}
