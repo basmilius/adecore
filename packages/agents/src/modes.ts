@@ -1,6 +1,6 @@
 import { RuntimeModeSchema, type RuntimeMode } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import { VerbRefusal } from './context/verb.ts';
+import { ToolRefusal } from './context/tool.ts';
 
 /*
  * Every CLI's flags widen in this order (its permission flags and the Codex thread options), and where
@@ -21,14 +21,14 @@ function modeLines(mine: RuntimeMode): string[] {
 }
 
 /*
- * The mode an agent the opener opens may get at most, refusing a `--mode` above it. The ceiling is
- * the opener's own mode, so a chain of agents can only ever narrow what it may do, never widen it.
+ * The mode an agent the opener opens may get at most, refusing a requested mode above it. The ceiling
+ * is the opener's own mode, so a chain of agents can only ever narrow what it may do, never widen it.
  */
 export function ceilingForOpening(opener: RuntimeMode, requested: RuntimeMode | undefined): RuntimeMode {
     if (requested !== undefined && rankOf(requested) > rankOf(opener)) {
-        throw new VerbRefusal(
+        throw new ToolRefusal(
             'mode-above-parent',
-            `You run in ${opener} and --mode ${requested} is wider; an agent you open runs in your mode or a narrower one`,
+            `You run in ${opener} and mode ${requested} is wider; an agent you open runs in your mode or a narrower one`,
             modeLines(opener)
         );
     }
@@ -36,4 +36,5 @@ export function ceilingForOpening(opener: RuntimeMode, requested: RuntimeMode | 
     return opener;
 }
 
-export const modeFlag = z.enum(MODE_ORDER, { error: `--mode is one of ${MODE_ORDER.join(', ')}` }).optional();
+/* The `mode` field of a tool that opens an agent. */
+export const modeField = z.enum(MODE_ORDER, { error: `mode is one of ${MODE_ORDER.join(', ')}` }).optional();

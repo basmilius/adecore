@@ -101,7 +101,7 @@ The registry, the model catalogs, the runtime modes and the accounts of each CLI
 | [`providers/detect`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/detect.ts) | `CliDetection`, `detectCli` |
 | [`providers/provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/provider.ts) | `ChatProvider`, `ProviderHome` |
 | [`providers/registry`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/registry.ts) | `ProviderRegistry`, `ProviderRegistryOptions` |
-| [`modes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/modes.ts) | `MODE_ORDER`, `narrowerMode`, `ceilingForOpening`, `modeFlag` |
+| [`modes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/modes.ts) | `MODE_ORDER`, `narrowerMode`, `ceilingForOpening`, `modeField` |
 
 ## `@adecore/agents/usage`
 
@@ -144,12 +144,13 @@ The outbox, tasks between chats, lineage and messages.
 
 ## `@adecore/agents/context`
 
-Parsing, help and refusals of a command line.
+Tools an agent calls back into, their input schemas and refusals.
 
 | Module | Exports |
 | --- | --- |
 | [`context/refusal`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/refusal.ts) | `field`, `refusalBody`, `refusalRows`, `ParsedRefusal`, `parseRefusalBody` |
-| [`context/verb`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/verb.ts) | `VerbRefusal`, `VerbCallBase`, `VerbHelp`, `Verb`, `Action`, `Noun`, `ContextVerb`, `VerbEntry`, `DRY_RUN_FLAG`, `REVISION_FLAG`, `DRY_RUN_PREVIEW`, `summaryLines`, `createVerbRegistry`, `lengthOf`, `requiredField`, `orNote`, `ArgsSpec`, `VerbSpec`, `NounSpec`, `HelpTopic`, `HelpSpec`, `VerbRegistry` |
+| [`context/tool`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/tool.ts) | `ToolRefusal`, `ToolCallBase`, `ToolAnnotations`, `ToolSpec`, `Tool`, `Toolkit`, `ToolRegistry`, `REVISION_FIELD`, `DRY_RUN_FIELD`, `DRY_RUN_PREVIEW`, `defineTool`, `defineToolkit`, `parseToolInput`, `createToolRegistry`, `lengthOf`, `requiredField`, `orNote` |
+| [`context/tool-schema`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/tool-schema.ts) | `ToolField`, `ToolInputSchema`, `toolInputSchema` |
 
 ## `@adecore/agents/testing`
 

@@ -17,4 +17,4 @@ export { type CliDetection, detectCli } from './detect.ts';
 export type { ChatProvider, ProviderHome } from './provider.ts';
 export { isOnlyCommands } from './shell-commands.ts';
 export { ProviderRegistry, type ProviderRegistryOptions } from './registry.ts';
-export { MODE_ORDER, narrowerMode, ceilingForOpening, modeFlag } from '../modes.ts';
+export { MODE_ORDER, narrowerMode, ceilingForOpening, modeField } from '../modes.ts';

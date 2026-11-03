@@ -42,7 +42,7 @@ It registers no IPC channel and opens no server. It serves a `FramePort` your ap
 | `@adecore/agents/providers` | The provider registry, model catalogs, runtime modes, CLI detection and accounts |
 | `@adecore/agents/usage` | Usage from transcripts, prices and plan limits |
 | `@adecore/agents/coordination` | The outbox, tasks between chats, lineage and messages |
-| `@adecore/agents/context` | Context commands: verbs, arguments, help and refusals |
+| `@adecore/agents/context` | Tools: toolkits, input schemas and refusals |
 | `@adecore/agents/testing` | Fake CLIs, a manual clock, a fake watcher and test accounts |
 
 The model catalogs are JSON: `@adecore/agents/providers/<kind>-models.json` for `claude`, `codex`, `grok`, `copilot` and `antigravity`. The [export reference](/agents/reference) lists every name. Keep the package out of a page. The page imports the contracts and the views.
@@ -55,6 +55,6 @@ The model catalogs are JSON: `@adecore/agents/providers/<kind>-models.json` for 
 - [Providers](/agents/providers) covers the CLIs, their model catalogs and the runtime modes.
 - [Accounts and usage](/agents/accounts) covers config folders, secrets, the environment and usage.
 - [Coordination](/agents/coordination) covers the outbox, tasks between chats and messages.
-- [Context commands](/agents/context-commands) covers a command line your agents call back into.
+- [Tools](/agents/tools) covers the tools your agents call back into.
 - [Storage](/agents/storage) covers what is written where, and the file helpers.
 - [Testing](/agents/testing) covers the fakes and the error codes.

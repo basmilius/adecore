@@ -1,71 +1,79 @@
-# Context commands
+# Tools
 
-A host can give its agents a command line to call back into it, for example to open another chat, hand over a task or read a document. The package parses the command and writes its help and refusals. It has no executable, server, socket or hook. Your app decides how a call reaches it, checks who is calling, and hands each verb only what it may touch.
+A host can give its agents tools to call back into it, for example to open another chat, hand over a task or write in a document. The package defines the tools, checks their input and writes the schema an MCP client lists. It has no server and no transport. Your app decides how a call reaches it, checks who is calling, and hands each tool only what it may touch.
 
 ```ts
-import { createVerbRegistry, requiredField, VerbRefusal } from '@adecore/agents/context';
+import { createToolRegistry, defineTool, defineToolkit, ToolRefusal, toolInputSchema } from '@adecore/agents/context';
 ```
 
-## A verb
+## A tool
 
-A note verb over a write function of your app's own, with a dry run that checks everything and writes nothing:
+A note tool over a write function of your app's own, with a dry run that checks everything and writes nothing:
 
 ```ts
 import { z } from 'zod';
-import { createVerbRegistry, requiredField, VerbRefusal, type VerbCallBase, refusalBody } from '@adecore/agents/context';
+import { createToolRegistry, defineTool, defineToolkit, requiredField, ToolRefusal, type ToolCallBase } from '@adecore/agents/context';
 
-interface Call extends VerbCallBase {
+interface Call extends ToolCallBase {
     authorized: boolean;
     write(text: string, expectedRevision?: number): Promise<void>;
 }
 
-export const registry = createVerbRegistry<Call>({ cli: 'app-context' });
-
-export const note = registry.defineVerb({
-    name: 'note',
-    usage: '--text T',
-    summary: 'Writes a note to the active document',
-    detail: ['flag\t--text T\trequired\tThe note text'],
-    positionals: z.array(z.string()).max(0),
-    flags: z.object({ text: requiredField('note needs --text') }),
-    dryRun: true,
-    revision: true,
-    run: async ({ flags, dryRun }, call) => {
+const noteWrite = defineTool('note', {
+    name: 'note_write',
+    description: 'Writes a note to the active document.',
+    input: z.object({
+        text: requiredField('note_write needs text').describe('The note text'),
+        revision: z.number().int().optional(),
+        dry_run: z.boolean().optional()
+    }),
+    async run(input, call: Call) {
         if (!call.authorized) {
-            throw new VerbRefusal('not-permitted', 'This caller may not write this document.');
+            throw new ToolRefusal('not-permitted', 'This caller may not write this document.');
         }
 
-        if (!dryRun) {
-            await call.write(flags.text, call.expectedRevision);
+        if (input.dry_run !== true) {
+            await call.write(input.text, input.revision);
         }
 
-        return [dryRun ? 'preview\tvalidated' : 'note\twritten'];
+        return [input.dry_run === true ? 'preview\tvalidated' : 'note\twritten'];
     }
 });
 
-export async function runNote(argv: readonly string[], call: Call): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-    try {
-        return { exitCode: 0, stdout: (await note.run(argv, call)).join('\n'), stderr: '' };
-    } catch (error) {
-        if (error instanceof VerbRefusal) {
-            return { exitCode: 3, stdout: '', stderr: refusalBody(error.code, error.message, error.lines) };
-        }
-
-        throw error;
-    }
-}
+export const registry = createToolRegistry([defineToolkit('note', [noteWrite])]);
 ```
 
-Your `write` must check the revision in the same step as the write. The registry only parses the number and passes it as `expectedRevision`.
+A tool belongs to one toolkit, named as the first argument of `defineTool`. `defineToolkit` throws when a tool names another toolkit or two tools share a name, and `createToolRegistry` throws when two toolkits do. Those are mistakes in your code, so they throw a plain `Error`. A tool name is lower snake case.
 
-## Arguments and help
+`annotations` tells a client what to expect before it runs a tool: `readOnly` for one that changes nothing, `destructive` for one that removes or overwrites what it cannot give back.
 
-A flag is `--name value` or `--name=value`. A value starting with `--` needs the second form. A switch takes no value. Unknown, repeated and missing flags fail before the verb runs. Then positionals and flags go through their Zod schemas. `requiredField(message)` is a string flag that may not be missing or empty. `lengthOf` measures input for a size message. `orNote(lines, note)` prints a note for an empty list.
+Your `write` must check the revision in the same step as the write. `REVISION_FIELD` and `DRY_RUN_FIELD` are the field names this package uses for both. `DRY_RUN_PREVIEW` is a sentence that tells a model a dry run is never needed for safety.
 
-`defineNoun` and `defineAction` group verbs under a noun. `defineHelp` writes usage, detail and topics from the dispatch definitions, and `summaryLines` writes the short list.
+## Input
 
-Only a verb with `dryRun: true` takes `--dry-run`. Others refuse it with `no-dry-run`. Your `run` gets it as `dryRun` and must skip the writes itself. A verb with `revision: true` takes `--revision N`.
+`registry.run(name, input, call)` checks the input and runs the tool. `parseToolInput(tool, input)` only checks, for a host that runs its tools another way. Both treat a field set to `null` as left out, since models send `null` for fields they skip.
+
+Input that is no object, a field the tool does not have, or a value the schema refuses all throw a `bad-arguments` refusal. Its one line holds `fields` and the field names, tab-separated, so a model sees what the tool takes. A schema message that does not name its field gets the field's path in front, because zod's own messages name none.
+
+`requiredField(message)` is a string field that may not be missing or empty. `lengthOf` measures input for a size message. `orNote(lines, note)` answers a note for an empty list.
+
+## Schemas
+
+`toolInputSchema(tool.input)` is the input schema an MCP client lists. It keeps `type`, `description`, `enum`, `required` and `items`. Bounds, `additionalProperties`, null branches and every union branch but the first are left out. A field with a default or `.optional()` is not required, and a transform shows the type it starts from. The description comes from `.describe()` or `.meta()`.
+
+The bounds still hold, since a run checks the input against the full schema. A model learns them from a refusal instead of from every tool list.
+
+```ts
+const tools = registry.tools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: toolInputSchema(tool.input),
+    annotations: { readOnlyHint: tool.annotations.readOnly, destructiveHint: tool.annotations.destructive }
+}));
+```
 
 ## Refusals
 
-`VerbRefusal(code, message, lines?)` is a refusal with advice. `refusalBody` writes `refused`, the code and the message as one tab-separated line, then one advice row per line. `refusalRows` leaves out `refused`, for a command line that prints it itself. `parseRefusalBody` reads either back, or returns `null` for other text. `field(value)` makes a value safe for one field, so a tab in a title cannot break a row. The helpers neither print nor exit. Exit code 3 above is the example's choice.
+`ToolRefusal(code, message, lines?)` is a refusal with advice. It is a `CodedError`, so a host that catches those catches a refusal too. A name `registry.run` does not know refuses `unknown-tool`, with a `tools` line that names every tool.
+
+`refusalBody` writes `refused`, the code and the message as one tab-separated line, then one advice row per line. `refusalRows` leaves out `refused`. `parseRefusalBody` reads either back, or returns `null` for other text. `field(value)` makes a value safe for one field, so a tab in a title cannot break a row. None of them shape what a client receives; the host does.

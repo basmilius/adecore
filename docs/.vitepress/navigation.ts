@@ -227,7 +227,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['ACP agents', '/agents/acp'],
             ['Accounts and usage', '/agents/accounts'],
             ['Coordination', '/agents/coordination'],
-            ['Context commands', '/agents/context-commands'],
+            ['Tools', '/agents/tools'],
             ['Storage', '/agents/storage'],
             ['Testing', '/agents/testing']
         ]),

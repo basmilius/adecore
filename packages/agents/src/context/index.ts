@@ -2,26 +2,23 @@
 export { field, refusalBody, refusalRows, type ParsedRefusal, parseRefusalBody } from './refusal.ts';
 
 export {
-    VerbRefusal,
-    type VerbCallBase,
-    type VerbHelp,
-    type Verb,
-    type Action,
-    type Noun,
-    type ContextVerb,
-    type VerbEntry,
-    DRY_RUN_FLAG,
-    REVISION_FLAG,
+    ToolRefusal,
+    type ToolCallBase,
+    type ToolAnnotations,
+    type ToolSpec,
+    type Tool,
+    type Toolkit,
+    type ToolRegistry,
+    REVISION_FIELD,
+    DRY_RUN_FIELD,
     DRY_RUN_PREVIEW,
-    summaryLines,
-    createVerbRegistry,
+    defineTool,
+    defineToolkit,
+    parseToolInput,
+    createToolRegistry,
     lengthOf,
     requiredField,
-    orNote,
-    type ArgsSpec,
-    type VerbSpec,
-    type NounSpec,
-    type HelpTopic,
-    type HelpSpec,
-    type VerbRegistry
-} from './verb.ts';
+    orNote
+} from './tool.ts';
+
+export { type ToolField, type ToolInputSchema, toolInputSchema } from './tool-schema.ts';

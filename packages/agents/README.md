@@ -38,7 +38,7 @@ The root holds the file, process and error helpers; `/host`, `/chat`, `/provider
 | [Providers](https://adecore.dev/agents/providers) | The CLIs, their model catalogs and the runtime modes |
 | [Accounts and usage](https://adecore.dev/agents/accounts) | Config folders, secrets, the environment and usage |
 | [Coordination](https://adecore.dev/agents/coordination) | The outbox, tasks between chats, lineage and messages |
-| [Context commands](https://adecore.dev/agents/context-commands) | A command line your agents call back into |
+| [Tools](https://adecore.dev/agents/tools) | Tools your agents call back into |
 | [Storage](https://adecore.dev/agents/storage) | What is written where, and the file helpers |
 | [Testing](https://adecore.dev/agents/testing) | The fakes and the error codes |
 | [Exports](https://adecore.dev/agents/reference) | Every entry point and its exports |
