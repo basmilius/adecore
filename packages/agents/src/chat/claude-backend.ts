@@ -23,6 +23,16 @@ import { ChatChild } from './chat-process.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { buildUserMessage } from './input.ts';
 
+// How long the messages of a CLI that exited may still take through the SDK.
+const EXIT_DRAIN_MS = 500;
+
+function settleAfter(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+        const timer = setTimeout(resolve, ms);
+        timer.unref?.();
+    });
+}
+
 // Claude may echo a steer only once a slow tool returns, so a running turn sets no deadline; after the turn ended, a message
 // it still holds opens the next turn at once or never arrives.
 const STEER_GRACE_MS = 30_000;
@@ -33,8 +43,21 @@ const STEER_GRACE_MS = 30_000;
  */
 const NO_NONESSENTIAL_TRAFFIC = { DISABLE_AUTOUPDATER: '1', DISABLE_BUG_COMMAND: '1', DISABLE_ERROR_REPORTING: '1', DISABLE_TELEMETRY: '1' };
 
-// Sign-ins that win over an API key in the CLI, so a chat on a key never inherits one from the host's environment.
-const SIGN_IN_VARIABLES = ['ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN'];
+/*
+ * A chat on an API key takes nothing from the host's environment that moves where the CLI sends the key and the prompts,
+ * or signs it in another way: every `ANTHROPIC_*` variable (the base URLs of the API, Bedrock, Vertex and Foundry, an auth
+ * token, custom headers, a Foundry key), the switches to another cloud and their auth skips, and the other sign-ins.
+ * The AWS and Google variables stay: without a switch the CLI reads them for nothing, and the agent's own tools may.
+ */
+function movesTheKey(name: string): boolean {
+    return (
+        name.startsWith('ANTHROPIC_') ||
+        /^CLAUDE_CODE_USE_[A-Z]+$/.test(name) ||
+        /^CLAUDE_CODE_SKIP_[A-Z]+_AUTH$/.test(name) ||
+        name === 'CLAUDE_CODE_OAUTH_TOKEN' ||
+        name === 'AWS_BEARER_TOKEN_BEDROCK'
+    );
+}
 
 /* Chats on an Anthropic API key instead of the person's own sign-in. */
 export interface ClaudeApiKeyOptions {
@@ -174,6 +197,8 @@ export class ClaudeBackend implements ChatBackend {
     private active = false;
     // Permission requests the CLI waits on, by its own request id; settling one hands the SDK its answer.
     private readonly permissions = new Map<string, (result: PermissionResult) => void>();
+    // Moves on with every stop and dispose, so a start still waiting finds out it was let go.
+    private generation = 0;
 
     constructor(launch: BackendLaunch, host: BackendHost, options: ClaudeBackendOptions = {}) {
         this.launch = launch;
@@ -201,12 +226,19 @@ export class ClaudeBackend implements ChatBackend {
             throw new Error('No command to start');
         }
 
+        // A stop or a dispose while this waits means the session let go of the backend; nothing may start after it.
+        const generation = this.generation;
         const key = this.options.apiKey ? await this.options.apiKey.key() : null;
+
+        if (generation !== this.generation) {
+            return;
+        }
+
         const options = this.queryOptions(executable, key);
         // Loaded on the first start: a large module that only a chat that runs needs.
         const { query } = await import('@anthropic-ai/claude-agent-sdk');
 
-        if (this.query) {
+        if (this.query || generation !== this.generation) {
             return;
         }
 
@@ -303,17 +335,19 @@ export class ClaudeBackend implements ChatBackend {
     }
 
     stop(): void {
+        this.generation += 1;
         this.input?.close();
         this.child?.endAfterGrace();
     }
 
     dispose(): Promise<void> {
+        this.generation += 1;
         this.rejectSteers('Claude stopped before acknowledging your message');
         const child = this.child;
         const running = this.query;
         this.child = null;
         this.query = null;
-        this.permissions.clear();
+        this.denyPermissions();
         this.input?.close();
         this.input = null;
         running?.close();
@@ -363,12 +397,10 @@ export class ClaudeBackend implements ChatBackend {
             return env;
         }
 
-        for (const name of SIGN_IN_VARIABLES) {
-            delete env[name];
-        }
+        const kept = Object.fromEntries(Object.entries(env).filter(([name]) => !movesTheKey(name)));
 
         return {
-            ...env,
+            ...kept,
             ANTHROPIC_API_KEY: key,
             CLAUDE_CONFIG_DIR: this.options.apiKey.configDir,
             ...NO_NONESSENTIAL_TRAFFIC
@@ -398,8 +430,9 @@ export class ClaudeBackend implements ChatBackend {
                 exitCode = code;
                 signalCode = (signal ?? null) as NodeJS.Signals | null;
                 this.childExited = true;
-                // The SDK may still hold messages read before the exit; they reach the host first.
-                void this.pumping.then(() => this.handleExit(child, code, stderr));
+                // The SDK may still hold messages read before the exit; they reach the host first, unless a process the
+                // CLI started holds its stdout open, which would keep the stream from ever ending.
+                void Promise.race([this.pumping, settleAfter(EXIT_DRAIN_MS)]).then(() => this.handleExit(child, code, stderr));
                 events.emit('exit', code, signalCode);
             }
         });
@@ -660,13 +693,26 @@ export class ClaudeBackend implements ChatBackend {
             return;
         }
 
+        const running = this.query;
         this.child = null;
         this.query = null;
         this.input?.close();
         this.input = null;
-        this.permissions.clear();
+        this.denyPermissions();
         this.rejectSteers('Claude stopped before it got your message');
         this.protocol.forgetPending();
+        // Ends a stream a process the CLI started may still hold open; the CLI is gone, so this signals nothing.
+        running?.close();
         this.host.onEvent({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
+    }
+
+    /* Answers every request the CLI still waits on, so no `canUseTool` promise is left hanging once the backend lets go. */
+    private denyPermissions(): void {
+        const waiting = [...this.permissions.values()];
+        this.permissions.clear();
+
+        for (const settle of waiting) {
+            settle({ behavior: 'deny', message: 'Claude stopped' });
+        }
     }
 }

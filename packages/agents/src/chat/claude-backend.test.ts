@@ -621,4 +621,101 @@ describe('the Claude backend on an API key', () => {
         expect(events).toContainEqual(expect.objectContaining({ type: 'text.done', text: 'echo: hello' }));
         await backend.dispose();
     });
+
+    test("sends the key nowhere but Anthropic's own API, whatever the host's environment points the CLI at", async () => {
+        const cli = recording();
+
+        const elsewhere = {
+            ...signedIn,
+            ANTHROPIC_BASE_URL: 'https://proxy.example',
+            ANTHROPIC_BEDROCK_BASE_URL: 'https://bedrock.example',
+            ANTHROPIC_VERTEX_BASE_URL: 'https://vertex.example',
+            ANTHROPIC_FOUNDRY_RESOURCE: 'resource',
+            ANTHROPIC_CUSTOM_HEADERS: 'X-Tap: 1',
+            ANTHROPIC_API_KEY: 'sk-ant-other',
+            CLAUDE_CODE_USE_BEDROCK: '1',
+            CLAUDE_CODE_USE_VERTEX: '1',
+            CLAUDE_CODE_USE_FOUNDRY: '1',
+            CLAUDE_CODE_SKIP_BEDROCK_AUTH: '1',
+            AWS_BEARER_TOKEN_BEDROCK: 'bedrock-token',
+            AWS_REGION: 'eu-west-1',
+            CLAUDE_CODE_MAX_OUTPUT_TOKENS: '32000'
+        };
+
+        const backend = new ClaudeBackend({ ...launch, env: elsewhere, spawn: cli.spawn }, { onEvent: () => undefined }, { apiKey });
+        await backend.start();
+        const { env } = cli.spawned[0]!;
+        const carried = Object.keys(env).filter((name) => name.startsWith('ANTHROPIC_') || name.startsWith('CLAUDE_CODE_USE_') || name.includes('_AUTH'));
+
+        expect(carried).toEqual(['ANTHROPIC_API_KEY']);
+        expect(env.ANTHROPIC_API_KEY).toBe('sk-ant-test');
+        expect(env.AWS_BEARER_TOKEN_BEDROCK).toBeUndefined();
+        expect(env).toMatchObject({ AWS_REGION: 'eu-west-1', CLAUDE_CODE_MAX_OUTPUT_TOKENS: '32000' });
+        await backend.dispose();
+    });
+
+    for (const how of ['stop', 'dispose'] as const) {
+        test(`starts no CLI once a ${how} came while the key was still being read`, async () => {
+            const cli = recording();
+            const read = Promise.withResolvers<string>();
+            const backend = new ClaudeBackend(
+                { ...launch, spawn: cli.spawn },
+                { onEvent: () => undefined },
+                { apiKey: { ...apiKey, key: () => read.promise } }
+            );
+            const starting = backend.start();
+
+            if (how === 'stop') {
+                backend.stop();
+            } else {
+                await backend.dispose();
+            }
+
+            read.resolve('sk-ant-test');
+            await starting;
+            await quiet(cli.spawned);
+            expect(cli.spawned).toEqual([]);
+            expect(backend.running).toBe(false);
+        });
+    }
+});
+
+describe('the Claude backend letting go', () => {
+    test('reports the exit of a CLI whose stdout a process it started still holds open', async () => {
+        let exit: ChatSpawnOptions['onExit'] = () => undefined;
+
+        const spawn = (options: ChatSpawnOptions): ChatProcess => {
+            exit = options.onExit;
+
+            return {
+                pid: 4242,
+                stdin: { write: () => 0, flush: () => 0, end: () => 0 },
+                // Never closed: a dev server the agent started inherited it.
+                stdout: new ReadableStream<Uint8Array>(),
+                kill: () => undefined
+            };
+        };
+
+        const events: BackendEvent[] = [];
+        const backend = new ClaudeBackend({ ...launch, spawn }, { onEvent: (event) => events.push(event) });
+        await backend.start();
+        jest.useFakeTimers();
+        exit(1, null);
+        await flush();
+        jest.advanceTimersByTime(1_000);
+        jest.useRealTimers();
+        await until(() => events.some((event) => event.type === 'exit'));
+        expect(events).toContainEqual({ type: 'exit', exitCode: 1 });
+        expect(backend.running).toBe(false);
+    });
+
+    test('turns down a request the CLI still waits on when the backend is disposed', async () => {
+        const script = scripted();
+        const run = open(script.cli);
+        await run.backend.start();
+        const ask = Reflect.get(run.backend, 'askPermission') as (toolName: string, input: Record<string, unknown>, options: unknown) => Promise<unknown>;
+        const answer = ask.call(run.backend, 'Bash', { command: 'ls' }, { requestId: 'req-1', toolUseID: 'toolu_1', signal: new AbortController().signal });
+        await run.backend.dispose();
+        expect(await answer).toEqual({ behavior: 'deny', message: 'Claude stopped' });
+    });
 });

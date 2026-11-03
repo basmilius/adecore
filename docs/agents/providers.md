@@ -89,7 +89,7 @@ createClaudeProvider({
 });
 ```
 
-`key()` is read at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `DISABLE_AUTOUPDATER`, `DISABLE_BUG_COMMAND`, `DISABLE_ERROR_REPORTING` and `DISABLE_TELEMETRY` set. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` would turn those off at once, but also the title the CLI gives the session, which the chat takes as its own. A sign-in token in the environment is left out. No settings file loads and only the launch's `mcpServers` do, whatever `projectConfigFor` says.
+`key()` is read at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `DISABLE_AUTOUPDATER`, `DISABLE_BUG_COMMAND`, `DISABLE_ERROR_REPORTING` and `DISABLE_TELEMETRY` set. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` would turn those off at once, but also the title the CLI gives the session, which the chat takes as its own. Nothing in the host's environment may send the key or the prompts elsewhere: every `ANTHROPIC_*` variable (base URLs, auth tokens, custom headers), the `CLAUDE_CODE_USE_*` switches to another cloud with their `CLAUDE_CODE_SKIP_*_AUTH`, `CLAUDE_CODE_OAUTH_TOKEN` and `AWS_BEARER_TOKEN_BEDROCK` are left out. No settings file loads and only the launch's `mcpServers` do, whatever `projectConfigFor` says.
 
 It runs on the CLI the person installed, like every other Claude chat, and never on the one the SDK bundles.
 
