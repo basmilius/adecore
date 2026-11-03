@@ -11,6 +11,11 @@
     --surface-raised: #ffffff;
     --surface-sunken: #ececef;
     --track: rgb(0 0 0 / 0.09);
+    /* The overlay scrollbars (`ScrollArea`): alphas, so a bar takes the color of whatever it floats over. */
+    --scrollbar-thumb: rgb(0 0 0 / 0.22);
+    --scrollbar-thumb-hover: rgb(0 0 0 / 0.38);
+    --scrollbar-thumb-active: rgb(0 0 0 / 0.5);
+    --scrollbar-track: rgb(0 0 0 / 0.04);
     /* A bar that is not the one in focus: between the sunken page behind it and a focused bar, so it
        still reads as a bar. The toolbar of a cell in the grid that does not have the keyboard. */
     --surface-idle: color-mix(in srgb, var(--surface) 50%, var(--surface-sunken));
@@ -122,6 +127,10 @@
     --surface-raised: #18181c;
     --surface-sunken: #0b0b0e;
     --track: rgb(255 255 255 / 0.11);
+    --scrollbar-thumb: rgb(255 255 255 / 0.22);
+    --scrollbar-thumb-hover: rgb(255 255 255 / 0.38);
+    --scrollbar-thumb-active: rgb(255 255 255 / 0.5);
+    --scrollbar-track: rgb(255 255 255 / 0.04);
     --surface-hover: #202024;
     --surface-active: #28282e;
     /* Derived, so an app that tints its surfaces tints its fields along. */
@@ -811,7 +820,7 @@
         position: absolute;
         inset-block: 0;
         border-radius: 999px;
-        background: var(--text-faint);
+        background: var(--scrollbar-thumb);
     }
     @media (prefers-reduced-motion: reduce) {
         .adecore-tree-shift-track {
@@ -1082,4 +1091,79 @@
     .middle-truncate-head::after { content: "\2026" / ""; }
     /* The cut part stays in the text at no width, so a selection copies it and a find matches across the cut. */
     .middle-truncate-middle { display: inline-block; width: 0; overflow: hidden; vertical-align: top; }
+}
+
+@layer components {
+    /* `ScrollArea` and `useOverlayScrollbars`. The scroller stays native and hides its own bar; thin bars
+       float over the content, hidden at rest and shown while it scrolls or the pointer is over it. */
+    [data-overlay-scrollbars] { scrollbar-width: none; }
+    [data-overlay-scrollbars]::-webkit-scrollbar { display: none; }
+    .ade-scroll-area { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    /* Its own stacking layer, so a sticky header with a z-index inside never covers the bars. */
+    .ade-scroll-viewport { flex: 1 1 auto; min-height: 0; overflow: auto; isolation: isolate; }
+    .ade-scroll-viewport[data-axis="y"] { overflow-x: hidden; }
+    .ade-scroll-viewport[data-axis="x"] { overflow-y: hidden; }
+    .ade-scrollbar {
+        --scrollbar-size: 12px;
+        position: absolute;
+        z-index: 1;
+        display: none;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 240ms ease;
+    }
+    .ade-scrollbar[data-overflow] { display: block; }
+    /* A popup's bars lie beside it in its positioner; the ends keep clear of its rounded corners. */
+    :is(.menu-popup, .picker-popup) ~ .ade-scrollbar { --scrollbar-inset: 4px; }
+    .ade-scrollbar[data-visible] { opacity: 1; pointer-events: auto; transition-duration: 120ms; }
+    /* The two bars meet without overlapping: each stops a bar's width short of the corner. */
+    .ade-scrollbar[data-orientation="vertical"] { top: var(--scrollbar-inset, 2px); bottom: var(--scrollbar-inset, 2px); right: 0; width: var(--scrollbar-size); }
+    .ade-scrollbar[data-orientation="vertical"][data-corner] { bottom: var(--scrollbar-size); }
+    .ade-scrollbar[data-orientation="horizontal"] { left: var(--scrollbar-inset, 2px); right: var(--scrollbar-inset, 2px); bottom: 0; height: var(--scrollbar-size); }
+    .ade-scrollbar[data-orientation="horizontal"][data-corner] { right: var(--scrollbar-size); }
+    .ade-scrollbar::before {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        background: var(--scrollbar-track);
+        opacity: 0;
+        transition: opacity 120ms ease;
+    }
+    .ade-scrollbar[data-orientation="vertical"]::before { inset: 0 2px; }
+    .ade-scrollbar[data-orientation="horizontal"]::before { inset: 2px 0; }
+    /* The thumb spans the whole hit area across, so a press beside the pill still grabs it; the pill is its `::before`. */
+    .ade-scrollbar-thumb { position: absolute; top: 0; left: 0; touch-action: none; }
+    .ade-scrollbar[data-orientation="vertical"] .ade-scrollbar-thumb { right: 0; }
+    .ade-scrollbar[data-orientation="horizontal"] .ade-scrollbar-thumb { bottom: 0; }
+    .ade-scrollbar-thumb::before {
+        content: "";
+        position: absolute;
+        border-radius: 999px;
+        background: var(--scrollbar-thumb);
+        transition: background-color 120ms ease, width 120ms ease, height 120ms ease, right 120ms ease, bottom 120ms ease;
+    }
+    .ade-scrollbar[data-orientation="vertical"] .ade-scrollbar-thumb::before { top: 0; bottom: 0; right: 3px; width: 6px; }
+    .ade-scrollbar[data-orientation="horizontal"] .ade-scrollbar-thumb::before { left: 0; right: 0; bottom: 3px; height: 6px; }
+    .ade-scrollbar[data-dragging]::before { opacity: 1; }
+    .ade-scrollbar[data-dragging] .ade-scrollbar-thumb::before { background: var(--scrollbar-thumb-active); }
+    .ade-scrollbar[data-orientation="vertical"][data-dragging] .ade-scrollbar-thumb::before { right: 2px; width: 8px; }
+    .ade-scrollbar[data-orientation="horizontal"][data-dragging] .ade-scrollbar-thumb::before { bottom: 2px; height: 8px; }
+    @media (hover: hover) {
+        .ade-scrollbar:hover::before { opacity: 1; }
+        .ade-scrollbar:hover:not([data-dragging]) .ade-scrollbar-thumb::before { background: var(--scrollbar-thumb-hover); }
+        .ade-scrollbar[data-orientation="vertical"]:hover .ade-scrollbar-thumb::before { right: 2px; width: 8px; }
+        .ade-scrollbar[data-orientation="horizontal"]:hover .ade-scrollbar-thumb::before { bottom: 2px; height: 8px; }
+    }
+    /* A finger needs a wider target and a thicker pill. Only the thumb takes a touch, so a tap near the
+       edge still reaches the row under the bar. */
+    @media (pointer: coarse) {
+        .ade-scrollbar { --scrollbar-size: 20px; }
+        .ade-scrollbar[data-visible] { pointer-events: none; }
+        .ade-scrollbar[data-visible] .ade-scrollbar-thumb { pointer-events: auto; }
+        .ade-scrollbar[data-orientation="vertical"] .ade-scrollbar-thumb::before { right: 2px; width: 8px; }
+        .ade-scrollbar[data-orientation="horizontal"] .ade-scrollbar-thumb::before { bottom: 2px; height: 8px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .ade-scrollbar, .ade-scrollbar::before, .ade-scrollbar-thumb::before { transition: none; }
+    }
 }

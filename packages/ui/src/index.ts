@@ -66,6 +66,7 @@ export { Pill, type PillProps } from './Pill.tsx';
 export { PromptDialog, type PromptDialogProps } from './PromptDialog.tsx';
 export { RelativeTime, type RelativeTimeProps } from './RelativeTime.tsx';
 export { ProjectSwitcher, ProjectSwitcherGroups, type ProjectSwitcherItem, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';
+export { ScrollArea, type ScrollAreaProps } from './ScrollArea.tsx';
 export { SectionLabel, type SectionLabelProps } from './SectionLabel.tsx';
 export { SegmentBar, type SegmentBarPart, type SegmentBarProps } from './SegmentBar.tsx';
 export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmented.tsx';
@@ -124,6 +125,7 @@ export { clampColumnSize, useColumnResize, type ColumnEdge, type ColumnResize, t
 export { useContentSize, type ContentSize } from './useContentSize.ts';
 export { useMeasuredWidth } from './useMeasuredWidth.ts';
 export { useNow, useTickingText } from './useNow.ts';
+export { useOverlayScrollbars, type OverlayScrollbarsOptions, type ScrollAreaAxis } from './useOverlayScrollbars.tsx';
 
 export { useFileTree, type FileTreeOptions } from './file-tree/use-file-tree.ts';
 export type { FileTreeRootProps } from './file-tree/parts.tsx';

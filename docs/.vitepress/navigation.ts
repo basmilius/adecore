@@ -105,6 +105,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     group('Layout', [
         ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
         ['DockShell', '/ui/layout/dock-shell'],
+        ['ScrollArea', '/ui/layout/scroll-area'],
         ['SlidingColumn', '/ui/layout/sliding-column'],
         ['SplitView', '/ui/layout/split-view'],
         ['TabStrip', '/ui/layout/tab-strip'],
@@ -137,7 +138,8 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['useAsyncAction', '/ui/hooks/use-async-action'],
         ['useColumnResize', '/ui/hooks/use-column-resize'],
         ['useContentSize', '/ui/hooks/use-content-size'],
-        ['useNow', '/ui/hooks/use-now']
+        ['useNow', '/ui/hooks/use-now'],
+        ['useOverlayScrollbars', '/ui/hooks/use-overlay-scrollbars']
     ]),
     group('Testing', [['Testing', '/ui/utilities/testing']])
 ];

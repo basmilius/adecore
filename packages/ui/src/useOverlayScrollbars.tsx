@@ -1,0 +1,274 @@
+import { useLayoutEffect, useState, type ReactElement } from 'react';
+import { overflows, pageToward, scrollAfterDrag, thumbOf, type ScrollMetrics } from './scrollbar-geometry.ts';
+
+export type ScrollAreaAxis = 'y' | 'x' | 'both';
+
+export interface OverlayScrollbarsOptions {
+    /* The directions that get a bar. */
+    axis?: ScrollAreaAxis;
+}
+
+/* How long the bars stay after the last scroll, or after the pointer left. */
+export const SCROLLBAR_LINGER_MS = 600;
+
+/* The theme hides the native bar of a scroller that carries this attribute. */
+const OVERLAY_ATTRIBUTE = 'data-overlay-scrollbars';
+
+interface Bar {
+    readonly element: HTMLElement;
+    readonly thumb: HTMLElement;
+    readonly vertical: boolean;
+}
+
+/*
+ * Draws thin bars over `viewport`, a scroller that stays native, so wheel, keys, `scrollIntoView` and
+ * a virtualizer keep working on it. Put the returned element in a positioned ancestor whose box is
+ * the viewport's: the bars lie along its right and bottom edges.
+ */
+export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' }: OverlayScrollbarsOptions = {}): ReactElement {
+    const [vertical, setVertical] = useState<HTMLDivElement | null>(null);
+    const [horizontal, setHorizontal] = useState<HTMLDivElement | null>(null);
+
+    useLayoutEffect(() => {
+        if (viewport === null) {
+            return;
+        }
+
+        const bars: Bar[] = [vertical, horizontal]
+            .filter((element) => element !== null)
+            .map((element) => ({ element, thumb: element.firstElementChild as HTMLElement, vertical: element === vertical }));
+
+        let overViewport = false;
+        let overBar = false;
+        let dragging = false;
+        let lingering = false;
+        let lingerTimer = 0;
+
+        const metricsOf = (bar: Bar): ScrollMetrics =>
+            bar.vertical
+                ? { track: bar.element.clientHeight, view: viewport.clientHeight, content: viewport.scrollHeight }
+                : { track: bar.element.clientWidth, view: viewport.clientWidth, content: viewport.scrollWidth };
+
+        const positionOf = (bar: Bar): number => (bar.vertical ? viewport.scrollTop : viewport.scrollLeft);
+
+        const show = (): void => {
+            const visible = overViewport || overBar || dragging || lingering;
+
+            for (const bar of bars) {
+                bar.element.toggleAttribute('data-visible', visible);
+            }
+        };
+
+        const layout = (): void => {
+            const overflowing = bars.map((bar) =>
+                bar.vertical ? overflows(viewport.clientHeight, viewport.scrollHeight) : overflows(viewport.clientWidth, viewport.scrollWidth)
+            );
+
+            const corner = overflowing.length === 2 && overflowing.every(Boolean);
+
+            bars.forEach((bar, index) => {
+                bar.element.toggleAttribute('data-overflow', overflowing[index]);
+                bar.element.toggleAttribute('data-corner', corner);
+            });
+
+            bars.forEach((bar, index) => {
+                if (!overflowing[index]) {
+                    return;
+                }
+
+                const { size, offset } = thumbOf(metricsOf(bar), positionOf(bar));
+
+                if (bar.vertical) {
+                    bar.thumb.style.height = `${size}px`;
+                    bar.thumb.style.translate = `0 ${offset}px`;
+                } else {
+                    bar.thumb.style.width = `${size}px`;
+                    bar.thumb.style.translate = `${offset}px 0`;
+                }
+            });
+        };
+
+        const linger = (): void => {
+            lingering = true;
+            window.clearTimeout(lingerTimer);
+
+            lingerTimer = window.setTimeout(() => {
+                lingering = false;
+                show();
+            }, SCROLLBAR_LINGER_MS);
+
+            show();
+        };
+
+        const onScroll = (): void => {
+            layout();
+            linger();
+        };
+
+        const onViewportEnter = (event: PointerEvent): void => {
+            // A finger has no hover: the bars show while it swipes, through the scroll.
+            if (event.pointerType === 'touch') {
+                return;
+            }
+
+            overViewport = true;
+            show();
+        };
+
+        const onViewportLeave = (): void => {
+            if (overViewport) {
+                overViewport = false;
+                linger();
+            }
+        };
+
+        const onBarEnter = (event: PointerEvent): void => {
+            if (event.pointerType !== 'touch') {
+                overBar = true;
+                show();
+            }
+        };
+
+        const onBarLeave = (): void => {
+            if (overBar) {
+                overBar = false;
+                linger();
+            }
+        };
+
+        const reducedMotion = (): boolean => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+        const pressHandlers = bars.map((bar) => {
+            const onThumbDown = (event: PointerEvent): void => {
+                if (event.button !== 0) {
+                    return;
+                }
+
+                // The press belongs to the thumb: no text selection, no page from the track under it.
+                event.preventDefault();
+                event.stopPropagation();
+                bar.thumb.setPointerCapture(event.pointerId);
+
+                const metrics = metricsOf(bar);
+                const from = bar.vertical ? event.clientY : event.clientX;
+                const start = positionOf(bar);
+                dragging = true;
+                bar.element.setAttribute('data-dragging', '');
+                show();
+
+                const onMove = (move: PointerEvent): void => {
+                    const next = scrollAfterDrag(metrics, start, (bar.vertical ? move.clientY : move.clientX) - from);
+
+                    if (bar.vertical) {
+                        viewport.scrollTop = next;
+                    } else {
+                        viewport.scrollLeft = next;
+                    }
+                };
+
+                const onEnd = (): void => {
+                    bar.thumb.removeEventListener('pointermove', onMove);
+                    bar.thumb.removeEventListener('pointerup', onEnd);
+                    bar.thumb.removeEventListener('pointercancel', onEnd);
+                    bar.thumb.removeEventListener('lostpointercapture', onEnd);
+                    dragging = false;
+                    bar.element.removeAttribute('data-dragging');
+                    linger();
+                };
+
+                bar.thumb.addEventListener('pointermove', onMove);
+                bar.thumb.addEventListener('pointerup', onEnd);
+                bar.thumb.addEventListener('pointercancel', onEnd);
+                bar.thumb.addEventListener('lostpointercapture', onEnd);
+            };
+
+            const onTrackDown = (event: PointerEvent): void => {
+                if (event.button !== 0) {
+                    return;
+                }
+
+                event.preventDefault();
+                const thumb = bar.thumb.getBoundingClientRect();
+
+                const delta = bar.vertical
+                    ? pageToward(event.clientY, thumb.top, thumb.bottom, viewport.clientHeight)
+                    : pageToward(event.clientX, thumb.left, thumb.right, viewport.clientWidth);
+
+                if (delta === 0) {
+                    return;
+                }
+
+                const behavior = reducedMotion() ? 'instant' : 'smooth';
+                viewport.scrollBy(bar.vertical ? { top: delta, behavior } : { left: delta, behavior });
+            };
+
+            bar.thumb.addEventListener('pointerdown', onThumbDown);
+            bar.element.addEventListener('pointerdown', onTrackDown);
+            bar.element.addEventListener('pointerenter', onBarEnter);
+            bar.element.addEventListener('pointerleave', onBarLeave);
+
+            return () => {
+                bar.thumb.removeEventListener('pointerdown', onThumbDown);
+                bar.element.removeEventListener('pointerdown', onTrackDown);
+                bar.element.removeEventListener('pointerenter', onBarEnter);
+                bar.element.removeEventListener('pointerleave', onBarLeave);
+            };
+        });
+
+        // A document without layout, such as a test's, has no observers; the bars then follow the scroll alone.
+        const sizes = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(layout);
+        sizes?.observe(viewport);
+
+        const observeContent = (): void => {
+            for (const child of viewport.children) {
+                sizes?.observe(child);
+            }
+        };
+
+        // A row added to the content changes what scrolls without resizing the rows already observed.
+        const content =
+            typeof MutationObserver === 'undefined'
+                ? null
+                : new MutationObserver(() => {
+                      observeContent();
+                      layout();
+                  });
+
+        content?.observe(viewport, { childList: true });
+        observeContent();
+        viewport.setAttribute(OVERLAY_ATTRIBUTE, '');
+        viewport.addEventListener('scroll', onScroll, { passive: true });
+        viewport.addEventListener('pointerenter', onViewportEnter);
+        viewport.addEventListener('pointerleave', onViewportLeave);
+        layout();
+
+        return () => {
+            for (const release of pressHandlers) {
+                release();
+            }
+
+            sizes?.disconnect();
+            content?.disconnect();
+            window.clearTimeout(lingerTimer);
+            viewport.removeAttribute(OVERLAY_ATTRIBUTE);
+            viewport.removeEventListener('scroll', onScroll);
+            viewport.removeEventListener('pointerenter', onViewportEnter);
+            viewport.removeEventListener('pointerleave', onViewportLeave);
+        };
+    }, [viewport, vertical, horizontal]);
+
+    return (
+        <>
+            {axis !== 'x' && (
+                <div ref={setVertical} aria-hidden className="ade-scrollbar" data-orientation="vertical">
+                    <div className="ade-scrollbar-thumb" />
+                </div>
+            )}
+            {axis !== 'y' && (
+                <div ref={setHorizontal} aria-hidden className="ade-scrollbar" data-orientation="horizontal">
+                    <div className="ade-scrollbar-thumb" />
+                </div>
+            )}
+        </>
+    );
+}
