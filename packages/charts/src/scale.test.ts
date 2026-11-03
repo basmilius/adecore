@@ -119,6 +119,21 @@ describe('the axes of a point chart', () => {
         expect(pointXScale('linear', [13, 47], [0, 100], { min: 0 }).domain).toEqual([0, 50]);
     });
 
+    test.each([
+        [1e16, 1e16 + 4, 1],
+        [0, 1e12, 0.001],
+        [0, 1, Number.MIN_VALUE],
+        [-1, 1, Infinity]
+    ])('bounds ticks for the domain %s to %s with step %s', (min, max, step) => {
+        const scale = yScaleOf('linear', [min, max], { min, max, step }, [200, 0], 5);
+
+        expect(scale.domain).toEqual([min, max]);
+        expect(scale.ticks.length).toBeLessThanOrEqual(20);
+        expect(scale.ticks.every(Number.isFinite)).toBe(true);
+        expect(new Set(scale.ticks).size).toBe(scale.ticks.length);
+        expect(scale.ticks.every((tick, i) => i === 0 || tick > scale.ticks[i - 1]!)).toBe(true);
+    });
+
     test('a value axis with a step ticks on it and leaves zero out where points need no ground', () => {
         const scale = yScaleOf('linear', [23, 71], { step: 10 }, [100, 0], 5, false);
         expect(scale.domain).toEqual([20, 80]);

@@ -87,7 +87,7 @@ export interface YAxisScale {
 }
 
 /* Ticks every `step` from `low` to `high`, both rounded out to it. */
-function steppedScale(low: number, high: number, step: number, options: ChartYOptions, range: [number, number]): YAxisScale {
+function steppedScale(low: number, high: number, step: number, options: ChartYOptions, range: [number, number], count: number): YAxisScale | null {
     const start = options.min ?? Math.floor(low / step) * step;
     let end = options.max ?? Math.ceil(high / step) * step;
 
@@ -95,11 +95,24 @@ function steppedScale(low: number, high: number, step: number, options: ChartYOp
         end = start + step;
     }
 
+    const first = Math.ceil(start / step) * step;
+    const intervals = Math.floor((end - first) / step + 1e-6);
+
+    if (!Number.isFinite(first) || !Number.isSafeInteger(intervals) || first + step === first) {
+        return null;
+    }
+
+    const limit = Math.max(2, Math.min(1024, Number.isFinite(count) ? Math.ceil(count) * 4 : 20));
+    const stride = Math.max(1, Math.ceil(intervals / (limit - 1)));
     const scale = scaleLinear().domain([start, end]).range(range);
     const ticks: number[] = [];
 
-    for (let tick = Math.ceil(start / step) * step; tick <= end + step / 1e6; tick += step) {
-        ticks.push(Number(tick.toFixed(10)));
+    for (let i = 0; i <= intervals; i += stride) {
+        const tick = Number((first + i * step).toFixed(10));
+
+        if (Number.isFinite(tick) && (ticks.length === 0 || tick > ticks[ticks.length - 1]!)) {
+            ticks.push(tick);
+        }
     }
 
     return { domain: [start, end], ticks, at: (value) => scale(value) };
@@ -143,8 +156,12 @@ export function yScaleOf(
     const floor = ground ? 0 : (extent?.[0] ?? 0);
     const ceiling = ground ? 0 : (extent?.[1] ?? 0);
 
-    if (options.step !== undefined && options.step > 0) {
-        return steppedScale(Math.min(floor, extent?.[0] ?? 0), Math.max(ceiling, extent?.[1] ?? 0), options.step, options, range);
+    if (options.step !== undefined && Number.isFinite(options.step) && options.step > 0) {
+        const stepped = steppedScale(Math.min(floor, extent?.[0] ?? 0), Math.max(ceiling, extent?.[1] ?? 0), options.step, options, range, count);
+
+        if (stepped !== null) {
+            return stepped;
+        }
     }
 
     let low = options.min ?? Math.min(floor, extent?.[0] ?? 0);
@@ -173,7 +190,7 @@ export function yScaleOf(
 
     const domain: [number, number] = [options.min ?? low, options.max ?? high];
     scale.domain(domain);
-    let ticks = scale.ticks(count);
+    let ticks = [...new Set(scale.ticks(count))];
 
     if (options.integer === true) {
         ticks = ticks.filter((tick) => Number.isInteger(tick));
