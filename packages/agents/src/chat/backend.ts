@@ -244,6 +244,11 @@ export interface ChatBackend {
      * about the launch (account, folders, project configuration) ever comes this way.
      */
     reconfigure?(change: BackendChange): Promise<boolean>;
+    /*
+     * Whether the process runs on something its host changed since it started and only a new process takes in, such as
+     * an output limit in its environment. A chat asks before a turn and replaces the process while nothing runs in it.
+     */
+    outdated?(change: BackendChange): boolean;
     // Turns down a request the CLI still holds after a person stopped the turn, for a protocol that leaves one open past it.
     declineRequest?(requestId: string, message: string): boolean;
     // Drops an asynchronous question without telling the CLI, for a protocol that keeps one waiting.

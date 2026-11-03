@@ -2321,6 +2321,11 @@ export class ChatSession {
             return this.reconfiguring.done;
         }
 
+        // Work still running in an outdated process keeps it, so a change of the host never holds back a turn.
+        if (this.backend?.outdated?.({ selection: this.info.selection, runtimeMode: this.info.runtimeMode }) === true && !this.processInUse()) {
+            this.replaceProcess = true;
+        }
+
         if (this.backend && this.requiresReplacement()) {
             if (this.processInUse()) {
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));

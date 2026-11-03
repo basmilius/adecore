@@ -7,11 +7,12 @@ import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 
-// `reconfigure` is what the backend answers a change it is asked to take in place; absent, it has no such call.
+// `reconfigure` is what the backend answers a change it is asked to take in place; absent, it has no such call. `outdated` likewise.
 function replacementRig(
     provider = claudeProvider,
     options: Partial<ChatSessionOptions> = {},
-    reconfigure?: (change: BackendChange) => boolean | Promise<boolean>
+    reconfigure?: (change: BackendChange) => boolean | Promise<boolean>,
+    outdated?: (change: BackendChange) => boolean
 ) {
     let folders: readonly string[] = [];
     let failNextStart = false;
@@ -69,7 +70,8 @@ function replacementRig(
                                   return reconfigure(change);
                               }
                           }
-                        : {})
+                        : {}),
+                    ...(outdated ? { outdated } : {})
                 };
 
                 return backend;
@@ -904,6 +906,48 @@ describe('a settings change a running process takes in place', () => {
             await run.session.dispose();
         });
     }
+});
+
+describe('a process its host calls outdated', () => {
+    test('is replaced before the next turn, which resumes the native session', async () => {
+        let stale = false;
+        const run = replacementRig(
+            claudeProvider,
+            {},
+            () => true,
+            () => stale
+        );
+        run.session.send('first');
+        await flush();
+        run.event({ type: 'session', agentSessionId: 'native-session', model: null });
+        run.done();
+        await flush();
+        stale = true;
+        run.session.send('second');
+        await flush();
+        expect(run.instances).toHaveLength(2);
+        expect(run.instances[0]!.stopped).toBe(true);
+        expect(run.instances[1]!.launch.resume).toBe('native-session');
+        expect(run.instances[1]!.sent.map((input) => input.text)).toEqual(['second']);
+        expect(run.changes).toEqual([]);
+        await run.session.dispose();
+    });
+
+    test('keeps running while work goes on in it, and the turn is not held back', async () => {
+        let stale = false;
+        const run = replacementRig(claudeProvider, {}, undefined, () => stale);
+        run.session.send('first');
+        await flush();
+        run.agent();
+        run.done();
+        await flush();
+        stale = true;
+        run.session.send('second');
+        await flush();
+        expect(run.instances).toHaveLength(1);
+        expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first', 'second']);
+        await run.session.dispose();
+    });
 });
 
 describe('a message sent while a settings change waits', () => {
