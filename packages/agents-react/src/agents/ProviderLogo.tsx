@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import type { UsageProvider } from '@adecore/agent-contracts';
-import { PROVIDER_PATHS } from './provider-paths';
+import { PROVIDER_PATHS, providerFillRule } from './provider-paths';
 
 interface ProviderLogoProps {
     provider: UsageProvider;
@@ -14,7 +14,7 @@ const VIEW_BOX = '0 0 24 24';
 export function ProviderLogo({ provider, size = 14, className }: ProviderLogoProps) {
     return (
         <svg aria-hidden viewBox={VIEW_BOX} width={size} height={size} fill="currentColor" className={clsx('shrink-0', className)}>
-            <path d={PROVIDER_PATHS[provider]} />
+            <path d={PROVIDER_PATHS[provider]} fillRule={providerFillRule(provider)} />
         </svg>
     );
 }

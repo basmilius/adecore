@@ -9,6 +9,7 @@ import { PROVIDER_PATHS } from './provider-paths';
 // simple-icons removed OpenAI's mark at its request, so Codex reuses the usage page's path.
 const BUILT_IN_MARKS: Partial<Record<AgentKind, AgentMark>> = {
     claude: siClaude,
+    'anthropic-claude-api': { title: 'Claude API', path: PROVIDER_PATHS['anthropic-claude-api'], fillRule: 'evenodd' },
     codex: { title: 'Codex', path: PROVIDER_PATHS.codex },
     grok: { title: 'Grok', path: PROVIDER_PATHS.grok },
     gemini: siGooglegemini,
@@ -32,7 +33,7 @@ export function AgentIcon({ kind, size = 14, className }: { kind: AgentKind; siz
             fill="currentColor"
             className={clsx('align-middle', className)}
         >
-            <path d={mark.path} />
+            <path d={mark.path} fillRule={mark.fillRule ?? 'nonzero'} />
         </svg>
     );
 }

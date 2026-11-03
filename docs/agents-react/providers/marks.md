@@ -27,4 +27,4 @@ configureAgentMarks({
 });
 ```
 
-An `AgentMark` is one SVG `path` in `currentColor`, with a `title` for screen readers and an optional `viewBox` (`0 0 24 24` by default). A mark for a built-in kind replaces it. A later call replaces the whole set.
+An `AgentMark` is one SVG `path` in `currentColor`, with a `title` for screen readers, an optional `viewBox` (`0 0 24 24` by default) and an optional `fillRule`: `evenodd` for a path whose holes are subpaths inside its shape, as the built-in mark of `anthropic-claude-api` is. A mark for a built-in kind replaces it. A later call replaces the whole set.

@@ -8,6 +8,8 @@ export interface AgentMark {
     path: string;
     /* `0 0 24 24` when absent. */
     viewBox?: string;
+    /* `evenodd` for a path whose holes are subpaths inside its shape; `nonzero` when absent. */
+    fillRule?: 'nonzero' | 'evenodd';
 }
 
 let hostMarks: Readonly<Partial<Record<AgentKind, AgentMark>>> = {};
