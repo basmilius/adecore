@@ -44,7 +44,7 @@ export function SubagentTimeline({
 }) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
-    const { commandLooks } = useChatHost();
+    const { commandLooks, toolLooks } = useChatHost();
     const { trail, show } = useSubagentTrail(chatId);
     const [state, setState] = useState<SubagentConversationState>(INITIAL_CONVERSATION);
     const controller = useRef<SubagentConversation | null>(null);
@@ -89,6 +89,7 @@ export function SubagentTimeline({
         expandedSubagents: subagents.ids,
         activeTurnId: null,
         commandLooks,
+        toolLooks,
         hideTools
     });
 

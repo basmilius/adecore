@@ -15,13 +15,13 @@ import type {
     ChatWorkflow
 } from '@adecore/agent-contracts';
 import { abortedByMachine } from '@adecore/agent-contracts';
-import type { CommandLook, CommandLookSent, ThreadCard } from '../../host';
+import type { CommandLook, CommandLookSent, ThreadCard, ToolLook } from '../../host';
 import { formatElapsedShort } from '@adecore/ui/format';
-import { matchCommandLook, sentMessageOf } from './command-looks';
+import { lookKey, lookRunOf, sentMessageOf, type Look } from './command-looks';
 import { isImageGeneration } from './generated-image';
 import { handbackReportOf } from './handback';
 import { toolEntry } from './tool-catalog';
-import { hasFileChanges, isFileChange, shellCommand } from './tools';
+import { hasFileChanges, isFileChange } from './tools';
 
 /* A subagent's row: the work the thread kept of it, and the agents it opened in turn, each a row of its own under it. */
 export interface SubagentBranch {
@@ -46,7 +46,7 @@ export type TimelineRow =
     | { kind: 'thinking'; id: string; item: ChatThinkingItem }
     | { kind: 'work'; id: string; tool: ChatToolItem }
     // `look` is set when every call is a run of that look and the summary is its sentence.
-    | { kind: 'work-group'; id: string; tools: ChatToolItem[]; summary: string; expanded: boolean; look?: CommandLook }
+    | { kind: 'work-group'; id: string; tools: ChatToolItem[]; summary: string; expanded: boolean; look?: Look }
     | { kind: 'work-live'; id: string; tool: ChatToolItem }
     // The latest thought of a running turn, repeated over the call it led to; `at` is when that call began.
     | { kind: 'live-thought'; id: string; item: ChatThinkingItem; at: number }
@@ -89,6 +89,8 @@ interface TimelineOptions {
     forkedTurns?: ReadonlySet<string>;
     /* The host's programs drawn as tools of their own, whose runs read as their own sentences. */
     commandLooks?: readonly CommandLook[];
+    /* The host's MCP servers drawn as tools of their own, read the same way. */
+    toolLooks?: readonly ToolLook[];
     /* Leaves out the tool lines and their groups, while a settled turn still says how long it worked. */
     hideTools?: boolean;
 }
@@ -112,17 +114,20 @@ export function isBlock(row: TimelineRow): boolean {
 }
 
 /*
- * The sentence of a run of shell calls that are all runs of one look: its group's when they share a key,
- * else the look's own; null for any other run, which reads as shell calls.
+ * The sentence of a run of calls that are all runs of one look: its group's when they share a key,
+ * else the look's own; null for any other run, which reads as its calls.
  */
-function lookSummary(tools: readonly ChatToolItem[], looks: readonly CommandLook[] | undefined): { look: CommandLook; summary: string } | null {
-    let look: CommandLook | null = null;
+function lookSummary(
+    tools: readonly ChatToolItem[],
+    looks: readonly CommandLook[] | undefined,
+    toolLooks: readonly ToolLook[] | undefined
+): { look: Look; summary: string } | null {
+    let look: Look | null = null;
     let group: { key: string; sentence(count: number): string } | undefined;
     let sameKey = true;
 
     for (const tool of tools) {
-        const command = shellCommand(tool.name, tool.input);
-        const run = command === null ? null : matchCommandLook(command, looks);
+        const run = lookRunOf(tool, looks, toolLooks);
 
         if (run === null || (look !== null && run.look !== look)) {
             return null;
@@ -130,8 +135,8 @@ function lookSummary(tools: readonly ChatToolItem[], looks: readonly CommandLook
 
         if (look === null) {
             look = run.look;
-            group = run.match.group;
-        } else if (run.match.group?.key !== group?.key) {
+            group = run.group;
+        } else if (run.group?.key !== group?.key) {
             sameKey = false;
         }
     }
@@ -148,8 +153,8 @@ function lookSummary(tools: readonly ChatToolItem[], looks: readonly CommandLook
 }
 
 /* "Read 4 files", "Ran 2 commands", "12 tool calls" when the run mixes kinds, or the sentence of a look all its calls are runs of. */
-export function summarizeGroup(tools: ChatToolItem[], looks?: readonly CommandLook[]): string {
-    const looked = lookSummary(tools, looks);
+export function summarizeGroup(tools: ChatToolItem[], looks?: readonly CommandLook[], toolLooks?: readonly ToolLook[]): string {
+    const looked = lookSummary(tools, looks, toolLooks);
 
     if (looked !== null) {
         return looked.summary;
@@ -191,7 +196,7 @@ function editedPath(tool: ChatToolItem): string {
  * "Searched 2 patterns". Every file change reads as one sentence, and calls without a sentence of
  * their own are counted together at the end.
  */
-export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly CommandLook[]): string[] {
+export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly CommandLook[], toolLooks?: readonly ToolLook[]): string[] {
     // Keyed by the sentence, so its place is where the first call of that kind came.
     const counts = new Map<string, { count: number; say(count: number): string }>();
 
@@ -209,18 +214,17 @@ export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly C
     let other = 0;
 
     for (const tool of tools) {
-        const command = shellCommand(tool.name, tool.input);
-        const run = command === null ? null : matchCommandLook(command, looks);
-        const group = run?.match.group;
-        const sent = sentMessageOf(tool, looks);
+        const run = lookRunOf(tool, looks, toolLooks);
+        const group = run?.group;
+        const sent = sentMessageOf(tool, looks, toolLooks);
 
         if (sent !== null && sent.state !== 'failed') {
             add('agent-chat:group.sent', (count) => i18next.t('agent-chat:group.sent', { count }));
         } else if (sent !== null) {
             other += 1;
         } else if (run !== null && group !== undefined) {
-            // Keyed by the program too, so two looks with a key in common keep their own sentences.
-            add(`look:${run.look.program}:${group.key}`, group.sentence);
+            // Keyed by the look too, so two looks with a key in common keep their own sentences.
+            add(`look:${lookKey(run.look)}:${group.key}`, group.sentence);
         } else if (failedFileChange(tool)) {
             other += 1;
         } else if (isFileChange(tool.name)) {
@@ -362,7 +366,7 @@ function flushTools(buffer: ChatToolItem[], rows: TimelineRow[], options: Timeli
     const first = tools[0]!;
     const id = `group-${first.id}`;
     const expanded = options.expandedGroups.has(id);
-    const looked = lookSummary(tools, options.commandLooks);
+    const looked = lookSummary(tools, options.commandLooks, options.toolLooks);
 
     rows.push(
         looked === null
@@ -392,7 +396,7 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
         }
 
         const report = handbackReportOf(item);
-        const sent = item.kind === 'tool' ? sentMessageOf(item, options.commandLooks) : null;
+        const sent = item.kind === 'tool' ? sentMessageOf(item, options.commandLooks, options.toolLooks) : null;
 
         if (item.kind === 'tool' && sent !== null) {
             flushTools(tools, rows, options);
@@ -715,7 +719,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
                 id: `fold-${turnId}`,
                 turn,
                 label: turnLabel(turn, chunk.items),
-                work: summarizeTurn(tools, options.commandLooks),
+                work: summarizeTurn(tools, options.commandLooks, options.toolLooks),
                 hiddenCount: folded,
                 expanded,
                 expandable

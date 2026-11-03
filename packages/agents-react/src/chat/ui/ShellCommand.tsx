@@ -192,8 +192,19 @@ function drawNamed(command: string, runs: readonly Run[] | null, names: readonly
  * `python3 -c` argument, a heredoc) in its own language. Plain text until the grammars are in, which
  * changes no size; a command past the limit stays plain. `code` adds stretches whose language the
  * caller knows, and `names` draws words as the names a host gave them, both as offsets into `command`.
+ * `plain` draws text that is no shell source uncolored, with its names.
  */
-export function ShellCommand({ command, code = NO_CODE, names = NO_NAMES }: { command: string; code?: readonly EmbeddedCode[]; names?: readonly NamedWord[] }) {
+export function ShellCommand({
+    command,
+    code = NO_CODE,
+    names = NO_NAMES,
+    plain = false
+}: {
+    command: string;
+    code?: readonly EmbeddedCode[];
+    names?: readonly NamedWord[];
+    plain?: boolean;
+}) {
     // The highlighter's cache fills in place; compiled, the runs it gave before its grammars loaded would stay.
     'use no memo';
     const theme = useCodeTheme();
@@ -201,11 +212,11 @@ export function ShellCommand({ command, code = NO_CODE, names = NO_NAMES }: { co
     const highlighter = useCodeHighlighter();
     // Bumped when a load settles, so the cache is asked again.
     const [, setLoads] = useState(0);
-    const tooLong = command.length > EMBEDDED_CODE_LIMIT;
-    const runs = tooLong ? null : highlight(command, code, theme, highlighter);
+    const uncolored = plain || command.length > EMBEDDED_CODE_LIMIT;
+    const runs = uncolored ? null : highlight(command, code, theme, highlighter);
 
     useEffect(() => {
-        if (runs !== null || tooLong) {
+        if (runs !== null || uncolored) {
             return;
         }
 
@@ -218,7 +229,7 @@ export function ShellCommand({ command, code = NO_CODE, names = NO_NAMES }: { co
         return () => {
             cancelled = true;
         };
-    }, [highlighter, command, code, theme, custom, runs, tooLong]);
+    }, [highlighter, command, code, theme, custom, runs, uncolored]);
 
     if (names.length > 0) {
         return <>{drawNamed(command, runs, names)}</>;

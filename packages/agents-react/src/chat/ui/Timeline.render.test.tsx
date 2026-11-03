@@ -3,7 +3,7 @@ import { act, Profiler } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
-import { ChatHostProvider, type ChatHost, type CommandLook } from '../../host';
+import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { Timeline } from './Timeline';
@@ -558,6 +558,41 @@ test('without looks every shell run reads as a command group', async () => {
             expect(page.host.querySelector('[data-mark]')).toBeNull();
         },
         { items: shellThread() }
+    );
+});
+
+test('a call of a tool look reads as its tool, with the host names for its values', async () => {
+    const PROBES: ToolLook = {
+        server: 'orbit',
+        brand: 'Orbit',
+        Mark: ({ size }) => <svg data-mark="orbit" width={size} height={size} />,
+        describe: (name) => (name === 'probe_launch' ? { label: 'Probe', lead: 'launch' } : null),
+        useNames: () => (word, option) => (word === 'probe-1' && option === 'probe' ? { name: 'Main Deck' } : null)
+    };
+
+    const call: ChatItem = {
+        id: 'probe',
+        kind: 'tool',
+        createdAt: 1,
+        turnId: null,
+        toolUseId: 'probe',
+        name: 'mcp__orbit__probe_launch',
+        input: { probe: 'probe-1', wait: 5 },
+        output: '',
+        state: 'done',
+        parentToolUseId: null
+    };
+
+    await mounted(
+        { rowHeights: [40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            const group = page.host.querySelector<HTMLButtonElement>('[aria-expanded="false"]')!;
+            await act(async () => group.click());
+            expect(linesOf(page.host)).toContain('*Orbit* Probelaunch probe=Main Deck(probe-1) wait=5');
+            expect(page.host.querySelectorAll('[data-mark="orbit"]').length).toBeGreaterThan(0);
+        },
+        { items: [call], host: { toolLooks: [PROBES] } }
     );
 });
 

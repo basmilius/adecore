@@ -1,6 +1,7 @@
 import type { ChatToolItem } from '@adecore/agent-contracts';
-import type { CommandLook, CommandLookMatch, CommandLookSent } from '../../host';
+import type { CommandLook, CommandLookMatch, CommandLookSent, ToolLook } from '../../host';
 import { EMBEDDED_CODE_LIMIT, shellCommands, type EmbeddedCode, type ShellSimpleCommand, type ShellWord } from './embedded-code';
+import { matchToolLook } from './tool-looks';
 import { shellCommand } from './tools';
 
 // A folded value keeps this many characters of what it says.
@@ -18,12 +19,18 @@ export interface CommandLookWord {
     readonly option: string | null;
 }
 
-/* A shell call read as a tool of its own: the first command of the line a look knows. */
-export interface CommandLookRun {
-    readonly look: CommandLook;
-    readonly match: CommandLookMatch;
-    /* The source from the detail word on, as typed, without redirects and with folded values shortened. */
+/* A look of the host's own: a program in a shell call, or an MCP server. */
+export type Look = CommandLook | ToolLook;
+
+/* A call read as a look's tool, as its row draws it, whether a shell line or an MCP call. */
+export interface LookRun {
+    readonly look: Look;
+    readonly label: string;
+    readonly group?: { key: string; sentence(count: number): string };
+    /* What follows the label: the source from the detail word on, or the fields of an MCP call, with long values shortened. */
     readonly detail: string;
+    /* Whether the detail is shell source, drawn in the colors of the code theme. */
+    readonly shell: boolean;
     /* The values the match names a language for, as offsets into the detail. */
     readonly code: readonly EmbeddedCode[];
     /* The words of the detail that are no option. */
@@ -34,6 +41,12 @@ export interface CommandLookRun {
     readonly more: number;
     /* Whether the command is fed a heredoc, which the detail leaves out. */
     readonly heredoc: boolean;
+}
+
+/* A shell call read as a tool of its own: the first command of the line a look knows. */
+export interface CommandLookRun extends LookRun {
+    readonly look: CommandLook;
+    readonly match: CommandLookMatch;
     /* The words after the program, quotes taken out. */
     readonly args: readonly string[];
     /* The lines of its one heredoc, or null without one, with more, or with one the shell fills in. */
@@ -190,6 +203,9 @@ function read(command: string, looks: readonly CommandLook[]): CommandLookRun | 
     return {
         look: found.look,
         match: found.match,
+        label: found.match.label,
+        group: found.match.group,
+        shell: true,
         ...detailOf(command, found.command, found.match),
         others,
         more,
@@ -233,14 +249,39 @@ export function matchCommandLook(command: string, looks: readonly CommandLook[] 
     return run;
 }
 
-/* The message a shell call sent, per its look: only for a line that is exactly that one call, whose words are all known. */
-export function sentMessageOf(tool: ChatToolItem, looks: readonly CommandLook[] | undefined): CommandLookSent | null {
+/* The look a call runs under, a program of its shell line before an MCP server, or null for a call no look knows. */
+export function lookRunOf(tool: ChatToolItem, commandLooks: readonly CommandLook[] | undefined, toolLooks: readonly ToolLook[] | undefined): LookRun | null {
+    const command = shellCommand(tool.name, tool.input);
+
+    return (command === null ? null : matchCommandLook(command, commandLooks)) ?? matchToolLook(tool, toolLooks);
+}
+
+/* What tells looks apart where two may share a group key: the program, or the server. */
+export function lookKey(look: Look): string {
+    return 'program' in look ? `program:${look.program}` : `server:${look.server}`;
+}
+
+/*
+ * The message a call sent, per its look: for a shell line only when it is exactly that one call, whose
+ * words are all known; for an MCP call whenever its look reads one from it.
+ */
+export function sentMessageOf(tool: ChatToolItem, looks: readonly CommandLook[] | undefined, toolLooks?: readonly ToolLook[]): CommandLookSent | null {
     const command = shellCommand(tool.name, tool.input);
     const run = command === null ? null : matchCommandLook(command, looks);
 
-    if (run === null || run.look.sent === undefined || run.others.length > 0 || run.more > 0 || run.expands) {
+    if (run !== null) {
+        if (run.look.sent === undefined || run.others.length > 0 || run.more > 0 || run.expands) {
+            return null;
+        }
+
+        return run.look.sent({ args: run.args, heredoc: run.heredocText, state: tool.state, output: tool.output });
+    }
+
+    const called = matchToolLook(tool, toolLooks);
+
+    if (called === null || called.look.sent === undefined) {
         return null;
     }
 
-    return run.look.sent({ args: run.args, heredoc: run.heredocText, state: tool.state, output: tool.output });
+    return called.look.sent({ tool: called.call.tool, input: called.call.input, state: tool.state, output: called.call.output });
 }

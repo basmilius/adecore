@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronRight, FileDiff, X } from 'lucide-react';
 import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import type { BaseMoved } from '../../logic/timeline';
-import { matchCommandLook, type CommandLookRun } from '../../logic/command-looks';
+import { lookKey, lookRunOf, type Look, type LookRun } from '../../logic/command-looks';
 import {
     exitCodeOf,
     fileChanges,
@@ -22,7 +22,7 @@ import {
     type FileChange
 } from '../../logic/tools';
 import { useOpenForFind } from '../find-reveal';
-import { useChatHost, type CommandLook } from '../../../host';
+import { useChatHost, type CommandLook, type ToolLook } from '../../../host';
 import { useCommandNames } from '../../../host-hooks';
 import { lazyNamed } from '../../../lazy';
 import { useChatActions } from '../../actions';
@@ -75,12 +75,12 @@ function withBrand(text: string, brands: readonly string[]): ReactNode {
     return text;
 }
 
-function hasNames(look: CommandLook): look is CommandLook & Required<Pick<CommandLook, 'useNames'>> {
+function hasNames(look: Look): look is Look & Required<Pick<Look, 'useNames'>> {
     return look.useNames !== undefined;
 }
 
 /* The detail of a look's run, with the words its host names drawn as those names. */
-function NamedLookDetail({ run, chatId, look }: { run: CommandLookRun; chatId: string; look: Required<Pick<CommandLook, 'useNames'>> }) {
+function NamedLookDetail({ run, chatId, look }: { run: LookRun; chatId: string; look: Required<Pick<Look, 'useNames'>> }) {
     const scope = useContext(ChatScopeContext);
     const nameOf = useCommandNames(look, scope?.id ?? '', chatId);
 
@@ -90,24 +90,24 @@ function NamedLookDetail({ run, chatId, look }: { run: CommandLookRun; chatId: s
         return name === null ? [] : [{ start: word.start, end: word.end, word: word.text, name }];
     });
 
-    return <ShellCommand command={run.detail} code={run.code} names={names} />;
+    return <ShellCommand command={run.detail} code={run.code} names={names} plain={!run.shell} />;
 }
 
-function LookDetail({ run, chatId }: { run: CommandLookRun; chatId: string }) {
+function LookDetail({ run, chatId }: { run: LookRun; chatId: string }) {
     const { look } = run;
 
     if (!hasNames(look)) {
-        return <ShellCommand command={run.detail} code={run.code} />;
+        return <ShellCommand command={run.detail} code={run.code} plain={!run.shell} />;
     }
 
     // Keyed by the look, so a row whose command turns into another look's starts its hooks again.
-    return <NamedLookDetail key={look.program} run={run} chatId={chatId} look={look} />;
+    return <NamedLookDetail key={lookKey(look)} run={run} chatId={chatId} look={look} />;
 }
 
 const TAG = 'shrink-0 rounded bg-surface-hover px-1.5 text-text-faint';
 
 /* What else the line ran, in quiet tags: the other programs and a heredoc, and how many more runs of a look. */
-function LookTags({ run }: { run: CommandLookRun }) {
+function LookTags({ run }: { run: LookRun }) {
     const { t } = useTranslation('agent-chat');
     const also = run.heredoc ? [...run.others, t('work.heredoc')] : run.others;
 
@@ -146,8 +146,8 @@ export function ToggleLine({
     detail?: string;
     /* Draws `detail` as a shell command, in the colors of the code theme. */
     command?: boolean;
-    /* A shell call read as a look's tool, whose detail and tags take the place of `detail`. */
-    look?: { run: CommandLookRun; chatId: string };
+    /* A call read as a look's tool, whose detail and tags take the place of `detail`. */
+    look?: { run: LookRun; chatId: string };
     /* `detail` is the path of a file, cut in the middle so its name stays in sight. */
     path?: boolean;
     open?: boolean;
@@ -458,13 +458,13 @@ export function WorkRow({
     const summary = detail ?? toolSummary(tool.name, tool.input);
     const opens = hasToolBody(tool);
     const shell = shellCommand(tool.name, tool.input);
-    const run = detail === undefined && icon === undefined && label === undefined && shell !== null ? matchCommandLook(shell, host.commandLooks) : null;
+    const run = detail === undefined && icon === undefined && label === undefined ? lookRunOf(tool, host.commandLooks, host.toolLooks) : null;
 
     return (
         <div data-find-item={tool.id} className={nested ? 'ml-6' : undefined}>
             <ToggleLine
                 icon={run === null ? (icon ?? toolIcon(tool.name)) : <run.look.Mark size={12} />}
-                label={run === null ? (label ?? tool.name) : run.match.label}
+                label={run === null ? (label ?? tool.name) : run.label}
                 brand={run?.look.brand}
                 detail={summary}
                 look={run === null ? undefined : { run, chatId: chatId ?? '' }}
@@ -489,10 +489,9 @@ export function RunningFor({ startedAt }: { startedAt: number }) {
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
-/* The mark of one call: the look its shell command runs under, else what the tool is about. */
-function callIcon(tool: ChatToolItem, commandLooks: readonly CommandLook[] | undefined): ReactNode {
-    const shell = shellCommand(tool.name, tool.input);
-    const run = shell === null ? null : matchCommandLook(shell, commandLooks);
+/* The mark of one call: the look it runs under, else what the tool is about. */
+function callIcon(tool: ChatToolItem, commandLooks: readonly CommandLook[] | undefined, toolLooks: readonly ToolLook[] | undefined): ReactNode {
+    const run = lookRunOf(tool, commandLooks, toolLooks);
 
     return run === null ? toolIcon(tool.name) : <run.look.Mark size={12} />;
 }
@@ -504,9 +503,8 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
     const tail = liveOutput(tool);
     const summary = toolSummary(tool.name, tool.input);
     const opens = hasToolBody(tool);
-    const shell = shellCommand(tool.name, tool.input);
-    const { commandLooks } = useChatHost();
-    const run = shell === null ? null : matchCommandLook(shell, commandLooks);
+    const { commandLooks, toolLooks } = useChatHost();
+    const run = lookRunOf(tool, commandLooks, toolLooks);
     const awaiting = useAwaitsApproval(chatId, tool.toolUseId);
     const { t } = useTranslation('agent-chat');
 
@@ -514,7 +512,7 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
         <div>
             <ToggleLine
                 icon={run === null ? toolIcon(tool.name) : <run.look.Mark size={12} />}
-                label={run === null ? tool.name : run.match.label}
+                label={run === null ? tool.name : run.label}
                 brand={run?.look.brand}
                 look={run === null ? undefined : { run, chatId }}
                 detail={summary || tool.progress?.description || ''}
@@ -551,12 +549,12 @@ export function WorkGroupRow({
 }: {
     tools: ChatToolItem[];
     summary: string;
-    look?: CommandLook;
+    look?: Look;
     expanded: boolean;
     onToggle(): void;
 }) {
     const { t } = useTranslation('agent-chat');
-    const { commandLooks } = useChatHost();
+    const { commandLooks, toolLooks } = useChatHost();
     const running = tools.filter((tool) => tool.state === 'running').length;
     const failed = tools.some((tool) => tool.state === 'error');
     const latest = tools.findLast((tool) => tool.state === 'running');
@@ -564,7 +562,9 @@ export function WorkGroupRow({
     return (
         <div>
             <ToggleLine
-                icon={latest !== undefined ? callIcon(latest, commandLooks) : look === undefined ? toolIcon(tools[0]!.name) : <look.Mark size={12} />}
+                icon={
+                    latest !== undefined ? callIcon(latest, commandLooks, toolLooks) : look === undefined ? toolIcon(tools[0]!.name) : <look.Mark size={12} />
+                }
                 label={
                     <span className="tabular-nums">
                         {running > 0 ? t('group.toolCalls', { count: tools.length }) : look?.brand === undefined ? summary : withBrand(summary, [look.brand])}
@@ -601,8 +601,8 @@ export function TurnFoldRow({
     expandable: boolean;
     onToggle(): void;
 }) {
-    const { commandLooks } = useChatHost();
-    const brands = commandLooks?.flatMap(({ brand }) => (brand === undefined ? [] : [brand])) ?? [];
+    const { commandLooks = [], toolLooks = [] } = useChatHost();
+    const brands = [...commandLooks, ...toolLooks].flatMap(({ brand }) => (brand === undefined ? [] : [brand]));
     const className = clsx(
         'group group/line -mx-1 mb-2 flex h-7 w-[calc(100%+8px)] min-w-0 items-center gap-2 rounded-md px-1 text-left text-xs text-text-muted',
         expandable && 'hover:bg-surface-hover',
@@ -906,13 +906,13 @@ function ProviderChangedFiles({
 /* "Working for 00:14", under the mark of the call running last; between calls, a spinner. */
 export function WorkingRow({ startedAt, tool }: { startedAt: number; tool?: ChatToolItem }) {
     const { t } = useTranslation('agent-chat');
-    const { commandLooks } = useChatHost();
+    const { commandLooks, toolLooks } = useChatHost();
     const ref = useTickingText(() => formatClockDuration(Date.now() - startedAt));
 
     return (
         <div className="-mx-1 mb-0.5 flex h-7 items-center gap-2 px-1 text-xs text-text-muted">
             <span className={clsx(ROW_GUTTER, tool === undefined ? 'text-status-running' : 'text-accent')}>
-                {tool === undefined ? <Spinner size={12} /> : callIcon(tool, commandLooks)}
+                {tool === undefined ? <Spinner size={12} /> : callIcon(tool, commandLooks, toolLooks)}
             </span>
             <span className="chat-live-text">{t('work.workingFor')}</span>
             <span ref={ref} className="tabular-nums" />

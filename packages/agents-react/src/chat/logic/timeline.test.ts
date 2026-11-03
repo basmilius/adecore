@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatItem, ChatSubagentItem, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import { notResumedNote } from '@adecore/agent-contracts';
-import type { CommandLook } from '../../host';
+import type { CommandLook, ToolLook } from '../../host';
 import { agentTurnLabel, deriveTimelineRows, findSubagentBranch, isBlock, summarizeGroup, summarizeTurn, turnLabel } from './timeline';
 
 function tool(id: string, name: string, input: unknown, state: ChatToolItem['state'] = 'done', turnId = 't1'): ChatToolItem {
@@ -838,5 +838,51 @@ describe('runs of a command look', () => {
         const calls = [tool('r', 'Read', {}), bash('1', 'orbit probe a'), bash('2', 'ls'), bash('3', 'orbit probe b'), bash('4', 'orbit link c')];
         expect(summarizeTurn(calls, LOOKS)).toEqual(['Read 1 file', 'Used Orbit probe 2 times', 'Ran 1 command', 'Used Orbit link 1 times']);
         expect(summarizeTurn(calls)).toEqual(['Read 1 file', 'Ran 4 commands']);
+    });
+});
+
+describe('runs of a tool look', () => {
+    /* An invented MCP server whose tools are `<area>_<action>`, with `say` a message. */
+    const ORBIT: ToolLook = {
+        server: 'orbit',
+        brand: 'Orbit',
+        Mark: () => null,
+        describe: (name) => {
+            const area = name.split('_')[0]!;
+
+            return { label: area, group: { key: area, sentence: (count) => `Used Orbit ${area} ${count} times` } };
+        },
+        sentence: (count) => `Used Orbit ${count} times`,
+        sent: ({ tool: name, input }) => (name === 'say' && typeof input.text === 'string' ? { to: 'chat-b', text: input.text, state: 'delivered' } : null)
+    };
+
+    const LOOKS = [ORBIT];
+
+    const loose = (calls: ChatToolItem[]): ChatItem[] => calls.map((call) => ({ ...call, turnId: null }));
+
+    test('calls in the shapes of different CLIs read as one look', () => {
+        const calls = [tool('1', 'mcp__orbit__probe_send', {}), tool('2', 'orbit/probe_list', {}), tool('3', 'Tool', { description: 'orbit-probe_stop' })];
+        expect(summarizeGroup(calls, [], LOOKS)).toBe('Used Orbit probe 3 times');
+        expect(summarizeGroup([calls[0]!, tool('4', 'mcp__orbit__link_new', {})], [], LOOKS)).toBe('Used Orbit 2 times');
+        expect(summarizeGroup(calls)).toBe('3 tool calls');
+        const rows = deriveTimelineRows(loose(calls), { ...options, toolLooks: LOOKS });
+        expect(rows).toEqual([expect.objectContaining({ kind: 'work-group', summary: 'Used Orbit probe 3 times', look: ORBIT })]);
+    });
+
+    test('a message is a row of its own and counts in a folded turn', () => {
+        const turn: ChatItem[] = [
+            { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 13_000, costUsd: 0 },
+            tool('1', 'mcp__orbit__probe_send', {}),
+            tool('2', 'mcp__orbit__say', { text: 'on it' }),
+            { id: 'a1', kind: 'assistant', createdAt: 5000, turnId: 't1', text: 'Done.', streaming: false }
+        ];
+
+        expect(deriveTimelineRows(loose(turn.slice(2, 3) as ChatToolItem[]), { ...options, toolLooks: LOOKS })).toEqual([
+            expect.objectContaining({ kind: 'sent', sent: { to: 'chat-b', text: 'on it', state: 'delivered' } })
+        ]);
+        expect(deriveTimelineRows(turn, { ...options, toolLooks: LOOKS })[0]).toMatchObject({
+            kind: 'turn-fold',
+            work: ['Used Orbit probe 1 times', 'Sent 1 message']
+        });
     });
 });

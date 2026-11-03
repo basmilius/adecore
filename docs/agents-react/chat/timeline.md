@@ -63,6 +63,44 @@ A program matches only where the shell runs it, by its last path segment, so `gr
 
 The opened call still shows the whole command. `matchCommandLook(command, looks)` returns what a row draws, for a find of your own.
 
+### MCP servers as tools
+
+An agent that calls a tool of your own MCP server shows the name its CLI gives it. To draw those calls as tools of your own, hand the host a `toolLooks` list with one `ToolLook` per server. `describe` gets the tool's name on its server and the arguments it got, and returns the label, a `lead` and the `fields` to show.
+
+```tsx
+import type { ToolLook } from '@adecore/agents-react';
+
+const DEPLOY_SERVER: ToolLook = {
+    server: 'deploy',
+    brand: 'Deploy',
+    Mark: ({ size }) => <RocketIcon size={size} />,
+    describe: (tool) =>
+        tool.startsWith('site_')
+            ? {
+                  label: 'Site',
+                  lead: tool.slice(5),
+                  fields: ['site', 'message'],
+                  group: { key: 'site', sentence: (count) => `Deployed ${count} times` }
+              }
+            : null,
+    useNames: () => (word, field) => (word === 'web-1' && field === 'site' ? { name: 'Website' } : null),
+    sent: ({ tool, input, state }) =>
+        tool === 'notify' && typeof input.to === 'string' && typeof input.text === 'string'
+            ? {
+                  to: input.to,
+                  text: input.text,
+                  state: state === 'running' ? 'sending' : state === 'error' ? 'failed' : 'delivered'
+              }
+            : null
+};
+```
+
+A call of `site_deploy` reads `Deploy Site deploy site=Website message="Ship it"`. Each value is a word `useNames` may name, with its field as the option. A long value is cut after 40 characters, and an object reads as `{…}`.
+
+- Every CLI's shape matches: `mcp__deploy__site_deploy`, `deploy/site_deploy`, and an ACP call titled `deploy__site_deploy`, `deploy_site_deploy` or `deploy-site_deploy`. `mcpCallOf(item, servers)` reads the server, the tool and its arguments out of any of them, with the answer taken out of the envelope a CLI wraps it in.
+- `group`, `sentence` and `sent` work as they do for a `CommandLook`. `sent` gets the tool, its input, its state and its answer.
+- A shell line goes to `commandLooks` first. `lookRunOf(item, commandLooks, toolLooks)` returns what a row draws for either, and `matchToolLook(item, toolLooks)` only for an MCP call.
+
 ## Reading width
 
 Inside a parent with the class `chat-column`, the rows and composer stand in a centered column. Its width is the person's reading width in the [chat preferences](/agents-react/guide/persistence): `narrow` (640px), `comfortable` (768px, default) or `full`. The right click menu offers them; a settings page can too, with `CHAT_READING_WIDTHS`, `readingWidthLabel`, `readingWidthHint` and `rememberReadingWidth` from `@adecore/agents-react/chat`. Without `chat-column` the thread takes the width it has. `SubagentTimeline` follows the same width.

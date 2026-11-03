@@ -291,10 +291,11 @@ export function Timeline({
                 activeTurnId,
                 forkedTurns,
                 commandLooks: host.commandLooks,
+                toolLooks: host.toolLooks,
                 hideTools
             }
         );
-    }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks, hideTools]);
+    }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks, host.toolLooks, hideTools]);
 
     const cards = useHostThreadCards(scopeId, chatId);
     const drawsVisuals = host.visuals !== null;

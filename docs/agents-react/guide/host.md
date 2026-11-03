@@ -58,6 +58,7 @@ export function Workspace() {
 | `useSendDelivery()` | `queue` | What Send does while a turn runs: `queue` waits for the turn to end, `steer` hands the message to the running turn. Option or Alt picks the other one. |
 | `useHidesToolCalls(scopeId, chatId)` | `false`                                          | Leave tool lines out of a thread and a subagent's work. Generated images and the turn's duration stay. |
 | `commandLooks`                     | Every shell call reads as itself                   | Programs of your own drawn as tools of their own in a thread. See [Programs as tools](/agents-react/chat/timeline#programs-as-tools). |
+| `toolLooks`                        | Every MCP call reads as its CLI names it           | MCP servers of your own whose tools are drawn as tools of their own. See [MCP servers as tools](/agents-react/chat/timeline#mcp-servers-as-tools). |
 | `useTimelineFind(options)`         | No find in a thread                                | Find in a thread: you get the rows and refs, you hand back a `TimelineFind` with the bar to draw.      |
 | `dictation`                        | `PlainTextarea`, no dictation button               | A `Textarea` for written answers, and an editor extension plus a control for the composer.             |
 | `prompts`                          | No prompts of your own                             | Approvals or questions of your own beside a chat's. See [Prompts](/agents-react/chat/prompts#prompts-of-your-own). |

@@ -327,6 +327,50 @@ export interface CommandLook {
     sent?(call: CommandLookCall): CommandLookSent | null;
 }
 
+/* What one call of a look's MCP server is about, as its look reads it from the tool and its input. */
+export interface ToolLookMatch {
+    /* Drawn where the tool name is, after the brand; empty draws the brand alone. */
+    label: string;
+    /* Words before the input, such as what the tool does. */
+    lead?: string;
+    /* The fields of the input drawn after the lead as `field=value`, in this order; left out, every field in the input's own order. */
+    fields?: readonly string[];
+    /* Calls with the same key read as one sentence in a group or a folded turn. */
+    group?: { key: string; sentence(count: number): string };
+}
+
+/* A call of a look's MCP server that may be a message, as `ToolLook.sent` gets it. */
+export interface ToolLookCall {
+    /* The tool's name on its server, without the server. */
+    readonly tool: string;
+    readonly input: Readonly<Record<string, unknown>>;
+    readonly state: 'running' | 'done' | 'error';
+    /* What the tool answered, out of any envelope the CLI wraps it in. */
+    readonly output: string | null;
+}
+
+/*
+ * An MCP server the app recognizes in a thread and draws as a tool of its own. A call of one of its tools
+ * matches whichever shape the CLI gives it: `mcp__<server>__<tool>`, `<server>/<tool>`, or a generic ACP
+ * call titled `<server>__<tool>`, `<server>_<tool>` or `<server>-<tool>`.
+ */
+export interface ToolLook {
+    /* The server's name, as the app registers it with the CLIs. */
+    server: string;
+    /* Drawn in semibold before every label of this look, such as a product name. */
+    brand?: string;
+    /* The mark in the gutter, drawn in `currentColor` at the size of a tool icon. */
+    Mark: ComponentType<{ size: number }>;
+    /* What one call is about, from the tool's name on its server and its input; null leaves it the CLI's own tool line. */
+    describe(tool: string, input: Readonly<Record<string, unknown>>): ToolLookMatch | null;
+    /* Calls of this look under different group keys, as one sentence; left out, such a run reads as tool calls. */
+    sentence?(count: number): string;
+    /* Names for values in the detail, as `CommandLook.useNames` names words; `option` is the field the value is of. */
+    useNames?(scopeId: string, chatId: string): (word: string, option: string | null) => CommandName | null;
+    /* The message a call sent; null leaves it a tool line. Asked again as the call goes on. */
+    sent?(call: ToolLookCall): CommandLookSent | null;
+}
+
 /*
  * Where the tiles of a Map come from. The host owns the service and whatever admits a request to it, so
  * a chat never knows an address, a key or a vendor: it asks for the style of the theme and lets the host
@@ -575,6 +619,8 @@ export interface ChatHost {
     visuals: VisualHost | null;
     /* Programs drawn as tools of their own; left out, every shell call reads as itself. */
     commandLooks?: readonly CommandLook[];
+    /* MCP servers whose tools are drawn as tools of their own; left out, every MCP call reads as the CLI names it. */
+    toolLooks?: readonly ToolLook[];
 }
 
 const NO_PROMPTS: readonly HostPrompt[] = [];
