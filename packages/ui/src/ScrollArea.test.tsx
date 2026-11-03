@@ -159,15 +159,25 @@ describe.skipIf(typeof document === 'undefined')('a scroll area in a window', ()
         thumb.dispatchEvent(pointer('pointerdown', { clientY: 50 }));
         expect(captured).toEqual([1]);
         expect(vertical.hasAttribute('data-dragging')).toBe(true);
+        expect(viewport.hasAttribute('data-scrollbar-dragging')).toBe(true);
 
         thumb.dispatchEvent(pointer('pointermove', { clientY: 200 }));
         expect(viewport.scrollTop).toBe(600);
 
         thumb.dispatchEvent(pointer('pointerup', { clientY: 200 }));
         expect(vertical.hasAttribute('data-dragging')).toBe(false);
+        expect(viewport.hasAttribute('data-scrollbar-dragging')).toBe(false);
 
         thumb.dispatchEvent(pointer('pointermove', { clientY: 300 }));
         expect(viewport.scrollTop).toBe(600);
+    });
+
+    test('refuses the touch on the thumb, so a long press selects no text', async () => {
+        const { thumb } = await mount('y', { clientWidth: 200, clientHeight: 400, scrollWidth: 200, scrollHeight: 1600 });
+        const touch = new Event('touchstart', { bubbles: true, cancelable: true });
+
+        thumb.dispatchEvent(touch);
+        expect(touch.defaultPrevented).toBe(true);
     });
 
     test('pages toward a press on the track', async () => {

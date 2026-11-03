@@ -154,6 +154,7 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
                 const start = positionOf(bar);
                 dragging = true;
                 bar.element.setAttribute('data-dragging', '');
+                viewport.setAttribute('data-scrollbar-dragging', '');
                 show();
 
                 const onMove = (move: PointerEvent): void => {
@@ -173,6 +174,7 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
                     bar.thumb.removeEventListener('lostpointercapture', onEnd);
                     dragging = false;
                     bar.element.removeAttribute('data-dragging');
+                    viewport.removeAttribute('data-scrollbar-dragging');
                     linger();
                 };
 
@@ -180,6 +182,11 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
                 bar.thumb.addEventListener('pointerup', onEnd);
                 bar.thumb.addEventListener('pointercancel', onEnd);
                 bar.thumb.addEventListener('lostpointercapture', onEnd);
+            };
+
+            // WebKit on iOS starts a text selection on a long press whatever the pointer events do; only the touch itself can be refused.
+            const onThumbTouch = (event: TouchEvent): void => {
+                event.preventDefault();
             };
 
             const onTrackDown = (event: PointerEvent): void => {
@@ -203,12 +210,14 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             };
 
             bar.thumb.addEventListener('pointerdown', onThumbDown);
+            bar.thumb.addEventListener('touchstart', onThumbTouch, { passive: false });
             bar.element.addEventListener('pointerdown', onTrackDown);
             bar.element.addEventListener('pointerenter', onBarEnter);
             bar.element.addEventListener('pointerleave', onBarLeave);
 
             return () => {
                 bar.thumb.removeEventListener('pointerdown', onThumbDown);
+                bar.thumb.removeEventListener('touchstart', onThumbTouch);
                 bar.element.removeEventListener('pointerdown', onTrackDown);
                 bar.element.removeEventListener('pointerenter', onBarEnter);
                 bar.element.removeEventListener('pointerleave', onBarLeave);
@@ -251,6 +260,7 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             content?.disconnect();
             window.clearTimeout(lingerTimer);
             viewport.removeAttribute(OVERLAY_ATTRIBUTE);
+            viewport.removeAttribute('data-scrollbar-dragging');
             viewport.removeEventListener('scroll', onScroll);
             viewport.removeEventListener('pointerenter', onViewportEnter);
             viewport.removeEventListener('pointerleave', onViewportLeave);

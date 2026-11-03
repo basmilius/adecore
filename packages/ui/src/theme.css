@@ -1098,6 +1098,8 @@
        float over the content, hidden at rest and shown while it scrolls or the pointer is over it. */
     [data-overlay-scrollbars] { scrollbar-width: none; }
     [data-overlay-scrollbars]::-webkit-scrollbar { display: none; }
+    /* A drag that strays over the content must not select it, nor may a long press on a bar. */
+    [data-overlay-scrollbars][data-scrollbar-dragging], .ade-scrollbar { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     .ade-scroll-area { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
     /* Its own stacking layer, so a sticky header with a z-index inside never covers the bars. */
     .ade-scroll-viewport { flex: 1 1 auto; min-height: 0; overflow: auto; isolation: isolate; }
@@ -1129,8 +1131,9 @@
         opacity: 0;
         transition: opacity 120ms ease;
     }
-    .ade-scrollbar[data-orientation="vertical"]::before { inset: 0 2px; }
-    .ade-scrollbar[data-orientation="horizontal"]::before { inset: 2px 0; }
+    /* The track is as thick as the widened pill, also on touch where the hit area is wider. */
+    .ade-scrollbar[data-orientation="vertical"]::before { top: 0; bottom: 0; right: 2px; width: 8px; }
+    .ade-scrollbar[data-orientation="horizontal"]::before { left: 0; right: 0; bottom: 2px; height: 8px; }
     /* The thumb spans the whole hit area across, so a press beside the pill still grabs it; the pill is its `::before`. */
     .ade-scrollbar-thumb { position: absolute; top: 0; left: 0; touch-action: none; }
     .ade-scrollbar[data-orientation="vertical"] .ade-scrollbar-thumb { right: 0; }
