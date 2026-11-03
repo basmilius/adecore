@@ -111,6 +111,22 @@ function acpMcpServer(server: ChatMcpServer): Record<string, unknown> {
 }
 
 /*
+ * Two servers whose names a tool name cannot tell apart: the same name, or one that is the other's followed by `__`,
+ * since Grok and Claude Code name a tool `<server>__<tool>` and `own__events__delete` could be a tool of either.
+ */
+function mcpNameClash(servers: readonly ChatMcpServer[]): [string, string] | null {
+    for (const server of servers) {
+        const other = servers.find((candidate) => candidate !== server && (candidate.name === server.name || candidate.name.startsWith(`${server.name}__`)));
+
+        if (other !== undefined) {
+            return [server.name, other.name];
+        }
+    }
+
+    return null;
+}
+
+/*
  * One ACP agent process on JSON-RPC over stdio. `start` runs `initialize` and opens the session
  * (new, or the chat's own resumed or loaded), sets the mode and the model, and only then takes a turn.
  * A turn is one `session/prompt` request and ends on its response. The client advertises no file
@@ -156,6 +172,12 @@ export class AcpBackend implements ChatBackend {
     async start(): Promise<void> {
         if (this.transport) {
             return;
+        }
+
+        const clash = mcpNameClash(this.launch.mcpServers ?? []);
+
+        if (clash !== null) {
+            throw new Error(`MCP servers ${clash.map((name) => `"${name}"`).join(' and ')} cannot both go along: a tool name could belong to either`);
         }
 
         const transport = new JsonRpcTransport({
@@ -251,7 +273,10 @@ export class AcpBackend implements ChatBackend {
         });
     }
 
-    /* A call to a tool of a server the launch passed with `allowTools`; a server of the agent's own configuration never counts. */
+    /*
+     * A call the agent marks as a tool of a server the launch passed with `allowTools`. ACP does not say which servers
+     * an agent loaded, so one of its own configuration under the same name counts too; a host picks a name of its own.
+     */
     private allowsMcpTool(request: AcpPermissionRequest): boolean {
         return request.mcpServer !== null && this.mcpServers.some((server) => server.allowTools === true && server.name === request.mcpServer);
     }
@@ -707,7 +732,12 @@ export class AcpBackend implements ChatBackend {
             return;
         }
 
-        const permission = this.protocol.permission(id, this.sessionId, frame.params);
+        const permission = this.protocol.permission(
+            id,
+            this.sessionId,
+            frame.params,
+            this.mcpServers.map((server) => server.name)
+        );
 
         if (permission === null) {
             transport.respondError(id, -32602, 'Not a permission request of this session');

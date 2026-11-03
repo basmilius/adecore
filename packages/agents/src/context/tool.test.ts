@@ -46,6 +46,11 @@ describe('defineTool', () => {
     test('a name that is not lower snake case is a mistake in the code', () => {
         expect(() => defineTool('note', { ...write, name: 'note-write' })).toThrow('lower snake case');
     });
+
+    test('an input field no MCP schema can describe is a mistake in the code', () => {
+        const spec = { name: 'note_read', description: 'Reads a note.', input: z.object({ value: z.unknown() }), run: async () => [] };
+        expect(() => defineTool('note', spec)).toThrow('note_read: value takes a value of no one JSON type');
+    });
 });
 
 describe('defineToolkit', () => {
@@ -68,9 +73,15 @@ describe('parseToolInput', () => {
         expect(refusal.lines).toEqual(['fields\ttext\ttail']);
     });
 
+    test('a field the tool does not have is refused with a null value too', async () => {
+        expect((await refusalOf(() => parseToolInput(write, { text: 'Hi', typo: null }))).message).toBe('note_write takes no typo');
+    });
+
     test("a refusal keeps the schema's own sentence, and names the field where zod's does not", async () => {
+        const byId = { name: 'node_get', input: z.object({ id: z.string() }) };
         expect((await refusalOf(() => parseToolInput(write, {}))).message).toBe('note_write needs text');
         expect((await refusalOf(() => parseToolInput(write, { text: 'Hi', tail: 1.5 }))).message).toStartWith('tail: ');
+        expect((await refusalOf(() => parseToolInput(byId, { id: 1 }))).message).toStartWith('id: Invalid input');
     });
 
     test('input that is no object is refused', async () => {

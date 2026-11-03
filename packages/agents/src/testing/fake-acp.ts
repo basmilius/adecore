@@ -253,11 +253,22 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                 return;
             }
 
-            // A tool of an MCP server, marked the way Antigravity's ACP server marks one.
-            if (last.startsWith('mcp:')) {
-                const [server = '', tool = ''] = last.slice(4).trim().split(' ');
+            // A tool of an MCP server, marked the way Antigravity's ACP server marks one, or run through Grok's `use_tool`.
+            if (last.startsWith('mcp:') || last.startsWith('use_tool:')) {
                 const toolCallId = `call-${++callCounter}`;
-                const toolCall = { toolCallId, title: `${server}_${tool}`, kind: 'other', rawInput: {}, _meta: { mcp: { server, tool } } };
+                const [server = '', tool = ''] = last.slice(4).trim().split(' ');
+                const toolName = last.slice(9).trim();
+
+                const toolCall = last.startsWith('mcp:')
+                    ? { toolCallId, title: `${server}_${tool}`, kind: 'other', rawInput: {}, _meta: { mcp: { server, tool } } }
+                    : {
+                          toolCallId,
+                          title: toolName,
+                          kind: 'other',
+                          rawInput: { variant: 'UseTool', tool_name: toolName, tool_input: {} },
+                          _meta: { 'x.ai/tool': { name: 'use_tool' } }
+                      };
+
                 update({ sessionUpdate: 'tool_call', status: 'pending', ...toolCall });
 
                 askPermission(toolCall, (outcome) => {

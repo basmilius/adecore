@@ -267,17 +267,40 @@ test('a tool of a server passed with allowTools runs without an approval in supe
     await fake.backend.dispose();
 });
 
-for (const [label, servers] of [
-    ['a server of its own configuration', [{ name: 'own', url: 'http://127.0.0.1:4210/mcp', allowTools: true }]],
-    ['a server passed without allowTools', [{ name: 'other', url: 'http://127.0.0.1:4210/mcp' }]],
-    ['a server the agent could not take', [{ name: 'other', url: 'http://127.0.0.1:4210/mcp', transport: 'sse', allowTools: true }]]
-] as Array<[string, BackendLaunch['mcpServers']]>) {
+test('a Grok tool of a server whose name holds __ is matched against the whole name', async () => {
+    const fake = run({ mcp: { http: true } }, { mcpServers: [{ name: 'own__events', url: 'http://127.0.0.1:4210/mcp', allowTools: true }] });
+    await fake.backend.start();
+    fake.backend.sendTurn(turn('use_tool: own__events__delete'));
+    await fake.next('turn.done');
+    expect(fake.events.some((event) => event.type === 'approval.requested')).toBe(false);
+    await fake.backend.dispose();
+});
+
+for (const [label, servers, prompt] of [
+    ['a server of its own configuration under another name', [{ name: 'own', url: 'http://127.0.0.1:4210/mcp', allowTools: true }], 'mcp: other node_new'],
+    ['a server passed without allowTools', [{ name: 'own', url: 'http://127.0.0.1:4210/mcp' }], 'mcp: own node_new'],
+    ['a server the agent could not take', [{ name: 'own', url: 'http://127.0.0.1:4210/mcp', transport: 'sse', allowTools: true }], 'mcp: own node_new'],
+    ['a server Grok names with one more __ part', [{ name: 'own__events', url: 'http://127.0.0.1:4210/mcp', allowTools: true }], 'use_tool: own__delete']
+] as Array<[string, BackendLaunch['mcpServers'], string]>) {
     test(`a tool of ${label} still asks`, async () => {
         const fake = run({ mcp: { http: true } }, { mcpServers: servers });
         await fake.backend.start();
-        fake.backend.sendTurn(turn('mcp: other node_new'));
-        expect(await fake.next('approval.requested')).toMatchObject({ description: 'other_node_new' });
+        fake.backend.sendTurn(turn(prompt));
+        await fake.next('approval.requested');
+        expect(fake.sent.some((frame) => frame.method === undefined)).toBe(false);
         await fake.backend.dispose();
+    });
+}
+
+for (const names of [
+    ['own', 'own'],
+    ['own', 'own__events']
+]) {
+    test(`a launch with the MCP servers ${names.join(' and ')} is refused, as a tool name could belong to either`, async () => {
+        const servers = names.map((name, index) => ({ name, url: 'http://127.0.0.1:4210/mcp', allowTools: index === 0 }));
+        const fake = run({ mcp: { http: true } }, { mcpServers: servers });
+        await expect(fake.backend.start()).rejects.toThrow(`MCP servers "${names[0]}" and "${names[1]}" cannot both go along`);
+        expect(fake.sent).toEqual([]);
     });
 }
 

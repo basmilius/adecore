@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { CodedError } from '../coded-error.ts';
+import { toolInputSchema } from './tool-schema.ts';
 
 /* A tool said no. The code is for a script, the message for the agent, the lines for what it can pick instead. */
 export class ToolRefusal extends CodedError {}
@@ -73,6 +74,13 @@ export function defineTool<Input extends z.ZodObject, Call extends ToolCallBase,
         throw new Error(`${spec.name} is no tool name; a tool is named in lower snake case`);
     }
 
+    // An input no MCP schema can describe is a mistake in the code, so it fails here rather than when a client lists the tools.
+    try {
+        toolInputSchema(spec.input);
+    } catch (error) {
+        throw new Error(`${spec.name}: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
+    }
+
     return {
         name: spec.name,
         toolkit,
@@ -102,15 +110,32 @@ export function defineToolkit<Call extends ToolCallBase, Output>(name: string, t
     return { name, tools };
 }
 
-/* A sentence that names its field, so a model knows which one to fix; zod's own messages name none. */
+/*
+ * A sentence that names its field, so a model knows which one to fix; zod's own messages name none. A
+ * message names it when the last key of the issue's path stands in it as a word, as in `note_write needs text`.
+ */
 function issueMessage(issue: z.core.$ZodIssue): string {
     const path = issue.path.map(String).join('.');
+    const field = issue.path.findLast((key) => typeof key === 'string');
 
-    if (path === '' || issue.message.includes(String(issue.path[0]))) {
+    if (path === '' || (field !== undefined && namesWord(issue.message, field))) {
         return issue.message;
     }
 
     return `${path}: ${issue.message}`;
+}
+
+/* Whether `word` stands in `text` on its own, not as a part of a longer name such as `id` in `Invalid`. */
+function namesWord(text: string, word: string): boolean {
+    const isNamePart = (char: string | undefined): boolean => char !== undefined && /[A-Za-z0-9_]/.test(char);
+
+    for (let at = text.indexOf(word); at !== -1; at = text.indexOf(word, at + 1)) {
+        if (!isNamePart(text[at - 1]) && !isNamePart(text[at + word.length])) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /*
@@ -126,8 +151,9 @@ export function parseToolInput<Input extends z.ZodObject>(tool: { readonly name:
         throw new ToolRefusal('bad-arguments', `${tool.name} takes an object of fields`, lines);
     }
 
+    // A key the tool does not have is refused even with a null value, since it is still a field the model got wrong.
+    const unknown = Object.keys(input).filter((key) => !fields.includes(key));
     const given = Object.fromEntries(Object.entries(input).filter(([, value]) => value !== null && value !== undefined));
-    const unknown = Object.keys(given).filter((key) => !fields.includes(key));
 
     if (unknown.length > 0) {
         throw new ToolRefusal('bad-arguments', `${tool.name} takes no ${unknown.join(', ')}`, lines);

@@ -79,9 +79,11 @@ Everything else becomes an approval in the thread.
 
 ## Calls the host guards
 
-A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it: Antigravity in the tool call's `_meta.mcp.server`, Grok in the `<server>__<tool>` name of its `use_tool`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`. A server of the agent's own configuration with the same name is never allowed this way.
+A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it: Antigravity in the tool call's `_meta.mcp.server`, Grok in the `<server>__<tool>` name of its `use_tool`, matched against the launch's own server names, the longest first. A call of a kind other than `other`, or one with `_meta.is_mcp_tool_call: false`, is never an MCP call. The mark of a call holds for the permission request that names only its `toolCallId`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`.
 
-A host that checks some calls itself, such as its own command line tool, passes `autoAllow`. The backend calls it for every permission request the runtime mode leaves open, with an `AcpPermissionRequest`: the tool `kind`, the `title`, in `commands` every text the call may run, and in `mcpServer` the server of an MCP tool where the agent names it. True answers with allow once (never allow always), and the call shows in the thread without an approval. False or a throw leaves it to the person.
+ACP does not tell a client which servers an agent loaded. A server of the agent's own configuration with the same name as one in `mcpServers` gets the same calls allowed, so give a server with `allowTools` a name no configuration uses. What the backend can see, it refuses: `start` throws before the agent runs when two servers in `mcpServers` share a name, or when one name is another followed by `__`, since `own__events__delete` could then be a tool of either. A server the agent could not take (see [A session](#a-session)) never counts, so a call to a server of that name asks.
+
+A host that checks some calls itself, such as its own command line tool, passes `autoAllow`. The backend calls it for every permission request the runtime mode leaves open, with an `AcpPermissionRequest`: the tool `kind`, the `title`, in `commands` every text the call may run, and in `mcpServer` the server of an MCP tool where the agent marks it. True answers with allow once (never allow always), and the call shows in the thread without an approval. False or a throw leaves it to the person.
 
 `isOnlyCommands(command, allowed)` from `@adecore/agents/providers` returns true when a command line is only simple commands joined by `&&`, `||`, `;` or newlines, each starting with a word in `allowed`. It reads quotes and escapes as a shell does. Anything it cannot prove simple returns false, such as pipes, redirects, substitutions, subshells, `&`, globs and unbalanced quotes.
 
@@ -133,7 +135,7 @@ Two agents ask questions outside the protocol. Both become a `question.requested
 | --- | --- |
 | `agent_message_chunk` | `text.delta`, then one `text.done` per message. Images and resources are left out. |
 | `agent_thought_chunk` | `thinking.delta` and `thinking.done` |
-| `tool_call`, `tool_call_update` | `tool.started` on each change, `tool.done` once `completed` or `failed`. The kind names the row (`execute` is `Bash`, `read` is `Read`, `search` is `Grep`, `fetch` is `WebFetch` or `WebSearch`). A one-file diff draws as `Edit`, `Write` or `MultiEdit`, several files as unified changes. |
+| `tool_call`, `tool_call_update` | `tool.started` on each change, `tool.done` once `completed` or `failed`. The kind names the row (`execute` is `Bash`, `read` is `Read`, `search` is `Grep`, `fetch` is `WebFetch` or `WebSearch`). A one-file diff draws as `Edit`, `Write` or `MultiEdit`, several files as unified changes. A call the agent marks as an MCP tool is named `mcp__<server>__<tool>`, with only the tool's arguments as its input. Any other call keeps its title in `description`, also when the tool has an argument of that name. |
 | `plan` | A `TodoWrite` row with the whole plan |
 | `available_commands_update` | The chat's slash commands |
 | `current_mode_update` | `permissions`, with the runtime mode that agent mode falls under |
@@ -188,6 +190,6 @@ A reading carries no email or plan. `askAcpAccount` also takes a `spawn` and a `
 
 ## What it leaves out
 
-Plan limits, file system and terminal client capabilities, MCP servers for the agent, `elicitation/create`, notices and compaction updates. `compaction` is `none` unless the agent lists a `compact` command.
+Plan limits, file system and terminal client capabilities, MCP servers over stdio, `elicitation/create`, notices and compaction updates. `compaction` is `none` unless the agent lists a `compact` command.
 
-`@adecore/agents/testing` has `fakeAcp`, an agent for backend tests, and `fakeAcpWith`, which can also require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server.
+`@adecore/agents/testing` has `fakeAcp`, an agent for backend tests, and `fakeAcpWith`, which can also require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does.

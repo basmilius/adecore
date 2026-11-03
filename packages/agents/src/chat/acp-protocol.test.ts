@@ -5,7 +5,6 @@ import {
     AcpProtocol,
     acpStopWords,
     autoAllows,
-    mcpServerOf,
     parseInitialize,
     parseSessionInfo,
     promptUsageOf,
@@ -453,6 +452,13 @@ describe('modes', () => {
     });
 });
 
+/* The MCP server a permission request for `toolCall` names, with the launch's `servers`. */
+function mcpServerOf(toolCall: Record<string, unknown>, servers: readonly string[] = ['ruimte']): string | null | undefined {
+    const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
+    return protocol.permission(1, 's', { sessionId: 's', toolCall, options: [] }, servers)?.request.mcpServer;
+}
+
 describe('the MCP server of a tool call', () => {
     test('comes from what the agent marks, as Antigravity 1.4.1 and Grok 1.0.70 sent it', () => {
         const antigravity = {
@@ -495,6 +501,80 @@ describe('the MCP server of a tool call', () => {
         expect(mcpServerOf(shell)).toBeNull();
         expect(mcpServerOf(otherGrokTool)).toBeNull();
         expect(mcpServerOf({ toolCallId: 'call-3', rawInput: { tool_name: '__probe_echo' }, _meta: { 'x.ai/tool': { name: 'use_tool' } } })).toBeNull();
+    });
+
+    test("matches a Grok tool against the launch's whole server names, the longest first, never cut at its first __", () => {
+        const grok = (toolName: string) => ({
+            toolCallId: 'call-4',
+            kind: 'other',
+            rawInput: { tool_name: toolName, tool_input: {} },
+            _meta: { 'x.ai/tool': { name: 'use_tool' } }
+        });
+
+        expect(mcpServerOf(grok('own__events__delete'), ['own', 'own__events'])).toBe('own__events');
+        expect(mcpServerOf(grok('own__events__delete'), ['own__events'])).toBe('own__events');
+        expect(mcpServerOf(grok('own__delete'), ['own__events'])).toBeNull();
+        expect(mcpServerOf(grok('own__'), ['own'])).toBeNull();
+        expect(mcpServerOf(grok('own__delete'), [])).toBeNull();
+    });
+
+    test('is null where the agent says the call is none, or its kind is one an MCP tool never runs under', () => {
+        const meta = { mcp: { tool: 'probe_echo', server: 'ruimte' } };
+        const grokMeta = { 'x.ai/tool': { name: 'use_tool' } };
+
+        expect(mcpServerOf({ toolCallId: 'c', kind: 'execute', rawInput: { command: 'rm -rf /' }, _meta: { ...meta, is_mcp_tool_call: false } })).toBeNull();
+        expect(mcpServerOf({ toolCallId: 'c', kind: 'other', _meta: { ...meta, is_mcp_tool_call: false } })).toBeNull();
+        expect(mcpServerOf({ toolCallId: 'c', kind: 'execute', rawInput: { command: 'rm -rf /' }, _meta: meta })).toBeNull();
+        expect(mcpServerOf({ toolCallId: 'c', kind: 'edit', rawInput: { tool_name: 'ruimte__probe_echo' }, _meta: grokMeta })).toBeNull();
+    });
+
+    test('is kept from the call when the permission request names only its id', () => {
+        const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
+
+        protocol.update('s', {
+            sessionId: 's',
+            update: {
+                sessionUpdate: 'tool_call',
+                toolCallId: 'c',
+                title: 'ruimte_probe_echo',
+                kind: 'other',
+                _meta: { mcp: { server: 'ruimte', tool: 'probe_echo' } }
+            }
+        });
+
+        const permission = protocol.permission(1, 's', { sessionId: 's', toolCall: { toolCallId: 'c' }, options: [] }, ['ruimte']);
+        expect(permission?.request.mcpServer).toBe('ruimte');
+    });
+});
+
+describe('the row of an MCP tool call', () => {
+    const rowOf = (toolCall: Record<string, unknown>) =>
+        new AcpProtocol(1, MODES, acpStopWords('Example')).update('s', { sessionId: 's', update: { sessionUpdate: 'tool_call', ...toolCall } })[0];
+
+    test('names the server and the tool as Claude Code does, with only the arguments as its input', () => {
+        const antigravity = rowOf({
+            toolCallId: 'c',
+            title: 'ruimte_template_new',
+            kind: 'other',
+            rawInput: { arguments: { name: 'Bug', description: 'A template' }, name: 'Bug', description: 'A template' },
+            _meta: { mcp: { server: 'ruimte', tool: 'template_new' }, is_mcp_tool_call: true }
+        });
+
+        const grok = rowOf({
+            toolCallId: 'c',
+            title: 'ruimte__template_new',
+            kind: 'other',
+            rawInput: { variant: 'UseTool', tool_name: 'ruimte__template_new', tool_input: { description: 'A template' } },
+            _meta: { 'x.ai/tool': { name: 'use_tool' } }
+        });
+
+        expect(antigravity).toMatchObject({ name: 'mcp__ruimte__template_new', input: { name: 'Bug', description: 'A template' } });
+        expect(grok).toMatchObject({ name: 'mcp__ruimte__template_new', input: { description: 'A template' } });
+    });
+
+    test('of a call the agent does not mark keeps its title over an argument of the same name', () => {
+        const copilot = rowOf({ toolCallId: 'c', title: 'ruimte-template_new', kind: 'other', rawInput: { description: 'A template' } });
+        expect(copilot).toMatchObject({ name: 'Tool', input: { description: 'ruimte-template_new' } });
     });
 });
 

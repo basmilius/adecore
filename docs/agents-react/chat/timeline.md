@@ -97,7 +97,8 @@ const DEPLOY_SERVER: ToolLook = {
 
 A call of `site_deploy` reads `Deploy Site deploy site=Website message="Ship it"`. Each value is a word `useNames` may name, with its field as the option. A long value is cut after 40 characters, and an object reads as `{…}`.
 
-- Every CLI's shape matches: `mcp__deploy__site_deploy`, `deploy/site_deploy`, and an ACP call titled `deploy__site_deploy`, `deploy_site_deploy` or `deploy-site_deploy`. `mcpCallOf(item, servers)` reads the server, the tool and its arguments out of any of them, with the answer taken out of the envelope a CLI wraps it in.
+- Every CLI's shape matches: `mcp__deploy__site_deploy`, `deploy/site_deploy`, a Grok `use_tool` call that names `deploy__site_deploy`, and an ACP call of an agent that marks no server, titled `deploy__site_deploy`, `deploy_site_deploy` or `deploy-site_deploy`. `mcpCallOf(item, servers)` reads the server, the tool and its arguments out of any of them, with the answer taken out of the envelope a CLI wraps it in.
+- A name that says its server wins over a title: `mcp__other__write` titled `deploy-site_deploy` is no call of `deploy`. The servers are tried longest name first, so `mcp__deploy__site__push` goes to a server `deploy__site` before `deploy`. A title only counts on a generic ACP row (`Tool`, or a `Read` without a `file_path`).
 - `group`, `sentence` and `sent` work as they do for a `CommandLook`. `sent` gets the tool, its input, its state and its answer.
 - A shell line goes to `commandLooks` first. `lookRunOf(item, commandLooks, toolLooks)` returns what a row draws for either, and `matchToolLook(item, toolLooks)` only for an MCP call.
 

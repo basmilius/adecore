@@ -43,7 +43,7 @@ const noteWrite = defineTool('note', {
 export const registry = createToolRegistry([defineToolkit('note', [noteWrite])]);
 ```
 
-A tool belongs to one toolkit, named as the first argument of `defineTool`. `defineToolkit` throws when a tool names another toolkit or two tools share a name, and `createToolRegistry` throws when two toolkits do. Those are mistakes in your code, so they throw a plain `Error`. A tool name is lower snake case.
+A tool belongs to one toolkit, named as the first argument of `defineTool`. `defineToolkit` throws when a tool names another toolkit or two tools share a name, and `createToolRegistry` throws when two toolkits do. Those are mistakes in your code, so they throw a plain `Error`. A tool name is lower snake case, and `defineTool` also throws for an input `toolInputSchema` cannot describe.
 
 `annotations` tells a client what to expect before it runs a tool: `readOnly` for one that changes nothing, `destructive` for one that removes or overwrites what it cannot give back.
 
@@ -53,13 +53,13 @@ Your `write` must check the revision in the same step as the write. `REVISION_FI
 
 `registry.run(name, input, call)` checks the input and runs the tool. `parseToolInput(tool, input)` only checks, for a host that runs its tools another way. Both treat a field set to `null` as left out, since models send `null` for fields they skip.
 
-Input that is no object, a field the tool does not have, or a value the schema refuses all throw a `bad-arguments` refusal. Its one line holds `fields` and the field names, tab-separated, so a model sees what the tool takes. A schema message that does not name its field gets the field's path in front, because zod's own messages name none.
+Input that is no object, a field the tool does not have (also when it is `null`), or a value the schema refuses all throw a `bad-arguments` refusal. Its one line holds `fields` and the field names, tab-separated, so a model sees what the tool takes. A schema message gets the field's path in front unless the field's name stands in it as a word, because zod's own messages name none.
 
 `requiredField(message)` is a string field that may not be missing or empty. `lengthOf` measures input for a size message. `orNote(lines, note)` answers a note for an empty list.
 
 ## Schemas
 
-`toolInputSchema(tool.input)` is the input schema an MCP client lists. It keeps `type`, `description`, `enum`, `required` and `items`. Bounds, `additionalProperties`, null branches and every union branch but the first are left out. A field with a default or `.optional()` is not required, and a transform shows the type it starts from. The description comes from `.describe()` or `.meta()`.
+`toolInputSchema(tool.input)` is the input schema an MCP client lists. It keeps `type`, `description`, `enum`, `required`, `items` and the `properties` of an object, at every depth. An `enum` holds strings, numbers or booleans, so `z.literal([1, 2])` and `z.literal(true)` keep their choices. A record is an `object` without `properties`. Bounds, `additionalProperties`, null branches and every union branch but the first are left out. A field of no one type, such as `z.unknown()`, `z.date()` or a literal of a string and a number, throws instead of being listed as text. A field with a default or `.optional()` is not required, and a transform shows the type it starts from. The description comes from `.describe()` or `.meta()`.
 
 The bounds still hold, since a run checks the input against the full schema. A model learns them from a refusal instead of from every tool list.
 

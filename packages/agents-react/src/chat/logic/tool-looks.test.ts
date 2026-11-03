@@ -51,8 +51,29 @@ describe('mcpCallOf', () => {
         expect(mcpCallOf(tool('Tool', { description: 'use_tool', tool_name: 'orbit__say', tool_input: {} }), ['orbit'])?.tool).toBe('say');
     });
 
+    test('reads a name that says the server before any title, over every server, the longest name first', () => {
+        const titled = { description: 'orbit-probe_send' };
+        expect(mcpCallOf(tool('other/read', titled), ['orbit', 'other'])).toMatchObject({ server: 'other', tool: 'read' });
+        expect(mcpCallOf(tool('mcp__orbit__deep__scan', {}), ['orbit', 'orbit__deep'])).toMatchObject({ server: 'orbit__deep', tool: 'scan' });
+        expect(mcpCallOf(tool('Tool', { tool_name: 'orbit__deep__scan', tool_input: {} }), ['orbit', 'orbit__deep'])?.server).toBe('orbit__deep');
+    });
+
+    test.each([
+        ['an MCP tool name of another server', tool('mcp__foreign__write', { description: 'orbit-probe_send' })],
+        ['a server and a tool with a slash of another server', tool('foreign/write', { description: 'orbit-probe_send' })],
+        ['a use_tool call of another server', tool('Tool', { description: 'orbit__probe_send', tool_name: 'foreign__write', tool_input: {} })],
+        ['a read of a file', tool('Read', { file_path: '/tmp/orbit-probe_send', description: 'orbit-probe_send' })],
+        ['a call of a tool the thread knows', tool('Grep', { pattern: 'x', description: 'orbit-probe_send' })]
+    ])('lets %s rule out a title that names the server', (_shape, item) => {
+        expect(mcpCallOf(item, ['orbit'])).toBeNull();
+    });
+
     test('takes the answer out of the envelope a CLI puts around it, and leaves any other answer as it is', () => {
         const wrapped = '{"type":"MCP","tool_name":"probe_send","server_name":"orbit","output":{"OkayOutput":"sent\\tmoon"}}';
+        const reordered = ' \n{"output":{"OkayOutput":"sent"},"server_name":"orbit","type":"MCP"}';
+        const other = '{"type":"other","output":{"OkayOutput":"sent"}}';
+        expect(mcpCallOf(tool('mcp__orbit__probe_send', {}, reordered), ['orbit'])?.output).toBe('sent');
+        expect(mcpCallOf(tool('mcp__orbit__probe_send', {}, other), ['orbit'])?.output).toBe(other);
         expect(mcpCallOf(tool('mcp__orbit__probe_send', {}, wrapped), ['orbit'])?.output).toBe('sent\tmoon');
         expect(mcpCallOf(tool('mcp__orbit__probe_send', {}, '{"type":"MCP"'), ['orbit'])?.output).toBe('{"type":"MCP"');
         expect(mcpCallOf(tool('mcp__orbit__probe_send', {}, 'sent'), ['orbit'])?.output).toBe('sent');

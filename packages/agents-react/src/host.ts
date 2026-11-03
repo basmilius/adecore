@@ -352,7 +352,7 @@ export interface ToolLookCall {
 /*
  * An MCP server the app recognizes in a thread and draws as a tool of its own. A call of one of its tools
  * matches whichever shape the CLI gives it: `mcp__<server>__<tool>`, `<server>/<tool>`, or a generic ACP
- * call titled `<server>__<tool>`, `<server>_<tool>` or `<server>-<tool>`.
+ * call titled `<server>__<tool>`, `<server>_<tool>` or `<server>-<tool>` (`mcpCallOf`).
  */
 export interface ToolLook {
     /* The server's name, as the app registers it with the CLIs. */

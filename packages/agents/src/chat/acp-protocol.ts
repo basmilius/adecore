@@ -515,6 +515,13 @@ export function unifiedDiff(oldText: string, newText: string): string | null {
 
 type Diff = z.infer<typeof DiffSchema>;
 
+/*
+ * How the agent itself marks a call as a tool of an MCP server, never as a title reads: by the server and the tool
+ * (`server`, with `tool` null where the agent names none), or by the `<server>__<tool>` name of Grok's `use_tool`
+ * (`qualified`), which only the launch's own server names can split.
+ */
+type McpMark = { server: string; tool: string | null } | { qualified: string };
+
 interface ToolState {
     title: string;
     name: string | null;
@@ -522,6 +529,8 @@ interface ToolState {
     status: string | null;
     rawInput: unknown;
     rawOutput: unknown;
+    // Kept from the update that marked the call, since a later update or the permission request may name only its id.
+    mcp: McpMark | null;
     locations: string[];
     diffs: Diff[];
     text: string[];
@@ -587,8 +596,58 @@ function rawField(raw: unknown, ...keys: string[]): string | null {
     return null;
 }
 
+/*
+ * The MCP mark of one tool call or update: undefined where it says nothing of one, null where it says the call is
+ * none. Antigravity's ACP server 1.4.1 names the server and the tool in `_meta.mcp` beside `is_mcp_tool_call`, and
+ * Grok 1.0.70 runs every MCP tool through its `use_tool`, whose input names it. Copilot 1.0.104 names no server; its
+ * `--allow-tool=<server>` covers that.
+ */
+function mcpMarkOf(call: Readonly<Record<string, unknown>>): McpMark | null | undefined {
+    const meta = isRecord(call._meta) ? call._meta : {};
+
+    if (meta.is_mcp_tool_call === false) {
+        return null;
+    }
+
+    const named = isRecord(meta.mcp) ? meta.mcp : {};
+    const server = filledStr(named.server);
+
+    if (server !== null) {
+        return { server, tool: filledStr(named.tool) };
+    }
+
+    const grokTool = meta['x.ai/tool'];
+
+    if (!isRecord(grokTool)) {
+        return undefined;
+    }
+
+    if (grokTool.name !== 'use_tool') {
+        return null;
+    }
+
+    const qualified = isRecord(call.rawInput) ? filledStr(call.rawInput.tool_name) : null;
+
+    return qualified === null ? undefined : { qualified };
+}
+
+/* The mark of a call whose kind an MCP tool runs under; one of any other kind is the agent's own tool, whatever its `_meta` says. */
+function mcpMarkFor(tool: Pick<ToolState, 'kind' | 'mcp'>): McpMark | null {
+    return tool.kind === null || tool.kind === 'other' ? tool.mcp : null;
+}
+
+/* A marked call as Claude Code names an MCP tool, with only the tool's own arguments as its input; null where the mark names no tool. */
+function mcpRow(mark: McpMark, raw: Readonly<Record<string, unknown>>): { name: string; input: Record<string, unknown> } | null {
+    if ('qualified' in mark) {
+        return { name: `mcp__${mark.qualified}`, input: isRecord(raw.tool_input) ? raw.tool_input : {} };
+    }
+
+    // Antigravity hands the arguments over as `arguments`, with a copy of each beside it.
+    return mark.tool === null ? null : { name: `mcp__${mark.server}__${mark.tool}`, input: isRecord(raw.arguments) ? raw.arguments : raw };
+}
+
 /* The row a tool call becomes: a name the thread has words for where the kind says which, and an input it reads a subject from. */
-export function toolRow(tool: Pick<ToolState, 'title' | 'name' | 'kind' | 'rawInput' | 'locations' | 'diffs'>): {
+export function toolRow(tool: Pick<ToolState, 'title' | 'name' | 'kind' | 'rawInput' | 'locations' | 'diffs'> & { mcp?: McpMark | null }): {
     name: string;
     input: Record<string, unknown>;
     changes?: ChatFileChange[];
@@ -641,11 +700,20 @@ export function toolRow(tool: Pick<ToolState, 'title' | 'name' | 'kind' | 'rawIn
                 ? { name: 'WebSearch', input: { ...raw, description, query: rawField(tool.rawInput, 'query') ?? description } }
                 : { name: 'WebFetch', input: { ...raw, description, url } };
         }
-        default:
+        default: {
+            const mark = mcpMarkFor({ kind: tool.kind, mcp: tool.mcp ?? null });
+            const named = mark === null ? null : mcpRow(mark, raw);
+
+            if (named !== null) {
+                return named;
+            }
+
+            // The title goes last: it is what the call is, and an argument of the same name must not replace it.
             return {
                 name: tool.name ?? KIND_NAMES[tool.kind ?? 'other'] ?? 'Tool',
-                input: { description, ...raw, ...(path === null ? {} : { path }) }
+                input: { ...raw, ...(path === null ? {} : { path }), description }
             };
+        }
     }
 }
 
@@ -675,37 +743,28 @@ export interface AcpPermissionRequest {
     // Every text the call carries that may be what it runs: the command in its raw input and each text in its
     // content. The agent decides which one it runs, so a host allows the call only when every one passes.
     commands: string[];
-    // The MCP server whose tool the call runs, where the agent names it (`mcpServerOf`); null for any other call.
+    // The MCP server whose tool the call runs, where the agent marks it (`mcpServerOf`); null for any other call.
     mcpServer: string | null;
 }
 
 /*
- * The MCP server a tool call goes to, as the agent itself marks it, never as a title reads: Antigravity's ACP
- * server 1.4.1 names it in `_meta.mcp.server`, and Grok 1.0.70 runs every MCP tool through its `use_tool`, whose
- * input names the tool `<server>__<tool>`. Copilot 1.0.104 names no server; its `--allow-tool=<server>` covers that.
+ * The MCP server a marked call goes to: the one Antigravity names, or the longest of the launch's `servers` that
+ * Grok's `<server>__<tool>` name starts with, never a cut at its first `__`. Null for any other call.
  */
-export function mcpServerOf(toolCall: unknown): string | null {
-    if (!isRecord(toolCall)) {
+function mcpServerOf(tool: Pick<ToolState, 'kind' | 'mcp'>, servers: readonly string[]): string | null {
+    const mark = mcpMarkFor(tool);
+
+    if (mark === null) {
         return null;
     }
 
-    const meta = isRecord(toolCall._meta) ? toolCall._meta : {};
-    const named = isRecord(meta.mcp) ? filledStr(meta.mcp.server) : null;
-
-    if (named !== null) {
-        return named;
+    if ('server' in mark) {
+        return mark.server;
     }
 
-    const grokTool = meta['x.ai/tool'];
-    const toolName = isRecord(toolCall.rawInput) ? filledStr(toolCall.rawInput.tool_name) : null;
+    const longestFirst = [...servers].sort((left, right) => right.length - left.length);
 
-    if (!isRecord(grokTool) || grokTool.name !== 'use_tool' || toolName === null) {
-        return null;
-    }
-
-    const separator = toolName.indexOf('__');
-
-    return separator > 0 ? toolName.slice(0, separator) : null;
+    return longestFirst.find((server) => mark.qualified.startsWith(`${server}__`) && mark.qualified.length > server.length + 2) ?? null;
 }
 
 /* A permission request as the backend acts on it: the event it raises, and the tool kind a runtime mode may answer it by. */
@@ -994,8 +1053,11 @@ export class AcpProtocol {
         return { type: 'permissions', permissionMode: modeId, ...(runtimeMode === null ? {} : { effectiveRuntimeMode: runtimeMode }) };
     }
 
-    /* A `session/request_permission` request; null when it does not parse, which the caller answers with an error. */
-    permission(rpcId: number | string, sessionId: string, params: unknown): AcpPermission | null {
+    /*
+     * A `session/request_permission` request; null when it does not parse, which the caller answers with an error.
+     * `mcpServers` are the names the launch passed, which a Grok tool name is matched against.
+     */
+    permission(rpcId: number | string, sessionId: string, params: unknown, mcpServers: readonly string[] = []): AcpPermission | null {
         const request = PermissionRequestSchema.safeParse(params);
 
         if (!request.success || request.data.sessionId !== sessionId) {
@@ -1025,7 +1087,7 @@ export class AcpProtocol {
             kind: tool.kind,
             title: tool.title === '' ? null : tool.title,
             commands: [...(command === null ? [] : [command]), ...tool.text],
-            mcpServer: mcpServerOf(request.data.toolCall)
+            mcpServer: mcpServerOf(tool, mcpServers)
         };
 
         return { requestId, rpcId, kind: tool.kind, request: asked, events };
@@ -1391,6 +1453,7 @@ export class AcpProtocol {
             status: null,
             rawInput: undefined,
             rawOutput: undefined,
+            mcp: null,
             locations: [],
             diffs: [],
             text: [],
@@ -1399,12 +1462,14 @@ export class AcpProtocol {
             refused: false
         };
 
+        const mark = mcpMarkOf(call);
         tool.title = call.title ?? tool.title;
         tool.name = call.name ?? tool.name;
         tool.kind = call.kind ?? tool.kind;
         tool.status = call.status ?? tool.status;
         tool.rawInput = call.rawInput ?? tool.rawInput;
         tool.rawOutput = call.rawOutput ?? tool.rawOutput;
+        tool.mcp = mark === undefined ? tool.mcp : mark;
 
         if (call.locations) {
             tool.locations = validItems(LocationSchema, call.locations).map((location) => location.path);
