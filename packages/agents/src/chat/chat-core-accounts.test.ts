@@ -206,7 +206,7 @@ describe('where ChatCore reads the transcripts of a chat', () => {
             }),
             store: new ChatStore(root),
             attachments: new AttachmentStore(root),
-            env: { HOME: home, PATH: '/bin' }
+            env: { HOME: home, USERPROFILE: home, PATH: '/bin' }
         });
 
         expect(core.claudeProjectsDirOf({ provider: 'anthropic-claude-api' })).toBe(join(apiConfig, 'projects'));
