@@ -1,5 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { afterEach, beforeAll, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { access, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -19,15 +18,8 @@ import { ChatStore } from '../chat/chat-store.ts';
 import { fakeClaude } from '../testing/fake-claude.ts';
 import type { SpawnChatProcess } from '../chat/chat-process.ts';
 import { inProcess, type InProcessCli } from '../testing/fake-cli.ts';
-import { AgentHost, type AgentHostOptions } from './agent-host.ts';
+import { AgentHost } from './agent-host.ts';
 import { memoryPortPair } from './memory-port.ts';
-
-/* The prompt a CLI was handed on its command line, which Windows passes in a file. */
-function systemPromptOf(argv: string[]): string | undefined {
-    const file = argv.indexOf('--append-system-prompt-file');
-
-    return file === -1 ? argv[argv.indexOf('--append-system-prompt') + 1] : readFileSync(argv[file + 1]!, 'utf8');
-}
 
 /* The session a CLI was started to resume; the SDK writes the flag with `=`. */
 function resumed(argv: string[]): string | undefined {
@@ -36,14 +28,7 @@ function resumed(argv: string[]): string | undefined {
     return at === -1 ? argv.find((arg) => arg.startsWith('--resume='))?.slice('--resume='.length) : argv[at + 1];
 }
 
-// Whether the chats run on the Agent SDK backend, which hands the system prompt over in its handshake instead.
-let agentSdk = false;
-
-function openHost(options: AgentHostOptions): Promise<AgentHost> {
-    return AgentHost.open({ ...options, claude: { agentSdk } });
-}
-
-/* The prompt the CLI of a chat holds, which the fake says when asked. */
+/* The prompt the CLI of a chat holds, which the fake says when asked; it arrives in the handshake, not on the command line. */
 async function systemPromptIn(chatId: string): Promise<string | undefined> {
     const answers = (): string[] => [...client.items.values()].flatMap((item) => (item.kind === 'assistant' ? [item.text] : []));
     const before = answers().length;
@@ -147,7 +132,7 @@ beforeEach(async () => {
     dataDir = await mkdtemp(join(tmpdir(), 'agents-host-'));
     claude = inProcess(fakeClaude);
 
-    host = await openHost({
+    host = await AgentHost.open({
         dataDir,
         env: { HOME: dataDir, PATH: process.env.PATH },
         systemNote: 'You work in the motion editor.',
@@ -174,14 +159,7 @@ function ok(reply: ReplyOk | ReplyError): unknown {
     return reply.result;
 }
 
-describe.each([
-    ['stream-json', false],
-    ['the Agent SDK', true]
-])('AgentHost over a port, with Claude on %s', (_transport, sdk) => {
-    beforeAll(() => {
-        agentSdk = sdk;
-    });
-
+describe('AgentHost over a port', () => {
     test('runs a whole turn of a chat and says what it does to the client', async () => {
         const created = ok(await client.request('chat.create', { chatId: 'chat-1', provider: 'claude', cwd: dataDir })) as ChatInfo;
         expect(created).toMatchObject({ chatId: 'chat-1', provider: 'claude', status: 'idle' });
@@ -197,8 +175,7 @@ describe.each([
         expect(assistant.map((item) => item.kind === 'assistant' && item.text)).toEqual(['echo: hello there']);
         expect(client.events.some((event) => event.event === 'chat.status')).toBe(true);
         // What the app tells every agent reaches the CLI as its system prompt.
-        const argv = claude.started[0]!.argv;
-        expect(agentSdk ? await systemPromptIn('chat-1') : systemPromptOf(argv)).toBe('You work in the motion editor.');
+        expect(await systemPromptIn('chat-1')).toBe('You work in the motion editor.');
         expect(ok(await client.request('chat.list', {}))).toMatchObject({ chats: [{ chatId: 'chat-1', status: 'idle' }] });
     });
 
@@ -242,7 +219,7 @@ describe.each([
         await host.close();
         await claude.started[0]!.exited;
 
-        host = await openHost({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
+        host = await AgentHost.open({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
         const [renderer, utility] = memoryPortPair();
         host.connect(utility);
         client = new Client(renderer);
@@ -258,7 +235,7 @@ describe.each([
         class BriefedCore extends ChatCore {}
         await host.close();
 
-        const briefed = await openHost({
+        const briefed = await AgentHost.open({
             dataDir,
             env: { HOME: dataDir, PATH: process.env.PATH },
             systemNote: 'You work in the motion editor.',
@@ -278,15 +255,14 @@ describe.each([
         ok(await client.request('chat.attach', { chatId: 'chat-4' }));
         ok(await client.request('chat.send', { chatId: 'chat-4', text: 'hello there' }));
         await client.until(() => [...client.items.values()].some((item) => item.kind === 'assistant' && item.text === 'echo: hello there'));
-        const argv = claude.started.at(-1)!.argv;
-        expect(agentSdk ? await systemPromptIn('chat-4') : systemPromptOf(argv)).toBe('You are the agent of chat-4.');
+        expect(await systemPromptIn('chat-4')).toBe('You are the agent of chat-4.');
     });
 
     test('hands a chat the folders of its core, and a change starts the next turn in a new process', async () => {
         const reading: string[] = ['/brand/kit'];
         await host.close();
 
-        host = await openHost({
+        host = await AgentHost.open({
             dataDir,
             env: { HOME: dataDir, PATH: process.env.PATH },
             background: false,
@@ -346,7 +322,7 @@ describe.each([
 
         await host.close();
 
-        host = await openHost({
+        host = await AgentHost.open({
             dataDir,
             env: { HOME: dataDir, PATH: process.env.PATH },
             background: false,
@@ -374,7 +350,7 @@ describe.each([
 
         expect(closed).toBe('The disk is full');
         expect(signaled).toEqual(['SIGTERM', 'SIGTERM']);
-        host = await openHost({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
+        host = await AgentHost.open({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
     });
 
     test('keeps the visuals of a chat: on attach, as an event to its clients, and until a clear or a removal', async () => {
@@ -438,7 +414,7 @@ describe.each([
         const logPath = join(dataDir, 'chats', 'chat-6.log');
         const log = await readFile(logPath, 'utf8').catch(() => null);
 
-        host = await openHost({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
+        host = await AgentHost.open({ dataDir, env: { HOME: dataDir, PATH: process.env.PATH }, background: false, command: ['claude'], spawn: claude.spawn });
         const [renderer, utility] = memoryPortPair();
         host.connect(utility);
         client = new Client(renderer);

@@ -4,7 +4,7 @@ A provider is one agent CLI: its models, its capabilities, how it starts and how
 
 | Provider    | Started as                                        | Config folder                               |
 | ----------- | ------------------------------------------------- | ------------------------------------------- |
-| Claude Code | `claude -p` with stream-json in and out           | `CLAUDE_CONFIG_DIR`, else `~/.claude`       |
+| Claude Code | `claude`, driven through the Claude Agent SDK     | `CLAUDE_CONFIG_DIR`, else `~/.claude`       |
 | Codex       | `codex app-server`, JSON-RPC over stdio           | `CODEX_HOME`, else `~/.codex`               |
 
 An agent that speaks the Agent Client Protocol becomes a provider from a spec (see [ACP agents](/agents/acp)).
@@ -70,11 +70,29 @@ The Codex column is the closest match, not an exact one. A new chat defaults to 
 
 `claude.allowedTools` lets Claude Code use the named tools without asking, in every mode. `codexRules` writes command prefixes Codex may run without asking into every Codex home. A home it cannot write to only costs an approval per call.
 
-## Claude Agent SDK
+## Claude Code through the Agent SDK
 
-`claude.agentSdk: true` drives Claude Code through `@anthropic-ai/claude-agent-sdk` instead of the package's own stream-json transport. It is experimental and off by default. Install the exact version the package lists as an optional peer. The chat still starts the CLI from `command`, never the binary the SDK bundles, and reports the same events. Each server in the launch's `mcpServers` goes to the CLI through the SDK, and one with `allowTools` is allowed as `mcp__<name>__*`.
+A Claude chat drives Claude Code through `@anthropic-ai/claude-agent-sdk`, a dependency of this package pinned to one version. The SDK starts the CLI the person installed, from `command`, with the command's own arguments right after the executable. Each server in the launch's `mcpServers` goes to the CLI, and one with `allowTools` is allowed as `mcp__<name>__*`. The system prompt goes over in the SDK's handshake, so it never lands on a command line.
 
-One thing differs. On Stop, a message sent into the running turn that the CLI has not taken in yet still runs afterwards, because the SDK has no public call to withdraw it.
+On Stop, a message sent into the running turn that the CLI has not taken in yet goes back to the queue. That needs a call the SDK has but does not declare. On a runtime without it, such a message runs after the Stop.
+
+### On an API key
+
+`claude.apiKey` runs the same chats on an Anthropic API key instead of the person's own sign-in. It takes a `ClaudeApiKeyOptions`:
+
+```ts
+createClaudeProvider({
+    apiKey: {
+        key: () => readKey(),
+        configDir: join(dataDir, 'claude-api')
+    },
+    bundledCli: true
+});
+```
+
+`key()` is read at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`. A sign-in token in the environment is left out. No settings file loads and only the launch's `mcpServers` do, whatever `projectConfigFor` says.
+
+`bundledCli: true` starts the CLI the SDK ships instead of the executable in `command`. Ask for it only where a person may have no CLI installed; the installed one is the default.
 
 ## Folders you do not trust
 

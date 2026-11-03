@@ -1,0 +1,2363 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`what a chat tells the session a plain turn 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "echo: ",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "hello",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "echo: hello",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_1-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session an approval allowed 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "command": "ls",
+    },
+    "name": "Bash",
+    "parentRef": null,
+    "ref": "toolu_1",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "allowAlways": {
+      "description": 
+"[
+  {
+    "type": "addRules",
+    "rules": [
+      {
+        "toolName": "Bash",
+        "ruleContent": "ls:*"
+      }
+    ],
+    "behavior": "allow",
+    "destination": "session"
+  }
+]"
+,
+      "label": "Allow with these rules",
+    },
+    "canAllowAlways": true,
+    "description": "Run a command",
+    "input": {
+      "command": "ls",
+    },
+    "ref": "toolu_1",
+    "requestId": "req-1",
+    "toolName": "Bash",
+    "type": "approval.requested",
+  },
+  {
+    "output": "ran: ls",
+    "ref": "toolu_1",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "do",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "ne",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "done",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session an approval allowed always 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "command": "ls",
+    },
+    "name": "Bash",
+    "parentRef": null,
+    "ref": "toolu_1",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "allowAlways": {
+      "description": 
+"[
+  {
+    "type": "addRules",
+    "rules": [
+      {
+        "toolName": "Bash",
+        "ruleContent": "ls:*"
+      }
+    ],
+    "behavior": "allow",
+    "destination": "session"
+  }
+]"
+,
+      "label": "Allow with these rules",
+    },
+    "canAllowAlways": true,
+    "description": "Run a command",
+    "input": {
+      "command": "ls",
+    },
+    "ref": "toolu_1",
+    "requestId": "req-1",
+    "toolName": "Bash",
+    "type": "approval.requested",
+  },
+  {
+    "output": "ran: ls",
+    "ref": "toolu_1",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "done, re",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "membered",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "done, remembered",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session an approval denied with a reason 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "command": "rm -rf build",
+    },
+    "name": "Bash",
+    "parentRef": null,
+    "ref": "toolu_1",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "allowAlways": {
+      "description": 
+"[
+  {
+    "type": "addRules",
+    "rules": [
+      {
+        "toolName": "Bash",
+        "ruleContent": "rm -rf build:*"
+      }
+    ],
+    "behavior": "allow",
+    "destination": "session"
+  }
+]"
+,
+      "label": "Allow with these rules",
+    },
+    "canAllowAlways": true,
+    "description": "Run a command",
+    "input": {
+      "command": "rm -rf build",
+    },
+    "ref": "toolu_1",
+    "requestId": "req-1",
+    "toolName": "Bash",
+    "type": "approval.requested",
+  },
+  {
+    "output": "denied by user",
+    "ref": "toolu_1",
+    "state": "error",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "den",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "ied",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "denied",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session a question answered 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "questions": [
+      {
+        "choices": [
+          {
+            "description": "Warm",
+            "label": "Red",
+          },
+          {
+            "description": "Cool",
+            "label": "Blue",
+          },
+        ],
+        "header": "Choice",
+        "id": "0",
+        "multiSelect": false,
+        "question": "Which color?",
+      },
+    ],
+    "requestId": "req-q",
+    "type": "question.requested",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "you cho",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "se Red",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "you chose Red",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_1-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session a stop, then a background request declined 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "check files",
+      "prompt": "ls",
+      "run_in_background": true,
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_bgask",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": true,
+    "description": "check files",
+    "prompt": null,
+    "ref": "toolu_bgask",
+    "subagentType": "general-purpose",
+    "taskId": "task-bgask",
+    "type": "task.started",
+  },
+  {
+    "output": "Async agent launched successfully.",
+    "ref": "toolu_bgask",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "ref": "toolu_bgask",
+    "type": "task.model",
+  },
+  {
+    "input": {
+      "command": "ls",
+    },
+    "name": "Bash",
+    "parentRef": "toolu_bgask",
+    "ref": "toolu_bgask_bash",
+    "type": "tool.started",
+  },
+  {
+    "background": true,
+    "canAllowAlways": false,
+    "description": "Run ls",
+    "input": {
+      "command": "ls",
+    },
+    "ref": "toolu_bgask_bash",
+    "requestId": "req-bg",
+    "toolName": "Bash",
+    "type": "approval.requested",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "[interr",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "upted]",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "[interrupted]",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_3-text",
+    },
+    "state": "aborted",
+    "type": "turn.done",
+  },
+  {
+    "output": "The person stopped the turn",
+    "ref": "toolu_bgask_bash",
+    "state": "error",
+    "type": "tool.done",
+  },
+  {
+    "parentRef": "toolu_bgask",
+    "ref": "msg_4:t0",
+    "text": "the agent could not run it",
+    "type": "text.done",
+  },
+  {
+    "ok": true,
+    "outputFile": null,
+    "ref": "toolu_bgask",
+    "summary": "the agent could not run it",
+    "taskId": "task-bgask",
+    "type": "task.done",
+    "usage": null,
+  },
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [],
+    "type": "session",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "the agent cou",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "ld not run it",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "the agent could not run it",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_5-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session one subagent stopped beside another 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "a-one",
+      "prompt": "a-one",
+      "subagent_type": "general-purpose",
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_two_a",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": false,
+    "depth": 1,
+    "description": "a-one",
+    "prompt": "a-one",
+    "ref": "toolu_two_a",
+    "subagentType": "general-purpose",
+    "taskId": "a-one",
+    "type": "task.started",
+  },
+  {
+    "input": {
+      "description": "a-two",
+      "prompt": "a-two",
+      "subagent_type": "general-purpose",
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_two_b",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": false,
+    "depth": 1,
+    "description": "a-two",
+    "prompt": "a-two",
+    "ref": "toolu_two_b",
+    "subagentType": "general-purpose",
+    "taskId": "a-two",
+    "type": "task.started",
+  },
+  {
+    "ok": false,
+    "outputFile": null,
+    "ref": "toolu_two_a",
+    "summary": "Stopped",
+    "taskId": "a-one",
+    "type": "task.done",
+    "usage": null,
+  },
+  {
+    "output": "Stopped",
+    "ref": "toolu_two_a",
+    "state": "error",
+    "type": "tool.done",
+  },
+  {
+    "output": "a-two done",
+    "ref": "toolu_two_b",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "summar",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "ized B",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "summarized B",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_3-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session a compact 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "uuid",
+    "type": "turn.accepted",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "echo: /",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "compact",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_1:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_1:t0",
+    "text": "echo: /compact",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_1-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session a crash 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "exitCode": 1,
+    "type": "exit",
+  },
+]
+`;
+
+exports[`what a chat tells the session a crash that says why on stderr 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "exitCode": 1,
+    "stderr": 
+"warming up
+warming up
+warming up
+warming up
+warming up
+warming up
+warming up
+warming up
+Error: the fake lost its key
+    at handleUser (fake-session.ts)"
+,
+    "type": "exit",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "delegate: research" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "research",
+      "prompt": "Do this: research",
+      "subagent_type": "general-purpose",
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_delegate",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": false,
+    "depth": 1,
+    "description": "research",
+    "prompt": "Do this: research",
+    "ref": "toolu_delegate",
+    "subagentType": "general-purpose",
+    "taskId": "task-delegate",
+    "type": "task.started",
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "ref": "toolu_delegate",
+    "type": "task.model",
+  },
+  {
+    "input": {
+      "file_path": "README.md",
+    },
+    "name": "Read",
+    "parentRef": "toolu_delegate",
+    "ref": "toolu_delegate_read",
+    "type": "tool.started",
+  },
+  {
+    "output": "# Notes",
+    "ref": "toolu_delegate_read",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "input": {
+      "command": "ls",
+      "description": "List files",
+    },
+    "name": "Bash",
+    "parentRef": "toolu_delegate",
+    "ref": "toolu_delegate_bash",
+    "type": "tool.started",
+  },
+  {
+    "output": "README.md",
+    "ref": "toolu_delegate_bash",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "lastTool": "Bash",
+    "ref": "toolu_delegate",
+    "summary": "Running List files",
+    "taskId": "task-toolu_delegate",
+    "type": "task.progress",
+    "usage": {
+      "durationMs": 250,
+      "toolUses": 2,
+      "totalTokens": 1500,
+    },
+  },
+  {
+    "parentRef": "toolu_delegate",
+    "ref": "msg_4:t0",
+    "text": 
+"# Report
+
+- one
+- two"
+,
+    "type": "text.done",
+  },
+  {
+    "output": 
+"# Report
+
+- one
+- two
+
+agentId: agent_fake (use SendMessage with to: 'agent_fake', summary: 'the report' to continue this agent)
+<usage>subagent_tokens: 1500
+tool_uses: 2
+duration_ms: 250</usage>"
+,
+    "ref": "toolu_delegate",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "summa",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "rized",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "summarized",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_5-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "delegate late: research" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "research",
+      "prompt": "Do this: research",
+      "subagent_type": "general-purpose",
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_delegate",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "ref": "toolu_delegate",
+    "type": "task.model",
+  },
+  {
+    "input": {
+      "file_path": "README.md",
+    },
+    "name": "Read",
+    "parentRef": "toolu_delegate",
+    "ref": "toolu_delegate_read",
+    "type": "tool.started",
+  },
+  {
+    "output": "# Notes",
+    "ref": "toolu_delegate_read",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "input": {
+      "command": "ls",
+      "description": "List files",
+    },
+    "name": "Bash",
+    "parentRef": "toolu_delegate",
+    "ref": "toolu_delegate_bash",
+    "type": "tool.started",
+  },
+  {
+    "output": "README.md",
+    "ref": "toolu_delegate_bash",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "lastTool": "Bash",
+    "ref": "toolu_delegate",
+    "summary": "Running List files",
+    "taskId": "task-toolu_delegate",
+    "type": "task.progress",
+    "usage": {
+      "durationMs": 250,
+      "toolUses": 2,
+      "totalTokens": 1500,
+    },
+  },
+  {
+    "parentRef": "toolu_delegate",
+    "ref": "msg_4:t0",
+    "text": 
+"# Report
+
+- one
+- two"
+,
+    "type": "text.done",
+  },
+  {
+    "background": false,
+    "depth": 1,
+    "description": "research",
+    "prompt": "Do this: research",
+    "ref": "toolu_delegate",
+    "subagentType": "general-purpose",
+    "taskId": "task-delegate",
+    "type": "task.started",
+  },
+  {
+    "output": 
+"# Report
+
+- one
+- two
+
+agentId: agent_fake (use SendMessage with to: 'agent_fake', summary: 'the report' to continue this agent)
+<usage>subagent_tokens: 1500
+tool_uses: 2
+duration_ms: 250</usage>"
+,
+    "ref": "toolu_delegate",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "summa",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "rized",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "summarized",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_5-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "nested: done" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "middle agent",
+      "prompt": "done",
+      "run_in_background": true,
+      "subagent_type": "general-purpose",
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_middle",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": true,
+    "depth": 1,
+    "description": "middle agent",
+    "prompt": "done",
+    "ref": "toolu_middle",
+    "subagentType": "general-purpose",
+    "taskId": "a-middle",
+    "type": "task.started",
+  },
+  {
+    "output": "Async agent launched successfully.",
+    "ref": "toolu_middle",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "se",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "nt",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "sent",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "ref": "toolu_middle",
+    "type": "task.model",
+  },
+  {
+    "input": {
+      "description": "leaf agent",
+      "prompt": "echo PONG",
+    },
+    "name": "Agent",
+    "parentRef": "toolu_middle",
+    "ref": "toolu_leaf",
+    "type": "tool.started",
+  },
+  {
+    "background": false,
+    "depth": 2,
+    "description": "leaf agent",
+    "prompt": "echo PONG",
+    "ref": "toolu_leaf",
+    "subagentType": "general-purpose",
+    "taskId": "a-leaf",
+    "type": "task.started",
+  },
+  {
+    "ok": true,
+    "outputFile": null,
+    "ref": "toolu_leaf",
+    "summary": "PONG",
+    "taskId": "a-leaf",
+    "type": "task.done",
+    "usage": null,
+  },
+  {
+    "output": 
+"PONG
+
+agentId: a-leaf (use SendMessage with to: 'a-leaf', summary: 'the report' to continue this agent)
+<usage>subagent_tokens: 1500
+tool_uses: 2
+duration_ms: 250</usage>"
+,
+    "ref": "toolu_leaf",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "parentRef": "toolu_middle",
+    "ref": "msg_4:t0",
+    "text": "the leaf said PONG",
+    "type": "text.done",
+  },
+  {
+    "ok": true,
+    "outputFile": null,
+    "ref": "toolu_middle",
+    "summary": "done",
+    "taskId": "a-middle",
+    "type": "task.done",
+    "usage": {
+      "durationMs": 250,
+      "toolUses": 1,
+      "totalTokens": 1500,
+    },
+  },
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [],
+    "type": "session",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "done:",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": " done",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "done: done",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_5-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "background: done" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "done",
+      "prompt": "done",
+      "run_in_background": true,
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_agent",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": true,
+    "description": "done",
+    "prompt": null,
+    "ref": "toolu_agent",
+    "subagentType": "general-purpose",
+    "taskId": "task-agent",
+    "type": "task.started",
+  },
+  {
+    "output": "Async agent launched successfully.",
+    "ref": "toolu_agent",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "I will re",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "port back",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "I will report back",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "ref": "toolu_agent",
+    "type": "task.model",
+  },
+  {
+    "input": {
+      "file_path": "README.md",
+    },
+    "name": "Read",
+    "parentRef": "toolu_agent",
+    "ref": "toolu_agent_read",
+    "type": "tool.started",
+  },
+  {
+    "output": "# Notes",
+    "ref": "toolu_agent_read",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "input": {
+      "command": "ls",
+      "description": "List files",
+    },
+    "name": "Bash",
+    "parentRef": "toolu_agent",
+    "ref": "toolu_agent_bash",
+    "type": "tool.started",
+  },
+  {
+    "output": "README.md",
+    "ref": "toolu_agent_bash",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "lastTool": "Bash",
+    "ref": "toolu_agent",
+    "summary": "Running List files",
+    "taskId": "task-toolu_agent",
+    "type": "task.progress",
+    "usage": {
+      "durationMs": 250,
+      "toolUses": 2,
+      "totalTokens": 1500,
+    },
+  },
+  {
+    "parentRef": "toolu_agent",
+    "ref": "msg_5:t0",
+    "text": "the subagent says: done",
+    "type": "text.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "background command: sleep 30" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "description": "Run it",
+      "prompt": "sleep 30",
+      "run_in_background": true,
+    },
+    "name": "Agent",
+    "parentRef": null,
+    "ref": "toolu_cmd_agent",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "background": true,
+    "description": "Run it",
+    "prompt": null,
+    "ref": "toolu_cmd_agent",
+    "subagentType": "general-purpose",
+    "taskId": "task-cmd-agent",
+    "type": "task.started",
+  },
+  {
+    "output": "Async agent launched successfully.",
+    "ref": "toolu_cmd_agent",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "star",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "ted",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "started",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+  {
+    "model": "claude-sonnet-5-5",
+    "ref": "toolu_cmd_agent",
+    "type": "task.model",
+  },
+  {
+    "input": {
+      "command": "sleep 30",
+      "run_in_background": true,
+    },
+    "name": "Bash",
+    "parentRef": "toolu_cmd_agent",
+    "ref": "toolu_cmd_bash",
+    "type": "tool.started",
+  },
+  {
+    "description": "sleep 30",
+    "monitor": false,
+    "ref": "toolu_cmd_bash",
+    "taskId": "b-cmd",
+    "type": "background.started",
+  },
+  {
+    "description": "sleep 30",
+    "ref": "toolu_cmd_bash",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "output": "Command running in background with ID: b-cmd.",
+    "ref": "toolu_cmd_bash",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "parentRef": "toolu_cmd_agent",
+    "ref": "msg_4:t0",
+    "text": "Command started in the background.",
+    "type": "text.done",
+  },
+  {
+    "ok": true,
+    "outputFile": null,
+    "ref": null,
+    "summary": "Agent "Run it" finished",
+    "taskId": "task-cmd-agent",
+    "type": "task.done",
+    "usage": {
+      "durationMs": 250,
+      "toolUses": 1,
+      "totalTokens": 1500,
+    },
+  },
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [],
+    "type": "session",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "the subagent says: Command ",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "started in the background.",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_5:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_5:t0",
+    "text": "the subagent says: Command started in the background.",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_5-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "workflow:" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "script": "export const meta = { name: "write-and-read" }",
+    },
+    "name": "Workflow",
+    "parentRef": null,
+    "ref": "toolu_wf",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "toolu_wf",
+    "type": "workflow.progress",
+    "workflow": {
+      "agents": [],
+      "name": "write-and-read",
+      "phases": [],
+      "taskId": "wf-task",
+    },
+  },
+  {
+    "description": "Write a file, then read it",
+    "ref": "toolu_wf",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "ref": "toolu_wf",
+    "type": "workflow.progress",
+    "workflow": {
+      "agents": [],
+      "name": null,
+      "phases": [],
+      "taskId": "wf-task",
+    },
+  },
+  {
+    "output": 
+"Workflow launched in background. Task ID: wf-task
+Summary: Write a file, then read it
+Run ID: wf_fake"
+,
+    "ref": "toolu_wf",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "toolu_wf",
+    "type": "workflow.progress",
+    "workflow": {
+      "agents": [
+        {
+          "agentId": "a-writer",
+          "durationMs": null,
+          "index": 1,
+          "label": "write-file",
+          "lastTool": null,
+          "phaseIndex": 1,
+          "startedAt": 0,
+          "status": "running",
+        },
+      ],
+      "name": null,
+      "phases": [
+        {
+          "index": 1,
+          "title": "Write",
+        },
+        {
+          "index": 2,
+          "title": "Read",
+        },
+      ],
+      "taskId": "wf-task",
+    },
+  },
+  {
+    "description": "Write: write-file",
+    "ref": "toolu_wf",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "the workf",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "low runs",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "the workflow runs",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+  {
+    "description": "Write: write-file",
+    "ref": "toolu_wf",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "ref": "toolu_wf",
+    "type": "workflow.progress",
+    "workflow": {
+      "agents": [
+        {
+          "agentId": "a-writer",
+          "durationMs": 5000,
+          "index": 1,
+          "label": "write-file",
+          "lastTool": "Write",
+          "phaseIndex": 1,
+          "startedAt": 0,
+          "status": "done",
+        },
+        {
+          "agentId": "a-reader",
+          "durationMs": null,
+          "index": 2,
+          "label": "read-file",
+          "lastTool": null,
+          "phaseIndex": 2,
+          "startedAt": 0,
+          "status": "running",
+        },
+      ],
+      "name": null,
+      "phases": [
+        {
+          "index": 1,
+          "title": "Write",
+        },
+        {
+          "index": 2,
+          "title": "Read",
+        },
+      ],
+      "taskId": "wf-task",
+    },
+  },
+  {
+    "description": "Read: read-file",
+    "ref": "toolu_wf",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "ref": "toolu_wf",
+    "type": "workflow.progress",
+    "workflow": {
+      "agents": [
+        {
+          "agentId": "a-writer",
+          "durationMs": 5000,
+          "index": 1,
+          "label": "write-file",
+          "lastTool": "Write",
+          "phaseIndex": 1,
+          "startedAt": 0,
+          "status": "done",
+        },
+        {
+          "agentId": "a-reader",
+          "durationMs": 4000,
+          "index": 2,
+          "label": "read-file",
+          "lastTool": "Read",
+          "phaseIndex": 2,
+          "startedAt": 0,
+          "status": "done",
+        },
+      ],
+      "name": null,
+      "phases": [
+        {
+          "index": 1,
+          "title": "Write",
+        },
+        {
+          "index": 2,
+          "title": "Read",
+        },
+      ],
+      "taskId": "wf-task",
+    },
+  },
+  {
+    "description": "Read: read-file",
+    "ref": "toolu_wf",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "ok": true,
+    "ref": "toolu_wf",
+    "summary": null,
+    "taskId": "wf-task",
+    "type": "task.done",
+  },
+  {
+    "ok": true,
+    "outputFile": null,
+    "ref": "toolu_wf",
+    "summary": "Dynamic workflow "Write a file, then read it" completed",
+    "taskId": "wf-task",
+    "type": "task.done",
+    "usage": {
+      "durationMs": 9000,
+      "toolUses": 2,
+      "totalTokens": 32403,
+    },
+  },
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [],
+    "type": "session",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "the workfl",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "ow is done",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_3:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_3:t0",
+    "text": "the workflow is done",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_3-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;
+
+exports[`what a chat tells the session the prompt "run: ls" 1`] = `
+[
+  {
+    "agentSessionId": "fake-session",
+    "model": "claude-sonnet-5-5",
+    "skills": [],
+    "slashCommands": [
+      "compact",
+      "review",
+    ],
+    "type": "session",
+  },
+  {
+    "promptId": "p1",
+    "type": "turn.accepted",
+  },
+  {
+    "input": {
+      "command": "ls",
+    },
+    "name": "Bash",
+    "parentRef": null,
+    "ref": "toolu_run",
+    "type": "tool.started",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "description": "Run ls",
+    "ref": "toolu_run",
+    "startedAt": null,
+    "type": "tool.progress",
+  },
+  {
+    "description": null,
+    "ref": "toolu_run",
+    "startedAt": 0,
+    "type": "tool.progress",
+  },
+  {
+    "ok": true,
+    "outputFile": null,
+    "ref": "toolu_run",
+    "summary": "Run ls",
+    "taskId": "task-1",
+    "type": "task.done",
+    "usage": null,
+  },
+  {
+    "output": "ran: ls",
+    "ref": "toolu_run",
+    "state": "done",
+    "type": "tool.done",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "weighing it",
+    "type": "thinking.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "do",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "ne",
+    "type": "text.delta",
+  },
+  {
+    "ref": "msg_2:k0",
+    "text": "",
+    "type": "thinking.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "ref": "msg_2:t0",
+    "text": "done",
+    "type": "text.done",
+  },
+  {
+    "contextTokens": 1110,
+    "type": "usage",
+  },
+  {
+    "costUsd": 0.01,
+    "native": {
+      "lastUuid": "msg_2-text",
+    },
+    "state": "done",
+    "type": "turn.done",
+  },
+]
+`;

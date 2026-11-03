@@ -7,7 +7,6 @@ import type { BackendEvent, BackendLaunch } from './backend.ts';
 import { MAX_LINE_LENGTH, type ChatProcess, type ChatSpawnOptions } from './chat-process.ts';
 import { ChatSession } from './chat-session.ts';
 import { info } from './chat-session.fixture.test.ts';
-import { ClaudeBackend } from './claude-backend.ts';
 import { CodexTransport } from './codex-transport.ts';
 import { inProcess, type FakeIo, type FakeCli } from '../testing/fake-cli.ts';
 
@@ -79,58 +78,6 @@ function pipe(program?: FakeCli) {
         }
     };
 }
-
-test('Claude continues reading after an event consumer throws and reports the failure without killing the process', async () => {
-    const fake = pipe();
-    const events: BackendEvent[] = [];
-
-    const backend = new ClaudeBackend(
-        { ...launch, spawn: fake.spawn },
-        {
-            onEvent: (event) => {
-                if (event.type === 'text.done') {
-                    throw new Error('consumer failed');
-                }
-
-                events.push(event);
-            }
-        }
-    );
-
-    await backend.start();
-    fake.out({ type: 'assistant', message: { id: 'text', content: [{ type: 'text', text: 'hello' }] } });
-    fake.out({ type: 'result', subtype: 'success' });
-    await flush();
-    expect(events).toContainEqual({ type: 'failed', message: 'Lost the connection to Claude: consumer failed', processAlive: true });
-    expect(events).toContainEqual({ type: 'turn.done', state: 'done', costUsd: 0 });
-    expect(backend.running).toBe(true);
-    await fake.exit();
-});
-
-test('Claude rejects a failed answer write, withdraws it, and never answers that id twice', async () => {
-    const fake = pipe();
-    const events: BackendEvent[] = [];
-    const backend = new ClaudeBackend({ ...launch, spawn: fake.spawn }, { onEvent: (event) => events.push(event) });
-    await backend.start();
-
-    fake.out({
-        type: 'control_request',
-        request_id: 'approval',
-        request: { subtype: 'can_use_tool', tool_name: 'Bash', input: { command: 'true' }, tool_use_id: 'tool' }
-    });
-
-    await flush();
-    expect(events.some((event) => event.type === 'approval.requested')).toBe(true);
-    fake.break();
-    expect(backend.respondApproval('approval', 'allow')).toBe(false);
-    expect(events).toContainEqual({ type: 'request.withdrawn', requestId: 'approval' });
-    expect(events).toContainEqual({ type: 'failed', message: 'Lost the connection to Claude: broken pipe', processAlive: true });
-    const written = fake.writes.length;
-    expect(backend.respondApproval('approval', 'allow')).toBe(false);
-    expect(() => backend.sendTurn({ text: 'no', preamble: null, attachments: [], mentions: [], skills: [] })).toThrow('Claude stdin is closed');
-    expect(fake.writes.length).toBe(written);
-    await fake.exit();
-});
 
 test('Codex keeps reading after a frame consumer throws, and its outstanding RPC fails visibly', async () => {
     const fake = pipe();
@@ -228,98 +175,6 @@ test('Codex acknowledges its submitted prompt and rejects an undelivered approva
     expect(backend.respondApproval(approval.requestId, 'allow')).toBe(false);
     expect(backend.running).toBe(true);
     await fake.exit();
-});
-
-test('Claude acknowledges steering on replay without replacing the original prompt', async () => {
-    const frames: Array<Record<string, unknown>> = [];
-
-    const fake = pipe(() => ({
-        onLine: (line) => {
-            frames.push(JSON.parse(line));
-        }
-    }));
-
-    const events: BackendEvent[] = [];
-
-    const backend = new ClaudeBackend(
-        { ...launch, spawn: fake.spawn },
-        {
-            onEvent: (event) => {
-                events.push(event);
-            }
-        }
-    );
-
-    await backend.start();
-    backend.sendTurn({ promptId: 'original', text: 'start', preamble: null, attachments: [], mentions: [], skills: [] });
-    let accepted = false;
-
-    const sending = backend
-        .steerTurn({ promptId: 'steer', text: 'change direction', preamble: null, attachments: [], mentions: [], skills: [] })
-        .then((value) => {
-            accepted = value;
-        });
-
-    await flush();
-    expect(accepted).toBe(false);
-    expect(frames.filter((frame) => frame.type === 'user').map((frame) => frame.uuid)).toEqual(['original', 'steer']);
-    fake.out({ type: 'user', uuid: 'steer', parent_tool_use_id: null, message: { role: 'user', content: [] } });
-    await sending;
-    expect(accepted).toBe(true);
-    fake.out({ type: 'result', subtype: 'success', user_message_uuids: ['original', 'steer'], total_cost_usd: 0 });
-    await flush();
-    expect(events.filter((event) => event.type === 'turn.done')).toMatchObject([{ promptId: 'original', state: 'done' }]);
-    expect(await backend.steerTurn({ text: 'too late', preamble: null, attachments: [], mentions: [], skills: [] })).toBe(false);
-    await fake.exit();
-});
-
-test('Claude withdraws a steer it has not taken in when the person stops, so it does not run after the Stop', async () => {
-    const frames: Array<Record<string, unknown>> = [];
-
-    const fake = pipe(() => ({
-        onLine: (line) => {
-            frames.push(JSON.parse(line));
-        }
-    }));
-
-    const backend = new ClaudeBackend({ ...launch, spawn: fake.spawn }, { onEvent: () => undefined });
-    await backend.start();
-    backend.sendTurn({ promptId: 'original', text: 'start', preamble: null, attachments: [], mentions: [], skills: [] });
-    const withdrawn = backend.steerTurn({ promptId: 'late', text: 'change direction', preamble: null, attachments: [], mentions: [], skills: [] });
-    const taken = backend.steerTurn({ promptId: 'early', text: 'also this', preamble: null, attachments: [], mentions: [], skills: [] });
-    await flush();
-
-    backend.interrupt();
-    await flush();
-    const cancels = frames.filter((frame) => frame.type === 'control_request' && (frame.request as { subtype?: string }).subtype === 'cancel_async_message');
-    expect(cancels.map((frame) => (frame.request as { message_uuid?: string }).message_uuid)).toEqual(['late', 'early']);
-
-    fake.out({ type: 'control_response', response: { subtype: 'success', request_id: 'cancel-steer-late', response: { cancelled: true } } });
-    // The CLI had already taken this one in, so its echo still decides.
-    fake.out({ type: 'control_response', response: { subtype: 'success', request_id: 'cancel-steer-early', response: { cancelled: false } } });
-    fake.out({ type: 'user', uuid: 'early', parent_tool_use_id: null, message: { role: 'user', content: [] } });
-    expect(await withdrawn).toBe(false);
-    expect(await taken).toBe(true);
-    await fake.exit();
-});
-
-test('Claude rejects an unacknowledged steer when its transport dies', async () => {
-    const fake = pipe();
-    const backend = new ClaudeBackend({ ...launch, spawn: fake.spawn }, { onEvent: () => undefined });
-    await backend.start();
-    backend.sendTurn({ text: 'start', preamble: null, attachments: [], mentions: [], skills: [] });
-    const sending = backend.steerTurn({ text: 'change direction', preamble: null, attachments: [], mentions: [], skills: [] });
-    let reason = '';
-
-    void sending.catch((error: Error) => {
-        reason = error.message;
-    });
-
-    await flush();
-    await fake.exit();
-    await flush();
-    expect(backend.running).toBe(false);
-    expect(reason).toContain('Claude stopped before it got your message');
 });
 
 test('Codex sends native steering with the exact active turn id', async () => {
@@ -452,29 +307,6 @@ test('Codex keeps a thread it could not resume in time instead of starting anoth
     expect(events).toEqual([]);
 });
 
-test('Claude waits for a steer through the whole turn, and rejects one it never echoed a grace after the turn ended', async () => {
-    jest.useFakeTimers();
-    const fake = pipe();
-    const backend = new ClaudeBackend({ ...launch, spawn: fake.spawn }, { onEvent: () => undefined });
-    await backend.start();
-    backend.sendTurn({ promptId: 'original', text: 'start', preamble: null, attachments: [], mentions: [], skills: [] });
-    const late = backend.steerTurn({ promptId: 'late', text: 'next', preamble: null, attachments: [], mentions: [], skills: [] });
-
-    const lost = backend
-        .steerTurn({ promptId: 'lost', text: 'gone', preamble: null, attachments: [], mentions: [], skills: [] })
-        .catch((error: Error) => error);
-
-    jest.advanceTimersByTime(60 * 60_000);
-    fake.out({ type: 'result', subtype: 'success', user_message_uuids: ['original'], total_cost_usd: 0 });
-    await flush();
-    jest.advanceTimersByTime(29_999);
-    fake.out({ type: 'user', uuid: 'late', parent_tool_use_id: null, message: { role: 'user', content: [] } });
-    expect(await late).toBe(true);
-    jest.advanceTimersByTime(1);
-    expect((await lost) as Error).toMatchObject({ message: 'Claude ended its turn without taking your message' });
-    await fake.exit();
-});
-
 /* A process whose stdout the test writes in raw chunks, cut wherever it likes. */
 function rawStdout() {
     let stdout: ReadableStreamDefaultController<Uint8Array> | null = null;
@@ -553,24 +385,4 @@ test('a Codex frame past the line limit is dropped and reported, and the frames 
     expect(((await pending) as Error).message).toContain('which was dropped');
     expect(frames).toEqual([{ method: 'after', params: {} }]);
     cli.end();
-});
-
-test('Claude starts without the settings and MCP servers of its folder when the launch says so', async () => {
-    const fake = inProcess(() => ({ onLine: () => undefined }));
-    const commands: string[][] = [];
-
-    const spawn = (options: ChatSpawnOptions): ChatProcess => {
-        commands.push(options.command);
-
-        return fake.spawn(options);
-    };
-
-    for (const projectConfig of [false, undefined]) {
-        const backend = new ClaudeBackend({ ...launch, spawn, ...(projectConfig === undefined ? {} : { projectConfig }) }, { onEvent: () => undefined });
-        await backend.start();
-        backend.stop();
-    }
-
-    expect(commands[0]).toEqual(expect.arrayContaining(['--setting-sources=user', '--strict-mcp-config']));
-    expect(commands[1]).not.toContain('--setting-sources=user');
 });

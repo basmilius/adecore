@@ -9,7 +9,7 @@ Every fake comes from `@adecore/agents/testing`, except `memoryPortPair()` from 
 | Export                          |                                                                                      |
 | ------------------------------- | ------------------------------------------------------------------------------------ |
 | `inProcess(cli)`                | A `spawn` that runs a fake CLI in the process. `started` lists every run.            |
-| `fakeClaude`                    | Claude Code's stream-json protocol.                                                  |
+| `fakeClaude`                    | Claude Code's stream-json protocol, the SDK's handshake included.                    |
 | `fakeCodex`, `fakeCodexWith`    | Codex's app-server protocol, the second with options.                                |
 | `fakeAcp`, `fakeAcpWith`        | An agent on the Agent Client Protocol, the second with options (`FakeAcpOptions`).   |
 | `memoryPortPair()`              | Two ends of a `FramePort` in one process; a frame arrives as a copy, a moment later. |

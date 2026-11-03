@@ -160,7 +160,7 @@ describe('ChatCore.relocate', () => {
         await turn('chat', 'again');
         const launch = launches.at(-1)!;
         expect(launch.cwd).toBe(after);
-        expect(launch.argv.slice(launch.argv.indexOf('--resume'), launch.argv.indexOf('--resume') + 2)).toEqual(['--resume', sessionId!]);
+        expect(launch.argv).toContain(`--resume=${sessionId!}`);
         expect(launches).toHaveLength(2);
     });
 

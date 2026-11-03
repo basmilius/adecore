@@ -47,7 +47,7 @@ export {
 
 export { type ChatRecordExtras, type ChatRecord, ChatStore, type ChatSeq, type ChatStoreOptions } from './chat-store.ts';
 export { suggestChatTitle, type ChatTitleInput } from './chat-title.ts';
-export type { ClaudeBackendOptions } from './claude-backend.ts';
+export type { ClaudeApiKeyOptions, ClaudeBackendOptions } from './claude-backend.ts';
 export { ClaudeTitleReader } from './claude-title.ts';
 export { claudeProjectSlug, findClaudeSession } from './claude-transcript.ts';
 export type { CodexBackendOptions } from './codex-backend.ts';

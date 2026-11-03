@@ -3,7 +3,7 @@
  * compaction, edits, subagents, interrupts and crashes through the real frame shapes.
  */
 import { spawn } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FakeCli, FakeIo, FakeProgram } from './fake-cli.ts';
 
@@ -23,7 +23,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
     const sessionId = flagValue(args, '--resume') ?? `fake-${Math.random().toString(36).slice(2, 8)}`;
     const model = flagValue(args, '--model') ?? 'fake-model';
     const out = io.out;
-    // What a host that sends the handshake appended to the system prompt there, instead of on the command line.
+    // What the handshake appended to the system prompt.
     let initializedPrompt: string | null = null;
 
     let messageCounter = 0;
@@ -1123,9 +1123,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
         }
 
         if (text === 'system?') {
-            const at = args.indexOf('--append-system-prompt');
-            const fileAt = args.indexOf('--append-system-prompt-file');
-            assistantText(at >= 0 ? args[at + 1]! : fileAt >= 0 ? readFileSync(args[fileAt + 1]!, 'utf8') : (initializedPrompt ?? 'none'));
+            assistantText(initializedPrompt ?? 'none');
             result();
 
             return;

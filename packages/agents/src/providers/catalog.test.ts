@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { ModelCatalogDataSchema, type ModelCatalogData } from '@adecore/agent-contracts';
 import { ModelCatalog } from './catalog.ts';
-import { claudeArgs, claudeEnv, promptPrefix } from './claude.ts';
+import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from './claude.ts';
 import { providerFor } from './registry.ts';
 import claudeManifest from './claude-models.json' with { type: 'json' };
 import antigravityManifest from './antigravity-models.json' with { type: 'json' };
@@ -133,51 +133,23 @@ describe('a catalog swapped in while the host runs', () => {
     });
 });
 
-describe('claudeArgs', () => {
-    test('maps the selection and the modes to flags', () => {
-        const args = claudeArgs({
-            selection: { model: 'claude-opus-5', options: { effort: 'xhigh', contextWindow: '1m' } },
-            runtimeMode: 'full-access',
-            resume: 'abc'
-        });
-
-        expect(args.slice(args.indexOf('--model'))).toEqual([
-            '--model',
-            'claude-opus-5[1m]',
-            '--effort',
-            'xhigh',
-            '--permission-mode',
-            'bypassPermissions',
-            '--allow-dangerously-skip-permissions',
-            '--resume',
-            'abc'
-        ]);
+describe('what a Claude selection asks of the CLI', () => {
+    test('a 1M pick names the model with [1m], and only a flag effort goes on the flag', () => {
+        expect(claudeModel({ model: 'claude-opus-5', options: { contextWindow: '1m' } })).toBe('claude-opus-5[1m]');
+        expect(claudeModel({ model: 'claude-opus-5', options: { contextWindow: '200k' } })).toBe('claude-opus-5');
+        expect(claudeEffort({ model: 'claude-opus-5', options: { effort: 'xhigh' } })).toBe('xhigh');
+        expect(claudeEffort({ model: 'claude-opus-5', options: { effort: 'ultrathink' } })).toBeNull();
     });
 
-    test('fast mode travels as the settings blob the CLI opts in with', () => {
-        const selection = { model: 'claude-opus-5', options: { effort: 'high', contextWindow: '1m', fastMode: true } };
-        const args = claudeArgs({ selection, runtimeMode: 'auto', resume: null });
-        expect(args.slice(args.indexOf('--settings'), args.indexOf('--settings') + 2)).toEqual(['--settings', '{"fastMode":true}']);
-        expect(
-            claudeArgs({ selection: { ...selection, options: { ...selection.options, fastMode: false } }, runtimeMode: 'auto', resume: null })
-        ).not.toContain('--settings');
+    test('supervised is the CLI default, full access bypasses its permissions', () => {
+        expect(claudePermissionMode('supervised')).toBeNull();
+        expect(claudePermissionMode('auto-accept-edits')).toBe('acceptEdits');
+        expect(claudePermissionMode('auto')).toBe('auto');
+        expect(claudePermissionMode('full-access')).toBe('bypassPermissions');
     });
 
-    test("a launch without the configuration of its folder loads the person's settings only", () => {
-        const base = { selection: { model: 'claude-sonnet-5', options: {} }, runtimeMode: 'supervised' as const, resume: null, allowedTools: ['Read'] };
-        const ignored = claudeArgs({ ...base, projectConfig: false });
-        expect(ignored).toContain('--setting-sources=user');
-        expect(ignored).toContain('--strict-mcp-config');
-        expect(claudeArgs(base)).not.toContain('--setting-sources=user');
-        expect(claudeArgs({ ...base, projectConfig: true })).not.toContain('--strict-mcp-config');
-    });
-
-    test('supervised has no permission flag and ultrathink goes into the prompt', () => {
-        const selection = { model: 'claude-sonnet-5', options: { effort: 'ultrathink', contextWindow: '200k' } };
-        const supervised = claudeArgs({ selection, runtimeMode: 'supervised', resume: null });
-        expect(supervised).not.toContain('--permission-mode');
-        expect(supervised).not.toContain('--effort');
-        expect(promptPrefix(selection)).toBe('ultrathink\n\n');
+    test('ultrathink goes into the prompt', () => {
+        expect(promptPrefix({ model: 'claude-sonnet-5', options: { effort: 'ultrathink' } })).toBe('ultrathink\n\n');
         expect(promptPrefix({ model: 'x', options: { effort: 'high' } })).toBe('');
     });
 
@@ -188,33 +160,11 @@ describe('claudeArgs', () => {
     });
 
     test('a 200k pick turns auto-compact on, in the one settings blob it shares with fast mode', () => {
-        const settingsOf = (options: Record<string, string | boolean>): string | undefined => {
-            const args = claudeArgs({ selection: { model: 'claude-opus-5-5', options }, runtimeMode: 'auto', resume: null });
-            expect(args.filter((arg) => arg === '--settings').length).toBeLessThanOrEqual(1);
-
-            return args.includes('--settings') ? args[args.indexOf('--settings') + 1] : undefined;
-        };
-
-        expect(settingsOf({ contextWindow: '200k' })).toBe('{"autoCompactEnabled":true}');
-        expect(settingsOf({ contextWindow: '200k', fastMode: true })).toBe('{"fastMode":true,"autoCompactEnabled":true}');
-        expect(settingsOf({ contextWindow: '1m' })).toBeUndefined();
-    });
-
-    test('every mode lets the allowed tools through without a prompt, each in the form that swallows no argument', () => {
-        const selection = { model: 'claude-sonnet-5', options: {} };
-
-        for (const runtimeMode of ['supervised', 'auto-accept-edits', 'auto', 'full-access'] as const) {
-            expect(claudeArgs({ selection, runtimeMode, resume: null, allowedTools: ['Bash(tool *)'] })).toContain('--allowedTools=Bash(tool *)');
-        }
-
-        expect(claudeArgs({ selection, runtimeMode: 'auto', resume: null }).some((arg) => arg.startsWith('--allowedTools'))).toBe(false);
-    });
-
-    test('adds each folder in the form that swallows no argument', () => {
-        const selection = { model: 'claude-sonnet-5', options: {} };
-        const args = claudeArgs({ selection, runtimeMode: 'auto', resume: null, folders: ['/brand/kit', '/shared/assets'] });
-        expect(args.filter((arg) => arg.startsWith('--add-dir'))).toEqual(['--add-dir=/brand/kit', '--add-dir=/shared/assets']);
-        expect(claudeArgs({ selection, runtimeMode: 'auto', resume: null }).some((arg) => arg.startsWith('--add-dir'))).toBe(false);
+        const settingsOf = (options: Record<string, string | boolean>) => claudeSettings({ model: 'claude-opus-5-5', options });
+        expect(settingsOf({ contextWindow: '200k' })).toEqual({ autoCompactEnabled: true });
+        expect(settingsOf({ contextWindow: '200k', fastMode: true })).toEqual({ fastMode: true, autoCompactEnabled: true });
+        expect(settingsOf({ contextWindow: '1m', fastMode: true })).toEqual({ fastMode: true });
+        expect(settingsOf({ contextWindow: '1m', fastMode: false })).toBeNull();
     });
 });
 

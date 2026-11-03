@@ -58,7 +58,7 @@ The core, a session per chat, the thread and what is written of it, and the back
 | [`chat/chat-session`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-session.ts) | `PromptNotes`, `ChatReferences`, `ResumeWords`, `ChatSession`, `TurnCheckpoints`, `ChatSessionOptions`, `LimitResumeHooks`, `ChatSendExtras`, `ResumeDecision` |
 | [`chat/chat-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-store.ts) | `ChatRecordExtras`, `ChatRecord`, `ChatStore`, `ChatSeq`, `ChatStoreOptions` |
 | [`chat/chat-title`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-title.ts) | `suggestChatTitle`, `ChatTitleInput` |
-| [`chat/claude-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-backend.ts) | `ClaudeBackendOptions` |
+| [`chat/claude-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-backend.ts) | `ClaudeBackendOptions`, `ClaudeApiKeyOptions` |
 | [`chat/claude-title`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-title.ts) | `ClaudeTitleReader` |
 | [`chat/claude-transcript`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-transcript.ts) | `claudeProjectSlug`, `findClaudeSession` |
 | [`chat/codex-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/codex-backend.ts) | `CodexBackendOptions` |

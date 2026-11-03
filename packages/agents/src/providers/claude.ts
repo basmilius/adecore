@@ -1,26 +1,5 @@
 import type { ModelSelection, ProviderCapabilities, RuntimeMode } from '@adecore/agent-contracts';
 
-// Base arguments for a chat process; the session adds what the selection and the modes ask for.
-const CLAUDE_CHAT_ARGS = [
-    '-p',
-    '--output-format',
-    'stream-json',
-    '--input-format',
-    'stream-json',
-    '--verbose',
-    '--include-partial-messages',
-    '--replay-user-messages',
-    '--permission-prompt-tool',
-    'stdio'
-];
-
-/*
- * Only the person's own settings load, and only the MCP servers a caller passes: the project and
- * local settings files, the project's `.mcp.json` and the project's skills and commands stay out.
- * The latter flag also drops the person's own MCP servers and connectors (measured on Claude Code 2.1.300).
- */
-const CLAUDE_WITHOUT_PROJECT_CONFIG_ARGS = ['--setting-sources=user', '--strict-mcp-config'];
-
 // Effort values the CLI takes on its flag; anything else is asked for in the prompt instead.
 const FLAG_EFFORTS = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
 
@@ -37,54 +16,6 @@ export function claudeRuntimeMode(mode: string): RuntimeMode | undefined {
     }
 
     return (Object.keys(PERMISSION_MODE) as RuntimeMode[]).find((key) => PERMISSION_MODE[key] === mode);
-}
-
-interface ClaudeLaunch {
-    selection: ModelSelection;
-    runtimeMode: RuntimeMode;
-    resume: string | null;
-    allowedTools?: readonly string[];
-    folders?: readonly string[];
-    projectConfig?: boolean;
-}
-
-export function claudeArgs(launch: ClaudeLaunch): string[] {
-    // The `=` form matters, since the flag is variadic and would swallow a prompt argument after it (measured on Claude Code 2.1.274).
-    const args = [
-        ...CLAUDE_CHAT_ARGS,
-        ...(launch.allowedTools ?? []).map((tool) => `--allowedTools=${tool}`),
-        ...(launch.folders ?? []).map((folder) => `--add-dir=${folder}`),
-        ...(launch.projectConfig === false ? CLAUDE_WITHOUT_PROJECT_CONFIG_ARGS : [])
-    ];
-
-    args.push('--model', claudeModel(launch.selection));
-    const effort = claudeEffort(launch.selection);
-
-    if (effort !== null) {
-        args.push('--effort', effort);
-    }
-
-    const settings = claudeSettings(launch.selection);
-
-    if (settings !== null) {
-        args.push('--settings', JSON.stringify(settings));
-    }
-
-    const permissionMode = claudePermissionMode(launch.runtimeMode);
-
-    if (permissionMode) {
-        args.push('--permission-mode', permissionMode);
-    }
-
-    if (permissionMode === 'bypassPermissions') {
-        args.push('--allow-dangerously-skip-permissions');
-    }
-
-    if (launch.resume) {
-        args.push('--resume', launch.resume);
-    }
-
-    return args;
 }
 
 /* The model as the CLI takes it, with `[1m]` for a 1M pick. */
@@ -124,7 +55,7 @@ export function claudePermissionMode(mode: RuntimeMode): string | null {
  * Leaving out `[1m]` does not cap a model the CLI runs natively on 1M on a subscription (Fable,
  * Opus 5.5, Sonnet 5), and `autoCompactWindow` in `--settings` is ignored under `-p`: only this
  * variable holds a 200k pick (measured on Claude Code 2.1.280). It holds it only with auto-compact
- * on, which `claudeArgs` sees to.
+ * on, which `claudeSettings` sees to.
  */
 export function claudeEnv(selection: ModelSelection): Record<string, string> {
     return selection.options.contextWindow === '200k' ? { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '200000' } : {};
