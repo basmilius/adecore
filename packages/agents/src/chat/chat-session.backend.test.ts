@@ -8,7 +8,11 @@ import { ClaudeProtocol } from './claude-protocol.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 
 // `reconfigure` is what the backend answers a change it is asked to take in place; absent, it has no such call.
-function replacementRig(provider = claudeProvider, options: Partial<ChatSessionOptions> = {}, reconfigure?: (change: BackendChange) => boolean) {
+function replacementRig(
+    provider = claudeProvider,
+    options: Partial<ChatSessionOptions> = {},
+    reconfigure?: (change: BackendChange) => boolean | Promise<boolean>
+) {
     let folders: readonly string[] = [];
     let failNextStart = false;
     const changes: BackendChange[] = [];
@@ -444,77 +448,91 @@ describe('backend replacement with live work', () => {
         await run.session.dispose();
     });
 
-    test('a resume that requires replacement keeps live work and its approval', async () => {
-        const run = replacementRig();
-        const { turnId } = run.session.send('start');
-        await flush();
-        run.agent();
+    // A change the running process could take in place waits for the same work a restart waits for.
+    const handlings = [
+        ['replacement', undefined],
+        ['an in-place change', () => true]
+    ] as const;
 
-        run.event({
-            type: 'approval.requested',
-            requestId: 'permission',
-            ref: 'write',
-            toolName: 'Write',
-            input: {},
-            description: null,
-            canAllowAlways: false,
-            background: true
+    for (const [handling, reconfigure] of handlings) {
+        test(`a resume that requires ${handling} keeps live work and its approval`, async () => {
+            const run = replacementRig(claudeProvider, {}, reconfigure);
+            const { turnId } = run.session.send('start');
+            await flush();
+            run.agent();
+
+            run.event({
+                type: 'approval.requested',
+                requestId: 'permission',
+                ref: 'write',
+                toolName: 'Write',
+                input: {},
+                description: null,
+                canAllowAlways: false,
+                background: true
+            });
+
+            run.session.configure({ runtimeMode: 'auto' });
+            await expect(run.session.resume(turnId, 2, { prompt: 'resume', note: 'Resume', preamble: null })).rejects.toThrow('current work and open requests');
+            await flush();
+            expect(run.instances).toHaveLength(1);
+            expect(run.instances[0]!.stopped).toBe(false);
+            expect(run.changes).toEqual([]);
+            expect(run.session.approve('permission', 'deny')).toBe(true);
+            await run.session.dispose();
         });
 
-        run.session.configure({ runtimeMode: 'auto' });
-        await expect(run.session.resume(turnId, 2, { prompt: 'resume', note: 'Resume', preamble: null })).rejects.toThrow('current work and open requests');
-        await flush();
-        expect(run.instances).toHaveLength(1);
-        expect(run.instances[0]!.stopped).toBe(false);
-        expect(run.session.approve('permission', 'deny')).toBe(true);
-        await run.session.dispose();
-    });
+        test(`work discovered while preparing a wake for ${handling} keeps requests and an unaccepted durable preamble`, async () => {
+            let revealWork = false;
 
-    test('work discovered while preparing a wake keeps requests and an unaccepted durable preamble', async () => {
-        let revealWork = false;
+            const run = replacementRig(
+                claudeProvider,
+                {
+                    promptNotes: {
+                        next: () => {
+                            if (revealWork) {
+                                run.agent();
 
-        const run = replacementRig(claudeProvider, {
-            promptNotes: {
-                next: () => {
-                    if (revealWork) {
-                        run.agent();
+                                run.event({
+                                    type: 'approval.requested',
+                                    requestId: 'permission',
+                                    ref: 'write',
+                                    toolName: 'Write',
+                                    input: {},
+                                    description: null,
+                                    canAllowAlways: false,
+                                    background: true
+                                });
+                            }
 
-                        run.event({
-                            type: 'approval.requested',
-                            requestId: 'permission',
-                            ref: 'write',
-                            toolName: 'Write',
-                            input: {},
-                            description: null,
-                            canAllowAlways: false,
-                            background: true
-                        });
+                            return { shown: [], heard: ['Important context'] };
+                        },
+                        reset: () => undefined
                     }
-
-                    return { shown: [], heard: ['Important context'] };
                 },
-                reset: () => undefined
-            }
-        });
+                reconfigure
+            );
 
-        run.session.send('start');
-        await flush();
-        run.done();
-        run.session.configure({ runtimeMode: 'auto' });
-        revealWork = true;
-        const wakeId = run.session.wake({ text: 'task result', label: 'Task result', taskIds: ['task'] })!;
-        await flush();
-        expect(run.instances).toHaveLength(1);
-        expect(run.instances[0]!.stopped).toBe(false);
-        expect(run.session.thread.get(wakeId)).toMatchObject({ state: 'error', deliveryPending: true });
-        expect(run.session.preambles.join('\n')).toContain('Important context');
-        expect(run.session.approve('permission', 'deny')).toBe(true);
-        run.event({ type: 'task.done', ref: 'agent', taskId: 'native-agent', summary: 'Complete', ok: true });
-        run.event({ type: 'text.done', ref: 'report', text: 'Finished', parentRef: null });
-        run.done();
-        expect(run.session.thread.get(wakeId)).toMatchObject({ deliveryPending: true });
-        await run.session.dispose();
-    });
+            run.session.send('start');
+            await flush();
+            run.done();
+            run.session.configure({ runtimeMode: 'auto' });
+            revealWork = true;
+            const wakeId = run.session.wake({ text: 'task result', label: 'Task result', taskIds: ['task'] })!;
+            await flush();
+            expect(run.instances).toHaveLength(1);
+            expect(run.instances[0]!.stopped).toBe(false);
+            expect(run.session.thread.get(wakeId)).toMatchObject({ state: 'error', deliveryPending: true });
+            expect(run.session.preambles.join('\n')).toContain('Important context');
+            expect(run.session.approve('permission', 'deny')).toBe(true);
+            run.event({ type: 'task.done', ref: 'agent', taskId: 'native-agent', summary: 'Complete', ok: true });
+            run.event({ type: 'text.done', ref: 'report', text: 'Finished', parentRef: null });
+            run.done();
+            expect(run.session.thread.get(wakeId)).toMatchObject({ deliveryPending: true });
+            expect(run.changes).toEqual([]);
+            await run.session.dispose();
+        });
+    }
 
     test('a pending native question alone keeps its owner until answered', async () => {
         const run = replacementRig();
@@ -802,6 +820,68 @@ describe('a settings change a running process takes in place', () => {
         expect(run.instances[0]!.stopped).toBe(true);
         expect(run.instances[1]!.launch.selection).toEqual(haiku());
         expect(run.instances[1]!.sent.map((input) => input.text)).toEqual(['second']);
+        await run.session.dispose();
+    });
+
+    // A process that takes its time to take a change, so the chat can move on while it still does.
+    const slowRig = () => {
+        const answers: ((took: boolean) => void)[] = [];
+        const run = replacementRig(claudeProvider, {}, () => new Promise<boolean>((resolve) => answers.push(resolve)));
+
+        return { ...run, answer: (took: boolean) => answers.shift()!(took) };
+    };
+
+    const changing = async (run: ReturnType<typeof slowRig>) => {
+        run.session.send('first');
+        await flush();
+        run.done();
+        await flush();
+        run.session.configure({ selection: haiku() });
+        run.session.send('second');
+        await flush();
+        expect(run.changes).toHaveLength(1);
+    };
+
+    for (const [name, letGo] of [
+        ['Stop', (run: ReturnType<typeof slowRig>) => run.session.cancel()],
+        ['Clear', (run: ReturnType<typeof slowRig>) => void run.session.clear(true)],
+        ['end', (run: ReturnType<typeof slowRig>) => run.session.end('Stopped')],
+        ['dispose', (run: ReturnType<typeof slowRig>) => void run.session.dispose()]
+    ] as const) {
+        for (const took of [true, false]) {
+            test(`${name} while the process still takes a change starts nothing once it ${took ? 'took' : 'refused'} it`, async () => {
+                const run = slowRig();
+                await changing(run);
+                letGo(run);
+                run.answer(took);
+                await flush();
+                expect(run.instances).toHaveLength(1);
+                expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first']);
+                await run.session.dispose();
+            });
+        }
+    }
+
+    test('a second pick while the first is still taken goes on top of it, and the turn runs on the newest', async () => {
+        const run = slowRig();
+        await changing(run);
+        run.session.configure({ runtimeMode: 'auto' });
+        run.answer(true);
+        await flush();
+        expect(run.changes).toEqual([
+            { selection: haiku(), runtimeMode: 'supervised' },
+            { selection: haiku(), runtimeMode: 'auto' }
+        ]);
+        expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first']);
+        run.answer(true);
+        await flush();
+        expect(run.instances).toHaveLength(1);
+        expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first', 'second']);
+        run.done();
+        run.session.send('third');
+        await flush();
+        expect(run.changes).toHaveLength(2);
+        expect(run.instances[0]!.sent.map((input) => input.text)).toEqual(['first', 'second', 'third']);
         await run.session.dispose();
     });
 

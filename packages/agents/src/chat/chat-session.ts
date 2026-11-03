@@ -203,6 +203,8 @@ export class ChatSession {
     private backend: ChatBackend | null = null;
     private replaceProcess = false;
     private starting: Promise<ChatBackend> | null = null;
+    // A change a running process is still taking; a second start in the meantime waits for it instead of sending its own.
+    private reconfiguring: { backend: ChatBackend; done: Promise<ChatBackend> } | null = null;
     private pendingStart: { turnId: string; warning: unknown } | null = null;
     private sendAfterStop = false;
     // A message the person sent while a settings change waited goes out once it applies, paused queue or not.
@@ -2292,8 +2294,13 @@ export class ChatSession {
         const change = { selection: this.info.selection, runtimeMode: this.info.runtimeMode };
         const took = await backend.reconfigure!(change).catch(() => false);
 
-        if (this.backend !== backend) {
-            return this.ensureBackend();
+        if (this.reconfiguring?.backend === backend) {
+            this.reconfiguring = null;
+        }
+
+        // Stopped, cleared, ended or disposed meanwhile: what asked for this start is gone, so nothing starts for it.
+        if (this.backend !== backend || this.frozen) {
+            throw new Error('The chat let go of the process this change was for');
         }
 
         if (!took) {
@@ -2305,17 +2312,26 @@ export class ChatSession {
         this.launchedSelection = change.selection;
         this.launchedRuntimeMode = change.runtimeMode;
 
-        return this.starting ?? backend;
+        // A pick made while this one was taken goes on top of it, so the turn runs on the newest.
+        return this.requiresReplacement() ? this.ensureBackend() : (this.starting ?? backend);
     }
 
     private ensureBackend(): Promise<ChatBackend> {
-        if (this.backend && this.requiresReplacement() && this.reconfigurable()) {
-            return this.reconfigureBackend(this.backend);
+        if (this.reconfiguring !== null && this.reconfiguring.backend === this.backend) {
+            return this.reconfiguring.done;
         }
 
         if (this.backend && this.requiresReplacement()) {
             if (this.processInUse()) {
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));
+            }
+
+            if (this.reconfigurable()) {
+                const backend = this.backend;
+                const done = this.reconfigureBackend(backend);
+                this.reconfiguring = { backend, done };
+
+                return done;
             }
 
             // Let the old one go quietly; its events are dropped and its exit must not end the chat.
