@@ -7,13 +7,24 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import type { FakeCli, FakeIo, FakeProgram } from './fake-cli.ts';
 
+/* The value of a flag the CLI takes as `--flag value` or `--flag=value`. */
+function flagValue(args: readonly string[], flag: string): string | undefined {
+    const at = args.indexOf(flag);
+
+    if (at >= 0) {
+        return args[at + 1];
+    }
+
+    return args.find((arg) => arg.startsWith(`${flag}=`))?.slice(flag.length + 1);
+}
+
 export function fakeClaude(io: FakeIo): FakeProgram {
     const args = io.argv;
-    const resumeAt = args.indexOf('--resume');
-    const sessionId = resumeAt >= 0 ? args[resumeAt + 1]! : `fake-${Math.random().toString(36).slice(2, 8)}`;
-    const modelAt = args.indexOf('--model');
-    const model = modelAt >= 0 ? args[modelAt + 1]! : 'fake-model';
+    const sessionId = flagValue(args, '--resume') ?? `fake-${Math.random().toString(36).slice(2, 8)}`;
+    const model = flagValue(args, '--model') ?? 'fake-model';
     const out = io.out;
+    // What a host that sends the handshake appended to the system prompt there, instead of on the command line.
+    let initializedPrompt: string | null = null;
 
     let messageCounter = 0;
     // A real message id is unique across processes, which a fork's thread holding a resumed CLI's replies relies on.
@@ -1114,7 +1125,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
         if (text === 'system?') {
             const at = args.indexOf('--append-system-prompt');
             const fileAt = args.indexOf('--append-system-prompt-file');
-            assistantText(at >= 0 ? args[at + 1]! : fileAt >= 0 ? readFileSync(args[fileAt + 1]!, 'utf8') : 'none');
+            assistantText(at >= 0 ? args[at + 1]! : fileAt >= 0 ? readFileSync(args[fileAt + 1]!, 'utf8') : (initializedPrompt ?? 'none'));
             result();
 
             return;
@@ -1192,7 +1203,35 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             } else if (frame.type === 'control_response') {
                 handleControlResponse(frame.response as Record<string, unknown>);
             } else if (frame.type === 'control_request') {
-                const request = frame.request as { subtype: string; task_id?: string };
+                const request = frame.request as { subtype: string; task_id?: string; appendSystemPrompt?: unknown };
+
+                // The handshake a host opens with before its first message; the answer says what this CLI offers.
+                if (request.subtype === 'initialize') {
+                    initializedPrompt = typeof request.appendSystemPrompt === 'string' ? request.appendSystemPrompt : null;
+
+                    out({
+                        type: 'control_response',
+                        response: {
+                            subtype: 'success',
+                            request_id: frame.request_id,
+                            response: {
+                                commands: [
+                                    { name: 'compact', description: 'Clear conversation history but keep a summary in context', argumentHint: '' },
+                                    { name: 'review', description: 'Review a pull request', argumentHint: '' }
+                                ],
+                                agents: [{ name: 'general-purpose', description: 'General-purpose agent' }],
+                                output_style: 'default',
+                                available_output_styles: ['default'],
+                                models: [{ value: model, displayName: model, description: 'The fake model' }],
+                                account: { subscriptionType: 'max' },
+                                pid: 1
+                            }
+                        }
+                    });
+
+                    return;
+                }
+
                 out({ type: 'control_response', response: { subtype: 'success', request_id: frame.request_id, response: {} } });
 
                 if (request.subtype === 'stop_task' && (request.task_id === 'a-one' || request.task_id === 'a-two')) {
@@ -1216,8 +1255,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
  */
 export function claudeStoppingOnResume(sessionIds: ReadonlySet<string>, how: 'missing' | 'exit'): FakeCli {
     return (io) => {
-        const resumeAt = io.argv.indexOf('--resume');
-        const sessionId = resumeAt >= 0 ? io.argv[resumeAt + 1] : undefined;
+        const sessionId = flagValue(io.argv, '--resume');
 
         if (sessionId === undefined || !sessionIds.has(sessionId)) {
             return fakeClaude(io);

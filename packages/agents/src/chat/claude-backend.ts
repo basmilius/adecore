@@ -9,13 +9,15 @@ import { buildUserMessage } from './input.ts';
 
 // Claude may echo a steer only once a slow tool returns, so a running turn sets no deadline; after the turn ended, a message
 // it still holds opens the next turn at once or never arrives.
-const STEER_GRACE_MS = 30_000;
+export const STEER_GRACE_MS = 30_000;
 // The request id of a `cancel_async_message` that withdraws a steer, followed by its uuid.
 const CANCEL_STEER = 'cancel-steer-';
 
 export interface ClaudeBackendOptions {
     // Tools the CLI runs without asking, in every mode, as `--allowedTools` patterns (`Bash(git status)`).
     allowedTools?: readonly string[];
+    // Drives the CLI through the Claude Agent SDK, which the host installs itself, instead of our own stream-json transport.
+    agentSdk?: boolean;
 }
 
 /*

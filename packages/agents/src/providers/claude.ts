@@ -57,31 +57,20 @@ export function claudeArgs(launch: ClaudeLaunch): string[] {
         ...(launch.projectConfig === false ? CLAUDE_WITHOUT_PROJECT_CONFIG_ARGS : [])
     ];
 
-    const contextWindow = launch.selection.options.contextWindow;
-    args.push('--model', `${launch.selection.model}${contextWindow === '1m' ? '[1m]' : ''}`);
-    const effort = launch.selection.options.effort;
+    args.push('--model', claudeModel(launch.selection));
+    const effort = claudeEffort(launch.selection);
 
-    if (typeof effort === 'string' && FLAG_EFFORTS.has(effort)) {
+    if (effort !== null) {
         args.push('--effort', effort);
     }
 
-    /*
-     * Fast mode has no flag of its own; the CLI reads it from the settings blob, which is also the
-     * opt-in the init frame asks for (without it the frame answers `sdk_opt_in_required`). It only
-     * takes on a model that offers it, so the catalog puts the option on those models alone.
-     * A 200k pick turns auto-compact on over the person's own setting, since `claudeEnv` only moves
-     * where it compacts and a CLI under `-p` never stops at a window (measured on Claude Code 2.1.283).
-     */
-    const settings = {
-        ...(launch.selection.options.fastMode === true ? { fastMode: true } : {}),
-        ...(launch.selection.options.contextWindow === '200k' ? { autoCompactEnabled: true } : {})
-    };
+    const settings = claudeSettings(launch.selection);
 
-    if (Object.keys(settings).length > 0) {
+    if (settings !== null) {
         args.push('--settings', JSON.stringify(settings));
     }
 
-    const permissionMode = PERMISSION_MODE[launch.runtimeMode];
+    const permissionMode = claudePermissionMode(launch.runtimeMode);
 
     if (permissionMode) {
         args.push('--permission-mode', permissionMode);
@@ -96,6 +85,39 @@ export function claudeArgs(launch: ClaudeLaunch): string[] {
     }
 
     return args;
+}
+
+/* The model as the CLI takes it, with `[1m]` for a 1M pick. */
+export function claudeModel(selection: ModelSelection): string {
+    return `${selection.model}${selection.options.contextWindow === '1m' ? '[1m]' : ''}`;
+}
+
+/* The effort the CLI takes on its flag, or null for one it is asked for in the prompt instead. */
+export function claudeEffort(selection: ModelSelection): string | null {
+    const effort = selection.options.effort;
+
+    return typeof effort === 'string' && FLAG_EFFORTS.has(effort) ? effort : null;
+}
+
+/*
+ * Fast mode has no flag of its own; the CLI reads it from the settings blob, which is also the
+ * opt-in the init frame asks for (without it the frame answers `sdk_opt_in_required`). It only
+ * takes on a model that offers it, so the catalog puts the option on those models alone.
+ * A 200k pick turns auto-compact on over the person's own setting, since `claudeEnv` only moves
+ * where it compacts and a CLI under `-p` never stops at a window (measured on Claude Code 2.1.283).
+ */
+export function claudeSettings(selection: ModelSelection): Record<string, boolean> | null {
+    const settings = {
+        ...(selection.options.fastMode === true ? { fastMode: true } : {}),
+        ...(selection.options.contextWindow === '200k' ? { autoCompactEnabled: true } : {})
+    };
+
+    return Object.keys(settings).length > 0 ? settings : null;
+}
+
+/* The CLI's permission mode for a runtime mode; null for supervised, which is the CLI's default. */
+export function claudePermissionMode(mode: RuntimeMode): string | null {
+    return PERMISSION_MODE[mode];
 }
 
 /*

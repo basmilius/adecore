@@ -70,6 +70,12 @@ The Codex column is the closest match, not an exact one. A new chat defaults to 
 
 `claude.allowedTools` lets Claude Code use the named tools without asking, in every mode. `codexRules` writes command prefixes Codex may run without asking into every Codex home. A home it cannot write to only costs an approval per call.
 
+## Claude Agent SDK
+
+`claude.agentSdk: true` drives Claude Code through `@anthropic-ai/claude-agent-sdk` instead of the package's own stream-json transport. It is experimental and off by default. Install the exact version the package lists as an optional peer. The chat still starts the CLI from `command`, never the binary the SDK bundles, and reports the same events. Each server in the launch's `mcpServers` goes to the CLI through the SDK, and one with `allowTools` is allowed as `mcp__<name>__*`.
+
+One thing differs. On Stop, a message sent into the running turn that the CLI has not taken in yet still runs afterwards, because the SDK has no public call to withdraw it.
+
 ## Folders you do not trust
 
 A CLI reads configuration from its working folder: settings with hooks and allow-lists, MCP servers, skills and commands. From an untrusted folder, that configuration can run commands outside the chat's runtime mode. Return `false` from `projectConfigFor(chatId)` for such a chat. The host asks before every turn, like `foldersFor`, and a change starts the next turn in a new process. Absent or `true` loads the configuration as usual.

@@ -1,4 +1,5 @@
 import { ClaudeBackend, type ClaudeBackendOptions } from '../chat/claude-backend.ts';
+import { ClaudeSdkBackend } from '../chat/claude-sdk-backend.ts';
 import { ModelCatalog } from './catalog.ts';
 import { CLAUDE_CAPABILITIES, CLAUDE_RESUME_COMMAND } from './claude.ts';
 import { detectCli } from './detect.ts';
@@ -40,7 +41,7 @@ export function createClaudeProvider(options: ClaudeBackendOptions = {}): ChatPr
         oneShotStdinArgs: ['-p', '--output-format', 'text'],
         // `claude [options] [prompt]`: the prompt is the positional, and without -p the session stays.
         firstPromptArgs: (prompt) => [prompt],
-        createBackend: (launch, host) => new ClaudeBackend(launch, host, options)
+        createBackend: (launch, host) => (options.agentSdk === true ? new ClaudeSdkBackend(launch, host, options) : new ClaudeBackend(launch, host, options))
     };
 }
 
