@@ -1,5 +1,6 @@
-import { renameSync, writeFileSync } from 'node:fs';
-import { lstat, open, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { closeSync, openSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { lstat, open, rename, rm, stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { wait } from './async.ts';
 
@@ -20,12 +21,9 @@ function isTransient(e: unknown): boolean {
     return hasErrorCode(e, 'EPERM', 'EBUSY', 'EACCES');
 }
 
-// Two writes of the same file in flight at once (a fire-and-forget save next to an awaited one) must not share a temp name.
-let nextTemp = 0;
-
-/* Where a file waits while it is being written; the pid keeps two hosts over one home apart. */
+/* A temporary name is still opened exclusively: an unpredictable name alone cannot protect a write. */
 export function tempNameFor(target: string): string {
-    return `${target}.${process.pid}-${nextTemp++}.tmp`;
+    return `${target}.${process.pid}-${randomUUID()}.tmp`;
 }
 
 export interface WriteAtomicOptions {
@@ -33,14 +31,17 @@ export interface WriteAtomicOptions {
     durable?: boolean;
 }
 
-async function writeFlushed(path: string, content: string | Uint8Array, mode: number): Promise<void> {
-    const handle = await open(path, 'w', mode);
+async function createTemp(target: string, mode: number) {
+    for (let attempt = 0; ; attempt++) {
+        const path = tempNameFor(target);
 
-    try {
-        await handle.writeFile(content);
-        await handle.sync();
-    } finally {
-        await handle.close();
+        try {
+            return { path, handle: await open(path, 'wx', mode) };
+        } catch (error) {
+            if (!hasErrorCode(error, 'EEXIST') || attempt >= 31) {
+                throw error;
+            }
+        }
     }
 }
 
@@ -65,30 +66,38 @@ async function syncDirectory(path: string): Promise<void> {
  * write is durable.
  */
 export async function writeAtomic(target: string, content: string | Uint8Array, mode = 0o600, options: WriteAtomicOptions = {}): Promise<void> {
-    const temp = tempNameFor(target);
+    const { path: temp, handle } = await createTemp(target, mode);
 
-    if (options.durable) {
-        await writeFlushed(temp, content, mode);
-    } else {
-        await writeFile(temp, content, { mode });
-    }
-
-    for (let attempt = 0; ; attempt++) {
+    try {
         try {
-            await rename(temp, target);
+            await handle.writeFile(content);
 
-            break;
-        } catch (e) {
-            if (!isTransient(e) || attempt >= RENAME_RETRIES) {
-                throw e;
+            if (options.durable) {
+                await handle.sync();
             }
-
-            await wait(RENAME_RETRY_MS);
+        } finally {
+            await handle.close();
         }
-    }
 
-    if (options.durable) {
-        await syncDirectory(dirname(target));
+        for (let attempt = 0; ; attempt++) {
+            try {
+                await rename(temp, target);
+
+                break;
+            } catch (e) {
+                if (!isTransient(e) || attempt >= RENAME_RETRIES) {
+                    throw e;
+                }
+
+                await wait(RENAME_RETRY_MS);
+            }
+        }
+
+        if (options.durable) {
+            await syncDirectory(dirname(target));
+        }
+    } finally {
+        await rm(temp, { force: true });
     }
 }
 
@@ -114,9 +123,34 @@ export function replaceSync(temp: string, target: string): void {
 }
 
 export function writeAtomicSync(target: string, content: string | Uint8Array, mode = 0o600): void {
-    const temp = tempNameFor(target);
-    writeFileSync(temp, content, { mode });
-    replaceSync(temp, target);
+    for (let attempt = 0; ; attempt++) {
+        const temp = tempNameFor(target);
+        let descriptor: number;
+
+        try {
+            descriptor = openSync(temp, 'wx', mode);
+        } catch (error) {
+            if (hasErrorCode(error, 'EEXIST') && attempt < 31) {
+                continue;
+            }
+
+            throw error;
+        }
+
+        try {
+            try {
+                writeFileSync(descriptor, content);
+            } finally {
+                closeSync(descriptor);
+            }
+
+            replaceSync(temp, target);
+
+            return;
+        } finally {
+            rmSync(temp, { force: true });
+        }
+    }
 }
 
 export function isNotFound(e: unknown): boolean {

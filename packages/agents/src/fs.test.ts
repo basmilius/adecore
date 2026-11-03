@@ -1,8 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import * as crypto from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { entryExists, fileExists, hasErrorCode, removeFile, writeAtomic } from './fs.ts';
+import { entryExists, fileExists, hasErrorCode, removeFile, tempNameFor, writeAtomic, writeAtomicSync } from './fs.ts';
 
 let dir: string;
 
@@ -15,6 +16,32 @@ afterEach(async () => {
 });
 
 describe('writeAtomic', () => {
+    test.each(['normal', 'durable', 'sync'])('leaves a symlink on a temporary name untouched during a %s write', async (variant) => {
+        const target = join(dir, 'state.json');
+        const outside = join(dir, 'outside.txt');
+        await writeFile(outside, 'original');
+        const collision = '11111111-1111-4111-8111-111111111111';
+        const available = '22222222-2222-4222-8222-222222222222';
+        const random = spyOn(crypto, 'randomUUID').mockReturnValue(collision);
+        const link = tempNameFor(target);
+        try {
+            await symlink(outside, link);
+            random.mockReturnValueOnce(collision).mockReturnValue(available);
+
+            if (variant === 'sync') {
+                writeAtomicSync(target, 'new');
+            } else {
+                await writeAtomic(target, 'new', 0o600, { durable: variant === 'durable' });
+            }
+        } finally {
+            random.mockRestore();
+        }
+
+        expect(await readFile(outside, 'utf8')).toBe('original');
+        expect(await readFile(target, 'utf8')).toBe('new');
+        expect(await entryExists(link)).toBe(true);
+    });
+
     test('a durable write replaces the file whole, with its mode, and leaves no temp file behind', async () => {
         const target = join(dir, 'project.json');
         await writeFile(target, 'old');
