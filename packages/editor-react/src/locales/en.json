@@ -349,6 +349,8 @@
         "noNewline": "No final newline",
         "added": "Added, new line {{number}}",
         "removed": "Removed, old line {{number}}",
-        "unchanged": "Old line {{old}}, new line {{new}}"
+        "unchanged": "Old line {{old}}, new line {{new}}",
+        "addedLine": "Added line",
+        "removedLine": "Removed line"
     }
 }

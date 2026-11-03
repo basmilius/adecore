@@ -39,6 +39,7 @@ export function SplitDiffView({
     fill = false,
     maxHeight,
     label,
+    numbered = true,
     className,
     ref,
     onMount,
@@ -221,7 +222,7 @@ export function SplitDiffView({
                 editor.setLineNumbers((line) => {
                     const row = current.current.display[side].rows[line];
 
-                    return row === undefined ? null : String(row[side]!.number);
+                    return row === undefined || !numbered ? null : String(row[side]!.number);
                 });
 
                 const highlights: EditorLineHighlight[] = [];
@@ -249,7 +250,7 @@ export function SplitDiffView({
                 actions.set(display[side].rows.flatMap((row, line) => (row.noNewline === undefined ? [] : [{ id: `no-newline-${line}`, line }])));
             }
         });
-    }, [mounted, engine, display, emphasis]);
+    }, [mounted, engine, display, emphasis, numbered]);
 
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {
@@ -264,10 +265,14 @@ export function SplitDiffView({
                     return null;
                 }
 
+                if (!numbered) {
+                    return t(side === 'old' ? 'diff.removedLine' : 'diff.addedLine');
+                }
+
                 return t(side === 'old' ? 'diff.removed' : 'diff.added', { number: row[side]!.number });
             });
         }
-    }, [mounted, engine, display, t]);
+    }, [mounted, engine, display, t, numbered]);
 
     useLayoutEffect(() => {
         if (mounted === null || mounted.old.engine !== engine) {

@@ -13,6 +13,7 @@ These parts draw what an agent proposed or wrote. Asking the agent, keeping its 
 | `splitWrapLimit` | Above this many rows (2,000), split turns wrap off                                            |
 | `fill`           | The parent sets the height; otherwise the view grows to its content                           |
 | `maxHeight`      | Caps that growth in pixels; taller diffs scroll inside. Ignored with `fill`                   |
+| `numbered`       | `false` draws no line numbers, for a fragment whose place in its file is not known; `true` by default |
 | `unfoldLimits`   | A `DiffLimits` (`rows`, `characters`, `lineLength`) for context expansion; 20,000 rows, 2,000,000 UTF-16 units, 10,000 per line |
 | `tokens`         | [Source tokens](#source-tokens)                                                               |
 | `onMount(editor, side)` | Runs per editor, to attach a find bar or commands; may return a cleanup. `side` is `old` or `new` in split, absent in unified |

@@ -601,9 +601,14 @@ describe('the Claude backend on an API key', () => {
         expect(env).toMatchObject({
             ANTHROPIC_API_KEY: 'sk-ant-test',
             CLAUDE_CONFIG_DIR: '/tmp/claude-api',
-            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1',
+            DISABLE_AUTOUPDATER: '1',
+            DISABLE_BUG_COMMAND: '1',
+            DISABLE_ERROR_REPORTING: '1',
+            DISABLE_TELEMETRY: '1',
             PATH: '/usr/bin'
         });
+        // The umbrella variable would also keep the CLI from naming the session, which is where the chat's title comes from.
+        expect(env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC).toBeUndefined();
         expect(env.CLAUDE_CODE_OAUTH_TOKEN).toBeUndefined();
         expect(env.ANTHROPIC_AUTH_TOKEN).toBeUndefined();
         expect(argv).toEqual(expect.arrayContaining(['--setting-sources=', '--strict-mcp-config', '--allowedTools=mcp__context__*']));

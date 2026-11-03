@@ -27,6 +27,12 @@ import { buildUserMessage } from './input.ts';
 // it still holds opens the next turn at once or never arrives.
 const STEER_GRACE_MS = 30_000;
 
+/*
+ * What `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` turns off, one by one: that variable also stops the CLI from naming
+ * the session (no `ai-title` in the transcript, measured on Claude Code 2.1.317), and the chat takes its title from there.
+ */
+const NO_NONESSENTIAL_TRAFFIC = { DISABLE_AUTOUPDATER: '1', DISABLE_BUG_COMMAND: '1', DISABLE_ERROR_REPORTING: '1', DISABLE_TELEMETRY: '1' };
+
 // Sign-ins that win over an API key in the CLI, so a chat on a key never inherits one from the host's environment.
 const SIGN_IN_VARIABLES = ['ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN'];
 
@@ -365,7 +371,7 @@ export class ClaudeBackend implements ChatBackend {
             ...env,
             ANTHROPIC_API_KEY: key,
             CLAUDE_CONFIG_DIR: this.options.apiKey.configDir,
-            CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+            ...NO_NONESSENTIAL_TRAFFIC
         };
     }
 

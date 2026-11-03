@@ -1085,8 +1085,10 @@ export class ChatSession {
         const resumeTurnId = resume.resumeTurnId;
         const now = Date.now();
 
-        for (const item of this.thread.list()) {
-            const settled = settleStoredItem(item, resumeTurnId);
+        const items = this.thread.list();
+
+        for (const item of items) {
+            const settled = settleStoredItem(item, resumeTurnId, items);
 
             if (settled === item) {
                 continue;
@@ -1606,7 +1608,7 @@ export class ChatSession {
                     ? { ...item, state: 'aborted' as const, endedAt: now }
                     : item.kind === 'subagent' && item.origin !== HOST_TASK_ORIGIN && item.status === 'running'
                       ? { ...item, status: 'failed' as const, finishedAt: now }
-                      : settleStoredItem(item, null);
+                      : settleStoredItem(item, null, []);
 
             if (settled !== item) {
                 events.push(this.thread.upsert(settled));
@@ -2819,7 +2821,7 @@ export interface ResumeDecision {
 }
 
 // Whatever was open when the host went down: nobody is going to answer it now.
-function settleStoredItem(item: ChatItem, resumeTurnId: string | null): ChatItem {
+function settleStoredItem(item: ChatItem, resumeTurnId: string | null, items: readonly ChatItem[]): ChatItem {
     if (item.kind === 'assistant' && item.streaming) {
         return { ...item, streaming: false };
     }
@@ -2836,9 +2838,12 @@ function settleStoredItem(item: ChatItem, resumeTurnId: string | null): ChatItem
         return { ...item, state: 'error' };
     }
 
-    // Aborted rather than error: the turn did not fail, the machine went down under it.
+    // Aborted rather than error: the turn did not fail, the machine went down under it. It ended with the last thing it
+    // did, as far as the record knows; a resumed turn keeps its first start, so its own start would read as no time at all.
     if (item.kind === 'turn' && item.state === 'running' && item.id !== resumeTurnId) {
-        return { ...item, state: 'aborted', endedAt: item.endedAt ?? item.createdAt };
+        const lastWork = items.reduce((last, other) => (other.turnId === item.id ? Math.max(last, other.createdAt) : last), item.createdAt);
+
+        return { ...item, state: 'aborted', endedAt: item.endedAt ?? lastWork };
     }
 
     return item;

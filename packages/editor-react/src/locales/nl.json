@@ -349,6 +349,8 @@
         "noNewline": "Geen afsluitende nieuwe regel",
         "added": "Toegevoegd, nieuwe regel {{number}}",
         "removed": "Verwijderd, oude regel {{number}}",
-        "unchanged": "Oude regel {{old}}, nieuwe regel {{new}}"
+        "unchanged": "Oude regel {{old}}, nieuwe regel {{new}}",
+        "addedLine": "Toegevoegde regel",
+        "removedLine": "Verwijderde regel"
     }
 }

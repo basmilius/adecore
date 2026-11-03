@@ -8,6 +8,7 @@ import { codexProvider } from '../providers/codex-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { testAccounts } from '../testing/accounts.ts';
 import { AttachmentStore } from './attachment-store.ts';
+import type { BackendHost, BackendLaunch, ChatBackend } from './backend.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
 
@@ -211,5 +212,56 @@ describe('where ChatCore reads the transcripts of a chat', () => {
         expect(core.claudeProjectsDirOf({ provider: 'anthropic-claude-api' })).toBe(join(apiConfig, 'projects'));
         expect(core.claudeProjectsDirOf({ provider: 'claude' })).toBe(join(home, '.claude', 'projects'));
         expect(core.claudeProjectsDirOf({ provider: 'codex' })).toBe('');
+    });
+
+    test('a chat on an API key takes the title Claude Code gave its session from its own folder', async () => {
+        const apiConfig = join(root, 'api', 'claude-config');
+        const asked: Array<{ agentSessionId: string; projectsDir: string }> = [];
+        let host: BackendHost | null = null;
+
+        const backend: ChatBackend = {
+            running: true,
+            pid: null,
+            start: async () => undefined,
+            sendTurn: () => undefined,
+            compact: () => undefined,
+            interrupt: () => undefined,
+            respondApproval: () => false,
+            respondQuestion: () => false,
+            stop: () => undefined,
+            dispose: async () => undefined
+        };
+
+        const api = {
+            ...createClaudeProvider({ apiKey: { key: () => 'sk-test', configDir: apiConfig } }),
+            kind: 'anthropic-claude-api',
+            createBackend: (_launch: BackendLaunch, made: BackendHost) => {
+                host = made;
+
+                return backend;
+            }
+        };
+
+        core = new ChatCore({
+            providers: new ProviderRegistry({ detect: async () => ({ installed: true, version: 'test' }), providers: [claudeProvider, api] }),
+            store: new ChatStore(root),
+            attachments: new AttachmentStore(root),
+            env: { HOME: home, PATH: '/bin' },
+            claudeTitles: {
+                forSession: async (agentSessionId, projectsDir) => {
+                    asked.push({ agentSessionId, projectsDir });
+
+                    return 'B-trees in short';
+                }
+            }
+        });
+
+        await core.create({ chatId: 'api', provider: 'anthropic-claude-api', cwd: home });
+        await core.send('api', 'Explain a B-tree.');
+        host!.onEvent({ type: 'session', agentSessionId: 'session-api', model: null });
+        await new Promise<void>((resolve) => setImmediate(resolve));
+
+        expect(asked[0]).toEqual({ agentSessionId: 'session-api', projectsDir: join(apiConfig, 'projects') });
+        expect(core.get('api')?.info.suggestedTitle).toBe('B-trees in short');
     });
 });

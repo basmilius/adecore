@@ -1,9 +1,11 @@
 import { expect, test } from 'bun:test';
+import i18next from 'i18next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createSmartEditorEngine } from '@adecore/editor';
 import { createPage, press } from '@adecore/editor/testing';
+import editorWords from '@adecore/editor-react/locales/en.json';
 import { ChatHostProvider, type ChatHost } from '../../../host';
 import { PromptCard } from '../../../prompts/ui/PromptCard';
 import { ApprovalReview } from './ApprovalReview';
@@ -141,5 +143,33 @@ test('the approval file toolbar follows card navigation and the editor hands app
         expect(focused).toBe(0);
         await act(async () => press(page.window, page.host.querySelector('textarea')!, 'Enter', { ctrlKey: true }));
         expect(approvals).toBe(1);
+    });
+});
+
+test('an Edit approval draws its fragment without line numbers of its own and without a final newline mark', async () => {
+    await mounted(async (page, root) => {
+        const engine = createSmartEditorEngine({ tokenizer: async () => null, apple: false });
+        setHost({ isApplePlatform: () => false, code: { ...CODE, editor: async () => engine } });
+        const fragment = reviewEntries([], [{ path: 'notes.txt', before: 'two', after: 'TWO', fragment: true }]);
+        const whole = reviewEntries([], [{ path: 'notes.txt', before: 'one\ntwo', after: 'one\nTWO' }]);
+
+        i18next.addResourceBundle('en', 'editor', editorWords);
+
+        try {
+            await act(async () => root.render(<ApprovalReview entries={fragment} maxHeight={176} />));
+            await act(async () => undefined);
+            const shown = page.host.textContent ?? '';
+            expect(shown).toContain('Removed line');
+            expect(shown).toContain('Added line');
+            expect(shown).not.toMatch(/\d/);
+            expect(shown).not.toContain('No final newline');
+
+            // A whole file keeps its numbers.
+            await act(async () => root.render(<ApprovalReview entries={whole} maxHeight={176} />));
+            await act(async () => undefined);
+            expect(page.host.textContent).toContain('Removed, old line 2');
+        } finally {
+            i18next.removeResourceBundle('en', 'editor');
+        }
     });
 });

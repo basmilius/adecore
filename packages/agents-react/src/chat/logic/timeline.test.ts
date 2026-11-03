@@ -285,6 +285,7 @@ describe('deriveTimelineRows', () => {
             state: 'done',
             origin: 'agent',
             label: 'Report written',
+            taskToolUseId: 'toolu_report',
             endedAt: 4000,
             costUsd: 0
         };
@@ -619,7 +620,7 @@ describe('labels', () => {
 
     test('agentTurnLabel', () => {
         const turn = { id: 't', kind: 'turn' as const, createdAt: 0, turnId: 't', state: 'done' as const, endedAt: 1, costUsd: 0 };
-        expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'slept' })).toBe('Sub-agent finished: slept');
+        expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'slept', taskToolUseId: 'toolu_agent' })).toBe('Sub-agent finished: slept');
         expect(agentTurnLabel({ ...turn, origin: 'agent' })).toBe('Continued on its own');
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Lexer', taskIds: ['task-1'] })).toBe('Woken by a task: Lexer');
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Lexer, Docs', taskIds: ['task-1', 'task-2'] })).toBe('Woken by 2 tasks: Lexer, Docs');
@@ -631,6 +632,30 @@ describe('labels', () => {
         expect(agentTurnLabel({ ...turn, origin: 'agent', label: 'Messages from Lexer, Docs', messageFrom: ['chat-2', 'chat-3'] })).toBe(
             'Woken by 2 messages: Messages from Lexer, Docs'
         );
+    });
+
+    test('a turn the machine could not resume keeps what it last said in sight, under how long it ran', () => {
+        const rows = deriveTimelineRows(
+            [
+                { id: 'tm', kind: 'turn', createdAt: 1000, turnId: 'tm', state: 'aborted', endedAt: 9000, costUsd: 0 },
+                { id: 'um', kind: 'user', createdAt: 1000, turnId: 'tm', text: 'count to thirty' },
+                tool('b1', 'Bash', { command: 'echo 1' }, 'done', 'tm'),
+                { id: 'am', kind: 'assistant', createdAt: 5000, turnId: 'tm', text: 'Counted to twelve.', streaming: false },
+                tool('b2', 'Bash', { command: 'echo 13' }, 'error', 'tm'),
+                {
+                    id: 'nm',
+                    kind: 'note',
+                    createdAt: 9500,
+                    turnId: 'tm',
+                    level: 'warning',
+                    text: notResumedNote('it was already resumed after an earlier restart')
+                }
+            ],
+            options
+        );
+
+        expect(rows.find((row) => row.kind === 'turn-fold')).toMatchObject({ label: 'Stopped after 8s' });
+        expect(rows.some((row) => row.kind === 'assistant' && row.item.text === 'Counted to twelve.')).toBe(true);
     });
 
     test('a turn the CLI opened after a background command names a task, not a sub-agent', () => {
@@ -650,9 +675,9 @@ describe('labels', () => {
                     state: 'done',
                     endedAt: 3000,
                     costUsd: 0,
+                    // The machine names no subagent row for a command, so the turn carries no `taskToolUseId`.
                     origin: 'agent',
-                    label,
-                    taskToolUseId: 'toolu_bg'
+                    label
                 },
                 { id: 'a1', kind: 'assistant', createdAt: 2500, turnId: 't1', text: 'It printed ok.', streaming: false }
             ],

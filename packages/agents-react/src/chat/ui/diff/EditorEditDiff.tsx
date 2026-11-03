@@ -5,7 +5,7 @@ import { getFiletypeFromFileName } from '@pierre/diffs';
 import type { EditorEngine } from '@adecore/editor';
 import { DiffView, type DiffSource } from '@adecore/editor-react';
 import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
-import type { FileChange } from '../../logic/tools';
+import { diffTexts, type FileChange } from '../../logic/tools';
 import { useDiffSourceTokens } from '../use-diff-source-tokens';
 import { diffSourceBudget } from './diff-source-budget';
 import { DiffOmitted } from './DiffOmitted';
@@ -25,6 +25,7 @@ function ReadyDiff({
     fill,
     layout,
     maxHeight,
+    numbered,
     onSource
 }: {
     document: DiffDocument;
@@ -34,6 +35,7 @@ function ReadyDiff({
     fill: boolean;
     layout: 'unified' | 'split';
     maxHeight: number;
+    numbered: boolean;
     onSource?(source: DiffSource): void | (() => void);
 }) {
     useReviewSettled();
@@ -55,6 +57,7 @@ function ReadyDiff({
             layout={layout}
             wrap={wrap}
             fill={fill}
+            numbered={numbered}
             className="chat-diff select-text"
             onSource={onSource}
         />
@@ -70,6 +73,7 @@ export function EditorDocumentDiff({
     fill = false,
     layout = 'unified',
     maxHeight = 480,
+    numbered = true,
     onSource
 }: {
     document: DiffDocument;
@@ -80,6 +84,7 @@ export function EditorDocumentDiff({
     fill?: boolean;
     layout?: 'unified' | 'split';
     maxHeight?: number;
+    numbered?: boolean;
     onSource?(source: DiffSource): void | (() => void);
 }) {
     const { t } = useTranslation('agent-chat');
@@ -130,7 +135,17 @@ export function EditorDocumentDiff({
     return engine === null ? (
         fallback
     ) : (
-        <ReadyDiff document={document} path={path} engine={engine} wrap={wrap} fill={fill} layout={layout} maxHeight={maxHeight} onSource={onSource} />
+        <ReadyDiff
+            document={document}
+            path={path}
+            engine={engine}
+            wrap={wrap}
+            fill={fill}
+            layout={layout}
+            maxHeight={maxHeight}
+            numbered={numbered}
+            onSource={onSource}
+        />
     );
 }
 
@@ -147,14 +162,25 @@ export default function EditorEditDiff({
     fallback: ReactNode;
     maxHeight?: number;
 }) {
+    const { before, after } = diffTexts(change);
+
     const document =
-        sourceChecked || diffSourceBudget(change.before, change.after)
-            ? diffDocument(patchOf(change.before, change.after, 3, { maxWork: EDITOR_DIFF_WORK }), { old: change.before, new: change.after })
+        sourceChecked || diffSourceBudget(before, after)
+            ? diffDocument(patchOf(before, after, 3, { maxWork: EDITOR_DIFF_WORK }), { old: before, new: after })
             : undefined;
 
     if (document === undefined) {
         return <DiffOmitted path={change.path} />;
     }
 
-    return <EditorDocumentDiff document={document} path={change.path} loadEngine={loadEngine} fallback={fallback} maxHeight={maxHeight} />;
+    return (
+        <EditorDocumentDiff
+            document={document}
+            path={change.path}
+            loadEngine={loadEngine}
+            fallback={fallback}
+            maxHeight={maxHeight}
+            numbered={change.fragment !== true}
+        />
+    );
 }

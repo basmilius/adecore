@@ -153,6 +153,23 @@ describe('background work recovered from a stored chat', () => {
         await recovered.session.dispose();
     });
 
+    test('a turn the machine could not resume ends with the last thing it did, not at its start', async () => {
+        const running: import('@adecore/agent-contracts').ChatTurnItem = { ...main, state: 'running', endedAt: null, createdAt: 1_000 };
+
+        const stopped = rig({
+            info: { ...info(), status: 'running', activeTurnId: 'main' },
+            items: [
+                running,
+                { id: 'u', kind: 'user', createdAt: 1_000, turnId: 'main', text: 'count to thirty' },
+                { id: 'a', kind: 'assistant', createdAt: 9_000, turnId: 'main', text: 'One, two, three.', streaming: true }
+            ]
+        });
+
+        stopped.session.settleStored(stopped.session.info.selection, { resumeTurnId: null, reason: 'it was already resumed after an earlier restart' });
+        expect(stopped.session.thread.get('main')).toMatchObject({ state: 'aborted', endedAt: 9_000 });
+        await stopped.session.dispose();
+    });
+
     test('a chat of another provider id that runs Claude Code recovers from its transcript too', async () => {
         const recovered = rig({
             info: { ...info(), provider: 'anthropic-claude-api' },

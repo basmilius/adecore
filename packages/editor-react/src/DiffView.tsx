@@ -26,6 +26,8 @@ export interface DiffViewProps {
     /* Total visible source-text budgets after unfolding; changed rows are always retained. */
     unfoldLimits?: DiffLimits;
     label: string;
+    /* False draws no line numbers, for a fragment whose place in its file is not known. Defaults to true. */
+    numbered?: boolean;
     className?: string;
     ref?: Ref<HTMLDivElement>;
     onMount?(editor: Editor, side?: 'old' | 'new'): void | (() => void);
@@ -59,6 +61,7 @@ function UnifiedDiffView({
     fill = false,
     maxHeight,
     label,
+    numbered = true,
     className,
     ref,
     onMount,
@@ -132,7 +135,7 @@ function UnifiedDiffView({
         editor.setLineNumbers((line) => {
             const row = current.current.display.rows[line];
 
-            return row === undefined ? null : String((row.new ?? row.old)!.number);
+            return row === undefined || !numbered ? null : String((row.new ?? row.old)!.number);
         });
 
         const highlights: EditorLineHighlight[] = [];
@@ -173,7 +176,7 @@ function UnifiedDiffView({
         );
 
         actions.set(display.rows.flatMap((row, line) => (row.noNewline === undefined ? [] : [{ id: `no-newline-${line}`, line }])));
-    }, [mounted, engine, display, emphasis]);
+    }, [mounted, engine, display, emphasis, numbered]);
 
     useLayoutEffect(() => {
         if (mounted === null || mounted.engine !== engine) {
@@ -185,16 +188,16 @@ function UnifiedDiffView({
             const row = display.rows[line];
 
             if (row?.change === 'delete') {
-                return t('diff.removed', { number: row.old!.number });
+                return numbered ? t('diff.removed', { number: row.old!.number }) : t('diff.removedLine');
             }
 
             if (row?.change === 'insert') {
-                return t('diff.added', { number: row.new!.number });
+                return numbered ? t('diff.added', { number: row.new!.number }) : t('diff.addedLine');
             }
 
-            return row?.old !== undefined && row.new !== undefined ? t('diff.unchanged', { old: row.old.number, new: row.new.number }) : null;
+            return numbered && row?.old !== undefined && row.new !== undefined ? t('diff.unchanged', { old: row.old.number, new: row.new.number }) : null;
         });
-    }, [mounted, engine, display, t]);
+    }, [mounted, engine, display, t, numbered]);
 
     useLayoutEffect(() => {
         if (mounted === null || mounted.engine !== engine) {

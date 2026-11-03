@@ -6,6 +6,17 @@ export interface FileChange {
     path: string;
     before: string;
     after: string;
+    // A piece of the file (an Edit's `old_string` and `new_string`), whose line numbers and last line say nothing about the file.
+    fragment?: boolean;
+}
+
+/* The texts a diff draws: a fragment ends where its edit does, not where its file ends, so it gets no "no final newline" mark. */
+export function diffTexts(change: FileChange): { before: string; after: string } {
+    if (change.fragment !== true || change.before.endsWith('\n') || change.after.endsWith('\n')) {
+        return { before: change.before, after: change.after };
+    }
+
+    return { before: `${change.before}\n`, after: `${change.after}\n` };
 }
 
 function str(value: unknown): string | null {
@@ -156,7 +167,7 @@ export function fileChanges(name: string, input: unknown): FileChange[] {
     const path = str(input.file_path) ?? '';
 
     if (name === 'Edit') {
-        return [{ path, before: str(input.old_string) ?? '', after: str(input.new_string) ?? '' }];
+        return [{ path, before: str(input.old_string) ?? '', after: str(input.new_string) ?? '', fragment: true }];
     }
 
     if (name === 'Write') {
@@ -164,7 +175,7 @@ export function fileChanges(name: string, input: unknown): FileChange[] {
     }
 
     if (name === 'MultiEdit' && Array.isArray(input.edits)) {
-        return input.edits.filter(isRecord).map((edit) => ({ path, before: str(edit.old_string) ?? '', after: str(edit.new_string) ?? '' }));
+        return input.edits.filter(isRecord).map((edit) => ({ path, before: str(edit.old_string) ?? '', after: str(edit.new_string) ?? '', fragment: true }));
     }
 
     return [];

@@ -251,7 +251,7 @@ export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly C
  * What a turn nobody asked for is about. The CLI wakes the agent when a background subagent settles
  * and hands over its summary; without one all that is known is that the agent went on by itself.
  */
-export function agentTurnLabel(turn: ChatTurnItem, items: readonly ChatItem[] = []): string {
+export function agentTurnLabel(turn: ChatTurnItem): string {
     const about = (what: string): string => (turn.label ? i18next.t('agent-chat:turn.about', { what, label: turn.label }) : what);
 
     // A turn the machine opened with the results of tasks this chat gave; the label is their titles.
@@ -268,13 +268,11 @@ export function agentTurnLabel(turn: ChatTurnItem, items: readonly ChatItem[] = 
         return i18next.t('agent-chat:turn.continued');
     }
 
-    // Claude Code also wakes the agent for a command or a monitor it ran in the background, whose call is a tool, not a subagent.
-    const byCommand =
-        turn.taskToolUseId !== undefined &&
-        items.some((item) => item.kind === 'tool' && item.toolUseId === turn.taskToolUseId) &&
-        !items.some((item) => item.kind === 'subagent' && item.toolUseId === turn.taskToolUseId);
+    // The machine names the subagent row a wake is about; Claude Code also wakes the agent for a command, a monitor or a
+    // workflow it ran in the background, which has no such row.
+    const key = turn.taskToolUseId === undefined ? 'agent-chat:turn.backgroundFinished' : 'agent-chat:turn.subagentFinished';
 
-    return i18next.t(byCommand ? 'agent-chat:turn.backgroundFinished' : 'agent-chat:turn.subagentFinished', { label: turn.label });
+    return i18next.t(key, { label: turn.label });
 }
 
 /* The items of the turn tell a turn a person stopped from one the machine ended after a restart. */
@@ -680,7 +678,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         // A turn a message opened needs no line of its own when that message stands right above it.
         if (turn?.origin === 'agent' && !opensUnderItsMessages(turn, rows)) {
             // The agent started this one itself, so there is no message of the person to show above it.
-            rows.push({ kind: 'turn-start', id: `start-${turnId}`, turn, label: agentTurnLabel(turn, items) });
+            rows.push({ kind: 'turn-start', id: `start-${turnId}`, turn, label: agentTurnLabel(turn) });
         }
 
         const active = turnId === options.activeTurnId || turn?.state === 'running';
@@ -705,7 +703,9 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const rest = conversation.slice(lastUser + 1);
         const work = rowsForItems(rest, options, children);
         // The closing answer stays visible; the work after the last input folds behind the label.
-        const finalAssistant = lastAssistantRow(work);
+        // A turn the machine ended mid-call has no closing answer, but what it last said is still the most a person can read of it.
+        const cutShort = turn.state === 'aborted' && abortedByMachine(turn, chunk.items);
+        const finalAssistant = lastAssistantRow(work) ?? (cutShort ? (work.findLast((row) => row.kind === 'assistant') ?? null) : null);
         const closing = finalAssistant ? work.indexOf(finalAssistant) : work.length;
         const before = work.slice(0, closing);
 
