@@ -1,5 +1,6 @@
 import { clipText, WAITING_NOTE_PREFIX, type ChatApprovalItem, type ChatItem, type ChatQuestionItem, type Task } from '@adecore/agent-contracts';
 import type { ChatCore } from '../chat/chat-core.ts';
+import type { NoteDelivery } from '../chat/chat-session.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
@@ -205,13 +206,14 @@ export function waitingTexts(child: { id: string; title: string }, item: Waiting
 export interface DeliverWaitingDeps {
     request: ChatRequests['request'];
     titleFor(nodeId: string): string | null;
-    deliver(chatId: string, delivery: { noteId: string; note: string; from?: string; preamble: string }): Promise<boolean>;
+    deliver(chatId: string, delivery: NoteDelivery): Promise<boolean>;
     words: WaitingWords;
 }
 
 /*
  * Leaves the note in the parent, once. A request that no longer waits (answered, allowed, taken back
- * by its CLI, or cancelled by a restart) is news about nothing, so it says nothing.
+ * by its CLI, or cancelled by a restart) is news about nothing, so it says nothing. The preamble waits
+ * for the parent's next turn, so it is dropped when the request settled by then; the note stays.
  */
 export function deliverWaitingHandler(deps: DeliverWaitingDeps) {
     return async (entry: DeliverWaitingEntry): Promise<OutboxOutcome> => {
@@ -223,6 +225,11 @@ export function deliverWaitingHandler(deps: DeliverWaitingDeps) {
         }
 
         const texts = waitingTexts({ id: childId, title: deps.titleFor(childId) ?? childId }, item, deps.words);
-        await deps.deliver(entry.target, { noteId: waitingNoteId(childId, requestId), from: childId, ...texts });
+        await deps.deliver(entry.target, {
+            noteId: waitingNoteId(childId, requestId),
+            from: childId,
+            ...texts,
+            holds: () => isPendingRequest(deps.request(childId, requestId))
+        });
     };
 }

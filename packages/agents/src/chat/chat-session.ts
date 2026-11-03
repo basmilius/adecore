@@ -59,6 +59,17 @@ export interface PromptNotes {
     reset(): void;
 }
 
+/* A note for the thread and the preamble the CLI hears in front of the next real prompt. */
+export interface NoteDelivery {
+    noteId: string;
+    note: string;
+    from?: string;
+    preamble: string;
+
+    /* Asked again in front of that prompt; false drops the preamble and leaves the note. */
+    holds?(): boolean;
+}
+
 /* What a message pointed at: other chats with `@`, and views and nodes with `#`, by id. */
 export interface ChatAttached {
     chats: string[];
@@ -231,6 +242,9 @@ export class ChatSession {
     // Background subagents a load found running whose transcript did not show an end yet; no CLI here will report them.
     private readonly orphans = new Set<string>();
     private pendingPreambles: readonly string[];
+    // Preambles about something that may pass before the next prompt, asked again then. In memory only: a restart
+    // settles every request they are about, and a chat that holds one stays loaded.
+    private heldPreambles: ReadonlyArray<{ preamble: string; holds: () => boolean }> = [];
     // Said once like the preambles, but never drawn as a note; kept in memory only, since a lost hint costs nothing.
     private pendingHints: readonly string[] = [];
     private submission: { turnId: string; input: TurnInput } | null = null;
@@ -286,6 +300,11 @@ export class ChatSession {
     /* What still waits for the next real prompt, for the record. */
     get preambles(): readonly string[] {
         return [...this.pendingPreambles, ...(this.submission?.input.preamble ? [this.submission.input.preamble] : [])];
+    }
+
+    /* Whether a held preamble would still be said, which no record keeps. */
+    get holdsPreamble(): boolean {
+        return this.heldPreambles.some((entry) => entry.holds());
     }
 
     get pid(): number | null {
@@ -1009,6 +1028,7 @@ export class ChatSession {
         this.options.promptNotes?.reset();
         // A cleared chat starts a new conversation, which what was waiting to be said no longer describes.
         this.pendingPreambles = [];
+        this.heldPreambles = [];
         this.pendingHints = [];
         this.submission = null;
         this.staleResults = 0;
@@ -1444,12 +1464,16 @@ export class ChatSession {
      * not a turn runs now: a fork's summary, a child that waits. Written under the id the delivery
      * names, so a delivery that runs twice leaves one of each; false when it was here already.
      */
-    deliverNote(delivery: { noteId: string; note: string; from?: string; preamble: string }): boolean {
+    deliverNote(delivery: NoteDelivery): boolean {
         if (this.thread.get(delivery.noteId) !== undefined) {
             return false;
         }
 
-        this.pendingPreambles = [...this.pendingPreambles, delivery.preamble];
+        if (delivery.holds === undefined) {
+            this.pendingPreambles = [...this.pendingPreambles, delivery.preamble];
+        } else {
+            this.heldPreambles = [...this.heldPreambles, { preamble: delivery.preamble, holds: delivery.holds }];
+        }
 
         this.emit([
             this.thread.upsert({
@@ -2082,9 +2106,11 @@ export class ChatSession {
         const preambles = this.preambles;
         this.pendingPreambles = [];
         this.submission = null;
+        const held = this.heldPreambles.filter((entry) => entry.holds()).map((entry) => entry.preamble);
+        this.heldPreambles = [];
         const hints = this.pendingHints;
         this.pendingHints = [];
-        const read = [...preambles, ...host.shown];
+        const read = [...preambles, ...held, ...host.shown];
 
         const joined = (parts: string[]): string | null => (parts.length === 0 ? null : parts.join('\n\n'));
 

@@ -49,6 +49,7 @@ import {
     type ChatReferences,
     type ChatSendExtras,
     type LimitResumeHooks,
+    type NoteDelivery,
     type PromptNotes,
     type ResumeDecision,
     type ResumeWords,
@@ -1014,7 +1015,7 @@ export class ChatCore {
      * Leaves a note and its preamble in a chat, loading that chat when nobody has; false when it was
      * there already, or when the id has no chat at all (a terminal), which never gets one made for it.
      */
-    async deliverNote(chatId: string, delivery: { noteId: string; note: string; from?: string; preamble: string }): Promise<boolean> {
+    async deliverNote(chatId: string, delivery: NoteDelivery): Promise<boolean> {
         await this.loaded(chatId);
 
         if (!(await this.hasStored(chatId))) {
@@ -1383,7 +1384,8 @@ export class ChatCore {
 
     /*
      * Puts a chat nobody needs in memory back on disk alone: nobody reads it, it has no CLI, no turn,
-     * request, hold or move is under way, and no resume is owed. Answers whether it left. The next
+     * request, hold or move is under way, no resume is owed and it holds no preamble that is asked
+     * again before it is said (`NoteDelivery.holds`). Answers whether it left. The next
      * create, attach or note loads it again from its record, as after a restart.
      */
     async unloadIdle(chatId: string): Promise<boolean> {
@@ -1421,7 +1423,8 @@ export class ChatCore {
             session.pid === null &&
             session.relocatable &&
             session.info.resumeAt === undefined &&
-            (session.info.requests?.length ?? 0) === 0
+            (session.info.requests?.length ?? 0) === 0 &&
+            !session.holdsPreamble
         );
     }
 

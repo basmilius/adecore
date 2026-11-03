@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { ChatQuestionItem } from '@adecore/agent-contracts';
+import { flush, info, rig } from '../chat/chat-session.fixture.test.ts';
 import { ChatSession } from '../chat/chat-session.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { deliverWaitingHandler, waitingNoteId, waitingTexts } from './waiting-child.ts';
@@ -99,4 +100,29 @@ test('the note names the waiting child and opens no turn in its parent', async (
     expect(parent.thread.get(waitingNoteId('child', 'r1'))).toMatchObject({ kind: 'note', from: 'child' });
     expect(parent.info.activeTurnId).toBeNull();
     await parent.dispose();
+});
+
+test('a question answered before the parent next speaks leaves its note but not its preamble', async () => {
+    const parent = rig({ info: { ...info(), chatId: 'parent' } });
+    const requests = new Map([pendingQuestion(), { ...pendingQuestion(), id: 'question-r2', requestId: 'r2' }].map((item) => [item.requestId, item]));
+
+    const handler = deliverWaitingHandler({
+        request: (_childId, requestId) => requests.get(requestId) ?? null,
+        titleFor: () => 'Child',
+        deliver: (_chatId, delivery) => Promise.resolve(parent.session.deliverNote(delivery)),
+        words: { app: 'Ruimte', cli: 'ruimte-context' }
+    });
+
+    for (const requestId of ['r1', 'r2']) {
+        await handler({ id: requestId, kind: 'deliver-waiting', target: 'parent', payload: { childId: 'child', requestId } } as DeliverWaitingEntry);
+    }
+
+    requests.set('r1', { ...requests.get('r1')!, answers: { q1: 'This one' }, state: 'answered' });
+    parent.session.send('Carry on');
+    await flush();
+    expect(parent.sent).toHaveLength(1);
+    expect(parent.sent[0]!.preamble).toContain('(request r2)');
+    expect(parent.sent[0]!.preamble).not.toContain('(request r1)');
+    expect(parent.session.thread.get(waitingNoteId('child', 'r1'))).toMatchObject({ kind: 'note', from: 'child' });
+    await parent.session.dispose();
 });

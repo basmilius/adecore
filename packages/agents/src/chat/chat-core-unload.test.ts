@@ -95,6 +95,21 @@ test('a chat a person holds stays in memory', async () => {
     await core.shutdown();
 });
 
+test('a chat stays in memory while it holds a preamble that is asked again, since no record keeps one', async () => {
+    const core = await coreIn();
+    await core.create({ chatId: 'chat', cwd: tmpdir() });
+    let waits = true;
+    await core.deliverNote('chat', { noteId: 'waiting', note: 'A child waits', preamble: 'A child waits', holds: () => waits });
+
+    expect(await core.unloadIdle('chat')).toBe(false);
+
+    waits = false;
+
+    expect(await core.unloadIdle('chat')).toBe(true);
+
+    await core.shutdown();
+});
+
 test('a chat leaves by itself once nobody read it for unloadAfterMs, and a client that comes back in time keeps it', async () => {
     jest.useFakeTimers();
     const core = await coreIn(60_000);
