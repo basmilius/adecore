@@ -1,6 +1,7 @@
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { Compartment, EditorState, Prec, Transaction, type Extension } from '@codemirror/state';
 import { EditorView, placeholder as placeholderText } from '@codemirror/view';
+import { useOverlayScrollbars } from '@adecore/ui';
 import { useChatHost } from '../../host';
 import { composerEditorExtensions, externalChange } from './composer/editor';
 import { insertAtSelection } from './composer/insert';
@@ -69,6 +70,8 @@ export function ComposerInput({
     const hostRef = useRef<HTMLDivElement>(null);
     const targetRef = useRef<HTMLDivElement>(null);
     const viewRef = useRef<EditorView | null>(null);
+    const [scroller, setScroller] = useState<HTMLElement | null>(null);
+    const scrollbars = useOverlayScrollbars(scroller);
 
     const [compartments] = useState(() => ({
         attributes: new Compartment(),
@@ -150,10 +153,12 @@ export function ComposerInput({
         });
 
         viewRef.current = view;
+        setScroller(view.scrollDOM);
 
         return () => {
             view.destroy();
             viewRef.current = null;
+            setScroller(null);
         };
     }, [compartments, dictation.composer?.extensions]);
 
@@ -222,7 +227,10 @@ export function ComposerInput({
 
     return (
         <div ref={targetRef} className="min-w-0">
-            <div ref={hostRef} className={className} />
+            <div className="relative">
+                <div ref={hostRef} className={className} />
+                {scrollbars}
+            </div>
             {Dictation && <Dictation buttonContainer={dictationToolbar} targetRef={targetRef} disabled={disabled} editor={() => viewRef.current} />}
         </div>
     );

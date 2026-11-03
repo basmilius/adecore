@@ -1,20 +1,23 @@
 import clsx from 'clsx';
+import { ScrollArea } from '@adecore/ui';
 import { useReviewSettled } from './review-settle';
 
 export function RawDiff({ text, overflow, fill, maxHeight }: { text: string; overflow: 'wrap' | 'scroll'; fill: boolean; maxHeight?: number }) {
     useReviewSettled();
 
     return (
-        <pre
+        <ScrollArea
+            axis="both"
+            render={<pre />}
             data-diff-raw
-            className={clsx(
-                'overflow-auto px-3 py-2 font-mono text-code text-text-muted select-text',
-                fill && 'h-full min-h-0',
+            className={clsx(fill && 'h-full')}
+            viewportClassName={clsx(
+                'px-3 py-2 font-mono text-code text-text-muted select-text',
                 overflow === 'wrap' ? 'whitespace-pre-wrap' : 'whitespace-pre'
             )}
             style={fill ? undefined : { maxHeight: maxHeight ?? 256 }}
         >
             {text.replace(/\n$/, '')}
-        </pre>
+        </ScrollArea>
     );
 }

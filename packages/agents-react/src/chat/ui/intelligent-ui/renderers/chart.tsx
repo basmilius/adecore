@@ -3,7 +3,7 @@ import type { TFunction } from 'i18next';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import type { UiProps } from '@adecore/intelligent-ui';
-import { Button, SegmentBar, Tooltip, useMeasuredWidth } from '@adecore/ui';
+import { Button, ScrollArea, SegmentBar, Tooltip, useMeasuredWidth } from '@adecore/ui';
 import { formatNumber, formatRounded } from '@adecore/ui/format';
 import { useBlockLocal } from '../block-local';
 import {
@@ -168,7 +168,15 @@ function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: str
     );
 
     // A table grows to its widest cell whatever width it is given, so it is hidden inside a block that clips.
-    return <div className={shown ? 'max-h-80 w-full overflow-auto rounded-md border border-border-soft' : 'sr-only'}>{table}</div>;
+    if (!shown) {
+        return <div className="sr-only">{table}</div>;
+    }
+
+    return (
+        <ScrollArea axis="both" className="max-h-80 w-full rounded-md border border-border-soft">
+            {table}
+        </ScrollArea>
+    );
 }
 
 /* The values of one category beside the pointer. */

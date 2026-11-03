@@ -1,7 +1,7 @@
 import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { formatShortcut } from '@adecore/ui';
+import { formatShortcut, ScrollArea } from '@adecore/ui';
 import type { EditorRect } from '@adecore/editor';
 import type { EditorLanguage } from './editor-language.ts';
 import { kindLetterOf, kindToneOf, rowWindow } from './completion-model.ts';
@@ -150,10 +150,11 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
                         width: `calc(${Math.max(widest, need)}ch + ${ROW_CHROME}px)`
                     }}
                 />
-                <div
+                <ScrollArea
                     id={listId}
                     role="listbox"
-                    className="w-0 min-w-full overflow-y-auto p-1"
+                    className="w-0 min-w-full"
+                    viewportClassName="p-1"
                     style={{ maxHeight: ROW_HEIGHT * VISIBLE_ROWS + 8 }}
                     onScroll={(event) => setListTop(event.currentTarget.scrollTop)}
                 >
@@ -190,7 +191,7 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
                         );
                     })}
                     <div aria-hidden style={{ height: (total - last) * ROW_HEIGHT }} />
-                </div>
+                </ScrollArea>
                 <div className="flex items-center gap-3 border-t border-border px-2 py-1 text-xs whitespace-nowrap text-text-faint">
                     <span>↵ {t('language.completion.insert')}</span>
                     <span>⇥ {t('language.completion.replace')}</span>
@@ -205,16 +206,18 @@ export function CompletionPopup({ language, view, rect }: { language: EditorLang
             {view.detailsOpen && view.docs !== null && (
                 <div
                     ref={docs}
-                    className={`${CARD} flex w-[360px] flex-col divide-y divide-border overflow-y-auto select-text`}
+                    className={`${CARD} flex w-[360px] flex-col`}
                     style={{ visibility: 'hidden' }}
                     onPointerDown={(event) => event.preventDefault()}
                 >
-                    {view.docs.source !== '' && (
-                        <div className="px-3 py-2">
-                            <SourceLine text={view.docs.source} language={view.highlightLanguage} />
-                        </div>
-                    )}
-                    <SymbolSections text={view.docs.text} />
+                    <ScrollArea viewportClassName="flex flex-col divide-y divide-border select-text">
+                        {view.docs.source !== '' && (
+                            <div className="px-3 py-2">
+                                <SourceLine text={view.docs.source} language={view.highlightLanguage} />
+                            </div>
+                        )}
+                        <SymbolSections text={view.docs.text} />
+                    </ScrollArea>
                 </div>
             )}
         </>,

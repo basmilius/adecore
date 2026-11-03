@@ -17,7 +17,7 @@ import { rehypeFadeWords } from './rehype-fade';
 import { remarkHtmlAsText } from './remark-html-as-text';
 import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } from '../../host';
 import { useFileLinkCwd, useFileLinkScopeId, useFileLinkTarget, useOpenFileLink } from './file-links';
-import { ErrorBoundary, FileIcon, Icon } from '@adecore/ui';
+import { ErrorBoundary, FileIcon, Icon, ScrollArea } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
 import { DisplayImage } from './DisplayImage';
 
@@ -273,9 +273,9 @@ const components = {
     table({ children }: { children?: ReactNode }) {
         // A table wider than the column scrolls on its own instead of pushing the thread sideways.
         return (
-            <div className="chat-table">
+            <ScrollArea axis="x" className="chat-table">
                 <table>{children}</table>
-            </div>
+            </ScrollArea>
         );
     }
 };

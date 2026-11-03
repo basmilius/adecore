@@ -9,6 +9,7 @@ import { Icon } from './Icon.tsx';
 import { IconButton } from './IconButton.tsx';
 import { cellForKey, escapeClearsSearch, filterSections, isGrouped, sectionsOf, tabStopOf, type IconPickerIcons, type IconSection } from './icon-picker.ts';
 import { PopoverPopup, PopoverRoot, PopoverTrigger } from './popover/parts.tsx';
+import { ScrollArea } from './ScrollArea.tsx';
 import { SectionLabel } from './SectionLabel.tsx';
 import { Tooltip } from './Tooltip.tsx';
 
@@ -277,12 +278,12 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
                     )}
                 </div>
             )}
-            <div
-                ref={area}
+            <ScrollArea
+                viewportRef={area}
                 id={`${id}-grid`}
                 role="radiogroup"
                 aria-label={name}
-                className={clsx('relative overflow-y-auto overscroll-contain', headed ? 'scroll-pt-7' : 'px-1.5 pt-1.5 pb-2')}
+                viewportClassName={clsx('relative overscroll-contain', headed ? 'scroll-pt-7' : 'px-1.5 pt-1.5 pb-2')}
                 style={rows === undefined ? undefined : { height: rows * ROW_HEIGHT + (headed ? HEADED_EXTRA : BARE_EXTRA) }}
                 onScroll={(event) => markStuckHeadings(event.currentTarget)}
                 onKeyDown={moveFocus}
@@ -342,7 +343,7 @@ function IconPickerPanel({ id, name, sections, headed, value, keywords, searchab
                         );
                     })
                 )}
-            </div>
+            </ScrollArea>
             {onClear && (
                 <div className="flex border-t border-border p-1">
                     <Button size="sm" disabled={disabled || value === null} onClick={onClear}>

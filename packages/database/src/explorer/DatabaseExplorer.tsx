@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type M
 import clsx from 'clsx';
 import { CircleAlert, Columns2, Database, Eye, Folder, KeyRound, ListOrdered, Lock, Search, ShieldCheck, Table, Zap, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, ContextMenu, EmptyState, Icon, Input, Spinner, Tooltip, Tree } from '@adecore/ui';
+import { Button, ContextMenu, EmptyState, Icon, Input, ScrollArea, Spinner, Tooltip, Tree } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { ExplorerSelection } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
@@ -360,9 +360,13 @@ export function DatabaseExplorer({
             ) : rows.length === 0 ? (
                 <EmptyState icon={Search}>{t('explorer.noMatches', { query: filter.trim() })}</EmptyState>
             ) : (
-                <Tree.Root aria-label={t('explorer.label')} overflow="scroll" className="min-h-0 grow overflow-y-auto pt-2" onKeyDown={onKeyDown}>
+                <ScrollArea
+                    render={<Tree.Root aria-label={t('explorer.label')} overflow="scroll" onKeyDown={onKeyDown} />}
+                    className="grow"
+                    viewportClassName="pt-2"
+                >
                     {rows.map(renderRow)}
-                </Tree.Root>
+                </ScrollArea>
             )}
             {request !== null && <TableDialog request={request} onClose={() => setRequest(null)} onDone={finish} />}
         </div>

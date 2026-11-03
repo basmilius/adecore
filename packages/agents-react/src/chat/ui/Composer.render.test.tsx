@@ -1246,7 +1246,7 @@ describe('the surface around the text', () => {
         return focus;
     };
 
-    const surfaceOf = (composer: Mounted): HTMLElement => composer.page.host.querySelector('.composer-input')!.parentElement!.parentElement!;
+    const surfaceOf = (composer: Mounted): HTMLElement => composer.page.host.querySelector('.composer-input')!.parentElement!.parentElement!.parentElement!;
 
     const press = async (composer: Mounted, target: Element): Promise<Event> => {
         let pressed: Event | null = null;

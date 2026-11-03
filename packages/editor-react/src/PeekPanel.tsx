@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { fileUriToPath } from '@adecore/lsp';
-import { FileIcon, IconButton, Tooltip } from '@adecore/ui';
+import { FileIcon, IconButton, ScrollArea, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { basenameOf, relativeTo } from './paths.ts';
 import type { EditorLanguage } from './editor-language.ts';
@@ -58,7 +58,7 @@ export function Preview({ preview }: { preview: PeekView['preview'] }) {
     const name = preview.name === null ? null : columnsOf(lines[preview.active] ?? '', preview.name);
 
     return (
-        <div ref={scroller} className="relative min-w-0 flex-1 overflow-auto pt-1">
+        <ScrollArea axis="both" viewportRef={scroller} className="flex-1" viewportClassName="relative pt-1">
             <div className="relative flex min-w-max">
                 <div
                     className="absolute inset-x-0 bg-surface-hover"
@@ -93,7 +93,7 @@ export function Preview({ preview }: { preview: PeekView['preview'] }) {
                     )}
                 </div>
             </div>
-        </div>
+        </ScrollArea>
     );
 }
 
@@ -141,7 +141,7 @@ function Places({ language, view }: { language: EditorLanguage; view: PeekView }
     }, [view.active]);
 
     return (
-        <div className="w-1/3 shrink-0 overflow-y-auto border-l border-border py-1">
+        <ScrollArea className="w-1/3 shrink-0 border-l border-border" viewportClassName="py-1">
             {view.files.map((file, fileIndex) => {
                 const collapsed = view.collapsed.includes(file.uri);
 
@@ -178,7 +178,7 @@ function Places({ language, view }: { language: EditorLanguage; view: PeekView }
                     </div>
                 );
             })}
-        </div>
+        </ScrollArea>
     );
 }
 

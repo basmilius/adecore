@@ -1,4 +1,4 @@
-import { createContext, useContext, type ComponentProps, type ReactNode, type Ref } from 'react';
+import { createContext, useContext, useState, type ComponentProps, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { Check, ChevronRight, type LucideIcon } from 'lucide-react';
 import { ContextMenu as BaseContextMenu } from '@base-ui/react/context-menu';
@@ -7,9 +7,11 @@ import { Separator as BaseSeparator } from '@base-ui/react/separator';
 import { useRender } from '@base-ui/react/use-render';
 import { withClass } from '../class-name.ts';
 import { Icon } from '../Icon.tsx';
+import { mergeRefs } from '../merge-refs.ts';
 import { Tooltip } from '../Tooltip.tsx';
 import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
+import { useOverlayScrollbars } from '../useOverlayScrollbars.tsx';
 
 /* Where a popup opens from decides where it goes when a call site says nothing. */
 type MenuKind = 'menu' | 'context' | 'submenu';
@@ -66,9 +68,11 @@ export const ContextMenuTrigger = BaseContextMenu.Trigger;
 
 export type MenuPopupProps = ComponentProps<typeof BaseMenu.Popup> & Placement;
 
-export function MenuPopup({ className, ...props }: MenuPopupProps) {
+export function MenuPopup({ className, ref, ...props }: MenuPopupProps) {
     const defaults = PLACEMENT[useContext(MenuKindContext)];
     const [placement, popupProps] = splitPlacement(props);
+    const [popup, setPopup] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(popup);
 
     return (
         <BaseMenu.Portal>
@@ -81,7 +85,8 @@ export function MenuPopup({ className, ...props }: MenuPopupProps) {
                 sideOffset={placement.sideOffset ?? defaults.sideOffset}
                 alignOffset={placement.alignOffset ?? defaults.alignOffset}
             >
-                <BaseMenu.Popup className={withClass('menu-popup', className)} {...popupProps} />
+                <BaseMenu.Popup ref={mergeRefs(setPopup, ref)} className={withClass('menu-popup', className)} {...popupProps} />
+                {scrollbars}
             </BaseMenu.Positioner>
         </BaseMenu.Portal>
     );

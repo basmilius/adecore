@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { createPlan, parsePlanMarkdown, renderPlanText } from '@adecore/plan';
-import { TextArea } from '@adecore/ui';
+import { ScrollArea, TextArea } from '@adecore/ui';
 
 const MARKDOWN = `# Ship the release
 
@@ -41,7 +41,14 @@ export default function PlanMarkdownDemo() {
     return (
         <div className="grid w-full gap-4 md:grid-cols-2">
             <TextArea mono rows={18} value={markdown} onChange={(event) => setMarkdown(event.target.value)} aria-label="Plan as Markdown" />
-            <pre className="overflow-x-auto rounded-md bg-surface-sunken p-3 font-mono text-code whitespace-pre-wrap text-text-muted">{readPlan(markdown)}</pre>
+            <ScrollArea
+                axis="x"
+                render={<pre />}
+                className="rounded-md bg-surface-sunken"
+                viewportClassName="p-3 font-mono text-code whitespace-pre-wrap text-text-muted"
+            >
+                {readPlan(markdown)}
+            </ScrollArea>
         </div>
     );
 }

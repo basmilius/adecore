@@ -10,7 +10,6 @@
     margin: 0;
 }
 .adecore-editor-markdown pre {
-    overflow: auto;
     font-family: var(--font-mono);
 }
 .adecore-editor-markdown a {
@@ -109,12 +108,13 @@
 .adecore-editor-diff-side + .adecore-editor-diff-side {
     border-inline-start: 1px solid var(--border);
 }
+/* No `scrollbar-gutter` on the sides: their bars float over the code and take no width, so the two
+   sides line up whether one of them scrolls or both do. Its own stacking layer keeps the editor's
+   layers under the bars beside it. */
 .adecore-editor-diff-surface {
     position: absolute;
     inset: 0;
-}
-.adecore-editor-diff-split .se-viewport {
-    scrollbar-gutter: stable;
+    isolation: isolate;
 }
 .adecore-editor-diff-filler {
     background: repeating-linear-gradient(135deg, transparent 0 6px, var(--editor-hatch) 6px 7px);

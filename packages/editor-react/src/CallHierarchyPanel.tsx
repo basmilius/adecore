@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { fileUriToPath } from '@adecore/lsp';
-import { Icon, IconButton, Segmented, Spinner, Tooltip } from '@adecore/ui';
+import { Icon, IconButton, ScrollArea, Segmented, Spinner, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { CALL_HIERARCHY_HEIGHT } from './call-hierarchy.ts';
 import { PanelResizeHandle } from './PanelResizeHandle.tsx';
@@ -125,11 +125,12 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
     useInputPopup(language, treeId, activeId);
 
     return (
-        <div
+        <ScrollArea
             id={treeId}
             role="tree"
             aria-label={t(isTypeDirection(view.direction) ? 'language.callHierarchy.typesLabel' : 'language.callHierarchy.label')}
-            className="w-1/2 shrink-0 overflow-y-auto border-r border-border py-1"
+            className="w-1/2 shrink-0 border-r border-border"
+            viewportClassName="py-1"
         >
             {view.rows.map((row) => {
                 const active = row.id === view.active;
@@ -157,7 +158,7 @@ function Tree({ language, view }: { language: EditorLanguage; view: CallHierarch
                     </Line>
                 );
             })}
-        </div>
+        </ScrollArea>
     );
 }
 

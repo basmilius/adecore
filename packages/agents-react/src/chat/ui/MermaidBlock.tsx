@@ -1,7 +1,7 @@
 import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Code, Workflow } from 'lucide-react';
-import { IconButton } from '@adecore/ui';
+import { IconButton, ScrollArea } from '@adecore/ui';
 import { CodeBlock } from './CodeBlock';
 import { CodeStreamingContext } from './code-streaming';
 import { DIAGRAM_TOKENS, GROUND_TOKEN, renderOptions, svgDataUrl, themedSvg, type DiagramFont } from './mermaid';
@@ -152,7 +152,7 @@ export function MermaidBlock({ code }: { code: string }) {
                 actions={toggle}
                 view={
                     showsDiagram ? (
-                        <div className="overflow-x-auto p-3" aria-busy={image === null || undefined}>
+                        <ScrollArea axis="x" viewportClassName="p-3" aria-busy={image === null || undefined}>
                             {image !== null && (
                                 <img
                                     src={svgDataUrl(image.svg)}
@@ -163,7 +163,7 @@ export function MermaidBlock({ code }: { code: string }) {
                                     draggable={false}
                                 />
                             )}
-                        </div>
+                        </ScrollArea>
                     ) : undefined
                 }
             />

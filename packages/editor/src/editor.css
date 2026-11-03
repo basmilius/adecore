@@ -77,8 +77,6 @@
     overflow-anchor: none;
     overscroll-behavior: contain;
     touch-action: pan-x pan-y pinch-zoom;
-    scrollbar-width: thin;
-    scrollbar-color: color-mix(in srgb, var(--text) 25%, transparent) transparent;
 }
 .se-editor[data-wrap='true'] .se-viewport {
     overflow-x: hidden;

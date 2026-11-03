@@ -79,7 +79,7 @@ import { useChatScope } from '../../scope';
 import { FileLinkContext } from './file-links';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { useModelName } from '../../agents/model-name';
-import { ContextMenu, EmptyState, ErrorBoundary, Icon, SectionLabel } from '@adecore/ui';
+import { ContextMenu, EmptyState, ErrorBoundary, Icon, ScrollArea, SectionLabel } from '@adecore/ui';
 import { useHostContextSources, useHostHidesFolder, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
 
 const ESTIMATED_ROW_PX = 56;
@@ -896,11 +896,13 @@ export function Timeline({
             >
                 {searching && chatFind.bar}
                 <ContextMenu.Root>
-                    <div
-                        ref={scrollRef}
+                    <ScrollArea
+                        axis="both"
+                        viewportRef={scrollRef}
                         // No CSS scroll-padding here: Chromium counts the sticky composer's caret as hidden behind
                         // it and scrolls the thread toward the end on every keystroke.
-                        className="chat-scroll min-h-0 grow overflow-auto"
+                        className="grow"
+                        viewportClassName="chat-scroll"
                         // The thread keeps its reader in place itself when a page goes in above.
                         style={{ overflowAnchor: 'none' }}
                         onScrollCapture={(e) => {
@@ -996,7 +998,7 @@ export function Timeline({
                                 <QuoteTakerContext.Provider value={registerQuoteTaker}>{composer}</QuoteTakerContext.Provider>
                             </div>
                         </div>
-                    </div>
+                    </ScrollArea>
                     <TimelineMenuPopup target={target} thread={threadRef} chatId={onMainAgent ? chatId : null} column={frame.column} />
                 </ContextMenu.Root>
                 {drawsVisuals && <VisualDialogs chatId={chatId} />}

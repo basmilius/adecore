@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Bot, User } from 'lucide-react';
 import { applyPlanOps, createPlan, effectiveChecks, isParentStep, planProgress, planToMarkdown, progressText, stepState, type PlanDraft } from '@adecore/plan';
 import type { Plan, PlanActor, PlanItem, PlanOp, PlanStep } from '@adecore/plan/protocol';
-import { Button, Checkbox, Segmented } from '@adecore/ui';
+import { Button, Checkbox, ScrollArea, Segmented } from '@adecore/ui';
 
 const DRAFT: PlanDraft = {
     meta: { title: 'Ship the release' },
@@ -139,7 +139,9 @@ export default function PlanChecklistDemo() {
                 {progressText(plan)}, rev {plan.rev}
             </p>
             {refusal && <p className="text-status-error">{refusal}</p>}
-            <pre className="overflow-x-auto rounded-md bg-surface-sunken p-3 font-mono text-code text-text-muted">{planToMarkdown(plan)}</pre>
+            <ScrollArea axis="x" render={<pre />} className="rounded-md bg-surface-sunken" viewportClassName="p-3 font-mono text-code text-text-muted">
+                {planToMarkdown(plan)}
+            </ScrollArea>
         </div>
     );
 }

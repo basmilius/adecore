@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { AtSign, Hash } from 'lucide-react';
 import { fileUriToPath } from '@adecore/lsp';
-import { formatShortcut, Icon } from '@adecore/ui';
+import { formatShortcut, Icon, ScrollArea } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { EditorLanguage } from './editor-language.ts';
 import { basenameOf } from './paths.ts';
@@ -123,7 +123,7 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
                     {language.shortcuts.goToSymbol === null ? '' : formatShortcut(language.shortcuts.goToSymbol, language.apple)}
                 </span>
             </div>
-            <div role="listbox" className="max-h-[320px] overflow-y-auto p-1">
+            <ScrollArea role="listbox" className="max-h-[320px]" viewportClassName="p-1">
                 {mode.mode === 'line' && (
                     <div className="px-2 py-1.5 text-xs text-text-muted">
                         {mode.line === null ? t('language.symbols.lineHint') : t('language.symbols.goToLine', { line: formatNumber(mode.line) })}
@@ -194,7 +194,7 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
                         {mode.text === '' ? t('language.symbols.workspaceHint') : t('language.symbols.none')}
                     </div>
                 )}
-            </div>
+            </ScrollArea>
             <div className="flex items-center gap-3 border-t border-border px-3 py-1.5 text-xs whitespace-nowrap text-text-faint">
                 <span>↑↓ {t('language.symbols.navigate')}</span>
                 <span>↵ {t('language.symbols.open')}</span>

@@ -14,7 +14,7 @@ import {
 } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { useContentSize } from '@adecore/ui';
+import { useContentSize, useOverlayScrollbars } from '@adecore/ui';
 import { formatNumber, formatRounded } from '@adecore/ui/format';
 import { readValue, warnMissingKey, warnOnce, xOf } from './access.ts';
 import { LABEL_GAP as X_AXIS_GAP } from './axes.tsx';
@@ -194,6 +194,7 @@ export function ChartRoot<Row>({
     // The row of group labels under the plot takes its share of the height a growing chart is given.
     const boxHeight = grow ? Math.max(leastHeight, size.height - groupsSize.height) : leastHeight;
     const scroller = useRef<HTMLDivElement>(null);
+    const [scrollBox, setScrollBox] = useState<HTMLDivElement | null>(null);
 
     const points = rows === 'points';
     const band = xScale === 'band' && !points;
@@ -263,6 +264,7 @@ export function ChartRoot<Row>({
     // A scrolling plot clips what hangs out of its first buckets, such as a value label or a slanted name, so the
     // scroller reaches over the y axis by its width and gives that back as padding: the plot stays where it was.
     const overhang = scrolls ? leftAxis : 0;
+    const scrollbars = useOverlayScrollbars(scrolls ? scrollBox : null, { axis: 'x' });
     const xRows = [...xAxes.values()];
     const valueRoom = horizontal ? Math.max(0, ...[...series.values()].map((entry) => entry.endRoom ?? 0)) : 0;
     const titleRoom = leftY?.top ?? rightY?.top ?? 0;
@@ -790,100 +792,108 @@ export function ChartRoot<Row>({
                             <g ref={setLeftSlot} tabIndex={-1} />
                         </svg>
                     )}
-                    <div
-                        ref={scroller}
-                        className={clsx('min-w-0 flex-1', scrolls ? 'overflow-x-auto overflow-y-hidden overscroll-x-contain' : 'overflow-visible')}
-                        style={
-                            overhang > 0
-                                ? {
-                                      marginLeft: -overhang,
-                                      paddingLeft: overhang,
-                                      // Scrolled, the columns would pass over the y axis labels; only the start may hang there.
-                                      clipPath: scroll > 0 ? `inset(0 0 0 ${overhang}px)` : undefined
-                                  }
-                                : undefined
-                        }
-                        onScroll={(e) => setScroll(e.currentTarget.scrollLeft)}
-                    >
-                        <svg
-                            width={width}
-                            height={height}
-                            role={interactive ? 'group' : 'img'}
-                            tabIndex={interactive ? 0 : undefined}
-                            aria-roledescription={interactive ? t('chart') : undefined}
-                            aria-label={label}
-                            aria-describedby={interactive ? `${id}-hint` : undefined}
-                            aria-activedescendant={pressable && from >= 0 ? `${id}-${from}` : undefined}
-                            className={clsx('block overflow-visible outline-none', pressable && 'cursor-pointer')}
-                            {...(horizontal ? {} : pointer)}
-                            onKeyDown={interactive ? onKeyDown : undefined}
-                            onBlur={() => {
-                                setAnnounce(false);
-                                setKeyX(null);
-
-                                // A bucket the keyboard left, or any point, keeps no preview open where the focus went on.
-                                if (activeIndex >= 0 && (points || announce)) {
-                                    setActiveX(null);
-                                }
+                    {/* Holds the bar of a plot that scrolls sideways, under the plot alone and not the axes beside it. */}
+                    <div className="relative flex min-w-0 flex-1">
+                        <div
+                            ref={(node) => {
+                                scroller.current = node;
+                                setScrollBox(node);
                             }}
+                            className={clsx('min-w-0 flex-1', scrolls ? 'overflow-x-auto overflow-y-hidden overscroll-x-contain' : 'overflow-visible')}
+                            style={
+                                overhang > 0
+                                    ? {
+                                          marginLeft: -overhang,
+                                          paddingLeft: overhang,
+                                          // Scrolled, the columns would pass over the y axis labels; only the start may hang there.
+                                          clipPath: scroll > 0 ? `inset(0 0 0 ${overhang}px)` : undefined
+                                      }
+                                    : undefined
+                            }
+                            onScroll={(e) => setScroll(e.currentTarget.scrollLeft)}
                         >
-                            {layout !== null && highlighted.map((index) => <rect key={index} {...bucketBox(index, false)} className="fill-surface-hover" />)}
-                            {children}
-                            <g ref={setRulesSlot} tabIndex={-1} />
-                            {continuous !== null && !points && activeIndex >= 0 && cursor !== 'none' && (
-                                <Crosshair context={context} dots={cursor === 'full'} />
-                            )}
-                            {points && <Guides context={context} />}
-                            {pressable &&
-                                points &&
-                                positions.map((position, index) =>
-                                    position === null ? null : (
-                                        <circle
-                                            key={keys![index]}
+                            <svg
+                                width={width}
+                                height={height}
+                                role={interactive ? 'group' : 'img'}
+                                tabIndex={interactive ? 0 : undefined}
+                                aria-roledescription={interactive ? t('chart') : undefined}
+                                aria-label={label}
+                                aria-describedby={interactive ? `${id}-hint` : undefined}
+                                aria-activedescendant={pressable && from >= 0 ? `${id}-${from}` : undefined}
+                                className={clsx('block overflow-visible outline-none', pressable && 'cursor-pointer')}
+                                {...(horizontal ? {} : pointer)}
+                                onKeyDown={interactive ? onKeyDown : undefined}
+                                onBlur={() => {
+                                    setAnnounce(false);
+                                    setKeyX(null);
+
+                                    // A bucket the keyboard left, or any point, keeps no preview open where the focus went on.
+                                    if (activeIndex >= 0 && (points || announce)) {
+                                        setActiveX(null);
+                                    }
+                                }}
+                            >
+                                {layout !== null &&
+                                    highlighted.map((index) => <rect key={index} {...bucketBox(index, false)} className="fill-surface-hover" />)}
+                                {children}
+                                <g ref={setRulesSlot} tabIndex={-1} />
+                                {continuous !== null && !points && activeIndex >= 0 && cursor !== 'none' && (
+                                    <Crosshair context={context} dots={cursor === 'full'} />
+                                )}
+                                {points && <Guides context={context} />}
+                                {pressable &&
+                                    points &&
+                                    positions.map((position, index) =>
+                                        position === null ? null : (
+                                            <circle
+                                                key={keys![index]}
+                                                id={`${id}-${index}`}
+                                                role="button"
+                                                aria-pressed={selectedRows[index]}
+                                                aria-label={describe(index)}
+                                                cx={position[0]}
+                                                cy={position[1]}
+                                                r={10}
+                                                fill="transparent"
+                                            />
+                                        )
+                                    )}
+                                {pressable &&
+                                    layout !== null &&
+                                    xs.map((key, index) => (
+                                        <rect
+                                            key={String(key)}
                                             id={`${id}-${index}`}
                                             role="button"
                                             aria-pressed={selectedRows[index]}
                                             aria-label={describe(index)}
-                                            cx={position[0]}
-                                            cy={position[1]}
-                                            r={10}
+                                            {...bucketBox(index, true)}
                                             fill="transparent"
                                         />
-                                    )
+                                    ))}
+                                {xs.length === 0 && (
+                                    <text
+                                        x={Math.round((plot.left + plot.right) / 2)}
+                                        y={Math.round((plot.top + plot.bottom) / 2)}
+                                        dy="0.32em"
+                                        textAnchor="middle"
+                                        className="fill-text-faint text-xs"
+                                    >
+                                        {t('noData')}
+                                    </text>
                                 )}
-                            {pressable &&
-                                layout !== null &&
-                                xs.map((key, index) => (
-                                    <rect
-                                        key={String(key)}
-                                        id={`${id}-${index}`}
-                                        role="button"
-                                        aria-pressed={selectedRows[index]}
-                                        aria-label={describe(index)}
-                                        {...bucketBox(index, true)}
-                                        fill="transparent"
-                                    />
-                                ))}
-                            {xs.length === 0 && (
-                                <text
-                                    x={Math.round((plot.left + plot.right) / 2)}
-                                    y={Math.round((plot.top + plot.bottom) / 2)}
-                                    dy="0.32em"
-                                    textAnchor="middle"
-                                    className="fill-text-faint text-xs"
-                                >
-                                    {t('noData')}
-                                </text>
-                            )}
-                        </svg>
-                        <div
-                            ref={(node) => {
-                                setGroupsSlot(node);
-                                measureGroups(node);
-                            }}
-                            className="empty:hidden"
-                            style={{ width }}
-                        />
+                            </svg>
+                            <div
+                                ref={(node) => {
+                                    setGroupsSlot(node);
+                                    measureGroups(node);
+                                }}
+                                className="empty:hidden"
+                                style={{ width }}
+                            />
+                        </div>
+                        {scrollbars}
                     </div>
                     <svg width={rightAxis} height={height} aria-hidden className="shrink-0 overflow-visible">
                         <g ref={setRightSlot} tabIndex={-1} />

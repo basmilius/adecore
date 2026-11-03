@@ -20,7 +20,7 @@ import { readingWidthStyle } from '../reading-width';
 import { useChatHost } from '../../host';
 import { useHostHidesToolCalls } from '../../host-hooks';
 import { useChatScope } from '../../scope';
-import { EmptyState, ContextMenu, Icon } from '@adecore/ui';
+import { EmptyState, ContextMenu, Icon, ScrollArea } from '@adecore/ui';
 
 const NO_TURNS = new Set<string>();
 
@@ -155,11 +155,13 @@ export function SubagentTimeline({
             {state.status === 'ready' && (
                 <FileLinkContext.Provider value={state.context?.cwd ?? cwd}>
                     <ReplyContext.Provider value={state.context ?? { provider: state.source === 'codex-thread' ? 'codex' : 'claude' }}>
-                        <div
-                            ref={scrollRef}
+                        <ScrollArea
+                            axis="both"
+                            viewportRef={scrollRef}
                             data-file-cwd={state.context?.cwd ?? cwd ?? ''}
                             data-file-scope-id={scope.id}
-                            className="chat-thread relative min-h-0 grow overflow-auto px-4 pt-4 pb-3"
+                            className="grow"
+                            viewportClassName="chat-thread relative px-4 pt-4 pb-3"
                             // The thread keeps its reader in place itself when a page goes in above.
                             style={{ overflowAnchor: 'none' }}
                             onScroll={(event) => {
@@ -203,7 +205,7 @@ export function SubagentTimeline({
                                 </ContextMenu.Trigger>
                                 <TimelineMenuPopup target={target} thread={threadRef} />
                             </ContextMenu.Root>
-                        </div>
+                        </ScrollArea>
                     </ReplyContext.Provider>
                 </FileLinkContext.Provider>
             )}

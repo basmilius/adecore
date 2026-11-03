@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Hand, MessageCircleQuestionMark, type LucideIcon } from 'lucide-react';
 import { useChatHost } from '../../host';
 import { headingKey, isPrimaryKey, staysInCard, stepIndex, toolbarKey } from '../logic/keys';
-import { Icon } from '@adecore/ui';
+import { Icon, ScrollArea } from '@adecore/ui';
 
 /* The raised glass a chat's composer is made of, for a card that stands on its own over a canvas. */
 export const PROMPT_SURFACE =
@@ -77,7 +77,7 @@ export function PromptCard({ kind, heading, meta, top, actions, busy, notice, er
         >
             {/* The scroll box would clip the focus ring of whatever sits against its edge, so it carries the
                 room that ring needs and gives the same amount back to the card's own padding. */}
-            <div className="-m-1.5 max-h-[min(50dvh,480px)] overflow-auto overscroll-contain p-1.5">
+            <ScrollArea axis="both" className="-m-1.5 max-h-[min(50dvh,480px)]" viewportClassName="overscroll-contain p-1.5">
                 <div className="flex flex-col gap-2">
                     <div className="flex items-start gap-2">
                         <Icon icon={ICONS[kind]} size={16} className="mt-[3px] shrink-0 text-status-needs-you" />
@@ -94,7 +94,7 @@ export function PromptCard({ kind, heading, meta, top, actions, busy, notice, er
                         </p>
                     )}
                 </div>
-            </div>
+            </ScrollArea>
             <div role="toolbar" aria-label={t('toolbar')} className="flex flex-wrap items-center gap-1.5">
                 {actions}
             </div>

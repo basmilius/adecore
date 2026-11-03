@@ -245,9 +245,9 @@
 /* A checked box is the marker; prose would put a bullet next to it. */
 .chat-markdown li:has(> input[type="checkbox"]) { list-style: none; }
 .chat-markdown input[type="checkbox"] { margin-right: 6px; accent-color: var(--accent); }
-/* A wide table scrolls in its own wrapper instead of stretching the column it sits in. The
-   wrapper is a scroll container, so the air around the table has to sit on it, not inside it. */
-.chat-table { overflow-x: auto; margin-block: 2em; }
+/* A wide table scrolls in its own `ScrollArea` instead of stretching the column it sits in. The
+   air around the table sits on that frame, not inside the part that scrolls. */
+.chat-table { margin-block: 2em; }
 .chat-markdown table { margin: 0; border-collapse: collapse; font-size: var(--text-xs); }
 .chat-markdown :is(th, td) { border: 1px solid var(--tw-prose-td-borders); padding: 4px 8px; text-align: left; }
 
@@ -262,7 +262,7 @@
 .chat-ui-section-body .chat-ui-flat { background-color: transparent; padding: 0; }
 .chat-ui-section-body .chat-ui-flat .chat-ui-flat-inner { padding-inline: 0; }
 .chat-ui-section-body .chat-ui-flat thead { background-color: var(--chat-ui-tile); }
-.chat-code pre { margin: 0; padding: round(0.625rem, 1px) round(0.75rem, 1px); overflow: auto; user-select: text; background: transparent !important; font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
+.chat-code pre { margin: 0; padding: round(0.625rem, 1px) round(0.75rem, 1px); user-select: text; background: transparent !important; font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
 .chat-code code { font-family: inherit; }
 .chat-code-actions { position: absolute; top: 4px; right: 4px; border-radius: 6px; background: var(--surface-raised); color: var(--text-muted); box-shadow: 0 0 0 1px var(--border); }
 .chat-code-error { margin: 0; padding: 0 12px 10px; color: var(--status-error); font-size: var(--text-sm); }

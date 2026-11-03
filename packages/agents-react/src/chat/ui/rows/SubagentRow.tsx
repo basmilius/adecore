@@ -5,7 +5,7 @@ import { Bot, ChevronDown } from 'lucide-react';
 import type { ChatAssistantItem, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
 import type { SubagentBranch } from '../../logic/timeline';
 import { formatElapsedShort } from '@adecore/ui/format';
-import { Icon, useNow } from '@adecore/ui';
+import { Icon, ScrollArea, useNow } from '@adecore/ui';
 import { useOpenForFind } from '../find-reveal';
 import { Markdown } from '../Markdown';
 import { TaskRow } from './TaskRow';
@@ -106,12 +106,12 @@ function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubage
     }
 
     return (
-        <div ref={scroller} className="ml-6 overflow-y-auto" style={{ maxHeight: CHILDREN_MAX_PX }}>
+        <ScrollArea viewportRef={scroller} className="ml-6" style={{ maxHeight: CHILDREN_MAX_PX }}>
             {item.itemsTruncated && <div className="pb-1 text-xs text-text-faint">{t('rows.subagent.truncated')}</div>}
             {shown.map((child) => (
                 <ChildRow key={child.id} chatId={chatId} item={child} />
             ))}
-        </div>
+        </ScrollArea>
     );
 }
 

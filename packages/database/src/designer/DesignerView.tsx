@@ -2,7 +2,21 @@ import type { KeyboardEvent, ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Lock, Undo2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, DisabledReason, Field, Icon, Input, PromptDialog, Separator, Tabs, isApplePlatform, matchesShortcut, shortcut } from '@adecore/ui';
+import {
+    Banner,
+    Button,
+    DisabledReason,
+    Field,
+    Icon,
+    Input,
+    PromptDialog,
+    ScrollArea,
+    Separator,
+    Tabs,
+    isApplePlatform,
+    matchesShortcut,
+    shortcut
+} from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { CODE_TEXT } from '../code-text.ts';
 import type { Dialect, TableDraft } from '../ddl/index.ts';
@@ -151,13 +165,13 @@ export function DesignerView({
                     </Tabs.Tab>
                     <Tabs.Tab value="options">{t('designer.tabs.options')}</Tabs.Tab>
                 </Tabs.List>
-                <Tabs.Panel value="columns" className="min-h-0 grow overflow-auto">
+                <Tabs.Panel value="columns" render={<ScrollArea axis="both" />} className="grow">
                     <ColumnsEditor draft={draft} dialect={dialect} disabled={disabled} onChange={onChange} />
                 </Tabs.Panel>
-                <Tabs.Panel value="indexes" className="min-h-0 grow overflow-auto">
+                <Tabs.Panel value="indexes" render={<ScrollArea axis="both" />} className="grow">
                     <IndexesEditor draft={draft} dialect={dialect} disabled={disabled} onChange={onChange} />
                 </Tabs.Panel>
-                <Tabs.Panel value="foreignKeys" className="min-h-0 grow overflow-auto">
+                <Tabs.Panel value="foreignKeys" render={<ScrollArea axis="both" />} className="grow">
                     <ForeignKeysEditor
                         draft={draft}
                         dialect={dialect}
@@ -168,7 +182,7 @@ export function DesignerView({
                         onChange={onChange}
                     />
                 </Tabs.Panel>
-                <Tabs.Panel value="options" className="min-h-0 grow overflow-auto">
+                <Tabs.Panel value="options" render={<ScrollArea axis="both" />} className="grow">
                     <OptionsEditor draft={draft} dialect={dialect} disabled={disabled} onChange={onChange} />
                 </Tabs.Panel>
             </Tabs.Root>
@@ -188,9 +202,14 @@ export function DesignerView({
                 }}
             >
                 {plan.destructive && <p className="mt-3 text-xs text-status-error">{t('designer.confirm.destructive')}</p>}
-                <pre className={clsx(CODE_TEXT, 'mt-3 max-h-64 overflow-auto rounded-md bg-surface-sunken p-2 whitespace-pre text-text select-text')}>
+                <ScrollArea
+                    axis="both"
+                    render={<pre />}
+                    className="mt-3 max-h-64 rounded-md bg-surface-sunken"
+                    viewportClassName={clsx(CODE_TEXT, 'p-2 whitespace-pre text-text select-text')}
+                >
                     {scriptOf(plan.statements)}
-                </pre>
+                </ScrollArea>
             </PromptDialog>
         </div>
     );

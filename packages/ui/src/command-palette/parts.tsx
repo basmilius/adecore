@@ -11,6 +11,7 @@ import { Icon } from '../Icon.tsx';
 import { Kbd } from '../Kbd.tsx';
 import { mergeRefs } from '../merge-refs.ts';
 import { KEY_SHORTCUTS } from '../shortcut.ts';
+import { useOverlayScrollbars } from '../useOverlayScrollbars.tsx';
 import { PaletteRefsContext } from './context.ts';
 
 const NO_ITEMS: readonly never[] = [];
@@ -188,25 +189,30 @@ export function CommandPaletteInput({ leading, trailing, escapeHint = true, mono
 export function CommandPaletteList({ className, ref, onFocus, ...props }: ComponentProps<typeof Autocomplete.List>) {
     const { t } = useTranslation('ui');
     const refs = useContext(PaletteRefsContext);
+    const [list, setList] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(list);
 
     return (
-        <Autocomplete.List
-            ref={mergeRefs(ref, refs?.list)}
-            aria-label={t('palette.results')}
-            className={withClass('max-h-[50vh] min-h-0 overflow-y-auto overscroll-contain scroll-py-1.5 not-empty:p-1.5', className)}
-            {...props}
-            onFocus={(event) => {
-                onFocus?.(event);
-                const row = event.target.closest('[role="option"]');
+        <div className="relative flex min-h-0 flex-col">
+            <Autocomplete.List
+                ref={mergeRefs(ref, refs?.list, setList)}
+                aria-label={t('palette.results')}
+                className={withClass('max-h-[50vh] min-h-0 overflow-y-auto overscroll-contain scroll-py-1.5 not-empty:p-1.5', className)}
+                {...props}
+                onFocus={(event) => {
+                    onFocus?.(event);
+                    const row = event.target.closest('[role="option"]');
 
-                if (row === null || !event.currentTarget.contains(row) || refs?.input.current == null) {
-                    return;
-                }
+                    if (row === null || !event.currentTarget.contains(row) || refs?.input.current == null) {
+                        return;
+                    }
 
-                refs.highlight(row);
-                refs.input.current.focus({ preventScroll: true });
-            }}
-        />
+                    refs.highlight(row);
+                    refs.input.current.focus({ preventScroll: true });
+                }}
+            />
+            {scrollbars}
+        </div>
     );
 }
 

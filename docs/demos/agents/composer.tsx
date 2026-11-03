@@ -3,6 +3,7 @@ import type { ChatSendExtras } from '@adecore/agents-react/chat';
 import { Composer } from '@adecore/agents-react/chat/ui';
 import { useChatScope } from '@adecore/agents-react';
 import { useChatRow } from '@adecore/agents-react/state';
+import { ScrollArea } from '@adecore/ui';
 import { chatInfo } from '../shared/agents-data.ts';
 import { AgentDemo } from '../shared/agents.tsx';
 
@@ -36,9 +37,9 @@ function Sending() {
                     onRetarget={(provider, selection) => scope.chats.retarget(CHAT, provider, selection)}
                 />
             )}
-            <pre className="overflow-x-auto rounded-md bg-surface-sunken px-3 py-2 font-mono text-xs text-text-muted">
+            <ScrollArea axis="x" render={<pre />} className="rounded-md bg-surface-sunken" viewportClassName="px-3 py-2 font-mono text-xs text-text-muted">
                 {sent === null ? 'Type @ for a file or $ for a skill, then press Enter.' : JSON.stringify(sent, null, 2)}
-            </pre>
+            </ScrollArea>
         </div>
     );
 }

@@ -161,7 +161,7 @@ test('the bottom edge resizes the body by keyboard and reports where it ended', 
         expect(handle.getAttribute('aria-orientation')).toBe('horizontal');
         expect(handle.getAttribute('aria-valuenow')).toBe('180');
 
-        const body = () => page.document.querySelector('[role="tree"]')!.parentElement as HTMLElement;
+        const body = () => page.document.querySelector('[role="tree"]')!.closest('.ade-scroll-area')!.parentElement as HTMLElement;
 
         expect(body().style.height).toBe('180px');
 
@@ -192,7 +192,7 @@ test('an open panel follows a resize made in another editor of the project', asy
         const view = { direction: 'incoming', container, name: 'run', rows: [], active: '', site: 0, sites: 0, preview: null } as CallHierarchyView;
         await act(async () => root.render(createElement(CallHierarchyPanel, { language, view })));
 
-        const body = () => page.document.querySelector('[role="tree"]')!.parentElement as HTMLElement;
+        const body = () => page.document.querySelector('[role="tree"]')!.closest('.ade-scroll-area')!.parentElement as HTMLElement;
 
         await act(async () => project.resizePanelBody(240));
 

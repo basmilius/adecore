@@ -1,6 +1,7 @@
 import { LegacyDiffPool } from './LegacyDiffPool';
 import { useReviewSettled } from './review-settle';
 import { MultiFileDiff } from '@pierre/diffs/react';
+import { ScrollArea } from '@adecore/ui';
 import { useDiffTheme } from '../diff-theme';
 import { diffTexts, type FileChange } from '../../logic/tools';
 import { useHostCodeMode } from '../../../host-hooks';
@@ -23,11 +24,19 @@ export default function LegacyEditDiff({ change, maxHeight }: { change: FileChan
         hunkSeparators: 'simple' as const
     };
 
+    const body = (
+        <LegacyDiffPool>
+            <MultiFileDiff oldFile={oldFile} newFile={newFile} options={options} />
+        </LegacyDiffPool>
+    );
+
+    if (maxHeight === undefined) {
+        return <div className="chat-diff select-text">{body}</div>;
+    }
+
     return (
-        <div className="chat-diff select-text" style={maxHeight === undefined ? undefined : { maxHeight, overflow: 'auto' }}>
-            <LegacyDiffPool>
-                <MultiFileDiff oldFile={oldFile} newFile={newFile} options={options} />
-            </LegacyDiffPool>
-        </div>
+        <ScrollArea axis="both" className="chat-diff select-text" style={{ maxHeight }}>
+            {body}
+        </ScrollArea>
     );
 }

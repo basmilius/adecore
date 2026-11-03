@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ComponentType, type ReactNode, type Ref } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Tabs } from '@base-ui/react/tabs';
@@ -11,7 +11,13 @@ import { IconButton } from '../IconButton.tsx';
 import { LazyBoundary } from '../LazyBoundary.tsx';
 import { Input } from '../Input.tsx';
 import { Select } from '../Select.tsx';
+import { ScrollArea } from '../ScrollArea.tsx';
 import { SettingsTargetContext } from './target.ts';
+
+/* A pane that is not split scrolls as one column: the panel's own props land on the viewport, which stays the tab panel. */
+function renderScrollingPanel({ ref, className, ...props }: ComponentProps<'div'>) {
+    return <ScrollArea ref={ref} className="min-h-0 min-w-0 grow" viewportClassName={className} {...props} />;
+}
 
 export interface SettingsSectionEntry {
     id: string;
@@ -125,7 +131,7 @@ function SettingsNav({ groups, footer, account }: Pick<SettingsDialogProps, 'gro
 
     return (
         <Tabs.List aria-label={t('settings.sections')} activateOnFocus className="flex min-h-0 grow flex-col">
-            <div ref={list} className="scroll-fade-y flex min-h-0 flex-col gap-3.5 overflow-y-auto">
+            <ScrollArea viewportRef={list} viewportClassName="scroll-fade-y flex flex-col gap-3.5">
                 {groups.map((group) => (
                     <div key={group.sections[0]!.id} className="flex flex-col gap-0.5">
                         {group.label !== null && <span className="px-2.5 pt-2.5 pb-1 text-xs font-medium text-text-faint">{group.label}</span>}
@@ -134,7 +140,7 @@ function SettingsNav({ groups, footer, account }: Pick<SettingsDialogProps, 'gro
                         ))}
                     </div>
                 ))}
-            </div>
+            </ScrollArea>
             {(footer?.length || account) && (
                 <div className="mt-auto flex flex-col gap-3 pt-3.5">
                     {footer?.map((section) => (
@@ -232,7 +238,7 @@ function SearchResults({ search, query, labelOf, onPick }: SearchResultsProps) {
     }
 
     return (
-        <ul className="flex min-h-0 flex-col gap-0.5 overflow-y-auto" aria-label={t('settings.search.results')}>
+        <ScrollArea render={<ul />} viewportClassName="flex flex-col gap-0.5" aria-label={t('settings.search.results')}>
             {results.map((result) => (
                 <li key={`${result.section}:${result.id ?? ''}`}>
                     <button
@@ -245,7 +251,7 @@ function SearchResults({ search, query, labelOf, onPick }: SearchResultsProps) {
                     </button>
                 </li>
             ))}
-        </ul>
+        </ScrollArea>
     );
 }
 
@@ -354,10 +360,11 @@ export function SettingsDialog({
                                         className={clsx(
                                             'flex min-h-0 min-w-0 grow flex-col outline-none',
                                             // A split pane scrolls each of its sides itself.
-                                            !entry.split && 'gap-7 overflow-y-auto px-8 pb-10 max-[960px]:px-4',
+                                            !entry.split && 'gap-7 px-8 pb-10 max-[960px]:px-4',
                                             // Under a hero the bar's fill marks the edge; a fade would wipe the hero out behind the clear bar.
                                             !entry.split && !Hero && 'scroll-fade-top pt-1'
                                         )}
+                                        render={entry.split ? undefined : renderScrollingPanel}
                                         onScroll={(event) => {
                                             const top = event.currentTarget.scrollTop;
                                             event.currentTarget.toggleAttribute('data-fade-start', top > 0);

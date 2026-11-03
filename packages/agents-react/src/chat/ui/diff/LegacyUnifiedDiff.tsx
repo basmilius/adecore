@@ -3,6 +3,7 @@ import { useReviewSettled } from './review-settle';
 import clsx from 'clsx';
 import { FileDiff, PatchDiff } from '@pierre/diffs/react';
 import type { ChatFileChange } from '@adecore/agent-contracts';
+import { ScrollArea } from '@adecore/ui';
 import { useDiffTheme } from '../diff-theme';
 import { fullFileDiff } from '../full-diff';
 import type { UnifiedDiffProps } from './diff-props';
@@ -70,7 +71,12 @@ export default function LegacyUnifiedDiff({ change, overflow = 'wrap', diffStyle
 
     if (patch === null) {
         return (
-            <pre className="max-h-64 overflow-auto px-3 py-2 font-mono text-code select-text" style={fill ? undefined : { maxHeight }}>
+            <ScrollArea
+                axis="both"
+                render={<pre />}
+                viewportClassName="max-h-64 px-3 py-2 font-mono text-code select-text"
+                style={fill ? undefined : { maxHeight }}
+            >
                 {change.diff
                     .replace(/\n$/, '')
                     .split('\n')
@@ -79,16 +85,21 @@ export default function LegacyUnifiedDiff({ change, overflow = 'wrap', diffStyle
                             {line}
                         </div>
                     ))}
-            </pre>
+            </ScrollArea>
         );
     }
 
+    const body = (
+        <LegacyDiffPool>{full === null ? <PatchDiff patch={patch} options={options} /> : <FileDiff fileDiff={full} options={options} />}</LegacyDiffPool>
+    );
+
+    if (fill || maxHeight === undefined) {
+        return <div className={clsx('chat-diff select-text', fill && 'flex grow flex-col')}>{body}</div>;
+    }
+
     return (
-        <div
-            className={clsx('chat-diff select-text', fill && 'flex grow flex-col')}
-            style={fill || maxHeight === undefined ? undefined : { maxHeight, overflow: 'auto' }}
-        >
-            <LegacyDiffPool>{full === null ? <PatchDiff patch={patch} options={options} /> : <FileDiff fileDiff={full} options={options} />}</LegacyDiffPool>
-        </div>
+        <ScrollArea axis="both" className="chat-diff select-text" style={{ maxHeight }}>
+            {body}
+        </ScrollArea>
     );
 }

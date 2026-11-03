@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 import { fileUriToPath } from '@adecore/lsp';
 import type { EditorRect } from '@adecore/editor';
-import { Button, Icon } from '@adecore/ui';
+import { Button, Icon, ScrollArea } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { basenameOf, relativeTo } from './paths.ts';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
@@ -99,7 +99,7 @@ function Preview({ language, view }: { language: EditorLanguage; view: RenameVie
 
     return (
         <div className="flex w-[520px] max-w-full flex-col" onPointerDown={(event) => event.preventDefault()}>
-            <div className="max-h-[320px] overflow-y-auto">
+            <ScrollArea className="max-h-[320px]">
                 {view.files.map((file) => {
                     const path = fileUriToPath(file.uri);
                     const shown = path === null ? file.uri : relativeTo(path, folder);
@@ -140,7 +140,7 @@ function Preview({ language, view }: { language: EditorLanguage; view: RenameVie
                         ))}
                     </div>
                 )}
-            </div>
+            </ScrollArea>
             <div className="flex items-center justify-end gap-2 border-t border-border p-2">
                 <Button size="xs" variant="ghost" onClick={() => language.rename.cancel()}>
                     {t('language.rename.cancel')}

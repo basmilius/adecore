@@ -1,5 +1,6 @@
 import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
+import { ScrollArea } from '../ScrollArea.tsx';
 
 const LIST_WIDTHS = { 280: 'w-70', 320: 'w-80', 340: 'w-85' } as const;
 
@@ -18,18 +19,20 @@ export interface MasterDetailProps {
 export function MasterDetail({ list, listWidth, listLabel, detail, className, ref }: MasterDetailProps) {
     return (
         <div ref={ref} className={clsx('flex min-h-0 min-w-0 grow border-t border-border max-[640px]:flex-col', className)}>
-            <nav
+            <ScrollArea
+                render={<nav />}
                 aria-label={listLabel}
                 className={clsx(
-                    'flex shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border p-2 max-[640px]:max-h-60 max-[640px]:w-auto max-[640px]:border-r-0 max-[640px]:border-b',
+                    'shrink-0 border-r border-border max-[640px]:max-h-60 max-[640px]:w-auto max-[640px]:border-r-0 max-[640px]:border-b',
                     LIST_WIDTHS[listWidth]
                 )}
+                viewportClassName="flex flex-col gap-0.5 p-2"
             >
                 {list}
-            </nav>
-            <div className="min-h-0 min-w-0 grow overflow-y-auto">
+            </ScrollArea>
+            <ScrollArea className="grow">
                 <div className="flex min-w-0 flex-col gap-7 px-8 pt-6 pb-10 max-[960px]:px-4">{detail}</div>
-            </div>
+            </ScrollArea>
         </div>
     );
 }

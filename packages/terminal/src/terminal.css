@@ -59,3 +59,65 @@
     .terminal-view-host .xterm { height: 100%; top: var(--term-offset, 6px); }
     .terminal-view-host .xterm .xterm-viewport { background-color: transparent !important; }
 }
+
+/* xterm draws its own scrollbar in the DOM; these rules give it the look of the overlay bars of @adecore/ui
+   (`--scrollbar-*`). Unlayered and one class stronger than `xterm.css` and the colors xterm injects, which are
+   unlayered too; `!important` only where xterm writes a size inline. Its own timer hides the bar after the
+   last scroll, so the fade waits a little longer to land where the other bars fade. */
+.terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical {
+    --scrollbar-size: 12px;
+    width: var(--scrollbar-size) !important;
+    background: transparent;
+}
+.terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical::before {
+    content: "";
+    position: absolute;
+    inset: 2px 2px;
+    border-radius: 999px;
+    background: var(--scrollbar-track);
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+.terminal-view-host .xterm .xterm-scrollable-element > .visible { transition: opacity 120ms ease; }
+.terminal-view-host .xterm .xterm-scrollable-element > .invisible.fade { transition: opacity 240ms ease 100ms; }
+.terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical > .slider {
+    left: 0 !important;
+    width: 100% !important;
+    background: transparent;
+    touch-action: none;
+}
+.terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical > .slider::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    right: 3px;
+    width: 6px;
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    transition: background-color 120ms ease, width 120ms ease, right 120ms ease;
+}
+.terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical > .slider.active::before {
+    right: 2px;
+    width: 8px;
+    background: var(--scrollbar-thumb-active);
+}
+.terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical:has(> .slider.active)::before { opacity: 1; }
+@media (hover: hover) {
+    .terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical:hover::before { opacity: 1; }
+    .terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical:hover > .slider:not(.active)::before {
+        right: 2px;
+        width: 8px;
+        background: var(--scrollbar-thumb-hover);
+    }
+}
+@media (pointer: coarse) {
+    .terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical { --scrollbar-size: 20px; }
+    .terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical > .slider::before { right: 2px; width: 8px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .terminal-view-host .xterm .xterm-scrollable-element > .visible,
+    .terminal-view-host .xterm .xterm-scrollable-element > .invisible.fade,
+    .terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical::before,
+    .terminal-view-host .xterm .xterm-scrollable-element > .scrollbar.vertical > .slider::before { transition: none; }
+}

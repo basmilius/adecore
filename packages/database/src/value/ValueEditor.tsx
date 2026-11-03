@@ -12,6 +12,7 @@ import {
     KEY_SHORTCUTS,
     matchesShortcut,
     Menu,
+    ScrollArea,
     Segmented,
     TextArea,
     Tooltip
@@ -26,7 +27,8 @@ import { renderView, sizeOf, viewsOf, type Rendered, type ViewId } from './views
 
 const WRAPPING_VIEWS: ReadonlySet<ViewId> = new Set(['text', 'formatted', 'utf8']);
 
-const READING = `min-h-0 flex-1 overflow-auto rounded-lg border border-border bg-surface p-2 ${CODE_TEXT} text-text`;
+const READING_FRAME = 'flex-1 rounded-lg border border-border bg-surface';
+const READING = `p-2 ${CODE_TEXT} text-text`;
 
 export interface ValueEditorProps {
     column: GridColumn;
@@ -132,7 +134,14 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
 
         return (
             <>
-                <pre className={clsx(READING, wrapped ? 'break-words whitespace-pre-wrap' : 'whitespace-pre')}>{content.text}</pre>
+                <ScrollArea
+                    axis="both"
+                    render={<pre />}
+                    className={READING_FRAME}
+                    viewportClassName={clsx(READING, wrapped ? 'break-words whitespace-pre-wrap' : 'whitespace-pre')}
+                >
+                    {content.text}
+                </ScrollArea>
                 {content.truncated && (
                     <p className="shrink-0 text-xs text-text-faint">
                         {t('value.dumpTruncated', { shown: formatNumber(content.truncated.shown), total: formatNumber(content.truncated.total) })}

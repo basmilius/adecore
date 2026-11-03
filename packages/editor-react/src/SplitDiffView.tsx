@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { parseChord } from '@adecore/editor/keymap';
 import type { EditorLineHighlight } from '@adecore/editor';
+import { useOverlayScrollbars } from '@adecore/ui';
 import { sourceLineOf, type DiffLineRow, type DiffSplit } from '@adecore/merge';
 import type { DiffViewProps } from './DiffView.tsx';
 import { repaintOnTokens, type DiffSourceSide } from './diff-syntax.ts';
@@ -12,6 +13,8 @@ import { splitAlignment } from './split-alignment.ts';
 import { SplitScroll } from './split-scroll.ts';
 
 const SIDES = ['old', 'new'] as const;
+
+const NO_SCROLLERS: Record<DiffSourceSide, HTMLElement | null> = { old: null, new: null };
 
 interface MountedSplit {
     old: MountedDiff;
@@ -54,6 +57,9 @@ export function SplitDiffView({
     const [failure, setFailure] = useState<{ error: unknown } | null>(null);
     const [mounted, setMounted] = useState<MountedSplit | null>(null);
     const [height, setHeight] = useState(0);
+    const [scrollers, setScrollers] = useState<Record<DiffSourceSide, HTMLElement | null>>(NO_SCROLLERS);
+    const oldScrollbars = useOverlayScrollbars(scrollers.old, { axis: 'both' });
+    const newScrollbars = useOverlayScrollbars(scrollers.new, { axis: 'both' });
 
     useLayoutEffect(() => {
         current.current = { document, display, tokens, theme, wrap, label };
@@ -194,10 +200,12 @@ export function SplitDiffView({
         ]);
 
         setMounted({ old: sides.old, new: sides.new, align, update, drive: (side) => scroll.drive(side) });
+        setScrollers({ old: oldHost.querySelector<HTMLElement>('.se-viewport'), new: newHost.querySelector<HTMLElement>('.se-viewport') });
         measure();
 
         return () => {
             stopped = true;
+            setScrollers(NO_SCROLLERS);
 
             for (const stop of stops) {
                 stop();
@@ -399,6 +407,7 @@ export function SplitDiffView({
                         onKeyDownCapture={drive}
                     >
                         <div ref={side === 'old' ? oldElement : newElement} className="adecore-editor-diff-surface" />
+                        {side === 'old' ? oldScrollbars : newScrollbars}
                         {mounted !== null && mounted[side].engine === engine && (
                             <DiffOverlays mounted={mounted[side]} display={display[side]} unfold={unfold} blocked={blocked} />
                         )}

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Input, Popover } from '@adecore/ui';
+import { Button, Input, Popover, ScrollArea } from '@adecore/ui';
 
 const PEOPLE = ['Ada Lovelace', 'Alan Turing', 'Grace Hopper', 'Katherine Johnson', 'Margaret Hamilton'];
 
@@ -21,13 +21,13 @@ export default function PopoverPicker() {
                         onChange={(event) => setQuery(event.target.value)}
                     />
                 </div>
-                <ul className="max-h-60 overflow-auto p-1">
+                <ScrollArea render={<ul />} className="max-h-60" viewportClassName="p-1">
                     {matches.map((person) => (
                         <li key={person} className="rounded-md px-2.5 py-1.5 text-sm text-text hover:bg-surface-hover">
                             {person}
                         </li>
                     ))}
-                </ul>
+                </ScrollArea>
             </Popover.Popup>
         </Popover.Root>
     );

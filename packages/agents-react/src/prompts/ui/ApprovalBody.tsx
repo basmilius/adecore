@@ -8,7 +8,7 @@ import { ApprovalReview } from '../../chat/ui/diff/ApprovalReview';
 import { reviewEntries } from '../../chat/ui/diff/review-plan';
 import { isPrimaryKey } from '../logic/keys';
 import type { PromptDraft } from '../logic/prompts';
-import { Button, TextMenu } from '@adecore/ui';
+import { Button, ScrollArea, TextMenu } from '@adecore/ui';
 
 /* A command in the sunken box a person reads before allowing it, with the folder it runs in when that is known. */
 export function CommandBox({ command, cwd }: { command: string; cwd?: string }) {
@@ -41,9 +41,15 @@ function ApprovalDetails({ item }: { item: ChatApprovalItem }) {
             )}
             {patches.length + edits.length > 0 ? (
                 <div className="overflow-hidden rounded-xl bg-surface-sunken">
-                    <div className={clsx(editorPreview ? 'overflow-hidden' : 'overflow-auto', !editorPreview && !expanded && 'max-h-44')}>
-                        <ApprovalReview key={item.requestId} entries={entries} maxHeight={maxHeight} />
-                    </div>
+                    {editorPreview ? (
+                        <div className="overflow-hidden">
+                            <ApprovalReview key={item.requestId} entries={entries} maxHeight={maxHeight} />
+                        </div>
+                    ) : (
+                        <ScrollArea axis="both" className={clsx(!expanded && 'max-h-44')}>
+                            <ApprovalReview key={item.requestId} entries={entries} maxHeight={maxHeight} />
+                        </ScrollArea>
+                    )}
                     <div className="flex items-center border-t border-border p-1">
                         <Button size="sm" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
                             {expanded ? t('approval.collapseDiff') : t('approval.viewDiff')}
@@ -56,9 +62,14 @@ function ApprovalDetails({ item }: { item: ChatApprovalItem }) {
                 <details>
                     <summary className="flex h-7 cursor-pointer items-center text-xs text-text-muted">{t('approval.details')}</summary>
                     <TextMenu>
-                        <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-words rounded-xl bg-surface-sunken p-3 font-mono text-code text-text select-text">
+                        <ScrollArea
+                            axis="both"
+                            render={<pre />}
+                            className="max-h-64 rounded-xl bg-surface-sunken"
+                            viewportClassName="whitespace-pre-wrap break-words p-3 font-mono text-code text-text select-text"
+                        >
                             {JSON.stringify(item.input, null, 2)}
-                        </pre>
+                        </ScrollArea>
                     </TextMenu>
                 </details>
             )}

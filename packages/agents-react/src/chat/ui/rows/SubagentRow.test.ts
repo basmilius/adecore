@@ -53,9 +53,9 @@ describe('SubagentRow', () => {
         const hidden = render(work, true);
 
         expect(shown.querySelector('[data-find-item="read"]')).not.toBeNull();
-        expect(shown.querySelector('.overflow-y-auto')!.children.length).toBe(2);
+        expect(shown.querySelector('.ade-scroll-viewport')!.children.length).toBe(2);
         expect(hidden.querySelector('[data-find-item="read"]')).toBeNull();
-        expect(hidden.querySelector('.overflow-y-auto')!.children.length).toBe(1);
+        expect(hidden.querySelector('.ade-scroll-viewport')!.children.length).toBe(1);
     });
 
     test('says nothing about work it did when all of it was tool lines', () => {

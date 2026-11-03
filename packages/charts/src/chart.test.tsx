@@ -1037,8 +1037,9 @@ describe.skipIf(typeof document === 'undefined')('a mounted chart', () => {
             </Chart.Root>
         );
 
+        // The scroller sits in the frame that holds its bar, beside the axis.
         const scroller = plot.parentElement!;
-        const axis = Number(scroller.previousElementSibling!.getAttribute('width'));
+        const axis = Number(scroller.parentElement!.previousElementSibling!.getAttribute('width'));
         expect(axis).toBeGreaterThan(0);
         expect(scroller.style.marginLeft).toBe(`-${axis}px`);
         expect(scroller.style.paddingLeft).toBe(`${axis}px`);

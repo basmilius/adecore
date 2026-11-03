@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { EditorRect } from '@adecore/editor';
+import { ScrollArea } from '@adecore/ui';
 import { placePopup, type PlaceOptions } from './popup-placement.ts';
 
 export interface AnchoredPopupProps {
@@ -39,15 +40,18 @@ export function AnchoredPopup({ rect, className, overflow = 'scroll', children, 
         popup.style.visibility = 'visible';
     });
 
+    const scrolls = overflow === 'scroll';
+
+    // A card that scrolls is a frame around a `ScrollArea`, which takes the content's classes.
     return createPortal(
         <div
             ref={element}
-            className={`fixed top-0 left-0 z-(--z-popup) ${overflow === 'clip' ? 'overflow-hidden' : 'overflow-y-auto'} rounded-lg border border-border bg-surface-raised text-text shadow-(--float-shadow) ${className ?? ''}`}
+            className={`fixed top-0 left-0 z-(--z-popup) overflow-hidden rounded-lg border border-border bg-surface-raised text-text shadow-(--float-shadow) ${scrolls ? 'flex flex-col' : (className ?? '')}`}
             style={{ visibility: 'hidden' }}
             onPointerEnter={onPointerEnter}
             onPointerLeave={onPointerLeave}
         >
-            {children}
+            {scrolls ? <ScrollArea viewportClassName={className}>{children}</ScrollArea> : children}
         </div>,
         document.body
     );

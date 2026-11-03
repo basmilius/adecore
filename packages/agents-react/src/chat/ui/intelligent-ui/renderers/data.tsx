@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
 import type { UiProps } from '@adecore/intelligent-ui';
-import { Button, Icon, KeyValueList, Pill, Tooltip } from '@adecore/ui';
+import { Button, Icon, KeyValueList, Pill, ScrollArea, Tooltip } from '@adecore/ui';
 import { formatBytes, formatDuration, formatMoment, formatNumber, formatPercent, formatRounded } from '@adecore/ui/format';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf, uiWithUnit } from '../node-text';
@@ -173,7 +173,8 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
 
     return (
         <div className="flex flex-col items-start gap-1.5">
-            <div className="chat-ui-flat max-h-80 w-full overflow-auto rounded-xl bg-ui-tile px-1.5 pb-1.5">
+            {/* Flat on both parts: a section drops the frame's ground and the viewport's padding. */}
+            <ScrollArea axis="both" className="chat-ui-flat max-h-80 w-full rounded-xl bg-ui-tile" viewportClassName="chat-ui-flat px-1.5 pb-1.5">
                 <table
                     aria-label={t('blocks.table.label', { columns: columns.map((column) => column.title).join(', ') })}
                     className={clsx(
@@ -223,7 +224,7 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
                         ))}
                     </tbody>
                 </table>
-            </div>
+            </ScrollArea>
             {!all && rows.length > UI_TABLE_ROWS && (
                 <Button size="xs" variant="secondary" onClick={() => setAll(true)}>
                     {t('blocks.table.showAll', { total: formatNumber(rows.length) })}

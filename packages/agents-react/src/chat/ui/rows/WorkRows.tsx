@@ -31,7 +31,7 @@ import { ChatScopeContext, useChatScope } from '../../../scope';
 import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
 import { useTimelineFlash } from '../../timeline-flash';
 import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
-import { Button, Icon, LazyBoundary, MiddleTruncate, Spinner, useTickingText } from '@adecore/ui';
+import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, useTickingText } from '@adecore/ui';
 import { ROW_GUTTER, toolIcon } from '../icons';
 import { AnsiOutput } from '../AnsiOutput';
 import { ReferenceLookupContext } from '../reference-lookup';
@@ -351,15 +351,18 @@ function DiffBody({ tool, entries, patched, chatId }: { tool: ChatToolItem; entr
             <DiffStack entries={entries} />
             {hasOutput(text) && !patched && (
                 <div className="border-t border-border px-3 py-2">
-                    <pre
+                    <ScrollArea
+                        axis="both"
+                        render={<pre />}
                         data-find-field="output"
-                        className={clsx(
-                            'max-h-64 overflow-auto whitespace-pre-wrap font-mono text-code select-text',
+                        className="max-h-64"
+                        viewportClassName={clsx(
+                            'whitespace-pre-wrap font-mono text-code select-text',
                             tool.state === 'error' ? 'text-chat-removed' : 'text-chat-output'
                         )}
                     >
                         <OutputText text={text} whole={whole} stored={tool.outputRef !== undefined} />
-                    </pre>
+                    </ScrollArea>
                     <WholeBar whole={whole} label={t('work.showFullOutput')} failedLabel={t('work.fullOutputFailed')} bytes={tool.outputRef?.bytes} />
                 </div>
             )}
@@ -382,12 +385,15 @@ function ToolOutput({ tool, chatId }: { tool: ChatToolItem; chatId: string | und
     return (
         <>
             {hasOutput(rest) && (
-                <pre
+                <ScrollArea
+                    axis="both"
+                    render={<pre />}
                     data-find-field="output"
-                    className={clsx('max-h-64 overflow-auto whitespace-pre-wrap', failed && code === null ? 'text-status-error' : 'text-text-muted')}
+                    className="max-h-64"
+                    viewportClassName={clsx('whitespace-pre-wrap', failed && code === null ? 'text-status-error' : 'text-text-muted')}
                 >
                     <OutputText text={rest} whole={whole} stored={tool.outputRef !== undefined} />
-                </pre>
+                </ScrollArea>
             )}
             <WholeBar whole={whole} label={t('work.showFullOutput')} failedLabel={t('work.fullOutputFailed')} bytes={tool.outputRef?.bytes} />
             {code !== null && <div className="text-status-error">{t('work.exitCode', { code: String(code) })}</div>}
@@ -420,22 +426,26 @@ function OwnToolBody({ tool, chatId }: { tool: ChatToolItem; chatId?: string | u
     return (
         <div className="mt-0.5 mb-2 ml-6 flex flex-col gap-1.5 font-mono text-code select-text">
             {lines.command !== null && (
-                <pre className="max-h-64 overflow-auto whitespace-pre-wrap wrap-anywhere text-text">
+                <ScrollArea axis="both" render={<pre />} className="max-h-64" viewportClassName="whitespace-pre-wrap wrap-anywhere text-text">
                     <ShellCommand command={lines.command.slice(0, OUTPUT_LIMIT)} />
                     {clipNotice(lines.command)}
-                </pre>
+                </ScrollArea>
             )}
             {lines.args.length > 0 && (
-                <dl className="grid max-h-64 grid-cols-[auto_minmax(0,1fr)] gap-x-3 overflow-auto">
+                <ScrollArea axis="both" render={<dl />} className="max-h-64" viewportClassName="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3">
                     {lines.args.map(([key, value]) => (
                         <Fragment key={key}>
                             <dt className="text-text-faint">{key}</dt>
                             <dd className="whitespace-pre-wrap wrap-anywhere text-text">{clip(value)}</dd>
                         </Fragment>
                     ))}
-                </dl>
+                </ScrollArea>
             )}
-            {lines.text !== null && <pre className="max-h-64 overflow-auto whitespace-pre-wrap wrap-anywhere text-text">{clip(lines.text)}</pre>}
+            {lines.text !== null && (
+                <ScrollArea axis="both" render={<pre />} className="max-h-64" viewportClassName="whitespace-pre-wrap wrap-anywhere text-text">
+                    {clip(lines.text)}
+                </ScrollArea>
+            )}
             <ToolOutput tool={tool} chatId={chatId} />
         </div>
     );
@@ -544,9 +554,14 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
             />
             {open && opens && <ToolBody tool={tool} chatId={chatId} />}
             {tail !== null && !open && (
-                <pre className="mt-1.5 mb-2 ml-6 max-h-48 overflow-auto rounded-md border border-border bg-surface-raised px-3 py-2 font-mono text-code whitespace-pre-wrap text-chat-output select-text">
+                <ScrollArea
+                    axis="both"
+                    render={<pre />}
+                    className="mt-1.5 mb-2 ml-6 max-h-48 rounded-md border border-border bg-surface-raised"
+                    viewportClassName="px-3 py-2 font-mono text-code whitespace-pre-wrap text-chat-output select-text"
+                >
                     <AnsiOutput text={tail} tailLines={12} />
-                </pre>
+                </ScrollArea>
             )}
         </div>
     );

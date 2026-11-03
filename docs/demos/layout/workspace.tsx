@@ -4,6 +4,7 @@ import {
     Button,
     Icon,
     IconButton,
+    ScrollArea,
     SplitView,
     Workspace,
     WorkspaceRail,
@@ -98,7 +99,7 @@ export default function WorkspaceDemo() {
                     Reset layout
                 </Button>
             </div>
-            <div className="w-full overflow-x-auto rounded-lg border border-border">
+            <ScrollArea axis="x" className="w-full rounded-lg border border-border">
                 <div className="h-[480px] min-w-[640px]">
                     <Workspace
                         layout={layout}
@@ -144,7 +145,7 @@ export default function WorkspaceDemo() {
                         />
                     </Workspace>
                 </div>
-            </div>
+            </ScrollArea>
             <p className="text-xs text-text-muted">
                 Drag a tab or the panel grip. Drop near an edge to split, on the tab strip to group tabs, or in the middle to swap. Drag dividers, double-click
                 to balance, or use their arrow keys. Dividers snap near the middle. Alt mirrors a resize; Alt + double-click spreads the chosen direction evenly

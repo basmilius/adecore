@@ -7,6 +7,7 @@ import { useChartContext, type ChartContextValue } from './context.ts';
 import type { SeriesEntry } from './store.ts';
 import type { ChartNote, ChartX } from './types.ts';
 import { tableClasses } from './values-table.ts';
+import { ValuesBox } from './ValuesBox.tsx';
 
 export interface ChartBucketValue {
     readonly label: string;
@@ -363,7 +364,7 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
                     {shown ? t('values.hide') : t('values.show')}
                 </Button>
             )}
-            <div id={id} className={classes.box}>
+            <ValuesBox id={id} shown={shown}>
                 <table className={classes.table}>
                     <caption className="sr-only">{t('values.caption', { label: chart.label })}</caption>
                     <thead className={classes.head}>
@@ -393,7 +394,7 @@ export function ChartTable({ toggle = true, open, defaultOpen = false, onOpenCha
                         ))}
                     </tbody>
                 </table>
-            </div>
+            </ValuesBox>
         </div>,
         chart.elements.table
     );

@@ -14,7 +14,7 @@ import {
 import clsx from 'clsx';
 import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, useContentSize } from '@adecore/ui';
+import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, ScrollArea, useContentSize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { DatabaseNotice } from '../actions.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
@@ -836,8 +836,9 @@ export function DataGrid({
               };
 
     return (
-        <div
-            ref={attach}
+        <ScrollArea
+            axis="both"
+            viewportRef={attach}
             role="grid"
             aria-label={label}
             aria-rowcount={rows.length + 1}
@@ -846,7 +847,8 @@ export function DataGrid({
                 pickedColumns.length > 0 ? headerId(pickedColumns[0]!) : focusCell === null ? undefined : cellId(focusCell.row, focusCell.column)
             }
             tabIndex={0}
-            className={clsx('group/grid relative min-h-0 flex-1 overflow-auto bg-surface text-text outline-none', className)}
+            className={clsx('flex-1 bg-surface text-text', className)}
+            viewportClassName="group/grid relative outline-none"
             onKeyDown={handleKeyDown}
             onScroll={(event) => setScrolledBlock(scrollBlock(event.currentTarget.scrollTop - HEADER_HEIGHT))}
         >
@@ -900,6 +902,6 @@ export function DataGrid({
                 </ContextMenu.Root>
                 {rows.length === 0 && empty !== undefined && <div className="sticky left-0 w-fit px-4 py-6 text-xs text-text-muted">{empty}</div>}
             </div>
-        </div>
+        </ScrollArea>
     );
 }

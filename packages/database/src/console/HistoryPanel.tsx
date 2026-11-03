@@ -2,7 +2,7 @@ import { useState, type Ref } from 'react';
 import clsx from 'clsx';
 import { Check, CircleAlert, Search, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Icon, IconButton, Input, isApplePlatform, isModHeld } from '@adecore/ui';
+import { Icon, IconButton, Input, ScrollArea, isApplePlatform, isModHeld } from '@adecore/ui';
 import { formatMoment, formatNumber } from '@adecore/ui/format';
 import { searchHistory, type HistoryEntry } from './history.ts';
 
@@ -40,7 +40,7 @@ export function HistoryPanel({ entries, onPick, onClear, className, ref }: Histo
                 {shown.length === 0 ? (
                     <p className="p-3 text-xs text-text-muted">{entries.length === 0 ? t('console.history.empty') : t('console.history.noMatches')}</p>
                 ) : (
-                    <ul className="absolute inset-0 overflow-auto">
+                    <ScrollArea render={<ul />} className="absolute inset-0">
                         {shown.map((entry) => (
                             <li key={`${entry.at}:${entry.sql}`} className="border-b border-border-soft">
                                 <button
@@ -58,7 +58,7 @@ export function HistoryPanel({ entries, onPick, onClear, className, ref }: Histo
                                 </button>
                             </li>
                         ))}
-                    </ul>
+                    </ScrollArea>
                 )}
             </div>
             <p className="shrink-0 border-t border-border px-3 py-2 text-xs text-text-faint">{t('console.history.hint')}</p>

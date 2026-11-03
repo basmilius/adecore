@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode 
 import { useTranslation } from 'react-i18next';
 import { ChartNoAxesColumn, RefreshCw } from 'lucide-react';
 import { USAGE_PROVIDERS, type UsageAccount } from '@adecore/agent-contracts';
-import { Button, CloseButton, Dialog, EmptyState, FormError, IconButton, Segmented, Select, Skeleton } from '@adecore/ui';
+import { Button, CloseButton, Dialog, EmptyState, FormError, IconButton, ScrollArea, Segmented, Select, Skeleton } from '@adecore/ui';
 import { AccountDot } from '../agents/AccountDot';
 import { useChatHost } from '../host';
 import { useChatScope } from '../scope';
@@ -235,7 +235,7 @@ export function UsagePage({ pickers, notice }: UsagePageProps) {
                     <CloseButton label={t('dialog.close')} dialog />
                 </div>
             </header>
-            <div className="flex min-h-0 grow flex-col gap-6 overflow-y-auto px-6 pt-4 pb-6 max-[960px]:px-4">
+            <ScrollArea className="grow" viewportClassName="flex flex-col gap-6 px-6 pt-4 pb-6 max-[960px]:px-4">
                 {notice?.(shown !== null)}
                 {noRoots && (
                     <EmptyState className={DIALOG_CENTER} icon={ChartNoAxesColumn} action={<HostAgents />}>
@@ -268,7 +268,7 @@ export function UsagePage({ pickers, notice }: UsagePageProps) {
                 )}
                 {/* Last in a column that fills the dialog, so it sits at the bottom even under a short page. */}
                 <Provenance />
-            </div>
+            </ScrollArea>
         </div>
     );
 }

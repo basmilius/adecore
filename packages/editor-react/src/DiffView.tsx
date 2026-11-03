@@ -2,6 +2,7 @@ import { useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Editor, EditorEngine, EditorLineHighlight, EditorTheme } from '@adecore/editor';
 import { parseChord } from '@adecore/editor/keymap';
+import { useOverlayScrollbars } from '@adecore/ui';
 import { diffDisplay, diffSplit, sourceLineOf, type DiffDocument, type DiffDisplay, type DiffSourceLine } from '@adecore/merge';
 import { wordMarks } from './diff-wordmarks.ts';
 import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
@@ -74,6 +75,8 @@ function UnifiedDiffView({
     const applied = useRef({ theme, wrap, label });
     const [mounted, setMounted] = useState<MountedDiff | null>(null);
     const [height, setHeight] = useState(0);
+    const [scroller, setScroller] = useState<HTMLElement | null>(null);
+    const scrollbars = useOverlayScrollbars(scroller, { axis: 'both' });
 
     useLayoutEffect(() => {
         current.current = { document, display, tokens, theme, wrap, label };
@@ -112,6 +115,7 @@ function UnifiedDiffView({
         });
 
         setMounted({ engine, editor, rows: new RowHost(editor, 'diff-gaps'), actions: new LineActionHost(editor, 'diff-status') });
+        setScroller(host.querySelector<HTMLElement>('.se-viewport'));
 
         const measure = (): void => setHeight(editor.getContentHeight());
 
@@ -120,6 +124,7 @@ function UnifiedDiffView({
 
         return () => {
             stop();
+            setScroller(null);
             editor.dispose();
         };
     }, [engine]);
@@ -271,8 +276,9 @@ function UnifiedDiffView({
             data-scroll={fill || height > limit}
             style={{ position: 'relative', minHeight: 0, height: fill ? '100%' : Math.min(height, limit) }}
         >
-            <div ref={element} style={{ position: 'absolute', inset: 0 }} />
+            <div ref={element} style={{ position: 'absolute', inset: 0, isolation: 'isolate' }} />
             {mounted !== null && mounted.engine === engine && <DiffOverlays mounted={mounted} display={display} unfold={unfold} blocked={blocked} />}
+            {scrollbars}
         </div>
     );
 }

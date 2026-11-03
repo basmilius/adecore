@@ -25,7 +25,7 @@ Every part takes `className`, `ref` and Base UI's `render` prop, except `Tree.Ch
 
 ## Rows wider than the tree
 
-By default `Tree.Label` cuts a long name off at the end. With `overflow="scroll"` on `Tree.Root`, rows stay whole and slide sideways together on a sideways scroll, as in a [`FileTree`](/ui/trees/file-tree). A thin bar at the bottom edge shows the shift, so give the tree the height it may fill and `overflow-y-auto`, and leave its bottom padding off.
+By default `Tree.Label` cuts a long name off at the end. With `overflow="scroll"` on `Tree.Root`, rows stay whole and slide sideways together on a sideways scroll, as in a [`FileTree`](/ui/trees/file-tree). A thin bar at the bottom edge shows the shift, so give the tree the height it may fill, scroll it up and down in a [`ScrollArea`](/ui/layout/scroll-area) (`render={<Tree.Root overflow="scroll" />}`), and leave its bottom padding off.
 
 `level` starts at 1; each level indents and draws a guide for every ancestor. `joinedStart` and `joinedEnd` square the corners between adjacent selected rows; compute them from the visible rows.
 

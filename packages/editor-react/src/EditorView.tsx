@@ -1,5 +1,5 @@
 import { createHolder } from './holder.ts';
-import { useLayoutEffect, useMemo, useRef, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -12,6 +12,7 @@ import {
     type EditorOptions,
     type EditorSmartKeys
 } from '@adecore/editor';
+import { useOverlayScrollbars } from '@adecore/ui';
 import { EditorLanguage, type EditorLanguageOptions } from './editor-language.ts';
 import { LanguagePopups } from './LanguagePopups.tsx';
 import type { ProjectLanguage } from './project-language.ts';
@@ -147,6 +148,8 @@ export function EditorView({
     const applied = useRef(options);
     const holder = useMemo(() => createHolder<EditorLanguage>(), []);
     const language = useSyncExternalStore(holder.subscribe, holder.get, holder.get);
+    const [scroller, setScroller] = useState<HTMLElement | null>(null);
+    const scrollbars = useOverlayScrollbars(scroller, { axis: 'both' });
 
     useLayoutEffect(() => {
         latest.current = { options, timers, languageOptions, onMount };
@@ -163,6 +166,8 @@ export function EditorView({
         const editor = engine.mount(host, { ...inputs.options, messages: { ...foldMessages(words.current), ...inputs.options.messages } });
         mounted.current = editor;
         applied.current = inputs.options;
+        // The engine's scroller stays native; it gets the overlay bars here, over the host it fills.
+        setScroller(host.querySelector<HTMLElement>('.se-viewport'));
 
         const attached =
             project === undefined || uri === undefined || languageId === undefined
@@ -174,6 +179,7 @@ export function EditorView({
 
         return () => {
             mounted.current = null;
+            setScroller(null);
             holder.set(null);
             stop?.();
             attached?.dispose();
@@ -207,7 +213,9 @@ export function EditorView({
 
     return (
         <div className={className} ref={ref} style={{ position: 'relative', minHeight: 0 }}>
-            <div ref={element} style={{ position: 'absolute', inset: 0 }} />
+            {/* Its own stacking layer, so no layer of the editor rises over the bars beside it. */}
+            <div ref={element} style={{ position: 'absolute', inset: 0, isolation: 'isolate' }} />
+            {scrollbars}
             {language !== null && <LanguagePopups language={language} contextMenuItems={contextMenuItems} hoverFooter={hoverFooter} />}
         </div>
     );

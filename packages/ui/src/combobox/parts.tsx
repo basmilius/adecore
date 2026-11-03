@@ -1,4 +1,4 @@
-import type { ComponentProps, ReactNode } from 'react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,11 @@ import { fieldControlProps, useFieldControl } from '../field-context.ts';
 import { Icon } from '../Icon.tsx';
 import { Kbd } from '../Kbd.tsx';
 import { MENU_LABEL } from '../menu/parts.tsx';
+import { mergeRefs } from '../merge-refs.ts';
 import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
 import type { Shortcut } from '../shortcut.ts';
+import { useOverlayScrollbars } from '../useOverlayScrollbars.tsx';
 
 /* It takes no room while it has nothing to say. */
 const LIST_NOTE = 'text-center text-xs text-text-faint not-empty:px-3 not-empty:py-4';
@@ -63,13 +65,16 @@ type Placement = Pick<ComponentProps<typeof Autocomplete.Positioner>, PlacementK
 
 export type ComboboxPopupProps = ComponentProps<typeof Autocomplete.Popup> & Placement;
 
-export function ComboboxPopup({ side = 'bottom', align = 'start', sideOffset = 6, className, ...props }: ComboboxPopupProps) {
+export function ComboboxPopup({ side = 'bottom', align = 'start', sideOffset = 6, className, ref, ...props }: ComboboxPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
+    const [popup, setPopup] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(popup);
 
     return (
         <Autocomplete.Portal>
             <Autocomplete.Positioner className="popup-positioner" render={renderPositioner} {...placement} side={side} align={align} sideOffset={sideOffset}>
-                <Autocomplete.Popup className={withClass('menu-popup min-w-(--anchor-width)', className)} {...popupProps} />
+                <Autocomplete.Popup ref={mergeRefs(setPopup, ref)} className={withClass('menu-popup min-w-(--anchor-width)', className)} {...popupProps} />
+                {scrollbars}
             </Autocomplete.Positioner>
         </Autocomplete.Portal>
     );

@@ -13,7 +13,7 @@ import { ModelMarks } from './ModelMarks';
 import { inPickerOrder, pickerEntriesOf, separatesGroups, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { forgetStashed, STASH_SHORTCUT, useStash, type StashedPrompt } from '../stash';
-import { Button, Icon, IconButton, Menu, Popover, Tooltip } from '@adecore/ui';
+import { Button, Icon, IconButton, Menu, Popover, ScrollArea, Tooltip } from '@adecore/ui';
 import { useHostMachineLabel } from '../../host-hooks';
 
 const triggerClass =
@@ -201,7 +201,7 @@ export function ModelPicker({
                         onKeyDown={onKeyDown}
                     />
                 </div>
-                <div ref={listRef} className="max-h-72 overflow-auto p-1" role="listbox">
+                <ScrollArea viewportRef={listRef} className="max-h-72" viewportClassName="p-1" role="listbox">
                     {entries.length === 0 && (
                         <div className="px-3 py-6 text-center text-xs text-text-faint">
                             {providers.length === 0 ? t('pickers.model.noProvider') : t('pickers.model.noMatch')}
@@ -335,7 +335,7 @@ export function ModelPicker({
                             </div>
                         );
                     })}
-                </div>
+                </ScrollArea>
                 {footer !== undefined && <div className="border-t border-border-soft px-3 py-2 text-xs text-text-faint">{footer}</div>}
             </Popover.Popup>
         </Popover.Root>
@@ -363,7 +363,7 @@ export function StashPicker({ onRestore }: { onRestore(prompt: StashedPrompt): v
                 </Popover.Trigger>
             </Tooltip>
             <Popover.Popup variant="picker" side="top" className="w-80">
-                <div className="max-h-72 overflow-auto p-1">
+                <ScrollArea className="max-h-72" viewportClassName="p-1">
                     {prompts.map((prompt) => (
                         <div key={prompt.id} className="group/stash flex items-start gap-1">
                             <Popover.Close
@@ -385,7 +385,7 @@ export function StashPicker({ onRestore }: { onRestore(prompt: StashedPrompt): v
                             />
                         </div>
                     ))}
-                </div>
+                </ScrollArea>
             </Popover.Popup>
         </Popover.Root>
     );

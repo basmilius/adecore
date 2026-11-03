@@ -1,7 +1,7 @@
 import type { Ref } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Button, Dialog, FormError, Select, Spinner, Switch } from '@adecore/ui';
+import { Button, Dialog, FormError, ScrollArea, Select, Spinner, Switch } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import type { ColumnInfo } from '../protocol/index.ts';
 import { hasMapping } from './import-mapping.ts';
@@ -73,7 +73,7 @@ export function ImportForm({
             </div>
             {sample !== null && (
                 <>
-                    <div className="grid min-h-0 grid-cols-2 items-center gap-x-3 gap-y-1.5 overflow-auto">
+                    <ScrollArea axis="both" viewportClassName="grid grid-cols-2 items-center gap-x-3 gap-y-1.5">
                         <span className="text-xs text-text-faint">{t('table.import.fileColumn')}</span>
                         <span className="text-xs text-text-faint">{t('table.import.tableColumn')}</span>
                         {sample.columns.map((name, index) => (
@@ -87,12 +87,12 @@ export function ImportForm({
                                 onChange={(value) => onMappingChange(index, value === SKIP ? null : (tableColumns[Number(value)]?.name ?? null))}
                             />
                         ))}
-                    </div>
+                    </ScrollArea>
                     <div className="flex flex-col gap-1">
                         <span className="text-xs text-text-faint">
                             {t('table.import.preview', { count: formatNumber(Math.min(sample.rows.length, PREVIEW_ROWS)) })}
                         </span>
-                        <div className="max-h-48 overflow-auto rounded-lg border border-border">
+                        <ScrollArea axis="both" className="max-h-48 rounded-lg border border-border">
                             <table className="w-full border-collapse text-left font-mono text-code">
                                 <thead className="sticky top-0 bg-surface-raised">
                                     <tr>
@@ -115,7 +115,7 @@ export function ImportForm({
                                     ))}
                                 </tbody>
                             </table>
-                        </div>
+                        </ScrollArea>
                     </div>
                 </>
             )}

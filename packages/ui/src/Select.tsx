@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import { useState, type Ref } from 'react';
 import { Select as BaseSelect } from '@base-ui/react/select';
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
@@ -9,6 +9,7 @@ import { renderPositioner } from './popup-layer.ts';
 import { RowContent } from './select-row.tsx';
 import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem } from './select-shared.ts';
 import { SelectSearch } from './SelectSearch.tsx';
+import { useOverlayScrollbars } from './useOverlayScrollbars.tsx';
 
 export type { SelectGroup, SelectItem };
 
@@ -74,6 +75,8 @@ function PlainSelect<T extends string>({
     const groups = items.length > 0 && isGroup(items[0]!) ? (items as SelectGroup<T>[]) : null;
     const flat = groups ? groups.flatMap((group) => group.items) : (items as SelectItem<T>[]);
     const selected = flat.find((item) => item.value === value) ?? null;
+    const [list, setList] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(list);
 
     return (
         <BaseSelect.Root
@@ -99,7 +102,7 @@ function PlainSelect<T extends string>({
                     alignItemWithTrigger={false}
                 >
                     <BaseSelect.Popup className="menu-popup">
-                        <BaseSelect.List className="max-h-80 overflow-auto">
+                        <BaseSelect.List ref={setList} className="max-h-80 overflow-auto">
                             {groups
                                 ? groups.map((group) => (
                                       <BaseSelect.Group key={group.label}>
@@ -112,6 +115,7 @@ function PlainSelect<T extends string>({
                                 : flat.map((item) => <Row key={item.value} item={item} picked={item.value === value} />)}
                         </BaseSelect.List>
                     </BaseSelect.Popup>
+                    {scrollbars}
                 </BaseSelect.Positioner>
             </BaseSelect.Portal>
         </BaseSelect.Root>

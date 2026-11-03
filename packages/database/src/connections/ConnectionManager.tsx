@@ -2,7 +2,7 @@ import { useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, CloseButton, EmptyState, Icon, Menu, messageOf, PromptDialog, Spinner } from '@adecore/ui';
+import { Banner, Button, CloseButton, EmptyState, Icon, Menu, messageOf, PromptDialog, ScrollArea, Spinner } from '@adecore/ui';
 import { DetailHeader, MasterItem } from '@adecore/ui/settings';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
@@ -90,7 +90,7 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
 
     const list = (
         <div className="flex w-56 shrink-0 flex-col border-r border-border max-[640px]:max-h-60 max-[640px]:w-auto max-[640px]:border-r-0 max-[640px]:border-b">
-            <nav aria-label={t('connections.list')} className="flex min-h-0 grow flex-col gap-0.5 overflow-y-auto p-2">
+            <ScrollArea render={<nav />} aria-label={t('connections.list')} className="grow" viewportClassName="flex flex-col gap-0.5 p-2">
                 {value.length === 0 && <p className="px-2 py-1.5 text-xs text-text-faint">{t('connections.empty')}</p>}
                 {value.map((connection) => (
                     <MasterItem key={connection.id} selected={connection.id === current?.id} onSelect={() => select(connection.id)}>
@@ -101,7 +101,7 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
                         </span>
                     </MasterItem>
                 ))}
-            </nav>
+            </ScrollArea>
             <div className="flex shrink-0 flex-col gap-1 border-t border-border p-2">
                 <Menu.Root>
                     <Menu.Trigger render={<Button variant="ghost" size="sm" className="justify-start" />}>
@@ -184,9 +184,9 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
     return (
         <div ref={ref} className={clsx('flex min-h-0 min-w-0 grow max-[640px]:flex-col', className)}>
             {list}
-            <div className="min-h-0 min-w-0 grow overflow-y-auto">
+            <ScrollArea className="grow">
                 <div className="flex min-w-0 flex-col gap-6 px-5 py-4">{detail}</div>
-            </div>
+            </ScrollArea>
         </div>
     );
 }

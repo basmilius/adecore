@@ -177,7 +177,7 @@ describe('ConnectionManager', () => {
         expect(list).toBeGreaterThan(-1);
         expect(markup.indexOf('root@db.test:3307')).toBeGreaterThan(list);
         expect(markup.indexOf('New connection')).toBeGreaterThan(markup.indexOf('root@db.test:3307'));
-        expect(markup).toMatch(/overflow-y-auto p-2/);
+        expect(markup).toMatch(/<nav aria-label="Connections" data-axis="y" class="ade-scroll-viewport[^"]*p-2"/);
     });
 
     test('shows the connection it is told to select', () => {

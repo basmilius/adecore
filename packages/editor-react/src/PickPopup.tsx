@@ -1,6 +1,7 @@
 import { useId, useLayoutEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import type { EditorRect } from '@adecore/editor';
+import { ScrollArea } from '@adecore/ui';
 import type { EditorLanguage } from './editor-language.ts';
 import { PathText } from './PathText.tsx';
 import { keepFocusOutOfList, useInputPopup } from './popup-focus.ts';
@@ -30,11 +31,11 @@ function MatchedLabel({ label, query }: { label: string; query: string | null })
 function PreviewLines({ preview }: { preview: PickPreview }) {
     if (preview.kind === 'text') {
         return (
-            <div className="max-h-48 overflow-auto border-t border-border p-2 font-mono text-code whitespace-pre">
+            <ScrollArea axis="both" className="max-h-48 border-t border-border" viewportClassName="p-2 font-mono text-code whitespace-pre">
                 {preview.added.map((line, index) => (
                     <div key={index}>{line === '' ? ' ' : line}</div>
                 ))}
-            </div>
+            </ScrollArea>
         );
     }
 
@@ -123,7 +124,7 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
                     {view.query !== null && view.query !== '' && <span className="ml-auto shrink-0 font-mono text-text">{view.query}</span>}
                 </div>
             )}
-            <div id={listId} role="listbox" className="min-h-0 flex-1 overflow-y-auto p-1">
+            <ScrollArea id={listId} role="listbox" className="flex-1" viewportClassName="p-1">
                 {view.groups.map((group, groupIndex) => (
                     <div key={group.title ?? groupIndex} role="group" className="flex flex-col">
                         {group.title !== null && <div className="px-2 pt-1.5 pb-0.5 text-xs font-medium text-text-faint">{group.title}</div>}
@@ -161,7 +162,7 @@ export function PickPopup({ language, view, rect }: { language: EditorLanguage; 
                         ))}
                     </div>
                 ))}
-            </div>
+            </ScrollArea>
             {view.preview !== null && <PreviewLines preview={view.preview} />}
         </div>,
         document.body

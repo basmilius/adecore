@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import clsx from 'clsx';
 import { SquareSlash, Zap } from 'lucide-react';
-import { FileIcon, Icon, Menu, MiddleTruncate } from '@adecore/ui';
+import { FileIcon, Icon, Menu, MiddleTruncate, ScrollArea } from '@adecore/ui';
 import { useChatHost } from '../../../host';
 import type { Referable } from '../../chat-references';
 import { referenceGlyph } from '../reference-icons';
@@ -121,7 +121,7 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
     }
 
     return (
-        <div className="max-h-96 overflow-y-auto border-b border-border px-1.5 py-1.5">
+        <ScrollArea className="max-h-96 border-b border-border" viewportClassName="px-1.5 py-1.5">
             {referenceMatches.length > 0 ? (
                 <div id={listId} role="listbox" aria-label={t('composer.menu.references')}>
                     {[...groups].map(([key, items]) => (
@@ -161,7 +161,7 @@ function ReferenceMenu({ menus }: { menus: Menus }) {
             ) : (
                 <div className="px-2 py-1 text-xs text-text-faint">{t('composer.references.noMatch')}</div>
             )}
-        </div>
+        </ScrollArea>
     );
 }
 

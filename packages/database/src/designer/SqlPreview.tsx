@@ -2,7 +2,7 @@ import type { Ref } from 'react';
 import clsx from 'clsx';
 import { Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, copyText } from '@adecore/ui';
+import { Button, Icon, ScrollArea, copyText } from '@adecore/ui';
 import { CODE_TEXT } from '../code-text.ts';
 import type { DraftProblem } from '../ddl/index.ts';
 import { scriptOf, type Plan } from './plan.ts';
@@ -38,7 +38,7 @@ export function SqlPreview({ plan, className, ref }: SqlPreviewProps) {
                     {t('designer.copy')}
                 </Button>
             </div>
-            <div className="max-h-48 min-h-12 overflow-auto px-3 pb-3 select-text">
+            <ScrollArea axis="both" className="max-h-48 min-h-12" viewportClassName="px-3 pb-3 select-text">
                 {plan.problems.length > 0 ? (
                     <ul className="flex flex-col gap-1 text-xs text-status-error">
                         {plan.problems.map((problem, i) => (
@@ -52,7 +52,7 @@ export function SqlPreview({ plan, className, ref }: SqlPreviewProps) {
                 ) : (
                     <pre className={clsx(CODE_TEXT, 'whitespace-pre text-text')}>{script}</pre>
                 )}
-            </div>
+            </ScrollArea>
         </section>
     );
 }

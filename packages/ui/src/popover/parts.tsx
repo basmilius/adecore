@@ -1,9 +1,11 @@
-import type { ComponentProps } from 'react';
+import { useState, type ComponentProps } from 'react';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { PreviewCard as BasePreviewCard } from '@base-ui/react/preview-card';
 import { withClass } from '../class-name.ts';
+import { mergeRefs } from '../merge-refs.ts';
 import { splitPlacement, type PlacementKey } from '../placement.ts';
 import { renderPositioner } from '../popup-layer.ts';
+import { useOverlayScrollbars } from '../useOverlayScrollbars.tsx';
 
 /* `picker` is a card whose content runs to its edges, `plain` leaves the surface to the caller. */
 const POPUP_VARIANT = {
@@ -31,13 +33,16 @@ export type PopoverPopupProps = ComponentProps<typeof BasePopover.Popup> &
         variant?: PopupVariant;
     };
 
-export function PopoverPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PopoverPopupProps) {
+export function PopoverPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ref, ...props }: PopoverPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
+    const [popup, setPopup] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(popup);
 
     return (
         <BasePopover.Portal>
             <BasePopover.Positioner className="popup-positioner" render={renderPositioner} {...placement} side={side} align={align} sideOffset={sideOffset}>
-                <BasePopover.Popup className={withClass(POPUP_VARIANT[variant], className)} {...popupProps} />
+                <BasePopover.Popup ref={mergeRefs(setPopup, ref)} className={withClass(POPUP_VARIANT[variant], className)} {...popupProps} />
+                {scrollbars}
             </BasePopover.Positioner>
         </BasePopover.Portal>
     );
@@ -53,13 +58,16 @@ export type PreviewCardPopupProps = ComponentProps<typeof BasePreviewCard.Popup>
     };
 
 /* A card that opens while the pointer rests on its trigger, drawn like a popover. */
-export function PreviewCardPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ...props }: PreviewCardPopupProps) {
+export function PreviewCardPopup({ variant = 'menu', side = 'bottom', align = 'start', sideOffset = 8, className, ref, ...props }: PreviewCardPopupProps) {
     const [placement, popupProps] = splitPlacement(props);
+    const [popup, setPopup] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(popup);
 
     return (
         <BasePreviewCard.Portal>
             <BasePreviewCard.Positioner className="z-(--z-popup)" {...placement} side={side} align={align} sideOffset={sideOffset}>
-                <BasePreviewCard.Popup className={withClass(POPUP_VARIANT[variant], className)} {...popupProps} />
+                <BasePreviewCard.Popup ref={mergeRefs(setPopup, ref)} className={withClass(POPUP_VARIANT[variant], className)} {...popupProps} />
+                {scrollbars}
             </BasePreviewCard.Positioner>
         </BasePreviewCard.Portal>
     );

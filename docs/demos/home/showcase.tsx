@@ -29,6 +29,7 @@ import {
     Icon,
     IconButton,
     ListRow,
+    ScrollArea,
     SectionLabel,
     Spinner,
     SplitView,
@@ -224,7 +225,7 @@ function Sidebar({ active, onOpen, onHide }: { active: ViewId; onOpen(id: ViewId
                 <Wordmark />
                 <IconButton icon={PanelLeft} label="Hide sidebar" onClick={onHide} />
             </div>
-            <nav className="mt-2 min-h-0 grow overflow-auto px-2">
+            <ScrollArea render={<nav />} className="mt-2 grow" viewportClassName="px-2">
                 <div className="-mx-2 mb-3 flex flex-col gap-px border-y border-border bg-surface-raised px-2 py-1">
                     <SectionLabel render={<div />} className="flex items-center gap-1.5 px-2 py-1">
                         <NeedsYouDot />
@@ -252,7 +253,7 @@ function Sidebar({ active, onOpen, onHide }: { active: ViewId; onOpen(id: ViewId
                 <div role="separator" className="my-1 h-px shrink-0 bg-border-soft" />
                 <ProjectHeading name="Docs site" icon={BookOpen} />
                 <ProjectHeading name="Release tooling" icon={Package} />
-            </nav>
+            </ScrollArea>
             <div className="flex shrink-0 items-center gap-1 border-t border-border px-2 py-1.5">
                 <button type="button" className={FOOTER_BUTTON}>
                     <Icon icon={Plus} size={14} /> New view
@@ -280,7 +281,7 @@ function SidePanel({ panel }: { panel: PanelId }) {
     return (
         <section className="flex h-full flex-col bg-surface">
             <header className="flex h-10 shrink-0 items-center border-b border-border px-3 text-sm font-medium text-text">{PANELS[panel].label}</header>
-            <div className="min-h-0 grow overflow-auto py-1">
+            <ScrollArea className="grow" viewportClassName="py-1">
                 {panel === 'files'
                     ? FILES.map((path) => (
                           <ListRow key={path} variant="flat" className="gap-2 px-3 text-sm text-text-muted">
@@ -295,7 +296,7 @@ function SidePanel({ panel }: { panel: PanelId }) {
                               <span className="text-xs text-status-error tabular-nums">-{change.removed}</span>
                           </ListRow>
                       ))}
-            </div>
+            </ScrollArea>
         </section>
     );
 }

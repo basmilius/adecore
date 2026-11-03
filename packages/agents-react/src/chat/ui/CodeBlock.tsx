@@ -2,7 +2,7 @@ import { Fragment, memo, useContext, useEffect, useMemo, useRef, useState, type 
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Check, Copy } from 'lucide-react';
-import { ButtonGroup, IconButton } from '@adecore/ui';
+import { ButtonGroup, IconButton, ScrollArea } from '@adecore/ui';
 import { IncrementalLines, type CodeToken } from './code-lines';
 import { CodeStreamingContext } from './code-streaming';
 import { WHOLE_FADE_CLASS } from './rehype-fade';
@@ -97,8 +97,10 @@ export function CodeBlock({ code, lang, actions, view }: { code: string; lang: s
     return (
         <div className="chat-code" data-copy-state={copyState}>
             {view ?? (
-                <pre
-                    className={clsx(pending && 'invisible', !pending && tokens !== null && waited && WHOLE_FADE_CLASS)}
+                <ScrollArea
+                    axis="both"
+                    render={<pre />}
+                    viewportClassName={clsx(pending && 'invisible', !pending && tokens !== null && waited && WHOLE_FADE_CLASS)}
                     aria-hidden={pending || undefined}
                     style={{ color: tokenizer?.fg }}
                 >
@@ -113,7 +115,7 @@ export function CodeBlock({ code, lang, actions, view }: { code: string; lang: s
                                   </Fragment>
                               ))}
                     </code>
-                </pre>
+                </ScrollArea>
             )}
             <ButtonGroup className="chat-code-actions" role="group" aria-label={t('code.actions')}>
                 <IconButton

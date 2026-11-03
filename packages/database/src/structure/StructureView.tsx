@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { CircleAlert, Copy, KeyRound, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, EmptyState, Icon, Pill, Separator, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
+import { Banner, Button, EmptyState, Icon, Pill, ScrollArea, Separator, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { CODE_TEXT } from '../code-text.ts';
@@ -121,16 +121,16 @@ export function StructureTabs({ structure, start }: { structure: TableStructure;
                 </Tabs.Tab>
                 <Tabs.Tab value="ddl">{t('structure.ddl')}</Tabs.Tab>
             </Tabs.List>
-            <Tabs.Panel value="columns" className="min-h-0 grow overflow-auto">
+            <Tabs.Panel value="columns" render={<ScrollArea axis="both" />} className="grow">
                 <ColumnsTable structure={structure} />
             </Tabs.Panel>
-            <Tabs.Panel value="indexes" className="min-h-0 grow overflow-auto">
+            <Tabs.Panel value="indexes" render={<ScrollArea axis="both" />} className="grow">
                 <IndexesTable indexes={structure.indexes} />
             </Tabs.Panel>
-            <Tabs.Panel value="foreignKeys" className="min-h-0 grow overflow-auto">
+            <Tabs.Panel value="foreignKeys" render={<ScrollArea axis="both" />} className="grow">
                 <ForeignKeysTable foreignKeys={structure.foreignKeys} />
             </Tabs.Panel>
-            <Tabs.Panel value="ddl" className="min-h-0 grow overflow-auto">
+            <Tabs.Panel value="ddl" render={<ScrollArea axis="both" />} className="grow">
                 <Ddl ddl={structure.ddl} />
             </Tabs.Panel>
         </Tabs.Root>
@@ -290,7 +290,9 @@ function Ddl({ ddl }: { ddl: string | null }) {
                 <Icon icon={Copy} size={12} />
                 {t('structure.copy')}
             </Button>
-            <pre className={clsx(CODE_TEXT, 'overflow-auto p-3 pr-24 whitespace-pre text-text select-text')}>{ddl}</pre>
+            <ScrollArea axis="x" render={<pre />} viewportClassName={clsx(CODE_TEXT, 'p-3 pr-24 whitespace-pre text-text select-text')}>
+                {ddl}
+            </ScrollArea>
         </div>
     );
 }

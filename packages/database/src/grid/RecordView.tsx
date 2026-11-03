@@ -2,7 +2,21 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } fr
 import clsx from 'clsx';
 import { ArrowUpRight, Ban, ChevronDown, ChevronUp, Copy, Maximize2, Minimize2, RotateCcw, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ButtonGroup, ContextMenu, copyText, EDIT_SHORTCUTS, Icon, IconButton, Input, isApplePlatform, isModHeld, Kbd, shortcut, Spinner } from '@adecore/ui';
+import {
+    ButtonGroup,
+    ContextMenu,
+    copyText,
+    EDIT_SHORTCUTS,
+    Icon,
+    IconButton,
+    Input,
+    isApplePlatform,
+    isModHeld,
+    Kbd,
+    ScrollArea,
+    shortcut,
+    Spinner
+} from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import { useNumberNotation } from '../client-context.ts';
 import { CODE_TEXT } from '../code-text.ts';
@@ -243,7 +257,7 @@ export function RecordView({
             {row === undefined ? (
                 <p className="px-4 py-6 text-xs text-text-muted">{empty}</p>
             ) : (
-                <div role="group" aria-label={label} className="min-h-0 flex-1 overflow-auto py-1">
+                <ScrollArea axis="both" role="group" aria-label={label} className="flex-1" viewportClassName="py-1">
                     {columns.map((column, position) => {
                         const cell = row.cells[position] ?? null;
                         const enumType = enumTypes[position] ?? null;
@@ -365,7 +379,7 @@ export function RecordView({
                             </ContextMenu.Root>
                         );
                     })}
-                </div>
+                </ScrollArea>
             )}
         </div>
     );

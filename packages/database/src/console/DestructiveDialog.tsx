@@ -1,7 +1,7 @@
 import type { Ref } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { PromptDialog } from '@adecore/ui';
+import { PromptDialog, ScrollArea } from '@adecore/ui';
 import type { DestructiveStatement } from './destructive.ts';
 
 export interface DestructiveDialogProps {
@@ -28,14 +28,14 @@ export function DestructiveDialog({ statements, onConfirm, onCancel, ref }: Dest
             onConfirm={onConfirm}
             onOpenChange={onCancel}
         >
-            <ul className="mt-3 flex max-h-56 flex-col gap-2 overflow-auto">
+            <ScrollArea render={<ul />} className="mt-3 max-h-56" viewportClassName="flex flex-col gap-2">
                 {statements.map((statement, index) => (
                     <li key={`${index}:${statement.sql}`} className="flex min-w-0 flex-col gap-0.5 rounded-md bg-surface-sunken px-2.5 py-1.5">
                         <span className="text-xs text-status-error">{t(`console.destructive.${statement.kind}`)}</span>
                         <span className="truncate font-mono text-xs text-text">{statement.sql.replace(/\s+/g, ' ')}</span>
                     </li>
                 ))}
-            </ul>
+            </ScrollArea>
         </PromptDialog>
     );
 }

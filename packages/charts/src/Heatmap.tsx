@@ -8,6 +8,7 @@ import { createHeatmapCursor, type HeatmapCursor } from './heat-cursor.ts';
 import { FLOOR, heatMix, heatShare, moveCell, type HeatCell } from './heat.ts';
 import type { ChartColor } from './types.ts';
 import { tableClasses } from './values-table.ts';
+import { ValuesBox } from './ValuesBox.tsx';
 
 export type HeatmapCell = HeatCell;
 
@@ -305,7 +306,7 @@ export function Heatmap({
                             {shown ? t('values.hide') : t('values.show')}
                         </Button>
                     )}
-                    <div id={`${id}-table`} className={classes.box}>
+                    <ValuesBox id={`${id}-table`} shown={table && shown}>
                         <table className={classes.table}>
                             <caption className="sr-only">{t('values.caption', { label })}</caption>
                             <thead className={classes.head}>
@@ -337,7 +338,7 @@ export function Heatmap({
                                 ))}
                             </tbody>
                         </table>
-                    </div>
+                    </ValuesBox>
                 </div>
             )}
             <p id={`${id}-hint`} className="sr-only">

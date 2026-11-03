@@ -9,6 +9,7 @@ import { renderPositioner } from './popup-layer.ts';
 import type { SelectProps } from './Select.tsx';
 import { RowContent } from './select-row.tsx';
 import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem } from './select-shared.ts';
+import { useOverlayScrollbars } from './useOverlayScrollbars.tsx';
 
 /* The `Select` with a search field on top of its options, for lists too long to scan. A combobox of Base UI brings the filtering and the keyboard. */
 export function SelectSearch<T extends string>({
@@ -38,6 +39,8 @@ export function SelectSearch<T extends string>({
         : flat.map((item) => item.value);
 
     const searchLabel = searchPlaceholder ?? t('select.search');
+    const [list, setList] = useState<HTMLDivElement | null>(null);
+    const scrollbars = useOverlayScrollbars(list);
 
     const renderRow = (itemValue: T) => {
         const item = byValue.get(itemValue)!;
@@ -87,16 +90,20 @@ export function SelectSearch<T extends string>({
                             />
                         </label>
                         <Combobox.Empty className="px-3 py-4 text-center text-xs text-text-faint empty:hidden">{t('select.noMatch', { query })}</Combobox.Empty>
-                        <Combobox.List className="min-h-0 overflow-auto">
-                            {groups
-                                ? (group: { value: string; items: T[] }) => (
-                                      <Combobox.Group key={group.value} items={group.items}>
-                                          <Combobox.GroupLabel className={MENU_LABEL}>{group.value}</Combobox.GroupLabel>
-                                          <Combobox.Collection>{renderRow}</Combobox.Collection>
-                                      </Combobox.Group>
-                                  )
-                                : renderRow}
-                        </Combobox.List>
+                        {/* Out to the popup's edge on the right, so the bar lies where a menu's does. */}
+                        <div className="relative -mr-1 flex min-h-0 flex-col">
+                            <Combobox.List ref={setList} className="min-h-0 overflow-auto pr-1">
+                                {groups
+                                    ? (group: { value: string; items: T[] }) => (
+                                          <Combobox.Group key={group.value} items={group.items}>
+                                              <Combobox.GroupLabel className={MENU_LABEL}>{group.value}</Combobox.GroupLabel>
+                                              <Combobox.Collection>{renderRow}</Combobox.Collection>
+                                          </Combobox.Group>
+                                      )
+                                    : renderRow}
+                            </Combobox.List>
+                            {scrollbars}
+                        </div>
                     </Combobox.Popup>
                 </Combobox.Positioner>
             </Combobox.Portal>
