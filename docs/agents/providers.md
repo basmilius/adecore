@@ -74,6 +74,8 @@ The Codex column is the closest match, not an exact one. A new chat defaults to 
 
 A Claude chat drives Claude Code through `@anthropic-ai/claude-agent-sdk`, a dependency of this package pinned to one version. The SDK starts the CLI the person installed, from `command`, with the command's own arguments right after the executable. Each server in the launch's `mcpServers` goes to the CLI, and one with `allowTools` is allowed as `mcp__<name>__*`. The system prompt goes over in the SDK's handshake, so it never lands on a command line.
 
+`claude.entrypoint` names your app to the CLI as `CLAUDE_CODE_ENTRYPOINT`, on the person's sign-in and on an API key. Without it the SDK's `sdk-ts` stays. It is set in the process environment only, so an `env` the person put in their own Claude settings still wins.
+
 On Stop, a message sent into the running turn that the CLI has not taken in yet goes back to the queue. That needs a call the SDK has but does not declare. On a runtime without it, such a message runs after the Stop.
 
 ### On an API key

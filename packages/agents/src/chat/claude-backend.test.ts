@@ -680,6 +680,26 @@ describe('the Claude backend on an API key', () => {
     }
 });
 
+describe('the entrypoint the CLI names its host by', () => {
+    const entrypointOf = async (options: ClaudeBackendOptions): Promise<string | undefined> => {
+        const cli = recording();
+        const backend = new ClaudeBackend({ ...launch, spawn: cli.spawn }, { onEvent: () => undefined }, options);
+        await backend.start();
+        await backend.dispose();
+
+        return cli.spawned[0]!.env.CLAUDE_CODE_ENTRYPOINT;
+    };
+
+    test("is the host's own when it names one, on the person's sign-in and on an API key alike", async () => {
+        expect(await entrypointOf({ entrypoint: 'motion-editor' })).toBe('motion-editor');
+        expect(await entrypointOf({ entrypoint: 'motion-editor', apiKey: { key: () => 'sk-ant-test', configDir: '/tmp/claude-api' } })).toBe('motion-editor');
+    });
+
+    test("is the SDK's own otherwise", async () => {
+        expect(await entrypointOf({})).toBe('sdk-ts');
+    });
+});
+
 describe('the Claude backend letting go', () => {
     test('reports the exit of a CLI whose stdout a process it started still holds open', async () => {
         let exit: ChatSpawnOptions['onExit'] = () => undefined;

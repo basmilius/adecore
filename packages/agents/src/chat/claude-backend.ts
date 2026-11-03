@@ -72,6 +72,8 @@ export interface ClaudeBackendOptions {
     allowedTools?: readonly string[];
     // Loads no settings file, only the launch's MCP servers, and sends no traffic beyond the model's own.
     apiKey?: ClaudeApiKeyOptions;
+    // How the CLI names the host that runs it (`CLAUDE_CODE_ENTRYPOINT`); absent leaves the SDK's `sdk-ts`.
+    entrypoint?: string;
 }
 
 type PermissionOptions = Parameters<CanUseTool>[2];
@@ -390,8 +392,10 @@ export class ClaudeBackend implements ChatBackend {
         };
     }
 
+    // The process environment only: an `env` in the person's own Claude settings still wins in the CLI.
     private env(key: string | null): Record<string, string> {
-        const env = { ...this.launch.env, ...claudeEnv(this.launch.selection) };
+        const entrypoint: Record<string, string> = this.options.entrypoint === undefined ? {} : { CLAUDE_CODE_ENTRYPOINT: this.options.entrypoint };
+        const env = { ...this.launch.env, ...claudeEnv(this.launch.selection), ...entrypoint };
 
         if (key === null || !this.options.apiKey) {
             return env;
@@ -403,7 +407,8 @@ export class ClaudeBackend implements ChatBackend {
             ...kept,
             ANTHROPIC_API_KEY: key,
             CLAUDE_CONFIG_DIR: this.options.apiKey.configDir,
-            ...NO_NONESSENTIAL_TRAFFIC
+            ...NO_NONESSENTIAL_TRAFFIC,
+            ...entrypoint
         };
     }
 
