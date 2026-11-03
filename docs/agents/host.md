@@ -21,7 +21,7 @@ const disconnect = host.connect(port);
 | `systemNote`                                 | What every agent is told once, at the start of its process.                                           |
 | `client`                                     | How the host names itself to Codex.                                                                   |
 | `accountsHost`                               | The host's name in refusals, the variable prefixes no account may set, and its keychain prefix. See [Accounts](/agents/accounts#secrets). |
-| `claude`                                     | `{ allowedTools, apiKey, bundledCli }`: tool patterns Claude Code may use without asking, in every mode, and how to run it on an API key. See [Providers](/agents/providers#on-an-api-key). |
+| `claude`                                     | `{ allowedTools, apiKey }`: tool patterns Claude Code may use without asking, in every mode, and how to run it on an API key. See [Providers](/agents/providers#on-an-api-key). |
 | `codexRules`                                 | Command prefixes Codex may run without asking, written to its rules in every Codex home.              |
 | `core`                                       | Makes the `ChatCore` from the options a plain one would get, for a core of your own.                  |
 | `background`                                 | `AgentHost` only. `true` by default.                                                                  |

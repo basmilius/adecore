@@ -43,8 +43,6 @@ export interface ClaudeBackendOptions {
     allowedTools?: readonly string[];
     // Loads no settings file, only the launch's MCP servers, and sends no traffic beyond the model's own.
     apiKey?: ClaudeApiKeyOptions;
-    // Starts the CLI the SDK bundles instead of the launch command's executable; the command's arguments still go first.
-    bundledCli?: boolean;
 }
 
 type PermissionOptions = Parameters<CanUseTool>[2];
@@ -146,7 +144,7 @@ function permissionResult(frame: unknown): PermissionResult {
 
 /*
  * Claude Code driven through the Claude Agent SDK. The CLI is the person's own: the SDK starts the launch
- * command through `launch.spawn`, and the binary it bundles only when the host asks for it. The process
+ * command through `launch.spawn`, never the binary it bundles. The process
  * stays alive between turns; the session starts a new backend with a resume when it needs one, which is
  * also how a changed model takes effect. The SDK's messages are the CLI's frames, so `ClaudeProtocol`
  * reads them, and a permission request reaches it as the `can_use_tool` frame the SDK answered through `canUseTool`.
@@ -191,7 +189,7 @@ export class ClaudeBackend implements ChatBackend {
             return;
         }
 
-        const executable = this.options.bundledCli === true ? null : this.launch.command[0];
+        const executable = this.launch.command[0];
 
         if (executable === undefined) {
             throw new Error('No command to start');
@@ -317,8 +315,7 @@ export class ClaudeBackend implements ChatBackend {
         return child?.end() ?? Promise.resolve();
     }
 
-    // Null leaves the executable to the SDK, which then starts the CLI it bundles.
-    private queryOptions(executable: string | null, key: string | null): Options {
+    private queryOptions(executable: string, key: string | null): Options {
         const { selection, runtimeMode, resume, folders, projectConfig, instructions, mcpServers = [] } = this.launch;
         const permissionMode = claudePermissionMode(runtimeMode) as PermissionMode | null;
         const effort = claudeEffort(selection) as EffortLevel | null;
@@ -327,7 +324,8 @@ export class ClaudeBackend implements ChatBackend {
         const allowedTools = [...(this.options.allowedTools ?? []), ...allowedServers];
 
         return {
-            ...(executable === null ? {} : { pathToClaudeCodeExecutable: executable }),
+            // Both always set, so the SDK never looks up the CLI it bundles: chats run on the one the person installed.
+            pathToClaudeCodeExecutable: executable,
             spawnClaudeCodeProcess: (spawnOptions) => this.spawnCli(spawnOptions, executable),
             cwd: this.launch.cwd,
             env: this.env(key),
@@ -372,19 +370,14 @@ export class ClaudeBackend implements ChatBackend {
     }
 
     /* Starts the launch command with the SDK's flags behind its own, through the spawn every other backend uses. */
-    private spawnCli(options: SpawnOptions, executable: string | null): SpawnedProcess {
+    private spawnCli(options: SpawnOptions, executable: string): SpawnedProcess {
         const events = new EventEmitter();
         let exitCode: number | null = null;
         let signalCode: NodeJS.Signals | null = null;
         let killed = false;
 
-        const command =
-            executable === null
-                ? [options.command, ...this.launch.command.slice(1), ...options.args]
-                : [...this.launch.command, ...cliArgs(options, executable)];
-
         const child: ChatChild = new ChatChild({
-            command,
+            command: [...this.launch.command, ...cliArgs(options, executable)],
             cwd: options.cwd ?? this.launch.cwd,
             env: definedEnv(options.env),
             ...(this.launch.spawn ? { spawn: this.launch.spawn } : {}),

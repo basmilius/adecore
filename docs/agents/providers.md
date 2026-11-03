@@ -85,14 +85,13 @@ createClaudeProvider({
     apiKey: {
         key: () => readKey(),
         configDir: join(dataDir, 'claude-api')
-    },
-    bundledCli: true
+    }
 });
 ```
 
 `key()` is read at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`. A sign-in token in the environment is left out. No settings file loads and only the launch's `mcpServers` do, whatever `projectConfigFor` says.
 
-`bundledCli: true` starts the CLI the SDK ships instead of the executable in `command`. Ask for it only where a person may have no CLI installed; the installed one is the default.
+It runs on the CLI the person installed, like every other Claude chat, and never on the one the SDK bundles.
 
 A provider whose chats run Claude Code carries `claudeCode`, a `ClaudeCodeRuntime`, whatever its `kind`. That is what makes a chat behave as Claude: the queue waits for the turn the CLI opens once its background work ended, and subagents, titles and rows a closed process left are read from its transcripts. `createClaudeProvider` sets it, with `configDir` when it has an `apiKey`. A provider you assemble yourself under another kind copies it, `configDir` included, so its transcripts are read from that folder and not from `~/.claude`. For the usage page, add `claudeTranscriptRoot(kind, configDir)` to the roots (see [Accounts](/agents/accounts)).
 

@@ -590,18 +590,4 @@ describe('the Claude backend on an API key', () => {
         expect(events).toContainEqual(expect.objectContaining({ type: 'text.done', text: 'echo: hello' }));
         await backend.dispose();
     });
-
-    test("starts the CLI the SDK bundles only when the host asks, with the launch command's arguments after it", async () => {
-        const cli = recording();
-        const backend = new ClaudeBackend(
-            { ...launch, command: ['claude', '--debug-to-stderr'], spawn: cli.spawn },
-            { onEvent: () => undefined },
-            { apiKey, bundledCli: true }
-        );
-        await backend.start();
-        const [executable, first] = cli.spawned[0]!.command;
-        expect(executable).toMatch(/claude-agent-sdk-[a-z0-9-]+[\\/]claude(\.exe)?$/);
-        expect(first).toBe('--debug-to-stderr');
-        await backend.dispose();
-    });
 });
