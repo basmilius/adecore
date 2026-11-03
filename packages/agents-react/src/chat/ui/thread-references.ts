@@ -41,7 +41,11 @@ export function threadReferencedKey(structure: Record<string, ChatItem> | undefi
 
 /* What the views, nodes and chats of a thread stand for now, and how one opens, for the rows that draw chips. */
 export function useReferenceLookup(chatId: string): ReferenceLookup {
-    const { id: scopeId } = useChatScope();
+    return useReferenceLookupIn(useChatScope().id, chatId);
+}
+
+/* The same for a row that may stand outside a scope. */
+export function useReferenceLookupIn(scopeId: string, chatId: string): ReferenceLookup {
     const { openReference } = useChatHost();
     const referables = useHostReferables(scopeId, chatId);
     const key = useChatRow(chatId, (chat) => threadReferencedKey(chat?.structure));

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatAssistantItem, ChatToolItem, ChatTurnItem, ChatUserItem, ChatVisual } from '@adecore/agent-contracts';
 import type { TimelineRow } from '../../logic/timeline';
-import { replyHeader, rowRhythm } from './row-rhythm';
+import { replyHeader, rowRhythm, saidToChat } from './row-rhythm';
 
 function user(id: string, createdAt = 0): TimelineRow {
     return { kind: 'user', id, item: { id, kind: 'user', createdAt } as ChatUserItem };
@@ -58,6 +58,15 @@ describe('the gaps a row wears', () => {
     test('nothing around a question counts as a seam', () => {
         expect(rowRhythm(prose('a1'), user('u1'))).toBe('');
         expect(rowRhythm(user('u1'), prose('a1'))).toBe('pb-(--chat-answer-gap)');
+    });
+
+    test('a note the host said is a question where the host draws it as a message, and a note line where it does not', () => {
+        const said: TimelineRow = { kind: 'note', id: 'n1', level: 'info', text: 'the linked context changed', said: true };
+
+        expect(rowRhythm(said, prose('a0'), true)).toBe('pb-(--chat-answer-gap)');
+        expect(rowRhythm(call('w1'), said, true)).toBe('');
+        expect(rowRhythm(said, prose('a0'))).toBe('pt-(--chat-block-gap)');
+        expect(saidToChat(said)).toBe(false);
     });
 });
 

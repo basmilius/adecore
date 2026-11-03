@@ -6,6 +6,7 @@ import type { CodeToken } from './code-lines';
 import { useChatHost, type CommandName } from '../../host';
 import { useCodeTheme } from './code-theme';
 import { tokenStyle, useCodeHighlighter, type CodeHighlighter, type Highlighter } from './highlighter';
+import { ReferenceChip } from './ReferenceChip';
 
 /* One colored run of a command, as offsets into it. */
 interface Run extends CodeToken {
@@ -156,8 +157,23 @@ function draw(command: string, runs: readonly Run[] | null, from: number, to: nu
     return parts;
 }
 
-/* A word as its name, in a frame so it reads as a reference; the word itself stays in the text, for a find. */
+/*
+ * A word as its name: the `#` chip of the reference it is, else in a frame so it reads as one. The word itself
+ * stays in the text, for a find.
+ */
 function Name({ named }: { named: NamedWord }) {
+    const { reference } = named.name;
+
+    if (reference !== undefined) {
+        // A click opens what the chip points at and leaves the line it stands on as it was.
+        return (
+            <span className="font-sans" onClick={(e) => e.stopPropagation()}>
+                <ReferenceChip id={reference} lastName={named.name.name} />
+                <span className="sr-only">{named.word}</span>
+            </span>
+        );
+    }
+
     return (
         <Tooltip label={named.word}>
             <span className="inline-flex items-center gap-1 rounded bg-surface-hover px-1 font-sans text-text ring-1 ring-border ring-inset">

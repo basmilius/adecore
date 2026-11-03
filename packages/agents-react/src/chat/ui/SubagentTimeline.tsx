@@ -44,7 +44,7 @@ export function SubagentTimeline({
 }) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
-    const { commandLooks, toolLooks } = useChatHost();
+    const { commandLooks, toolLooks, saidBy } = useChatHost();
     const { trail, show } = useSubagentTrail(chatId);
     const [state, setState] = useState<SubagentConversationState>(INITIAL_CONVERSATION);
     const controller = useRef<SubagentConversation | null>(null);
@@ -186,7 +186,7 @@ export function SubagentTimeline({
                                         const previous = index > 0 ? rows[index - 1]! : null;
 
                                         return (
-                                            <div key={row.id} data-item-id={row.id} className={rowRhythm(row, previous)}>
+                                            <div key={row.id} data-item-id={row.id} className={rowRhythm(row, previous, saidBy !== undefined)}>
                                                 <Row
                                                     row={row}
                                                     chatId={chatId}

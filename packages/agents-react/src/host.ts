@@ -262,6 +262,11 @@ export interface CommandName {
     name: string;
     /* Drawn before the name, at the size of the detail. */
     icon?: ReactNode;
+    /*
+     * The id of the view, node or chat the word stands for, drawn as the `#` chip a message draws for it and
+     * opened as that chip opens; `name` is then what the chip says once what it stood for is gone.
+     */
+    reference?: string;
 }
 
 /* What one run of a program is about, as its look reads it from the words. */

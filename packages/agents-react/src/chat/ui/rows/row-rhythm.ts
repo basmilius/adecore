@@ -10,18 +10,21 @@ export const FOLLOW_THRESHOLD_PX = 40;
  * card, which have no margin of their own, and each end of a run of sent messages, which sit as tight as
  * work lines so a fan-out reads as one stretch. A question and the answer after it never take a seam.
  */
-/* A person's message, or one another node sent: both are said to the chat and drawn the same way. */
-export function saidToChat(row: TimelineRow): boolean {
-    return row.kind === 'user' || row.kind === 'message';
+/*
+ * A person's message, or one another node sent: both are said to the chat and drawn the same way. So is a note
+ * the host said, where `hostSpeaks` says the host draws it as a message (`ChatHost.saidBy`).
+ */
+export function saidToChat(row: TimelineRow, hostSpeaks = false): boolean {
+    return row.kind === 'user' || row.kind === 'message' || (hostSpeaks && row.kind === 'note' && row.said === true);
 }
 
-export function rowRhythm(row: TimelineRow, previous: TimelineRow | null): string {
-    const question = saidToChat(row);
+export function rowRhythm(row: TimelineRow, previous: TimelineRow | null, hostSpeaks = false): string {
+    const question = saidToChat(row, hostSpeaks);
     const bare = previous?.kind === 'visual' || previous?.kind === 'app-card';
     const seam =
         !question &&
         previous !== null &&
-        !saidToChat(previous) &&
+        !saidToChat(previous, hostSpeaks) &&
         (isBlock(row) !== isBlock(previous) || bare || (row.kind === 'sent') !== (previous.kind === 'sent'));
 
     return clsx(question && 'pb-(--chat-answer-gap)', seam && 'pt-(--chat-block-gap)');

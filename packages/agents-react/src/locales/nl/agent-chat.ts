@@ -213,6 +213,7 @@ export default {
         loadingDiff: 'Diff laden',
         diffUnavailable: 'Kon deze diff niet laden',
         runningFor: 'loopt al {{elapsed}}',
+        failed: 'Mislukt',
         awaitingApproval: 'wacht op jou',
         forksAfter_one: 'Fork na deze turn',
         forksAfter_other: '{{count}} forks na deze turn',
@@ -273,6 +274,8 @@ export default {
     group: {
         running_one: '{{count}} actief',
         running_other: '{{count}} actief',
+        failed_one: '{{count}} mislukt',
+        failed_other: '{{count}} mislukt',
         tools: {
             Read_one: '{{count}} bestand gelezen',
             Read_other: '{{count}} bestanden gelezen',

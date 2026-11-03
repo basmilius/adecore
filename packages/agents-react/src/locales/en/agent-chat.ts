@@ -213,6 +213,7 @@ export default {
         loadingDiff: 'Loading diff',
         diffUnavailable: 'Could not load this diff',
         runningFor: 'running for {{elapsed}}',
+        failed: 'Failed',
         awaitingApproval: 'waiting for you',
         forksAfter_one: 'Forked after this turn',
         forksAfter_other: '{{count}} forks after this turn',
@@ -273,6 +274,8 @@ export default {
     group: {
         running_one: '{{count}} running',
         running_other: '{{count}} running',
+        failed_one: '{{count}} failed',
+        failed_other: '{{count}} failed',
         tools: {
             Read_one: 'Read {{count}} file',
             Read_other: 'Read {{count}} files',

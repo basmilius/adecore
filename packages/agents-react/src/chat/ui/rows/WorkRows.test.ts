@@ -64,7 +64,8 @@ describe('WorkGroupRow', () => {
         expect(button.getAttribute('aria-expanded')).toBe('false');
         expect(button.textContent).toContain(state === 'running' ? '2 tool calls' : 'Ran 2 commands');
         expect(button.textContent?.includes('1 running')).toBe(state === 'running');
-        expect(button.classList.contains('text-status-error')).toBe(state === 'error');
+        expect(button.classList.contains('text-status-error')).toBe(false);
+        expect(button.querySelector('.text-status-error')?.textContent ?? null).toBe(state === 'error' ? ' · 1 failed' : null);
     });
 });
 

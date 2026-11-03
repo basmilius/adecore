@@ -34,8 +34,10 @@ import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
 import { Button, Icon, LazyBoundary, MiddleTruncate, Spinner, useTickingText } from '@adecore/ui';
 import { ROW_GUTTER, toolIcon } from '../icons';
 import { AnsiOutput } from '../AnsiOutput';
+import { ReferenceLookupContext } from '../reference-lookup';
 import { RowTime } from '../RowTime';
 import { ShellCommand, type NamedWord } from '../ShellCommand';
+import { useReferenceLookupIn } from '../thread-references';
 import { DiffStack, ReviewStackView } from '../diff/DiffStack';
 import { reviewEntries, type ReviewEntry } from '../diff/review-plan';
 import { useReviewStack } from '../diff/use-review-stack';
@@ -83,6 +85,7 @@ function hasNames(look: Look): look is Look & Required<Pick<Look, 'useNames'>> {
 function NamedLookDetail({ run, chatId, look }: { run: LookRun; chatId: string; look: Required<Pick<Look, 'useNames'>> }) {
     const scope = useContext(ChatScopeContext);
     const nameOf = useCommandNames(look, scope?.id ?? '', chatId);
+    const lookup = useReferenceLookupIn(scope?.id ?? '', chatId);
 
     const names = run.words.flatMap((word): NamedWord[] => {
         const name = nameOf(word.text, word.option);
@@ -90,7 +93,11 @@ function NamedLookDetail({ run, chatId, look }: { run: LookRun; chatId: string; 
         return name === null ? [] : [{ start: word.start, end: word.end, word: word.text, name }];
     });
 
-    return <ShellCommand command={run.detail} code={run.code} names={names} plain={!run.shell} />;
+    return (
+        <ReferenceLookupContext value={lookup}>
+            <ShellCommand command={run.detail} code={run.code} names={names} plain={!run.shell} />
+        </ReferenceLookupContext>
+    );
 }
 
 function LookDetail({ run, chatId }: { run: LookRun; chatId: string }) {
@@ -152,17 +159,18 @@ export function ToggleLine({
     path?: boolean;
     open?: boolean;
     onToggle?(): void;
+    /* Marks the line with a cross in the error tone; the label and the detail keep their own. */
     failed?: boolean;
     live?: boolean;
     trailing?: ReactNode;
     time?: number;
     className?: string;
 }) {
+    const { t } = useTranslation('agent-chat');
     const classes = clsx(
         // Fix the width so long commands reach the truncation inside the negative margins.
-        'group/line -mx-1 mb-0.5 flex h-7 w-[calc(100%+8px)] items-center gap-2 rounded-md px-1 text-left text-xs',
+        'group/line -mx-1 mb-0.5 flex h-7 w-[calc(100%+8px)] items-center gap-2 rounded-md px-1 text-left text-xs text-text-muted',
         onToggle !== undefined && 'hover:bg-surface-hover',
-        failed ? 'text-status-error' : 'text-text-muted',
         className
     );
 
@@ -196,7 +204,12 @@ export function ToggleLine({
             <span className="grow" />
             {trailing}
             {time !== undefined && <RowTime at={time} />}
-            {failed && <Icon icon={X} size={12} className="shrink-0" />}
+            {failed && (
+                <span className="shrink-0 text-status-error">
+                    <Icon icon={X} size={12} />
+                    <span className="sr-only">{t('work.failed')}</span>
+                </span>
+            )}
             {onToggle !== undefined && (
                 <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint transition-transform', open && 'rotate-90')} />
             )}
@@ -556,7 +569,7 @@ export function WorkGroupRow({
     const { t } = useTranslation('agent-chat');
     const { commandLooks, toolLooks } = useChatHost();
     const running = tools.filter((tool) => tool.state === 'running').length;
-    const failed = tools.some((tool) => tool.state === 'error');
+    const failed = tools.filter((tool) => tool.state === 'error').length;
     const latest = tools.findLast((tool) => tool.state === 'running');
 
     return (
@@ -568,11 +581,11 @@ export function WorkGroupRow({
                 label={
                     <span className="tabular-nums">
                         {running > 0 ? t('group.toolCalls', { count: tools.length }) : look?.brand === undefined ? summary : withBrand(summary, [look.brand])}
+                        {failed > 0 && <span className="text-status-error">{` · ${t('group.failed', { count: failed })}`}</span>}
                     </span>
                 }
                 open={expanded}
                 onToggle={onToggle}
-                failed={failed}
                 live={latest !== undefined}
                 trailing={running > 0 && <span className="shrink-0 text-text-faint tabular-nums">{t('group.running', { count: running })}</span>}
                 time={tools[0]!.createdAt}

@@ -596,6 +596,88 @@ test('a call of a tool look reads as its tool, with the host names for its value
     );
 });
 
+test('a value a tool look names as a reference is the reference chip, which opens what it points at', async () => {
+    const opened: string[] = [];
+
+    const PROBES: ToolLook = {
+        server: 'orbit',
+        brand: 'Orbit',
+        Mark: ({ size }) => <svg data-mark="orbit" width={size} height={size} />,
+        describe: () => ({ label: 'Probe', lead: 'launch' }),
+        useNames: () => (word) => (word === 'deck-1' ? { name: 'Old Deck', reference: word } : null)
+    };
+
+    const call: ChatItem = {
+        id: 'probe',
+        kind: 'tool',
+        createdAt: 1,
+        turnId: null,
+        toolUseId: 'probe',
+        name: 'mcp__orbit__probe_launch',
+        input: { node_id: 'deck-1' },
+        output: '',
+        state: 'done',
+        parentToolUseId: null
+    };
+
+    const host: Partial<ChatHost> = {
+        toolLooks: [PROBES],
+        useReferables: () => ({ items: [{ id: 'deck-1', name: 'Main Deck', kind: 'note', group: 'canvas' }], chatsOnly: false }),
+        openReference: (_scopeId, id) => opened.push(id)
+    };
+
+    await mounted(
+        { rowHeights: [40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            await act(async () => page.host.querySelector<HTMLButtonElement>('[aria-expanded="false"]')!.click());
+            const chip = page.host.querySelector<HTMLElement>('.group\\/line [data-chip="reference"]')!;
+            expect(chip.getAttribute('data-chip-value')).toBe('deck-1');
+            expect(chip.textContent).toBe('#Main Deck');
+            const line = chip.closest('button')!;
+            expect(line.getAttribute('aria-expanded')).toBe('false');
+            await act(async () => chip.click());
+            expect(opened).toEqual(['deck-1']);
+            expect(line.getAttribute('aria-expanded')).toBe('false');
+        },
+        { items: [call], host }
+    );
+});
+
+test('a failed call leaves its group and its line in their own tone and says so in a mark of its own', async () => {
+    const link = (id: string, state: 'done' | 'error', createdAt: number): ChatItem => ({
+        id,
+        kind: 'tool',
+        createdAt,
+        turnId: null,
+        toolUseId: id,
+        name: 'Bash',
+        input: { command: `orbit link new ${id}` },
+        output: '',
+        state,
+        parentToolUseId: null
+    });
+
+    await mounted(
+        { rowHeights: [40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            const group = page.host.querySelector<HTMLButtonElement>('[aria-expanded="false"]')!;
+            expect(linesOf(page.host)).toEqual(['Used *Orbit* link 3 times · 2 failed']);
+            expect(group.className).not.toContain('text-status-error');
+            expect(group.querySelector('.text-status-error')?.textContent).toBe(' · 2 failed');
+            await act(async () => group.click());
+            const failed = [...page.host.querySelectorAll<HTMLElement>('[data-find-item] .group\\/line')].filter((line) =>
+                line.textContent?.includes('Failed')
+            );
+            expect(failed).toHaveLength(2);
+            expect(failed.map((line) => line.className.includes('text-status-error'))).toEqual([false, false]);
+            expect(failed.map((line) => line.querySelector('.text-status-error')?.textContent)).toEqual(['Failed', 'Failed']);
+        },
+        { items: [link('a', 'error', 1), link('b', 'done', 2), link('c', 'error', 3)], host: LOOKS_HOST }
+    );
+});
+
 for (const welcomes of [false, true]) {
     test(`an existing chat waits for history with welcome ${welcomes}, including live events before the empty attach result`, async () => {
         await mounted(
