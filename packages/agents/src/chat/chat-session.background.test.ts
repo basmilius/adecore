@@ -3,7 +3,7 @@ import type { ChatInfo } from '@adecore/agent-contracts';
 import { ManualClock } from '../testing/manual-clock.ts';
 import type { BackendEvent } from './backend.ts';
 import { ChatSession } from './chat-session.ts';
-import { flush, rig } from './chat-session.fixture.test.ts';
+import { flush, info, rig } from './chat-session.fixture.test.ts';
 
 test('a launched workflow stays open, warns on stalled progress and clears its warning on new progress', async () => {
     const clock = new ManualClock();
@@ -150,6 +150,19 @@ describe('background work recovered from a stored chat', () => {
         await recovered.session.settleOrphanedSubagents();
         expect(recovered.session.thread.get('worker')).toMatchObject({ status: 'done', result: 'finished work' });
         expect(recovered.session.preambles).toEqual([]);
+        await recovered.session.dispose();
+    });
+
+    test('a chat of another provider id that runs Claude Code recovers from its transcript too', async () => {
+        const recovered = rig({
+            info: { ...info(), provider: 'anthropic-claude-api' },
+            items: [main, row],
+            subagentSettlement: async () => ({ report: 'finished work', finishedAt: 3 })
+        });
+
+        recovered.session.settleStored(recovered.session.info.selection, { resumeTurnId: null, reason: null });
+        await recovered.session.settleOrphanedSubagents();
+        expect(recovered.session.thread.get('worker')).toMatchObject({ status: 'done', result: 'finished work' });
         await recovered.session.dispose();
     });
 });

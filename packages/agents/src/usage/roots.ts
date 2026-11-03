@@ -7,6 +7,13 @@ export interface UsageRootPath {
     path: string;
     /* The accounts whose CLI writes here, by id, the default one under its kind; absent is the default account alone. */
     accounts?: string[];
+    /* Read as Claude Code's transcripts, for a provider of another id that runs it, such as one on an API key in a folder of its own. */
+    format?: 'claude';
+}
+
+/* The transcripts Claude Code writes in `configDir`, counted under `provider`. */
+export function claudeTranscriptRoot(provider: UsageProvider, configDir: string): UsageRootPath {
+    return { provider, path: join(configDir, TRANSCRIPTS.claude), format: 'claude' };
 }
 
 /* Where in its config folder each CLI leaves its transcripts. A provider with no CLI has a log its host passes as a root of its own. */

@@ -56,4 +56,6 @@ The scanner reads Grok's per-session `usage.json` under `$GROK_HOME/sessions/` (
 
 Every provider other than Claude Code, Codex and Grok needs the host to log its calls, which the scanner reads like a transcript. An ACP agent can write that log itself (see [ACP agents](/agents/acp#usage)). `hostUsageLine` writes one call (a `HostUsageEntry`) with the token kinds apart: `input`, `cacheRead`, `cacheWrite`, `output`, `reasoning`. Map your API's counts onto them, checking whether its input includes the cached part. Add a root for that folder, with its provider, to the `roots` of the `UsageService`.
 
+A provider that runs Claude Code in a configuration folder of its own, such as one on an API key, needs no log: `claudeTranscriptRoot(provider, configDir)` is a root that reads Claude Code's transcripts there and counts them under `provider`. Its `format: 'claude'` is what tells the scanner how to read it.
+
 `AgentHost` fetches prices and rates when a page asks. A host that may not reach the network makes its own `UsageService` with `allowPriceFetch: false` and wires the handlers itself. The bundled table then prices everything. `knownProjects` lets the usage page show a folder under your project's name.

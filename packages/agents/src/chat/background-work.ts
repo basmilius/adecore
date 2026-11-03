@@ -1,4 +1,5 @@
-import { HOST_TASK_ORIGIN, type AgentKind, type ChatBackgroundTask, type ChatItem, type ChatSubagentItem, type ChatToolItem } from '@adecore/agent-contracts';
+import { HOST_TASK_ORIGIN, type ChatBackgroundTask, type ChatItem, type ChatSubagentItem, type ChatToolItem } from '@adecore/agent-contracts';
+import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 
 export type BackgroundWork = ChatSubagentItem | ChatToolItem;
 
@@ -37,6 +38,6 @@ export function commandLabel(task: ChatBackgroundTask): string {
  * started first takes that subagent up again, which then notifies the main agent. Codex 0.156.1
  * reports a spawned agent completed and opens nothing.
  */
-export function reportsOnBackgroundWork(provider: AgentKind): boolean {
-    return provider === 'claude';
+export function reportsOnBackgroundWork(provider: Pick<ChatProvider, 'claudeCode'>): boolean {
+    return runsClaudeCode(provider);
 }

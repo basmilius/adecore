@@ -1,5 +1,4 @@
 import type { Task } from '@adecore/agent-contracts';
-import { reportsOnBackgroundWork } from '../chat/background-work.ts';
 import type { ChatCore } from '../chat/chat-core.ts';
 import { chatOpener, loadChat } from '../chat/wake-chat.ts';
 import { errorText } from '../error-text.ts';
@@ -111,7 +110,7 @@ export function wireTasks(deps: TaskWiringDeps): TaskWiring {
                 return 'gone';
             }
 
-            return reportsOnBackgroundWork(chat.info.provider) ? 'reports' : 'silent';
+            return chat.reportsOnBackgroundWork ? 'reports' : 'silent';
         },
         commandsOf: (chatId) => chats.get(chatId)?.info.background ?? [],
         activeGoal: (chatId) => {

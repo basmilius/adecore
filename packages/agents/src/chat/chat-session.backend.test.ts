@@ -301,6 +301,36 @@ describe('backend replacement with live work', () => {
         await run.session.dispose();
     });
 
+    test('a child of Claude Code under another provider id holds the queue for the turn the CLI opens about it', async () => {
+        const { claudeCode: _claudeCode, ...notClaude } = claudeProvider;
+
+        for (const [provider, waits] of [
+            [{ ...claudeProvider, kind: 'anthropic-claude-api' }, true],
+            [{ ...notClaude, kind: 'anthropic-claude-api' }, false]
+        ] as const) {
+            const run = replacementRig(provider);
+            run.session.send('start research');
+            await flush();
+            run.agent();
+            run.done();
+            run.session.configure({ runtimeMode: 'auto' });
+            expect(run.session.send('next').queued).toBe(true);
+            run.event({ type: 'task.done', ref: 'agent', taskId: 'native-agent', summary: 'Complete', ok: true });
+            await flush();
+            expect(run.instances).toHaveLength(waits ? 1 : 2);
+
+            if (waits) {
+                run.event({ type: 'text.delta', ref: 'report', text: 'The research is in.' });
+                run.done();
+                await flush();
+                expect(run.instances).toHaveLength(2);
+            }
+
+            expect(run.instances[1]!.sent[0]?.text).toBe('next');
+            await run.session.dispose();
+        }
+    });
+
     test('switching back to the running selection uses its process while the child continues', async () => {
         const run = replacementRig();
         const original = run.session.info.selection;

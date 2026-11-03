@@ -23,7 +23,7 @@ import type {
 } from '@adecore/agent-contracts';
 import { ENDED_NOTE_PREFIX, HOST_TASK_ORIGIN, notResumedNote } from '@adecore/agent-contracts';
 import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure } from '@adecore/intelligent-ui';
-import type { ChatProvider } from '../providers/provider.ts';
+import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { commandLabel, isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
@@ -295,6 +295,11 @@ export class ChatSession {
 
     get running(): boolean {
         return this.backend?.running === true;
+    }
+
+    /* Whether the CLI opens a turn of its own once its background work ended. */
+    get reportsOnBackgroundWork(): boolean {
+        return reportsOnBackgroundWork(this.options.provider);
     }
 
     /* What still waits for the next real prompt, for the record. */
@@ -1716,7 +1721,7 @@ export class ChatSession {
     async settleOrphanedSubagents(): Promise<void> {
         const rows = this.runningBackgroundRows();
 
-        if (this.info.provider === 'claude') {
+        if (runsClaudeCode(this.options.provider)) {
             for (const row of rows) {
                 this.orphans.add(row.toolUseId);
             }
@@ -2484,7 +2489,7 @@ export class ChatSession {
         }
 
         // Settled as failed by the exit below; the transcript may still show that they finished first.
-        const orphaned = event.type === 'exit' && this.info.provider === 'claude' ? this.runningBackgroundRows() : [];
+        const orphaned = event.type === 'exit' && runsClaudeCode(this.options.provider) ? this.runningBackgroundRows() : [];
 
         if (event.type === 'turn.done' && event.state === 'aborted') {
             // A request of work beside the turn outlives the interrupt; turned down, that work goes on instead of waiting forever.
@@ -2498,7 +2503,7 @@ export class ChatSession {
 
         if (event.type === 'turn.done' || (event.type === 'failed' && event.processAlive !== true)) {
             this.awaitingBackgroundReport = false;
-        } else if (event.type !== 'exit' && event.type !== 'failed' && hadNativeWork && !this.hasNativeWork() && reportsOnBackgroundWork(this.info.provider)) {
+        } else if (event.type !== 'exit' && event.type !== 'failed' && hadNativeWork && !this.hasNativeWork() && this.reportsOnBackgroundWork) {
             this.awaitingBackgroundReport = true;
         }
 
@@ -2567,7 +2572,7 @@ export class ChatSession {
             this.sendAfterStop = false;
         } else if (
             event.type === 'request.withdrawn' ||
-            (!reportsOnBackgroundWork(this.info.provider) && (event.type === 'task.done' || event.type === 'tool.done' || event.type === 'background.ended'))
+            (!this.reportsOnBackgroundWork && (event.type === 'task.done' || event.type === 'tool.done' || event.type === 'background.ended'))
         ) {
             this.drainQueue();
         }

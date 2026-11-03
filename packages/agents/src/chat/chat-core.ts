@@ -35,6 +35,7 @@ import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
 import { AccountError, definedEnv, isDefaultAccountOf, launchEnv, storedAccount, type AccountLaunches } from '../providers/accounts/launch.ts';
+import { runsClaudeCode } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { SkillIndex } from '../skills.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
@@ -343,6 +344,7 @@ export class ChatCore {
             ...options.subagents,
             claudeProjectsDir: this.claudeProjectsDir,
             claudeProjectsDirOf: (info) => this.claudeProjectsDirOf(info),
+            runsClaudeCode: (info) => runsClaudeCode(this.providers.get(info.provider)),
             chatInfo: async (chatId) => (await this.readChat(chatId))?.info ?? null,
             chat: (chatId) => {
                 const session = this.chats.get(chatId);
@@ -373,8 +375,21 @@ export class ChatCore {
         };
     }
 
-    /* Where Claude Code keeps the projects of this chat's account; empty for an account this machine does not have. */
-    claudeProjectsDirOf(info: Pick<ChatInfo, 'account'>): string {
+    /*
+     * Where Claude Code keeps the projects of this chat: in the configuration folder of its provider when that has one
+     * of its own, else in that of its account. Empty for an account this machine does not have, or a chat on another CLI.
+     */
+    claudeProjectsDirOf(info: Pick<ChatInfo, 'account' | 'provider'>): string {
+        const runtime = this.providers.get(info.provider).claudeCode;
+
+        if (runtime === undefined) {
+            return '';
+        }
+
+        if (runtime.configDir !== undefined) {
+            return join(runtime.configDir, 'projects');
+        }
+
         if (isDefaultAccountOf('claude', info.account)) {
             return this.claudeProjectsDir;
         }
@@ -563,11 +578,11 @@ export class ChatCore {
             persist: () => this.persist(payload.chatId),
             save: () => this.persistNow(payload.chatId),
             persistSoon: () => this.persistSoon(payload.chatId),
-            ...(kind === 'claude' && claudeTitles
+            ...(runsClaudeCode(provider) && claudeTitles
                 ? { readTitle: (agentSessionId: string) => claudeTitles.forSession(agentSessionId, this.claudeProjectsDirOf(session.info), session.info.cwd) }
                 : {}),
             ...(kind === 'codex' && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
-            ...(kind === 'claude' ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
+            ...(runsClaudeCode(provider) ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
             ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
         });
 

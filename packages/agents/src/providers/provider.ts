@@ -16,6 +16,16 @@ export interface ProviderHome {
     readonly loginCommand?: string;
 }
 
+export interface ClaudeCodeRuntime {
+    // The CLI's configuration folder, for chats that run in one of their own (`CLAUDE_CONFIG_DIR`); absent is the account's.
+    readonly configDir?: string;
+}
+
+/* Whether a provider's chats run Claude Code. */
+export function runsClaudeCode(provider: Pick<ChatProvider, 'claudeCode'>): boolean {
+    return provider.claudeCode !== undefined;
+}
+
 /*
  * One agent CLI as a host knows it. Everything a provider does differently is either data on
  * this value or behind the backend it makes, so a new CLI is a value plus a backend and nothing
@@ -35,6 +45,9 @@ export interface ChatProvider {
     /* Where this CLI keeps its login, settings and transcripts, which is what an account is. Absent on a
        CLI with no variable to move that folder, which then only has its default account. */
     readonly home?: ProviderHome;
+    /* Set on a provider whose chats run Claude Code, under any kind: it opens a turn of its own once background work
+       ended, and keeps transcripts that subagents, titles and orphaned rows are read from. */
+    readonly claudeCode?: ClaudeCodeRuntime;
     /* How a person installs this CLI and signs it in, for a page that shows it while the CLI is missing. */
     readonly install?: ProviderInstall;
     /* The arguments for one prompt in and one answer out, no session and no chat, which is how a

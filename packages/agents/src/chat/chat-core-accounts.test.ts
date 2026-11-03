@@ -3,7 +3,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ProviderAccountMap } from '@adecore/agent-contracts';
-import { claudeProvider } from '../providers/claude-provider.ts';
+import { claudeProvider, createClaudeProvider } from '../providers/claude-provider.ts';
+import { codexProvider } from '../providers/codex-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { testAccounts } from '../testing/accounts.ts';
 import { AttachmentStore } from './attachment-store.ts';
@@ -186,5 +187,29 @@ describe('the account a chat of ChatCore starts under', () => {
         const info = chats.configure({ chatId: 'spoke', account: 'claude' });
         expect(info.account).toBeUndefined();
         expect(info.usage.turns).toBe(3);
+    });
+});
+
+describe('where ChatCore reads the transcripts of a chat', () => {
+    test('a provider that runs Claude Code in a folder of its own reads them there, and one on another CLI reads none', async () => {
+        const apiConfig = join(root, 'api', 'claude-config');
+
+        core = new ChatCore({
+            providers: new ProviderRegistry({
+                detect: async () => ({ installed: true, version: 'test' }),
+                providers: [
+                    claudeProvider,
+                    { ...createClaudeProvider({ apiKey: { key: () => 'sk-test', configDir: apiConfig } }), kind: 'anthropic-claude-api' },
+                    codexProvider
+                ]
+            }),
+            store: new ChatStore(root),
+            attachments: new AttachmentStore(root),
+            env: { HOME: home, PATH: '/bin' }
+        });
+
+        expect(core.claudeProjectsDirOf({ provider: 'anthropic-claude-api' })).toBe(join(apiConfig, 'projects'));
+        expect(core.claudeProjectsDirOf({ provider: 'claude' })).toBe(join(home, '.claude', 'projects'));
+        expect(core.claudeProjectsDirOf({ provider: 'codex' })).toBe('');
     });
 });

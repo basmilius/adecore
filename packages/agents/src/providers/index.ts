@@ -14,7 +14,7 @@ export { createCodexProvider } from './codex-provider.ts';
 export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome, installCodexRules, type CodexRulesResult } from './codex-rules.ts';
 export { codexThreadOptions, codexServiceTier } from './codex.ts';
 export { type CliDetection, detectCli } from './detect.ts';
-export type { ChatProvider, ProviderHome } from './provider.ts';
+export type { ChatProvider, ClaudeCodeRuntime, ProviderHome } from './provider.ts';
 export { isOnlyCommands } from './shell-commands.ts';
 export { ProviderRegistry, type ProviderRegistryOptions } from './registry.ts';
 export { MODE_ORDER, narrowerMode, ceilingForOpening, modeField } from '../modes.ts';

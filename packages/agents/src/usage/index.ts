@@ -6,6 +6,6 @@ export type { ProbeResult } from './limits/probe.ts';
 export { LITELLM_URL } from './pricing.ts';
 export { hostUsageLine, type HostUsageEntry } from './readers/host-log.ts';
 export type { KnownProject } from './projects.ts';
-export { type UsageRootPath, usageRoots } from './roots.ts';
+export { claudeTranscriptRoot, type UsageRootPath, usageRoots } from './roots.ts';
 export type { UsageScannerOptions } from './scanner.ts';
 export { UsageService, type UsageServiceOptions } from './usage-service.ts';

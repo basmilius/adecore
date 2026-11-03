@@ -182,15 +182,17 @@ function readBytes(path: string, from: number, compressed: boolean): AsyncIterab
 }
 
 /* The usage record of one transcript line, when it carries one. */
-function parseLine(raw: string, provider: UsageProvider, codex: CodexParserState | null): UsageRecord | null {
+function parseLine(raw: string, provider: UsageProvider, codex: CodexParserState | null, format: UsageRootPath['format']): UsageRecord | null {
     const line = raw.endsWith('\r') ? raw.slice(0, -1) : raw;
 
     if (line === '') {
         return null;
     }
 
-    if (provider === 'claude') {
-        return claudeMightCarryUsage(line) ? parseClaudeLine(line) : null;
+    if (provider === 'claude' || format === 'claude') {
+        const record = claudeMightCarryUsage(line) ? parseClaudeLine(line) : null;
+
+        return record === null || record.provider === provider ? record : { ...record, provider };
     }
 
     if (provider === 'codex') {
@@ -211,13 +213,14 @@ async function parseLines(
     hash: Hash,
     provider: UsageProvider,
     from: number,
-    state: CodexParserState | null
+    state: CodexParserState | null,
+    format: UsageRootPath['format']
 ): Promise<ParsedFile> {
     const codex = provider === 'codex' ? (state ?? createCodexState()) : null;
     const records: UsageRecord[] = [];
 
     const read = await forEachLine(chunks, hash, (line) => {
-        const record = parseLine(line, provider, codex);
+        const record = parseLine(line, provider, codex, format);
 
         if (record !== null) {
             records.push(record);
@@ -225,7 +228,7 @@ async function parseLines(
     });
 
     const committed = codex === null ? null : cloneCodexState(codex);
-    const tail = parseLine(read.rest, provider, codex);
+    const tail = parseLine(read.rest, provider, codex, format);
 
     return { records, tail: tail === null ? [] : [tail], offset: from + read.consumed, codex: committed };
 }
@@ -349,7 +352,7 @@ export class UsageScanner {
                 seen.add(keyOf(path, root.provider));
 
                 try {
-                    if (await this.readFileInto(path, root.provider, accountOf)) {
+                    if (await this.readFileInto(path, root.provider, accountOf, root.format)) {
                         changedFiles += 1;
                     }
                 } catch (e) {
@@ -378,7 +381,7 @@ export class UsageScanner {
         return this.store.records();
     }
 
-    private async readFileInto(path: string, provider: UsageProvider, accountOf: AccountOf): Promise<boolean> {
+    private async readFileInto(path: string, provider: UsageProvider, accountOf: AccountOf, format: UsageRootPath['format']): Promise<boolean> {
         const info = await stat(path);
         const compressed = provider === 'codex' && path.endsWith('.jsonl.zst');
         const key = keyOf(path, provider);
@@ -414,7 +417,7 @@ export class UsageScanner {
         const grown = prefix !== null && known !== undefined && headOf(prefix) === known.head ? known : null;
         const hash = grown === null || prefix === null ? createHash('sha256') : prefix;
         const from = grown?.offset ?? 0;
-        const parsed = await parseLines(readBytes(path, from, compressed), hash, provider, from, grown?.codex ?? null);
+        const parsed = await parseLines(readBytes(path, from, compressed), hash, provider, from, grown?.codex ?? null, format);
         const usage = { provider, records: withAccount(parsed.records, accountOf), tail: withAccount(parsed.tail, accountOf) };
 
         const state: ScanState = {

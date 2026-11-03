@@ -36,8 +36,10 @@ export interface SubagentReaderOptions {
     chatInfo?(chatId: string): Promise<ChatInfo | null>;
     /* Where Claude Code keeps its projects; empty when it has none on this machine. */
     claudeProjectsDir: string;
-    /* Where it keeps those of a chat's account, when that is not the default one's. */
+    /* Where it keeps those of a chat: of its account, or of its provider's own configuration folder. */
     claudeProjectsDirOf?(info: ChatInfo): string;
+    /* Whether a chat runs Claude Code, under any provider kind; absent is a chat of kind `claude`. */
+    runsClaudeCode?(info: ChatInfo): boolean;
     /* How a Codex app-server is started for a chat whose own is not running. */
     codexProcess(info: ChatInfo): CodexProcessSpec;
     /* Tells one client that a conversation it holds has more in it. */
@@ -141,7 +143,7 @@ export class SubagentReader {
     async claudeSettlement(chatId: string, toolUseId: string): Promise<SubagentSettlement | null> {
         const chat = this.options.chat(chatId);
 
-        if (!chat || chat.info.provider !== 'claude') {
+        if (!chat || !(this.options.runsClaudeCode?.(chat.info) ?? chat.info.provider === 'claude')) {
             return null;
         }
 

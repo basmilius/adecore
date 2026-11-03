@@ -99,7 +99,7 @@ The registry, the model catalogs, the runtime modes and the accounts of each CLI
 | [`providers/codex-rules`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex-rules.ts) | `CodexRules`, `codexRulesText`, `codexRulesPathIn`, `defaultCodexHome`, `installCodexRules`, `CodexRulesResult` |
 | [`providers/codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex.ts) | `codexThreadOptions`, `codexServiceTier` |
 | [`providers/detect`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/detect.ts) | `CliDetection`, `detectCli` |
-| [`providers/provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/provider.ts) | `ChatProvider`, `ProviderHome` |
+| [`providers/provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/provider.ts) | `ChatProvider`, `ClaudeCodeRuntime`, `ProviderHome` |
 | [`providers/registry`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/registry.ts) | `ProviderRegistry`, `ProviderRegistryOptions` |
 | [`modes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/modes.ts) | `MODE_ORDER`, `narrowerMode`, `ceilingForOpening`, `modeField` |
 
@@ -116,7 +116,7 @@ Transcripts, prices and plan limits.
 | [`usage/pricing`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/pricing.ts) | `LITELLM_URL` |
 | [`usage/projects`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/projects.ts) | `KnownProject` |
 | [`usage/readers/host-log`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/readers/host-log.ts) | `hostUsageLine`, `HostUsageEntry` |
-| [`usage/roots`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/roots.ts) | `UsageRootPath`, `usageRoots` |
+| [`usage/roots`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/roots.ts) | `UsageRootPath`, `usageRoots`, `claudeTranscriptRoot` |
 | [`usage/scanner`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/scanner.ts) | `UsageScannerOptions` |
 | [`usage/usage-service`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/usage-service.ts) | `UsageService`, `UsageServiceOptions` |
 
