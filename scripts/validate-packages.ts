@@ -173,7 +173,10 @@ try {
     const typecheck = (label: string, options: Record<string, unknown>): void => {
         writeFileSync(
             join(directory, 'tsconfig.json'),
-            JSON.stringify({ compilerOptions: { ...compilerOptions, ...options }, files: ['consumer.ts', 'ambient.d.ts'] })
+            JSON.stringify({
+                compilerOptions: { ...compilerOptions, types: CONSUMER_TYPES.map((name) => name.slice('@types/'.length)), ...options },
+                files: ['consumer.ts', 'ambient.d.ts']
+            })
         );
         const result = spawnSync(join(repositoryRoot, 'node_modules/.bin/tsc'), ['-p', 'tsconfig.json', '--pretty', 'false'], {
             cwd: directory,
