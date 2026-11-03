@@ -572,6 +572,30 @@ test('a steer refused at completion falls back to exactly one new turn', async (
     await run.session.dispose();
 });
 
+test('a steer the CLI gives back on Stop, before the stopped turn closes, waits in the queue', async () => {
+    const run = rig();
+    const acceptance = Promise.withResolvers<boolean>();
+    run.backend.steerTurn = () => acceptance.promise;
+
+    run.backend.interrupt = () => {
+        acceptance.resolve(false);
+    };
+
+    run.session.send('original');
+    await flush();
+    const sending = run.session.sendInput('followup', { delivery: 'steer' });
+    await flush();
+    run.session.cancel();
+    await sending;
+    await flush();
+    run.event({ type: 'turn.done', state: 'aborted', costUsd: 0 });
+    await flush();
+    expect(run.session.info.queue?.map((message) => message.text)).toEqual(['followup']);
+    expect(run.session.thread.list().filter((item) => item.kind === 'user' && item.text === 'followup')).toEqual([]);
+    expect(run.sent.map((input) => input.text)).toEqual(['original']);
+    await run.session.dispose();
+});
+
 test('a lost steering acknowledgement retains the message and pauses automatic replay', async () => {
     const run = rig();
 

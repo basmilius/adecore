@@ -320,6 +320,7 @@ export default {
         wokenByMessage_one: 'Woken by a message',
         wokenByMessage_other: 'Woken by {{count}} messages',
         subagentFinished: 'Sub-agent finished: {{label}}',
+        backgroundFinished: 'Background task finished: {{label}}',
         continued: 'Continued on its own',
         stopped: 'Stopped after {{duration}}',
         youStopped: 'You stopped after {{duration}}',

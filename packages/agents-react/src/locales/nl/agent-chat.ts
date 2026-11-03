@@ -320,6 +320,7 @@ export default {
         wokenByMessage_one: 'Gewekt door een bericht',
         wokenByMessage_other: 'Gewekt door {{count}} berichten',
         subagentFinished: 'Sub-agent klaar: {{label}}',
+        backgroundFinished: 'Achtergrondtaak klaar: {{label}}',
         continued: 'Zelf verdergegaan',
         stopped: 'Gestopt na {{duration}}',
         youStopped: 'Jij stopte na {{duration}}',

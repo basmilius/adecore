@@ -549,6 +549,25 @@ test('tool groups keep the host program branding, and opening a single call reve
     );
 });
 
+test('a turn that only compacted shows the divider, and no line of how long it worked', async () => {
+    const items: ChatItem[] = [
+        { id: 'turn-c', kind: 'turn', turnId: 'turn-c', createdAt: 1000, state: 'done', endedAt: 17_000, costUsd: 0.05 },
+        { id: 'user-c', kind: 'user', turnId: 'turn-c', createdAt: 1000, text: '/compact' },
+        { id: 'compaction-c', kind: 'compaction', turnId: 'turn-c', createdAt: 16_000, preTokens: 54_266 }
+    ];
+
+    await mounted(
+        { rowHeights: [40, 40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            const text = page.host.textContent ?? '';
+            expect(text).toContain('Context compacted from');
+            expect(text).not.toContain('Worked for');
+        },
+        { items }
+    );
+});
+
 test('without looks every shell run reads as a command group', async () => {
     await mounted(
         { rowHeights: [40, 60, 40, 60, 40], composerHeight: 0 },

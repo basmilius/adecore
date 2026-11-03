@@ -502,6 +502,32 @@ describe('the Claude backend', () => {
         await run.backend.dispose();
     });
 
+    test('closes a stopped turn as aborted, without the error result the CLI ends it with', async () => {
+        const script = scripted();
+        const run = open(script.cli);
+        await run.backend.start();
+        run.backend.sendTurn(turn('start', 'original'));
+        await until(() => script.users().length === 1);
+        run.backend.interrupt();
+        await until(() => script.sent('interrupt').length === 1);
+
+        // What Claude Code 2.1.317 answers a stop with.
+        script.out({
+            type: 'result',
+            subtype: 'error_during_execution',
+            is_error: true,
+            stop_reason: 'tool_use',
+            terminal_reason: 'aborted_streaming',
+            errors: ['[ede_diagnostic] result_type=user last_content_type=n/a stop_reason=tool_use'],
+            user_message_uuids: ['original'],
+            total_cost_usd: 0.05
+        });
+
+        await until(() => doneTurns(run.events) === 1);
+        expect(run.events.find((event) => event.type === 'turn.done')).toEqual({ type: 'turn.done', promptId: 'original', state: 'aborted', costUsd: 0.05 });
+        await run.backend.dispose();
+    });
+
     test('rejects an unacknowledged steer when the CLI goes away', async () => {
         const script = scripted();
         const run = open(script.cli);

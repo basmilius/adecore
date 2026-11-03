@@ -494,7 +494,9 @@ export class ClaudeBackend implements ChatBackend {
 
             if (event.type === 'turn.done' && this.interrupted) {
                 this.interrupted = false;
-                this.host.onEvent({ ...event, state: 'aborted' });
+                // A stopped turn ends in an error result (`[ede_diagnostic] ...` from Claude Code 2.1.317), which is the stop, not a failure.
+                const { error: _stopped, ...aborted } = event;
+                this.host.onEvent({ ...aborted, state: 'aborted' });
 
                 continue;
             }

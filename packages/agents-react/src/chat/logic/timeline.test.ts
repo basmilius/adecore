@@ -632,6 +632,35 @@ describe('labels', () => {
             'Woken by 2 messages: Messages from Lexer, Docs'
         );
     });
+
+    test('a turn the CLI opened after a background command names a task, not a sub-agent', () => {
+        const command = tool('toolu_bg', 'Bash', { command: 'sleep 3; echo ok', run_in_background: true }, 'done', 't0');
+        const label = 'Background command "Run sleep" completed (exit code 0)';
+
+        const rows = deriveTimelineRows(
+            [
+                { id: 't0', kind: 'turn', createdAt: 0, turnId: 't0', state: 'done', endedAt: 1000, costUsd: 0 },
+                { id: 'u0', kind: 'user', createdAt: 0, turnId: 't0', text: 'start it' },
+                command,
+                {
+                    id: 't1',
+                    kind: 'turn',
+                    createdAt: 2000,
+                    turnId: 't1',
+                    state: 'done',
+                    endedAt: 3000,
+                    costUsd: 0,
+                    origin: 'agent',
+                    label,
+                    taskToolUseId: 'toolu_bg'
+                },
+                { id: 'a1', kind: 'assistant', createdAt: 2500, turnId: 't1', text: 'It printed ok.', streaming: false }
+            ],
+            options
+        );
+
+        expect(rows.find((row) => row.kind === 'turn-start')).toMatchObject({ label: `Background task finished: ${label}` });
+    });
 });
 
 describe('thinking rows', () => {
