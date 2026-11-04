@@ -77,3 +77,9 @@ const tools = registry.tools.map((tool) => ({
 `ToolRefusal(code, message, lines?)` is a refusal with advice. It is a `CodedError`, so a host that catches those catches a refusal too. A name `registry.run` does not know refuses `unknown-tool`, with a `tools` line that names every tool.
 
 `refusalBody` writes `refused`, the code and the message as one tab-separated line, then one advice row per line. `refusalRows` leaves out `refused`. `parseRefusalBody` reads either back, or returns `null` for other text. `field(value)` makes a value safe for one field, so a tab in a title cannot break a row. None of them shape what a client receives; the host does.
+
+## Chat transcripts
+
+`renderTranscript(items)` from `@adecore/agents/context` renders chat items as a conversation for another agent. Assistant UI blocks use their stored text fallback. Nested subagent activity is omitted from the parent conversation; each subagent has one summary line. Tool calls include up to 300 characters of input and 2000 characters of output, with workflow phases when present. Questions and approvals retain their request ids and current state, and pending questions include their answer fields and choices.
+
+The host controls access to a thread, selects which items to expose and applies any final line limit.

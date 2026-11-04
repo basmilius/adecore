@@ -153,6 +153,7 @@ exports[`the public API ./context exports these names 1`] = `
   "parseToolInput",
   "refusalBody",
   "refusalRows",
+  "renderTranscript",
   "requiredField",
   "toolInputSchema",
   "type ParsedRefusal",

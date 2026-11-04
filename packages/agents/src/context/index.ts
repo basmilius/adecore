@@ -22,3 +22,5 @@ export {
 } from './tool.ts';
 
 export { type ToolField, type ToolInputSchema, toolInputSchema } from './tool-schema.ts';
+
+export { renderTranscript } from './transcript.ts';
