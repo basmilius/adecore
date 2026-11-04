@@ -87,7 +87,7 @@ export interface YAxisScale {
 }
 
 /* Ticks every `step` from `low` to `high`, both rounded out to it. */
-function steppedScale(low: number, high: number, step: number, options: ChartYOptions, range: [number, number]): YAxisScale | null {
+function steppedScale(low: number, high: number, step: number, options: ChartYOptions, range: [number, number], count: number): YAxisScale | null {
     const start = options.min ?? Math.floor(low / step) * step;
     let end = options.max ?? Math.ceil(high / step) * step;
 
@@ -102,34 +102,18 @@ function steppedScale(low: number, high: number, step: number, options: ChartYOp
         return null;
     }
 
-    // The caller chose the step, so it is thinned only where its ticks outnumber the pixels of the axis.
-    const pixels = Math.abs(range[1] - range[0]);
-    const limit = Math.max(2, Math.min(1024, Number.isFinite(pixels) ? Math.floor(pixels) + 1 : 20));
+    const limit = Math.max(2, Math.min(1024, Number.isFinite(count) ? Math.ceil(count) * 4 : 20));
     const stride = Math.max(1, Math.ceil(intervals / (limit - 1)));
-
-    // A thinned axis rounds its top out to the stride, so the highest value stays under a tick; a fixed top gets one of its own.
-    const last = options.max === undefined ? Math.ceil(intervals / stride) * stride : intervals;
-
-    if (options.max === undefined) {
-        end = Math.max(end, first + last * step);
-    }
-
     const scale = scaleLinear().domain([start, end]).range(range);
     const ticks: number[] = [];
 
-    const add = (index: number): void => {
-        const tick = Number((first + index * step).toFixed(10));
+    for (let i = 0; i <= intervals; i += stride) {
+        const tick = Number((first + i * step).toFixed(10));
 
         if (Number.isFinite(tick) && (ticks.length === 0 || tick > ticks[ticks.length - 1]!)) {
             ticks.push(tick);
         }
-    };
-
-    for (let i = 0; i <= last; i += stride) {
-        add(i);
     }
-
-    add(last);
 
     return { domain: [start, end], ticks, at: (value) => scale(value) };
 }
@@ -173,7 +157,7 @@ export function yScaleOf(
     const ceiling = ground ? 0 : (extent?.[1] ?? 0);
 
     if (options.step !== undefined && Number.isFinite(options.step) && options.step > 0) {
-        const stepped = steppedScale(Math.min(floor, extent?.[0] ?? 0), Math.max(ceiling, extent?.[1] ?? 0), options.step, options, range);
+        const stepped = steppedScale(Math.min(floor, extent?.[0] ?? 0), Math.max(ceiling, extent?.[1] ?? 0), options.step, options, range, count);
 
         if (stepped !== null) {
             return stepped;
