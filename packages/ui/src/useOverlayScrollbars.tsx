@@ -8,7 +8,7 @@ export interface OverlayScrollbarsOptions {
     axis?: ScrollAreaAxis;
 }
 
-/* How long the bars stay after the last scroll, or after the pointer left. */
+/* How long the bars stay after the last scroll, or after the pointer left a bar. */
 export const SCROLLBAR_LINGER_MS = 600;
 
 /* The theme hides the native bar of a scroller that carries this attribute. */
@@ -38,7 +38,6 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             .filter((element) => element !== null)
             .map((element) => ({ element, thumb: element.firstElementChild as HTMLElement, vertical: element === vertical }));
 
-        let overViewport = false;
         let overBar = false;
         let dragging = false;
         let lingering = false;
@@ -52,7 +51,7 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
         const positionOf = (bar: Bar): number => (bar.vertical ? viewport.scrollTop : viewport.scrollLeft);
 
         const show = (): void => {
-            const visible = overViewport || overBar || dragging || lingering;
+            const visible = overBar || dragging || lingering;
 
             for (const bar of bars) {
                 bar.element.toggleAttribute('data-visible', visible);
@@ -105,23 +104,7 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             linger();
         };
 
-        const onViewportEnter = (event: PointerEvent): void => {
-            // A finger has no hover: the bars show while it swipes, through the scroll.
-            if (event.pointerType === 'touch') {
-                return;
-            }
-
-            overViewport = true;
-            show();
-        };
-
-        const onViewportLeave = (): void => {
-            if (overViewport) {
-                overViewport = false;
-                linger();
-            }
-        };
-
+        // Only a scroll brings the bars; a bar the pointer reached while they showed keeps them, since a hidden one takes no pointer.
         const onBarEnter = (event: PointerEvent): void => {
             if (event.pointerType !== 'touch') {
                 overBar = true;
@@ -247,8 +230,6 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
         observeContent();
         viewport.setAttribute(OVERLAY_ATTRIBUTE, '');
         viewport.addEventListener('scroll', onScroll, { passive: true });
-        viewport.addEventListener('pointerenter', onViewportEnter);
-        viewport.addEventListener('pointerleave', onViewportLeave);
         layout();
 
         return () => {
@@ -262,8 +243,6 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             viewport.removeAttribute(OVERLAY_ATTRIBUTE);
             viewport.removeAttribute('data-scrollbar-dragging');
             viewport.removeEventListener('scroll', onScroll);
-            viewport.removeEventListener('pointerenter', onViewportEnter);
-            viewport.removeEventListener('pointerleave', onViewportLeave);
         };
     }, [viewport, vertical, horizontal]);
 

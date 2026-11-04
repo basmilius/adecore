@@ -1,6 +1,6 @@
 # ScrollArea
 
-A box that scrolls under thin bars of its own. The bars float over the content and take no width. They are hidden at rest and show while the box scrolls or the pointer is over it.
+A box that scrolls under thin bars of its own. The bars float over the content and take no width. They are hidden at rest and show while the box scrolls; a bar the pointer reaches stays until the pointer leaves it.
 
 ```tsx
 import { ScrollArea } from '@adecore/ui';

@@ -135,18 +135,24 @@ describe.skipIf(typeof document === 'undefined')('a scroll area in a window', ()
         expect(vertical.hasAttribute('data-visible')).toBe(false);
     });
 
-    test('shows the bars while a mouse is over the area, not for a finger resting on it', async () => {
+    test('keeps the bars hidden while a mouse only rests over the area', async () => {
         const { viewport, vertical } = await mount('y', { clientWidth: 200, clientHeight: 400, scrollWidth: 200, scrollHeight: 1600 });
         jest.advanceTimersByTime(SCROLLBAR_LINGER_MS);
 
-        viewport.dispatchEvent(pointer('pointerenter', { pointerType: 'touch' }));
-        expect(vertical.hasAttribute('data-visible')).toBe(false);
-
         viewport.dispatchEvent(pointer('pointerenter'));
+        viewport.dispatchEvent(pointer('pointermove'));
+        expect(vertical.hasAttribute('data-visible')).toBe(false);
+    });
+
+    test('keeps the bars while the pointer is on one, and lets them go once it leaves', async () => {
+        const { vertical, scrollTo } = await mount('y', { clientWidth: 200, clientHeight: 400, scrollWidth: 200, scrollHeight: 1600 });
+
+        scrollTo(100);
+        vertical.dispatchEvent(pointer('pointerenter'));
         jest.advanceTimersByTime(SCROLLBAR_LINGER_MS * 2);
         expect(vertical.hasAttribute('data-visible')).toBe(true);
 
-        viewport.dispatchEvent(pointer('pointerleave'));
+        vertical.dispatchEvent(pointer('pointerleave'));
         jest.advanceTimersByTime(SCROLLBAR_LINGER_MS);
         expect(vertical.hasAttribute('data-visible')).toBe(false);
     });

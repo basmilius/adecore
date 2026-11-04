@@ -1095,7 +1095,7 @@
 
 @layer components {
     /* `ScrollArea` and `useOverlayScrollbars`. The scroller stays native and hides its own bar; thin bars
-       float over the content, hidden at rest and shown while it scrolls or the pointer is over it. */
+       float over the content, hidden at rest and shown while it scrolls. */
     [data-overlay-scrollbars] { scrollbar-width: none; }
     [data-overlay-scrollbars]::-webkit-scrollbar { display: none; }
     /* A drag that strays over the content must not select it, nor may a long press on a bar. */

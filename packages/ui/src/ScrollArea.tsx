@@ -19,7 +19,7 @@ export type ScrollAreaProps = Omit<useRender.ComponentProps<'div'>, 'className' 
     viewportClassName?: string;
 };
 
-/* A box that scrolls natively under thin bars that float over its content and show only while it scrolls or the pointer is over it. */
+/* A box that scrolls natively under thin bars that float over its content and show only while it scrolls. */
 export function ScrollArea({ axis = 'y', className, viewportClassName, viewportRef, ref, render, ...props }: ScrollAreaProps) {
     const [viewport, setViewport] = useState<HTMLElement | null>(null);
     const scrollbars = useOverlayScrollbars(viewport, { axis });
