@@ -104,6 +104,15 @@ export async function executeApiCommand(
     });
 
     const readers = [child.stdout.getReader(), child.stderr.getReader()];
+    let killed = false;
+
+    // Once is enough: on Windows every kill starts a `taskkill` of its own, also for a pid that is gone.
+    const killGroup = () => {
+        if (!killed) {
+            killed = true;
+            child.killGroup();
+        }
+    };
 
     const stop = () => {
         if (stopped) {
@@ -111,7 +120,7 @@ export async function executeApiCommand(
         }
 
         stopped = true;
-        child.killGroup();
+        killGroup();
 
         for (const reader of readers) {
             void reader.cancel().catch(() => undefined);
@@ -164,7 +173,7 @@ export async function executeApiCommand(
 
         const completed = child.exited.then(async (code) => {
             // A shell can exit while a background child still holds its output pipes.
-            child.killGroup();
+            killGroup();
             await draining;
 
             return code;

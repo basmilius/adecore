@@ -71,7 +71,7 @@ describe('Api approved local shell command', () => {
         expect(JSON.parse(result.output).output).toContain('hello');
         expect(JSON.parse(result.output).output).toContain('warning');
         expect(rig.state()).toMatchObject({ milliseconds: 30_000, cleared: true });
-        expect(rig.state().kills).toBeGreaterThan(0);
+        expect(rig.state().kills).toBe(1);
     });
 
     test('reports nonzero exit and still retains stderr', async () => {
@@ -107,7 +107,7 @@ describe('Api approved local shell command', () => {
             output: 'progress so far',
             note: 'Command stopped after 30 seconds; output is partial.'
         });
-        expect(rig.state().kills).toBeGreaterThan(0);
+        expect(rig.state().kills).toBe(1);
         expect(rig.state().cleared).toBe(true);
     });
 
@@ -117,7 +117,7 @@ describe('Api approved local shell command', () => {
         const pending = executeApiCommand('/project', 'slow', controller.signal, {}, rig.dependencies);
         controller.abort();
         await expect(pending).rejects.toThrow();
-        expect(rig.state().kills).toBeGreaterThan(0);
+        expect(rig.state().kills).toBe(1);
         expect(rig.state().cleared).toBe(true);
     });
 
