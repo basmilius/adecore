@@ -192,6 +192,24 @@ The model gets project tools: list, read, search, edit and write files under the
 
 `nanoGptVendorOf(slug)` names who made a NanoGPT model, for a picker that groups by vendor: the publisher before the slash under one spelling, else the family the slug starts with, else `Other`.
 
+## An MCP server on a CLI's command line
+
+A chat gets its servers through the launch's `mcpServers`. A CLI you start yourself, in a terminal or for a backend you assemble, takes an HTTP server as arguments instead. `cliMcpArgs(kind, server)` returns them for Claude Code, Codex and Copilot, and nothing for another CLI. The server is a `CliMcpServer`:
+
+```ts
+const server: CliMcpServer = {
+    name: 'tools',
+    url: 'http://127.0.0.1:4000/mcp',
+    tokenVariable: 'TOOLS_TOKEN'
+};
+
+const args = [...cliMcpArgs('claude', server), ...cliMcpAllowArgs('claude', server.name)];
+```
+
+The CLI reads the bearer token from `tokenVariable` in its own environment, so set that variable on the process and keep the token off the line. `cliMcpHeaders(tokenVariable)` is the `Authorization` header that Claude Code and Copilot fill in that way, for a `ChatMcpServer` of a Claude chat.
+
+`cliMcpAllowArgs(kind, name)` runs every tool of the server without asking, in every mode: `--allowedTools=mcp__<name>` for Claude Code and `--allow-tool=<name>` for Copilot. Codex gets them allowed in its `cliMcpArgs` already. Allow a server only when it checks each call itself.
+
 ## Folders you do not trust
 
 A CLI reads configuration from its working folder: settings with hooks and allow-lists, MCP servers, skills and commands. From an untrusted folder, that configuration can run commands outside the chat's runtime mode. Return `false` from `projectConfigFor(chatId)` for such a chat. The host asks before every turn, like `foldersFor`, and a change starts the next turn in a new process. Absent or `true` loads the configuration as usual.

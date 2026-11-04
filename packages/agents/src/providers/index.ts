@@ -34,6 +34,7 @@ export type { ShadowHomeReport } from './accounts/shadow-home.ts';
 export type { AccountReading, AskAccount } from './accounts/status.ts';
 export { type AccountsHost, variablesProblem, keychainService, type SecretStore, type ReservedVariables } from './accounts/variables.ts';
 export { ModelCatalog, type ModelCatalogInput } from './catalog.ts';
+export { type CliMcpServer, cliMcpHeaders, cliMcpArgs, cliMcpAllowArgs } from './cli-mcp.ts';
 export { createClaudeProvider } from './claude-provider.ts';
 export { createCodexProvider } from './codex-provider.ts';
 export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome, installCodexRules, type CodexRulesResult } from './codex-rules.ts';

@@ -96,6 +96,7 @@ The registry, the model catalogs, the runtime modes and the accounts of each CLI
 | [`providers/accounts/status`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/status.ts) | `AccountReading`, `AskAccount` |
 | [`providers/accounts/variables`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/variables.ts) | `AccountsHost`, `variablesProblem`, `keychainService`, `SecretStore`, `ReservedVariables` |
 | [`providers/catalog`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/catalog.ts) | `ModelCatalog`, `ModelCatalogInput` |
+| [`providers/cli-mcp`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/cli-mcp.ts) | `CliMcpServer`, `cliMcpHeaders`, `cliMcpArgs`, `cliMcpAllowArgs` |
 | [`providers/claude-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/claude-provider.ts) | `createClaudeProvider` |
 | [`providers/codex-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex-provider.ts) | `createCodexProvider` |
 | [`providers/codex-rules`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex-rules.ts) | `CodexRules`, `codexRulesText`, `codexRulesPathIn`, `defaultCodexHome`, `installCodexRules`, `CodexRulesResult` |
