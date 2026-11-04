@@ -71,7 +71,7 @@ function covers(base: readonly string[], outer: readonly string[], inner: readon
 }
 
 /*
- * What the wand makes of a conflict, or null for one that needs a person after all. It closes only
+ * What automatic resolution makes of a conflict, or null for one that needs a person after all. It closes only
  * identical sides and a side that already holds every line of the other without putting back what
  * the other deleted. Whitespace keeps its meaning because this function has no language context.
  */
@@ -93,7 +93,7 @@ export function wandLines(block: MergeBlock): string[] | null {
 
 /*
  * A short name for the two sides of one block, so an answer written for it can be checked against
- * the block it lands on. FNV-1a, not a digest: it has to read the same on a server and in a browser,
+ * the block it lands on. FNV-1a, not a digest, because it has to read the same on a server and in a browser,
  * and a browser has no synchronous crypto hash.
  */
 export function fingerprint(block: MergeBlock): string {
@@ -135,7 +135,7 @@ export function draftOf(blocks: readonly MergeBlock[], answered: ReadonlyMap<num
     for (const [index, block] of blocks.entries()) {
         const from = lines.length;
 
-        // One push per line: a block of a few hundred thousand lines is more arguments than V8 takes in one call.
+        // One push per line, since a block of a few hundred thousand lines is more arguments than V8 takes in one call.
         for (const line of answered.get(index) ?? autoLines(block) ?? block.ours) {
             lines.push(line);
         }

@@ -376,7 +376,7 @@ type Handlers = { readonly [M in DatabaseMethod]: (params: DatabaseParams<M>) =>
  * `rows` and `count` return every row in stored order; `execute` and `page` run `SELECT * FROM <table>`
  * on the selected schema (the first one until a call names another) and answer every other statement
  * with an `unsupported` error; and, as in the protocol, the first failed statement ends the list.
- * `transaction` only raises a flag that `execute` reports: a rollback does not undo a change. There
+ * `transaction` only raises a flag that `execute` reports, and a rollback does not undo a change. There
  * are no files, so `export`, `import` and `sample` answer `unsupported`.
  */
 export const fakeDatabaseTransport = (options: FakeDatabaseTransportOptions): DatabaseTransport => {

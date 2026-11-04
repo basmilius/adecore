@@ -7,7 +7,7 @@ import type { Selection, TextEdit } from './types.ts';
 export interface PasteOptions {
     tabSize: number;
     insertSpaces: boolean;
-    /* The text was copied from a caret with nothing selected: a caret with nothing selected takes it as lines above its own. */
+    /* The text was copied from a caret with nothing selected. A caret with nothing selected takes it as lines above its own. */
     wholeLines: boolean;
     /* Moves a pasted block to the indentation of the place it lands on. */
     reindent: boolean;
@@ -56,7 +56,7 @@ function reindent(source: EditSource, from: number, text: string, options: Paste
     const trailingBreak = isBlank(lines.at(-1)!);
 
     if (measured.length > 0) {
-        // A reduce, not a spread: a paste of a few hundred thousand lines is more arguments than V8 takes in one call.
+        // A reduce, not a spread, since a paste of a few hundred thousand lines is more arguments than V8 takes in one call.
         const delta = target - measured.reduce((least, width) => Math.min(least, width));
 
         for (const [index, entry] of lines.entries()) {

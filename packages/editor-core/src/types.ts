@@ -63,7 +63,7 @@ export interface EditOptions {
     historyGroup?: string;
     /* Joins the undo step before it when the document is exactly as that step left it, so one undo takes both back. */
     joinPrevious?: boolean;
-    /* Reported on the snapshot: the edit is what a person's typing did, though it ran as a command. */
+    /* Reported on the snapshot. The edit is what a person's typing did, though it ran as a command. */
     typed?: boolean;
 }
 

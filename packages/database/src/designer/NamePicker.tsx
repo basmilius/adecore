@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 export interface NamePickerProps {
     /* Every name that can be picked, in the order to show them. */
     options: readonly string[];
-    /* The names picked, in the order they were picked: for a key that order is the order of its columns. */
+    /* The names picked, in the order they were picked. For a key that order is the order of its columns. */
     value: readonly string[];
     onToggle(name: string): void;
     /* The accessible name of the group. */

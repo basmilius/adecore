@@ -64,7 +64,7 @@ const quotedEnd = (text: string, at: number, engine: Engine): number => {
     return text.length;
 };
 
-/* Reads SQL the way the helper's splitter does: quotes, comments and escapes decide what a semicolon is. */
+/* Reads SQL the way the helper's splitter does. Quotes, comments and escapes decide what a semicolon is. */
 export const tokenize = (text: string, engine: Engine): SqlToken[] => {
     const tokens: SqlToken[] = [];
     let i = 0;

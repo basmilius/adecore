@@ -34,7 +34,7 @@ export const helperPath = ({
 }: HelperPathOptions = {}): string | null => {
     const override = env.ADECORE_DATABASE_HELPER;
 
-    // Not checked for existence: a wrong override fails loudly at spawn instead of quietly running another helper.
+    // Not checked for existence, so a wrong override fails loudly at spawn instead of quietly running another helper.
     if (override) {
         return override;
     }

@@ -22,6 +22,6 @@ export interface QueryConsoleEditorProps {
     /* The accessible name of the editor and its placeholder, in the person's language. */
     label: string;
     placeholder: string;
-    /* The console was opened just now: the editor takes the caret once it is there. */
+    /* The console was opened just now, so the editor takes the caret once it is there. */
     autoFocus: boolean;
 }

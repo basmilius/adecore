@@ -19,7 +19,7 @@ export interface CellView {
 /* How a numeric cell is drawn: as the server wrote it, or in the notation of the person's region. */
 export type NumberNotation = 'database' | 'region';
 
-/* A cell never draws more than this, however long the text: the DOM stays small and the cell is one line anyway. */
+/* A cell never draws more than this, however long the text, so the DOM stays small. The cell is one line anyway. */
 export const DISPLAY_LIMIT = 200;
 
 /* How many bytes of a binary value the cell spells out. */

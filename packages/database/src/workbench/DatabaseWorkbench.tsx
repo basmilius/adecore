@@ -48,7 +48,7 @@ import {
 
 export interface DatabaseWorkbenchProps {
     connections: readonly Connection[];
-    /* Saving is the app's. Without it the connections are fixed: there is no way to manage them from here. */
+    /* Saving is the app's. Without it the connections are fixed, with no way to manage them from here. */
     onConnectionsChange?(next: readonly Connection[]): void;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -165,7 +165,7 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     }
 
     function onKeyDown(e: KeyboardEvent<HTMLDivElement>): void {
-        // A dialog opened from here is a portal: its events reach this handler through React, not through the DOM.
+        // A dialog opened from here is a portal, so its events reach this handler through React, not through the DOM.
         if (
             active !== null &&
             e.currentTarget.contains(e.target as Node) &&

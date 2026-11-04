@@ -37,5 +37,5 @@ export const useDatabaseStorage = (): DatabaseStorage | undefined => useDatabase
 /* The app's file dialogs; export and import stay hidden without them. */
 export const useDatabaseFiles = (): DatabaseFiles | undefined => useDatabaseContext().files;
 
-/* Read without the guard of the other hooks: a grid drawn on its own, such as in a test, writes numbers as the database does. */
+/* Read without the guard of the other hooks, so a grid drawn on its own, such as in a test, writes numbers as the database does. */
 export const useNumberNotation = (): NumberNotation => use(DatabaseContext)?.numberNotation ?? 'database';

@@ -511,7 +511,7 @@ class Enter {
             isIndentOnly(source.slice(to, closeAt)) &&
             isIndentOnly(source.slice(closeAt + 2, line.end))
         ) {
-            // Nothing left to say after the caret: the closer gets a line of its own, under the opener's star.
+            // Nothing left to say after the caret, so the closer gets a line of its own, under the opener's star.
             const star = this.starPrefix(line, lead, false, isDoc);
 
             return { from, to: line.end, text: `${newline}${star}${newline}${lead} */`, caret: newline.length + star.length };

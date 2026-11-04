@@ -20,7 +20,7 @@ export function SqlEditor({ ref, value, onValueChange, run, label, placeholder, 
         if (autoFocus) {
             area.current?.focus();
         }
-        // Only on mount: a console that later becomes active keeps the focus where the person put it.
+        // Only on mount, so a console that later becomes active keeps the focus where the person put it.
         // eslint-disable-next-line react/exhaustive-deps
     }, []);
 

@@ -278,7 +278,7 @@ export interface TreeInput {
 export const visibleSchemas = (schemas: readonly SchemaInfo[], showSystemSchemas: boolean): readonly SchemaInfo[] =>
     showSystemSchemas ? schemas : schemas.filter((schema) => !schema.system);
 
-/* One schema is no level worth a row: its folders hang straight under the connection. */
+/* One schema is no level worth a row, so its folders hang straight under the connection. */
 const soleSchema = (visible: readonly SchemaInfo[]): string | null => (visible.length === 1 ? visible[0]!.name : null);
 
 interface Place {
@@ -563,7 +563,7 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
             children = [pendingDraft(load, { connectionId: connection.id }, 2, key)];
         }
 
-        // Behind a status row too: what the app keeps of a connection does not wait on its server.
+        // Behind a status row too, since what the app keeps of a connection does not wait on its server.
         children = [...children, ...(open ? appFolders : [])];
 
         if (filtering && children.length === 0) {

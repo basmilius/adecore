@@ -230,7 +230,7 @@ export function deriveFoldingRanges(
     }
 
     if (options.indentation) {
-        // One push per fold: a long file has more of them than V8 takes as arguments in one call.
+        // One push per fold, since a long file has more of them than V8 takes as arguments in one call.
         for (const fold of indentationFolds(lineCount, getLine, tabWidth(options), minimum)) {
             result.push(fold);
         }

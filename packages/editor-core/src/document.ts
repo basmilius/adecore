@@ -2833,7 +2833,7 @@ export class DocumentModel {
 
     /*
      * A caret on the next occurrence of what is selected, a word to begin with, whose later occurrences have to be
-     * whole words too. An occurrence that is already a selection is left, and so is the end of the text: the next
+     * whole words too. An occurrence that is already a selection is left, and so is the end of the text. The next
      * press starts again from its beginning.
      */
     private selectNextOccurrence(): boolean {

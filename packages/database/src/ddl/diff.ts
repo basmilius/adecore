@@ -42,7 +42,7 @@ export interface TableDiff {
     readonly optionsChanged: boolean;
 }
 
-/* The positions of a longest run that already is in order: those columns can stay where they are. */
+/* The positions of a longest run that already is in order, whose columns can stay where they are. */
 const longestRun = (positions: readonly number[]): ReadonlySet<number> => {
     const length: number[] = [];
     const previous: number[] = [];

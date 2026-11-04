@@ -43,7 +43,7 @@ export function StructureView({ connection, schema, table, toolbarStart, classNa
     const client = useDatabaseClient();
     const [answer, setAnswer] = useState<Answer | null>(null);
     const [attempt, setAttempt] = useState(0);
-    // A schema change reloads in place: the old answer stays on screen until the new one arrives.
+    // A schema change reloads in place. The old answer stays on screen until the new one arrives.
     const [reloads, setReloads] = useState(0);
     const answered = answer !== null && answer.connection === connection && answer.schema === schema && answer.table === table && answer.attempt === attempt;
     const load: Load = answered ? answer.load : { status: 'loading' };

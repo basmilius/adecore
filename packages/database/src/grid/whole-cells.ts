@@ -1,7 +1,7 @@
 import type { Value } from '../protocol/index.ts';
 import { isPreview, shownOfEdit, type Shown } from './display.ts';
 
-/* Characters of whole values one copy fetches at most, a byte of a binary value counting as two: past it the copy would hold the clipboard and the session for too long. */
+/* Characters of whole values one copy fetches at most, a byte of a binary value counting as two. Past it the copy would hold the clipboard and the session for too long. */
 export const WHOLE_COPY_LIMIT = 16 * 1024 * 1024;
 
 /* The helper runs the requests of a session one after another, so more at once would only wait in its queue. */

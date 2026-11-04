@@ -77,7 +77,7 @@ enum TlsAttempt {
     Verified,
 }
 
-/// The host and port a connection is made to: the local end of the tunnel when there is one.
+/// The host and port to connect to, which is the local end of the tunnel when there is one.
 fn address_of(config: &MysqlConfig, tunnel: Option<&LocalTunnel>) -> (String, u16) {
     match tunnel {
         Some(tunnel) => (tunnel.host().to_string(), tunnel.port()),
@@ -273,7 +273,7 @@ fn bytes_cell(bytes: &[u8], column: &Column, limit: usize) -> Cell {
                 Err(_) => text_cell(&text, limit),
             }
         }
-        // A number or a moment is never cut: half of it is of no use to a grid.
+        // A number or a moment is never cut, since half of it is of no use to a grid.
         MYSQL_TYPE_DECIMAL
         | MYSQL_TYPE_NEWDECIMAL
         | MYSQL_TYPE_DATE

@@ -2,7 +2,7 @@ import { diffLines, type Change } from './diff.ts';
 
 /*
  * What happened to one stretch of a file between the version the two sides started from and what
- * each of them made of it. Only `conflict` needs a person: the rest is one side's change, or the
+ * each of them made of it. Only `conflict` needs a person. The rest is one side's change, or the
  * same change made twice.
  */
 export type MergeBlockKind = 'stable' | 'ours' | 'theirs' | 'both' | 'conflict';

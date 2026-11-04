@@ -2,7 +2,7 @@ import type { Connection, DatabaseClient, DatabaseSession } from '../client/type
 
 const refuse = <T>(): Promise<T> => Promise.reject(new Error('stub'));
 
-/* A client for a render test that never reaches the server; whatever a test needs it overrides. Internal: not exported from the testing entry. */
+/* A client for a render test that never reaches the server; whatever a test needs it overrides. Internal, not exported from the testing entry. */
 export const stubClient = (overrides: Partial<DatabaseClient> = {}): DatabaseClient => ({
     test: refuse,
     discover: refuse,

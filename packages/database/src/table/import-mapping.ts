@@ -2,7 +2,7 @@ import type { ColumnInfo } from '../protocol/index.ts';
 
 export type ImportFormat = 'csv' | 'tsv';
 
-/* The columns an import can fill: a generated column is computed by the server. */
+/* The columns an import can fill. The server computes a generated column. */
 export const importableColumns = (columns: readonly ColumnInfo[]): ColumnInfo[] => columns.filter((column) => !column.generated);
 
 /* CSV or TSV by the extension of the path; CSV when it says neither. */

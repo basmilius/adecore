@@ -24,7 +24,7 @@ const clamp = (value: number, max: number): number => Math.max(0, Math.min(value
 
 /*
  * Where a navigation key takes the focus, or `null` when the key moves nothing and the browser should
- * keep it: that is also how Tab leaves the grid at its first and last cell.
+ * keep it. That is also how Tab leaves the grid at its first and last cell.
  */
 export const moveFocus = (from: CellPosition | null, input: NavigationKey, size: GridSize): CellPosition | null => {
     if (size.rows === 0 || size.columns === 0) {

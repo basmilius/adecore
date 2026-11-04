@@ -18,7 +18,7 @@ pub struct Line {
     pub fields: Vec<String>,
 }
 
-/// Counts the lines of the file on its own: the csv crate lags one line behind after a CRLF terminator.
+/// Counts the lines of the file on its own, because the csv crate lags one line behind after a CRLF terminator.
 struct LineCounter {
     file: BufReader<File>,
     scanned: u64,

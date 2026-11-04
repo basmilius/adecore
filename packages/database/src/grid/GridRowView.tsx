@@ -14,7 +14,7 @@ import type { GridColumn, GridRow } from './types.ts';
 
 /*
  * The gutter and the pinned columns stick as one block, so the edge of one can never drift from the next, at any
- * zoom. Each part paints its background under its own line as well: the line is an alpha, and what scrolls beneath
+ * zoom. Each part paints its background under its own line as well, because the line is an alpha and what scrolls beneath
  * the block would otherwise show through it.
  */
 export const PINNED_GROUP = 'sticky left-0 z-10 flex shrink-0';

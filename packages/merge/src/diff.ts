@@ -12,7 +12,7 @@ export interface Change {
 /* Past this edit distance two files are answered as one stretch that differs whole. */
 const MAX_DISTANCE = 4000;
 
-/* The walk keeps every STRIDE-th state and walks the rounds between two again on the way back: a
+/* The walk keeps every STRIDE-th state and walks the rounds between two again on the way back. A
    state per round came to over a hundred megabytes at MAX_DISTANCE. */
 const STRIDE = 64;
 

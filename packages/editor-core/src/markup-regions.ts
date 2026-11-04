@@ -11,7 +11,7 @@ const CLOSERS: Readonly<Record<string, string>> = { '{': '}', '(': ')', '[': ']'
 
 /*
  * The stretches of a script that are JSX elements, as offsets, outermost first. A scanner and not a
- * parser: an element that does not close as one is left out, and a file that costs more than a few
+ * parser, so an element that does not close as one is left out, and a file that costs more than a few
  * passes over its text gives up with what it found.
  */
 class JsxScanner {

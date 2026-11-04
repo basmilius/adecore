@@ -48,7 +48,7 @@ impl Canceller {
         matches!(self, Canceller::Sqlite(_))
     }
 
-    /// Interrupts SQLite at once. MySQL needs a round trip, so its killer is handed back to be run after the caller's lock is released.
+    /// Interrupts SQLite at once. MySQL needs a round trip, so this hands its killer back for the caller to run once it has released its lock.
     pub fn trigger(&self) -> Option<MysqlCanceller> {
         match self {
             Canceller::Sqlite(handle) => {

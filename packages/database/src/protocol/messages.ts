@@ -18,7 +18,7 @@ export interface RowsResult {
     readonly rows: readonly (readonly Cell[])[];
     /*
      * Whether a row exists past this page, which the helper learns by reading one row more than the limit. Also true
-     * when the rows stopped at `maxBytes` before the limit: the next page then starts after the rows that came.
+     * when the rows stopped at `maxBytes` before the limit. The next page then starts after the rows that came.
      */
     readonly hasMore: boolean;
     readonly elapsedMs: number;
@@ -33,7 +33,7 @@ export type StatementResult =
     | { readonly kind: 'done'; readonly sql: string; readonly affected: number; readonly lastInsertId: number | string | null; readonly elapsedMs: number }
     | { readonly kind: 'error'; readonly sql: string; readonly error: DatabaseError; readonly elapsedMs: number };
 
-/* A file format for `export` and `import`. JSON and SQL only export: an import reads delimited text. */
+/* A file format for `export` and `import`. JSON and SQL only export, since an import reads delimited text. */
 export type FileFormat = 'csv' | 'tsv' | 'json' | 'sql';
 
 /* What an export writes: a table, filtered and ordered as a table view shows it, or the rows of one statement. */
@@ -156,7 +156,7 @@ export interface DatabaseMethods {
     discover: { params: { readonly kind: 'docker'; readonly context?: string }; result: { readonly containers: readonly DockerContainer[] } };
     /*
      * Stops the request with this id. Answers whether it was still running. The request itself fails with
-     * `cancelled`, except an `execute` that had begun: it answers with what ran before the cancel.
+     * `cancelled`, except an `execute` that had begun, which answers with what ran before the cancel.
      */
     cancel: { params: { readonly request: string }; result: { readonly cancelled: boolean } };
 }

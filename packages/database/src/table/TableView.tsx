@@ -680,7 +680,7 @@ function TableBody({ connection, schema, table, toolbarStart, defaultWhere, defa
     };
 
     const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>): void => {
-        // A dialog opened from here is a portal: its events reach this handler through React, not through the DOM.
+        // A dialog opened from here is a portal, so its events reach this handler through React, not through the DOM.
         if (
             !event.nativeEvent.isComposing &&
             event.currentTarget.contains(event.target as Node) &&

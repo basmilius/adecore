@@ -276,8 +276,8 @@ enum Reach {
 /// Marks the request cancelled and interrupts it only while it is the one its session is executing.
 ///
 /// Everything happens under the lock of the slot, so the request cannot end and the next one begin in between. A MySQL
-/// kill is sent after the lock is released, so it takes the session's gate first: a request that ends in that gap
-/// leaves its successor waiting until the kill is done, instead of letting the server stop the successor.
+/// kill goes out after the lock is released, so it takes the session's gate first. A request that ends in that gap
+/// then leaves its successor waiting until the kill is done, instead of letting the server stop the successor.
 fn reach(state: &RequestState) -> Reach {
     let slot = locked(&state.slot);
 

@@ -140,7 +140,7 @@ const estimateWidths = (columns: readonly GridColumn[], rows: readonly GridRow[]
     columns.map((column, index) => estimateColumnWidth(column.name, columnTexts(column, index, rows.slice(0, 50), notation), column.primaryKey === true));
 
 /*
- * The table of the table view and of the console, and of any rows an app has on its own: it needs no
+ * The table of the table view and of the console, and of any rows an app has on its own. It needs no
  * `DatabaseProvider`, only the `UIProvider` of `@adecore/ui`. Only the rows in view are drawn, at a fixed
  * height, inside a box as tall as all of them; the header and the row-number gutter stick to the edges
  * of the scroll box. Focus stays on that box and points at the cell with `aria-activedescendant`, so

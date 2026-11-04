@@ -251,7 +251,7 @@ pub struct TableStructure {
     pub indexes: Vec<IndexInfo>,
     pub foreign_keys: Vec<ForeignKeyInfo>,
 
-    /// Left out on a view, and where the engine keeps no list of them: SQLite has its checks only inside the DDL.
+    /// Left out on a view, and where the engine keeps no list of them. SQLite has its checks only inside the DDL.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub checks: Option<Vec<CheckInfo>>,
 

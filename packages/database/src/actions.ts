@@ -2,7 +2,7 @@ import type { TableRef } from './client/types.ts';
 import type { TableKind } from './protocol/index.ts';
 
 /*
- * Something a view asks the app to open. The views draw no tabs and no windows of their own: the app
+ * Something a view asks the app to open. The views draw no tabs and no windows of their own. The app
  * decides where a table, a console or the designer lands, such as a tab beside its file tabs.
  */
 export type DatabaseAction =

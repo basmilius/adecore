@@ -44,7 +44,7 @@ const sqliteProblems = (config: SqliteConnectionConfig): ConfigProblems => {
 
 const isPort = (port: number): boolean => Number.isInteger(port) && port >= 1 && port <= 65535;
 
-/* The mode is in the config: a socket means the socket mode, even while its path is still empty, and a tunnel names its own. */
+/* The mode is in the config. A socket means the socket mode, even while its path is still empty, and a tunnel names its own. */
 export const modeOf = (config: MysqlConnectionConfig): ConnectMode => {
     if (config.tunnel !== undefined) {
         return config.tunnel.kind;

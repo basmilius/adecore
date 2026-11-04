@@ -31,7 +31,7 @@ export interface QueryConsoleProps {
     connection?: Connection;
     /* The schema the statements run in. Without `onSchemaChange` the picker starts from it, and a new one resets the pick. */
     schema?: string;
-    /* Makes the schema the app's: the picker shows `schema` and asks for another through this. */
+    /* Makes the schema the app's. The picker shows `schema` and asks for another through this. */
     onSchemaChange?(schema: string): void;
     /* The SQL, when the app keeps it (a tab that survives a reload). Without it the console keeps the text itself, starting from `defaultValue`. */
     value?: string;
@@ -59,7 +59,7 @@ type Run =
 interface PageState {
     readonly offset: number;
     readonly rows: RowsResult;
-    /* Where each page before this one started: a page the byte limit cut short holds fewer rows than `PAGE_SIZE`. */
+    /* Where each page before this one started, since a page the byte limit cut short holds fewer rows than `PAGE_SIZE`. */
     readonly before: readonly number[];
 }
 

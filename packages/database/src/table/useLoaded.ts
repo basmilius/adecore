@@ -24,7 +24,7 @@ interface State<T> {
 export function useLoaded<T>(load: (signal: AbortSignal) => Promise<T>, key: string): Loaded<T> {
     const loader = useRef(load);
     const [version, setVersion] = useState(0);
-    // Loading is not a state of its own: it is that the last answer is not for this key and this version.
+    // Loading is not a state of its own. It means the last answer is not for this key and this version.
     const [state, setState] = useState<State<T>>({ key: '', version: -1, value: null, error: null });
 
     useEffect(() => {

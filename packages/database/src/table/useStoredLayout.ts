@@ -13,8 +13,8 @@ export interface StoredLayoutHandle {
 }
 
 /*
- * The layout of one table's view in the app's storage. It is read once, on mount, and written back
- * in the background: the last change is still written when the view unmounts.
+ * The layout of one table's view in the app's storage. The hook reads it once, on mount, and writes it
+ * back in the background, the last change included when the view unmounts.
  */
 export function useStoredLayout(storage: DatabaseStorage | undefined, key: string): StoredLayoutHandle {
     const [stored] = useState(() => (storage === undefined ? null : parseStoredLayout(storage.get(key))));

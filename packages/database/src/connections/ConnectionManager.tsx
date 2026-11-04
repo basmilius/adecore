@@ -18,7 +18,7 @@ const ENGINES: readonly Engine[] = ['sqlite', 'mysql'];
 
 export interface ConnectionManagerProps {
     value: readonly Connection[];
-    /* Saving is the app's: every add, edit and delete goes out whole through here. */
+    /* Saving is the app's. Every add, edit and delete goes out whole through here. */
     onValueChange(next: readonly Connection[]): void;
     /* The id of the connection in the detail. Without it the manager keeps the selection itself; `null` is none. */
     selected?: string | null;

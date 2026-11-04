@@ -2,7 +2,7 @@ use std::env;
 use std::ffi::{OsStr, OsString};
 use std::path::{Path, PathBuf};
 
-/// Where an app started from the Dock still finds `docker` and `ssh`: its PATH is minimal there.
+/// Where an app started from the Dock, whose PATH is minimal, still finds `docker` and `ssh`.
 pub const FALLBACK_DIRECTORIES: [&str; 4] = [
     "/usr/local/bin",
     "/opt/homebrew/bin",

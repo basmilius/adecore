@@ -13,7 +13,7 @@ export type MysqlTlsMode = 'disable' | 'prefer' | 'require' | 'verify';
 /*
  * A server reached through a host the helper can SSH into. The helper runs the system's `ssh -W` for
  * every connection, so `~/.ssh/config`, the agent and `ProxyJump` apply, and it never asks for a
- * password: a key or the agent has to answer.
+ * password. A key or the agent has to answer.
  */
 export interface SshTunnel {
     readonly kind: 'ssh';
@@ -62,7 +62,7 @@ export type ConnectionConfig = SqliteConnectionConfig | MysqlConnectionConfig;
 
 export type Engine = ConnectionConfig['engine'];
 
-/* What answered: one engine can be served by more than one product, which differ in SQL. */
+/* What answered. More than one product can serve one engine, and they differ in SQL. */
 export interface ServerInfo {
     readonly flavor: 'sqlite' | 'mysql' | 'mariadb';
     /* The version as the server reports it, such as `11.4.2-MariaDB`. */

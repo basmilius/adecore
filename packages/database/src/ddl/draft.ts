@@ -18,7 +18,7 @@ export interface ColumnDraft {
     readonly autoIncrement: boolean;
     /* Empty for no comment. */
     readonly comment: string;
-    /* A column the server computes. It is read only here: its clause travels along unchanged. */
+    /* A column the server computes. It is read only here, and its clause travels along unchanged. */
     readonly generated: boolean;
     /* `GENERATED ALWAYS AS (...) STORED` as the table's DDL says it; `null` when the DDL did not show it. */
     readonly generatedClause: string | null;
