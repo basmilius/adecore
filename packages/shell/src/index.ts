@@ -1,3 +1,5 @@
+export { createAppIpc } from './app-ipc.ts';
+export type { AppIpc } from './app-ipc.ts';
 export { createAppScheme, segmentsOf } from './app-scheme.ts';
 export type { AppScheme, AppSchemeOptions, SchemeFolder, SchemeResolver } from './app-scheme.ts';
 export { createMenuCommands, devToolsAccelerator, menuTemplateOf, staticMenuTemplate } from './menu.ts';

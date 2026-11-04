@@ -46,6 +46,16 @@ const fromApp = (event: Electron.IpcMainInvokeEvent): boolean =>
     isAppSender(isAppWindow(event.sender), event.senderFrame, appOrigin);
 ```
 
+## createAppIpc
+
+Puts that check in front of every channel, so a new channel cannot forget it. Hand it `ipcMain`, the app's own check and how to find the window of a page. The `AppIpc` it returns has `handle` and `on`, which register a channel only when the app calls them. A request from any other page rejects with "Only the app window may ask this", and a message from one is dropped. `senderWindow(event)` names the window whose page sent it, for a dialog that belongs there.
+
+```ts
+const ipc = createAppIpc(ipcMain, fromApp, (contents) => windows.fromPage(contents));
+
+ipc.handle('file:read', (_event, path: string) => readFile(path, 'utf8'));
+```
+
 ## isExternalLink
 
 What the system browser or mail app may be handed: a web or `mailto:` link. A `file:` link could open an application, so it never is. `isWebLink` is the web part alone.
