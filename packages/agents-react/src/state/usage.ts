@@ -1,4 +1,4 @@
-import type { UsageLimitsSnapshot, UsageSummaryPayload, UsageSummaryResult } from '@adecore/agent-contracts';
+import { UsageRateSchema, type UsageLimitsSnapshot, type UsageRate, type UsageSummaryPayload, type UsageSummaryResult } from '@adecore/agent-contracts';
 import { localTimeZone } from '@adecore/ui/format';
 import { persistedJson } from '../chat/persisted-json';
 import { useChatScope } from '../scope';
@@ -29,9 +29,12 @@ interface Preferences {
     metric: UsageMetric;
     /* Dollars until someone asks for euros; it is the viewer's setting, not the project's. */
     currency: UsageCurrency;
+
+    /* The last exchange rate a summary brought, so the settings can name it before the page is opened again. */
+    rate: UsageRate | null;
 }
 
-const DEFAULTS: Preferences = { period: '7d', metric: 'cost', currency: 'USD' };
+const DEFAULTS: Preferences = { period: '7d', metric: 'cost', currency: 'USD', rate: null };
 
 function parsePreferences(raw: string | null): Preferences {
     try {
@@ -40,7 +43,8 @@ function parsePreferences(raw: string | null): Preferences {
         return {
             period: USAGE_PERIODS.some((period) => period.id === stored.period) ? stored.period! : DEFAULTS.period,
             metric: stored.metric === 'tokens' || stored.metric === 'cost' ? stored.metric : DEFAULTS.metric,
-            currency: stored.currency === 'EUR' ? 'EUR' : DEFAULTS.currency
+            currency: stored.currency === 'EUR' ? 'EUR' : DEFAULTS.currency,
+            rate: UsageRateSchema.safeParse(stored.rate).data ?? DEFAULTS.rate
         };
     } catch {
         return DEFAULTS;
@@ -49,9 +53,9 @@ function parsePreferences(raw: string | null): Preferences {
 
 const storage = persistedJson(storageKey, parsePreferences, DEFAULTS, () => chatStorageLegacyKeys('usage'));
 
-/* The three stored choices out of the store, so a setter writes the other two back unchanged. */
+/* What is stored, out of the store, so a setter writes the rest back unchanged. */
 function chosen(state: Preferences): Preferences {
-    return { period: state.period, metric: state.metric, currency: state.currency };
+    return { period: state.period, metric: state.metric, currency: state.currency, rate: state.rate };
 }
 
 function pad(value: number): string {
@@ -158,6 +162,10 @@ export const useUsageStore = createChatStore<UsageStore>(
             },
             receive(scopeId, asked, summary) {
                 patchRow(scopeId, { asked, summary, loading: false, failed: false });
+
+                if (summary.rate !== null && JSON.stringify(summary.rate) !== JSON.stringify(get().rate)) {
+                    choosePreference({ rate: summary.rate });
+                }
             },
             fail(scopeId) {
                 patchRow(scopeId, { loading: false, failed: true });
@@ -183,5 +191,5 @@ export type UsageView = Preferences & UsageRow;
 export function useUsage<T>(select: (view: UsageView) => T): T {
     const { id } = useChatScope();
 
-    return useUsageStore((s) => select({ period: s.period, metric: s.metric, currency: s.currency, ...(s.byScope[id] ?? EMPTY) }));
+    return useUsageStore((s) => select({ period: s.period, metric: s.metric, currency: s.currency, rate: s.rate, ...(s.byScope[id] ?? EMPTY) }));
 }

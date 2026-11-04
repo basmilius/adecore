@@ -14,7 +14,8 @@ const CURRENCIES: readonly UsageCurrency[] = ['USD', 'EUR'];
 export function UsagePane({ onOpenPage }: { onOpenPage(): void }) {
     const { t } = useTranslation('agent-usage');
     const currency = useUsage((s) => s.currency);
-    const rate = useUsage((s) => s.summary?.rate ?? null);
+    // The summary on screen, or the rate the last one brought: the page may not have been opened since this window started.
+    const rate = useUsage((s) => s.summary?.rate ?? s.rate);
 
     return (
         <SettingsSection>
