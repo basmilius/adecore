@@ -44,10 +44,14 @@ The core, a session per chat, the thread and what is written of it, and the back
 | --- | --- |
 | [`chat/acp-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-backend.ts) | `AcpAgentSpec`, `AcpClientInfo`, `AcpUsageReport`, `createAcpBackend` |
 | [`chat/acp-protocol`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-protocol.ts) | `AcpAgentInfo`, `AcpModel`, `AcpModelState`, `AcpMode`, `AcpModeState`, `AcpSessionInfo`, `AcpModeMap`, `AcpTurnUsage` |
+| [`chat/api-chat`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/api-chat.ts) | `ApiHostTools`, `ApiToolOutcome`, `ToolRounds` |
+| [`chat/api-tools`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/api-tools.ts) | `ApiToolDefinition` |
 | [`chat/attachment-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/attachment-store.ts) | `AttachmentStore` |
 | [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) | `BackendChange`, `BackendLaunch`, `ChatMcpServer`, `TurnInput`, `ApprovalDecision`, `BackendEvent`, `BackendHost`, `ChatBackend` |
 | [`chat/background-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/background-work.ts) | `runningInBackground`, `BackgroundWork` |
 | [`chat/bookmark-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/bookmark-store.ts) | `BookmarkStore`, `BookmarkListener` |
+| [`chat/chat-completions-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-completions-backend.ts) | `createChatCompletionsBackend`, `ChatCompletionsSpec`, `ChatCompletionsUsage`, `ChatCompletionsWords` |
+| [`chat/chat-completions-stream`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-completions-stream.ts) | `ChatCompletionsTokens` |
 | [`chat/chat-core`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-core.ts) | `InterruptedRun`, `ChatCoreHooks`, `ChatCoreOptions`, `ChatCore` |
 | [`chat/chat-log`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-log.ts) | `COMPACT_ABOVE_BYTES`, `ChatLogLine` |
 | [`chat/chat-process`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-process.ts) | `ChatSpawnOptions`, `SpawnChatProcess`, `spawnChatProcess`, `MAX_LINE_LENGTH`, `LineSplitter`, `ChatChild`, `ChatProcess`, `ChatChildOptions` |
@@ -82,6 +86,7 @@ The registry, the model catalogs, the runtime modes and the accounts of each CLI
 | --- | --- |
 | [`providers/acp-agent-state`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/acp-agent-state.ts) | `AcpCatalogStore` |
 | [`providers/acp-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/acp-provider.ts) | `ACP_CAPABILITIES`, `AcpProviderSpec`, `createAcpProvider` |
+| [`providers/api-chat-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/api-chat-provider.ts) | `ApiChatService`, `ApiChatProviderOptions`, `createApiChatProvider` |
 | [`providers/acp-vendors`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/acp-vendors.ts) | `AcpVendorOptions`, `AcpServerLaunch`, `CopilotProviderOptions`, `AntigravityProviderOptions`, `GrokModels`, `AGENT_DEFAULT_MODEL`, `agentDefaultCatalog`, `shippedAgentCatalog`, `agentModel`, `GROK_MODES`, `COPILOT_MODES`, `ANTIGRAVITY_MODES`, `ANTIGRAVITY_CLI`, `grokAuthMethod`, `readGrokModels`, `askGrokModels`, `adoptGrokModels`, `copilotUsageDirectory`, `antigravityOneShotArgs`, `createGrokProvider`, `createCopilotProvider`, `createAntigravityProvider` |
 | [`providers/accounts/acp-account`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/acp-account.ts) | `AcpAccountProbe`, `askAcpAccount`, `ProbeTimer` |
 | [`providers/accounts/choose`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/choose.ts) | `chooseAccount`, `AccountChoiceInput`, `AccountUnusable`, `ChosenAccount` |
@@ -96,6 +101,7 @@ The registry, the model catalogs, the runtime modes and the accounts of each CLI
 | [`providers/codex-rules`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex-rules.ts) | `CodexRules`, `codexRulesText`, `codexRulesPathIn`, `defaultCodexHome`, `installCodexRules`, `CodexRulesResult` |
 | [`providers/codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex.ts) | `codexThreadOptions`, `codexServiceTier` |
 | [`providers/detect`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/detect.ts) | `CliDetection`, `detectCli` |
+| [`providers/nanogpt-vendor`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/nanogpt-vendor.ts) | `nanoGptVendorOf` |
 | [`providers/provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/provider.ts) | `ChatProvider`, `ClaudeCodeRuntime`, `ProviderHome` |
 | [`providers/registry`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/registry.ts) | `ProviderRegistry`, `ProviderRegistryOptions` |
 | [`modes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/modes.ts) | `MODE_ORDER`, `narrowerMode`, `ceilingForOpening`, `modeField` |

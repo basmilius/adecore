@@ -141,6 +141,57 @@ The three start from the models in `providers/<kind>-models.json` (`shippedAgent
 
 Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left (`grokAuthMethod(env)`). Its accounts are read from `grok models`, which opens no session. `askGrokModels(command, env)` runs it and `readGrokModels(output)` turns the output into `GrokModels`. `adoptGrokModels(catalog, store, listed)` writes that list to the catalog and the store, and keeps the names, context windows and options a chat learned.
 
+## A model API with no CLI
+
+Some services sell models behind an API and ship no agent CLI. For one that speaks OpenAI's streamed `/chat/completions`, the host keeps the key and the models, and the package runs the chat:
+
+```ts
+import { createChatCompletionsBackend } from '@adecore/agents/chat';
+import { createApiChatProvider, nanoGptVendorOf } from '@adecore/agents/providers';
+
+const provider = createApiChatProvider({
+    kind: 'example-api',
+    name: 'Example',
+    version: 'API key',
+    service,
+    createBackend: createChatCompletionsBackend({
+        name: 'Example',
+        url: 'https://api.example.com/v1',
+        request: fetch,
+        apiKey: () => service.apiKey,
+        directory: () => join(dataDir, 'example-api'),
+        catalog: service.catalog,
+        supportsTools: (model) => service.supportsTools(model),
+        toolRounds: () => ({
+            roundsPerRun: 40,
+            runs: 5
+        }),
+        httpError: (status) => new Error(`Example request failed (HTTP ${status}).`),
+        onUsage: (usage) => usageLog.append(usage),
+        hostTools: (launch, host) => ownTools(launch, host),
+        words: {
+            noKey: 'Add an Example API key.',
+            unknownModel: 'Refresh the Example models.',
+            disconnected: 'The Example key was removed.',
+            failed: 'Example could not finish this turn.',
+            approval: 'Example requests access to this project.'
+        }
+    })
+});
+```
+
+`createApiChatProvider` takes an `ApiChatService`: the `catalog`, a `status()` with whether a key is set and how many models it brought, and `onChange`. The provider counts as installed once both are there, and runs only as a chat.
+
+`createChatCompletionsBackend` takes a `ChatCompletionsSpec`. The API keeps no conversation, so the thread is `<session id>.json` in `directory()`, written after every step and read back on resume. A request goes to `<url>/chat/completions` with the key as a bearer token and follows no redirect. Every error the backend writes starts with `name`, and only an error that starts with it reaches the person. Any other failure ends the turn with `words.failed`, since a raw error can quote the key. Build `httpError(status)` from the status alone, and start its message with `name`. The `ChatCompletionsWords` are the sentences that tell a person what to do in your app.
+
+The model gets project tools: list, read, search, edit and write files under the working folder, run a command (`/bin/sh`, PowerShell on Windows, 30 seconds, output clipped), and `ask_user`, which opens a question card. A file tool refuses paths outside the folder, symbolic links, hidden files and credential files. `supervised` asks before every tool, `auto-accept-edits` and `auto` ask only for a command (a plain API has no classifier, so `auto` runs as `auto-accept-edits`), and `full-access` asks for none. `ask_user` waits for the person in every mode. A model for which `supportsTools` answers `false` is offered no tools at all.
+
+`toolRounds()` returns `ToolRounds`, read as each run starts. After `roundsPerRun` rounds of tool calls the chat sends itself a message to carry on, up to `runs` runs, then ends the turn with an error. `onUsage` gets a `ChatCompletionsUsage` for every request that reported its `ChatCompletionsTokens`: the prompt holds its cached part and the completion its reasoning, as the API counts them.
+
+`hostTools(launch, host)` returns `ApiHostTools` offered beside the project tools, such as those of your own MCP server, or `null`. Each `ApiToolDefinition` is a name, a description and a JSON schema. A call to one of them runs without an approval card in every mode, so check each call where you answer it, and return an `ApiToolOutcome`. `close()` runs when the backend is disposed.
+
+`nanoGptVendorOf(slug)` names who made a NanoGPT model, for a picker that groups by vendor: the publisher before the slash under one spelling, else the family the slug starts with, else `Other`.
+
 ## Folders you do not trust
 
 A CLI reads configuration from its working folder: settings with hooks and allow-lists, MCP servers, skills and commands. From an untrusted folder, that configuration can run commands outside the chat's runtime mode. Return `false` from `projectConfigFor(chatId)` for such a chat. The host asks before every turn, like `foldersFor`, and a change starts the next turn in a new process. Absent or `true` loads the configuration as usual.

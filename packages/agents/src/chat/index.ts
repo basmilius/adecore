@@ -15,10 +15,14 @@ export type {
     AcpTurnUsage
 } from './acp-protocol.ts';
 
+export type { ApiHostTools, ApiToolOutcome, ToolRounds } from './api-chat.ts';
+export type { ApiToolDefinition } from './api-tools.ts';
 export { AttachmentStore } from './attachment-store.ts';
 export type { BackendChange, BackendLaunch, ChatMcpServer, TurnInput, ApprovalDecision, BackendEvent, BackendHost, ChatBackend } from './backend.ts';
 export { runningInBackground, type BackgroundWork } from './background-work.ts';
 export { BookmarkStore, type BookmarkListener } from './bookmark-store.ts';
+export { createChatCompletionsBackend, type ChatCompletionsSpec, type ChatCompletionsUsage, type ChatCompletionsWords } from './chat-completions-backend.ts';
+export type { ChatCompletionsTokens } from './chat-completions-stream.ts';
 export { type InterruptedRun, type ChatCoreHooks, type ChatCoreOptions, ChatCore } from './chat-core.ts';
 export { COMPACT_ABOVE_BYTES, type ChatLogLine } from './chat-log.ts';
 

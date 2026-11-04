@@ -1,5 +1,6 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
 export { type AcpCatalogStore } from './acp-agent-state.ts';
+export { type ApiChatService, type ApiChatProviderOptions, createApiChatProvider } from './api-chat-provider.ts';
 export { ACP_CAPABILITIES, type AcpProviderSpec, createAcpProvider } from './acp-provider.ts';
 export {
     type AcpVendorOptions,
@@ -39,6 +40,7 @@ export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome, in
 export { codexThreadOptions, codexServiceTier } from './codex.ts';
 export { type CliDetection, detectCli } from './detect.ts';
 export type { ChatProvider, ClaudeCodeRuntime, ProviderHome } from './provider.ts';
+export { nanoGptVendorOf } from './nanogpt-vendor.ts';
 export { isOnlyCommands } from './shell-commands.ts';
 export { ProviderRegistry, type ProviderRegistryOptions } from './registry.ts';
 export { MODE_ORDER, narrowerMode, ceilingForOpening, modeField } from '../modes.ts';
