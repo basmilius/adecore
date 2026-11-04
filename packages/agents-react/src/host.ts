@@ -17,11 +17,21 @@ import type {
     RuntimeMode
 } from '@adecore/agent-contracts';
 import type { EditorEngine } from '@adecore/editor';
-import { isApplePlatform } from '@adecore/ui';
+import { isApplePlatform, syncAnimations } from '@adecore/ui';
 import type { Extension } from '@codemirror/state';
 import type { EditorView } from '@codemirror/view';
 import type { LucideIcon } from 'lucide-react';
-import { createContext, createElement, useContext, useState, type ComponentProps, type ComponentType, type ReactNode, type RefObject } from 'react';
+import {
+    createContext,
+    createElement,
+    useContext,
+    useLayoutEffect,
+    useState,
+    type ComponentProps,
+    type ComponentType,
+    type ReactNode,
+    type RefObject
+} from 'react';
 import type { Highlighter, ThemeRegistration } from 'shiki';
 import type { AccountRule } from './agents/accounts';
 import type { ReferableKind, Referables } from './chat/chat-references';
@@ -693,6 +703,9 @@ export function ChatHostProvider({ host, children }: { host: Partial<ChatHost>; 
     if (pinned.host !== host) {
         throw new Error('A ChatHostProvider reads its host once: hand it the same object on every render, or a new key to mount it with another');
     }
+
+    // Every shining live row steps on the spinners' clock, so the paints of several rows fall in one frame.
+    useLayoutEffect(() => syncAnimations(['chat-shine']), []);
 
     return createElement(ChatHostContext.Provider, { value: pinned.value }, children);
 }

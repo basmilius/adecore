@@ -4,6 +4,7 @@ import { I18nextProvider } from 'react-i18next';
 import { setFormatSource, type FormatSource } from './format/locale.ts';
 import { addUiResources } from './locales.ts';
 import { startInputModality } from './modality.ts';
+import { startSyncedAnimations } from './synced-animations.ts';
 import { TooltipProvider } from './Tooltip.tsx';
 
 export interface UIProviderProps {
@@ -32,6 +33,7 @@ export function UIProvider({ i18n, formatSource, children }: UIProviderProps) {
     }
 
     useLayoutEffect(startInputModality, []);
+    useLayoutEffect(startSyncedAnimations, []);
 
     return (
         <I18nextProvider i18n={i18n}>

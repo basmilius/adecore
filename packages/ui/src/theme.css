@@ -630,7 +630,8 @@
        Each dot turns half a circle over the other two, then slides back one gap at a time; the three
        are a third of a turn apart, so at every moment one dot is in the air. The hops move in steps:
        a smooth one changes every frame and keeps the compositor drawing the window at the display's
-       rate for as long as anything works. The three share their step boundaries, so a step is one frame. */
+       rate for as long as anything works. The three share their step boundaries, so a step is one frame,
+       and every spinner shares them with the others on the document's clock (`synced-animations.ts`). */
     .spinner {
         --spinner-duration: 1800ms;
         --spinner-dot: round(calc(var(--spinner-size) * 0.22), 1px);

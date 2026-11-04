@@ -18,6 +18,14 @@ Without a `label` it is hidden from screen readers, for a spinner next to words 
 </Tooltip>
 ```
 
+Every spinner under a `UIProvider` steps on the document's clock, so spinners that mount at different moments move together and the window draws one frame for a step of all of them. An app puts its own looping CSS animations on that clock by their `@keyframes` name. Only an animation that loops and never restarts on purpose belongs there: a one-off animation would start long over.
+
+```tsx
+import { syncAnimations } from '@adecore/ui';
+
+syncAnimations(['status-pulse']);
+```
+
 An [`IconButton`](/ui/actions/icon-button), an [`EmptyState`](/ui/status/empty-state) and a [`PanelEmpty`](/ui/status/panel-empty) draw one in place of their icon with `busy`.
 
 ## Props

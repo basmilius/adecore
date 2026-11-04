@@ -116,6 +116,7 @@ exports[`the public API . exports these names 1`] = `
   "shortcut",
   "shortcutParts",
   "splitPanes",
+  "syncAnimations",
   "tabDropIndex",
   "tabDropPreview",
   "tabGapAt",

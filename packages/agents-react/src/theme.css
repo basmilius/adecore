@@ -125,7 +125,7 @@
 
     /* Live tool rows shine once across; a paused animation costs nothing. A background position is
        painted on the main thread, so a smooth shine repaints the row every frame; 30 steps keep it
-       moving at a fraction of the paints. */
+       moving at a fraction of the paints. Every row steps on the spinners' clock (`ChatHostProvider`). */
     .chat-live-text {
         background: linear-gradient(90deg, var(--text-muted) 0%, var(--text) 50%, var(--text-muted) 100%);
         background-size: 200% 100%;

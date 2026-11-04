@@ -78,6 +78,7 @@ export { Slider, type SliderProps } from './Slider.tsx';
 export { SlidingColumn, type SlidingColumnProps } from './SlidingColumn.tsx';
 export { Spinner, type SpinnerProps } from './Spinner.tsx';
 export { SplitButton, type SplitButtonProps } from './SplitButton.tsx';
+export { syncAnimations } from './synced-animations.ts';
 export { Stepper, type StepperProps } from './Stepper.tsx';
 export { Surface, type SurfaceProps } from './Surface.tsx';
 export { Switch, type SwitchProps } from './Switch.tsx';
