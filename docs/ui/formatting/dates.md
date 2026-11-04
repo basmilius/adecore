@@ -33,4 +33,4 @@ Every function takes a `Date` or epoch milliseconds; multiply epoch seconds by 1
 
 `formatDateTime` takes the layout and numbers from the region, and the month, weekday, day period and era names from the language.
 
-Use it for a format the others do not cover. Define its options object once, outside the component. `formatDateTime` caches the formatter on that object.
+Use it for a format the others do not cover. Define its options object once, outside the component, since `formatDateTime` caches the formatter per object.

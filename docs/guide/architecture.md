@@ -1,6 +1,6 @@
 # Architecture
 
-A desktop app on ADE CORE runs in three places: the Electron main process, a backend for the long-running work, and one or more windows. The packages are cut along those lines, so each one knows where it runs.
+A desktop app on ADE CORE runs in three places: the Electron main process, a backend for the long-running work, and one or more windows. Each package runs in one of them; Database has a part in two.
 
 ## Three places
 
@@ -10,7 +10,7 @@ A desktop app on ADE CORE runs in three places: the Electron main process, a bac
 | Backend | Agent CLIs, language servers, database connections, files | [Agents](/agents/), the host of [Database](/database/), [LSP](/lsp/), [Utils](/utils/) |
 | Window | Everything a person sees | [UI](/ui/), [Agent views](/agents-react/), [Editor views](/editor-react/), [Charts](/charts/), [Terminal](/terminal/), the views of [Database](/database/) |
 
-The backend can be the main process itself, an Electron utility process, or a separate Bun or Node process that a [service](/service/) keeps running. The packages do not care which, because they never open a channel on their own.
+The backend can be the main process itself, an Electron utility process, or a separate Bun or Node process that a [service](/service/) keeps running. The packages work in any of them, because none opens a channel on its own.
 
 ## The app owns every channel
 

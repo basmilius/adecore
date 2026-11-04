@@ -124,7 +124,7 @@ Both need a [`DatabaseProvider`](/database/guide/getting-started#databaseprovide
 | `className`        | `string`                                                         |         | Its size.                                                                                           |
 | `ref`              | `Ref<HTMLDivElement>`                                            |         |                                                                                                     |
 
-`ConnectionManagerProps` is an exported type.
+The props are `ConnectionManagerProps`.
 
 ### ConnectionForm
 
@@ -136,4 +136,4 @@ Both need a [`DatabaseProvider`](/database/guide/getting-started#databaseprovide
 | `className`     | `string`                                                         |         |                                                |
 | `ref`           | `Ref<HTMLDivElement>`                                            |         |                                                |
 
-`ConnectionFormProps` is an exported type.
+The props are `ConnectionFormProps`.

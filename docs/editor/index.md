@@ -1,6 +1,6 @@
 # Editor
 
-`@adecore/editor` is a code editor for the DOM. It draws a [`DocumentModel`](/editor-core/), renders only the rows in view, and takes keys, mouse, touch, clipboard and input methods through one hidden textarea. It knows no language server. The host hands it problem markers, hints, colors and rows. [`@adecore/editor-react`](/editor-react/) does that for a language service.
+`@adecore/editor` is a code editor for the DOM. It draws a [`DocumentModel`](/editor-core/) and takes keys, mouse, touch, clipboard and input methods through one hidden textarea. It knows no language server. The host hands it problem markers, hints, colors and rows. [`@adecore/editor-react`](/editor-react/) does that for a language service.
 
 ```ts
 import { createSmartEditorEngine, shikiTokenizers } from '@adecore/editor';
@@ -21,7 +21,7 @@ The demos color TypeScript with a small tokenizer instead of Shiki; see [Theme a
 - Draws what the host knows: problems, inlay hints, change marks, gutter buttons, line highlights, code vision and agent carets.
 - Puts the host's own DOM between lines, after a line or in place of lines, and keeps it there while the text changes.
 - Finds and replaces, with regular expressions in a worker, and folds by brackets, indentation and a language server's ranges.
-- Scales to large files: it draws only the rows in view and colors only the lines near them.
+- Draws only the rows in view and colors only the lines near them.
 
 ## What it leaves to the app
 

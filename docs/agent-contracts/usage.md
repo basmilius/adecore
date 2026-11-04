@@ -60,4 +60,4 @@ evenPace(window, now); // { percent: 40, standing: 'ahead' } two hours into a fi
 
 `evenPace(window, now)` returns an `EvenPace`, where an evenly spent window would stand: `percent` in whole percent, and a `standing` (`PaceStanding`) of `ahead`, `behind` or `even`. It returns `null` without `resetsAt` or `durationMs`.
 
-A missing reading is unknown, not room left. A chat's `ChatUsage` is different: one chat's context and cost as its CLI reported it, while a summary comes from transcripts priced by the host.
+A missing reading is unknown, not room left. A chat's `ChatUsage` is something else. It holds one chat's context and cost as its CLI reported them, while a summary comes from transcripts the host priced.

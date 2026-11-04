@@ -1,6 +1,6 @@
 # Navigation and links
 
-The app's page carries the whole bridge, so where it may go is a security decision. A dropped link or file navigates the top frame, and the page it lands on would inherit the bridge. These are pure functions; the app wires them to Electron's events on each window.
+The app's page carries the whole bridge, so where it may go is a security decision. A dropped link or file navigates the top frame, and the page it lands on would inherit the bridge. The helpers below are pure functions, and the app wires them to Electron's events on each window.
 
 A page served from its own scheme (`app://app`) passes that scheme as `schemes`, because Node's URL gives an unknown scheme the origin `null`. [`createAppScheme`](/shell/app-scheme#the-guards) binds the scheme and the origin to each of them, so `scheme.navigation(url)` needs neither.
 
@@ -44,7 +44,7 @@ What the system browser or mail app may be handed: a web or `mailto:` link. A `f
 
 ## createGestureGate
 
-Whether a link the page wants to open externally follows a real press. Without it, a script nobody vetted could open the browser over and over. `saw` takes the type of every input event; only a mouse press or release, a key, a tap or the end of a touch counts. `consume` returns whether one came within the last second and uses it up, so one press lets one link out. The clock defaults to `Date.now`. `GestureGate` is the returned type.
+Whether a link the page wants to open externally follows a real press. Without it, a script nobody vetted could open the browser over and over. `saw` takes the type of every input event; only a mouse press or release, a key, a tap or the end of a touch counts. `consume` returns whether one came within the last second and uses it up, so one press lets one link out. It returns a `GestureGate`, and a test can pass a clock in place of `Date.now`.
 
 ```ts
 const gesture = createGestureGate();

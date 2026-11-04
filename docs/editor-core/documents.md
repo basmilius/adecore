@@ -1,6 +1,6 @@
 # Documents and edits
 
-`new DocumentModel(text?)` starts a document with one caret at offset 0 and an empty history. An old snapshot keeps its own text after later edits.
+`new DocumentModel(text?)` starts a document with one caret at offset 0 and an empty history.
 
 ## Coordinates
 
@@ -132,7 +132,7 @@ It leaves the marks alone. Call `markSaved()` once the text is written.
 
 `getSnapshot()` returns an `EditorSnapshot`: `text`, `selections`, `revision`, `canUndo` and `canRedo`. A kept snapshot still returns its own text after later edits.
 
-`subscribe(listener)` returns a `Disposable` and calls the listener synchronously after every change, not right away. The model reports a throwing listener with `console.error`, and the change and the other listeners go on. A snapshot of a text change adds three fields:
+`subscribe(listener)` returns a `Disposable` and calls the listener synchronously after every change, though not on subscribing. The model reports a throwing listener with `console.error`, and the change and the other listeners go on. A snapshot of a text change adds three fields:
 
 - `source`: what made the change.
 - `changes`: one list of `DocumentChange`s (`from`, `to`, `insertedLength`) per transaction, each relative to the text before that transaction. Undoing a typing group gives one list per keystroke.

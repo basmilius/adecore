@@ -25,7 +25,7 @@ view.current?.write(log);
 
 ## Reading what the person types
 
-`onData` reports what the person types or pastes, as the bytes a program expects. Pass it on unchanged. Option on a Mac types as Meta, the way terminal programs expect.
+`onData` reports what the person types or pastes, as the bytes a program expects. Pass it on unchanged. Option on a Mac sends Meta.
 
 `paste(text)` pastes on the app's behalf, bracketed when the program asks for that, the same way a paste from the keyboard is. `selectAll()` and `selection()` serve a context menu; `selection()` is empty without a selection.
 

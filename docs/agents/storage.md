@@ -30,15 +30,15 @@ The CLIs remove old transcripts, but what a transcript counted stays in `usage/h
 
 An id becomes a file name with `encodeURIComponent`. A host's extras sit at the top level of a chat's record, next to `info` and `items`, which they cannot replace. `ChatStoreOptions.isSidecar` keeps your own JSON files in `chats/` out of the chat list.
 
-A record this version cannot read stays untouched and fails with `chat-unreadable`. Creating the chat again does not overwrite it. A log can rebuild a missing record when it holds a start. `ChatStore.settled` reads only each record's `info` and the log's last info, so `recoverInterrupted` stays cheap.
+A record this version cannot read stays untouched and fails with `chat-unreadable`. Creating the chat again does not overwrite it. A log can rebuild a missing record when it holds a start. `ChatStore.settled` reads only the chats' infos, for `recoverInterrupted`.
 
 ## Large outputs
 
-A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (8 KiB) goes to a file of its own. The record keeps the first 2 KiB, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn. `id` is the SHA-256 of the whole.
+A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (8 KiB) goes to a file of its own. The record keeps the first 2 KiB, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn.
 
 - `chat.toolOutput { chatId, itemId }` returns the whole output (`ChatCore.toolOutput`), and `chat.turnDiff` the whole diff. Anyone who may send requests about the chat may send these.
 - A missing payload fails with `payload-missing`.
-- Records from earlier versions move their large values out on the next read, also those that a higher limit kept inline.
+- Records from earlier versions move their large values out on the next read.
 - A fork copies the payloads it names, so removing the original leaves the fork whole. A clear lets its payloads go.
 - A loaded chat and its attached clients keep its own outputs whole until the chat is opened again. Thread search and agents reading a chat as text see only the beginning.
 
@@ -59,7 +59,7 @@ Atomic writes, serializers and the error checks the stores use come from [`@adec
 ## Other helpers
 
 - `runProcess(command, options)` runs a short command in its own process group and returns its output and `exitCode` (`null` after a signal), as a `ProcessResult`. The options are `RunProcessOptions`. A nonzero exit is a result, not an error. `timeoutMs` rejects and kills the group. Output past 16 MB does the same, so use it for commands that print little.
-- `WatchSeams` is swappable file watching. `SYSTEM_WATCH` uses `fs.watch`, recursive where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes and returns a `Settled`: every `nudge` puts the run off again, and `stop` drops the one waiting. `PerClientWatches` keeps a watch per client and path. The seams are a `WatchDirectory` that hands out `DirectoryWatcher`s, the part of an `fs.watch` handle the watchers use, and a `Schedule` that runs a callback after a delay and returns its cancel function.
+- `WatchSeams` is file watching a test can swap out. `SYSTEM_WATCH` uses `fs.watch`, recursive where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes and returns a `Settled`: every `nudge` puts the run off again, and `stop` drops the one waiting. `PerClientWatches` keeps a watch per client and path. `WatchSeams` holds a `WatchDirectory` that hands out `DirectoryWatcher`s, the part of an `fs.watch` handle the watchers use, and a `Schedule` that runs a callback after a delay and returns its cancel function.
 - `cleanTitle` and `readLines` read titles from a transcript. `readLines` stops at the last whole line.
 - `CodedError` is an error with a `code`. `errorText` formats an error for a log, with its stack once `setErrorStacks` turned stacks on for the package.
 

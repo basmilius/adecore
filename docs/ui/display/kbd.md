@@ -12,7 +12,7 @@ import { Kbd, KeyCap, Keys } from '@adecore/ui';
 
 `Kbd` takes a [`Shortcut`](/ui/utilities/shortcuts) and prints it for the platform. Without one it prints its children, for a key such as `Esc` or `↑`.
 
-`variant="menu"` (the default) is the quiet hint at the end of a menu row. Elsewhere, such as in a sentence, a tooltip or a footer, use `variant="inline"` for a chip.
+`variant="menu"` (the default) draws no chip of its own; a menu row styles it as the hint at its end. Elsewhere, such as in a sentence, a tooltip or a footer, use `variant="inline"` for a chip.
 
 ## Keys and KeyCap
 

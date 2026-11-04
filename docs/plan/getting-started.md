@@ -1,7 +1,5 @@
 # Getting started
 
-This page creates a plan, changes it as the agent and as a person, and writes it out as Markdown and as text for the agent.
-
 ## Install
 
 ```sh
@@ -68,7 +66,7 @@ if (approved.ok) {
 }
 ```
 
-Take `actor` from a verified session, never from what the request says. [Permissions](/plan/permissions) has the full rules.
+[Permissions](/plan/permissions) has the full rules.
 
 ## Write it out
 
@@ -106,6 +104,6 @@ const loaded = validatePlan(JSON.parse(stored));
 ## Checklist
 
 - `actor` comes from a verified session.
-- Each batch is applied to the latest stored plan, in one transaction or one queue per plan.
+- The app applies each batch to the latest stored plan, in one transaction or one queue per plan.
 - A refusal's `message` goes back to the agent, so it can correct its next batch.
 - Every loaded plan goes through `validatePlan`.

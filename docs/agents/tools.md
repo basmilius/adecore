@@ -1,6 +1,6 @@
 # Tools
 
-A host can give its agents tools to call back into it, for example to open another chat, hand over a task or write in a document. The package defines the tools, checks their input and writes the schema an MCP client lists. It has no server and no transport. Your app decides how a call reaches it, checks who is calling, and hands each tool only what it may touch.
+A host can give its agents tools to call back into it, for example to open another chat, hand over a task or write in a document. The package declares tools, checks their input and writes the schema an MCP client lists. It has no server and no transport. Your app decides how a call reaches it, checks who is calling, and hands each tool only what it may touch.
 
 ```ts
 import { createToolRegistry, defineTool, defineToolkit, ToolRefusal, toolInputSchema } from '@adecore/agents/context';
@@ -53,7 +53,7 @@ Your `write` must check the revision in the same step as the write. `REVISION_FI
 
 `registry.run(name, input, call)` checks the input and runs the tool. `parseToolInput(tool, input)` only checks, for a host that runs its tools another way. Both treat a field set to `null` as left out, since models send `null` for fields they skip.
 
-Input that is no object, a field the tool does not have (also when it is `null`), or a value the schema refuses all throw a `bad-arguments` refusal. Its one line holds `fields` and the field names, tab-separated, so a model sees what the tool takes. A schema message gets the field's path in front unless the field's name stands in it as a word, because zod's own messages name none.
+Input that is no object, a field the tool does not have (also when it is `null`), or a value the schema refuses all throw a `bad-arguments` refusal. Its one line holds `fields` and the field names, tab-separated, so a model sees what the tool takes. A schema message names the field it is about.
 
 `requiredField(message)` is a string field that may not be missing or empty. `lengthOf` measures input for a size message. `orNote(lines, note)` answers a note for an empty list.
 
@@ -82,4 +82,4 @@ const tools = registry.tools.map((tool) => ({
 
 `renderTranscript(items)` from `@adecore/agents/context` renders chat items as a conversation for another agent. Assistant UI blocks use their stored text fallback. A subagent gets one summary line in the parent conversation, without its own activity. Tool calls show up to 300 characters of input and 2000 characters of output, with workflow phases when present. Questions and approvals keep their request ids and current state, and pending questions include their answer fields and choices.
 
-The host controls access to a thread, selects which items to expose and applies any final line limit.
+The host decides who may read a thread, which items go in, and any final line limit.

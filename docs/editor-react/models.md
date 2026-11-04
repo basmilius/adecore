@@ -33,12 +33,12 @@ A `Problem` is a diagnostic as the features hold it. The hover card's content is
 
 The types of what these features show:
 
-- Rename: `RenameTarget`, `Occurrences`, `RenameRow` and `RenameFile`.
-- Peek: `NameRange`, `PeekPlace`, `PeekFile` and `PeekSnippet`.
-- Call hierarchy: `CallDirection`, `CallLoad`, `CallNode` and `CallRow`; see [call hierarchy](/editor-react/call-hierarchy).
-- Symbol picker: `SymbolGroup`, `SymbolTone`, `SymbolEntry`, `EntryGroup`, `PickerMode` and `WorkspaceEntry`.
-- Code actions: `ActionGroup`, `ActionEntry` and `EditPreview`.
-- Code vision: `CodeVisionDeclaration` and `DeclarationSource` for the usage rows, `CodeAuthor` and `CodeAuthorship` for the authors.
+- Rename: a `RenameTarget` is the range and placeholder a server gives, `Occurrences` counts the places of the name in this file and in all files, and the preview has a `RenameFile` of `RenameRow`s, each a line before and after.
+- Peek: a `PeekFile` holds the `PeekPlace`s of one file, each a line with the name's `NameRange`, and a `PeekSnippet` is the few lines drawn as a preview.
+- Call hierarchy: `CallDirection`, `CallLoad`, `CallNode` and `CallRow`; see [call hierarchy](/editor-react/call-hierarchy#models).
+- Symbol picker: a `SymbolEntry` is one symbol of the file, sorted into a `SymbolGroup` (classes, functions and so on) and colored by its `SymbolTone`. An `EntryGroup` holds the entries of one group, a `WorkspaceEntry` is a symbol of the project, and `PickerMode` is what the input asks for: symbols, the project (`#`) or a line (`:`).
+- Code actions: an `ActionEntry` is a server's action in its `ActionGroup`, such as `quickfix` or `extract`, and an `EditPreview` is the lines an edit takes away and puts back in the open file.
+- Code vision: a `CodeVisionDeclaration` is a declaration with the line its row sits above, read from a `DeclarationSource` of lines. A `CodeAuthorship` lists the `CodeAuthor`s of a declaration by lines written, with its uncommitted lines.
 
 ## Proposals and diffs
 

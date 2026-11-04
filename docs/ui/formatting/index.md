@@ -1,6 +1,6 @@
 # Format source
 
-`@adecore/ui/format` writes every number, date, time and duration a person reads. It is the only place in the library that builds an `Intl` formatter. Your app can use it too.
+`@adecore/ui/format` writes every number, date, time and duration a person reads, and your app can use it too.
 
 ```ts
 import { formatNumber, formatDayClock, setFormatSource } from '@adecore/ui/format';

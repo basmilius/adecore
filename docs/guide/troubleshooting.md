@@ -1,6 +1,6 @@
 # Troubleshooting
 
-Most problems come from the setup around the packages: styles, duplicate dependencies or a linked checkout. Find the symptom below.
+Most problems come from the setup around the packages: styles, duplicate dependencies or a linked checkout.
 
 ## Components render unstyled
 
@@ -8,7 +8,7 @@ Tailwind did not scan the package. Add an `@source` line for every package whose
 
 ## Colors are wrong or missing
 
-The theme was imported after a package's stylesheet, or not at all. Import Tailwind first, then `@adecore/ui/theme.css`, then each package's own stylesheet. The theme also resets Tailwind's palette, so a utility such as `bg-red-500` does not exist; use the [tokens](/ui/guide/theme).
+The app imports the theme after a package's stylesheet, or not at all. Import Tailwind first, then `@adecore/ui/theme.css`, then each package's own stylesheet. The theme also resets Tailwind's palette, so a utility such as `bg-red-500` does not exist; use the [tokens](/ui/guide/theme).
 
 ## "Invalid hook call" or words that show their keys
 

@@ -104,7 +104,7 @@ The tree takes one tab stop. The arrow keys move, Right and Left expand and coll
 | `className`         | `string`                                         |         | The tree has no height of its own; this gives it one. |
 | `ref`               | `Ref<HTMLDivElement>`                            |         |                                                       |
 
-`DatabaseExplorerProps`, `ExplorerSelection`, `ExplorerFolder` and `ExplorerItem` are exported types. The explorer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+The props are `DatabaseExplorerProps`; `ExplorerSelection`, `ExplorerFolder` and `ExplorerItem` are described above. The explorer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
 
 ## Dragging tables
 

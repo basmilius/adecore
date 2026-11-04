@@ -1,6 +1,6 @@
 # Security
 
-A page that opens connections and runs SQL can read, change and delete data. This page lists what the host checks, what the app must check, and which inputs are raw SQL by design.
+A page that opens connections and runs SQL can read, change and delete data.
 
 ## The host is the boundary
 
@@ -95,7 +95,7 @@ The host calls `authorizeDiscovery(kind, owner)` on every `discover`, and refuse
 - A sample shows the page the first lines of a file, so a readable secret leaks if it parses as CSV.
 - The helper reads and writes as its own user.
 
-SQLite also checks file access inside SQL. Its authorizer refuses attachments to named files, including `VACUUM INTO`, and changes to `temp_store_directory` or `data_store_directory`. This applies to writable and read only connections. Plain `VACUUM` and attachments to temporary or in-memory databases remain available. Use the `export`, `import` and `sample` methods for file access authorized by the host.
+On SQLite the helper also checks file access inside SQL, on writable and read only connections alike. It refuses attachments to named files, including `VACUUM INTO`, and changes to `temp_store_directory` or `data_store_directory`. Plain `VACUUM` and attachments to temporary or in-memory databases remain available. Use the `export`, `import` and `sample` methods for file access authorized by the host.
 
 The safe rule is to allow exactly the paths the person picked in an app dialog. [Files](/database/guide/files#allowing-a-path) has that check.
 
@@ -107,7 +107,7 @@ The helper enforces `readOnly: true`, not the views:
 - MySQL and MariaDB start the session with `SET SESSION TRANSACTION READ ONLY`.
 - `apply` and `import` fail with `read-only`, and so does a statement the server refuses on a read only session.
 
-The views disable their edit actions and say why. On MySQL the setting is a session variable, so SQL typed in a [`QueryConsole`](/database/views/query-console) could switch it back. On a read only session the helper refuses with `read-only` any statement that makes a transaction writable (`SET TRANSACTION READ WRITE`, `START TRANSACTION READ WRITE`, or setting `transaction_read_only` or `tx_read_only`), and every `PREPARE` and `EXECUTE`, whose text it cannot read. It cannot see a stored procedure that switches the setting, so for a guarantee, connect with an account that may only `SELECT`.
+The views disable their edit actions and say why. On MySQL the setting is a session variable, so SQL typed in a [`QueryConsole`](/database/views/query-console) could switch it back. The helper therefore refuses with `read-only` any statement that makes a transaction writable: `SET TRANSACTION READ WRITE`, `START TRANSACTION READ WRITE`, or setting `transaction_read_only` or `tx_read_only`. It also refuses every `PREPARE` and `EXECUTE`, whose text it cannot read. It cannot see a stored procedure that switches the setting, so for a guarantee, connect with an account that may only `SELECT`.
 
 ## `where` and `orderBy` are SQL
 

@@ -1,7 +1,5 @@
 # Getting started
 
-Install the package, find the helper, wire the host into a backend and mount the views.
-
 ## Install
 
 ::: code-group
@@ -256,7 +254,7 @@ Call `client.dispose()` when the page goes away, to close its sessions. The view
 | `numberNotation` | `NumberNotation`                   | `'database'` | How cells draw numbers. See [Number notation](#number-notation).                                                                                                                |
 | `children`       | `ReactNode`                        |              | Required.                                                                                                                                                                       |
 
-`DatabaseProviderProps` is an exported type.
+The props are `DatabaseProviderProps`.
 
 ### Notices
 

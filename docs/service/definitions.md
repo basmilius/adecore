@@ -52,7 +52,7 @@ ExecStart="/opt/My Tools/worker" "--label" "a$$b"
 Environment="CACHE=/home/ada/cache%%/$HOME"
 ```
 
-The task runs `conhost.exe --headless cmd.exe /d /c .\<label>.cmd` from `scriptDirectory`, because an interactive task's console program otherwise gets a window, and closing that window ends it. A headless conhost loses inner quotes, so what needs them is in the script. The definition carries the script in `Documentation`; `scheduledTaskScript(definition)` returns its `path` and `text`, and the manager writes it on install and removes it on uninstall. The script escapes `cmd.exe` syntax with a caret, doubles `%`, quotes arguments and the program for the C runtime, and sets code page 65001. It throws on a line break. The XML is pure ASCII with character references, since `schtasks` reads a UTF-8 file in the system's code page and refuses a BOM. `definitionRunsProgram` also recognizes a task from before the script.
+The task runs `<label>.cmd` from `scriptDirectory` in a headless console, so no console window appears that would end the program when closed. The definition carries the script. `scheduledTaskScript(definition)` returns its `path` and `text`, and the manager writes it on install and removes it on uninstall. The script escapes values for `cmd.exe` and throws on a line break. `definitionRunsProgram` also recognizes a task from before the script.
 
 No function checks that the program exists, and only the task rejects a newline. Pass values the app trusts.
 

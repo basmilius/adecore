@@ -14,7 +14,7 @@ Type in a document, then move its tab. The text goes with it.
 
 `WorkspaceProps` takes `layout`, `toolbar`, `sidebar`, `sidePanel`, `rail`, `sidebarWidth`, `sidePanelWidth` and `children`, plus `className`, `ref`, `render` and the props of a `<div>`. A region left out, `false` or `null` is closed. The sidebar is 248 pixels wide and the side panel 320. For a resizable region, bring your own handle. Width `'auto'` is for contents that size and animate themselves, such as `SlidingColumn`s. Those stay mounted when closed, so pass `sidebarOpen` or `sidePanelOpen` for the corners and flush edges to follow.
 
-`WorkspaceLayout` is `'standard' | 'roomy'`. Standard, the default, draws a 1 pixel `--separator` line between surfaces. Roomy puts 8 pixel gaps between them and rounds their corners by 8, except a corner on a flush outer edge.
+`WorkspaceLayout` is `'standard' | 'roomy'`. Standard, the default, draws a 1 pixel `--separator` line between regions. Roomy puts 8 pixel gaps between them and rounds their corners by 8, except a corner on a flush outer edge.
 
 The sidebar, the toolbar and the content lie on one sheet with a 12 pixel rounded right edge, a hairline and `--sheet-shadow`. In the roomy layout its bottom corner is square and it has no shadow, since the gaps set it apart. The side panel and the `rail` sit behind it in a slightly darker well, and `--surface` inside the panel resolves to that well.
 
@@ -26,7 +26,7 @@ An app shell puts three parts around the content: a top row with the project, a 
 
 `WorkspaceTopRow` is the 47 pixel band to pass as `toolbar`. `WorkspaceTopRowProps` takes `leading`, `children` and `slotless`, plus the props of a `<header>`. `leading` comes first: room for a window's own controls, or a button that brings a closed sidebar back. `children` is the project, a `ProjectSwitcher` or a strip of project tabs. After it the row keeps a slot, where the bar of a lone pane goes. `slotless` leaves the slot out, for project tabs that take the whole row. The window drags by every part of the row that is not a button, an input, a link, a tab or a pane's title.
 
-`rail` is a column at the right edge, after the side panel. `WorkspaceRail` draws it 48 pixels wide, labeled "Tools" unless you pass an `aria-label`; `WorkspaceRailProps` are the props of a `<nav>`. `WorkspaceRailSeparator` goes between groups and `WorkspaceRailSpacer` pushes the last group down. With 32 pixel buttons and one button before the first separator, that separator lands on the bottom line of the top row. The rail makes no stacking context, so a hover on it never covers the sheet's edge. Give its buttons `tooltipSide="left"`. A line stands between the rail and an open side panel, and fades with it.
+`rail` is a column at the right edge, after the side panel. `WorkspaceRail` draws it 48 pixels wide, labeled "Tools" unless you pass an `aria-label`; `WorkspaceRailProps` are the props of a `<nav>`. `WorkspaceRailSeparator` goes between groups and `WorkspaceRailSpacer` pushes the last group down. With 32 pixel buttons and one button before the first separator, that separator lands on the bottom line of the top row. Give its buttons `tooltipSide="left"`. A line stands between the rail and an open side panel, and fades with it.
 
 `PaneBar` is the bar over a pane. `PaneBarProps` take the props of a `<header>`, plus:
 
@@ -152,7 +152,7 @@ Node ids are unique within a layout, and a view id sits in one pane at most. To 
 
 Inactive views and panes behind a maximized one stay mounted, hidden and inert. Only closing a view unmounts it. A view keeps its state through a move as long as it renders the same component type and is not keyed by pane id.
 
-`onViewBoundsChange(bounds)` receives a `SplitViewBounds` per view: `viewId`, `paneId`, `active`, a `SplitRect` (`x`, `y`, `width`, `height`) in the viewport and the CSS `borderRadius`. A native surface can follow those bounds. Hide it while `active` is false and clip it as reported. On unmount the list is empty.
+`onViewBoundsChange(bounds)` receives a `SplitViewBounds` per view: `viewId`, `paneId`, `active`, a `SplitRect` (`x`, `y`, `width`, `height`) in the viewport and the CSS `borderRadius`. A native view laid over the page can follow those bounds, hidden while `active` is false and clipped as reported. On unmount the list is empty.
 
 `minimumSize` is a `SplitMinimum` (`width`, `height`) or a function of the pane, 120 by 80 pixels by default, header included. In a window too small for all minimums, panes shrink in proportion and the stored shares stay. `minimumResizeShare` (default 0) keeps a dragged divider from squeezing a pane below that share of its span.
 

@@ -46,11 +46,11 @@ A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes t
 
 `stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
-A kind of work is an `OutboxWorkShape`: a schema whose `kind` is a literal, so the kinds of one outbox form a discriminated union. An entry is an `OutboxEntryOf` that work, the work plus the `OutboxEntryFields` the store adds. `OutboxHandlers` maps every kind to its handler, which resolves to an `OutboxOutcome`: nothing, or `'wait'`. The worker reads time from an `OutboxClock`, `systemClock` by default. `OutboxStoreOptions` and `OutboxWorkerOptions` list the options of the two.
+A kind of work is an `OutboxWorkShape`, a schema whose `kind` is a literal, so the kinds of one outbox form a discriminated union. `OutboxEntryOf` gives the entry type of a work: the work plus the `OutboxEntryFields` the store adds. `OutboxHandlers` maps every kind to its handler, which resolves to an `OutboxOutcome`, nothing or `'wait'`. The worker reads time from an `OutboxClock`, `systemClock` by default. `OutboxStoreOptions` and `OutboxWorkerOptions` list the options of store and worker.
 
 ### Resuming a turn after a restart
 
-A turn the host went down in can go on once the chat loads again. Put `ResumeRunWorkSchema` in the outbox's union. Hand `oweResume` to the chat core as its interrupted-run hook. It needs `projectOf`, `entries` and `enqueue` (`OweResumeDeps`), and enqueues one `ResumeRunEntry` per turn and attempt, however often the chat is loaded. Register `resumeRunHandler` for the kind. It calls `resumeRun(chatId, turnId, attempt)` from `ResumeRunDeps`, so a CLI that will not start retries on the outbox's delays. `resumeRunParked` goes in `onParked`. It ends a resume the worker gave up on through `abandonRun`, with `notResumedNote` and the error as its reason, and leaves other kinds alone. `ResumeRunWork` is the type of the work.
+A turn the host went down in can go on once the chat loads again. Put `ResumeRunWorkSchema` (type `ResumeRunWork`) in the outbox's union. Hand `oweResume` to the chat core as its interrupted-run hook. It needs `projectOf`, `entries` and `enqueue` (`OweResumeDeps`), and enqueues one `ResumeRunEntry` per turn and attempt, however often the chat is loaded. Register `resumeRunHandler` for the kind. It calls `resumeRun(chatId, turnId, attempt)` from `ResumeRunDeps`, so a CLI that will not start retries on the outbox's delays. `resumeRunParked` goes in `onParked`. It ends a resume the worker gave up on through `abandonRun`, with `notResumedNote` and the error as its reason, and leaves other kinds alone.
 
 ```ts
 const owe = oweResume({ projectOf, entries: () => outbox.list(), enqueue: (projectId, target, work) => worker.enqueue(projectId, target, work) });
@@ -157,7 +157,7 @@ The types around `wireTasks`:
 
 ## Messages
 
-`NoticeStore` keeps messages waiting for a chat under `notices/`, capped per chat and in age: at most `MAX_NOTICES` per chat, none older than `NOTICE_MAX_AGE_MS`. A message is a `Notice`. `take` hands them to the model once. `show` marks them seen by a person, independently.
+`NoticeStore` keeps messages waiting for a chat under `notices/`, capped per chat and in age: at most `MAX_NOTICES` per chat, none older than `NOTICE_MAX_AGE_MS`. A message is a `Notice`. `take` hands them to the model once, and `show` marks them seen by a person. The store tracks the two apart.
 
 After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets(core), notice)` stores a message and returns what happens next:
 
@@ -168,7 +168,7 @@ After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets
 | `in-turn` | The running turn may take the message through `steerNotices`. Otherwise enqueue the same entry when that turn finishes, for a chat whose waiting messages pass `withinHops`. |
 | `hop-limit` | The chain went past `MAX_MESSAGE_HOPS`. The message waits, so two chats cannot wake each other forever. |
 
-Every message counts one hop past the turn that sent it, which `ChatNoticeTargets.hop(id)` answers. A turn a person or a settled task started counts from zero. `SteerChat` is what `steerNotices` needs of a chat, and `NoticeStore.onSettled` says when a message was heard or dropped, so a thread can stop showing it as waiting.
+Every message counts one hop past the turn that sent it, which `ChatNoticeTargets.hop(id)` answers. A turn a person or a settled task started counts from zero. `SteerChat` is what `steerNotices` needs of a chat. `NoticeStore.onSettled` says when a message was heard or dropped, so a thread can stop showing it as waiting.
 
 `NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person, in the chat as a `NoticeChat`.
 

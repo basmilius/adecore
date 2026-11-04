@@ -32,4 +32,4 @@ It adds the words and sets the source during render, so the first child already 
 
 ## Words
 
-A component reads its words through `useTranslation('ui')` on the instance you pass, never the global `i18next`, so a second React root with another instance speaks its own language.
+A component reads its words from the instance you pass, never the global `i18next`, so a second React root with another instance speaks its own language.

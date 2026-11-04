@@ -39,4 +39,4 @@ A window keeps its saved bounds only while a display still shows enough of it to
 
 `fileStorage` writes one JSON file atomically. An unreadable file, or one from another version, counts as a first start. Any `WindowStateStorage`, an object with `read()` and `write(text)`, can replace the file.
 
-`WindowStateOptions`, `WindowState`, `SavedWindow`, `StateWindow` (the part of a `BrowserWindow` it uses), `WindowDisplay` and `WindowSize` are exported types; the [reference](/shell/reference#windowstateoptions) lists the options.
+`createWindowState` takes `WindowStateOptions` and returns a `WindowState`. Its `defaults` is a `WindowSize`, and `displays` returns `WindowDisplay`s, of which it reads the work area. `track` takes a `StateWindow`, the part of a `BrowserWindow` it uses, and the file holds a `SavedWindow` per key. The [reference](/shell/reference#windowstateoptions) lists the options.

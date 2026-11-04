@@ -1,6 +1,6 @@
 # Getting started
 
-This page starts a language server, opens a document on it, asks a question and hands the result to the editor as a language service. The server runs as a child process of a Bun or Node backend.
+The server on this page runs as a child process of a Bun or Node backend.
 
 ## Install
 

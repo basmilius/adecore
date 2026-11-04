@@ -80,7 +80,7 @@ A Claude chat drives Claude Code through `@anthropic-ai/claude-agent-sdk`, a dep
 
 `claude.entrypoint` names your app to the CLI as `CLAUDE_CODE_ENTRYPOINT`, on the person's sign-in and on an API key. Without it the SDK's `sdk-ts` stays. The host sets it in the process environment only, so an `env` the person put in their own Claude settings still wins.
 
-On Stop, a message sent into the running turn that the CLI has not taken in yet goes back to the queue. That needs a call the SDK has but does not declare. On a runtime without it, such a message runs after the Stop.
+On Stop, a message sent into the running turn that the CLI has not taken in yet goes back to the queue. With an SDK that lacks the call for this, such a message runs after the Stop.
 
 ### On an API key
 
@@ -95,7 +95,7 @@ createClaudeProvider({
 });
 ```
 
-The host calls `key()` at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `DISABLE_AUTOUPDATER`, `DISABLE_BUG_COMMAND`, `DISABLE_ERROR_REPORTING` and `DISABLE_TELEMETRY` set. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` would turn those off at once, but also the title the CLI gives the session, which the chat takes as its own. The host leaves out every variable of its environment that could send the key or the prompts elsewhere. Those are every `ANTHROPIC_*` variable (base URLs, auth tokens, custom headers), the `CLAUDE_CODE_USE_*` switches to another cloud with their `CLAUDE_CODE_SKIP_*_AUTH`, `CLAUDE_CODE_OAUTH_TOKEN` and `AWS_BEARER_TOKEN_BEDROCK`. No settings file loads, and no MCP server beyond the launch's `mcpServers`, whatever `projectConfigFor` says.
+The host calls `key()` at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `DISABLE_AUTOUPDATER`, `DISABLE_BUG_COMMAND`, `DISABLE_ERROR_REPORTING` and `DISABLE_TELEMETRY` set. The host leaves out every variable of its environment that could send the key or the prompts elsewhere: every `ANTHROPIC_*` variable (base URLs, auth tokens, custom headers), the `CLAUDE_CODE_USE_*` switches to another cloud with their `CLAUDE_CODE_SKIP_*_AUTH`, `CLAUDE_CODE_OAUTH_TOKEN` and `AWS_BEARER_TOKEN_BEDROCK`. No settings file loads, and no MCP server beyond the launch's `mcpServers`, whatever `projectConfigFor` says.
 
 It runs on the CLI the person installed, like every other Claude chat, and never on the one the SDK bundles.
 
@@ -188,7 +188,7 @@ const provider = createApiChatProvider({
 
 `createChatCompletionsBackend` takes a `ChatCompletionsSpec`. The API keeps no conversation, so the backend keeps the thread as `<session id>.json` in `directory()`. It writes the file after every step and reads it back on resume. A request goes to `<url>/chat/completions` with the key as a bearer token and follows no redirect. Every error the backend writes starts with `name`, and only an error that starts with it reaches the person. Any other failure ends the turn with `words.failed`, since a raw error can quote the key. Build `httpError(status)` from the status alone, and start its message with `name`. The `ChatCompletionsWords` are the sentences that tell a person what to do in your app.
 
-The model gets project tools: list, read, search, edit and write files under the working folder, run a command (`/bin/sh`, PowerShell on Windows, 30 seconds, output clipped), and `ask_user`, which opens a question card. A file tool refuses paths outside the folder, symbolic links, hidden files and credential files. `supervised` asks before every tool, `auto-accept-edits` and `auto` ask only for a command (a plain API has no classifier, so `auto` runs as `auto-accept-edits`), and `full-access` asks for none. `ask_user` waits for the person in every mode. A model for which `supportsTools` answers `false` is offered no tools at all.
+The model gets project tools: list, read, search, edit and write files under the working folder, run a command (`/bin/sh`, PowerShell on Windows, 30 seconds, output clipped), and `ask_user`, which opens a question card. A file tool refuses paths outside the folder, symbolic links, hidden files and credential files. `supervised` asks before every tool, and `full-access` asks for none. `auto-accept-edits` and `auto` ask only for a command. A plain API has no classifier, so `auto` runs as `auto-accept-edits`. `ask_user` waits for the person in every mode. A model for which `supportsTools` answers `false` is offered no tools at all.
 
 `toolRounds()` returns `ToolRounds`, read as each run starts. After `roundsPerRun` rounds of tool calls the chat sends itself a message to carry on, up to `runs` runs, then ends the turn with an error. `onUsage` gets a `ChatCompletionsUsage` for every request that reported its `ChatCompletionsTokens`: the prompt holds its cached part and the completion its reasoning, as the API counts them.
 

@@ -10,7 +10,7 @@ A person orders the accounts of each CLI with `accounts.reorder`, which writes `
 
 A CLI keeps accounts when its provider has a `home`: the folder variable, the default folder, the variables that sign it in by themselves, and the `loginCommand` a person types in a terminal. A CLI that signs in from its first chat, such as an ACP agent, leaves `loginCommand` out. Its kind appears in `chatLogins` instead of `loginCommands`, and its accounts count as `ready` without a check.
 
-The service asks a provider with its own `askAccount(command, env)` through it, as it does every ACP provider (see [ACP agents](./acp#accounts)). Others go through the service's `ask`, which by default knows Claude Code (`claude auth status --json`) and Codex (`account/read`). A host's own `ask` must answer for every kind. A kind in `loginCommands` that nothing can ask is also listed in `silentLogins`, so a login window should not promise to close by itself.
+A provider with its own `askAccount(command, env)` answers for itself, as every ACP provider does (see [ACP agents](./acp#accounts)). The others go through the service's `ask`, which by default knows Claude Code (`claude auth status --json`) and Codex (`account/read`). A host's own `ask` must answer for every kind. A kind in `loginCommands` that nothing can ask is also listed in `silentLogins`, so a login window should not promise to close by itself.
 
 `accounts.create` makes a folder for the new account under the data folder. For Codex it is a shadow home with its own `auth.json` and links to the shared home's sessions, skills and rules, so accounts continue each other's threads. A file already in the way is reported as not shared. This needs Codex to keep its login in a file, not the keychain.
 

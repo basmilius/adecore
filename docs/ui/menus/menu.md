@@ -1,6 +1,6 @@
 # Menu
 
-A dropdown menu of actions, as a compound component on Base UI's menu. Every part takes Base UI's own props; the library adds the look, the portal and the placement.
+A dropdown menu of actions, as a compound component on Base UI's menu. Every part takes Base UI's own props; the library adds the styles, the portal and the placement.
 
 ```tsx
 import { Menu } from '@adecore/ui';
@@ -21,7 +21,7 @@ import { Menu } from '@adecore/ui';
 | `Menu.Group`, `Menu.GroupLabel` | A group of rows under a label a screen reader reads as the group's name. |
 | `Menu.Label` | A label above rows that are not a group of their own, such as a row of swatches. |
 | `Menu.Separator` | The hairline between groups. |
-| `Menu.Hint` | A quiet note at the end of a row about what the item does. A shortcut is a [`Kbd`](/ui/display/kbd) instead. |
+| `Menu.Hint` | A muted note at the end of a row about what the item does. A shortcut is a [`Kbd`](/ui/display/kbd) instead. |
 | `Menu.Check` | The tick slot of a row that shows a state but is not a checkbox or radio item. |
 | `Menu.SubmenuRoot`, `Menu.SubmenuTrigger` | A row that opens another menu beside it. Put a `Menu.Popup` inside the `SubmenuRoot`. The trigger ends in a chevron; `chevron={false}` leaves it off for a row that ends in a hint. |
 | `Menu.Row`, `Menu.RowAction`, `Menu.RowSubmenuTrigger` | A row with buttons at its end (below). |

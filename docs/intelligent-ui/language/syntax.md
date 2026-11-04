@@ -1,6 +1,6 @@
 # Syntax
 
-A block is XML-like tags inside a fenced code block. This page is the grammar, including how the compiler reads text that is still arriving.
+A block is XML-like tags inside a fenced code block.
 
 ## The fence
 

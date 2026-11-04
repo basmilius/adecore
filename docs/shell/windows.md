@@ -32,7 +32,7 @@ app.whenReady().then(() => windows.restore());
 
 `create` builds and loads the window with the bounds it gets. The package tracks the window with the [window state](/shell/window-state) from then on, so `create` never calls `windowState.track`. A key without saved bounds opens a little beside the window in front. A window without a key keeps its bounds under `'start'`.
 
-`origin`, a `WindowOrigin`, says why the window opens: `session` (open at the last quit), `first` (the one window of a start without a session) or `opened` (asked for). It lets a page tell a cold start from a new, empty window. The fourth argument, `state`, is covered in [What a page keeps](#what-a-page-keeps).
+`origin`, a `WindowOrigin`, says why the window opens: `session` (open at the last quit), `first` (the one window of a start without a session) or `opened` (asked for). It lets a page tell a cold start from a new, empty window. The fourth argument is the [state the page kept](#what-a-page-keeps).
 
 An app that used to keep its single window under its own key passes that key as `formerKey`, so the first window opens where the old one stood.
 
@@ -96,4 +96,4 @@ if (target === null) {
 
 Every IPC handler resolves its window from the sender with `fromPage`, which [IPC and senders](/shell/ipc#which-window-sent-it) explains along with `fromContents`. `send(channel, ...args)` reaches the page of every window, for what the whole app shares, such as where updating stands. `keyOf(window)` returns the key a window shows, and `all()` lists the open windows.
 
-`WindowsOptions` and `Windows` are exported types; the [reference](/shell/reference#windowsoptions) lists the options.
+`createWindows` takes `WindowsOptions` and returns `Windows`. The [reference](/shell/reference#windowsoptions) lists the options.

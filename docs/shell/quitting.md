@@ -1,6 +1,6 @@
 # Quitting
 
-A [set of windows](/shell/windows) keeps a session: the windows open at quit reopen at the next start. This page covers which windows stay in it, a quit the app confirms first and a quit an update starts.
+A [set of windows](/shell/windows) keeps a session. The windows open at quit reopen at the next start.
 
 ## Which windows stay
 
@@ -8,7 +8,7 @@ A window that closes leaves the session, so closing one of three windows opens t
 
 ## Asking first
 
-An app that asks before quitting, or must finish something first, passes `confirmQuit` to `attach`. It runs once per quit, before any window closes, and the quit waits for it. `true` lets the quit go ahead and `false` cancels it. A throw lets the quit go ahead, so a broken check never traps the app. On `false`, a window that already closed for the quit (the last one off macOS) reopens.
+An app that asks before quitting, or must finish something first, passes `confirmQuit` to `attach` in its `AttachOptions`. It runs once per quit, before any window closes, and the quit waits for it. `true` lets the quit go ahead and `false` cancels it. A throw lets the quit go ahead, so a broken check never traps the app. On `false`, a window that already closed for the quit (the last one off macOS) reopens.
 
 ```ts
 windows.attach(app, {
@@ -24,7 +24,7 @@ windows.attach(app, {
 });
 ```
 
-The argument is a `QuitRequest`. Its `update` is true for a quit an update install started. `AttachOptions` holds `confirmQuit`. `setTimeout` in the `WindowsOptions` replaces the timer that asks for the quit again once `confirmQuit` said yes, for tests.
+The argument is a `QuitRequest`. Its `update` is true for a quit an update install started. A test can replace the timer that restarts the quit after a yes with `setTimeout` in the `WindowsOptions`.
 
 ## Deciding in your own listener
 

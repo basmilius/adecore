@@ -24,7 +24,7 @@ if (frame.value.type === 'chat.send') {
 }
 ```
 
-`parseRequest` and `parseServerFrame` return `{ ok: true, value }` or `{ ok: false, message }` and never throw. An unknown request name still parses as a frame, and the host refuses it. The parsers check against `RequestSchema` and `ServerFrameSchema`, which build on `EventSchema` and on `ReplySchema`, the union of `ReplyOkSchema` and `ReplyErrorSchema`. `ErrorSchema` checks the `WireError` a failure carries. `ParseResult<T>` is what both parsers return.
+`parseRequest` and `parseServerFrame` return `{ ok: true, value }` or `{ ok: false, message }` and never throw. An unknown request name still parses as a frame, and the host refuses it. Both return a `ParseResult<T>`. `parseRequest` checks against `RequestSchema`. `parseServerFrame` checks against `ServerFrameSchema`, the union of `ReplySchema` and `EventSchema`, and `ReplySchema` is the union of `ReplyOkSchema` and `ReplyErrorSchema`. `ErrorSchema` checks the `WireError` inside a failure.
 
 ## FramePort
 
@@ -37,7 +37,7 @@ interface FramePort {
 }
 ```
 
-A frame arrives as `unknown` because the receiver checks it. `onFrame` returns an unsubscribe function. The port knows nothing of connecting, closing, timeouts or who is on the other end. The implementation decides. Pass frames as they are over a cloning port, or as JSON over a socket. [Getting started](/agent-contracts/getting-started#implement-a-port) wraps a `MessagePort` and serves both ends.
+A frame arrives as `unknown` because the receiver checks it. `onFrame` returns an unsubscribe function. The port knows nothing of connecting, closing, timeouts or who is on the other end. The implementation decides. [Getting started](/agent-contracts/getting-started#implement-a-port) wraps a `MessagePort` and serves both ends.
 
 ## Attaching and replay
 
@@ -67,7 +67,7 @@ Keep the last `seq` applied and send it as `since` on reconnect. A host that sti
 
 `activeSubagents(items)` returns the subagents still relevant beside a thread: running ones, ones settled after the last message, and settled ones whose turn still runs another. A client holding only the newest page shows those next to it.
 
-`activeWorkflows(items)` returns the Workflow calls still relevant beside a thread by the same rule: running ones and ones that ended after the last message, counting only calls that reported what they run. `finishedAt` on a workflow is when its call settled. `workflowEndedAt(workflow)` returns that moment. For a call stored without it, the function falls back to the last end of its agents or its last report, and returns null when the call never reported. A client holding only the newest page keeps these next to it too, and applies the events that change them.
+`activeWorkflows(items)` applies the same rule to Workflow calls: running ones and ones that ended after the last message. It counts only calls that reported what they run. `finishedAt` on a workflow is when its call settled, and `workflowEndedAt(workflow)` returns that moment. For a call stored without it, the function falls back to the last end of its agents or its last report. It returns null when the call never reported. A client holding only the newest page keeps these next to it too, and applies the events that change them.
 
 `outlineItems(items, marked)` returns the scrubber stops: every message of the person, every turn woken by tasks or messages, and the replies in `marked`, with text cut to `CHAT_OUTLINE_TEXT_CHARS`. A client holding only the newest page draws a tick for each and loads earlier pages when one is picked.
 

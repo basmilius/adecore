@@ -91,7 +91,7 @@ A `<head>` inside a comment, script or template never receives the bootstrap. A 
 
 ## Telling an agent
 
-Three short product-neutral texts for a host's tool or command help: `VISUAL_PAGE_RULES` (one self-contained document, public http(s) URLs, inline SVG or canvas), `VISUAL_LAYOUT_GUIDE` (a borderless, fluid frame as wide as the reply column, no outer card or banner title, charts at a fixed height) and `VISUAL_THEME_GUIDE` (the variables, which follow light and dark live).
+A host can put three short texts that name no product in its tool or command help: `VISUAL_PAGE_RULES` (one self-contained document, public http(s) URLs, inline SVG or canvas), `VISUAL_LAYOUT_GUIDE` (a borderless, fluid frame as wide as the reply column, no outer card or banner title, charts at a fixed height) and `VISUAL_THEME_GUIDE` (the variables, which follow light and dark live).
 
 ## Serving a page
 

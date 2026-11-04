@@ -4,7 +4,7 @@ An agent proposes a plan as a `PlanDraft`. It is the same tree as a [plan](/plan
 
 ## Parsing a draft
 
-The draft schemas are strict. They refuse a misspelled field by its path instead of dropping it. `parsePlanDraft` checks a whole draft and returns `{ ok: true, draft }` or a `plan-invalid` refusal:
+The draft schemas are strict and refuse a misspelled field by its path instead of dropping it. `parsePlanDraft` checks a whole draft and returns `{ ok: true, draft }` or a `plan-invalid` refusal:
 
 ```ts
 import { createPlan, parsePlanDraft } from '@adecore/plan';
@@ -13,7 +13,7 @@ const draft = parsePlanDraft(JSON.parse(body));
 const created = draft.ok ? createPlan(draft.draft, { id: 'release', now: new Date().toISOString() }) : draft;
 ```
 
-The draft schemas are `PlanDraftMetaSchema`, `PlanDraftSectionSchema`, `PlanDraftTextSchema` and `PlanDraftStepSchema`, with the types `PlanDraft`, `PlanDraftItem`, `PlanDraftSection`, `PlanDraftText` and `PlanDraftStep`. They are on `@adecore/plan`, not on the protocol entry point.
+`PlanDraftMetaSchema` checks the meta, and `PlanDraftSectionSchema`, `PlanDraftTextSchema` and `PlanDraftStepSchema` check one item each. Their types are `PlanDraftSection`, `PlanDraftText` and `PlanDraftStep`, a `PlanDraftItem` is any of the three, and `PlanDraft` is the whole draft. They live on `@adecore/plan`, not on the protocol entry point.
 
 ## createPlan
 

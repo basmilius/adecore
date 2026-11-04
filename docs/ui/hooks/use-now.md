@@ -1,6 +1,6 @@
 # useNow and useTickingText
 
-A clock for a surface that says how long something has been running.
+A clock for a view that shows how long something has been running.
 
 ```tsx
 import { useNow, useTickingText } from '@adecore/ui';
@@ -10,7 +10,7 @@ import { useNow, useTickingText } from '@adecore/ui';
 
 ## useNow
 
-`useNow(intervalMs, ticking = true)` returns the time in epoch milliseconds and renders again every `intervalMs` while `ticking` is true. Each call starts its own timer, so call it once for a surface and hand the time to its rows.
+`useNow(intervalMs, ticking = true)` returns the time in epoch milliseconds and renders again every `intervalMs` while `ticking` is true. Each call starts its own timer, so call it once per view and hand the time to its rows.
 
 ## useTickingText
 

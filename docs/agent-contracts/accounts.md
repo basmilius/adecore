@@ -12,7 +12,7 @@ import { ProviderAccountsSchema, topAccountOf, type ProviderAccount } from '@ade
 
 `ProviderAccount` (`ProviderAccountSchema`) is `{ kind, label?, color?, enabled?, home?, shadowHome?, env?, order? }`. Absent `enabled` is on. `order` is the account's place among the accounts of its CLI, lowest first. `home` is the config folder (`~` allowed), absent on the default account. `shadowHome` is Codex only: a separate login folder that shares everything else with `home`. `kind` is a plain string, so records of unknown CLIs still parse and round-trip. `ProviderAccountMap` (`ProviderAccountMapSchema`) holds the accounts by id.
 
-`ProviderAccountVariable` (`ProviderAccountVariableSchema`) is `{ name, value, sensitive, valueRedacted? }`, set on the CLI's environment. The host never sends a sensitive value. It sends `value: ''` with `valueRedacted: true`, and saving that back keeps the stored secret.
+`ProviderAccountVariable` (`ProviderAccountVariableSchema`) is `{ name, value, sensitive, valueRedacted? }`, a variable the host sets in the CLI's environment. The host never sends a sensitive value. It sends `value: ''` with `valueRedacted: true`, and saving that back keeps the stored secret.
 
 ## Order
 

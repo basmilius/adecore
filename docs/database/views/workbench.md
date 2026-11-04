@@ -44,4 +44,4 @@ Actions the workbench cannot place go to `onAction` of the provider above: `mana
 | `className`           | `string`                                |         | Its size.                                                                    |
 | `ref`                 | `Ref<HTMLDivElement>`                   |         |                                                                              |
 
-`DatabaseWorkbenchProps` is an exported type. The workbench needs a `DatabaseProvider` above it. Its tabs are the [`Tabs`](/ui/layout/tabs) of `@adecore/ui`.
+The props are `DatabaseWorkbenchProps`. The workbench needs a `DatabaseProvider` above it. Its tabs are the [`Tabs`](/ui/layout/tabs) of `@adecore/ui`.

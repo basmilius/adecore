@@ -1,6 +1,6 @@
 # Lexical queries
 
-These answer questions about code without parsing it. They use the same lexer as typing, so they work on code that does not compile yet and in languages no parser here knows. Each takes a language id, such as `typescript` or `php`.
+These answer questions about code with the lexer that typing uses, not a parser, so they work on code that does not compile yet. Each takes a language id, such as `typescript` or `php`.
 
 ## Brackets
 
@@ -12,7 +12,7 @@ import { scanBrackets } from '@adecore/editor-core';
 scanBrackets('call(items[0]').pairs; // Map { 10 => 12, 12 => 10 }
 ```
 
-`document.matchBracket(offset, language?, limit?)` pairs the bracket at `offset` as `scanBrackets` would, lexing only what changed since the last call. It returns a `BracketMatch` whose `mate` is the partner's offset, or `undefined` for an unpaired bracket. It returns `undefined` itself where no code bracket stands, such as in a string.
+`document.matchBracket(offset, language?, limit?)` pairs the bracket at `offset` as `scanBrackets` would, and relexes only what changed since the last call. It returns a `BracketMatch` whose `mate` is the partner's offset, or `undefined` for an unpaired bracket. It returns `undefined` itself where no code bracket stands, such as in a string.
 
 ```ts
 const document = new DocumentModel('call(items[0])');
@@ -33,7 +33,7 @@ const document = new DocumentModel('<template><p>{{ name }}</p></template>\n<scr
 document.placeAt(60, 'vue'); // { language: 'typescript', kind: 'code' }
 ```
 
-A host uses it to decide what applies at the caret, such as which templates or comment markers.
+A host uses it to decide what applies at the caret, such as templates or comment markers.
 
 ## Expressions before a dot
 
@@ -77,7 +77,7 @@ commentSyntax('python'); // { line: '#', block: null }
 findTodos('const x = 1; // TODO: rename', 'typescript'); // [{ from: 16, to: 28, line: 0, word: 'TODO' }]
 ```
 
-`document.findTodos(language, options?, first?, last?)` does the same for lines `first` through `last` of a `DocumentModel`, reusing its lexer state.
+`document.findTodos(language, options?, first?, last?)` does the same for lines `first` through `last` of a `DocumentModel`.
 
 ## Documentation comments
 

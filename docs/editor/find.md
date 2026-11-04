@@ -42,7 +42,7 @@ Regular expressions run only in the [search worker](#search-worker). Literal sea
 
 ## Search worker
 
-Set `searchWorker` on `createSmartEditorEngine` to a factory for a worker entry that calls `serveEditorSearch(self)`. Each editor creates its client on first use. Regular expression searches debounce and run one at a time, with a deadline of 1.5 seconds live and 10 seconds on Enter or a find step. In a document over 8 million UTF-16 units they start only on Enter or a find step. Escape ends the session and releases the worker. Without `searchWorker`, a regular expression search reports `unavailable`.
+Set `searchWorker` on `createSmartEditorEngine` to a factory for a worker entry that calls `serveEditorSearch(self)`. Regular expression searches debounce and run one at a time, with a deadline of 1.5 seconds live and 10 seconds on Enter or a find step. In a document over 8 million UTF-16 units they start only on Enter or a find step. Escape ends the session and releases the worker. Without `searchWorker`, a regular expression search reports `unavailable`.
 
 ```ts
 // search.worker.ts

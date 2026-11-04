@@ -1,7 +1,5 @@
 # Getting started
 
-This page installs a program as a user service on the person's machine, starts it, and replaces it when a new release brings a new definition or binary.
-
 ## Install
 
 The package has no peers and no styles:

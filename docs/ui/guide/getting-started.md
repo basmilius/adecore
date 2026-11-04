@@ -1,6 +1,6 @@
 # Getting started
 
-`@adecore/ui` is a set of React components for desktop-style apps: dense toolbars, menus with shortcuts, stacked dialogs, a settings window. It builds on [Base UI](https://base-ui.com), [Lucide](https://lucide.dev) and Tailwind 4, and ships its own theme.
+`@adecore/ui` builds on [Base UI](https://base-ui.com), [Lucide](https://lucide.dev) and Tailwind 4, and ships its own theme.
 
 ## Install
 
@@ -57,7 +57,7 @@ It adds the library's words to your i18next instance, hands the formatters your 
 
 ## Words and languages
 
-The library's words ("Cancel", "Zoom in") live in the `ui` namespace (`UI_NAMESPACE`), in English and Dutch. `UIProvider` adds both to your i18next instance. Switch languages as usual with `i18n.changeLanguage('nl')`.
+The library's words ("Cancel", "Zoom in") live in the `ui` namespace (`UI_NAMESPACE`), in English and Dutch. Switch languages as usual with `i18n.changeLanguage('nl')`.
 
 `UIProvider` skips a language that already has a `ui` bundle. To add a third language, add its `ui` bundle before the provider mounts. `UI_RESOURCES` holds the English source.
 

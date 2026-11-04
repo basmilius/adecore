@@ -10,8 +10,8 @@ import { ContextMenu } from '@adecore/ui';
 
 ## Parts
 
-`ContextMenu.Root` holds the open state and `ContextMenu.Trigger` is the right-click area. The other parts are the menu's: `ContextMenu.Popup`, `ContextMenu.Item`, `ContextMenu.CheckboxItem`, `ContextMenu.RadioGroup`, `ContextMenu.RadioItem`, `ContextMenu.Group`, `ContextMenu.GroupLabel`, `ContextMenu.Label`, `ContextMenu.Separator`, `ContextMenu.Hint`, `ContextMenu.Check`, `ContextMenu.SubmenuRoot`, `ContextMenu.SubmenuTrigger`, `ContextMenu.Row`, `ContextMenu.RowAction` and `ContextMenu.RowSubmenuTrigger`. See [Menu](/ui/menus/menu#parts) for what each does.
+`ContextMenu.Root` holds the open state and `ContextMenu.Trigger` is the right-click area. `ContextMenu.Popup` opens at the pointer and needs no placement.
 
-`ContextMenu.Popup` opens at the pointer and needs no placement.
+The rows are those of a [menu](/ui/menus/menu#parts). `ContextMenu.Item` acts, `ContextMenu.CheckboxItem` toggles, and `ContextMenu.RadioItem` picks one value of a `ContextMenu.RadioGroup`. `ContextMenu.Group` and `ContextMenu.GroupLabel` name a group, `ContextMenu.Label` heads rows that are no group, and `ContextMenu.Separator` divides them. `ContextMenu.Hint` notes what a row does and `ContextMenu.Check` shows a state in a plain row. `ContextMenu.SubmenuRoot` and `ContextMenu.SubmenuTrigger` open a submenu. `ContextMenu.Row` puts buttons at the end of a row, where `ContextMenu.RowAction` acts and `ContextMenu.RowSubmenuTrigger` opens a submenu.
 
 For copying from a block of text, use [`TextMenu`](/ui/menus/text-menu).

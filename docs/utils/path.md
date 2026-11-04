@@ -27,4 +27,4 @@ export async function servable(root: string, file: string): Promise<boolean> {
 }
 ```
 
-Hold a handle on the file when another process could swap it between the check and the write. Which folders a caller may touch is up to the app.
+Hold a handle on the file when another process could swap it between the check and the write. The app decides which folders a caller may touch.

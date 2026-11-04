@@ -129,7 +129,7 @@ A usage limit or an overloaded model is an `error` turn with `limit: { kind: 'us
 
 ## Generated images
 
-A tool named `ImageGeneration` stores a `GeneratedImageInput` (`GeneratedImageInputSchema`): an optional attachment, the revised prompt and whether the image is transparent. `generatedImageAttachment(item)` returns the attachment or `null`. A failed generation keeps its error in the tool output. Image bytes never go in a chat item. An attachment may carry `width` and `height` in pixels, and an assistant item the provider's `phase`, such as `commentary` or `final_answer`.
+A tool named `ImageGeneration` stores a `GeneratedImageInput` (`GeneratedImageInputSchema`): an optional attachment, the revised prompt and whether the image is transparent. `generatedImageAttachment(item)` returns the attachment or `null`. A failed generation keeps its error in the tool output. Image bytes never go in a chat item. An attachment may carry `width` and `height` in pixels. An assistant item may carry the provider's `phase`, such as `commentary` or `final_answer`.
 
 ## Quoted replies and waiting notes
 

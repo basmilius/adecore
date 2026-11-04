@@ -15,7 +15,7 @@ const hover = await document.hover({ line: 0, character: 6 });
 ## What it does
 
 - Frames JSON-RPC over a byte stream, such as a server's stdin and stdout, or over a WebSocket.
-- Runs the handshake, answers the server's configuration, registration and progress requests, and shuts down cleanly.
+- Runs the handshake, answers the server's configuration, registration and progress requests, and sends `shutdown` and `exit` at the end.
 - Keeps each open document's text and version, and sends only what changed, or the whole text to a server that asks for full sync.
 - Cancels a request when a newer one of the same feature starts or the text changes, and rejects an answer for old text.
 - Applies both kinds of protocol edit to a string, and plans a workspace edit across files without touching one.

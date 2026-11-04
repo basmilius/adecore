@@ -51,7 +51,7 @@ The width follows the container. `height` covers the plot and the x axis.
 | `height` | `number` | `200` | Pixels. |
 | `grow` | `boolean` | `false` | Fills the container's height, never less than `height`. The container needs a height of its own. |
 | `margin` | `ChartMargin` | | Pixels around the plot, beside the axes. Defaults: `top` 8, `bottom` 4 under an x axis, `left` and `right` 6 on a time or linear scale without buckets. Set them to 0 for a chart that draws to its edges. |
-| `surface` | `'base' \| 'raised'` | `'base'` | The surface behind the chart, used for label halos and point rings. Pass `'raised'` in a dialog or a popover. |
+| `surface` | `'base' \| 'raised'` | `'base'` | The surface behind the chart. Label halos and point rings take its color. Pass `'raised'` in a dialog or a popover. |
 | `interactive` | `boolean` | `true` | `false` makes the chart an image named by `label`, with no tab stop, keys or live region; see [keyboard and screen reader](/charts/keyboard). |
 | `cursor` | `'full' \| 'line' \| 'none'` | `'full'` | How the cursor shows: a lit bucket on a band scale or a line with dots on a time or linear one, the line alone, or nothing beyond the tooltip. Picked buckets stay lit. |
 | `format` | `(value: number) => string` | | Writes values in the tooltip, live region and table, and on a y axis without its own `format`. |
@@ -62,7 +62,7 @@ The width follows the container. `height` covers the plot and the x axis.
 | `selected`, `onActivate`, `dimmed` | | | Columns a person picks, see [Columns and groups](/charts/columns#picking-columns). |
 | `className`, `ref` | | | On the outer box. |
 
-A `ChartX` is a number (a moment in milliseconds) or the key of a category; a `ChartXInput` may also be a `Date`. `ChartXScale`, `ChartYScale`, `ChartYOptions`, `ChartAccessor` and `ChartRootProps` are exported as types.
+A `ChartX` is a number (a moment in milliseconds) or the key of a category; a `ChartXInput` may also be a `Date`. A `ChartAccessor` is a key of the row or a function of it, the shape `x`, `rowLabel` and `value` take. `xScale` is a `ChartXScale`, `yScale` a `ChartYScale` and `y` a `ChartYOptions`. The props are `ChartRootProps`.
 
 ## Grid and axes
 
@@ -135,9 +135,9 @@ On a band scale, `at`, `from` and `to` are bucket keys. A moment between two buc
 
 On a time scale the cursor takes the bucket under the pointer and shows nothing over a missing row. On a linear scale it snaps to the nearest point. `onActiveXChange` fires once per bucket the pointer enters, with `null` over a missing row or when the pointer leaves.
 
-`Chart.Tooltip` is the card at the cursor: the bucket's x, a row per series (`-` without a value), then its markers and bands. It hangs on the side with the most room. `placement` (a `ChartTooltipPlacement`: `top-left`, `top-right`, `bottom-left` or `bottom-right`) pins it to a corner of the plot instead; it flips when it would cover the cursor. `total` adds the sum of the series as "Total", or under a name (`total="Runs"`). `format` writes the card's values. `children` receives the `ChartBucket`, with a `ChartBucketValue` per series, and draws the card's contents.
+`Chart.Tooltip` is the card at the cursor: the bucket's x, a row per series (`-` without a value), then its markers and bands. It hangs on the side with the most room. `placement` pins it to a corner of the plot instead: `top-left`, `top-right`, `bottom-left` or `bottom-right` (a `ChartTooltipPlacement`). A pinned tooltip flips when it would cover the cursor. `total` adds the sum of the series as "Total", or under a name (`total="Runs"`). `format` writes the card's values. `children` receives the `ChartBucket`, with a `ChartBucketValue` per series, and draws the card's contents.
 
-`Chart.Legend` lists the series and their colors above the plot. `Chart.Table` is a "Show values" toggle with the data as a table, which a screen reader reads even while closed. `toggle={false}` drops the button and keeps the table for screen readers only. `open`, `defaultOpen` and `onOpenChange` control it. `data` (a `ChartTableData` of `columns` and `rows`, each row with a `key`, a `label` and a written value per column) replaces the chart's rows with the app's own. The props are `ChartTooltipProps`, `ChartLegendProps` and `ChartTableProps`.
+`Chart.Legend` lists the series and their colors above the plot. `Chart.Table` is a "Show values" toggle with the data as a table, which a screen reader reads even while closed. `toggle={false}` drops the button and keeps the table for screen readers only. `open`, `defaultOpen` and `onOpenChange` control it. `data` replaces the chart's rows with the app's own. It is a `ChartTableData` of `columns` and `rows`, and each row has a `key`, a `label` and a written value per column. The props are `ChartTooltipProps`, `ChartLegendProps` and `ChartTableProps`.
 
 ## Durations and runs of an endpoint
 

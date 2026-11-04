@@ -10,14 +10,18 @@ While a reply streams, a block preview rides on a `delta` with an empty `text`, 
 
 ## Choices
 
-`ChatUiChoicePayloadSchema` and `ChatUiChoicePayload` are the `chat.uiChoice` request: the chat, assistant item, block, revision and choice ids, plus optional local input `values`. Its result is a `ChatSendResult`. The client never sends a label or message context. The host reads both from the stored block and checks the choice against the block's revision.
+`chat.uiChoice` takes a `ChatUiChoicePayload` (`ChatUiChoicePayloadSchema`): the chat, assistant item, block, revision and choice ids, plus optional local input `values`. It returns a `ChatSendResult`. The client never sends a label or message context. The host reads both from the stored block and checks the choice against the block's revision.
 
-`ChatUiChoiceOriginSchema` and `ChatUiChoiceOrigin` record on a user item or queued message where a choice came from. The assistant's optional `uiAnswers` map holds `ChatUiAnswerSchema` / `ChatUiAnswer` records with the answer's turn id and whether it queued. Picking the same choice again returns that turn. Another choice in that block is refused.
+A user item or queued message records where its choice came from in a `ChatUiChoiceOrigin` (`ChatUiChoiceOriginSchema`). The assistant item's optional `uiAnswers` map holds a `ChatUiAnswer` (`ChatUiAnswerSchema`) per answered block, with the answer's turn id and whether it queued. Picking the same choice again returns that turn. The host refuses another choice in that block.
 
 ## Live queries, links and places
 
-`ChatUiQueryPayloadSchema` and `ChatUiQueryPayload` are `ui.query`: chat, item, block, revision, the stored query's name, and optional local input values. A client never sends a source, SQL or fixed arguments.
+`ui.query` takes a `ChatUiQueryPayload` (`ChatUiQueryPayloadSchema`): chat, item, block, revision, the stored query's name, and optional local input values. A client never sends a source, SQL or fixed arguments.
 
-`ChatUiQueryReadingSchema` and `ChatUiQueryReading` carry a fresh value with an opaque read id, or a failed or refused reading with its reason, an optional stable `code` and its time. The `state` values of readings and link resolutions are a closed set. `code` is any string. `ChatUiQueryStateSchema` and `ChatUiQueryState` sit on an assistant item. They keep the writer's chat, and each block's first reading with its frozen fallback. A choice can name the read ids it showed, and the host fills in those values after checking access again.
+It returns a `ChatUiQueryReading` (`ChatUiQueryReadingSchema`). A fresh reading carries the value and an opaque read id. A failed or refused one carries its reason and an optional stable `code`. Every reading carries its time. The `state` values of readings and link resolutions are a closed set, while `code` is any string.
 
-`ChatUiLinkPayloadSchema` and `ChatUiLinkPayload` name a stored node for `ui.link`, with the block, local inputs and host-issued read ids. `ChatUiLinkReadingSchema` and `ChatUiLinkReading` say where the link goes, or why it stays plain text. Every open resolves the node and checks access again. `ChatUiPlaceReadingSchema` and `ChatUiPlaceReading` hold the point a host found for a `Place`, in a frozen block's optional `places` by node id, with its `address`. `state` is `found` or `missing`.
+An assistant item keeps a `ChatUiQueryState` (`ChatUiQueryStateSchema`): the writer's chat, and each block's first readings with its frozen fallback. A choice can name the read ids it showed. The host then checks access again and fills in those values.
+
+`ui.link` takes a `ChatUiLinkPayload` (`ChatUiLinkPayloadSchema`) that names a stored node, with the block, local inputs and host-issued read ids. Its `ChatUiLinkReading` (`ChatUiLinkReadingSchema`) says where the link goes, or why it stays plain text. Every open resolves the node and checks access again.
+
+A `ChatUiPlaceReading` (`ChatUiPlaceReadingSchema`) holds the point a host found for a `Place`, with the `address` it looked up. Its `state` is `found` or `missing`. A frozen block keeps them in its optional `places`, by node id.

@@ -20,7 +20,7 @@ The package runs no program and opens no pty. The app starts the process, sends 
 
 - [Getting started](/terminal/getting-started) installs the package and wires a first terminal to a process.
 - [Input and output](/terminal/input-output) covers writing, resetting, sizing and several windows on one program.
-- [Theme and font](/terminal/theme), [Links](/terminal/links) and [WebGL](/terminal/webgl) cover how it looks and behaves.
+- [Theme and font](/terminal/theme), [Links](/terminal/links) and [WebGL](/terminal/webgl) cover the colors and font, link handling and the WebGL renderer.
 - [Going past the props](/terminal/xterm) shows how to reach xterm for what the props leave out.
 - [Reference](/terminal/reference) lists every prop, every member of the handle and every export.
 

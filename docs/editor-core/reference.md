@@ -6,8 +6,6 @@ import { DocumentModel } from '@adecore/editor-core';
 
 ## DocumentModel
 
-The members of `DocumentModel`, by what they do.
-
 | Group      | Members                                                                                                          | Guide                                                  |
 | ---------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | Text       | `getText`, `getLength`, `getLineCount`, `getLine`, `slice`, `positionAt`, `offsetAt`                             | [Documents](/editor-core/documents#text-and-lines)     |

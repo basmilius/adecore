@@ -17,7 +17,7 @@ if (result.ok) {
 }
 ```
 
-`applyPlanOps(plan, ops, options)` works on a copy. Each operation sees the ones before it. The batch is all or nothing, so one refusal leaves your plan untouched. A batch that passes raises `rev` by one.
+`applyPlanOps(plan, ops, options)` works on a copy, and each operation sees the ones before it. One refusal leaves your plan untouched, and a batch that passes raises `rev` by one.
 
 `options` is a `PlanApplyOptions`: the `actor`, the `now` written into `at`, and an optional `mintId`. A success is a `PlanApplied`, `{ ok: true, plan, minted, dropped }`. `minted` lists the ids made for new items. `dropped` lists the steps that lost their state when they got their first sub-step.
 
@@ -42,7 +42,7 @@ A `set` only takes leaf steps. Several steps may be active at once; `next` does 
 
 ## Building a plan in one batch
 
-Operations in a batch see the ones before them, so an agent can add a section and fill it at once:
+Since each operation sees the ones before it, an agent can add a section and fill it in one batch:
 
 ```ts
 applyPlanOps(

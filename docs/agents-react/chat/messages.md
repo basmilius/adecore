@@ -33,7 +33,7 @@ A fenced block, highlighted with Shiki in the theme of the host's `code`. The bl
 
 `view` replaces the code inside the same frame, such as with what the code draws, while Copy still copies `code`.
 
-Copy copies `code` exactly. The controls show on hover or focus, and always without hover. The optional `actions` node adds your own controls beside Copy. In the chat's own replies, the host's [shell action](/agents-react/guide/host#slots-and-cards) goes there.
+The controls show on hover or focus, and always without hover. The optional `actions` node adds your own controls beside Copy. In the chat's own replies, the host's [shell action](/agents-react/guide/host#slots-and-cards) goes there.
 
 ## Mermaid diagrams
 

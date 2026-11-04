@@ -1,6 +1,6 @@
 # EditorView
 
-`EditorView` mounts an editor, attaches the language features of a project to it, and draws their cards. It is the component most apps need.
+`EditorView` (`EditorViewProps`) mounts an editor, attaches the language features of a project to it, and draws their cards. It is the component most apps need.
 
 ```tsx
 <EditorView
@@ -99,7 +99,7 @@ An app adds its own parts through `LanguagePopupsProps`:
 
 The cards render through portals, so a provider around `LanguagePopups`, such as `EditorRenderingProvider`, reaches all of them.
 
-`createHolder<T>()` is the store `EditorView` uses to hand its `EditorLanguage` to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`. The props of `EditorView` are `EditorViewProps`.
+`createHolder<T>()` is the store `EditorView` uses to hand its `EditorLanguage` to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`.
 
 ### Drawing your own cards
 

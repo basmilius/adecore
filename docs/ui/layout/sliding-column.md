@@ -16,7 +16,7 @@ You hold the width. During a drag, `onWidthChange` reports whole pixels within `
 
 ## Space between panels
 
-`gap={8}` replaces the left border with 8 pixels of `--separator` space, which the resize handle fills. `width`, `bounds` and `onWidthChange` measure the surface alone, so an open column takes `width + gap` pixels.
+`gap={8}` replaces the left border with 8 pixels of `--separator` space, which the resize handle fills. `width`, `bounds` and `onWidthChange` measure the column alone, so an open column takes `width + gap` pixels.
 
 ## A column with shortcuts
 
@@ -28,7 +28,7 @@ You hold the width. During a drag, `onWidthChange` reports whole pixels within `
 | --- | --- | --- | --- |
 | `open` | `boolean` | | Required. |
 | `width` | `number` | | Required. In pixels, already clamped. |
-| `gap` | `number` | `0` | Space before the surface, in whole pixels. |
+| `gap` | `number` | `0` | Space before the column, in whole pixels. |
 | `edge` | `boolean` | `true` | The left border without a gap. Off in a `Workspace` side panel, whose left edge is the sheet's. |
 | `bounds` | `{ min: number; max(): number }` | | Required. `max` is read at drag time. |
 | `onWidthChange` | `(width: number) => void` | | Required. |

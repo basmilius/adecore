@@ -1,7 +1,5 @@
 # Getting started
 
-This page wires a main process with the shell: the page served from its own scheme, a set of windows, the theme, the menu, the updater and the guards. Then it exposes the channels to the page through a preload.
-
 ## Install
 
 Electron and electron-updater are peer dependencies, so the app picks their version:

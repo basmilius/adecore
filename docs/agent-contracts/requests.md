@@ -110,7 +110,7 @@ See [UI blocks in replies](/agent-contracts/ui-replies).
 | `accounts.refresh` | `EmptySchema` | `ProviderAccountsSchema` |
 | `accounts.watchLogin` | `ProviderAccountWatchLoginPayloadSchema` (`ProviderAccountWatchLoginPayload`) | `EmptySchema` |
 
-`accounts.refresh` answers once every CLI was asked again. `accounts.watchLogin` answers at once, and later results arrive as `accounts.changed`. See [Accounts](/agent-contracts/accounts).
+`accounts.watchLogin` answers at once, and later results arrive as `accounts.changed`. See [Accounts](/agent-contracts/accounts).
 
 ## Usage
 

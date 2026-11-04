@@ -21,7 +21,7 @@ import { Popover } from '@adecore/ui';
 
 ## Variants
 
-`variant` sets the surface. `menu`, the default, is the padded menu card. `picker` runs content to the edges, such as a search field over a list. `plain` leaves the surface to you.
+`variant` sets the card. `menu`, the default, is the padded menu card. `picker` runs content to the edges, such as a search field over a list. `plain` draws no card, so you style the popup yourself.
 
 <Demo src="overlays/popover-picker" />
 

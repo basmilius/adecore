@@ -1,6 +1,6 @@
 # Principles
 
-The design rules the library holds itself to. Its test suite checks most of them on every source file. Code built on the library fits in when it keeps them too.
+Every component follows these design rules, and a lint script checks most of them on every source file. App code that keeps them too matches the components beside it.
 
 ## Type
 
@@ -38,24 +38,22 @@ The library binds no shortcut on the window. Its window listeners only watch: [`
 
 ## Keyboard and focus
 
-Everything that acts takes the keyboard. The overlays inherit Base UI's behavior:
+Every control works from the keyboard. The overlays inherit Base UI's behavior:
 
 - Menus and selects move with the arrow keys, jump with Home and End, and find a row by typing its first letters.
 - Enter and Space pick a row, Escape closes, and focus returns to the trigger.
 - A dialog traps focus while it is open, and a dialog opened over another stacks over it.
 - Radio groups such as [`ChoiceCards`](/ui/inputs/choice-cards) move between choices with the arrows.
 
-Keyboard focus is a 2px accent outline, never a ring or a colored border. Pointer focus stays quiet. `.focus-ring` gives the outline to something focusable that is not a button, such as a list row. `.focus-ring-within` draws it on a card that holds a focused field.
+Keyboard focus is a 2px accent outline, never a ring or a colored border. Pointer focus draws no outline. `.focus-ring` gives the outline to something focusable that is not a button, such as a list row. `.focus-ring-within` draws it on a card that holds a focused field.
 
 ## Input modality
 
-Browsers keep `:focus-visible` on for scripted focus after any keystroke. Since Base UI focuses the menu row under the pointer, the outline would then follow the mouse through every menu.
-
-So the library goes by the last real input. `UIProvider` writes `data-modality="keyboard"` or `data-modality="pointer"` on `<html>`. Under the pointer, a highlighted menu row gets the lighter hover background and no outline. Under the keyboard it gets the stronger pressed background. Style your own lists the same way with `.cursor-row[data-active='true']`.
+Browsers keep `:focus-visible` on for scripted focus after any keystroke, so a focus outline would follow the mouse through every menu. The library goes by the last real input instead. `UIProvider` writes `data-modality="keyboard"` or `data-modality="pointer"` on `<html>`. Under the pointer, a highlighted menu row gets the lighter hover background and no outline. Under the keyboard it gets the stronger pressed background. Style your own lists the same way with `.cursor-row[data-active='true']`.
 
 ## Numbers and dates
 
-Only `@adecore/ui/format` builds an `Intl` formatter. Every number, date and duration a person reads goes through it, so it follows their language and region, and long lists reuse formatters. See [Formatting](/ui/formatting/).
+Only `@adecore/ui/format` builds an `Intl` formatter. Every number, date and duration a person reads goes through it, so it follows their language and region. See [Formatting](/ui/formatting/).
 
 ## Props follow Base UI
 

@@ -8,7 +8,7 @@ import { Button } from '@adecore/ui';
 
 ## Variants
 
-`ghost`, the default, is quiet and lifts on hover. `secondary` has a border and a raised ground. Use at most one `primary` per screen. `danger` is for an irreversible deletion, `danger-outline` for a step that forgets rather than destroys, and `positive` for a step that completes something, such as a merge. `inverse` is dark on light and light on dark, as many sign-in buttons require.
+`ghost`, the default, has muted text and no background until hover. `secondary` has a border and a raised ground. Use at most one `primary` per screen. `danger` is for an irreversible deletion, `danger-outline` for a step that forgets rather than destroys, and `positive` for a step that completes something, such as a merge. `inverse` is dark on light and light on dark, as many sign-in buttons require.
 
 <Demo src="actions/button-variants" />
 

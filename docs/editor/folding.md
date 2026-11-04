@@ -1,6 +1,6 @@
 # Folding and structure
 
-The editor finds a document's folds and blocks from the text, and takes better ones from a language server when the host has them. This page covers folding, sticky scroll and the commands that move through a file's structure.
+The editor finds a document's folds and blocks from the text, and takes better ones from a language server when the host has them.
 
 ## Folding
 
@@ -16,7 +16,7 @@ const kept = { folds: editor.getFolds(), scrollTop: editor.getScrollTop() };
 const editor = engine.mount(element, { text, theme, folds: kept.folds, scrollTop: kept.scrollTop });
 ```
 
-`foldDefaults` lists the [roles](/editor-core/folding#roles) that fold when a file opens without stored folds, such as `['imports', 'file-header']`. `FoldRole` is the type of each. They fold once, never a range the person toggled or one holding the caret, and nothing after the first edit. Ranges a language server names later through hints fold too.
+`foldDefaults` lists the [roles](/editor-core/folding#roles) that fold when a file opens without stored folds, such as `['imports', 'file-header']`. `FoldRole` is the type of each. They fold once, and nothing folds after the first edit. A range the person toggled or one holding the caret stays open. Ranges a language server names later through hints fold too.
 
 `setFoldHints(hints)` passes what a language server knows, as `EditorFoldHints`: `symbols` (`EditorFoldSymbol`, with their `range` and `body` kind) and `ranges` (`EditorFoldRangeHint`, with their `kind`). They name the function, method and class bodies. A range with `startCharacter` or `endCharacter` folds within its first and last lines, so an import list collapses to `use …;`. `null` clears the hints.
 

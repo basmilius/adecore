@@ -27,7 +27,7 @@ applyContentChanges('red blue red', [minimalChange('red blue red', after)]) === 
 
 ## A mirror of a document
 
-A host that keeps its own copy of a document, such as a backend that relays changes to several servers, can hold it in a `TextMirror`. `new TextMirror(text)` stores lines, so `applyChanges(changes)` costs only the touched lines. `text` joins them and `lineCount` counts them. A change that does not fit throws and leaves the text unchanged, including earlier entries of the same call.
+A host that keeps its own copy of a document, such as a backend that relays changes to several servers, can hold it in a `TextMirror`. Start one with `new TextMirror(text)`. `applyChanges(changes)` costs only the touched lines. `text` joins them and `lineCount` counts them. A change that does not fit throws and leaves the text unchanged, including earlier entries of the same call.
 
 ```ts
 import { TextMirror } from '@adecore/lsp';
@@ -53,7 +53,7 @@ if (edit !== null) {
 }
 ```
 
-It throws an `LspError` for a missing snapshot, a version mismatch, overlapping edits, a create over an existing snapshot (unless `overwrite` or `ignoreIfExists`), and any rename or delete. The app applies the plan after its own permission checks. For renames and deletes, use resource operations.
+It throws an `LspError` for a missing snapshot, a version mismatch, overlapping edits, a create over an existing snapshot (unless `overwrite` or `ignoreIfExists`), and any rename or delete. For renames and deletes, use resource operations.
 
 ## Resource operations
 

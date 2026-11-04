@@ -4,13 +4,11 @@ Rows above each declaration show how often it is used and who wrote it. Pressing
 
 <Demo src="editor/code-vision" />
 
-Both kinds are off until the app turns them on:
+Both kinds are off until the app turns them on with `CodeVisionSettings`:
 
 ```ts
 language.codeVision.configure({ usages: true, authors: true });
 ```
-
-`configure` takes `CodeVisionSettings`.
 
 Usages come from `textDocument/references` for the declarations in and near the view, once text and scroll settle. Declarations come from the document's symbols.
 

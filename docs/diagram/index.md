@@ -24,7 +24,7 @@ The package takes its palette names, `Point`, `Rect` and default colors from [`@
 
 - [Getting started](/diagram/getting-started) writes a diagram, changes it and exports it.
 - [Documents](/diagram/documents) describes the file and the rules a schema cannot check.
-- [Layout](/diagram/layout) explains how nodes, groups and edges are placed.
+- [Layout](/diagram/layout) explains where nodes and groups go and how edges route.
 - [Export to SVG](/diagram/rendering) covers `toSvg` and its options.
 - [A painter of your own](/diagram/painter) covers drawing the layout as your own elements.
 - [Reading order](/diagram/reading-order) turns a diagram into lines of text.

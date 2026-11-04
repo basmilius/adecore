@@ -1,6 +1,6 @@
 # Links
 
-HTTP and HTTPS URLs in the output and OSC 8 hyperlinks share one handler. Other schemes are ignored.
+HTTP and HTTPS URLs in the output and OSC 8 hyperlinks share one handler. The view ignores other schemes.
 
 ## Opening a link
 

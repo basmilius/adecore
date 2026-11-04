@@ -8,7 +8,7 @@ import { Select } from '@adecore/ui';
 
 <Demo src="inputs/select" />
 
-`outlined`, the default, is a bordered field at most 224 pixels wide. `ghost` is a quiet toolbar trigger. An item can carry an icon, a second-line description and `disabled`. Without a value the trigger shows `placeholder`, or "Select" (`action.select`).
+`outlined`, the default, is a bordered field at most 224 pixels wide. `ghost` is a borderless trigger in muted text, for a toolbar. An item can carry an icon, a second-line description and `disabled`. Without a value the trigger shows `placeholder`, or "Select" (`action.select`).
 
 ## Groups
 

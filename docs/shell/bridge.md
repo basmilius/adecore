@@ -1,6 +1,6 @@
 # Bridge
 
-`@adecore/shell/bridge` holds the shapes that cross IPC between the shell and its page. It imports nothing from Electron, so the main process, a preload and the page all import it. One shape in one place keeps both ends in step.
+`@adecore/shell/bridge` holds the shapes that cross IPC between the shell and its page. It imports nothing from Electron, so the main process, a preload and the page all import it.
 
 | Name | What it is |
 |---|---|
@@ -36,7 +36,7 @@ The tuple names the arguments the main process sends, so `webContents.send('wind
 
 ## Versions
 
-`isVersion` accepts `1.2.3` and `1.2.3-beta.1`, nothing else: not `v1.2.3`, not `1.2` and not a build suffix. Strip the `v` of a git tag first.
+`isVersion` accepts `1.2.3` and `1.2.3-beta.1`. It refuses `v1.2.3`, `1.2` and a build suffix, so strip the `v` of a git tag first.
 
 `compareVersions(a, b)` is negative when `a` is older. It follows semver's order: a prerelease sorts before its own release, numeric parts compare by value and below words, and `beta` sorts before `beta.1`. An invalid version sorts below every valid one.
 
@@ -45,5 +45,3 @@ compareVersions('0.0.10', '0.0.9'); // > 0
 compareVersions('0.29.0-beta.4', '0.29.0'); // < 0
 releases.sort((a, b) => compareVersions(b.version, a.version)); // newest first
 ```
-
-Use it in the shell and in the page, so a release list sorts the same on both sides.

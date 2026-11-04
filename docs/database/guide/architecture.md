@@ -1,6 +1,6 @@
 # How it fits together
 
-The package runs in three places: the views and the client in the page, the host in the app's backend and a native helper beside it. This page shows how a request travels between them and why the drivers live in a separate process.
+The package runs in three places: the views and the client in the page, the host in the app's backend and a native helper beside it.
 
 ## Three layers
 

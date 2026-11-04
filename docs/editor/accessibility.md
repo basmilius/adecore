@@ -1,10 +1,10 @@
 # Accessibility and touch
 
-The editor draws its text in its own DOM, so assistive technology and the on-screen keyboard both reach it through one hidden textarea. This page covers what they get and what the host adds.
+The editor draws its text in its own DOM, so assistive technology and the on-screen keyboard both reach it through one hidden textarea.
 
 ## The textarea
 
-Assistive technology reads the hidden textarea, and the keyboard types into it. It holds the text around the caret, mirrors the selection and describes the caret's line and column. `aria-label` comes from the `label` option (`Code editor` by default), and the editor sets `aria-multiline`. Give every editor a label in the app's language, such as `Commit message`.
+The textarea holds the text around the caret, mirrors the selection and describes the caret's line and column. `aria-label` comes from the `label` option (`Code editor` by default), and the editor sets `aria-multiline`. Give every editor a label in the app's language, such as `Commit message`.
 
 ## A list beside the text
 

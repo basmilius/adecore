@@ -16,7 +16,7 @@ import { LazyBoundary, lazyDialog, lazyNamed, onLazyOpenError, prefetcher } from
 const HistoryPanel = lazyNamed(() => import('./HistoryPanel'), 'HistoryPanel');
 ```
 
-It returns a `LazyComponent`, a component with `preload()`. Hand `preload` to the prefetcher to load one surface first, such as the screen a person is about to open.
+It returns a `LazyComponent`, a component with `preload()`. Hand `preload` to the prefetcher to load one component first, such as the screen a person is about to open.
 
 ```tsx
 void prefetcher.prefetch(HistoryPanel.preload);
@@ -44,7 +44,7 @@ const SettingsWindow = lazyDialog(() => import('./SettingsWindow'), 'SettingsWin
 
 Every module loaded through `lazyNamed` or `lazyDialog` registers with `prefetcher`. Call `prefetcher.prefetchEverything()` once the app has drawn its first screen; it loads every registered module, one per idle moment. Modules registered later join the queue. `prefetcher.prefetch(load)` loads one module ahead of the rest.
 
-The prefetcher does nothing while the browser asks to save data. A failed prefetch is quiet; the first real use tries again. `prefetcher.busy` is true while a prefetch waits on its chunk, so a chunk failure the app hears of elsewhere may be the prefetch's. `onLazyOpenError` only hears the failures a person waits on.
+The prefetcher does nothing while the browser asks to save data. A failed prefetch reports nothing, and the first real use tries again. `prefetcher.busy` is true while a prefetch waits on its chunk, so a chunk failure the app hears of elsewhere may be the prefetch's.
 
 `WhenIdle` is a function that calls back once the main thread is free, and `Loader` is a function that loads a module.
 
@@ -52,7 +52,7 @@ The prefetcher does nothing while the browser asks to save data. A failed prefet
 
 `onLazyOpenError(listener)` calls `listener` with the error when a module loaded for a render fails. A failed prefetch never reaches it. It returns a function that stops listening.
 
-A failed surface stays down until the page reloads, so this is the place to reload once after a deploy removed the old chunks.
+A component whose module failed stays unloaded until the page reloads, so reload here once when a deploy removed the old chunks.
 
 ```tsx
 const stop = onLazyOpenError((error) => console.warn('A lazy surface failed to load', error));

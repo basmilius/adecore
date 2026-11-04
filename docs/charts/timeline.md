@@ -65,7 +65,7 @@ The axis runs from the earliest start to the latest end, or to `end`, which cuts
 | `end` | `number` | the latest end | Where the axis ends, in milliseconds. |
 | `className`, `ref` | | | On the outer box. |
 
-`TimelineRootProps` are the props.
+The props are `TimelineRootProps`.
 
 ## Legend, axis and moments
 
@@ -75,7 +75,7 @@ The axis runs from the earliest start to the latest end, or to `end`, which cuts
 
 `Timeline.Moment` goes inside the axis and draws a diamond at `at`, in the `error` tone by default, with a tooltip of its label and offset ("Payment status timed out at +394 ms"). Moments outside the spans stand at the axis ends.
 
-`TimelineLegendProps`, `TimelineAxisProps` and `TimelineMomentProps` are the props.
+The props are `TimelineLegendProps`, `TimelineAxisProps` and `TimelineMomentProps`.
 
 ## Timeline.Rows
 
@@ -87,7 +87,7 @@ A row per visible span: depth guides, a fold button, a swatch, the label, and th
 | `detail` | `(span) => ReactNode` | Shown under the selected row. A press inside it keeps the selection. |
 | `className`, `ref` | | On the tree. |
 
-`TimelineRowsProps` are the props.
+The props are `TimelineRowsProps`.
 
 ## Keyboard and screen reader
 

@@ -31,7 +31,7 @@ const status = await withTimeout(fetchStatus(), 10_000, 'The status took too lon
 
 ## Timers
 
-A `Timer` runs a callback after a delay and returns how to cancel it. Code that takes a `Timer` instead of calling `setTimeout` can be tested without real time.
+A `Timer` runs a callback after a delay and returns how to cancel it. Code that takes a `Timer` instead of calling `setTimeout` lets a test pass a fake one and skip the wait.
 
 - `cancellableTimeout` keeps the process alive until it fires.
 - `unrefTimeout` does not, for a timer that should never be the reason a process stays up.

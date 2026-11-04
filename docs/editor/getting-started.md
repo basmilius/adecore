@@ -67,7 +67,7 @@ One engine mounts any number of editors. Each has its own document, history and 
 | `handBack`                 | `[]`     | `KeyChord`s the editor leaves alone, so the app's own shortcuts work from inside it |
 | `apple`                    | `false`  | Read Ctrl and Meta the way macOS does                                               |
 
-The editor is editable while the tokenizer loads. The editor ignores a tokenizer that fails, or that answers after a newer theme was set.
+The editor is editable while the tokenizer loads, and ignores a tokenizer that fails or answers after a newer theme was set.
 
 ## Tear down
 

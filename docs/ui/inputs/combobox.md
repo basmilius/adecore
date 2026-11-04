@@ -12,7 +12,7 @@ The demo completes a filter key, then its value. It holds `open` itself to keep 
 
 ## Parts
 
-Every part takes Base UI's own props; the library adds the look, portal and placement.
+Every part takes Base UI's own props; the library adds the styles, the portal and the placement.
 
 | Part | What it is |
 | --- | --- |

@@ -1,6 +1,6 @@
 # Typing and commands
 
-Three methods turn input into edits on every caret at once. Each returns whether anything changed and reads the `language` option to tell code from comments and strings. `typeText` and `paste` default to `typescript`.
+Three methods turn input into edits on every caret at once. Each returns whether anything changed and reads the `language` option, `typescript` by default, to tell code from comments and strings.
 
 ## typeText
 
@@ -22,7 +22,7 @@ document.typeText(';', { language: 'typescript' });
 document.getText(); // 'call(x);'
 ```
 
-A `<script>` body inside PHP markup follows JavaScript rules, and PHP-only syntax stays inside PHP islands. Enter in a script string concatenates with `+`, in a PHP string with `.`. A literal `</script>` ends the script, as in HTML. Every non-self-closing script body uses JavaScript rules, whatever its `type`. In very large script bodies, pairing and brace completion stop.
+Enter in a script string concatenates with `+`, in a PHP string with `.`. A literal `</script>` ends the script, as in HTML. Every script body that is not self-closing uses JavaScript rules, whatever its `type`. In very large script bodies, pairing and brace completion stop.
 
 Nothing pairs in plain text (`text`, `plaintext`, `txt` or `log`), in a comment or in a string. `typeText` inserts longer text as is. Consecutive calls join one undo step, the `typing` group.
 
@@ -54,7 +54,7 @@ Commands that do more than their name says:
 - `convertIndentsToSpaces` and `convertIndentsToTabs` rewrite only leading whitespace, by `tabSize`.
 - `insertNewline` continues a line comment when text follows the caret, closes and continues a `/**` block, splits a string with the language's concatenation, indents after an opener or a `case` label, and closes an unclosed brace. In PHP markup it indents after an opening tag and splits a matching tag pair.
 - `smartHome` goes to the first non-blank character, then to the line start.
-- `smartBackspace` with only whitespace before the caret, in a bracket-indented language, first goes back to the indentation the brackets give the line, then joins the line above. In comments and strings it goes back one tab stop.
+- `smartBackspace` acts when only whitespace stands before the caret. In a bracket-indented language it first goes back to the indentation the brackets give the line, then joins the line above. In comments and strings it goes back one tab stop.
 - `insertTab` first steps over a closer the editor added.
 - `selectNextOccurrence` from a bare caret selects the word, then the next whole word with the same case. From a selection it finds the text anywhere. With no further match, `occurrencesExhausted` is `true` until the next press starts over.
 - `codeBlockStart` and `codeBlockEnd` go to the `{` or `}` of the enclosing block, or across the brace that pairs with one next to the caret. Repeating goes to the outer block. Braces in strings and comments do not count. With `indentGuides: true` a caret on an indent guide goes to that guide's start or end first. The `WithSelection` variants keep the anchor.

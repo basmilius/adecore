@@ -12,9 +12,7 @@ import { fakeDatabaseTransport, type FakeDatabase, type FakeDatabaseTransportOpt
 const client = createDatabaseClient(fakeDatabaseTransport({ databases: { '/data/shop.sqlite': shop }, latencyMs: 150 }));
 ```
 
-It returns a `DatabaseTransport`.
-
-`FakeDatabaseTransportOptions`:
+It takes `FakeDatabaseTransportOptions` and returns a `DatabaseTransport`:
 
 | Option       | Type                                     | Default         |                                                                                                                                       |
 | ------------ | ---------------------------------------- | --------------- | ------------------------------------------------------------------------------------------------------------------------------------- |

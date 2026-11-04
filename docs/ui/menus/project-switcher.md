@@ -16,7 +16,7 @@ Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. Th
 | --- | --- |
 | `icon` | A node before the name, in the row and in the trigger when this is `current`. |
 | `description` | A tooltip beside the row, for a folder path or connection details. |
-| `hint` | Quiet text at the end of the row, for a machine or workspace. |
+| `hint` | Muted text at the end of the row, for a machine or workspace. |
 | `disabled` | A project that cannot be picked. Its actions stay reachable. |
 | `muted` | A dimmed row that can still be picked, for a disconnected project the app can try to reopen. |
 | `actions` | `Menu.Item`s in a submenu beside the row. |

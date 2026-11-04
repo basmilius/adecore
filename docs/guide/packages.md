@@ -1,6 +1,6 @@
 # Choosing packages
 
-ADE CORE is a set of packages, not a framework. An app installs the ones it needs, and each one installs on its own.
+Each package installs on its own, so an app installs only the ones it needs.
 
 ## By what you build
 
@@ -16,7 +16,7 @@ ADE CORE is a set of packages, not a framework. An app installs the ones it need
 
 ## How they fit together
 
-The packages build on each other in layers:
+Each package plays one of four roles:
 
 - A **contract** package holds shapes that cross a process boundary, with no runtime of its own: [Agent contracts](/agent-contracts/).
 - A **host** runs in the backend, in Node or Bun: [Agents](/agents/), the host of [Database](/database/) and [Service](/service/).

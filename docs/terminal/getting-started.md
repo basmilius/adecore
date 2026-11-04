@@ -1,7 +1,5 @@
 # Getting started
 
-This page installs the terminal, loads its styles and connects a first view to a process in the app's backend.
-
 ## Install
 
 xterm and its addons are peer dependencies, so the app picks their version:

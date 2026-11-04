@@ -82,7 +82,7 @@ contextBridge.exposeInMainWorld('desktop', {
 useEffect(() => desktop.onMenuCommand((id) => commands.run(id)), []);
 ```
 
-Only a minimized window is shown first, since showing a window also activates the app.
+The shell shows the window first only when it is minimized, since showing a window also activates the app.
 
 ## A key the page already had
 
@@ -118,4 +118,4 @@ Menu.setApplicationMenu(
 
 `appItems` go at the top of the app menu on macOS. `quitItems` go right above Quit, which sits in the File menu off macOS. `fileItems` get their own File menu on macOS and lead the File menu elsewhere. On macOS this menu is the only way to open a window after the last one closes. An item whose accelerator the page also answers can call `pageKeys.take()` to drop a key the page already had, as `createMenuCommands` does.
 
-`MenuTemplateOptions`, `MenuCommandOptions`, `MenuWindow` (the part of a window a command reaches), `StaticMenuOptions`, `PageKey` and `PageKeys` are exported types. The [reference](/shell/reference#menu-options) lists their fields.
+`menuTemplateOf` takes `MenuTemplateOptions` and `staticMenuTemplate` takes `StaticMenuOptions`. `createMenuCommands` takes `MenuCommandOptions`, whose `window()` returns a `MenuWindow`, the part of a window a command reaches. `createPageKeys` returns `PageKeys`, and `saw` takes a `PageKey`. The [reference](/shell/reference#menu-options) lists their fields.

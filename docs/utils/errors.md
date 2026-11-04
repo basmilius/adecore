@@ -26,7 +26,7 @@ async function readOptional(path: string): Promise<string | null> {
 
 ## Log lines
 
-`describeError(error, debug)` turns a thrown value into one line, its message, or into its stack with `debug` set. An empty message falls back to the error's name, and a value that is not an Error becomes its string.
+`describeError(error, debug)` turns a thrown value into its message on one line. With `debug` set it returns the stack instead. An empty message falls back to the error's name, and a value that is not an Error becomes its string.
 
 A compiled Bun binary prints an Error object with a frame of minified source, so log the string instead of the object:
 
@@ -40,4 +40,4 @@ console.error(describeError(e, process.env.DEBUG === '1'));
 
 ## What stays out
 
-A sentence for a person to read is a different thing from a log line. `@adecore/ui` keeps its own helper for that; see [error messages](/ui/utilities/error-messages). A host that wants stacks in its logs decides that in its own code.
+A message for a person is not a log line. `@adecore/ui` keeps its own helper for that; see [error messages](/ui/utilities/error-messages). A host that wants stacks in its logs decides that in its own code.

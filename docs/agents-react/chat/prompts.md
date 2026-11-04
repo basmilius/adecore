@@ -87,7 +87,7 @@ A `HostPrompt` is `{ id, createdAt, blocking, asks, data }`: a stable id, whethe
 
 ## Parts
 
-`PromptView` is made of `PromptCard` (the frame with heading, meta, notice and error), the approval and question bodies, and the action rows. `PROMPT_SURFACE` is the card's surface class, for a matching frame. `emptyPromptDraft` and `orderPrompts` are pure helpers for a stack of your own.
+`PromptView` is made of `PromptCard` (the frame with heading, meta, notice and error), the approval and question bodies, and the action rows. `PROMPT_SURFACE` is the card's surface class, for a matching frame. For a stack of your own, `emptyPromptDraft()` returns a blank draft, and `orderPrompts(prompts, blocking, createdAt)` sorts blocking prompts first, each group oldest first.
 
 The types of those parts:
 

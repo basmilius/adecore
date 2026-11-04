@@ -70,13 +70,13 @@ With `onActivate`, every point is a `role="button"` with `aria-pressed`: Enter, 
 
 ## End labels
 
-`Chart.EndLabels` writes a label right of the plot at the last point of each series, with a line back to the point. Labels push apart to stay readable. The plot gives up `width` pixels on the right for them (118, or 156 above 750px).
+`Chart.EndLabels` writes a label right of the plot at the last point of each series, with a line back to the point. Labels that would overlap push apart. The plot gives up `width` pixels on the right for them (118, or 156 above 750px).
 
 Its children get a `ChartPointSeries` (`key`, `label`, `rows` and `color`) and return the label content, which takes the series color as `currentColor`. Without children it writes the series label. The props are `ChartEndLabelsProps`.
 
 ## Series legend
 
-`SeriesLegend` lists many series beside a chart, with a search, group toggles, a toggle per series and a highlight on hover or focus. It needs no `Chart.Root`. It only reports. `hidden`/`onHiddenChange` hold the keys that are off, and `highlighted`/`onHighlightedChange` the one under the pointer. The app decides what hiding means, such as leaving rows out of `data`.
+`SeriesLegend` lists many series beside a chart, with a search, group toggles, a toggle per series and a highlight on hover or focus. It needs no `Chart.Root` and hides nothing itself. `hidden`/`onHiddenChange` hold the keys that are off, and `highlighted`/`onHighlightedChange` the one under the pointer. The app decides what hiding means, such as leaving rows out of `data`.
 
 ```tsx
 <SeriesLegend

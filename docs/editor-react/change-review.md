@@ -64,7 +64,7 @@ const container = containers.get('proposal');
 return container === undefined ? null : createPortal(<ChangeReview editor={editor} {...review} />, container);
 ```
 
-`getContainers` returns the same map until an element comes or goes, so a compiled component redraws exactly then. Call `subscribe` and `getContainers` on the host; they are methods, not free functions. `container(id)` and `getVersion` read the live state outside a render.
+`getContainers` returns a new map only when an element comes or goes. Call `subscribe` and `getContainers` on the host, since they are methods, not free functions. Outside a render, `container(id)` and `getVersion` read the live state.
 
 `set(rows)` replaces the owner's rows, and `clear()` removes them. A `HostedRow` with `fixed` has an exact height; one with `filler` draws a hatched spacer without a portal. Keep state outside the element, since it comes and goes.
 

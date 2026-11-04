@@ -37,4 +37,4 @@ desktop.setTheme({
 
 `nativeTheme.themeSource` is `system` only while the app follows the system. Otherwise it is the app's choice, so a page inside a `<webview>` follows the app too.
 
-`current()` returns the last `ThemeState` applied, or `null` before the first. `Theme`, `ThemeOptions` and `TitleBarOverlay` are exported types; the [reference](/shell/reference#themeoptions) lists the options.
+`current()` returns the last `ThemeState` applied, or `null` before the first. `createTheme` takes `ThemeOptions`, whose `overlay` is a `TitleBarOverlay`, and returns a `Theme`. The [reference](/shell/reference#themeoptions) lists the options.

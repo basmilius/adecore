@@ -10,7 +10,7 @@ import { UnifiedDiff, EditDiff, DiffPool } from '@adecore/agents-react/chat/ui';
 
 ## UnifiedDiff
 
-A unified patch in a `ChatFileChange`. A patch without a file header gets one from the path; text without hunks shows as plain lines. Its props are `UnifiedDiffProps`. Pass the two whole texts the patch was made between as `contents`, a `DiffContents` (`{ old, new }`), and a person can unfold the lines between hunks.
+A unified patch in a `ChatFileChange`. A patch without a file header gets one from the path; text without hunks shows as plain lines. Its props are `UnifiedDiffProps`, and its `contents` is a `DiffContents`.
 
 | Prop        | Type                     |                                                                                     |
 | ----------- | ------------------------ | ----------------------------------------------------------------------------------- |

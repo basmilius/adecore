@@ -1,6 +1,6 @@
 # Rendered documentation
 
-`language.renderedDocs` draws documentation comments as formatted text in place of their lines, like IntelliJ's Reader mode. The comment stays in the document, so copy, find, undo and the language server see the raw text. A screen reader finds the block under "Rendered documentation" plus the first words of its summary.
+`language.renderedDocs`, a `RenderedDocsFeature`, draws documentation comments as formatted text in place of their lines, like IntelliJ's Reader mode. The comment stays in the document, so copy, find, undo and the language server see the raw text. A screen reader finds the block under "Rendered documentation" plus the first words of its summary.
 
 It is off until a host turns it on, or a person switches one comment with its gutter button.
 
@@ -18,12 +18,12 @@ It formats at most `MAX_DOC_COMMENTS` (500) comments per document; the rest stay
 
 ## What it shows
 
-The description is Markdown. The tags follow, grouped by name, as a two-column list with the label in the muted color on the left and its values on the right.
+The feature reads a comment into a `ParsedDocComment`: a Markdown description and a `DocTagEntry` per tag, with its name, type, subject and text. The tags follow the description, gathered by name into `DocTagSection`s, as a two-column list with the label in the muted color on the left and its values on the right.
 
 | Tag                                        | Shown as                                                                       |
 | ------------------------------------------ | ------------------------------------------------------------------------------ |
 | `@deprecated`                              | A marked line above everything else                                            |
-| `@param`, `@arg`, `@argument`, `@property` | Name and type in code, then the text. `[name=default]` and `...$args` are read |
+| `@param`, `@arg`, `@argument`, `@property` | Name and type in code, then the text. Reads `[name=default]` and `...$args` too |
 | `@return`, `@returns`, `@yield`            | Type in code, then the text                                                    |
 | `@throws`, `@exception`                    | Class in code, then the text                                                   |
 | `@var`, `@type`, `@template`               | Name and type in code, then the text                                           |
@@ -40,7 +40,7 @@ Inline `{@link Name}`, `{@link Name label}`, `{@link Name|label}`, `{@linkcode}`
 
 - **Gutter button.** A book button on the first line of each comment, pressed while it is formatted. It is a [gutter marker](/editor/decorations#gutter-buttons) of the owner `rendered-docs`.
 - **Command.** `toggleRenderedDocs` (`Ctrl+Alt+Q` everywhere) and `language.renderedDocs.toggle()` switch the comment under the caret, and return false outside one. Carets inside a comment that turns formatted move to the line below it. A comment that is the whole document stays source. Outside macOS, AltGr+Q typing `@` is typing, not the shortcut.
-- **Switch.** `configure({ renderDocComments, enabled })`. `enabled` is on unless `false`, so pass it on every call. Off, there are no buttons, the command does nothing and every comment is source. On again restores a person's switches.
+- **Switch.** `configure({ renderDocComments, enabled })` takes `RenderedDocsSettings`. `enabled` is on unless `false`, so pass it on every call. Off, there are no buttons, the command does nothing and every comment is source. On again restores a person's switches.
 - **Setting.** `renderDocComments` formats every comment; off by default, as in IntelliJ. Changing it resets a person's switches. `isRendered(comment)` and `all` read the state.
 - **Editing.** A comment the caret or a selection touches shows as source, and formats again once the caret leaves. A click on the block never moves the caret. Up and Down step over a formatted comment and keep the column. A find match or go-to target inside one shows it as source first.
 
@@ -50,13 +50,9 @@ Cmd+click (Ctrl elsewhere) follows a name link through `workspace/symbol`. Witho
 
 ## Layout
 
-The block uses the code face for names and types, the interface face for prose, and the theme's colors. It is at most 520 pixels wide and sits at the comment's indentation. Folding a rendered comment shows the fold placeholder. The feature parses and draws only the comments in view.
+The block uses the code face for names and types, the interface face for prose, and the theme's colors. It is at most 520 pixels wide and sits at the comment's indentation. Folding a rendered comment shows the fold placeholder.
 
 `LanguagePopups` draws the blocks. A host with its own popups reads `language.renderedDocs.getEntries()` with `useSyncExternalStore` and its `subscribe`, both called on the feature, and draws each `RenderedDocEntry` into its `container`. `entries()` builds a fresh list for code outside a render.
-
-## Exports
-
-`RenderedDocsFeature` is the class behind `language.renderedDocs`, with `RenderedDocsSettings` for `configure` and `RenderedDocEntry` for `getEntries` and `entries()`. The model is a `ParsedDocComment` of a description and `DocTagEntry`s, gathered into `DocTagSection`s.
 
 ## Replacing lines in the editor
 

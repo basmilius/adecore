@@ -43,7 +43,7 @@ A check that returns `false`, throws or rejects fails the request with `forbidde
 - A session belongs to the owner that opened it. Another owner using its id gets `unknown-session`.
 - A `cancel` only reaches the sender's own requests.
 - Two running requests of one owner cannot share an id; the second fails with `invalid-request`.
-- Request ids belong to the owner. The host renames them for the helper and restores them on the response.
+- Request ids belong to the owner, so two owners can use the same ids.
 
 `release` and `dispose` wait at most two seconds for the helper, so a hung helper cannot block quitting.
 

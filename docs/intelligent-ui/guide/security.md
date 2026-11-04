@@ -1,6 +1,6 @@
 # Security model
 
-A block is text an agent wrote. The agent may be wrong, and the text may carry instructions picked up from a file or a web page, so the package treats every block as untrusted input. This page lists what a block can and cannot do, and what the host must still check.
+A block is text an agent wrote. The agent may be wrong, and the text may carry instructions picked up from a file or a web page, so the package treats every block as untrusted input.
 
 ## What a block can do
 
@@ -24,7 +24,7 @@ A block is text an agent wrote. The agent may be wrong, and the text may carry i
 
 ## Budgets
 
-`UiBudget` bounds parser and interpreter work, nodes, nesting, iterations and string length against `UI_LIMITS`, inside helpers too. The limits are deterministic; a positive `milliseconds` adds an elapsed-time limit. `Each` reserves all its iterations before it allocates a child. `UI_REPLY_LIMITS` caps a whole reply, and `UI_HOST_LIMITS` the host reads per block. The numbers are under [limits](/intelligent-ui/host/compilation#limits).
+`UiBudget` bounds parser and interpreter work, nodes, nesting, iterations and string length against `UI_LIMITS`, inside helpers too. The limits are deterministic; a positive `milliseconds` adds an elapsed-time limit. `UI_REPLY_LIMITS` caps a whole reply, and `UI_HOST_LIMITS` the host reads per block. The numbers are under [limits](/intelligent-ui/host/compilation#limits).
 
 A block over its budget becomes its text with one `budget_exceeded` diagnostic. A part that fails alone shows its own fallback; the parts beside it still draw.
 

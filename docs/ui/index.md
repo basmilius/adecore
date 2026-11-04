@@ -4,8 +4,8 @@
 
 ## What it does
 
-- Menus, dialogs, popovers, selects and tooltips are Base UI parts with the library's look, so focus, arrow keys, typeahead and Escape work.
-- Every color is a semantic token with a light and a dark value. The theme removes Tailwind's palette, so a component can only reach the theme.
+- Menus, dialogs, popovers, selects and tooltips are Base UI parts drawn on the theme, so focus, arrow keys, typeahead and Escape work.
+- Every color is a semantic token with a light and a dark value. The theme removes Tailwind's palette, so a component can only use the theme's colors.
 - One shortcut value matches a key event and prints the shortcut, as ⌘K on a Mac and Ctrl+K elsewhere. With [`ShortcutHints`](/ui/display/shortcut-hints) mounted, holding the modifier shows the key of every visible button.
 - The [formatters](/ui/formatting/) follow the language and the region a person picked, separately.
 - The [settings dialog](/ui/settings/settings-dialog) puts sections on the left and a pane on the right, with search that jumps to a row and parts for rows, cards and master-detail panes.

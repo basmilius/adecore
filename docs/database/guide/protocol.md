@@ -41,7 +41,7 @@ A failed request answers with `ok: false` and an error:
 { "id": "r9", "ok": false, "error": { "code": "conflict", "message": "The change matched no row.", "change": 2 } }
 ```
 
-`DatabaseMethods` maps each method to its params and its result. `DatabaseRequest<M>`, `DatabaseResponse<M>`, `DatabaseMethod`, `DatabaseParams<M>` and `DatabaseResult<M>` read from it.
+`DatabaseMethods` maps each method to its params and its result, and `DatabaseMethod` is a method's name. `DatabaseParams<M>` and `DatabaseResult<M>` pick out one method's params and result. `DatabaseRequest<M>` and `DatabaseResponse<M>` are the messages above, for one method or any.
 
 ## Methods
 
@@ -182,8 +182,6 @@ The host talks to the helper over its standard streams, one JSON message per lin
 - stderr carries log lines for people, outside the protocol. `spawnHelper` hands each to `onLog`.
 - A line can be megabytes, such as a page of rows with long cells.
 - When stdin closes, the helper gives running requests up to two seconds, cancels the rest, rolls back open transactions, closes its sessions and exits with code 0.
-
-The host renames each request id for the helper (`h1`, `h2`, ...) and restores the page's id on the response, so two owners can use the same ids.
 
 ## Versions
 

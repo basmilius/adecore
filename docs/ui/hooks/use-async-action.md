@@ -1,6 +1,6 @@
 # useAsyncAction
 
-One step a surface waits on: busy while it runs, and the reason on screen when it fails.
+One step a dialog or form waits on: busy while it runs, and the reason on screen when it fails.
 
 ```tsx
 import { useAsyncAction } from '@adecore/ui';
@@ -29,7 +29,7 @@ A rejection becomes `failure`, through [`messageOf`](/ui/utilities/error-message
 | `busy` | `boolean` | `true` while `run` awaits. |
 | `failure` | `string \| null` | The reason the last run failed. |
 | `run(work)` | `(work: () => Promise<unknown>) => Promise<boolean>` | |
-| `fail(message)` | `(message: string) => void` | Sets `failure` from the surface's own check. |
+| `fail(message)` | `(message: string) => void` | Sets `failure` from a check of your own. |
 | `clear()` | `() => void` | |
 
 [`PromptDialog`](/ui/overlays/prompt-dialog) runs its confirm through this hook. `AsyncAction` is an exported type.

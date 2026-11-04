@@ -9,7 +9,7 @@ A rename, a code action or a server's `workspace/applyEdit` can change many file
 It plans the edit first with [`planWorkspaceOperations`](/lsp/edits#resource-operations), so an edit that does not fit changes nothing. Before each step it checks that open editors still hold the planned text and version, and that a delete or overwrite loses no unsaved work. A step that no longer fits stops the edit there. Steps that already ran stay applied; nothing rolls back.
 
 - A file open in an editor takes its edits as one undo step.
-- Any other file becomes an unsaved draft through `files.stage`. Nothing is written on a server's word alone.
+- Any other file becomes an unsaved draft through `files.stage`.
 - With moves in the edit, the drafts save through `files.save` and the moves go through `files.rename`.
 - A created file goes through `files.create`, with all the text the edit writes into it. `applyWorkspaceEdit` refuses an existing target unless the edit says `ignoreIfExists`. `overwrite` needs `files.supportsOverwrite`. Closing or reloading an editor on a replaced target is up to the host.
 - A deleted file or folder goes through `files.delete`.
@@ -48,7 +48,7 @@ const session = new LspSession(transport, { rootUri, resourceOperations: support
 const project = new ProjectLanguage(service, { folder, files });
 ```
 
-`drafts` and `disk` stand for the app's own storage. `save` and `rename` resolve to the reason they failed, or `null`. This host neither creates nor deletes, so `supportedResourceOperations` announces only `rename` and servers do not ask for the rest.
+`drafts` and `disk` stand for the app's own storage. This host neither creates nor deletes, so `supportedResourceOperations` announces only `rename` and servers do not ask for the rest.
 
 ## Telling the servers about files
 

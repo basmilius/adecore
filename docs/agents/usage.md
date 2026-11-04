@@ -24,7 +24,7 @@ For a provider with no CLI to ask, such as a subscription API the host calls wit
 
 Every provider other than Claude Code, Codex and Grok needs the host to log its calls, which the scanner reads like a transcript. An ACP agent can write that log itself (see [ACP agents](/agents/acp#usage)). `hostUsageLine` writes one call (a `HostUsageEntry`) with the token kinds apart: `input`, `cacheRead`, `cacheWrite`, `output`, `reasoning`. Map your API's counts onto them, checking whether its input includes the cached part. Add a root for that folder, with its provider, to the `roots` of the `UsageService`.
 
-A provider that runs Claude Code in a configuration folder of its own, such as one on an API key, needs no log: `claudeTranscriptRoot(provider, configDir)` is a root that reads Claude Code's transcripts there and counts them under `provider`. Its `format: 'claude'` is what tells the scanner how to read it.
+A provider that runs Claude Code in a configuration folder of its own, such as one on an API key, needs no log. `claudeTranscriptRoot(provider, configDir)` is a root that reads Claude Code's transcripts there and counts them under `provider`. Its `format: 'claude'` tells the scanner how to read them.
 
 A root is a `UsageRootPath`: a `provider`, a `path`, optionally the `accounts` whose CLI writes there, and the `format`. `usageRoots(env)` returns the roots of the default accounts, found through the variables the CLIs read.
 

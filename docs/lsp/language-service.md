@@ -23,7 +23,7 @@ Every request takes `LanguageRequestOptions`: a `signal`, and `parallel: true` t
 
 ## What a service promises
 
-- `openDocument` opens the document, or joins it when another client has it open. Its text then replaces what is held. `changeDocument` applies `ContentChange`s in order and raises the version by one. `closeDocument` releases it. A shared service closes the server's document after the last client.
+- `openDocument` opens a `LanguageDocument` (its `file:` `uri`, `languageId` and `text`), or joins it when another client has it open. Its text then replaces what is held. `changeDocument` applies `ContentChange`s in order and raises the version by one. `closeDocument` releases it. A shared service closes the server's document after the last client.
 - An answer for outdated text rejects with `StaleResultError`. An unsupported method rejects with an `LspError` of `-32601`, a server that is not up with `-32002`.
 - `onProvidersChanged(uri)` fires when a document's server came up, registered a capability or asked for a refresh. Editor features ask once when a document opens, so fire it when a server comes up for an open document.
 - A `DiagnosticsReport` has the `uri`, the `source` (which server), an optional `version` and the `diagnostics`. A report replaces the previous one of the same source, so give each server a stable source and send an empty report once its problems are gone.
@@ -31,9 +31,7 @@ Every request takes `LanguageRequestOptions`: a `signal`, and `parallel: true` t
 
 `unservedLanguageService()` is the service for a document no server handles. It accepts documents, supports nothing and rejects every request with an `LspError` of `-32601`.
 
-`openDocument` takes a `LanguageDocument`: the `file:` `uri`, the `languageId` and the `text`.
-
-The package ships no service over processes. A minimal one over a single session forwards each method to the open `LspDocument`, counts clients per URI, and maps `session.onCapabilitiesChanged` and `onDiagnostics` to the two events. [Getting started](/lsp/getting-started#hand-a-language-service-to-the-editor) sketches one. Server discovery, installation, starting and permissions stay in the app.
+The package ships no service over processes. A minimal one over a single session forwards each method to the open `LspDocument`, counts clients per URI, and maps `session.onCapabilitiesChanged` and `onDiagnostics` to the two events. [Getting started](/lsp/getting-started#hand-a-language-service-to-the-editor) sketches one.
 
 ## Vue and TypeScript
 

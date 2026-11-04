@@ -1,7 +1,5 @@
 # Getting started
 
-This page installs the charts, loads their words and draws a first chart.
-
 ## Install
 
 `@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies:
@@ -100,4 +98,4 @@ import { Chart } from '@adecore/charts';
 - Tailwind scans `@adecore/charts` next to `@adecore/ui`.
 - The `charts` namespace is in the app's i18next.
 - Every chart has a `label`.
-- The parent gives the chart its width; `height` sets the rest.
+- The parent gives the chart its width, and `height` sets its height.

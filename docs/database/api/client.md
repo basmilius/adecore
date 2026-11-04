@@ -62,7 +62,9 @@ const page = await session.rows('main', 'customers', { offset: 0, limit: 100, wh
 | `import(schema, table, request, options?)`   | The number of rows inserted                                                                  |
 | `close()`                                    | Nothing. Closes the session.                                                                 |
 
-Every method but `close` takes `RequestOptions` (`{ signal? }`) last; `ExecuteOptions` adds `schema`, `limit`, `cellLimit` and `maxBytes`. [Methods](/database/guide/protocol#methods) describes each on the server. An `ExportRequest` is `{ source, format, path, header?, tableName? }` and an `ImportRequest` is `{ path, format, header, columns }`; see [Files](/database/guide/files). A `TableRef` names a table by `connectionId`, `schema` and `table`.
+Every method but `close` takes `RequestOptions` (`{ signal? }`) last, and `execute` takes `ExecuteOptions`, which adds `schema`, `limit`, `cellLimit` and `maxBytes`. [Methods](/database/guide/protocol#methods) describes each on the server.
+
+`export` takes an `ExportRequest`, `{ source, format, path, header?, tableName? }`, and `import` an `ImportRequest`, `{ path, format, header, columns }`; see [Files](/database/guide/files). A `TableRef` names a table by `connectionId`, `schema` and `table`.
 
 ## Retry rules
 

@@ -131,4 +131,4 @@ Filtering, sorting, export and the record view keep working, with read only fiel
 | `className`      | `string`                   |         | Its size.                                               |
 | `ref`            | `Ref<HTMLDivElement>`      |         |                                                         |
 
-`TableViewProps` is an exported type. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it. Table views on one connection share its default session, outside any [console](/database/views/query-console#transactions) transaction.
+The props are `TableViewProps`. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it. Table views on one connection share its default session, outside any [console](/database/views/query-console#transactions) transaction.

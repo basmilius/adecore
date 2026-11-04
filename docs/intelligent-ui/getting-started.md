@@ -1,6 +1,6 @@
 # Getting started
 
-This page wires blocks end to end. The agent learns the language, the backend compiles replies, the wire carries blocks and the page draws them. With [`@adecore/agents`](/agents/) and [`@adecore/agents-react`](/agents-react/) most of it is configuration. Each step also shows the package used on its own.
+This page wires blocks end to end. With [`@adecore/agents`](/agents/) and [`@adecore/agents-react`](/agents-react/) most of it is configuration. Each step also shows the package used on its own.
 
 ## Install
 

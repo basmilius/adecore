@@ -43,4 +43,4 @@ The tree is a `role="tree"` named `Call hierarchy`. Rows are `treeitem`s with `a
 
 ## Models
 
-`CallNode`, `CallRow`, `CallDirection` and `CallLoad` are the types of the nodes and rows.
+A `CallNode` is one symbol of the tree with its call sites, its children and a `CallLoad` of `idle`, `loading`, `loaded` or `failed`. A `CallRow` is a line of the tree as drawn: a node, a status line or a `Show more` row. `CallDirection` is `incoming`, `outgoing`, `supertypes` or `subtypes`.

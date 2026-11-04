@@ -1,6 +1,6 @@
 # Getting started
 
-This page installs the model and takes one document through reading, editing, typing, undo and change events. None of it needs a DOM, so every example runs as is in `bun test`.
+None of this page needs a DOM, so every example runs as is in `bun test`.
 
 ## Install
 

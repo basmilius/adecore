@@ -42,7 +42,7 @@ These helpers are for a timeline of your own:
 - `initialVisualContentHeight` and `rememberVisualHeight` keep a row's height across remounts. `visualContentHeight` rounds and bounds a reported height. `initialVisualHeight` and `clampVisualHeight` keep the capped heights for older hosts.
 - `rowPosition(kind, top)` places a visual row with `top` and others with a transform, since a transform on an ancestor breaks the sticky frame.
 - `visualViewportGeometry(contentHeight, availableHeight, top)` returns a `VisualViewportGeometry`: the frame height and its content offset.
-- `VisualViewportController` keeps the iframe in step with the scroll without a React update, and hands wheel, keys and touch over the page to the timeline.
+- `VisualViewportController` keeps the iframe in step with the scroll and hands wheel, keys and touch over the page to the timeline.
 
 ## The theme
 

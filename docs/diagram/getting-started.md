@@ -1,7 +1,5 @@
 # Getting started
 
-This page writes a diagram, checks it, changes it and exports it as SVG and as text.
-
 ## Install
 
 ```sh
@@ -40,7 +38,7 @@ const problem = diagramProblemIn(diagram);
 // null
 ```
 
-`diagramProblemIn` checks what the schema cannot, such as an edge to a node that does not exist. It returns `null` here.
+`diagramProblemIn` checks what the schema cannot, such as an edge to a node that does not exist.
 
 ## Change it
 

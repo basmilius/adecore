@@ -32,4 +32,4 @@ The view reloads when its props change and after a [schema change](/database/api
 | `className`    | `string`              |         | Its size.                                 |
 | `ref`          | `Ref<HTMLDivElement>` |         |                                           |
 
-`StructureViewProps` is an exported type. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+The props are `StructureViewProps`. The view needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

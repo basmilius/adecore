@@ -1,6 +1,6 @@
 # Theme
 
-`@adecore/ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`. The tables below are read from that file at build time.
+`@adecore/ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`.
 
 The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-muted`, `border-border`, `shadow-float`) and clears Tailwind's default palette with `--color-*: initial`. Components and your app can reach only these colors until you add your own.
 
@@ -12,7 +12,7 @@ The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-mute
 
 ## Borders
 
-Alpha over whatever is behind, never a gray of their own (see [Principles](/ui/guide/principles#borders-are-alpha)). `--border-soft` is the hairline between rows, `--border-strong` the outline of a control that has to read as one.
+A border is an alpha over whatever is behind it, never a gray of its own (see [Principles](/ui/guide/principles#borders-are-alpha)). `--border-soft` is the hairline between rows, `--border-strong` the outline of a control that has to read as one.
 
 <TokenTable group="border" />
 
@@ -30,7 +30,7 @@ The accent marks the primary button, the focus outline, a picked choice and the 
 
 ## Status
 
-Four states something can be in (running, waiting on a person, idle, failed) and a positive fill for a step that went well.
+Four tokens mark the state something is in (running, waiting on a person, idle, failed). `--positive` fills a step that went well.
 
 <TokenTable group="status" />
 
@@ -42,7 +42,7 @@ Four states something can be in (running, waiting on a person, idle, failed) and
 
 ## Media
 
-A control drawn over a picture rather than over the interface, such as the handle of a [`Wipe`](/ui/layout/wipe). It stays the same in both themes.
+These tokens color a control drawn over a picture, such as the handle of a [`Wipe`](/ui/layout/wipe). They keep one value in both themes.
 
 <TokenTable group="media" />
 
@@ -60,7 +60,7 @@ The palette [`FileIcon`](/ui/display/file-icon) colors file types with. The them
 
 ## Layers
 
-All z-indexes live here, so a new popup never guesses. A dialog sits under the menus and selects it opens, tooltips over both, and the [shortcut hints](/ui/display/shortcut-hints) over everything. Reach a step with `z-(--z-popup)`.
+All z-indexes live here, so a new popup takes a named step instead of a number. A dialog sits under the menus and selects it opens, tooltips over both, and the [shortcut hints](/ui/display/shortcut-hints) over everything. Reach a step with `z-(--z-popup)`.
 
 <TokenTable group="layer" />
 

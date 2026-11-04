@@ -6,9 +6,7 @@
 
 `updateText(text)` sends the one range that differs, or nothing. `applyChanges(changes)` sends `didChange` entries in order, each relative to the text the previous one left. Both raise the version by one and resolve once the text is sent. A full-sync server gets the whole text after a pause of `fullSyncDelayMs` (see [sessions](/lsp/sessions)), and at once before a request, `save()` or `close()`.
 
-`save()` sends `didSave` if the server asked for it. It writes no file, so call it after the app saved. `close()` cancels pending work, sends `didClose` and clears the document's diagnostics. A second call does nothing.
-
-Everything goes out in the order it was called.
+`save()` sends `didSave` if the server asked for it. It writes no file, so call it after the app saved. `close()` cancels pending work, sends `didClose` and clears the document's diagnostics. A second call does nothing. Every notification goes out in the order of the calls.
 
 ## Requests
 

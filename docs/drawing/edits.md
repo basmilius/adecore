@@ -1,10 +1,8 @@
 # Edits and rebasing
 
-A drawing can have more than one writer. A person draws in the editor on screen while an agent adds or changes elements. Two tools keep them from overwriting each other: an edit by id for the second writer, and a rebase for the editor when a newer document arrives. Both are on `@adecore/drawing`.
+A drawing can have more than one writer. A person draws in the editor on screen while an agent adds or changes elements. The second writer sends an edit by id instead of a whole document, and the editor rebases its unsaved edits when a newer document arrives. Both live on `@adecore/drawing`.
 
 ## Editing by id
-
-A writer other than the editor on screen sends an edit instead of a whole document, so it never overwrites what a person draws at the same time.
 
 ```ts
 import { DrawingEditSchema, applyDrawingEdit } from '@adecore/drawing';

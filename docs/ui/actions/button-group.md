@@ -1,6 +1,6 @@
 # ButtonGroup
 
-Icon buttons that belong together, 1 pixel apart, so a toolbar reads as clusters.
+Icon buttons that belong together, set 1 pixel apart so a toolbar shows them as one cluster.
 
 ```tsx
 import { ButtonGroup } from '@adecore/ui';

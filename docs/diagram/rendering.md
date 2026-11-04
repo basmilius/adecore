@@ -11,8 +11,6 @@ const svg = toSvg(diagram, { layout, background: '#ffffff' });
 
 ## Options
 
-Every option is optional:
-
 | `DiagramSvgOptions` | Default                                  |                                                                   |
 | ------------------- | ---------------------------------------- | ----------------------------------------------------------------- |
 | `palette`           | `DEFAULT_PALETTE` of the drawing package | The color of every palette name: outlines, edges and text.        |
@@ -20,7 +18,7 @@ Every option is optional:
 | `background`        | None                                     | A rect behind everything, also used as a halo behind edge labels. |
 | `margin`            | 32                                       | World units around the bounds.                                    |
 | `font`              | The `sans` stack of the drawing package  | The font family of the whole SVG.                                 |
-| `layout`            | `layoutOf(content)`                      | A layout you already computed, so it is not computed twice.       |
+| `layout`            | `layoutOf(content)`                      | A layout you already computed, which `toSvg` then reuses.         |
 
 A passed layout must belong to this exact content. Cache it by revision and compute it again after any change.
 

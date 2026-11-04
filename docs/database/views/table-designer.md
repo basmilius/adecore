@@ -62,4 +62,4 @@ The tabs and the name are disabled, and a banner says why:
 | `className`    | `string`              |         | Its size.                                                       |
 | `ref`          | `Ref<HTMLDivElement>` |         |                                                                 |
 
-`TableDesignerProps` is an exported type. The designer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+The props are `TableDesignerProps`. The designer needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

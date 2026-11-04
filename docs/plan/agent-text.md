@@ -30,7 +30,7 @@ Summary: Everything that has to happen before a version goes out. Now: "Tests" [
 
 - A step shows who may check it (`agent-only`, `person-only` or `unlocked`) and `set by a person` with the time.
 - Parents and sections show how many of their steps are finished.
-- Descriptions and notes are folded onto one line.
+- A description or note folds onto one line.
 
 `PLAN_LEGEND` explains the markers in one line, and `PLAN_STATE_MARKERS` maps each state to its marker. Send the legend once, for example in the agent's instructions.
 

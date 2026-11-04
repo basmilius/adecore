@@ -22,13 +22,11 @@ ipc.handle('update:download', () => updater.download());
 ipc.on('update:install', () => updater.install());
 ```
 
-`start()` calls `load` only in a packaged app, so a checkout never imports electron-updater and its state stays `unsupported`. When `load` throws, as when electron-updater is missing from the bundle, the error goes to `log` and the app keeps running.
-
-With several windows, publish to all of them with `windows.send('update:state', state)`.
+`start()` calls `load` only in a packaged app, so a checkout never imports electron-updater and its state stays `unsupported`. When `load` throws, as when electron-updater is missing from the bundle, the error goes to `log` and the app keeps running. With several windows, publish to all of them with `windows.send('update:state', state)`.
 
 ## In the page
 
-The page reads the state once, then follows each change, and draws what fits the status:
+The page reads the state once, follows each change and draws what fits the status. `desktop` is what the [preload](/shell/getting-started#the-preload) exposes:
 
 ```tsx
 import { Button } from '@adecore/ui';
@@ -55,8 +53,6 @@ function UpdateNotice() {
     return null;
 }
 ```
-
-`desktop` is what the [preload](/shell/getting-started#the-preload) exposes.
 
 ## States
 
@@ -96,4 +92,4 @@ With `silentInstall`, an install on Windows shows none of the installer's window
 
 electron-updater puts the whole HTTP exchange, cookies included, in the message of a failed check. The state carries only `errorCode` and `error`, the first line of the message cut at 200 characters (or `null`). The shell sends no sentence of its own, so the page words the code in the person's language. `errorCode` is an `UpdateErrorCode`. `no-feed` is a 404 on the feed: no release is published yet, or the repository is private. Anything else is `failed`. Failures also go to `log`, `console.error` by default.
 
-`UpdaterOptions` and `Updater` are exported types. `UpdateState` and `UpdateErrorCode` come from `@adecore/shell/bridge`.
+`createUpdater` takes `UpdaterOptions` and returns an `Updater`. `UpdateState` and `UpdateErrorCode` come from `@adecore/shell/bridge`.

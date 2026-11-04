@@ -116,13 +116,13 @@ const ScoreChart = createChart<ModelScore>();
 
 The arrow keys move column by column across groups. Page Up and Page Down jump between groups. The live region names the group first ("Atlas 5, high, Intelligence 71").
 
-The group key is an identity, such as a model id. `groupLabel` reads the readable name from the rows, as a key or a function (`groupLabel="modelName"`). The tooltip, live region, table and `Chart.GroupAxis` use it.
+The group key is an identity, such as a model id. `groupLabel` reads the display name from the rows, as a key or a function (`groupLabel="modelName"`). The tooltip, live region, table and `Chart.GroupAxis` use it.
 
 `minBucketWidth` is the narrowest a bucket may be. Below it the plot scrolls sideways and the y axis stays in place.
 
 ## Picking columns
 
-With `onActivate`, buckets become pressable: Enter, Space and a click call it with the row. Buckets in `selected` stay highlighted and pressed for a screen reader, and the others dim. `dimmed` takes a function of the row and dims the columns it returns `true` for. Labels under a column dim with it.
+With `onActivate`, buckets become pressable: Enter, Space and a click call it with the row. Buckets in `selected` stay lit and read as pressed to a screen reader, and the others dim. `dimmed` takes a function of the row and dims the columns it returns `true` for. Labels under a column dim with it.
 
 The demo above draws a [`Chart.Rule`](/charts/series#rules) at the score of each pick:
 

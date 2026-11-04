@@ -1,6 +1,6 @@
 # Folding
 
-The model lists the ranges a view can fold. It keeps no fold state itself. The view tracks which ranges are collapsed.
+The model lists the ranges a view can fold and keeps no fold state; the view tracks which ranges are collapsed.
 
 ## Folding ranges
 

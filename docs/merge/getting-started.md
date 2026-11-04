@@ -1,7 +1,5 @@
 # Getting started
 
-This page diffs two texts, then merges two versions of a file with their common base.
-
 ## Install
 
 ```sh

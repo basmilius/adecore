@@ -1,7 +1,5 @@
 # Getting started
 
-This page creates a drawing, changes it, exports it as SVG and reads it back from a file.
-
 ## Install
 
 ```sh

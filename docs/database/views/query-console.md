@@ -44,7 +44,7 @@ With `onAction` on the provider, a foreign key cell offers Go to referenced row 
 
 Before a run, a statement that removes data or structure opens a dialog that lists it, with Run anyway:
 
-- `DROP`, and `TRUNCATE`.
+- `DROP` and `TRUNCATE`.
 - `DELETE` and `UPDATE` without a `WHERE`, also behind a `WITH`.
 - `ALTER` that drops a column, an index or a constraint.
 
@@ -165,4 +165,4 @@ Without `connection`, the console draws its editor and a bar with only `toolbarE
 | `className`          | `string`                                         |         | Its size.                                                                  |
 | `ref`                | `Ref<HTMLDivElement>`                            |         |                                                                            |
 
-`QueryConsoleProps`, `QueryConsoleEditorProps`, `QueryConsoleEditorHandle` and `QueryConsoleRunScope` are exported types. The console needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.
+The props are `QueryConsoleProps`. The console needs a [`DatabaseProvider`](/database/guide/getting-started#databaseprovider) above it.

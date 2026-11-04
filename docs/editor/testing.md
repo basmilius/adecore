@@ -39,7 +39,7 @@ test('typing replaces every selection', () => {
 | `clip(type, text?)`           | A `copy`, `cut` or `paste`; returns the text a copy or cut left |
 | `click(x, y, modifiers?)`     | A press and release at a point                                  |
 
-`createPage`, `press`, `release`, `typeInto`, `clipboard` and `pointer` are the lower-level helpers. `KeyOptions` are the modifiers `press` and `release` take. LinkeDOM has no layout, so every box has a fallback size. Tests cover keys, commands, the clipboard and history, not fonts, scrolling, input methods or accessibility.
+For a page of your own, `createPage` builds a bare LinkeDOM page with its `document`, `window` and `host`. The other helpers fire one event at an element: `press` and `release` a `keydown` and `keyup` with `KeyOptions` modifiers, `typeInto` a `beforeinput`, `clipboard` a clipboard event and `pointer` a pointer event at a point. LinkeDOM has no layout, so every box has a fallback size. Tests cover keys, commands, the clipboard and history, not fonts, scrolling, input methods or accessibility.
 
 ## A fake editor
 

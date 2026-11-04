@@ -66,10 +66,8 @@ const scheme = createAppScheme({
 
 ## The guards
 
-The returned `AppScheme` has `origin` (the app's origin for the guards), `url` (what the window loads) and the guards bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/navigation#appwindownavigation) and `isAppSender(isAppWindow, frame)` for [`isAppSender`](/shell/ipc#isappsender). With `pageUrl` set, the app's origin is the dev server's, and the scheme's own page host no longer counts as the app.
+`createAppScheme` returns an `AppScheme`. Its `scheme`, `privileged` and `handle` go to `protocol.registerSchemesAsPrivileged` and `protocol.handle` as above. `origin` is the app's origin for the guards, and `url` is what the window loads. The guards come bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/navigation#appwindownavigation) and `isAppSender(isAppWindow, frame)` for [`isAppSender`](/shell/ipc#isappsender). With `pageUrl` set, the app's origin is the dev server's, and the scheme's own page host no longer counts as the app.
 
 ```ts
 const fromApp = (event: Electron.IpcMainInvokeEvent): boolean => scheme.isAppSender(windows.fromPage(event.sender) !== null, event.senderFrame);
 ```
-
-`AppScheme` also has `scheme`, `privileged` for `protocol.registerSchemesAsPrivileged` and `handle` for `protocol.handle`.

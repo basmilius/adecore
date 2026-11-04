@@ -12,7 +12,7 @@ const layout = layoutOf(diagram);
 // layout.bounds: { x, y, w, h }
 ```
 
-`nodes`, `edges` and `groups` come in file order. A group that wraps no node has no box, and the layout leaves it out. `EdgeRoute.index` is the edge's position in the file, and `points` run from source to target, with the arrow head at the last. `bounds` covers everything drawn and is all zero for an empty diagram. The types are `DiagramLayout`, `NodeBox`, `GroupBox`, `EdgeRoute` and `EdgeLabelBox`.
+`nodes`, `edges` and `groups` come in file order. A group that wraps no node has no box, and the layout leaves it out. `EdgeRoute.index` is the edge's position in the file, and `points` run from source to target, with the arrow head at the last. `bounds` covers everything drawn and is all zero for an empty diagram. `layoutOf` returns a `DiagramLayout` of `NodeBox`, `GroupBox` and `EdgeRoute` entries, and an edge's `label` is an `EdgeLabelBox`.
 
 ## Layers
 
@@ -22,7 +22,7 @@ To rank a cycle, the layout leaves out the edges that point back, walking in fil
 
 ## Order and placement
 
-Inside a column, the layout sorts nodes to cross fewer edges, with ties kept in file order. Group members stay together, and groups keep their order across columns. Then nodes shift towards their neighbors, so a chain lines up straight. The ordering is a heuristic, so dense graphs can still cross edges, and spacing has no options.
+Inside a column, the layout sorts nodes to cross fewer edges, with ties kept in file order, and lines a chain up straight. Group members stay together, and groups keep their order across columns. Dense graphs can still cross edges, and spacing has no options.
 
 A `down` diagram is a `right` one mirrored across the diagonal, with boxes and text kept upright.
 
