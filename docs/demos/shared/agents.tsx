@@ -49,7 +49,7 @@ function openScope(chats: DemoChats, providers: ProviderInfo[]): { scope: ChatSc
     };
 }
 
-/* What the app around the chat decides, as an app hands it once around everything it draws. */
+/* The demo app's choices for its chats, provided once around everything it draws. */
 export function DemoChatHost({ children }: { children: ReactNode }) {
     return <ChatHostProvider host={DEMO_CHAT_HOST}>{children}</ChatHostProvider>;
 }

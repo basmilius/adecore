@@ -103,7 +103,7 @@ const PATH = /^(?<path>[\w.-]+(?:\/[\w.-]+)*\.\w+)(?::(?<line>\d+))?$/;
 // Drafts, preferences and the stash last until the page reloads.
 configureChatStorage({ namespace: 'docs', storage: null });
 
-/* What the demos' app decides, which `DemoChatHost` hands every demo. */
+/* The demo app's choices for its chats; `DemoChatHost` hands them to every demo. */
 export const DEMO_CHAT_HOST: Partial<ChatHost> = {
     accents: { all: ACCENTS, featured: ['blue', 'violet', 'rose', 'amber'], label: (id) => ACCENT_NAMES[id] ?? id, current: () => 'blue' },
     searchFiles: async (_scopeId, _cwd, query, limit) => FILES.filter((path) => path.toLowerCase().includes(query.toLowerCase())).slice(0, limit),
@@ -361,7 +361,7 @@ export class FakeAgentHost implements ChatTransport {
             const item = chat.items.find((entry) => entry.kind === 'approval' && entry.requestId === payload.requestId);
 
             if (item?.kind !== 'approval' || item.decision !== 'pending') {
-                throw new ChatTransportError('request-not-found', 'Nothing waits for this approval any more.');
+                throw new ChatTransportError('request-not-found', 'Nothing waits for this approval anymore.');
             }
 
             this.apply(payload.chatId, { type: 'item', item: { ...item, decision: payload.decision } });

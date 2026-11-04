@@ -45,7 +45,7 @@
             packages: [
                 {name: 'Agent contracts', link: '/agent-contracts/', blurb: 'The schemas hosts and views share'},
                 {name: 'Agents', link: '/agents/', blurb: 'Chat hosts over provider CLIs'},
-                {name: 'Agent views', link: '/agents-react/', blurb: 'The thread, the composer and usage'},
+                {name: 'Agent views', link: '/agents-react/', blurb: 'The thread, the composer, usage and limits'},
                 {name: 'Intelligent UI', link: '/intelligent-ui/', blurb: 'Components an agent answers with'}
             ]
         },

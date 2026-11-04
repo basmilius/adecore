@@ -11,8 +11,7 @@ export default function TextMenuDemo() {
                 </ContextMenu.Item>
             }
         >
-            Select a few words and right-click them. The menu offers to copy what is selected inside this block, and to select all of it, on Cmd+A as well while
-            the block has the focus.
+            Select a few words and right-click them. The menu copies the selection or selects this whole block. Cmd+A selects the block too while it has focus.
         </TextMenu>
     );
 }

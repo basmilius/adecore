@@ -9,7 +9,7 @@ const KEYS: Record<string, { about: string; values: string[] }> = {
     environment: { about: 'production, staging', values: ['production', 'staging'] }
 };
 
-/* The word the caret sits in, at the end of the field here: a key so far, or a key and the start of its value. */
+/* The word the caret sits in, always the last one here. It holds a key so far, or a key and the start of its value. */
 const lastWord = (text: string): { start: number; key: string | null; prefix: string } => {
     const start = text.lastIndexOf(' ') + 1;
     const word = text.slice(start);

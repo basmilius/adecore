@@ -217,7 +217,7 @@ export function scoresByModel(): ModelScore[] {
     return MODELS.flatMap(({ model, lab, scores }) => scores.map(([effort, score]) => ({ key: `${model}:${effort}`, model, lab, effort, score })));
 }
 
-/* Dollars per task of each model and effort, three orders of magnitude apart from the cheapest to the dearest. */
+/* Dollars per task of each model and effort, three orders of magnitude apart. */
 const COSTS: Record<string, number[]> = {
     'Atlas 5': [0.12, 0.31, 0.74, 1.9],
     'Lumen Pro': [0.08, 0.2, 0.55],
