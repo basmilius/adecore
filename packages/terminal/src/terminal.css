@@ -1,5 +1,5 @@
 /* The tokens and rules of @adecore/terminal. An app imports this after the theme of @adecore/ui, whose
-   `--accent`, `--selection` and `--font-mono` the terminal reads too. */
+   `--accent`, `--selection`, `--font-mono` and `--scrollbar-*` colors the terminal reads too. */
 
 /* What `TerminalView` draws with, read as literal colors on every theme change. The cursor follows the
    accent; the sixteen colors are the ones a program asks for by number. The selectors are the ones

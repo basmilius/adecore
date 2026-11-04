@@ -10,7 +10,7 @@ bun add @adecore/utils
 | ----------------------- | -------------- | ------------------------------------------------------ |
 | `@adecore/utils/async`  | a page or Node | waits, deadlines, timers and the order of async work   |
 | `@adecore/utils/errors` | a page or Node | reading a thrown value                                 |
-| `@adecore/utils/record` | a page or Node | the plain object guard                                 |
+| `@adecore/utils/record` | a page or Node | the guard for an object that is not an array           |
 | `@adecore/utils/text`   | a page or Node | the halves of a UTF-16 surrogate pair                  |
 | `@adecore/utils/fs`     | Node or Bun    | atomic writes and small file checks                    |
 | `@adecore/utils/path`   | Node or Bun    | whether a path lies inside a folder                    |
@@ -45,7 +45,7 @@ A sentence for a person to read is a different thing from a log line. The UI pac
 
 ## record
 
-`isRecord(value)` is true for a plain object and false for `null` and arrays. Use it on input from the wire or a file before you read its fields.
+`isRecord(value)` is true for any object that is not an array, and false for `null`, arrays and primitives. A `Date`, a `Map` or a class instance passes too, so it says only that fields can be read, not that the value came from JSON. Use it on input from the wire or a file before you read its fields.
 
 ## text
 

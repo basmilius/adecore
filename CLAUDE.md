@@ -51,7 +51,7 @@ Bun workspaces: a package per folder in `packages/`, each published from its fol
 - `TerminalView` is lifted out of Ruimte's `apps/client/src/terminal/xterm.ts`, `webgl-budget.ts` and `webgl-slots.ts`. Ruimte is the reference: a change keeps what its `TerminalBody`, `LaunchTerminal` and `LoginTerminal` do on top of it, or it is breaking.
 - What one app needs (Ruimte's key bindings, OSC 52, its terminal registry) reaches xterm through `terminal` on the handle, never a prop.
 - The fit and the pointer fix under a scaled ancestor read private xterm fields (`xterm-internals.ts`). Check them before widening the `@xterm/xterm` peer range.
-- `terminal.css` holds the `--term-*` tokens and relies on `--accent`, `--selection` and `--font-mono` of the `ui` theme; the package imports nothing from `ui`.
+- `terminal.css` holds the `--term-*` tokens and relies on `--accent`, `--selection`, `--font-mono`, `--scrollbar-track`, `--scrollbar-thumb`, `--scrollbar-thumb-hover` and `--scrollbar-thumb-active` of the `ui` theme; the package imports nothing from `ui`.
 
 ## charts
 
