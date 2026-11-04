@@ -97,6 +97,50 @@ It runs on the CLI the person installed, like every other Claude chat, and never
 
 A provider whose chats run Claude Code carries `claudeCode`, a `ClaudeCodeRuntime`, whatever its `kind`. That is what makes a chat behave as Claude: the queue waits for the turn the CLI opens once its background work ended, and subagents, titles and rows a closed process left are read from its transcripts. `createClaudeProvider` sets it, with `configDir` when it has an `apiKey`. A provider you assemble yourself under another kind copies it, `configDir` included, so its transcripts are read from that folder and not from `~/.claude`. For the usage page, add `claudeTranscriptRoot(kind, configDir)` to the roots (see [Accounts](/agents/accounts)).
 
+## Grok, Copilot and Antigravity
+
+These three ACP agents each have a factory: `createGrokProvider`, `createCopilotProvider` and `createAntigravityProvider`. Each provider runs a chat over ACP and starts as a terminal. The registry does not include them by default, so add the ones you offer:
+
+```ts
+import { copilotUsageDirectory, createAntigravityProvider, createCopilotProvider, createGrokProvider, ProviderRegistry } from '@adecore/agents/providers';
+
+const client = {
+    name: 'example',
+    title: 'Example',
+    version: '1.0.0'
+};
+
+const registry = new ProviderRegistry({
+    providers: [
+        createGrokProvider({
+            client,
+            launch: withOwnServer
+        }),
+        createCopilotProvider({
+            client,
+            launch: withOwnServer,
+            args: ['--allow-tool=example'],
+            usageLog: copilotUsageDirectory(dataDir)
+        }),
+        createAntigravityProvider({
+            client,
+            launch: withOwnServer,
+            server: antigravityServer
+        })
+    ]
+});
+```
+
+Every factory takes `AcpVendorOptions`. `client` is how your host names itself in `initialize`. `launch` runs on every launch before its backend starts, for example to add your MCP servers to `mcpServers`. `catalogStore` keeps the models an agent reported across a restart.
+
+`CopilotProviderOptions` adds two fields. `args` goes on Copilot's line after its ACP arguments. Copilot's permission requests name no MCP server, so a server's tools run without asking only with `--allow-tool=<server>` there (measured on Copilot CLI 1.0.104). `usageLog` is the folder each turn's usage is written to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
+
+Antigravity's chat runs on a server installed apart from the `agy` CLI. `AntigravityProviderOptions.server` is an `AcpServerLaunch`: its `launch()` returns the server's command, or `null` while none is installed. Without an installed server the provider offers no chat and refuses to start one, but still runs as a terminal. An absent or `null` server keeps the chat capability, for a host that only reads what the CLI can do. `ANTIGRAVITY_CLI` is the executable a terminal starts, and `antigravityOneShotArgs(prompt)` gives the arguments for a single prompt to it.
+
+The three start from the models in `providers/<kind>-models.json` (`shippedAgentCatalog(kind)`) and take the ones a session reports. `AGENT_DEFAULT_MODEL` leaves the choice to the agent: `agentModel(selection)` maps it to `null`, and `agentDefaultCatalog()` offers only that model. `GROK_MODES`, `COPILOT_MODES` and `ANTIGRAVITY_MODES` are their `AcpModeMap`s.
+
+Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left (`grokAuthMethod(env)`). Its accounts are read from `grok models`, which opens no session. `askGrokModels(command, env)` runs it and `readGrokModels(output)` turns the output into `GrokModels`. `adoptGrokModels(catalog, store, listed)` writes that list to the catalog and the store, and keeps the names, context windows and options a chat learned.
+
 ## Folders you do not trust
 
 A CLI reads configuration from its working folder: settings with hooks and allow-lists, MCP servers, skills and commands. From an untrusted folder, that configuration can run commands outside the chat's runtime mode. Return `false` from `projectConfigFor(chatId)` for such a chat. The host asks before every turn, like `foldersFor`, and a change starts the next turn in a new process. Absent or `true` loads the configuration as usual.

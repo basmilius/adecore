@@ -1,6 +1,30 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
 export { type AcpCatalogStore } from './acp-agent-state.ts';
 export { ACP_CAPABILITIES, type AcpProviderSpec, createAcpProvider } from './acp-provider.ts';
+export {
+    type AcpVendorOptions,
+    type AcpServerLaunch,
+    type CopilotProviderOptions,
+    type AntigravityProviderOptions,
+    type GrokModels,
+    AGENT_DEFAULT_MODEL,
+    agentDefaultCatalog,
+    shippedAgentCatalog,
+    agentModel,
+    GROK_MODES,
+    COPILOT_MODES,
+    ANTIGRAVITY_MODES,
+    ANTIGRAVITY_CLI,
+    grokAuthMethod,
+    readGrokModels,
+    askGrokModels,
+    adoptGrokModels,
+    copilotUsageDirectory,
+    antigravityOneShotArgs,
+    createGrokProvider,
+    createCopilotProvider,
+    createAntigravityProvider
+} from './acp-vendors.ts';
 export { type AcpAccountProbe, askAcpAccount, type ProbeTimer } from './accounts/acp-account.ts';
 export { chooseAccount, type AccountChoiceInput, type AccountUnusable, type ChosenAccount } from './accounts/choose.ts';
 export { AccountError, type AccountLaunches, storedAccount, launchEnv } from './accounts/launch.ts';
