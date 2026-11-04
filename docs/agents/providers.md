@@ -188,7 +188,7 @@ The model gets project tools: list, read, search, edit and write files under the
 
 `toolRounds()` returns `ToolRounds`, read as each run starts. After `roundsPerRun` rounds of tool calls the chat sends itself a message to carry on, up to `runs` runs, then ends the turn with an error. `onUsage` gets a `ChatCompletionsUsage` for every request that reported its `ChatCompletionsTokens`: the prompt holds its cached part and the completion its reasoning, as the API counts them.
 
-`hostTools(launch, host)` returns `ApiHostTools` offered beside the project tools, such as those of your own MCP server, or `null`. Each `ApiToolDefinition` is a name, a description and a JSON schema. A call to one of them runs without an approval card in every mode, so check each call where you answer it, and return an `ApiToolOutcome`. `close()` runs when the backend is disposed.
+`hostTools(launch, host)` returns `ApiHostTools` offered beside the project tools, such as those of your own MCP server, or `null`. Each `ApiToolDefinition` is a name, a description and a JSON schema. A call to one of them runs without an approval card in every mode, so check each call where you answer it, and return an `ApiToolOutcome`. No host tool may take the name of a project tool in `API_TOOLS` (`read_file`, `write_file`, `run_command` and the rest): the turn fails rather than let it skip that tool's approval. `close()` runs when the backend is disposed.
 
 `nanoGptVendorOf(slug)` names who made a NanoGPT model, for a picker that groups by vendor: the publisher before the slash under one spelling, else the family the slug starts with, else `Other`.
 

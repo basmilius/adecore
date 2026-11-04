@@ -40,7 +40,10 @@ export interface ApiToolOutcome {
  * approval card in every mode, so the host checks each call itself.
  */
 export interface ApiHostTools {
-    /** Read before every request; keep the list the same so the prompt cache holds. */
+    /**
+     * Read before every request; keep the list the same so the prompt cache holds. No name may be one of the
+     * project tools (`API_TOOLS`): such a list is refused, since the call would skip that tool's approval.
+     */
     definitions(): Promise<ApiToolDefinition[]>;
 
     /** Throws only once `signal` stopped the call. */
@@ -132,6 +135,12 @@ export class ApiTools {
     /* Every tool the model is offered, the project tools first. */
     async definitions(): Promise<ApiToolDefinition[]> {
         const own = (await this.options.hostTools?.definitions()) ?? [];
+        const taken = own.find((tool) => Object.hasOwn(API_TOOL_NAMES, tool.name));
+
+        if (taken !== undefined) {
+            throw new Error(`A host tool cannot take the name of a project tool: ${taken.name}`);
+        }
+
         this.hostNames = new Set(own.map((tool) => tool.name));
 
         return [...API_TOOLS, ...own];
