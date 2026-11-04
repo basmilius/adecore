@@ -57,6 +57,7 @@ return (
 | `ref` | `Ref<HTMLDivElement>` | | The outer box. |
 | `viewportClassName` | `string` | | On the viewport. |
 | `viewportRef` | `Ref<HTMLElement>` | | The viewport, the element that scrolls. |
+| `coveredBottom` | `number` | | Pixels of the bottom edge a layer over the area covers, such as a docked input. The bars end above it. |
 | `render` | `ReactElement \| function` | | Replaces the viewport element. |
 | `children` | `ReactNode` | | |
 

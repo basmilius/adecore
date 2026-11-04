@@ -374,18 +374,72 @@ test('a word that adds a line moves the end of the thread down without drawing i
     });
 });
 
-test('a composer that grows after the first paint is pinned to the end by the observer, before React draws again', async () => {
+/* The composer, the box measured around it, the layer that holds it over the thread, and the space under the thread. */
+function composerParts(page: ReturnType<typeof createPage>) {
+    const composer = page.host.querySelector('[data-composer]')!;
+    const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+
+    return {
+        composer,
+        scroller,
+        measured: composer.parentElement!,
+        layer: composer.parentElement!.parentElement!,
+        spacer: scroller.firstElementChild!.lastElementChild as HTMLElement
+    };
+}
+
+test('a composer that grows after the first paint makes room under the thread and is pinned to the end, before React draws again', async () => {
     const layout = { rowHeights: Array(12).fill(100), composerHeight: 80, clampScroll: true };
 
     await mounted(layout, null, async ({ page }) => {
-        const scroller = page.host.querySelector('.chat-scroll') as HTMLElement;
+        const { scroller, measured, spacer } = composerParts(page);
         expect(scroller.scrollTop).toBe(scroller.scrollHeight - scroller.clientHeight);
 
         layout.composerHeight = 150;
         // Outside act, so nothing React schedules from the observer has run when the page would paint.
-        ManualResizeObserver.resized(scroller.firstElementChild!, VIEWPORT.width, 1350);
+        ManualResizeObserver.resized(measured, VIEWPORT.width, 150);
 
+        expect(spacer.style.height).toBe('150px');
         expect(scroller.scrollTop).toBe(scroller.scrollHeight - scroller.clientHeight);
+    });
+});
+
+test('the composer lies over the thread outside its scroller, so the thread bounces at its end without it', async () => {
+    await mounted({ rowHeights: Array(12).fill(100), composerHeight: 80 }, null, async ({ page }) => {
+        const { composer, scroller, layer, spacer } = composerParts(page);
+
+        expect(scroller.contains(composer)).toBe(false);
+        expect(layer.style.position).toBe('absolute');
+        expect(Number.parseFloat(layer.style.bottom)).toBe(0);
+        expect(spacer.style.height).toBe('80px');
+        // After the thread in the document, so Tab reaches the composer once the thread is behind it.
+        expect([...page.host.querySelectorAll('.chat-scroll, [data-composer]')]).toEqual([scroller, composer]);
+    });
+});
+
+test('a wheel over the composer scrolls the thread under it', async () => {
+    await mounted({ rowHeights: Array(12).fill(100), composerHeight: 80, clampScroll: true }, null, async ({ page }) => {
+        const { composer, scroller } = composerParts(page);
+        const end = scroller.scrollTop;
+        const wheel = Object.assign(new page.window.Event('wheel', { bubbles: true }), { deltaX: 0, deltaY: -120, deltaMode: 0 });
+
+        await act(async () => {
+            composer.dispatchEvent(wheel);
+        });
+
+        expect(scroller.scrollTop).toBe(end - 120);
+    });
+});
+
+test('a composer taller than the frame covers it and scrolls by itself, leaving the thread no room under it', async () => {
+    await mounted({ rowHeights: Array(12).fill(100), composerHeight: VIEWPORT.height }, null, async ({ page }) => {
+        const { composer, scroller, layer, spacer } = composerParts(page);
+
+        expect(scroller.contains(composer)).toBe(false);
+        expect(layer.style.position).toBe('absolute');
+        expect(Number.parseFloat(layer.style.inset)).toBe(0);
+        expect(layer.style.overflowY).toBe('auto');
+        expect(spacer.style.height).toBe('0px');
     });
 });
 
@@ -740,6 +794,27 @@ test('a genuinely new chat keeps its greeting and composer before its empty hist
             expect(page.host.querySelector('[role="status"]')).toBeNull();
             expect(page.host.querySelector('[data-composer]')).not.toBeNull();
             expect(page.host.textContent).not.toContain('is ready.');
+        },
+        { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatInfo, host: { useWelcome: () => true } }
+    );
+});
+
+test('a welcome holds the composer in flow under the greeting, and the first message lays the same composer over the thread', async () => {
+    await mounted(
+        { rowHeights: [60, 60, 60, 60, 60, 60], composerHeight: 80 },
+        null,
+        async ({ page }) => {
+            const before = composerParts(page);
+            expect(before.scroller.contains(before.composer)).toBe(false);
+            expect(before.layer.style.position).toBe('relative');
+            expect(before.spacer.style.height).toBe('0px');
+
+            await act(async () => useChats.getState().reset(KEY, infoOf(null), threadOf()));
+
+            const after = composerParts(page);
+            expect(after.composer).toBe(before.composer);
+            expect(after.layer.style.position).toBe('absolute');
+            expect(after.spacer.style.height).toBe('80px');
         },
         { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatInfo, host: { useWelcome: () => true } }
     );

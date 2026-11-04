@@ -83,6 +83,8 @@ import { ContextMenu, EmptyState, ErrorBoundary, Icon, ScrollArea, SectionLabel 
 import { useHostContextSources, useHostHidesFolder, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
 
 const ESTIMATED_ROW_PX = 56;
+// A wheel that counts in lines rather than pixels moves this far per line.
+const WHEEL_LINE_PX = 16;
 // How long a jump waits for a thread that is still loading before it calls the item missing.
 const JUMP_THREAD_WAIT_MS = 8000;
 
@@ -90,6 +92,34 @@ const JUMP_THREAD_WAIT_MS = 8000;
 function showRowAtTop(virtualizer: Virtualizer<HTMLDivElement, Element>, followRef: RefObject<boolean>, index: number): void {
     followRef.current = false;
     virtualizer.scrollToIndex(index, { align: 'start' });
+}
+
+/* What of the composer's height covers the thread: all of it while it fits, none in a welcome or once it fills the frame. */
+function coveredBy(composerHeight: number, frameHeight: number, welcome: boolean): number {
+    return !welcome && composerHeight < frameHeight - FOLLOW_THRESHOLD_PX ? composerHeight : 0;
+}
+
+/* Whether a wheel over `target` moves a scroller between it and `boundary`, such as a long draft. */
+function scrollsWithin(target: Element, boundary: Element, deltaX: number, deltaY: number): boolean {
+    for (let element: Element | null = target; element !== null; element = element.parentElement) {
+        const { overflowX, overflowY } = getComputedStyle(element);
+        const scrollsY = (overflowY === 'auto' || overflowY === 'scroll') && element.scrollHeight > element.clientHeight;
+        const scrollsX = (overflowX === 'auto' || overflowX === 'scroll') && element.scrollWidth > element.clientWidth;
+
+        if (scrollsY && (deltaY < 0 ? element.scrollTop > 0 : deltaY > 0 && element.scrollTop + element.clientHeight < element.scrollHeight)) {
+            return true;
+        }
+
+        if (scrollsX && (deltaX < 0 ? element.scrollLeft > 0 : deltaX > 0 && element.scrollLeft + element.clientWidth < element.scrollWidth)) {
+            return true;
+        }
+
+        if (element === boundary) {
+            return false;
+        }
+    }
+
+    return false;
 }
 
 /*
@@ -250,6 +280,7 @@ export function Timeline({
     const { trail, show } = useSubagentTrail(chatId);
     const frameRef = useRef<HTMLDivElement>(null);
     const composerRef = useRef<HTMLDivElement>(null);
+    const spacerRef = useRef<HTMLDivElement>(null);
     const [composerHeight, setComposerHeight] = useState(0);
     const [frame, setFrame] = useState({ width: 0, height: 0, column: false });
     const [loadingEarlier, setLoadingEarlier] = useState(false);
@@ -363,6 +394,9 @@ export function Timeline({
         return () => observer.disconnect();
     }, []);
 
+    const coverRef = useRef({ frameHeight: frame.height, welcome });
+    coverRef.current = { frameHeight: frame.height, welcome };
+
     useLayoutEffect(() => {
         const element = composerRef.current;
 
@@ -370,7 +404,24 @@ export function Timeline({
             return;
         }
 
-        const measure = () => setComposerHeight(element.offsetHeight);
+        // The composer lies outside the scroller, so the space under the thread follows its height here,
+        // before the page paints, and the end with it; the state is drawn only after that paint.
+        const measure = () => {
+            const height = element.offsetHeight;
+            const spacer = spacerRef.current;
+            const scroller = scrollRef.current;
+
+            if (spacer !== null && scroller !== null) {
+                spacer.style.height = `${coveredBy(height, coverRef.current.frameHeight, coverRef.current.welcome)}px`;
+
+                if (followRef.current) {
+                    scroller.scrollTop = scroller.scrollHeight;
+                    scrollGeometry.current = { top: scroller.scrollTop, height: scroller.scrollHeight, viewport: scroller.clientHeight };
+                }
+            }
+
+            setComposerHeight(height);
+        };
 
         const observer = new ResizeObserver(measure);
         observer.observe(element);
@@ -379,9 +430,9 @@ export function Timeline({
         return () => observer.disconnect();
     }, []);
 
-    // Oversized prompts scroll in full instead of sticking with their top outside the viewport.
-    const stickyComposer = !welcome && composerHeight < frame.height - FOLLOW_THRESHOLD_PX;
-    const coveredHeight = stickyComposer ? composerHeight : 0;
+    // A composer that would leave too little of the thread covers the frame and scrolls by itself.
+    const coveredHeight = coveredBy(composerHeight, frame.height, welcome);
+    const fillsFrame = !welcome && coveredHeight === 0 && composerHeight > 0;
     const coveredHeightRef = useRef(coveredHeight);
     coveredHeightRef.current = coveredHeight;
 
@@ -481,15 +532,15 @@ export function Timeline({
             return;
         }
 
-        // The composer is in the scroll flow, so its measured height is part of this end position.
+        // The space under the thread is the composer's height, so that height is part of this end position.
         element.scrollTop = element.scrollHeight;
         scrollGeometry.current = { top: element.scrollTop, height: element.scrollHeight, viewport: element.clientHeight };
     }, [rows.length, totalSize, composerHeight, frame.height]);
 
     /*
-     * A height that changes after the first paint (the composer taking its draft, a row measured again) is
-     * seen by an observer before the page paints, but the state it sets is drawn after that paint. The
-     * end is pinned here as well, so the page never paints the thread with its end out of view.
+     * A row measured again after the first paint is seen by an observer before the page paints, but the
+     * state it sets is drawn after that paint. The end is pinned here as well, so the page never paints
+     * the thread with its end out of view.
      */
     useLayoutEffect(() => {
         const content = contentRef.current;
@@ -895,112 +946,147 @@ export function Timeline({
                 data-file-scope-id={scope.id}
             >
                 {searching && chatFind.bar}
-                <ContextMenu.Root>
-                    <ScrollArea
-                        axis="both"
-                        viewportRef={scrollRef}
-                        // No CSS scroll-padding here: Chromium counts the sticky composer's caret as hidden behind
-                        // it and scrolls the thread toward the end on every keystroke.
-                        className="grow"
-                        viewportClassName="chat-scroll"
-                        // The thread keeps its reader in place itself when a page goes in above.
-                        style={{ overflowAnchor: 'none' }}
-                        onScrollCapture={(e) => {
-                            const el = e.currentTarget;
-                            // Capture the reader's movement before virtualization remeasures rows and shifts the scroll offset.
-                            const previous = scrollGeometry.current;
-                            const layoutChanged = previous.height !== el.scrollHeight || previous.viewport !== el.clientHeight;
-                            const atEnd = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_THRESHOLD_PX;
+                {/* A welcome centers the greeting and the composer as one group. The composer keeps its
+                    place in the tree, so the first message does not mount it again. */}
+                <div className={clsx('relative flex min-h-0 grow flex-col', welcome && 'justify-center')}>
+                    <ContextMenu.Root>
+                        <ScrollArea
+                            axis="both"
+                            viewportRef={scrollRef}
+                            className={clsx(!welcome && 'grow')}
+                            viewportClassName="chat-scroll"
+                            coveredBottom={coveredHeight}
+                            // The thread keeps its reader in place itself when a page goes in above.
+                            style={{ overflowAnchor: 'none' }}
+                            onScrollCapture={(e) => {
+                                const el = e.currentTarget;
+                                // Capture the reader's movement before virtualization remeasures rows and shifts the scroll offset.
+                                const previous = scrollGeometry.current;
+                                const layoutChanged = previous.height !== el.scrollHeight || previous.viewport !== el.clientHeight;
+                                const atEnd = el.scrollHeight - el.scrollTop - el.clientHeight < FOLLOW_THRESHOLD_PX;
 
-                            if (!layoutChanged && el.scrollTop < previous.top) {
-                                followRef.current = false;
-                            } else if (atEnd) {
-                                followRef.current = true;
+                                if (!layoutChanged && el.scrollTop < previous.top) {
+                                    followRef.current = false;
+                                } else if (atEnd) {
+                                    followRef.current = true;
+                                }
+
+                                scrollGeometry.current = { top: el.scrollTop, height: el.scrollHeight, viewport: el.clientHeight };
+                                setTimelineAtEnd(chatId, followRef.current);
+
+                                if (wantsEarlier(el)) {
+                                    loadEarlier();
+                                }
+
+                                followStrip(el);
+                            }}
+                        >
+                            <div ref={contentRef} className="relative flex min-h-full flex-col">
+                                <ContextMenu.Trigger
+                                    ref={threadRef}
+                                    className={clsx('chat-thread flex flex-col px-4 pt-4', !welcome && 'grow')}
+                                    style={
+                                        {
+                                            paddingLeft,
+                                            '--chat-wide-inset': `${2 * (showsScrubber ? STRIP_CLEARANCE_PX : paddingLeft) - paddingLeft}px`
+                                        } as CSSProperties
+                                    }
+                                    inert={overlay ? true : undefined}
+                                    onContextMenu={(e) =>
+                                        setTarget(readTimelineTarget(e.target as HTMLElement, threadRef.current, withCurrentText(rows, fullItems())))
+                                    }
+                                >
+                                    {loadingHistory ? (
+                                        <div className="flex grow items-center justify-center gap-2 text-sm text-text-muted" role="status">
+                                            <Icon icon={LoaderCircle} size={16} className="animate-spin" />
+                                            <span>{t('timeline.loading')}</span>
+                                        </div>
+                                    ) : welcome ? (
+                                        <WelcomeGreeting chatId={chatId} />
+                                    ) : empty ? (
+                                        <EmptyThread chatId={chatId} />
+                                    ) : (
+                                        <div
+                                            className="relative w-full shrink-0"
+                                            style={{ height: totalSize, visibility: initialLayout ? 'hidden' : undefined }}
+                                        >
+                                            <UiReplyNavigationContext.Provider value={uiNavigation}>
+                                                <FindRevealContext.Provider value={chatFind.reveal}>
+                                                    {virtualRows.map((virtualRow) => {
+                                                        const row = rows[virtualRow.index]!;
+
+                                                        return (
+                                                            <ThreadRow
+                                                                key={row.id}
+                                                                row={row}
+                                                                previous={virtualRow.index > 0 ? rows[virtualRow.index - 1]! : null}
+                                                                index={virtualRow.index}
+                                                                top={virtualRow.start}
+                                                                measure={virtualizer.measureElement}
+                                                                chatId={chatId}
+                                                                flashNonce={flash !== null && flashedRow === row.id ? flash.nonce : null}
+                                                                bookmark={marks.get(row.id) ?? null}
+                                                                toggleGroup={groups.toggle}
+                                                                toggleTurn={turns.toggle}
+                                                                toggleSubagent={subagents.toggle}
+                                                                openSubagent={openSubagent}
+                                                                openConversation={openConversation}
+                                                            />
+                                                        );
+                                                    })}
+                                                </FindRevealContext.Provider>
+                                            </UiReplyNavigationContext.Provider>
+                                        </div>
+                                    )}
+                                </ContextMenu.Trigger>
+                                <QuoteButton thread={threadRef} frame={contentRef} taker={quoteTakerRef} />
+                                <div ref={spacerRef} className="shrink-0" style={{ height: coveredHeight }} aria-hidden />
+                            </div>
+                        </ScrollArea>
+                        <TimelineMenuPopup target={target} thread={threadRef} chatId={onMainAgent ? chatId : null} column={frame.column} />
+                    </ContextMenu.Root>
+                    {/*
+                     * Over the thread rather than in its scroller, so the thread bounces at its end and the
+                     * composer stays put. Its own stacking layer keeps the composer under the strip and the overlay.
+                     */}
+                    <div
+                        className="isolate shrink-0"
+                        style={
+                            welcome
+                                ? { position: 'relative' }
+                                : fillsFrame
+                                  ? { position: 'absolute', inset: 0, overflowY: 'auto' }
+                                  : { position: 'absolute', insetInline: 0, bottom: 0 }
+                        }
+                        onWheel={(e) => {
+                            const scroller = scrollRef.current;
+
+                            // A wheel over the composer moves the thread it lies over, as it did inside the scroller.
+                            if (
+                                scroller === null ||
+                                coveredHeight === 0 ||
+                                e.ctrlKey ||
+                                scrollsWithin(e.target as Element, e.currentTarget, e.deltaX, e.deltaY)
+                            ) {
+                                return;
                             }
 
-                            scrollGeometry.current = { top: el.scrollTop, height: el.scrollHeight, viewport: el.clientHeight };
-                            setTimelineAtEnd(chatId, followRef.current);
-
-                            if (wantsEarlier(el)) {
-                                loadEarlier();
-                            }
-
-                            followStrip(el);
+                            const unit = e.deltaMode === 1 ? WHEEL_LINE_PX : e.deltaMode === 2 ? scroller.clientHeight : 1;
+                            scroller.scrollTop += e.deltaY * unit;
+                            scroller.scrollLeft += e.deltaX * unit;
                         }}
                     >
-                        {/* A welcome centers the greeting and the composer as one group. The composer keeps its
-                            place in the tree, so the first message does not mount it again. */}
-                        <div ref={contentRef} className={clsx('relative flex min-h-full flex-col', welcome && 'justify-center')}>
-                            <ContextMenu.Trigger
-                                ref={threadRef}
-                                className={clsx('chat-thread flex flex-col px-4 pt-4', !welcome && 'grow')}
-                                style={
-                                    {
-                                        paddingLeft,
-                                        '--chat-wide-inset': `${2 * (showsScrubber ? STRIP_CLEARANCE_PX : paddingLeft) - paddingLeft}px`
-                                    } as CSSProperties
-                                }
-                                inert={overlay ? true : undefined}
-                                onContextMenu={(e) =>
-                                    setTarget(readTimelineTarget(e.target as HTMLElement, threadRef.current, withCurrentText(rows, fullItems())))
-                                }
-                            >
-                                {loadingHistory ? (
-                                    <div className="flex grow items-center justify-center gap-2 text-sm text-text-muted" role="status">
-                                        <Icon icon={LoaderCircle} size={16} className="animate-spin" />
-                                        <span>{t('timeline.loading')}</span>
-                                    </div>
-                                ) : welcome ? (
-                                    <WelcomeGreeting chatId={chatId} />
-                                ) : empty ? (
-                                    <EmptyThread chatId={chatId} />
-                                ) : (
-                                    <div className="relative w-full shrink-0" style={{ height: totalSize, visibility: initialLayout ? 'hidden' : undefined }}>
-                                        <UiReplyNavigationContext.Provider value={uiNavigation}>
-                                            <FindRevealContext.Provider value={chatFind.reveal}>
-                                                {virtualRows.map((virtualRow) => {
-                                                    const row = rows[virtualRow.index]!;
-
-                                                    return (
-                                                        <ThreadRow
-                                                            key={row.id}
-                                                            row={row}
-                                                            previous={virtualRow.index > 0 ? rows[virtualRow.index - 1]! : null}
-                                                            index={virtualRow.index}
-                                                            top={virtualRow.start}
-                                                            measure={virtualizer.measureElement}
-                                                            chatId={chatId}
-                                                            flashNonce={flash !== null && flashedRow === row.id ? flash.nonce : null}
-                                                            bookmark={marks.get(row.id) ?? null}
-                                                            toggleGroup={groups.toggle}
-                                                            toggleTurn={turns.toggle}
-                                                            toggleSubagent={subagents.toggle}
-                                                            openSubagent={openSubagent}
-                                                            openConversation={openConversation}
-                                                        />
-                                                    );
-                                                })}
-                                            </FindRevealContext.Provider>
-                                        </UiReplyNavigationContext.Provider>
-                                    </div>
-                                )}
-                            </ContextMenu.Trigger>
-                            <QuoteButton thread={threadRef} frame={contentRef} taker={quoteTakerRef} />
-                            <div
-                                ref={composerRef}
-                                // The card is translucent so the thread shows through it, but the pb-3 strip under it must stay opaque.
-                                className={clsx(
-                                    'relative z-10 shrink-0',
-                                    composer && 'px-3 pb-3 pt-3 bg-[linear-gradient(to_bottom,transparent_calc(100%-12px),var(--surface)_calc(100%-12px))]'
-                                )}
-                                style={{ position: stickyComposer ? 'sticky' : 'relative', bottom: 0 }}
-                            >
-                                <QuoteTakerContext.Provider value={registerQuoteTaker}>{composer}</QuoteTakerContext.Provider>
-                            </div>
+                        <div
+                            ref={composerRef}
+                            // The card is translucent so the thread shows through it, but the pb-3 strip under it must stay opaque.
+                            className={clsx(
+                                composer && 'px-3 pb-3 pt-3 bg-[linear-gradient(to_bottom,transparent_calc(100%-12px),var(--surface)_calc(100%-12px))]'
+                            )}
+                        >
+                            <QuoteTakerContext.Provider value={registerQuoteTaker}>{composer}</QuoteTakerContext.Provider>
                         </div>
-                    </ScrollArea>
-                    <TimelineMenuPopup target={target} thread={threadRef} chatId={onMainAgent ? chatId : null} column={frame.column} />
-                </ContextMenu.Root>
+                    </div>
+                </div>
                 {drawsVisuals && <VisualDialogs chatId={chatId} />}
                 {loadingEarlier && !overlay && (
                     <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center" role="status">

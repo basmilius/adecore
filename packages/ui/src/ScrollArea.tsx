@@ -1,4 +1,4 @@
-import { useState, type Ref } from 'react';
+import { useState, type CSSProperties, type Ref } from 'react';
 import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
 import { mergeRefs } from './merge-refs.ts';
@@ -17,10 +17,13 @@ export type ScrollAreaProps = Omit<useRender.ComponentProps<'div'>, 'className' 
 
     /* Padding and layout of the content. `render` and the remaining props land on the viewport too. */
     viewportClassName?: string;
+
+    /* Pixels of the bottom edge a layer over the area covers, such as a docked input. The bars end above it. */
+    coveredBottom?: number;
 };
 
 /* A box that scrolls natively under thin bars that float over its content and show only while it scrolls. */
-export function ScrollArea({ axis = 'y', className, viewportClassName, viewportRef, ref, render, ...props }: ScrollAreaProps) {
+export function ScrollArea({ axis = 'y', className, viewportClassName, viewportRef, coveredBottom, ref, render, ...props }: ScrollAreaProps) {
     const [viewport, setViewport] = useState<HTMLElement | null>(null);
     const scrollbars = useOverlayScrollbars(viewport, { axis });
 
@@ -32,7 +35,11 @@ export function ScrollArea({ axis = 'y', className, viewportClassName, viewportR
     });
 
     return (
-        <div ref={ref} className={clsx('ade-scroll-area', className)}>
+        <div
+            ref={ref}
+            className={clsx('ade-scroll-area', className)}
+            style={coveredBottom ? ({ '--scrollbar-covered-bottom': `${coveredBottom}px` } as CSSProperties) : undefined}
+        >
             {content}
             {scrollbars}
         </div>

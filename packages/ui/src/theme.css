@@ -1118,10 +1118,12 @@
     /* A popup's bars lie beside it in its positioner; the ends keep clear of its rounded corners. */
     :is(.menu-popup, .picker-popup) ~ .ade-scrollbar { --scrollbar-inset: 4px; }
     .ade-scrollbar[data-visible] { opacity: 1; pointer-events: auto; transition-duration: 120ms; }
+    /* `coveredBottom` lifts the bars of its own area only, never those of a scroller inside it. */
+    .ade-scroll-viewport { --scrollbar-covered-bottom: 0px; }
     /* The two bars meet without overlapping: each stops a bar's width short of the corner. */
-    .ade-scrollbar[data-orientation="vertical"] { top: var(--scrollbar-inset, 2px); bottom: var(--scrollbar-inset, 2px); right: 0; width: var(--scrollbar-size); }
-    .ade-scrollbar[data-orientation="vertical"][data-corner] { bottom: var(--scrollbar-size); }
-    .ade-scrollbar[data-orientation="horizontal"] { left: var(--scrollbar-inset, 2px); right: var(--scrollbar-inset, 2px); bottom: 0; height: var(--scrollbar-size); }
+    .ade-scrollbar[data-orientation="vertical"] { top: var(--scrollbar-inset, 2px); bottom: calc(var(--scrollbar-covered-bottom, 0px) + var(--scrollbar-inset, 2px)); right: 0; width: var(--scrollbar-size); }
+    .ade-scrollbar[data-orientation="vertical"][data-corner] { bottom: calc(var(--scrollbar-covered-bottom, 0px) + var(--scrollbar-size)); }
+    .ade-scrollbar[data-orientation="horizontal"] { left: var(--scrollbar-inset, 2px); right: var(--scrollbar-inset, 2px); bottom: var(--scrollbar-covered-bottom, 0px); height: var(--scrollbar-size); }
     .ade-scrollbar[data-orientation="horizontal"][data-corner] { right: var(--scrollbar-size); }
     .ade-scrollbar::before {
         content: "";

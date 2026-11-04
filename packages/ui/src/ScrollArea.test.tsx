@@ -28,6 +28,11 @@ describe('a scroll area', () => {
         expect(markup).toContain('<pre data-axis="y" class="ade-scroll-viewport p-2">text</pre>');
     });
 
+    test('ends its bars above a layer that covers its bottom', () => {
+        expect(renderToStaticMarkup(<ScrollArea coveredBottom={80} />)).toContain('class="ade-scroll-area" style="--scrollbar-covered-bottom:80px"');
+        expect(renderToStaticMarkup(<ScrollArea coveredBottom={0} />)).not.toContain('style=');
+    });
+
     test('draws only the bar of the axis it scrolls in', () => {
         expect(renderToStaticMarkup(<ScrollArea />)).toContain('data-orientation="vertical"');
         expect(renderToStaticMarkup(<ScrollArea />)).not.toContain('data-orientation="horizontal"');
