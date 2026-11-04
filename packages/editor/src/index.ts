@@ -63,6 +63,7 @@ export type {
     EditorRemoteCursor,
     EditorRange,
     EditorApplyEditsOptions,
+    EditorSetTextOptions,
     EditorCopy,
     EditorPasteOptions,
     EditorPostfixOperand,

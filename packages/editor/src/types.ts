@@ -336,6 +336,14 @@ export interface EditorPasteOptions {
     readonly reindent?: boolean;
 }
 
+export interface EditorSetTextOptions {
+    /*
+     * Takes no undo step and drops the history, so undo never goes back past this text, for a text read
+     * from disk. Otherwise the text is one undo step, as for a change made elsewhere to the same text.
+     */
+    readonly clearHistory?: boolean;
+}
+
 export interface EditorApplyEditsOptions {
     readonly mapSelections?: (range: EditorRange) => EditorRange;
     readonly mergeUndo?: boolean;
@@ -652,7 +660,7 @@ export interface Editor {
      * A change from outside, such as a reload after the file changed on disk. It is never reported as a
      * change, and the cursor and the scroll stay put wherever the text around them did.
      */
-    setText(text: string): void;
+    setText(text: string, options?: EditorSetTextOptions): void;
     onChange(listener: () => void): () => void;
     /* Every change of the text, `setText` and undo included, with what changed in the positions a language server expects. */
     onTextChange(listener: (change: EditorTextChange) => void): () => void;

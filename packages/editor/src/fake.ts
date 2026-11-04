@@ -55,6 +55,7 @@ import type {
     EditorSemanticToken,
     EditorSmartKeys,
     EditorApplyEditsOptions,
+    EditorSetTextOptions,
     EditorCopy,
     EditorPasteOptions,
     EditorTextChange,
@@ -306,10 +307,15 @@ export class FakeEditor implements Editor {
     }
 
     /* Split into the stretches the real editor splits it into, so the carets and tracked ranges follow it alike. */
-    setText(text: string): void {
+    setText(text: string, options: EditorSetTextOptions = {}): void {
         this.assertLive();
         const spans = changedSpans(this.text, text).map((span) => ({ from: span.start, to: span.end, text: span.text }));
         this.edit(orderedEdits(spans) ?? [], 'external', false);
+
+        if (options.clearHistory) {
+            this.undoStack = [];
+            this.redoStack = [];
+        }
     }
 
     /*

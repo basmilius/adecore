@@ -356,6 +356,21 @@ describe.each(implementations)('%s', (_name, mount) => {
             expect(editor.getText()).toBe('one');
         });
 
+        test('never go back past a text set from outside with clearHistory', () => {
+            const editor = mount({ text: 'one' });
+            editor.applyEdits([{ range: range(0, 3, 0, 3), text: ' two' }]);
+            editor.applyEdits([{ range: range(0, 7, 0, 7), text: ' three' }]);
+            editor.runCommand('undo');
+            editor.setText('reloaded', { clearHistory: true });
+            expect(editor.runCommand('undo')).toBe(false);
+            expect(editor.runCommand('redo')).toBe(false);
+            expect(editor.getText()).toBe('reloaded');
+            editor.applyEdits([{ range: range(0, 8, 0, 8), text: '!' }]);
+            editor.runCommand('undo');
+            expect(editor.getText()).toBe('reloaded');
+            expect(editor.runCommand('undo')).toBe(false);
+        });
+
         test('refuse a read-only text', () => {
             const editor = mount({ text: 'one' });
             editor.applyEdits([{ range: range(0, 3, 0, 3), text: '!' }]);

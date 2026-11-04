@@ -66,6 +66,8 @@ export interface DocumentEditOptions extends EditOptions {
     selectionPositions?: readonly { readonly anchor: Position; readonly head: Position }[];
     /* The edit is refused, with nothing changed, unless the document is still at this revision. */
     expectedRevision?: number;
+    /* Takes no undo step and drops the history, even when the text stays the same, so undo never goes back past this text. */
+    clearHistory?: boolean;
 }
 
 export interface TypeTextOptions extends CommandOptions {
@@ -636,6 +638,10 @@ export class DocumentModel {
             next === this.rope || (changed.length > 1 && next.length === this.rope.length && next.equalsRange(this.rope, changed[0]!.from, changed.at(-1)!.to));
 
         if (unchanged) {
+            if (options.clearHistory) {
+                this.clearHistory();
+            }
+
             if (options.selections) {
                 this.setSelections(options.selections);
             }
@@ -672,7 +678,9 @@ export class DocumentModel {
 
         const joinsPrevious = options.joinPrevious === true && last !== undefined && last.after.rope === before.rope;
 
-        if (last !== undefined && (joinsGroup || joinsPrevious)) {
+        if (options.clearHistory) {
+            this.undoStack = [];
+        } else if (last !== undefined && (joinsGroup || joinsPrevious)) {
             last.after = after;
             last.changes.push(changes);
         } else {
@@ -683,7 +691,7 @@ export class DocumentModel {
             this.undoStack.shift();
         }
 
-        this.groupOpen = Boolean(options.historyGroup) && !joinsPrevious;
+        this.groupOpen = Boolean(options.historyGroup) && !joinsPrevious && !options.clearHistory;
         this.redoStack = [];
 
         this.emit(
@@ -696,9 +704,9 @@ export class DocumentModel {
         return true;
     }
 
-    /* Replaces everything as one undoable external edit. */
-    setText(text: string): void {
-        this.applyEdits([{ from: 0, to: this.rope.length, text }], { source: 'external' });
+    /* Replaces everything as one undoable external edit, or with `clearHistory` as a text with no history before it, such as a reload from disk. */
+    setText(text: string, options: Pick<DocumentEditOptions, 'clearHistory'> = {}): void {
+        this.applyEdits([{ from: 0, to: this.rope.length, text }], { source: 'external', clearHistory: options.clearHistory });
     }
 
     undo(): boolean {
@@ -2948,6 +2956,17 @@ export class DocumentModel {
 
     private structure(): StructureRange[] {
         return (this.structureCache ??= scanStructure(this.getText()));
+    }
+
+    private clearHistory(): void {
+        if (this.undoStack.length === 0 && this.redoStack.length === 0) {
+            return;
+        }
+
+        this.undoStack = [];
+        this.redoStack = [];
+        this.groupOpen = false;
+        this.emit();
     }
 
     private state(): State {

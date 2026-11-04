@@ -459,3 +459,44 @@ it('ignores positional selections when the edits cancel out', () => {
     expect(model.getText()).toBe('xay');
     expect(model.getSelections()).toEqual([{ anchor: 0, head: 0 }]);
 });
+
+describe('setText with clearHistory', () => {
+    it('takes no undo step and drops every step before it', () => {
+        const model = new DocumentModel('one');
+        model.applyEdits([{ from: 3, to: 3, text: ' two' }]);
+        model.applyEdits([{ from: 7, to: 7, text: ' three' }]);
+        model.undo();
+
+        for (let version = 0; version < 300; version++) {
+            model.setText(`version ${version}`, { clearHistory: true });
+        }
+
+        expect(model.getText()).toBe('version 299');
+        expect(model.getSnapshot()).toMatchObject({ canUndo: false, canRedo: false });
+        expect(model.undo()).toBe(false);
+        expect(model.redo()).toBe(false);
+        expect(model.getText()).toBe('version 299');
+    });
+
+    it('drops the history also when the text stays the same, and tells the listeners', () => {
+        const model = new DocumentModel('one');
+        model.applyEdits([{ from: 3, to: 3, text: '!' }]);
+        const snapshots: boolean[] = [];
+        model.subscribe((snapshot) => snapshots.push(snapshot.canUndo));
+
+        model.setText('one!', { clearHistory: true });
+
+        expect(snapshots).toEqual([false]);
+        expect(model.undo()).toBe(false);
+    });
+
+    it('leaves the edits after it undoable back to the text it set', () => {
+        const model = new DocumentModel('one');
+        model.setText('two', { clearHistory: true });
+        model.applyEdits([{ from: 3, to: 3, text: '!' }]);
+
+        expect(model.undo()).toBe(true);
+        expect(model.getText()).toBe('two');
+        expect(model.undo()).toBe(false);
+    });
+});

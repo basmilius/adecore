@@ -58,6 +58,7 @@ import type {
     EditorSemanticToken,
     EditorSmartKeys,
     EditorApplyEditsOptions,
+    EditorSetTextOptions,
     EditorTextChange,
     EditorTrackedRange,
     EditorTheme,
@@ -225,20 +226,20 @@ class SmartEditor implements Editor {
         return this.model.getText();
     }
 
-    setText(text: string): void {
+    setText(text: string, options: EditorSetTextOptions = {}): void {
         const spans = changedSpans(this.model.getText(), text);
 
-        if (spans.length === 0) {
+        if (spans.length === 0 && !options.clearHistory) {
             return;
         }
 
         this.settingText = true;
 
         try {
-            // Edits and not a reset, which would drop the undo history and put the cursor on line one.
+            // Edits and not a reset, which would put the cursor on line one.
             this.model.applyEdits(
                 spans.map((span) => ({ from: span.start, to: span.end, text: span.text })),
-                { source: 'external' }
+                { source: 'external', clearHistory: options.clearHistory }
             );
         } finally {
             this.settingText = false;
