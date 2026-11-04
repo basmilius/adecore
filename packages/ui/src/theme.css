@@ -1102,7 +1102,8 @@
     [data-overlay-scrollbars][data-scrollbar-dragging], .ade-scrollbar { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     .ade-scroll-area { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
     /* Its own stacking layer, so a sticky header with a z-index inside never covers the bars. */
-    .ade-scroll-viewport { flex: 1 1 auto; min-height: 0; overflow: auto; isolation: isolate; }
+    /* `contain` lets the box bounce at its own end; the page's `overscroll-behavior: none` would take the bounce of a scroll chained up to it. */
+    .ade-scroll-viewport { flex: 1 1 auto; min-height: 0; overflow: auto; isolation: isolate; overscroll-behavior: contain; }
     .ade-scroll-viewport[data-axis="y"] { overflow-x: hidden; }
     .ade-scroll-viewport[data-axis="x"] { overflow-y: hidden; }
     .ade-scrollbar {
