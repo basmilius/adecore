@@ -1,9 +1,9 @@
-import { useState, type Ref } from 'react';
-import clsx from 'clsx';
-import { Check, CircleAlert, Search, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Icon, IconButton, Input, ScrollArea, isApplePlatform, isModHeld } from '@adecore/ui';
 import { formatMoment, formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Check, CircleAlert, Search, Trash2 } from 'lucide-react';
+import { useState, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { searchHistory, type HistoryEntry } from './history.ts';
 
 export interface HistoryPanelProps {

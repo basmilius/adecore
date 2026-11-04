@@ -1,5 +1,5 @@
-import { Quote } from 'lucide-react';
 import { ContextMenu, Icon, TextMenu } from '@adecore/ui';
+import { Quote } from 'lucide-react';
 
 export default function TextMenuDemo() {
     return (

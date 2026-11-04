@@ -1,8 +1,8 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import { DocumentModel } from '@adecore/editor-core';
 import { createPage } from './testing.ts';
-import { EditorView } from './view.ts';
 import { SETTINGS, mount, rendered } from './view.fixture.test.ts';
+import { EditorView } from './view.ts';
 
 describe('the fold ranges a server hands over', () => {
     test('stay on their text through an edit before them, their first and last line cut where the server said', () => {

@@ -1,6 +1,6 @@
-import { useTranslation } from 'react-i18next';
 import type { UsageTotals } from '@adecore/agent-contracts';
 import { totalTokensOf } from '@adecore/agent-contracts';
+import { useTranslation } from 'react-i18next';
 import { formatTokens } from './format';
 import { useMoney } from './money';
 

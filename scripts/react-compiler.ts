@@ -1,8 +1,8 @@
-import { transformAsync, type PluginItem, type PluginObj } from '@babel/core';
-import type { LoggerEvent, PluginOptions } from 'babel-plugin-react-compiler';
 import { readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { transformAsync, type PluginItem, type PluginObj } from '@babel/core';
+import type { LoggerEvent, PluginOptions } from 'babel-plugin-react-compiler';
 
 export interface ReactCompilerReport {
     /* Components and hooks the compiler memoized. */

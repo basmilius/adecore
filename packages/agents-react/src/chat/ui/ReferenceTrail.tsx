@@ -1,6 +1,6 @@
-import { Fragment, type ComponentType } from 'react';
-import { ChevronRight } from 'lucide-react';
 import { Icon } from '@adecore/ui';
+import { ChevronRight } from 'lucide-react';
+import { Fragment, type ComponentType } from 'react';
 import type { ReferenceIconProps } from '../../host';
 import type { ReferenceStep } from '../chat-references';
 import { referenceGlyph } from './reference-icons';

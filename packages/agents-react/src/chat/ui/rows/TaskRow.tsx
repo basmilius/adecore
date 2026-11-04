@@ -1,9 +1,9 @@
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Bot, ChevronRight } from 'lucide-react';
 import type { ChatSubagentItem } from '@adecore/agent-contracts';
-import { formatElapsedShort, formatMoment } from '@adecore/ui/format';
 import { Icon, useNow, useTickingText } from '@adecore/ui';
+import { formatElapsedShort, formatMoment } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Bot, ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AgentIcon } from '../../../agents/AgentIcon';
 import { modelName, shortModelName } from '../../../agents/model-name';
 import type { SubagentTask } from '../../../host';

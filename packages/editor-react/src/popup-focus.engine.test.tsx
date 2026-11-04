@@ -1,8 +1,8 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
+import { mountEditor } from '@adecore/editor/testing';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { mountEditor } from '@adecore/editor/testing';
 import { CompletionPopup } from './CompletionPopup.tsx';
 import type { EditorLanguage } from './editor-language.ts';
 import { PickPopup } from './PickPopup.tsx';

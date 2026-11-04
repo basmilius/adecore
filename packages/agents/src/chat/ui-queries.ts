@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import type { z } from 'zod';
 import type {
     ChatUiLinkPayload,
     ChatUiLinkReading,
@@ -13,10 +12,11 @@ import type {
 } from '@adecore/agent-contracts';
 import { ChatUiPlaceReadingSchema } from '@adecore/agent-contracts';
 import { copyUiValue, UI_HOST_LIMITS, UiBudget, uiMayReferenceHost, type UiValue } from '@adecore/intelligent-ui';
-import { uiPlaceQueries, type UiPlaceQuery } from '@adecore/intelligent-ui/places';
-import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
-import { uiQueryArguments, uiQueryFallback } from '@adecore/intelligent-ui/query';
 import type { UiBlock } from '@adecore/intelligent-ui/compiler';
+import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
+import { uiPlaceQueries, type UiPlaceQuery } from '@adecore/intelligent-ui/places';
+import { uiQueryArguments, uiQueryFallback } from '@adecore/intelligent-ui/query';
+import type { z } from 'zod';
 import type { ChatSession } from './chat-session.ts';
 import { ChatError } from './errors.ts';
 

@@ -1,14 +1,14 @@
+import type { EditorRect } from '@adecore/editor';
+import { fileUriToPath } from '@adecore/lsp';
+import { Button, Icon, ScrollArea } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
+import { Sparkles } from 'lucide-react';
 import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Sparkles } from 'lucide-react';
-import { fileUriToPath } from '@adecore/lsp';
-import type { EditorRect } from '@adecore/editor';
-import { Button, Icon, ScrollArea } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
-import { basenameOf, relativeTo } from './paths.ts';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
 import type { EditorLanguage } from './editor-language.ts';
+import { basenameOf, relativeTo } from './paths.ts';
 import { keepFocusOutOfList } from './popup-focus.ts';
 import type { RenameView } from './popups.ts';
 

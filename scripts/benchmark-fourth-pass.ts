@@ -1,5 +1,5 @@
-import type { ProviderAccounts } from '../packages/agent-contracts/src/provider-accounts';
 import { resolve } from 'node:path';
+import type { ProviderAccounts } from '../packages/agent-contracts/src/provider-accounts';
 import { measurePairs } from './paired-performance';
 import { planCases } from './plan-performance-cases';
 

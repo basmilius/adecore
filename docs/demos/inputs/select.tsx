@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Select } from '@adecore/ui';
+import { useState } from 'react';
 
 type Theme = 'system' | 'light' | 'dark';
 

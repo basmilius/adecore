@@ -1,13 +1,13 @@
 import { expect, test } from 'bun:test';
-import { act, StrictMode, type ReactNode } from 'react';
 import type { ChatToolItem } from '@adecore/agent-contracts';
-import { ChatScopeContext, type ChatScope } from '../../../scope';
-import { ChangedFilesRow } from '../rows/WorkRows';
-import { createRoot, type Root } from 'react-dom/client';
 import type { EditorEngine } from '@adecore/editor';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createPage } from '@adecore/editor/testing';
+import { act, StrictMode, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatScopeContext, type ChatScope } from '../../../scope';
+import { ChangedFilesRow } from '../rows/WorkRows';
 import { DiffStack, ReviewStackView } from './DiffStack';
 import { reviewEntries, type ReviewEntry } from './review-plan';
 import { useReviewStack } from './use-review-stack';

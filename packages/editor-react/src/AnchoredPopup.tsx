@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
-import { createPortal } from 'react-dom';
 import type { EditorRect } from '@adecore/editor';
 import { ScrollArea } from '@adecore/ui';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { placePopup, type PlaceOptions } from './popup-placement.ts';
 
 export interface AnchoredPopupProps {

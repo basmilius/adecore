@@ -1,6 +1,6 @@
 import { describe, expect, jest, test } from 'bun:test';
-import { mountEditor, pointer } from './testing.ts';
 import { column, row } from './controller.fixture.test.ts';
+import { mountEditor, pointer } from './testing.ts';
 
 describe('the folds a server names', () => {
     test('take the characters it gives as where a collapsed fold hides from and shows again from', () => {

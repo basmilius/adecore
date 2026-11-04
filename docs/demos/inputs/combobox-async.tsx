@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { User, Users } from 'lucide-react';
 import { Combobox, Icon, Spinner, matchScore } from '@adecore/ui';
+import { User, Users } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Person {
     id: string;

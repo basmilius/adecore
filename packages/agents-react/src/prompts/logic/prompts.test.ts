@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { ChatItemSchema } from '@adecore/agent-contracts';
 import { PROMPT_SAMPLES } from '../../testing/prompts';
 import { answerValue, emptyPromptDraft, nextPrompt, pickPromptChoice, promptAnswers, questionAnswer } from './prompts';
-import { ChatItemSchema } from '@adecore/agent-contracts';
 
 describe('prompt presentation', () => {
     test('a blocking request precedes an optional question, without replacing an active request', () => {

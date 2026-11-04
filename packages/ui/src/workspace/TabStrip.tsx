@@ -1,3 +1,6 @@
+import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { Pin, X } from 'lucide-react';
 import {
     createContext,
     useContext,
@@ -12,9 +15,6 @@ import {
     type UIEvent,
     type WheelEvent
 } from 'react';
-import { useRender } from '@base-ui/react/use-render';
-import { Pin, X } from 'lucide-react';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon.tsx';
 import { IconButton, type IconButtonProps } from '../IconButton.tsx';

@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { readFile, readdir, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { ChatInfo } from '@adecore/agent-contracts';
 import { recordFileName } from '../record-directory.ts';
 import { AttachmentStore, extensionFor, migrateInlineAttachments } from './attachment-store.ts';

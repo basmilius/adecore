@@ -1,5 +1,5 @@
-import { clampInteger } from './rope.ts';
 import { replaceWithCaseRespect } from './preserve-case.ts';
+import { clampInteger } from './rope.ts';
 
 export interface FindOptions {
     caseSensitive?: boolean;

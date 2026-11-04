@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import type { ModelOptionDescriptor } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 
 /*
  * The model catalogs write a model's knobs in English. Those words read in the person's language; a word

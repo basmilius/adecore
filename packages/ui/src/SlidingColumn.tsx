@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, type RefObject } from 'react';
 import clsx from 'clsx';
+import { useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent, type ReactNode, type Ref, type RefObject } from 'react';
 import { ColumnResizeHandle } from './ColumnResizeHandle.tsx';
 import { mergeRefs } from './merge-refs.ts';
 import { useColumnResize } from './useColumnResize.ts';

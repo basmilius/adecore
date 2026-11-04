@@ -1,9 +1,9 @@
+import { Tooltip } from '@adecore/ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { BundledLanguage } from 'shiki';
-import { Tooltip } from '@adecore/ui';
+import { useChatHost, type CommandName } from '../../host';
 import { EMBEDDED_CODE_LIMIT, SHELL_LANGUAGE, embeddedCode, type EmbeddedCode } from '../logic/embedded-code';
 import type { CodeToken } from './code-lines';
-import { useChatHost, type CommandName } from '../../host';
 import { useCodeTheme } from './code-theme';
 import { tokenStyle, useCodeHighlighter, type CodeHighlighter, type Highlighter } from './highlighter';
 import { ReferenceChip } from './ReferenceChip';

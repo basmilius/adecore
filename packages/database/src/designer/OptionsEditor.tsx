@@ -1,10 +1,10 @@
-import { useId } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Field, Input, Switch, TextArea } from '@adecore/ui';
+import clsx from 'clsx';
+import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MYSQL_CHARSETS, MYSQL_ENGINES, collationSuggestionsOf } from '../ddl/index.ts';
-import type { EditorProps } from './editor-props.ts';
 import { patchOptions } from './edit.ts';
+import type { EditorProps } from './editor-props.ts';
 
 /* The options of a table, which differ per engine: a storage engine and character set on MySQL, rowid and strict typing on SQLite. */
 export function OptionsEditor({ draft, dialect, disabled, onChange, className, ref }: EditorProps) {

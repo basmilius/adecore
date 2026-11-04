@@ -1,8 +1,8 @@
-import { createContext, useContext, useId } from 'react';
-import clsx from 'clsx';
-import { ChevronRight } from 'lucide-react';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { Icon, Tabs } from '@adecore/ui';
+import clsx from 'clsx';
+import { ChevronRight } from 'lucide-react';
+import { createContext, useContext, useId } from 'react';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf } from '../node-text';
 import type { UiRendererProps } from '../render-context';

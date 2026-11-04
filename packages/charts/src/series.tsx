@@ -1,7 +1,7 @@
-import { useContext, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
 import type { IconProps } from '@adecore/ui';
+import clsx from 'clsx';
 import { area, curveLinear, curveMonotoneX, curveStepAfter, line } from 'd3-shape';
+import { useContext, useEffect, useId, useRef, useState, type ReactNode, type Ref } from 'react';
 import { numberOf, readValue, warnOnce } from './access.ts';
 import { columnsIn, endRoundedBar, endRoundedColumn, guessLabelWidth, LABEL_INSET, LABEL_LIFT, placeValueLabels, segmentOf } from './band.ts';
 import { colorOf, seriesColor } from './color.ts';

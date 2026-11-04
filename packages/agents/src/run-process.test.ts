@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, jest, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, describe, expect, jest, test } from 'bun:test';
 import { runProcess } from './run-process.ts';
 
 function alive(pid: number): boolean {

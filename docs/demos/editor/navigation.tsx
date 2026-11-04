@@ -1,5 +1,5 @@
-import { Button } from '@adecore/ui';
 import type { FakeLanguageService } from '@adecore/editor-react/testing';
+import { Button } from '@adecore/ui';
 import { LanguageFrame } from '../shared/editor-frame.tsx';
 import { useDemoLanguage } from '../shared/editor.ts';
 import { respondNavigation, respondSymbols } from '../shared/order-service.ts';

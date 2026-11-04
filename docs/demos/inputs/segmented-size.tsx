@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Search } from 'lucide-react';
 import { Button, Input, Segmented, Select } from '@adecore/ui';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
 
 type Status = 'open' | 'resolved' | 'ignored';
 type Sort = 'recent' | 'frequent';

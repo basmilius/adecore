@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { SegmentBar } from '@adecore/ui';
+import { useState } from 'react';
 
 const SECTIONS = [
     { value: 12, label: 'Intro' },

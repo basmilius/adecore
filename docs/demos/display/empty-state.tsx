@@ -1,5 +1,5 @@
-import { Inbox } from 'lucide-react';
 import { Button, EmptyState } from '@adecore/ui';
+import { Inbox } from 'lucide-react';
 
 export default function EmptyStateDemo() {
     return (

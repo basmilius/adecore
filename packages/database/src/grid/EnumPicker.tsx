@@ -1,8 +1,8 @@
-import { useRef, useState, type Ref } from 'react';
+import { Icon, Menu } from '@adecore/ui';
 import clsx from 'clsx';
 import { Ban, ChevronDown } from 'lucide-react';
+import { useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon, Menu } from '@adecore/ui';
 import { CODE_TEXT } from '../code-text.ts';
 import { joinMembers, membersOf, type EnumType } from './enum-type.ts';
 

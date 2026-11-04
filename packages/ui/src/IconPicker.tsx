@@ -1,13 +1,13 @@
-import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import clsx from 'clsx';
 import { Ban, ChevronDown, Search, X } from 'lucide-react';
+import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button.tsx';
 import { EmptyState } from './EmptyState.tsx';
 import { formatNumber } from './format/number.ts';
+import { cellForKey, escapeClearsSearch, filterSections, isGrouped, sectionsOf, tabStopOf, type IconPickerIcons, type IconSection } from './icon-picker.ts';
 import { Icon } from './Icon.tsx';
 import { IconButton } from './IconButton.tsx';
-import { cellForKey, escapeClearsSearch, filterSections, isGrouped, sectionsOf, tabStopOf, type IconPickerIcons, type IconSection } from './icon-picker.ts';
 import { PopoverPopup, PopoverRoot, PopoverTrigger } from './popover/parts.tsx';
 import { ScrollArea } from './ScrollArea.tsx';
 import { SectionLabel } from './SectionLabel.tsx';

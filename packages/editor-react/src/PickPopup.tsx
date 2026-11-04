@@ -1,7 +1,7 @@
-import { useId, useLayoutEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import type { EditorRect } from '@adecore/editor';
 import { ScrollArea } from '@adecore/ui';
+import { useId, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import type { EditorLanguage } from './editor-language.ts';
 import { PathText } from './PathText.tsx';
 import { keepFocusOutOfList, useInputPopup } from './popup-focus.ts';

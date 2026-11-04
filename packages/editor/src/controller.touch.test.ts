@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
 import { column, row } from './controller.fixture.test.ts';
 import { createSmartEditorEngine } from './engine.ts';
-import { EditorView } from './view.ts';
 import { createPage, mountEditor, pointer } from './testing.ts';
+import { EditorView } from './view.ts';
 
 afterEach(() => {
     jest.useRealTimers();

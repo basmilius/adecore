@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
 import { ColumnResizeHandle, clampColumnSize, useColumnResize } from '@adecore/ui';
+import { useRef, useState } from 'react';
 
 const BOUNDS = { min: 48, max: () => 176 };
 

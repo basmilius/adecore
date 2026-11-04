@@ -1,7 +1,7 @@
+import { Icon, Pill, Tooltip } from '@adecore/ui';
+import { ChevronRight, GripVertical } from 'lucide-react';
 import { useState, type DragEvent, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, GripVertical } from 'lucide-react';
-import { Icon, Pill, Tooltip } from '@adecore/ui';
 import { AccountDot } from '../agents/AccountDot';
 import { ACCOUNT_TONE_CLASSES, accountName, accountStatusLine, movedIds, topAccountEntry, type AccountEntry, type AccountLogin } from '../agents/accounts';
 

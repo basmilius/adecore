@@ -1,6 +1,6 @@
-import i18next from 'i18next';
 import { activeSubagents, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment, formatElapsedShort, formatTokens } from '@adecore/ui/format';
+import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
 import type { SubagentTask } from '../host';
 

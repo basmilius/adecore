@@ -1,5 +1,5 @@
-import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
+import type { ReactNode, Ref } from 'react';
 import { useChatHost } from '../../../host';
 import type { TimelineRow } from '../../logic/timeline';
 import { rowPosition, rowRhythm, saidToChat } from './row-rhythm';

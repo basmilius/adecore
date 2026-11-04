@@ -1,12 +1,12 @@
-import { useId } from 'react';
-import clsx from 'clsx';
-import { ArrowDown, ArrowUp, KeyRound, Plus, Trash2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Button, ButtonGroup, Checkbox, EmptyState, Icon, IconButton, Input, Pill } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { ArrowDown, ArrowUp, KeyRound, Plus, Trash2 } from 'lucide-react';
+import { useId } from 'react';
+import { useTranslation } from 'react-i18next';
 import { typeSuggestionsOf, type ColumnDraft } from '../ddl/index.ts';
-import type { EditorProps } from './editor-props.ts';
 import { addColumn, moveColumn, patchColumn, removeColumn, togglePrimaryKey } from './edit.ts';
+import type { EditorProps } from './editor-props.ts';
 
 const TH = 'sticky top-0 z-10 h-7 bg-surface px-2 text-left text-xs font-medium whitespace-nowrap text-text-faint';
 const TD = 'border-t border-border-soft px-2 py-1 align-middle';

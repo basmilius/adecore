@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
-import { GitCommitHorizontal, User, Users } from 'lucide-react';
 import { Button, Icon, Popover, Separator, Tooltip, useNow } from '@adecore/ui';
 import { formatAge, formatNumber } from '@adecore/ui/format';
+import { GitCommitHorizontal, User, Users } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { EditorLanguage } from './editor-language.ts';
 import type { GitBlameCommit } from './host-types.ts';
 import type { AuthorsView } from './popups.ts';

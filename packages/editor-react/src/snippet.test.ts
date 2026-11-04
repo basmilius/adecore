@@ -1,6 +1,6 @@
-import { indentSnippet } from './snippet-indent.ts';
-import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
+import './test-setup.ts';
+import { indentSnippet } from './snippet-indent.ts';
 import { checkSnippet, compileSnippet, escapeSnippetText, parseSnippet, snippetVariables, tabOrder } from './snippet.ts';
 
 describe('parseSnippet', () => {

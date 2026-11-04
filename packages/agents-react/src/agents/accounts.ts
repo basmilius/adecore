@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import { orderedAccountIds, type AgentKind, type ProviderAccount, type ProviderAccounts, type ProviderAccountStatus } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 import type { AccentChoice, ChatHost } from '../host';
 
 /*

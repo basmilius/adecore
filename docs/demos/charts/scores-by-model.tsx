@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { createChart } from '@adecore/charts';
+import { useState } from 'react';
 import { LAB_COLORS, scoresByModel, type ModelScore } from '../shared/chart-data.ts';
 
 const ScoreChart = createChart<ModelScore>();

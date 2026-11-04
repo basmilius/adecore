@@ -1,9 +1,9 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
-import { createSnippetResolver } from './snippet-variables.ts';
-import { indentSnippet } from './snippet-indent.ts';
-import { parseSnippet, tabOrder } from './snippet.ts';
 import type { SnippetVariableContext } from './host-types.ts';
+import { indentSnippet } from './snippet-indent.ts';
+import { createSnippetResolver } from './snippet-variables.ts';
+import { parseSnippet, tabOrder } from './snippet.ts';
 
 const context: SnippetVariableContext = {
     uri: 'file:///work/a.ts',

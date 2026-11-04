@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
 import type { DatabaseAction, DatabaseFiles, DatabaseNotice, DatabaseStorage } from './actions.ts';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage, useNumberNotation } from './client-context.ts';
 import { DatabaseProvider } from './DatabaseProvider.tsx';

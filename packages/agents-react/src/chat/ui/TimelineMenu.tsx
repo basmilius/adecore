@@ -1,19 +1,19 @@
+import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selectAllWithin } from '@adecore/ui';
+import { BookmarkPlus, BookmarkX, Braces, Copy, Eye, FileText, GitFork, MessageSquare, MoveHorizontal, Pencil, Scan } from 'lucide-react';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BookmarkPlus, BookmarkX, Braces, Copy, Eye, FileText, GitFork, MessageSquare, MoveHorizontal, Pencil, Scan } from 'lucide-react';
-import { placeBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';
-import { rememberReadingWidth, useChatPreferences } from '../preferences';
-import { CHAT_READING_WIDTHS, readingWidthLabel, type ChatReadingWidth } from '../reading-width';
-import { forkRefusal, turnIdOfRow } from '../logic/fork';
-import { markdownOf, messageTextOf } from '../logic/timeline-copy';
-import type { TimelineTarget } from '../logic/timeline-target';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
+import { placeBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';
+import { forkRefusal, turnIdOfRow } from '../logic/fork';
+import { markdownOf, messageTextOf } from '../logic/timeline-copy';
+import type { TimelineTarget } from '../logic/timeline-target';
+import { rememberReadingWidth, useChatPreferences } from '../preferences';
+import { CHAT_READING_WIDTHS, readingWidthLabel, type ChatReadingWidth } from '../reading-width';
 import { copyWithChips, rowClipboardChips } from './chip-clipboard';
 import { useFileLinkCwd, useFileLinkScopeId, useOpenFileLink } from './file-links';
 import { useReferenceLookup } from './thread-references';
-import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selectAllWithin } from '@adecore/ui';
 
 /* The menu behind a right-click in a thread, mostly for copying: a whole message, a code block or an answer's markdown. */
 export function TimelineMenuPopup({

@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { DatabaseProvider, TableView } from '@adecore/database';
+import { useEffect, useState } from 'react';
 import { createShopClient, SHOP } from '../shared/shop.ts';
 import { DEMO_FILES, withDemoFiles } from './demo-files.ts';
 

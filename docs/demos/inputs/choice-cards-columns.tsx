@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { FileText, Image, Music, Video } from 'lucide-react';
 import { ChoiceCards } from '@adecore/ui';
+import { FileText, Image, Music, Video } from 'lucide-react';
+import { useState } from 'react';
 
 type Kind = 'document' | 'image' | 'audio' | 'video';
 

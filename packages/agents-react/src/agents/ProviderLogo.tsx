@@ -1,5 +1,5 @@
-import clsx from 'clsx';
 import type { UsageProvider } from '@adecore/agent-contracts';
+import clsx from 'clsx';
 import { PROVIDER_PATHS, providerFillRule } from './provider-paths';
 
 interface ProviderLogoProps {

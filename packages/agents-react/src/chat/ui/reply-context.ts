@@ -1,6 +1,6 @@
+import type { ChatInfo } from '@adecore/agent-contracts';
 import { createContext } from 'react';
 import type { UiReplyTarget } from '../logic/timeline-target';
-import type { ChatInfo } from '@adecore/agent-contracts';
 
 export const ReplyContext = createContext<{ provider: ChatInfo['provider']; chatId?: string } | null>(null);
 

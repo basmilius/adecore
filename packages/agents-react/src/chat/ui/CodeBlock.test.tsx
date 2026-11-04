@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
+import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createPage } from '@adecore/editor/testing';
 import { ChatHostProvider, type ChatHost } from '../../host';
 import { CodeBlock } from './CodeBlock';
 import type { Highlighter } from './highlighter';

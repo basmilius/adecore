@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { FileCode } from 'lucide-react';
 import type { Connection } from '../client/types.ts';
 import type { ColumnInfo, SchemaInfo, TableInfo, TableStructure } from '../protocol/index.ts';
-import { FileCode } from 'lucide-react';
 import type { ExplorerFolder } from './folders.ts';
 import {
     IDLE,

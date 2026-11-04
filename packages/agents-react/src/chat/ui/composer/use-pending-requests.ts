@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useChatScope } from '../../../scope';
 import type { PromptSubject } from '../../../prompts/logic/subjects';
+import { useChatScope } from '../../../scope';
 import { ChatPromptFeed } from '../../pending-prompts';
 
 export function usePendingRequests(chatId: string): PromptSubject[] {

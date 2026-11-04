@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { createSplitLayout, splitPanes, updateSplitLayout, type SplitBranch, type SplitCommand, type SplitLayout, type SplitPane } from './model.ts';
 import { paneRadius, resizeSplit, splitGeometry, tabGapAt, tabRevealScrollLeft } from './geometry.ts';
+import { createSplitLayout, splitPanes, updateSplitLayout, type SplitBranch, type SplitCommand, type SplitLayout, type SplitPane } from './model.ts';
 
 const pane = (id: string, ...views: string[]): SplitPane => ({ type: 'pane', id, views, active: views[0] ?? null });
 

@@ -1,7 +1,7 @@
+import { afterEach, expect, test } from 'bun:test';
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, expect, test } from 'bun:test';
 import { stagePackage } from './pack-packages.ts';
 import type { PackageManifest } from './workspaces.ts';
 

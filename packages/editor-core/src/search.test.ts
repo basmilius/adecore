@@ -1,6 +1,6 @@
 import { describe, expect, it, spyOn, test } from 'bun:test';
-import { findMatches, replacementText } from './search.ts';
 import { DocumentModel } from './document.ts';
+import { findMatches, replacementText } from './search.ts';
 
 describe('find and replace', () => {
     it('finds literals with Unicode whole-word boundaries, bounds and case options', () => {

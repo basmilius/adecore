@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import { createHighlighter, type Highlighter } from 'shiki';
-import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
-import type { DiffSyntaxDocument, DiffSyntaxTokens } from '@adecore/editor/shiki-worker';
 import { diffSyntaxDocument } from '@adecore/editor-react';
+import type { DiffSyntaxDocument, DiffSyntaxTokens } from '@adecore/editor/shiki-worker';
+import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
+import { createHighlighter, type Highlighter } from 'shiki';
 import { createDiffSyntaxRuntime, diffSourceTokens, type DiffSyntaxMapping, type DiffSyntaxRuntime } from './diff-syntax';
 
 function mapping(document: DiffDocument): DiffSyntaxMapping {

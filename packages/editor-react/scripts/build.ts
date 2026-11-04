@@ -1,7 +1,7 @@
 import { $ } from 'bun';
-import { compileReactDist, describeReactCompilerReport } from '../../../scripts/react-compiler.ts';
 import { copyFile, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, extname, join, resolve } from 'node:path';
+import { compileReactDist, describeReactCompilerReport } from '../../../scripts/react-compiler.ts';
 
 await rm('dist', { recursive: true, force: true });
 await $`tsc -p tsconfig.build.json`;

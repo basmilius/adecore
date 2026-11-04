@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, ModelSelection } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 import type { TimelineRow } from './timeline';
 
 /* The providers whose chat a machine can fork, and go on with in a fork, are the ones with a conversation the CLI keeps. */

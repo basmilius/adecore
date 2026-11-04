@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { useState } from 'react';
 import type { Connection } from '../client/types.ts';
 import type { Mounted } from '../testing/dom/harness.tsx';
 import { byLabel, byText, clientOver, click, findAll, mount, waitFor } from '../testing/dom/harness.tsx';

@@ -1,6 +1,6 @@
+import clsx from 'clsx';
 import { useId, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import clsx from 'clsx';
 import { xOf } from './access.ts';
 import { colorOf } from './color.ts';
 import { useChartContext } from './context.ts';

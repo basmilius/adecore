@@ -1,12 +1,12 @@
 import { describe, expect, jest, test } from 'bun:test';
 import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from './claude-protocol.ts';
-import goalCapture from './fixtures/claude-2.1.296-goal.json';
 import autoFallbackCapture from './fixtures/claude-2.1.285-auto-fallback.json';
-import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
-import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';
 import nativeChildrenCapture from './fixtures/claude-2.1.285-native-children.json';
-import { ChatThread } from './thread.ts';
+import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';
+import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
+import goalCapture from './fixtures/claude-2.1.296-goal.json';
 import { ThreadProjector } from './projector.ts';
+import { ChatThread } from './thread.ts';
 
 const usage = { input_tokens: 8, cache_creation_input_tokens: 2671, cache_read_input_tokens: 24869, output_tokens: 1 };
 

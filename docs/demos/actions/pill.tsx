@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { CircleAlert, GitBranch } from 'lucide-react';
 import { Icon, Pill } from '@adecore/ui';
+import { CircleAlert, GitBranch } from 'lucide-react';
+import { useState } from 'react';
 
 export default function PillDemo() {
     const [staged, setStaged] = useState(false);

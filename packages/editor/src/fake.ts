@@ -1,3 +1,7 @@
+import { changedSpan, changedSpans, DocumentModel } from '@adecore/editor-core';
+import { emit, type Listener, subscribe } from './listeners.ts';
+import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
+import { mapTrackedRange } from './tracked-range.ts';
 import type {
     Editor,
     EditorAttributionHover,
@@ -58,10 +62,6 @@ import type {
     EditorWhitespaceCleanup,
     EditorWidget
 } from './types.ts';
-import { emit, type Listener, subscribe } from './listeners.ts';
-import { changedSpan, changedSpans, DocumentModel } from '@adecore/editor-core';
-import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
-import { mapTrackedRange } from './tracked-range.ts';
 
 interface OffsetSelection {
     anchor: number;

@@ -4,10 +4,10 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { AgentKind, ProviderAccount, ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
 import type { AgentEvent } from '../../events.ts';
+import { memorySecrets } from '../../testing/accounts.ts';
 import { providerFor } from '../registry.ts';
 import { ProviderAccountsService } from './service.ts';
 import type { ShadowHomeReport } from './shadow-home.ts';
-import { memorySecrets } from '../../testing/accounts.ts';
 import type { AccountReading } from './status.ts';
 
 // Windows reads the home from USERPROFILE, joins with backslashes and resolves a rooted path onto a drive.

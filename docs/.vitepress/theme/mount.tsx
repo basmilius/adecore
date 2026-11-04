@@ -1,5 +1,5 @@
-import { createRoot } from 'react-dom/client';
 import type { ComponentType } from 'react';
+import { createRoot } from 'react-dom/client';
 import { DemoFrame } from './DemoFrame.tsx';
 
 // `shared` holds what the demos import, such as the app's i18next and settings; none of it is a demo.

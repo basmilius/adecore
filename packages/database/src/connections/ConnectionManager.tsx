@@ -1,18 +1,18 @@
-import { useState, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
-import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Banner, Button, CloseButton, EmptyState, Icon, Menu, messageOf, PromptDialog, ScrollArea, Spinner } from '@adecore/ui';
 import { DetailHeader, MasterItem } from '@adecore/ui/settings';
+import clsx from 'clsx';
+import { CircleAlert, CircleCheck, Container, Database, Plus, Trash2, Unplug } from 'lucide-react';
+import { useState, type ReactNode, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import type { ConnectionConfig, DockerContainer, Engine, ServerInfo } from '../protocol/index.ts';
 import { defaultConfig, isValidConfig, targetOf } from './connection-config.ts';
 import { ConnectionForm } from './ConnectionForm.tsx';
 import { connectionFromContainer, containerTitle, isMysqlContainer } from './docker.ts';
-import { useDockerContainers } from './use-docker-containers.ts';
 import { ENGINE_ICONS } from './engine-icons.ts';
 import { EngineIcon } from './EngineIcon.tsx';
+import { useDockerContainers } from './use-docker-containers.ts';
 
 const ENGINES: readonly Engine[] = ['sqlite', 'mysql'];
 

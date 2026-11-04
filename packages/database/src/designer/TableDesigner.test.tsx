@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { Connection, DatabaseClient } from '../client/types.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import { dialectOf, draftOf, emptyColumn, emptyDraft, type TableDraft } from '../ddl/index.ts';
 import type { TableStructure } from '../protocol/index.ts';
 import { ColumnsEditor } from './ColumnsEditor.tsx';

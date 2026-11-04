@@ -1,6 +1,6 @@
-import type { i18n } from 'i18next';
 import { diffLines, splitLines } from '@adecore/merge';
 import { formatNumber } from '@adecore/ui/format';
+import type { i18n } from 'i18next';
 import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 
 /* A line no commit holds yet; every other line maps to the index of the commit that wrote it. */

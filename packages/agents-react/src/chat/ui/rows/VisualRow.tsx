@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
-import { Ellipsis, Maximize2, Trash2 } from 'lucide-react';
 import type { ChatVisual } from '@adecore/agent-contracts';
 import { ButtonGroup, ErrorBoundary, Icon, IconButton, Menu, Surface } from '@adecore/ui';
+import { Ellipsis, Maximize2, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { useVisualDialog } from '../../visuals';

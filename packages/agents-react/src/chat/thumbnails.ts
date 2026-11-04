@@ -1,6 +1,6 @@
+import type { ChatAttachmentUpload } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import { useEffect, useState } from 'react';
-import type { ChatAttachmentUpload } from '@adecore/agent-contracts';
 import { uploadPreviewUrl } from './attachments';
 import { imageForDisplay } from './image-display';
 

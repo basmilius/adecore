@@ -1,5 +1,5 @@
-import { chatStorageKey, chatStorageLegacyKeys, createChatStore } from '../storage';
 import type { ChatAttachmentUpload } from '@adecore/agent-contracts';
+import { chatStorageKey, chatStorageLegacyKeys, createChatStore } from '../storage';
 import { checkAttachmentLimits, uploadBytes } from './attachments';
 import { persistedJson } from './persisted-json';
 

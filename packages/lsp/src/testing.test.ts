@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { LspSession } from './session.ts';
-import { createMemoryTransportPair, FakeLanguageServer } from './testing.ts';
 import { flush, origin } from './test-transport.ts';
+import { createMemoryTransportPair, FakeLanguageServer } from './testing.ts';
 
 async function connect(options: ConstructorParameters<typeof FakeLanguageServer>[1] = {}) {
     const [clientSide, serverSide] = createMemoryTransportPair();

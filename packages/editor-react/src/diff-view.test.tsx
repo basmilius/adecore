@@ -1,13 +1,13 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
-import { act, Component, createElement, type ReactNode } from 'react';
-import { createRoot } from 'react-dom/client';
 import { createSmartEditorEngine, type Editor, type EditorEngine, type LineToken } from '@adecore/editor';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { clipboard, createPage, press } from '@adecore/editor/testing';
 import { diffDocument, parsePatch, patchOf, type DiffDocument } from '@adecore/merge';
-import { DiffView, type DiffSource } from './DiffView.tsx';
+import { act, Component, createElement, type ReactNode } from 'react';
+import { createRoot } from 'react-dom/client';
 import type { DiffSourceSide, DiffSourceTokens } from './diff-syntax.ts';
+import { DiffView, type DiffSource } from './DiffView.tsx';
 
 async function pageTest(run: (page: ReturnType<typeof createPage>, root: ReturnType<typeof createRoot>) => Promise<void>): Promise<void> {
     const page = createPage();

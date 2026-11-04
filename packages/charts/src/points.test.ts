@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { frontierOf, movePoint, nearestPoint, spreadLabels } from './points.ts';
 import { matchingItems, toggleGroup } from './legend.ts';
+import { frontierOf, movePoint, nearestPoint, spreadLabels } from './points.ts';
 
 describe('the nearest point', () => {
     const points = [

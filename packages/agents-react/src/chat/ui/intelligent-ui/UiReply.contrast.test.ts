@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { compileUi } from '@adecore/intelligent-ui';
 import { parseHTML } from 'linkedom';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { ChatHostProvider } from '../../../host';
 import { UiReply } from './UiReply';
 

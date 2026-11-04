@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
 import type { ChatEvent, ChatItem } from '@adecore/agent-contracts';
-import { ManualClock } from '../testing/manual-clock.ts';
 import { compileUiBlock, evaluateUiBlock } from '@adecore/intelligent-ui';
+import { ManualClock } from '../testing/manual-clock.ts';
 import { flush, rig } from './chat-session.fixture.test.ts';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.

@@ -1,8 +1,8 @@
 import './test-setup.ts';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { FakeEditorEngine } from '@adecore/editor/fake';
-import { EditorLanguage } from './editor-language.ts';
 import { ClipboardHistory } from './clipboard-history.ts';
+import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { keyOf } from './test-support.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';

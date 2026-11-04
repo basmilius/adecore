@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { CircleAlert } from 'lucide-react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { Banner } from './Banner.tsx';
 
 const rootClasses = (markup: string): string[] => markup.match(/^<div[^>]* class="([^"]*)"/)![1]!.split(' ');

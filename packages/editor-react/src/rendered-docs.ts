@@ -1,8 +1,8 @@
 import { findDocComments, type DocComment, type EditorPosition, type EditorRange, type EditorReplacement, type EditorTrackedRange } from '@adecore/editor';
 import { comparePositions } from './diagnostics-model.ts';
-import { KEY_PRIORITY } from './key-priority.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { parseDocComment, type ParsedDocComment } from './doc-comment-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { lineTextOf } from './line-text.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';

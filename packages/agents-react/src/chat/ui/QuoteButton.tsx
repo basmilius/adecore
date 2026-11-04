@@ -1,8 +1,8 @@
+import { Button, Icon, Surface } from '@adecore/ui';
+import { Quote } from 'lucide-react';
 import { useEffect, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Quote } from 'lucide-react';
 import { selectedAnswerQuote, type QuoteTaker } from './quote-selection';
-import { Button, Icon, Surface } from '@adecore/ui';
 
 const GAP_PX = 6;
 // Keeps the button's middle far enough from the edges that it never sticks out of the thread.

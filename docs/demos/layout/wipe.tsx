@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Wipe } from '@adecore/ui';
+import { useState } from 'react';
 
 function Frame({ label, className }: { label: string; className: string }) {
     return (

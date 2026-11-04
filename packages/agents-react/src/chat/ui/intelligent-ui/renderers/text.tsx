@@ -1,12 +1,12 @@
-import { useContext } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Circle, CircleCheck, CircleDot, CircleMinus, CircleX, type LucideIcon } from 'lucide-react';
 import { parseUiEventTime, type UiProps } from '@adecore/intelligent-ui';
 import { Icon, Meter, Pill, Spinner } from '@adecore/ui';
 import { formatNumber, formatPercent } from '@adecore/ui/format';
-import { UiHeadContext, type UiRenderContext, type UiRendererProps } from '../render-context';
+import clsx from 'clsx';
+import { Circle, CircleCheck, CircleDot, CircleMinus, CircleX, type LucideIcon } from 'lucide-react';
+import { useContext } from 'react';
+import { useTranslation } from 'react-i18next';
 import { uiEventTime, uiNodeLabel } from '../node-text';
+import { UiHeadContext, type UiRenderContext, type UiRendererProps } from '../render-context';
 import { UI_STEP_PILL, UI_TONE_FILL, UI_TONE_ICONS, UI_TONE_PILL, UI_TONE_SURFACE, UI_TONE_TEXT } from '../tones';
 
 type StepState = UiProps<'Step'>['state'];

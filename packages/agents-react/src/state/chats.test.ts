@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
-import { compileUi } from '@adecore/intelligent-ui';
 import type { ChatInfo, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import { compileUi } from '@adecore/intelligent-ui';
 import { flyoutSubagents } from '../chat/subagent-list';
 import { applyEvent, chatSink, prependPage, useChats, waitingRequestsOf, type ChatState } from './chats';
 

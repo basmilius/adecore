@@ -1,15 +1,15 @@
-import { compareSnippetOrder, snippetOrderOf } from './snippet-range-order.ts';
-import { SnippetFieldTransforms, type FieldTransformTarget } from './snippet-field-transforms.ts';
-import { SnippetTransformError } from './snippet-transform-client.ts';
-import { acquireSnippetTransforms, type SnippetTransformLease } from './snippet-transform-queue.ts';
-import { realTimers, type Timers } from './timers.ts';
-import { KEY_PRIORITY } from './key-priority.ts';
-import { MAX_TRANSFORM_CHARACTERS, type SnippetTransformJob } from './snippet-transform-protocol.ts';
 import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
 import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { textBeforeOf } from './line-text.ts';
+import { SnippetFieldTransforms, type FieldTransformTarget } from './snippet-field-transforms.ts';
+import { compareSnippetOrder, snippetOrderOf } from './snippet-range-order.ts';
+import { SnippetTransformError } from './snippet-transform-client.ts';
+import { MAX_TRANSFORM_CHARACTERS, type SnippetTransformJob } from './snippet-transform-protocol.ts';
+import { acquireSnippetTransforms, type SnippetTransformLease } from './snippet-transform-queue.ts';
 import type { SnippetField, SnippetStop, SnippetTransform } from './snippet.ts';
+import { realTimers, type Timers } from './timers.ts';
 
 export function positionInInsertion(start: EditorPosition, text: string, offset: number): EditorPosition {
     return endOfInsertion(start, text.slice(0, offset));

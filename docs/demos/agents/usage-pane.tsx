@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { UsagePane } from '@adecore/agents-react/usage';
+import { useState } from 'react';
 import { AgentDemo } from '../shared/agents.tsx';
 
 export default function UsagePaneDemo() {

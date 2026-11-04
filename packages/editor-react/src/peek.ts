@@ -1,12 +1,12 @@
-import { StaleResultError, type Location, type Range } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorPosition } from '@adecore/editor';
+import { StaleResultError, type Location, type Range } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
+import { messageOf } from './error-message.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { uniquePlaces } from './navigation.ts';
 import { PEEK_READ_FILES, definitionSnippetOf, peekFilesOf, snippetOf, type PeekFile } from './peek-model.ts';
 import type { PeekView } from './popups.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { messageOf } from './error-message.ts';
 import { realTimers, revealRow, type Timers } from './timers.ts';
 import { placeKey, uniqueBy } from './unique.ts';
 

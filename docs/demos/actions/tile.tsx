@@ -1,5 +1,5 @@
-import { FolderOpen, Plus, Terminal } from 'lucide-react';
 import { Icon, Tile, shortcut } from '@adecore/ui';
+import { FolderOpen, Plus, Terminal } from 'lucide-react';
 
 const NEW = shortcut('Mod+N');
 const OPEN = shortcut('Mod+O');

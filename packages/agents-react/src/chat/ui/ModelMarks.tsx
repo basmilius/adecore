@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
-import { Wrench } from 'lucide-react';
 import type { ModelInfo } from '@adecore/agent-contracts';
 import { Icon, Pill, Tooltip } from '@adecore/ui';
+import { Wrench } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 /* What a model row says beside the name: its badge, and a mark when the provider says the model can call tools. */
 export function ModelMarks({ model }: { model: ModelInfo }) {

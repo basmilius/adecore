@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { ConnectionManager, type Connection } from '@adecore/database';
+import { useState } from 'react';
 import { ShopDatabase } from '../shared/database.tsx';
 import { SHOP_CONNECTIONS } from '../shared/shop.ts';
 

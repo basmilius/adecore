@@ -1,10 +1,10 @@
-import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
+import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { type UiBlock, type UiNode } from './compiler.ts';
-import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
-import { uiCompiledNodes, uiVisibleInputs } from './inputs.ts';
 import { unreadableEventTime } from './event-warning.ts';
+import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
+import { uiCompiledNodes, uiVisibleInputs } from './inputs.ts';
 import { uiDiagnostic, type UiDiagnostic } from './syntax.ts';
 
 export interface UiBinding<Value> {

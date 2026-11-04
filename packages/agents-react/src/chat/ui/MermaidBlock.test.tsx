@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
+import { createPage } from '@adecore/editor/testing';
+import { renderAsync } from 'pele/lazy';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { renderAsync } from 'pele/lazy';
-import { createPage } from '@adecore/editor/testing';
 import { ChatHostProvider, type ChatHost } from '../../host';
 import type { Highlighter } from './highlighter';
 import { MermaidBlock } from './MermaidBlock';

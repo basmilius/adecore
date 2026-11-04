@@ -1,9 +1,9 @@
-import { useRef, useState, type Ref } from 'react';
-import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
-import { ArrowUp, ChevronDown, Play, Plus, Square } from 'lucide-react';
 import { holdsConversation, type ChatInfo } from '@adecore/agent-contracts';
 import { Button, ErrorBoundary, Icon, Menu, Tooltip, type Shortcut } from '@adecore/ui';
+import clsx from 'clsx';
+import { ArrowUp, ChevronDown, Play, Plus, Square } from 'lucide-react';
+import { useRef, useState, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost, type ComposerSendAction, type ComposerSendDraft } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { useProviders } from '../../../state/providers';

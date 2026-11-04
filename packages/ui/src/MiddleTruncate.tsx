@@ -1,7 +1,7 @@
-import { useLayoutEffect, useState, type Ref } from 'react';
 import clsx from 'clsx';
-import { fitMiddle, type MiddleCut } from './middle-truncate.ts';
+import { useLayoutEffect, useState, type Ref } from 'react';
 import { mergeRefs } from './merge-refs.ts';
+import { fitMiddle, type MiddleCut } from './middle-truncate.ts';
 import { Tooltip } from './Tooltip.tsx';
 
 export interface MiddleTruncateProps {

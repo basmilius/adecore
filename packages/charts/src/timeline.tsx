@@ -1,8 +1,8 @@
-import { createContext, useContext, useId, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Tooltip, Tree } from '@adecore/ui';
 import { formatNumber, formatPreciseDuration } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { createContext, useContext, useId, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { colorOf, seriesColor } from './color.ts';
 import {
     barOf,

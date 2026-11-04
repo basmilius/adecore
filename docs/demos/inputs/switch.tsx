@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Switch } from '@adecore/ui';
+import { useState } from 'react';
 
 export default function SwitchDemo() {
     const [sounds, setSounds] = useState(true);

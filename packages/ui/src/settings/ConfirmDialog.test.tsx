@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
 import { act, createRef } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import i18next from 'i18next';
 import { UIProvider } from '../UIProvider.tsx';
 import { ConfirmDialog } from './ConfirmDialog.tsx';
 

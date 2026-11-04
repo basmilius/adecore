@@ -1,8 +1,8 @@
 import { deepStrictEqual } from 'node:assert';
 import { resolve } from 'node:path';
+import * as permissions from '../packages/plan/src/permissions.ts';
 import type { Plan, PlanItem, PlanOp, PlanStep, PlanStepState } from '../packages/plan/src/protocol.ts';
 import * as tree from '../packages/plan/src/tree.ts';
-import * as permissions from '../packages/plan/src/permissions.ts';
 
 const beforeRoot = process.argv[2];
 

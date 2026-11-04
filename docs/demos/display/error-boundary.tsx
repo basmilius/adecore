@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Button, ErrorBoundary } from '@adecore/ui';
+import { useState } from 'react';
 
 function Chart({ broken }: { broken: boolean }) {
     if (broken) {

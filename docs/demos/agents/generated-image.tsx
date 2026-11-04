@@ -1,7 +1,7 @@
 import { GeneratedImageRow } from '@adecore/agents-react/chat/ui';
 import { generatedImageTools } from '../shared/agents-data.ts';
-import { AgentDemo } from '../shared/agents.tsx';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 
 const tools = generatedImageTools();
 

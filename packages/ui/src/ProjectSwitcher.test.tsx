@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
 import * as Menu from './menu/index.parts.ts';
 import { ProjectSwitcherRow } from './project-switcher-row.tsx';
 import { ProjectSwitcher, ProjectSwitcherGroups, type ProjectSwitcherItem, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';

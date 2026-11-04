@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
+import { compileUiBlock, evaluateUiBlock, UI_CATALOG, UiState, type UiComponentName, type UiViewNode } from '@adecore/intelligent-ui';
+import { formatClock, formatDay, formatDayClock, formatDayClockWithYear, formatDayWithYear, setFormatSource, type FormatSource } from '@adecore/ui/format';
+import { fakeFormatSource } from '@adecore/ui/testing';
+import i18next from 'i18next';
 import { createElement, Fragment, type ComponentType, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { compileUiBlock, evaluateUiBlock, UI_CATALOG, UiState, type UiComponentName, type UiViewNode } from '@adecore/intelligent-ui';
 import { ChatHostProvider, type ChatHost, type UiModelViewProps } from '../../../host';
 import { UiPageMemory } from './block-local';
 import { uiChartAxis, uiChartCharacter, uiChartData, uiChartRange, uiChartText, uiChartTextWidth, niceCeiling, UI_CHART_SERIES } from './chart-data';
-import i18next from 'i18next';
-import { formatClock, formatDay, formatDayClock, formatDayClockWithYear, formatDayWithYear, setFormatSource, type FormatSource } from '@adecore/ui/format';
-import { fakeFormatSource } from '@adecore/ui/testing';
 import { uiBlockHead, uiEventTime, uiLiveChoiceReason, uiNodeLabel, uiNodeText, uiReasonText, uiUrlDomain, uiWithUnit } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';

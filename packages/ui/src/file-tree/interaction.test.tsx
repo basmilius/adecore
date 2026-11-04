@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { act, useLayoutEffect, useState, type ReactNode } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import i18next from 'i18next';
 import { FolderGit2 } from 'lucide-react';
+import { act, useLayoutEffect, useState, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { FileTree, Tree, UIProvider, useFileTree, type FileTreeModel, type FileTreeRootProps } from '../index.ts';
 
 const i18n = i18next.createInstance();

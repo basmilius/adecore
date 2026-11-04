@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import type { Editor } from '@adecore/editor';
+import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { diffSegments, emphasisOf } from './proposal-model.ts';
 
 export interface ChangeReviewProps {

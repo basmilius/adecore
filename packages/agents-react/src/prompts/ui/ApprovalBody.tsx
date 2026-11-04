@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import type { ChatApprovalItem } from '@adecore/agent-contracts';
+import { Button, ScrollArea, TextMenu } from '@adecore/ui';
+import clsx from 'clsx';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { approvalChanges, fileChanges } from '../../chat/logic/tools';
-import { useChatHost } from '../../host';
 import { ApprovalReview } from '../../chat/ui/diff/ApprovalReview';
 import { reviewEntries } from '../../chat/ui/diff/review-plan';
+import { useChatHost } from '../../host';
 import { isPrimaryKey } from '../logic/keys';
 import type { PromptDraft } from '../logic/prompts';
-import { Button, ScrollArea, TextMenu } from '@adecore/ui';
 
 /* A command in the sunken box a person reads before allowing it, with the folder it runs in when that is known. */
 export function CommandBox({ command, cwd }: { command: string; cwd?: string }) {

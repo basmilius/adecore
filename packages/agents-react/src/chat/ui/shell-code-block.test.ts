@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import type { ChatAssistantItem } from '@adecore/agent-contracts';
 import { createElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ChatAssistantItem } from '@adecore/agent-contracts';
 import { ChatHostProvider, type ChatHost, type ShellCodeBlockContext } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
-import { Markdown, MessageMarkdown, ReplyMarkdown } from './Markdown';
-import { AssistantRow, ReportRow, ThinkingRow } from './rows/MessageRows';
-import { ReplyContext } from './reply-context';
 import { AnsiOutput } from './AnsiOutput';
+import { Markdown, MessageMarkdown, ReplyMarkdown } from './Markdown';
+import { ReplyContext } from './reply-context';
+import { AssistantRow, ReportRow, ThinkingRow } from './rows/MessageRows';
 
 const scope: ChatScope = {
     id: 'original-machine',

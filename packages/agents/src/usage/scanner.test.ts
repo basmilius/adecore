@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
-import { mkdir, mkdtemp, open, rm, stat, writeFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
+import { mkdir, mkdtemp, open, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { encodeIndex, type UsageIndex } from './index-file.ts';
-import { UsageScanner, forEachLine } from './scanner.ts';
 import type { UsageRootPath } from './roots.ts';
+import { UsageScanner, forEachLine } from './scanner.ts';
 
 const made: string[] = [];
 

@@ -1,5 +1,5 @@
-import type { TextEdit } from '@adecore/lsp';
 import type { EditorTextChange } from '@adecore/editor';
+import type { TextEdit } from '@adecore/lsp';
 import { comparePositions } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 

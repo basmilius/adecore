@@ -1,7 +1,7 @@
-import type { DrawingColor } from '@adecore/drawing/protocol';
-import type { DiagramDocument } from './protocol.ts';
 import { DEFAULT_FONT_STACKS, DEFAULT_PALETTE, DEFAULT_PAPER, escapeXml } from '@adecore/drawing';
+import type { DrawingColor } from '@adecore/drawing/protocol';
 import { GROUP_LABEL_BAND, layoutOf, type DiagramLayout } from './layout.ts';
+import type { DiagramDocument } from './protocol.ts';
 import { arrowHeadPath, dashOf, edgeLabelLinesOf, edgePath, shapePaths, textLinesOf } from './shapes.ts';
 import { SUB_SIZE } from './text.ts';
 

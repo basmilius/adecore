@@ -1,5 +1,5 @@
-import { GitPullRequest } from 'lucide-react';
 import { Button, PanelEmpty, PanelHeader } from '@adecore/ui';
+import { GitPullRequest } from 'lucide-react';
 
 export default function PanelEmptyDemo() {
     return (

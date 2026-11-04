@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { IconPicker, type IconPickerGroup } from '@adecore/ui';
 import {
     Bot,
     Brain,
@@ -22,7 +22,7 @@ import {
     Terminal,
     Wand
 } from 'lucide-react';
-import { IconPicker, type IconPickerGroup } from '@adecore/ui';
+import { useState } from 'react';
 
 const GROUPS: IconPickerGroup[] = [
     { id: 'code', label: 'Code', icons: { code: Code, braces: Braces, terminal: Terminal, bug: Bug, 'git-branch': GitBranch, 'git-merge': GitMerge } },

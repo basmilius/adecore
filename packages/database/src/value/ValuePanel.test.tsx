@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseClient } from '../client/types.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { GridColumn } from '../grid/types.ts';
 import { ValuePanel, type ValuePanelProps } from './ValuePanel.tsx';
 

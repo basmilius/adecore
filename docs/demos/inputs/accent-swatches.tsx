@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { AccentSwatches } from '@adecore/ui';
+import { useState } from 'react';
 
 type Accent = 'blue' | 'violet' | 'rose' | 'amber' | 'green' | 'teal' | 'slate';
 

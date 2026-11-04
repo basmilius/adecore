@@ -1,5 +1,5 @@
-import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { join } from 'node:path';
 import { accountRoots, usageRoots } from './roots.ts';
 
 describe('the usage roots', () => {

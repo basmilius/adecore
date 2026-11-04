@@ -1,8 +1,8 @@
-import { useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
+import { Banner, Button, Spinner, messageOf } from '@adecore/ui';
 import clsx from 'clsx';
 import { CircleAlert, RefreshCw } from 'lucide-react';
+import { useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, Spinner, messageOf } from '@adecore/ui';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
 import type { Connection, ExecuteResult } from '../client/types.ts';
 import { dialectOf, draftOf, emptyDraft, type Dialect, type TableDraft } from '../ddl/index.ts';

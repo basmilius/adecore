@@ -1,22 +1,22 @@
-import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
 import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
-import { ModelOptionControl } from '../agents/ModelOptionControl';
-import { carryOptions } from '../agents/model-options';
-import { optionWord } from '../agents/option-words';
+import { Button, Icon, Select } from '@adecore/ui';
+import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
+import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
 import { accountName, offeredAccounts, type AccountEntry, type AccountLogin } from '../agents/accounts';
+import { carryOptions } from '../agents/model-options';
+import { ModelOptionControl } from '../agents/ModelOptionControl';
+import { optionWord } from '../agents/option-words';
 import { accountFor, forgetChatSelection, rememberChatAccount, rememberChatSelection, selectionFor, useChatPreferences } from '../chat/preferences';
-import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
 import { useChatHost } from '../host';
 import { useHostCanReorderAccounts } from '../host-hooks';
 import { useChatScope } from '../scope';
+import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
 import { reorderAccounts } from './account-actions';
 import { AccountOrderList } from './AccountOrderList';
-import { providerAbilities } from './provider-abilities';
-import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
-import { Button, Icon, Select } from '@adecore/ui';
 import { CliTile } from './parts';
+import { providerAbilities } from './provider-abilities';
 
 const PROVIDER_DEFAULT = '';
 

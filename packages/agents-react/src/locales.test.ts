@@ -1,7 +1,7 @@
+import { describe, expect, test } from 'bun:test';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, test } from 'bun:test';
 import { AGENTS_LOCALES, AGENTS_NAMESPACES } from './locales';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));

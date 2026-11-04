@@ -3,10 +3,10 @@ import { afterEach, expect, test } from 'bun:test';
 import { mountEditor } from '@adecore/editor/testing';
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import { EditorLanguage } from './editor-language.ts';
-import { ProjectLanguage } from './project-language.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
-import type { SnippetTransformInput, SnippetTransformOutput } from './snippet-transform-protocol.ts';
 import type { LanguageHost } from './host-types.ts';
+import { ProjectLanguage } from './project-language.ts';
+import type { SnippetTransformInput, SnippetTransformOutput } from './snippet-transform-protocol.ts';
+import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 const cleanup: (() => void)[] = [];
 

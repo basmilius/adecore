@@ -1,7 +1,7 @@
 import type { VueRegion } from './languages.ts';
 import type { DocumentLine } from './rope.ts';
-import type { TypingContext } from './typing-context.ts';
 import type { Selection, TextEdit } from './types.ts';
+import type { TypingContext } from './typing-context.ts';
 
 /* What the editing features that go by the lines around a caret read from the document. */
 export interface EditSource {

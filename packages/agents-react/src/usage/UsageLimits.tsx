@@ -1,18 +1,18 @@
+import type { UsageProvider } from '@adecore/agent-contracts';
+import { Button, Icon, SectionLabel, Segmented, Tooltip, useNow } from '@adecore/ui';
+import { LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LogIn } from 'lucide-react';
-import type { UsageProvider } from '@adecore/agent-contracts';
 import { AccountDot } from '../agents/AccountDot';
-import { Button, Icon, SectionLabel, Segmented, Tooltip, useNow } from '@adecore/ui';
 import { useChatHost } from '../host';
+import { useHostLoginBlocked } from '../host-hooks';
+import { useChatScope } from '../scope';
+import { useProviderAccounts } from '../state/provider-accounts';
 import { ChartLogo } from './ChartLogo';
 import { PROVIDER_LABELS } from './format';
 import { accountNote, checkedLabel, hasSeveralAccounts, isSignedOut, type LimitAccount } from './limit-groups';
-import { WindowBar } from './LimitsList';
 import { useLimitGroups, useUsageLimits } from './limits';
-import { useProviderAccounts } from '../state/provider-accounts';
-import { useChatScope } from '../scope';
-import { useHostLoginBlocked } from '../host-hooks';
+import { WindowBar } from './LimitsList';
 
 const MINUTE_MS = 60_000;
 

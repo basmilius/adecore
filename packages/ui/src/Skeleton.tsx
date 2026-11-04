@@ -1,5 +1,5 @@
-import type { Ref } from 'react';
 import clsx from 'clsx';
+import type { Ref } from 'react';
 
 export interface SkeletonProps {
     /* The width, and a height other than the one line of 16px. */

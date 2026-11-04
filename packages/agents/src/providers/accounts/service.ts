@@ -14,6 +14,7 @@ import {
     type ProviderAccountVariable,
     type ProviderInfo
 } from '@adecore/agent-contracts';
+import { Serializer } from '@adecore/utils/async';
 import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
@@ -45,7 +46,6 @@ import {
     type StoredAccounts
 } from './store.ts';
 import { DEFAULT_ACCOUNTS_HOST, platformSecrets, secretKey, SecretsUnavailableError, type AccountsHost, type SecretStore } from './variables.ts';
-import { Serializer } from '@adecore/utils/async';
 
 /* Who is signed in changes by hand and rarely; often enough to notice, rarely enough not to start CLIs all day. */
 const CHECK_INTERVAL_MS = 15 * 60_000;

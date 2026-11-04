@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { Readable, Writable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import { isRecord, type ModelSelection, type RuntimeMode } from '@adecore/agent-contracts';
+import { asError } from '@adecore/utils/errors';
 import type {
     CanUseTool,
     EffortLevel,
@@ -15,14 +17,12 @@ import type {
     SpawnedProcess,
     SpawnOptions
 } from '@anthropic-ai/claude-agent-sdk';
-import { isRecord, type ModelSelection, type RuntimeMode } from '@adecore/agent-contracts';
 import { errorText } from '../error-text.ts';
 import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from '../providers/claude.ts';
 import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
 import { ChatChild } from './chat-process.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { buildUserMessage } from './input.ts';
-import { asError } from '@adecore/utils/errors';
 
 // How long the messages of a CLI that exited may still take through the SDK.
 const EXIT_DRAIN_MS = 500;

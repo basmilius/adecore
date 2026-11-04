@@ -1,13 +1,13 @@
+import { type z } from 'zod';
+import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import { safeKey, UI_LIMITS, UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
-import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import { unreadableEventTime } from './event-warning.ts';
+import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
 import { aliasedProp } from './prop-alias.ts';
-import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { rethrowBudget } from './rethrow.ts';
 import { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntaxNode } from './syntax.ts';
-import { type z } from 'zod';
 
 // The info string a fence carries when the host names none of its own.
 export const UI_FENCE_LANGUAGE = 'ui';

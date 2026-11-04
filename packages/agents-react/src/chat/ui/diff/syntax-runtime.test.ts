@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { createHighlighter, type Highlighter, type ThemeRegistration } from 'shiki';
 import type { DiffSyntaxDocument, DiffSyntaxInput, DiffSyntaxOutput, DiffSyntaxTokens } from '@adecore/editor/shiki-worker';
+import { createHighlighter, type Highlighter, type ThemeRegistration } from 'shiki';
 import { createDiffSyntaxRuntime } from './syntax-runtime';
 
 const DOCUMENT: DiffSyntaxDocument = { language: 'typescript', theme: 'github-dark', blocks: ['const answer = 42;'], resets: [] };

@@ -1,24 +1,24 @@
-import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import type { ChatInfo } from '@adecore/agent-contracts';
+import { Switch, Button, ButtonGroup, Icon, Menu, Pill, Tooltip, useNow } from '@adecore/ui';
+import { useFormatLocale } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { ChevronDown, Hourglass } from 'lucide-react';
-import type { ChatInfo } from '@adecore/agent-contracts';
-import { AccountDot } from '../../agents/AccountDot';
+import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { continueTargets, hasUnreadAccount, limitsOfAccount, sessionWindow } from '../../agents/account-limits';
+import { AccountDot } from '../../agents/AccountDot';
 import { canContinueOn, type AccountEntry } from '../../agents/accounts';
-import { useAccountChoice, type AccountChoice } from '../account-choice';
-import { limitView } from '../logic/limit';
-import { useFormatLocale } from '@adecore/ui/format';
-import { Switch, Button, ButtonGroup, Icon, Menu, Pill, Tooltip, useNow } from '@adecore/ui';
-import { useUsageLimits } from '../../usage/limits';
-import { useChats } from '../../state/chats';
 import { useChatHost } from '../../host';
-import { useChatScope, type ChatScope } from '../../scope';
-import { useChatActions } from '../actions';
-import { useUsageStore } from '../../state/usage';
-import { SessionLine } from './SessionLine';
 import { useHostResumeAtReset } from '../../host-hooks';
+import { useChatScope, type ChatScope } from '../../scope';
+import { useChats } from '../../state/chats';
+import { useUsageStore } from '../../state/usage';
 import { errorMessage } from '../../transport';
+import { useUsageLimits } from '../../usage/limits';
+import { useAccountChoice, type AccountChoice } from '../account-choice';
+import { useChatActions } from '../actions';
+import { limitView } from '../logic/limit';
+import { SessionLine } from './SessionLine';
 
 // A time a limit names reads as a clock today and with its day after that, so the words follow the minute.
 const MINUTE_MS = 60_000;

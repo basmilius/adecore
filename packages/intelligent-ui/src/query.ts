@@ -1,9 +1,9 @@
-import { UI_CATALOG_VERSION } from './catalog.ts';
 import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
+import { UI_CATALOG_VERSION } from './catalog.ts';
 import type { UiBlock } from './compiler.ts';
-import { uiVisibleInputs } from './inputs.ts';
-import { uiNodeFallback } from './fallback.ts';
 import { copyUiValue, evaluateUiExpression, sameUiValue, type UiValue } from './expression.ts';
+import { uiNodeFallback } from './fallback.ts';
+import { uiVisibleInputs } from './inputs.ts';
 import { evaluateUiBlock, uiInputValues, UiState, type UiViewNode } from './runtime.ts';
 
 export function uiValidatedState(

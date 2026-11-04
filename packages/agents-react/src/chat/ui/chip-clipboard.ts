@@ -1,6 +1,7 @@
 import type { ChatAssistantItem, ChatUserItem } from '@adecore/agent-contracts';
 import { copyText } from '@adecore/ui';
 import { referenceTokens } from '../chat-references';
+import type { TimelineRow } from '../logic/timeline';
 import {
     clipboardChipsOf,
     hasClipboardChips,
@@ -10,7 +11,6 @@ import {
     type ChipSegment,
     type ClipboardChips
 } from '../mentions';
-import type { TimelineRow } from '../logic/timeline';
 import type { ReferenceLookup } from './reference-lookup';
 
 /* The chips a copy of a whole message carries: what the person picked, or what a reply names. */

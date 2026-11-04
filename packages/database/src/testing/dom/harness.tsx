@@ -1,13 +1,13 @@
+import { UIProvider, isApplePlatform } from '@adecore/ui';
+import i18next from 'i18next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import i18next from 'i18next';
-import { UIProvider, isApplePlatform } from '@adecore/ui';
 import type { DatabaseAction, DatabaseFiles, DatabaseNotice } from '../../actions.ts';
-import { DatabaseProvider } from '../../DatabaseProvider.tsx';
+import type { DatabaseStorage } from '../../actions.ts';
 import { createDatabaseClient } from '../../client/index.ts';
 import type { DatabaseClient, DatabaseTransport } from '../../client/types.ts';
+import { DatabaseProvider } from '../../DatabaseProvider.tsx';
 import type { DatabaseMethod, DatabaseParams, DatabaseRequest, DatabaseResponse, DatabaseResult, StatementResult } from '../../protocol/index.ts';
-import type { DatabaseStorage } from '../../actions.ts';
 
 /* A transport that remembers what it was asked and lets a test answer a method itself, which the fake database cannot for `execute`. */
 export interface RecordedTransport {

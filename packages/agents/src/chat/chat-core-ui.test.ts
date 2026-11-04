@@ -1,17 +1,17 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { evaluateUiBlock } from '@adecore/intelligent-ui';
+import { join } from 'node:path';
 import type { ChatEventEnvelope } from '@adecore/agent-contracts';
-import type { BackendHost } from './backend.ts';
-import { ChatCore } from './chat-core.ts';
-import { ChatStore } from './chat-store.ts';
-import { AttachmentStore } from './attachment-store.ts';
+import { evaluateUiBlock } from '@adecore/intelligent-ui';
+import { z } from 'zod';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { AttachmentStore } from './attachment-store.ts';
+import type { BackendHost } from './backend.ts';
+import { ChatCore } from './chat-core.ts';
 import { parseLog } from './chat-log.ts';
-import { z } from 'zod';
+import { ChatStore } from './chat-store.ts';
 import type { ChatUiHost } from './ui-queries.ts';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.

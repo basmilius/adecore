@@ -1,13 +1,13 @@
-import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import type { EditorPosition, EditorRange } from '@adecore/editor';
-import type { i18n } from 'i18next';
 import type { Keymap } from '@adecore/editor/keymap';
+import type { WorkerRequestPort } from '@adecore/editor/worker-client';
+import type { ServerMessage } from '@adecore/lsp';
+import type { i18n } from 'i18next';
 import type { ClipboardHistory } from './clipboard-history.ts';
-import type { ProjectFiles } from './workspace-edit.ts';
 import type { Place } from './navigation-history.ts';
 import type { ProblemSource } from './project-problems.ts';
 import type { LiveTemplateDraft, TemplateRegistry } from './templates.ts';
-import type { ServerMessage } from '@adecore/lsp';
+import type { ProjectFiles } from './workspace-edit.ts';
 
 export interface DiskText {
     text: string;

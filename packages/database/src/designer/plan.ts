@@ -1,5 +1,5 @@
-import type { TableStructure } from '../protocol/index.ts';
 import { alterTableSql, createTableSql, dropsColumns, draftOf, validateDraft, type Dialect, type DraftProblem, type TableDraft } from '../ddl/index.ts';
+import type { TableStructure } from '../protocol/index.ts';
 
 /* What applying a draft would do. */
 export interface Plan {

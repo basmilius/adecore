@@ -1,5 +1,5 @@
-import type { TimelineRow } from './timeline';
 import { stripAnsi } from './ansi';
+import type { TimelineRow } from './timeline';
 
 /*
  * An answer is markdown on the wire and rendered text on screen, so a copy as text undoes the marks the

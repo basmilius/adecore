@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { mountEditor, pointer } from './testing.ts';
 import { column, row } from './controller.fixture.test.ts';
+import { mountEditor, pointer } from './testing.ts';
 
 describe('the mouse', () => {
     test('puts the caret where it was clicked', () => {

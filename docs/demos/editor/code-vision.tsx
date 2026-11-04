@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
-import { splitLines } from '@adecore/merge';
 import type { Editor } from '@adecore/editor';
 import type { EditorLanguage, GitBlameResult } from '@adecore/editor-react';
 import type { FakeLanguageService } from '@adecore/editor-react/testing';
+import { splitLines } from '@adecore/merge';
+import { useCallback } from 'react';
 import { LanguageFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useDemoLanguage } from '../shared/editor.ts';
 import { respondNavigation, respondSymbols } from '../shared/order-service.ts';

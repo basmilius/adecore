@@ -1,7 +1,7 @@
 import { use, useMemo, type ReactNode } from 'react';
 import type { DatabaseAction, DatabaseFiles, DatabaseNotice, DatabaseStorage } from './actions.ts';
-import type { DatabaseClient } from './client/types.ts';
 import { DatabaseContext } from './client-context.ts';
+import type { DatabaseClient } from './client/types.ts';
 import type { NumberNotation } from './grid/display.ts';
 import { useDatabaseResources } from './use-database-resources.ts';
 

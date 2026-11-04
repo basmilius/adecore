@@ -1,12 +1,12 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import clsx from 'clsx';
 import { VISUAL_LIMITS, visualThemeFragment, type ChatVisual, type VisualAppearance, type VisualTheme } from '@adecore/agent-contracts/visual';
 import { Spinner, useMeasuredWidth } from '@adecore/ui';
+import clsx from 'clsx';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
-import { DEFAULT_HEIGHT_PX, initialVisualContentHeight, rememberVisualHeight } from '../logic/visual-height';
 import { imageDocumentForDisplay } from '../image-display';
+import { DEFAULT_HEIGHT_PX, initialVisualContentHeight, rememberVisualHeight } from '../logic/visual-height';
 import { VisualBridge } from '../visual-bridge';
 import { VisualViewportController } from '../visual-viewport';
 import { useVisualTheme } from './visual-theme';

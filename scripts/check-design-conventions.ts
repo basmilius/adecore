@@ -1,7 +1,7 @@
+import { Glob } from 'bun';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Glob } from 'bun';
 import { designProblemsIn, type DesignOptions } from './design-conventions.ts';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));

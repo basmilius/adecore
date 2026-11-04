@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { ChevronRight, Plus, Settings2 } from 'lucide-react';
 import { Button, Icon, IconButton, Menu } from '@adecore/ui';
+import { ChevronRight, Plus, Settings2 } from 'lucide-react';
+import { useState } from 'react';
 
 const DENSITIES = ['Compact', 'Normal', 'Roomy'];
 

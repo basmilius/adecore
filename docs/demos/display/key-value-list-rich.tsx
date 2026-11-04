@@ -1,5 +1,5 @@
-import { CircleCheck, Globe, KeyRound, Server } from 'lucide-react';
 import { Icon, KeyValueList, Pill } from '@adecore/ui';
+import { CircleCheck, Globe, KeyRound, Server } from 'lucide-react';
 
 export default function KeyValueListRichDemo() {
     return (

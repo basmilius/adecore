@@ -1,5 +1,5 @@
-import { useEffect, type ReactNode } from 'react';
 import { useWorkerPool, WorkerPoolContextProvider } from '@pierre/diffs/react';
+import { useEffect, type ReactNode } from 'react';
 import { useDiffTheme } from './diff-theme';
 
 // Two workers keep highlighting off the main thread without holding a shiki instance per chat node.

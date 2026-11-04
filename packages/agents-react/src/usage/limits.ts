@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
 import type { UsageLimitsSnapshot } from '@adecore/agent-contracts';
+import { useEffect } from 'react';
 import { useChatScope, type ChatScope } from '../scope';
 import { useProviderAccounts } from '../state/provider-accounts';
 import { useUsage, useUsageStore } from '../state/usage';

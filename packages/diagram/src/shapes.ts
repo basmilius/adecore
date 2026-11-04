@@ -1,5 +1,5 @@
-import type { DiagramEdgeStyle, DiagramShape } from './protocol.ts';
 import { CYLINDER_LID, EDGE_LABEL_PADDING, type EdgeLabelBox, type NodeBox, type Point, type Rect } from './layout.ts';
+import type { DiagramEdgeStyle, DiagramShape } from './protocol.ts';
 import { LABEL_LINE, LABEL_SIZE, SUB_LINE, SUB_SIZE } from './text.ts';
 
 const ROUND_RADIUS = 10;

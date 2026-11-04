@@ -1,7 +1,3 @@
-import type { KeyboardEvent, ReactNode, Ref } from 'react';
-import clsx from 'clsx';
-import { CircleAlert, Lock, Undo2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import {
     Banner,
     Button,
@@ -18,13 +14,17 @@ import {
     shortcut
 } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { CircleAlert, Lock, Undo2 } from 'lucide-react';
+import type { KeyboardEvent, ReactNode, Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CODE_TEXT } from '../code-text.ts';
 import type { Dialect, TableDraft } from '../ddl/index.ts';
 import { ColumnsEditor } from './ColumnsEditor.tsx';
+import { renameTable } from './edit.ts';
 import { ForeignKeysEditor } from './ForeignKeysEditor.tsx';
 import { IndexesEditor } from './IndexesEditor.tsx';
 import { OptionsEditor } from './OptionsEditor.tsx';
-import { renameTable } from './edit.ts';
 import { scriptOf, type Plan } from './plan.ts';
 import { SqlPreview } from './SqlPreview.tsx';
 

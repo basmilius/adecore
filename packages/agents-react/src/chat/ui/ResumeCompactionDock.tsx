@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
-import { Minimize2 } from 'lucide-react';
-import { formatTokens } from '@adecore/ui/format';
 import { Button, Icon } from '@adecore/ui';
+import { formatTokens } from '@adecore/ui/format';
+import { Minimize2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ResumeCompactionReason } from '../logic/resume-compaction';
 
 interface ResumeCompactionDockProps {

@@ -1,11 +1,20 @@
-import { Fragment, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
+import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, useTickingText } from '@adecore/ui';
+import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
 import i18next from 'i18next';
-import { useTranslation } from 'react-i18next';
 import { ChevronRight, FileDiff, X } from 'lucide-react';
-import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
-import type { BaseMoved } from '../../logic/timeline';
+import { Fragment, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useChatHost, type CommandLook, type ToolLook } from '../../../host';
+import { useCommandNames } from '../../../host-hooks';
+import { lazyNamed } from '../../../lazy';
+import { ChatScopeContext, useChatScope } from '../../../scope';
+import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
+import { useChatActions } from '../../actions';
+import { formatBytes } from '../../attachments';
 import { lookKey, lookRunOf, type Look, type LookRun } from '../../logic/command-looks';
+import type { BaseMoved } from '../../logic/timeline';
 import {
     exitCodeOf,
     fileChanges,
@@ -21,26 +30,17 @@ import {
     unifiedChanges,
     type FileChange
 } from '../../logic/tools';
-import { useOpenForFind } from '../find-reveal';
-import { useChatHost, type CommandLook, type ToolLook } from '../../../host';
-import { useCommandNames } from '../../../host-hooks';
-import { lazyNamed } from '../../../lazy';
-import { useChatActions } from '../../actions';
-import { formatBytes } from '../../attachments';
-import { ChatScopeContext, useChatScope } from '../../../scope';
-import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
 import { useTimelineFlash } from '../../timeline-flash';
-import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
-import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, useTickingText } from '@adecore/ui';
-import { ROW_GUTTER, toolIcon } from '../icons';
 import { AnsiOutput } from '../AnsiOutput';
+import { DiffStack, ReviewStackView } from '../diff/DiffStack';
+import { reviewEntries, type ReviewEntry } from '../diff/review-plan';
+import { useReviewStack } from '../diff/use-review-stack';
+import { useOpenForFind } from '../find-reveal';
+import { ROW_GUTTER, toolIcon } from '../icons';
 import { ReferenceLookupContext } from '../reference-lookup';
 import { RowTime } from '../RowTime';
 import { ShellCommand, type NamedWord } from '../ShellCommand';
 import { useReferenceLookupIn } from '../thread-references';
-import { DiffStack, ReviewStackView } from '../diff/DiffStack';
-import { reviewEntries, type ReviewEntry } from '../diff/review-plan';
-import { useReviewStack } from '../diff/use-review-stack';
 
 // A checkpoint opens its renderer only when a file is expanded.
 const UnifiedDiff = lazyNamed(() => import('../UnifiedDiff'), 'default');

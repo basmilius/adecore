@@ -1,9 +1,9 @@
-import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
-import clsx from 'clsx';
 import { FitAddon } from '@xterm/addon-fit';
 import { Terminal } from '@xterm/xterm';
-import { readTerminalFont, readTerminalTheme } from './theme.ts';
+import clsx from 'clsx';
+import { useEffect, useImperativeHandle, useRef, type Ref } from 'react';
 import { bindTerminalLinks, type TerminalLinkBounds } from './links.ts';
+import { readTerminalFont, readTerminalTheme } from './theme.ts';
 import { webglBudget } from './webgl-budget.ts';
 import { fitToHost, followAncestorScale } from './xterm-internals.ts';
 

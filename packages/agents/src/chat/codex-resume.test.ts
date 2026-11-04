@@ -1,9 +1,9 @@
 import { expect, test } from 'bun:test';
-import { CodexBackend } from './codex-backend.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
-import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
 import { inProcess } from '../testing/fake-cli.ts';
+import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
 import type { BackendLaunch } from './backend.ts';
+import { CodexBackend } from './codex-backend.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import i18next from 'i18next';
 import type { ModelOptionDescriptor } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 import { AGENTS_LOCALES } from '../locales';
 import { choiceWord, localizedOption, optionWord } from './option-words';
 

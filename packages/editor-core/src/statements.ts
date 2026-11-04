@@ -1,7 +1,7 @@
 import type { EditSource } from './edit-source.ts';
 import { lineContinues } from './enter.ts';
-import type { FoldingRange } from './structure.ts';
 import { isBlank, whitespaceOf } from './line-text.ts';
+import type { FoldingRange } from './structure.ts';
 
 /* The indentation of a line text in columns, tabs taken to their stops. */
 export function indentWidth(text: string, tabSize: number): number {

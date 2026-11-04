@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { PanelRight } from 'lucide-react';
 import { CloseButton, IconButton, PanelHeader, SlidingColumn } from '@adecore/ui';
+import { PanelRight } from 'lucide-react';
+import { useState } from 'react';
 
 const BOUNDS = { min: 200, max: () => 360 };
 

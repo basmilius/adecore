@@ -1,8 +1,8 @@
+import type { ChatInfo, ModelInfo } from '@adecore/agent-contracts';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ChatInfo, ModelInfo } from '@adecore/agent-contracts';
-import { useChatScope } from '../../../scope';
 import { choiceWord } from '../../../agents/option-words';
+import { useChatScope } from '../../../scope';
 import { registerEffortStepper } from '../../composer-effort';
 import { EFFORT_OPTION, stepEffort, type EffortStep } from '../../logic/effort';
 import type { ChatControls } from './use-chat-controls';

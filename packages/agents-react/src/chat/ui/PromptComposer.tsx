@@ -1,19 +1,19 @@
+import { Button, Icon } from '@adecore/ui';
+import { ArrowDown, Hand, MessageCircleQuestionMark } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDown, Hand, MessageCircleQuestionMark } from 'lucide-react';
-import type { HoldRelease } from '../prompt-hold';
+import { useChatHost } from '../../host';
+import { useHostExtraPrompts } from '../../host-hooks';
 import { focusPromptHeading, focusPromptStart } from '../../prompts/logic/focus';
 import { orderPrompts } from '../../prompts/logic/prompts';
 import { answerPrompt, isBlockingSubject, promptCreatedAt, promptIdOf, type PromptSubject } from '../../prompts/logic/subjects';
 import { useFocusAfterAnswer } from '../../prompts/logic/useFocusAfterAnswer';
 import { usePromptSession } from '../../prompts/logic/usePromptSession';
 import { PromptView } from '../../prompts/ui/PromptView';
-import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
-import { useChatActions } from '../actions';
-import { Button, Icon } from '@adecore/ui';
 import { useProviders } from '../../state/providers';
-import { useHostExtraPrompts } from '../../host-hooks';
+import { useChatActions } from '../actions';
+import type { HoldRelease } from '../prompt-hold';
 
 /* Keeps a prompt card behind the draft while the person types; `released` says what lifted the hold last. */
 export interface PromptHold {

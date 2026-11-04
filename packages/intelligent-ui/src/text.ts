@@ -1,6 +1,6 @@
 import { UI_CATALOG, UI_GROUPS, type UiGroupName } from './catalog.ts';
-import { uiPropList, uiRequirement } from './prop-list.ts';
 import { UI_FENCE_LANGUAGE, type UiBlock } from './compiler.ts';
+import { uiPropList, uiRequirement } from './prop-list.ts';
 
 export function uiCompactCatalog(): string {
     return Object.entries(UI_CATALOG)

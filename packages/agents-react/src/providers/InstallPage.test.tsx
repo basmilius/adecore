@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+import type { ProviderInfo, ProviderPlatform } from '@adecore/agent-contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ProviderInfo, ProviderPlatform } from '@adecore/agent-contracts';
 import { ChatHostProvider, type ChatHost } from '../host';
 import { ChatScopeContext, type ChatScope } from '../scope';
-import { InstallPage } from './InstallPage';
 import { installPlatforms, installStepStates, type ProviderInstallStep } from './install-steps';
+import { InstallPage } from './InstallPage';
 
 const install: NonNullable<ProviderInfo['install']> = {
     description: 'A coding agent in a terminal.',

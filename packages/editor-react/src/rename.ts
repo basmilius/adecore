@@ -1,13 +1,13 @@
-import { StaleResultError, type Location, type PrepareRenameResult, type WorkspaceEdit } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorRange } from '@adecore/editor';
+import { StaleResultError, type Location, type PrepareRenameResult, type WorkspaceEdit } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
+import { messageOf } from './error-message.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { lineTextOf } from './line-text.ts';
 import type { RenameView } from './popups.ts';
 import { occurrencesOf, renameKindOf, renamePreviewOf, renameTargetOf, wordRangeAt, type RenameTarget } from './rename-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { resourceOperationsOf } from './workspace-edit.ts';
-import { messageOf } from './error-message.ts';
 
 const METHOD = 'textDocument/rename';
 const TOAST_ID = 'language-rename';

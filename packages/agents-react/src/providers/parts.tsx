@@ -1,5 +1,5 @@
-import clsx from 'clsx';
 import type { AgentKind } from '@adecore/agent-contracts';
+import clsx from 'clsx';
 import { AgentIcon } from '../agents/AgentIcon';
 
 // Each CLI in its color of the usage charts, so a mark here reads as the same CLI there. A CLI without

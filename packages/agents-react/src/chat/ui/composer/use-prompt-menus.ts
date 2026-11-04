@@ -1,8 +1,8 @@
-import { useEffect, useId, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
-import { useTranslation } from 'react-i18next';
+import type { ChatSkill } from '@adecore/agent-contracts';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
-import type { ChatSkill } from '@adecore/agent-contracts';
+import { useEffect, useId, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../host';
 import { useHostExpandingCommands } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';

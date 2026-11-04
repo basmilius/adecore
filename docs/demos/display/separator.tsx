@@ -1,5 +1,5 @@
-import { Bold, Italic, Link, List, ListOrdered } from 'lucide-react';
 import { ButtonGroup, IconButton, Separator } from '@adecore/ui';
+import { Bold, Italic, Link, List, ListOrdered } from 'lucide-react';
 
 export default function SeparatorDemo() {
     return (

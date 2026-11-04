@@ -1,9 +1,9 @@
-import { useState } from 'react';
 import { LimitDock, LimitPill, ResumeCompactionDock } from '@adecore/agents-react/chat/ui';
 import { useChatRow } from '@adecore/agents-react/state';
+import { useState } from 'react';
 import { NOW, chatInfo, chatItems } from '../shared/agents-data.ts';
-import { AgentDemo } from '../shared/agents.tsx';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 
 /* The demo chat after its last turn ran into the plan's limit, which lifts in two hours. */
 function limitedChat() {

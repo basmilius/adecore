@@ -1,6 +1,6 @@
-import type { EditorSearchClientOptions } from './search-client.ts';
-import type { Keymap } from './keymap-table.ts';
 import type { EditorCommand, FoldRole, TextPlaceKind, UnwrapKind, WhitespaceCleanupOptions } from '@adecore/editor-core';
+import type { Keymap } from './keymap-table.ts';
+import type { EditorSearchClientOptions } from './search-client.ts';
 
 export type { EditorCommand, FoldRole };
 

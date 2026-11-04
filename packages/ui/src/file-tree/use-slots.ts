@@ -1,7 +1,7 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { flushSync } from 'react-dom';
 import type { FileTree, FileTreeVisibleRow } from '@pierre/trees';
 import type { LucideIcon } from 'lucide-react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { directoryOfEmptyLine, isEmptyLine, type FileTreeEmptyLabel } from './empty-lines.ts';
 import { pathOfRow, visibleRows, visibleRowsAround } from './helpers.ts';
 import { matchHighlight, rangesOfMatches } from './highlight.ts';

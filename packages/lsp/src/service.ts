@@ -1,3 +1,4 @@
+import type { CreatedFile, DeletedFile } from './file-operations.ts';
 import type {
     CallHierarchyIncomingCall,
     CallHierarchyItem,
@@ -50,7 +51,6 @@ import type {
     WorkspaceEdit,
     WorkspaceSymbolResult
 } from './protocol.ts';
-import type { CreatedFile, DeletedFile } from './file-operations.ts';
 
 export interface LanguageDocument {
     /* The `file:` URI the language servers know the file by, which `pathToFileUri` makes of a path. */

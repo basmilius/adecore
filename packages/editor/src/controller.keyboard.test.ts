@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { mountEditor, pointer } from './testing.ts';
 import { column, row } from './controller.fixture.test.ts';
+import { mountEditor, pointer } from './testing.ts';
 
 describe('the keyboard', () => {
     test('completes the arrow of PHP from a typed minus, and makes it a minus again for a key that cannot follow it', () => {

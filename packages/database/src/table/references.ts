@@ -1,5 +1,5 @@
-import { wholeValueOf } from '../grid/focused-value.ts';
 import type { Shown } from '../grid/display.ts';
+import { wholeValueOf } from '../grid/focused-value.ts';
 import type { Engine, ForeignKeyInfo, ValueKind } from '../protocol/index.ts';
 import { matchCondition, type ColumnMatch } from '../sql.ts';
 

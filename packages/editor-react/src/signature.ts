@@ -1,9 +1,9 @@
-import type { SignatureHelp, SignatureHelpContext } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorPosition, EditorTextChange } from '@adecore/editor';
+import type { SignatureHelp, SignatureHelpContext } from '@adecore/lsp';
 import type { EditorLanguage } from './editor-language.ts';
-import { signatureViewOf } from './signature-model.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { isShortcut } from './shortcut-keys.ts';
+import { signatureViewOf } from './signature-model.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/signatureHelp';

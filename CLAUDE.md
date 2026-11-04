@@ -115,6 +115,7 @@ No check catches these:
 - Always curly braces, also for a one-line early return. No one-letter names except `i`, `e`, `x`, `y`.
 - Arrow functions inside functions; a class method is never an arrow property. Named components are `function` declarations.
 - Comments say why, never what the code already says. Keep the comment density of the file you are in.
+- Imports form one block in the order `bun`, `node:`, packages, then relative paths with `../` before `./`. `bun run format` sorts them (`sortImports` in `.oxfmtrc.json`) and `format:check` fails on drift. A side-effect import keeps its place, so put one that must run first at the top.
 - Conventional commits in English (`feat:`, `fix:`, `build:`, `ci:`, `docs:`, `test:`, `refactor:`). No attribution lines.
 
 ## What lives here and what stays in the apps

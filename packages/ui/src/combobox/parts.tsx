@@ -1,8 +1,8 @@
-import { useState, type ComponentProps, type ReactNode } from 'react';
+import { Autocomplete } from '@base-ui/react/autocomplete';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
+import { useState, type ComponentProps, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Autocomplete } from '@base-ui/react/autocomplete';
 import { withClass } from '../class-name.ts';
 import { fieldControlProps, useFieldControl } from '../field-context.ts';
 import { Icon } from '../Icon.tsx';

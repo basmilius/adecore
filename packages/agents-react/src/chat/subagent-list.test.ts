@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatInfo, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import { formatMoment, formatTokens } from '@adecore/ui/format';
 import type { SubagentTask } from '../host';
 import {
     badgeCountOf,
@@ -16,7 +17,6 @@ import {
     taskIdOf,
     taskRowStateOf
 } from './subagent-list';
-import { formatMoment, formatTokens } from '@adecore/ui/format';
 
 function subagent(id: string, patch: Partial<ChatSubagentItem> = {}): ChatSubagentItem {
     return {

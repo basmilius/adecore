@@ -1,7 +1,7 @@
-import { useState } from 'react';
 import type { AgentKind, ModelSelection } from '@adecore/agent-contracts';
-import { ModelOptionControl, carryOptions } from '@adecore/agents-react/providers';
 import { ModelPicker } from '@adecore/agents-react/chat/ui';
+import { ModelOptionControl, carryOptions } from '@adecore/agents-react/providers';
+import { useState } from 'react';
 import { PROVIDERS } from '../shared/agents-data.ts';
 import '../shared/agents-host.ts';
 

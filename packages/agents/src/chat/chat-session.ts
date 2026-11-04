@@ -23,7 +23,12 @@ import type {
 } from '@adecore/agent-contracts';
 import { ENDED_NOTE_PREFIX, HOST_TASK_ORIGIN, notResumedNote } from '@adecore/agent-contracts';
 import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure } from '@adecore/intelligent-ui';
+import { asError } from '@adecore/utils/errors';
+import { errorText } from '../error-text.ts';
+import { turnHop } from '../messages/deliver-notice.ts';
+import { systemClock, type OutboxClock } from '../outbox/outbox-worker.ts';
 import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
+import { cleanTitle } from '../title-file.ts';
 import type { LimitsUpdate } from '../usage/limits/normalize.ts';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { commandLabel, isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
@@ -34,13 +39,8 @@ import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
-import { turnHop } from '../messages/deliver-notice.ts';
 import { ChatThread } from './thread.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
-import { errorText } from '../error-text.ts';
-import { systemClock, type OutboxClock } from '../outbox/outbox-worker.ts';
-import { cleanTitle } from '../title-file.ts';
-import { asError } from '@adecore/utils/errors';
 
 /* What a host keeps of a chat's turns in git (or anything like it), so a turn can show what it changed. */
 export interface TurnCheckpoints {

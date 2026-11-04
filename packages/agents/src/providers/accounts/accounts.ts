@@ -1,8 +1,8 @@
 import { isAbsolute, join, resolve } from 'node:path';
 import { KNOWN_AGENT_KINDS, ProviderAccountSchema, type AgentKind, type ProviderAccount, type ProviderAccountMap } from '@adecore/agent-contracts';
+import { homeFolder } from '../../home-folder.ts';
 import type { ChatProvider } from '../provider.ts';
 import { DEFAULT_ACCOUNTS_HOST, variablesProblem, type AccountsHost, type ReservedVariables } from './variables.ts';
-import { homeFolder } from '../../home-folder.ts';
 
 export type Env = Record<string, string | undefined>;
 

@@ -1,5 +1,5 @@
-import DefaultTheme from 'vitepress/theme';
 import type { Theme } from 'vitepress';
+import DefaultTheme from 'vitepress/theme';
 import { h } from 'vue';
 import Demo from './Demo.vue';
 import HomeAreas from './HomeAreas.vue';

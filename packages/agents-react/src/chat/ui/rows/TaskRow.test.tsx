@@ -1,9 +1,9 @@
 import { afterEach, expect, jest, test } from 'bun:test';
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
 import type { ChatSubagentItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { formatClock } from '@adecore/ui/format';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ChatHostProvider } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { TaskRow } from './TaskRow';

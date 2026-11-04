@@ -1,11 +1,11 @@
+import { formatRounded } from '@adecore/ui/format';
+import clsx from 'clsx';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { formatRounded } from '@adecore/ui/format';
 import { useChartContext } from './context.ts';
-import { decimalsOf, tickCount } from './scale.ts';
 import { useBeforePaint } from './register.ts';
+import { decimalsOf, tickCount } from './scale.ts';
 import { formatTime, timeLabelOf } from './time-format.ts';
 import type { ChartX } from './types.ts';
 

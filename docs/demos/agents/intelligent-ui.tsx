@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { DemoBlock } from '../shared/intelligent-ui.tsx';
 import { bound, ui } from '../shared/intelligent-ui-tree.ts';
+import { DemoBlock } from '../shared/intelligent-ui.tsx';
 
 export default function IntelligentUiDemo() {
     const [selected, setSelected] = useState<unknown[]>(['links', 'preload']);

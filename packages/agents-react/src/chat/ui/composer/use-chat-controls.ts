@@ -1,6 +1,6 @@
+import type { AgentKind, ChatInfo, ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { AgentKind, ChatInfo, ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
 import { useHostCanReorderAccounts } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';

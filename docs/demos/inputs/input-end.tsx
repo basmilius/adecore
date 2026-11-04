@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Search, X } from 'lucide-react';
 import { IconButton, Input } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import { Search, X } from 'lucide-react';
+import { useState } from 'react';
 
 const FILES = ['Button.tsx', 'ButtonGroup.tsx', 'Input.tsx', 'Select.tsx', 'SplitButton.tsx'];
 

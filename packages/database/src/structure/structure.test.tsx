@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { Connection } from '../client/types.ts';
-import { stubClient } from '../testing/stub.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { TableStructure } from '../protocol/index.ts';
-import { StructureTabs, StructureView } from './StructureView.tsx';
+import { stubClient } from '../testing/stub.ts';
 import { referenceOf } from './structure-text.ts';
+import { StructureTabs, StructureView } from './StructureView.tsx';
 
 const i18n = i18next.createInstance();
 

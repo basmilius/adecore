@@ -1,7 +1,7 @@
-import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { EditorRect } from '@adecore/editor';
 import { Input } from '@adecore/ui';
+import { useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
 import type { EditorLanguage } from './editor-language.ts';
 import type { WrapView } from './popups.ts';

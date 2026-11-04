@@ -1,6 +1,6 @@
 import type { EditorPosition } from '@adecore/editor';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import type { PickGroup, PickPreview } from './popups.ts';
 import { realTimers, type Timers } from './timers.ts';
 

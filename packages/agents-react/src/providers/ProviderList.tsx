@@ -1,11 +1,11 @@
-import type { ReactNode } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Plus } from 'lucide-react';
 import type { AgentKind } from '@adecore/agent-contracts';
+import { Icon, IconButton, SectionLabel } from '@adecore/ui';
+import clsx from 'clsx';
+import { Plus } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
 import { accountName } from '../agents/accounts';
-import { Icon, IconButton, SectionLabel } from '@adecore/ui';
 import type { Picked } from './pane-target';
 import { CliMark } from './parts';
 import { accountNote, type ProviderGroups, type ProviderRow, type ProviderSetupStatus } from './provider-groups';

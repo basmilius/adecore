@@ -1,6 +1,6 @@
 import { createDatabaseClient, type Connection } from '@adecore/database';
-import { fakeDatabaseTransport, type FakeDatabase } from '@adecore/database/testing';
 import type { ColumnInfo, DockerContainer, ValueKind } from '@adecore/database/protocol';
+import { fakeDatabaseTransport, type FakeDatabase } from '@adecore/database/testing';
 
 function column(name: string, type: string, kind: ValueKind, extra: Partial<ColumnInfo> = {}): ColumnInfo {
     return { name, type, kind, nullable: false, defaultValue: null, autoIncrement: false, generated: false, comment: null, ...extra };

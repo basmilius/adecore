@@ -1,16 +1,16 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import { createInstance } from 'i18next';
-import { I18nextProvider } from 'react-i18next';
 import type { ChatInfo, ChatNoteMessage, ChatToolItem, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
+import { createInstance } from 'i18next';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { I18nextProvider } from 'react-i18next';
 import { ChatHostProvider, type ChatHost, type CommandLookSent } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';
-import { AssistantRow, NoteRow, ReplyHeader, SentByAgentRow, SentMessageRow, UserRow } from './MessageRows';
 import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
+import { AssistantRow, NoteRow, ReplyHeader, SentByAgentRow, SentMessageRow, UserRow } from './MessageRows';
 
 const scope: ChatScope = {
     id: 'reply-heading-test',

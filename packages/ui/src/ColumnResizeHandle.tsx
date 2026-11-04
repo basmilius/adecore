@@ -1,5 +1,5 @@
-import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from 'react';
 import clsx from 'clsx';
+import type { CSSProperties, PointerEvent as ReactPointerEvent, Ref } from 'react';
 import type { ColumnEdge } from './useColumnResize.ts';
 
 export interface ColumnResizeHandleProps {

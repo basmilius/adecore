@@ -1,9 +1,9 @@
-import type { Ref } from 'react';
-import clsx from 'clsx';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Button, ButtonGroup, IconButton, Spinner, Tooltip } from '@adecore/ui';
 import { formatDecimal, formatNumber, formatRounded } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNumberNotation } from '../client-context.ts';
 import type { Aggregates } from '../grid/aggregates.ts';
 import { numeralText } from '../grid/display.ts';

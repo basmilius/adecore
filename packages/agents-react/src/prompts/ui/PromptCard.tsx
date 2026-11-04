@@ -1,9 +1,9 @@
+import { Icon, ScrollArea } from '@adecore/ui';
+import { Hand, MessageCircleQuestionMark, type LucideIcon } from 'lucide-react';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Hand, MessageCircleQuestionMark, type LucideIcon } from 'lucide-react';
 import { useChatHost } from '../../host';
 import { headingKey, isPrimaryKey, staysInCard, stepIndex, toolbarKey } from '../logic/keys';
-import { Icon, ScrollArea } from '@adecore/ui';
 
 /* The raised glass a chat's composer is made of, for a card that stands on its own over a canvas. */
 export const PROMPT_SURFACE =

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
+import { compileUi } from '@adecore/intelligent-ui';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { compileUi } from '@adecore/intelligent-ui';
 import { ChatHostProvider, type ChatHost } from '../../../host';
 import { UiReply } from './UiReply';
 

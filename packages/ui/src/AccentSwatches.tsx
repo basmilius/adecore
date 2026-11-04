@@ -1,6 +1,6 @@
-import type { Ref } from 'react';
 import clsx from 'clsx';
 import { Ellipsis } from 'lucide-react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { Icon } from './Icon.tsx';

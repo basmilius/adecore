@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
 import type { ProviderInfo, ProviderPlatform } from '@adecore/agent-contracts';
 import { isApplePlatform } from '@adecore/ui';
+import type { ReactNode } from 'react';
 
 /* A step of the host's own on a provider's install page, such as a server its chat needs beside the CLI. */
 export interface ProviderInstallStep {

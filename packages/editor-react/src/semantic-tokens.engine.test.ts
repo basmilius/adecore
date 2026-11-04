@@ -1,7 +1,7 @@
 import './test-setup.ts';
 import { afterEach, describe, expect, test } from 'bun:test';
-import { mountEditor } from '@adecore/editor/testing';
 import type { EditorRange, EditorSemanticToken } from '@adecore/editor';
+import { mountEditor } from '@adecore/editor/testing';
 import type { ProviderOptions, SemanticTokens, SemanticTokensDelta } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';

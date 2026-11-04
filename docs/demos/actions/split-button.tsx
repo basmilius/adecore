@@ -1,5 +1,5 @@
-import { ArrowUp, Upload } from 'lucide-react';
 import { Icon, Menu, SplitButton } from '@adecore/ui';
+import { ArrowUp, Upload } from 'lucide-react';
 
 export default function SplitButtonDemo() {
     return (

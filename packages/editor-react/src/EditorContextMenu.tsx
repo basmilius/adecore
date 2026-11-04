@@ -1,8 +1,8 @@
+import { ContextMenu, EDIT_SHORTCUTS, Kbd } from '@adecore/ui';
 import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, EDIT_SHORTCUTS, Kbd } from '@adecore/ui';
-import type { EditorLanguage } from './editor-language.ts';
 import { menuGroupsOf, type MenuRowId, type MenuRowSpec } from './context-menu-rows.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import type { MenuView } from './popups.ts';
 
 /*

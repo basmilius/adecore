@@ -1,15 +1,15 @@
-import { useLayoutEffect, useRef, useState, type Ref } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { Editor, EditorEngine, EditorLineHighlight, EditorTheme } from '@adecore/editor';
 import { parseChord } from '@adecore/editor/keymap';
-import { useOverlayScrollbars } from '@adecore/ui';
 import { diffDisplay, diffSplit, sourceLineOf, type DiffDocument, type DiffDisplay, type DiffSourceLine } from '@adecore/merge';
-import { wordMarks } from './diff-wordmarks.ts';
-import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
-import { SplitDiffView } from './SplitDiffView.tsx';
-import { repaintOnTokens, type DiffSourceTokens } from './diff-syntax.ts';
-import { LineActionHost, RowHost } from './row-host.ts';
+import { useOverlayScrollbars } from '@adecore/ui';
+import { useLayoutEffect, useRef, useState, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { DEFAULT_UNFOLD_LIMITS, expandDiff, type DiffLimits } from './diff-expansion.ts';
+import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
+import { repaintOnTokens, type DiffSourceTokens } from './diff-syntax.ts';
+import { wordMarks } from './diff-wordmarks.ts';
+import { LineActionHost, RowHost } from './row-host.ts';
+import { SplitDiffView } from './SplitDiffView.tsx';
 
 export interface DiffViewProps {
     engine: EditorEngine;

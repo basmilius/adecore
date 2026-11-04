@@ -1,9 +1,3 @@
-import { createContext, createElement, useContext, useState, type ComponentProps, type ComponentType, type ReactNode, type RefObject } from 'react';
-import type { Extension } from '@codemirror/state';
-import type { EditorView } from '@codemirror/view';
-import type { Highlighter, ThemeRegistration } from 'shiki';
-import type { LucideIcon } from 'lucide-react';
-import type { EditorEngine } from '@adecore/editor';
 import type {
     AgentKind,
     ChatAttachment,
@@ -22,7 +16,13 @@ import type {
     ProviderPlatform,
     RuntimeMode
 } from '@adecore/agent-contracts';
+import type { EditorEngine } from '@adecore/editor';
 import { isApplePlatform } from '@adecore/ui';
+import type { Extension } from '@codemirror/state';
+import type { EditorView } from '@codemirror/view';
+import type { LucideIcon } from 'lucide-react';
+import { createContext, createElement, useContext, useState, type ComponentProps, type ComponentType, type ReactNode, type RefObject } from 'react';
+import type { Highlighter, ThemeRegistration } from 'shiki';
 import type { AccountRule } from './agents/accounts';
 import type { ReferableKind, Referables } from './chat/chat-references';
 import type { TimelineRow } from './chat/logic/timeline';

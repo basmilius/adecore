@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import { DocumentModel } from '@adecore/editor-core';
-import { FindController } from './find.ts';
 import { FindSearchQueue } from './find-search.ts';
+import { FindController } from './find.ts';
 import { EditorSearchError, type EditorSearchClient } from './search-client.ts';
 import type { EditorFindQuery } from './types.ts';
 

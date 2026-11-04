@@ -1,7 +1,7 @@
-import { useLayoutEffect, useState, type RefObject } from 'react';
 import { cleanVisualVariables, type VisualAppearance, type VisualTheme, type VisualThemeVariable } from '@adecore/agent-contracts/visual';
-import { watchTheme } from './theme-watch';
+import { useLayoutEffect, useState, type RefObject } from 'react';
 import { useHostCodeMode } from '../../host-hooks';
+import { watchTheme } from './theme-watch';
 
 /* The tokens of the app's theme where a frame stands; each answers '' for a token the theme lacks. */
 export interface VisualTokens {

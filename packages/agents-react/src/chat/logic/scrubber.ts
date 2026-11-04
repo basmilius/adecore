@@ -1,6 +1,6 @@
 import type { ChatBookmark, ChatItem } from '@adecore/agent-contracts';
-import { agentTurnLabel, type TimelineRow } from './timeline';
 import { DEFAULT_READING_WIDTH, readingMeasure } from '../reading-width';
+import { agentTurnLabel, type TimelineRow } from './timeline';
 
 // The strip of ticks at the left edge of a chat view, as numbers; the component only draws what comes out of here.
 

@@ -1,5 +1,5 @@
-import { diffRows, type DiffDocument, type DiffGapRow, type DiffLineRow } from './diff-document.ts';
 import type { DiffDisplay } from './diff-display.ts';
+import { diffRows, type DiffDocument, type DiffGapRow, type DiffLineRow } from './diff-document.ts';
 
 export type DiffSplitRow =
     | { readonly kind: 'line'; readonly row: DiffLineRow; readonly old?: number; readonly new?: number }

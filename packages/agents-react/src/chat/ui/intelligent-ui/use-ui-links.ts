@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
 import type { ChatUiLinkReading, ChatUiQueryState } from '@adecore/agent-contracts';
-import { uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
 import { uiInputValues, UI_HOST_LIMITS, type UiBlock, UiState } from '@adecore/intelligent-ui';
+import { uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
+import { useEffect, useRef, useState } from 'react';
 import { useChatHost } from '../../../host';
 import type { UiRenderContext } from './render-context';
 

@@ -1,5 +1,5 @@
-import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
 
 export type ButtonGroupProps = useRender.ComponentProps<'div'>;
 

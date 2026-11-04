@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { FileTree, useFileTree } from '@adecore/ui';
+import { useState } from 'react';
 
 export default function FileTreeDemo() {
     const [viewed, setViewed] = useState<ReadonlySet<string>>(new Set());

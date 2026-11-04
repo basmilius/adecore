@@ -1,8 +1,8 @@
-import { useTranslation } from 'react-i18next';
 import { Button } from '@adecore/ui';
+import { useTranslation } from 'react-i18next';
+import { reviewSize, type ReviewEntry } from './review-plan';
 import { ReviewSettleContext } from './review-settle';
 import { ReviewDiff } from './ReviewDiff';
-import { reviewSize, type ReviewEntry } from './review-plan';
 import { useReviewStack, type ReviewStack } from './use-review-stack';
 
 export function ReviewStackView({ entries, stack }: { entries: readonly ReviewEntry[]; stack: ReviewStack }) {

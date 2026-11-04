@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
+import { useEffect, useRef, useState } from 'react';
 import type { DatabaseFiles } from '../actions.ts';
 import { isCancelled, type DatabaseClient, type DatabaseSession } from '../client/types.ts';
 import type { FileFormat, TableStructure } from '../protocol/index.ts';
-import type { ImportSample } from './ImportDialog.tsx';
 import { formatOfPath, importableColumns, mapColumn, matchColumns, type ImportFormat } from './import-mapping.ts';
+import type { ImportSample } from './ImportDialog.tsx';
 
 /* What the strip over the table says about an export or an import. */
 export type TransferNotice =

@@ -1,10 +1,10 @@
 import './test-setup.ts';
 import { expect, spyOn, test } from 'bun:test';
-import { act, createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import { createSmartEditorEngine, type Editor } from '@adecore/editor';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createPage, typeInto } from '@adecore/editor/testing';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import type { EditorLanguage } from './editor-language.ts';
 import { EditorView } from './EditorView.tsx';
 import { ProjectLanguage } from './project-language.ts';

@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
+import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import {
     createSnippetTransformClient,
     compileSnippetTransformFormat,
     type SnippetTransformOutput,
     type SnippetTransformInput
 } from './snippet-transform-worker.ts';
-import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 
 class Port implements WorkerRequestPort {
     private readonly events = new EventTarget();

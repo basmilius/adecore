@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
 import { ManualClock } from '../testing/manual-clock.ts';
-import { OutboxStore, type OutboxEntryOf } from './outbox.ts';
 import { OutboxWorker, RETRY_DELAYS_MS } from './outbox-worker.ts';
+import { OutboxStore, type OutboxEntryOf } from './outbox.ts';
 
 const TestWorkSchema = z.discriminatedUnion('kind', [
     z.object({ kind: z.literal('start'), payload: z.object({ node: z.enum(['chat', 'terminal']) }) }),

@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { useTranslation } from 'react-i18next';
+import type { AgentKind, ChatUsage, ModelInfo, ModelOptionDescriptor, ModelSelection, ProviderInfo, RuntimeMode } from '@adecore/agent-contracts';
+import { Icon, Menu, Tooltip, useNow } from '@adecore/ui';
+import { formatPercent, formatTokens } from '@adecore/ui/format';
 import clsx from 'clsx';
 import {
     Activity,
@@ -18,24 +19,23 @@ import {
     Star,
     type LucideIcon
 } from 'lucide-react';
-import type { AgentKind, ChatUsage, ModelInfo, ModelOptionDescriptor, ModelSelection, ProviderInfo, RuntimeMode } from '@adecore/agent-contracts';
-import { AccountDot } from '../../agents/AccountDot';
+import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { limitsOfAccount, sessionWindow } from '../../agents/account-limits';
+import { AccountDot } from '../../agents/AccountDot';
 import { canContinueOn } from '../../agents/accounts';
 import { AgentIcon } from '../../agents/AgentIcon';
-import type { AccountChoice } from '../account-choice';
 import { modelName, shortModelName } from '../../agents/model-name';
-import { ModelMarks } from './ModelMarks';
-import { SessionLine } from './SessionLine';
-import { favoritesFirst, inPickerOrder, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
-import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
-import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
-import { RUNTIME_MODES } from '../runtime-modes';
 import { localizedOption } from '../../agents/option-words';
-import { formatPercent, formatTokens } from '@adecore/ui/format';
-import { Icon, Menu, Tooltip, useNow } from '@adecore/ui';
 import { useChatHost } from '../../host';
 import { useUsageLimits } from '../../usage/limits';
+import type { AccountChoice } from '../account-choice';
+import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
+import { favoritesFirst, inPickerOrder, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
+import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
+import { RUNTIME_MODES } from '../runtime-modes';
+import { ModelMarks } from './ModelMarks';
+import { SessionLine } from './SessionLine';
 
 const MINUTE_MS = 60_000;
 

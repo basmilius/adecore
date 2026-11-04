@@ -1,6 +1,6 @@
 import { UsageProviderSchema, type UsageProvider } from '@adecore/agent-contracts';
-import type { UsageRecord } from './record.ts';
 import type { CodexParserState } from './readers/codex.ts';
+import type { UsageRecord } from './record.ts';
 import { CURRENT_ROW, decodeRows, RowWriter, type RecordRow } from './rows.ts';
 
 /*

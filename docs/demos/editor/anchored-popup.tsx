@@ -1,6 +1,6 @@
-import { useEffect, useReducer, useState } from 'react';
 import { AnchoredPopup } from '@adecore/editor-react';
 import { formatNumber } from '@adecore/ui/format';
+import { useEffect, useReducer, useState } from 'react';
 import { EditorFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useEditor } from '../shared/editor.ts';
 

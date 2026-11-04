@@ -1,10 +1,10 @@
-import { Fragment, useLayoutEffect, useMemo, useRef, type ComponentProps, type ReactNode } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { Autocomplete } from '@base-ui/react/autocomplete';
-import { CommandPaletteList } from './parts.tsx';
-import { useCommandPaletteVirtualScroll } from './context.ts';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { Fragment, useLayoutEffect, useMemo, useRef, type ComponentProps, type ReactNode } from 'react';
 import { MENU_LABEL } from '../menu/parts.tsx';
 import { mergeRefs } from '../merge-refs.ts';
+import { useCommandPaletteVirtualScroll } from './context.ts';
+import { CommandPaletteList } from './parts.tsx';
 
 export interface CommandPaletteVirtualItemProps {
     index: number;

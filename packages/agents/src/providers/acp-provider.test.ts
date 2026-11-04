@@ -1,10 +1,10 @@
+import { expect, test } from 'bun:test';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { expect, test } from 'bun:test';
 import type { BackendEvent, BackendLaunch } from '../chat/backend.ts';
-import { inProcess } from '../testing/fake-cli.ts';
 import { fakeAcp, fakeAcpWith } from '../testing/fake-acp.ts';
+import { inProcess } from '../testing/fake-cli.ts';
 import { UsageScanner } from '../usage/scanner.ts';
 import { ACP_CAPABILITIES, createAcpProvider } from './acp-provider.ts';
 import { ModelCatalog } from './catalog.ts';

@@ -1,6 +1,6 @@
-import { CircleCheck, Info, MessageCircle, OctagonAlert, TriangleAlert, type LucideIcon } from 'lucide-react';
 import type { UiTone } from '@adecore/intelligent-ui';
 import type { PillProps } from '@adecore/ui';
+import { CircleCheck, Info, MessageCircle, OctagonAlert, TriangleAlert, type LucideIcon } from 'lucide-react';
 
 /* Every tone has an icon of its own, so color is never the only thing that tells two apart. */
 export const UI_TONE_ICONS: Readonly<Record<UiTone, LucideIcon>> = {

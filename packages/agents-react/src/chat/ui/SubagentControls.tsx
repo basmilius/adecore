@@ -1,10 +1,10 @@
-import { Fragment, type ReactNode } from 'react';
+import { Icon, IconButton } from '@adecore/ui';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { ChevronRight, X } from 'lucide-react';
+import { Fragment, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { breadcrumbOf, MAIN_AGENT, trailTo, useOpenableSubagents, useSubagentTrail } from '../subagent-view';
 import { SubagentStopButton } from './SubagentStopButton';
-import { Icon, IconButton } from '@adecore/ui';
 
 const CRUMB_LINK = 'truncate text-text-muted hover:text-text';
 

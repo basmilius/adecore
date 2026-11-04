@@ -1,5 +1,3 @@
-import { useContext } from 'react';
-import { create } from 'zustand';
 import type {
     AgentKind,
     ChatApprovalItem,
@@ -14,6 +12,8 @@ import type {
     ChatVisual
 } from '@adecore/agent-contracts';
 import { appendToolOutput } from '@adecore/agent-contracts/text';
+import { useContext } from 'react';
+import { create } from 'zustand';
 import { ChatScopeContext, useChatScope } from '../scope';
 
 export interface ChatState {

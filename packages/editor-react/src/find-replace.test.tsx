@@ -1,14 +1,14 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
+import type { EditorFindState } from '@adecore/editor';
+import { FakeEditorEngine } from '@adecore/editor/fake';
+import { createPage } from '@adecore/editor/testing';
+import { formatNumber } from '@adecore/ui/format';
 import { createInstance } from 'i18next';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { formatNumber } from '@adecore/ui/format';
-import type { EditorFindState } from '@adecore/editor';
-import { createPage } from '@adecore/editor/testing';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
-import { FakeEditorEngine } from '@adecore/editor/fake';
 import { FindReplace } from './FindReplace.tsx';
 import en from './locales/en.json';
 import nl from './locales/nl.json';

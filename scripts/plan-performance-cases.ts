@@ -1,5 +1,5 @@
-import type { Plan, PlanOp } from '../packages/plan/src/protocol';
 import type { PlanDraft } from '../packages/plan/src/apply';
+import type { Plan, PlanOp } from '../packages/plan/src/protocol';
 import type { PerformanceCase } from './paired-performance';
 
 type PlanApi = Pick<typeof import('../packages/plan/src/apply'), 'applyPlanOps' | 'createPlan'>;

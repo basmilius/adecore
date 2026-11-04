@@ -1,13 +1,13 @@
 import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange, EditorTrackedRange } from '@adecore/editor';
-import { abbreviationBefore, expandAbbreviation } from './emmet.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { abbreviationBefore, expandAbbreviation } from './emmet.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { lineTextOf } from './line-text.ts';
 import { isVoidElement, markupPlaceAt, markupSyntaxOf, tagPairAt, type MarkupSyntax } from './markup-context.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { parseSnippet } from './snippet.ts';
 import { indentSnippet } from './snippet-indent.ts';
 import { positionInInsertion } from './snippet-session.ts';
+import { parseSnippet } from './snippet.ts';
 
 /* Each is on unless false. */
 export interface MarkupSettings {

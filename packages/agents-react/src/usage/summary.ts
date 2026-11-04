@@ -1,6 +1,6 @@
 import type { UsageProvider, UsageSummaryResult, UsageTotals } from '@adecore/agent-contracts';
-import { dayOf, type UsageMetric } from '../state/usage';
 import { EMPTY_TOTALS, USAGE_PROVIDERS, addTotals, totalTokensOf } from '@adecore/agent-contracts';
+import { dayOf, type UsageMetric } from '../state/usage';
 
 /* One bar of the chart, what each provider put in this slot, and the height of the stack. */
 export interface ChartSlot {

@@ -1,5 +1,5 @@
-import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
+import type { ReactNode, Ref } from 'react';
 import { ScrollArea } from '../ScrollArea.tsx';
 
 const LIST_WIDTHS = { 280: 'w-70', 320: 'w-80', 340: 'w-85' } as const;

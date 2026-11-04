@@ -1,5 +1,5 @@
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { Icon } from './Icon.tsx';
 import { PopoverPopup, PopoverRoot, PopoverTrigger } from './popover/parts.tsx';

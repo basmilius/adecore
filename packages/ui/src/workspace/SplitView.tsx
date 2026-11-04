@@ -1,3 +1,6 @@
+import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { GripVertical, Maximize2, Minimize2 } from 'lucide-react';
 import {
     useCallback,
     useContext,
@@ -12,12 +15,10 @@ import {
     type KeyboardEvent,
     type ReactNode
 } from 'react';
-import { useRender } from '@base-ui/react/use-render';
-import { GripVertical, Maximize2, Minimize2 } from 'lucide-react';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { IconButton } from '../IconButton.tsx';
 import { WorkspaceContext, type WorkspaceLayout } from './context.ts';
+import { DropPreview } from './DropPreview.tsx';
 import {
     paneRadius,
     resizeSplit,
@@ -30,9 +31,8 @@ import {
     type SplitRect
 } from './geometry.ts';
 import { splitPanes, updateSplitLayout, type SplitCommand, type SplitLayout, type SplitPane } from './model.ts';
-import { TabStrip, type TabStripItem, type TabStripProps } from './TabStrip.tsx';
-import { DropPreview } from './DropPreview.tsx';
 import { rectDropPreview, sameDropPreview, tabDropPreview, type DropPreviewShape } from './preview.ts';
+import { TabStrip, type TabStripItem, type TabStripProps } from './TabStrip.tsx';
 
 export interface SplitViewInfo {
     paneId: string;

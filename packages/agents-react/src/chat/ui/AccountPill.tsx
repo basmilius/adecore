@@ -1,10 +1,10 @@
-import { useTranslation } from 'react-i18next';
 import type { AgentKind } from '@adecore/agent-contracts';
-import { AccountDot } from '../../agents/AccountDot';
-import { useAccountChoice } from '../account-choice';
-import { useChats } from '../../state/chats';
-import { useChatScope } from '../../scope';
 import { Pill, Tooltip } from '@adecore/ui';
+import { useTranslation } from 'react-i18next';
+import { AccountDot } from '../../agents/AccountDot';
+import { useChatScope } from '../../scope';
+import { useChats } from '../../state/chats';
+import { useAccountChoice } from '../account-choice';
 
 function AccountPillOf({ chatId, provider, account }: { chatId: string; provider: AgentKind; account: string | undefined }) {
     const { t } = useTranslation('agent-chat');

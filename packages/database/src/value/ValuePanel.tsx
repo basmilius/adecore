@@ -1,8 +1,8 @@
-import type { Ref } from 'react';
+import { EmptyState, IconButton, PanelHeader } from '@adecore/ui';
 import clsx from 'clsx';
 import { MousePointerClick, X } from 'lucide-react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState, IconButton, PanelHeader } from '@adecore/ui';
 import type { GridColumn } from '../grid/types.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
 import { ValueEditor } from './ValueEditor.tsx';

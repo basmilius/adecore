@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import { act, type ReactNode } from 'react';
 import type { Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
+import * as bands from './band.ts';
 import { Chart, SeriesLegend, type ChartX } from './index.ts';
 import { CHARTS_NAMESPACE, CHARTS_RESOURCES } from './locales.ts';
-import * as bands from './band.ts';
 
 const i18n = i18next.createInstance();
 

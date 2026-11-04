@@ -1,8 +1,8 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import { Suspense, createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { LazyBoundary } from './LazyBoundary.tsx';
 import { LoadedComponent, lazyNamed, onLazyOpenError } from './lazy.tsx';
+import { LazyBoundary } from './LazyBoundary.tsx';
 import { prefetcher, type Loader } from './prefetch.ts';
 
 describe('LoadedComponent', () => {

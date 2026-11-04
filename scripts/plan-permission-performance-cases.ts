@@ -1,6 +1,6 @@
-import type { Plan, PlanItem, PlanStep } from '../packages/plan/src/protocol.ts';
 import type { PlanApplied } from '../packages/plan/src/apply.ts';
 import type { PlanVerdict } from '../packages/plan/src/permissions.ts';
+import type { Plan, PlanItem, PlanStep } from '../packages/plan/src/protocol.ts';
 import type { PerformanceCase } from './paired-performance';
 
 type PermissionApi = Pick<typeof import('../packages/plan/src/tree'), 'holdsPersonState'> &

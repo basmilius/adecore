@@ -1,3 +1,7 @@
+import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, ScrollArea, useContentSize } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Ban, Copy, RotateCcw } from 'lucide-react';
 import {
     useCallback,
     useEffect,
@@ -11,20 +15,17 @@ import {
     type ReactNode,
     type Ref
 } from 'react';
-import clsx from 'clsx';
-import { Ban, Copy, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, EDIT_SHORTCUTS, Icon, isApplePlatform, isModHeld, Kbd, ScrollArea, useContentSize } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
 import type { DatabaseNotice } from '../actions.ts';
-import type { EditValue, Value } from '../protocol/index.ts';
 import { assignRef } from '../assign-ref.ts';
-import type { SqlTarget } from '../sql.ts';
 import { useNumberNotation } from '../client-context.ts';
-import { usePopupPress } from '../use-popup-press.ts';
+import type { EditValue, Value } from '../protocol/index.ts';
+import type { SqlTarget } from '../sql.ts';
 import { useDatabaseResources } from '../use-database-resources.ts';
+import { usePopupPress } from '../use-popup-press.ts';
 import { useStableCallback } from '../use-stable-callback.ts';
 import type { RangeBlock } from './aggregates.ts';
+import { cellIdOf } from './cell-id.ts';
 import { fullRect, rectBetween, rectContains } from './cell-range.ts';
 import type { EditMove } from './CellEditor.tsx';
 import { captureLayout, restoreLayout, sameLayout, type GridLayout } from './column-layout.ts';
@@ -36,7 +37,6 @@ import { columnNotation, cellView, copyTextOf, isPreview, type CellView, type Nu
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';
 import { GridHeaderCell, type HeaderActions } from './GridHeaderCell.tsx';
-import { cellIdOf } from './cell-id.ts';
 import { GridRowView, PINNED_GROUP, type CellEdit, type RowActions, type RowLook } from './GridRowView.tsx';
 import {
     clampColumnWidth,

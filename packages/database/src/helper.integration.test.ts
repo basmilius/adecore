@@ -1,7 +1,7 @@
+import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, describe, expect, test } from 'bun:test';
 import { createDatabaseClient } from './client/index.ts';
 import type { Connection } from './client/types.ts';
 import { createDatabaseHost, helperPath, spawnHelper } from './host/index.ts';

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Box, Plus } from 'lucide-react';
 import { Button, Icon, Menu, ProjectSwitcher, type ProjectSwitcherItem } from '@adecore/ui';
+import { Box, Plus } from 'lucide-react';
+import { useState } from 'react';
 
 const PRODUCTS: ProjectSwitcherItem[] = [
     { id: 'website', name: 'Website', icon: <Icon icon={Box} size={16} /> },

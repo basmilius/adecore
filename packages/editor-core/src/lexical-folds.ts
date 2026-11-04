@@ -1,7 +1,7 @@
 import { commentSyntax } from './languages.ts';
 import { textStart } from './line-text.ts';
-import type { FoldRole, FoldingRange } from './structure.ts';
 import type { DocumentLine } from './rope.ts';
+import type { FoldRole, FoldingRange } from './structure.ts';
 
 /* The words a line starts with when it brings another file in, by language. A language not listed here has no import list to fold. */
 const IMPORT_WORDS = new Map<string, RegExp>();

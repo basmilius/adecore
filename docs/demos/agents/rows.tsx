@@ -1,7 +1,5 @@
-import { useState } from 'react';
 import type { ChatToolItem } from '@adecore/agent-contracts';
 import { liveWorkflowPhase, summarizeGroup, workflowPhases, workflowPhaseState, workflowPhaseTime } from '@adecore/agents-react/chat';
-import { formatElapsedShort } from '@adecore/ui/format';
 import {
     AgentTurnRow,
     CompactionRow,
@@ -15,9 +13,11 @@ import {
     WorkflowAgentLine,
     WorkflowRow
 } from '@adecore/agents-react/chat/ui';
+import { formatElapsedShort } from '@adecore/ui/format';
+import { useState } from 'react';
 import { NOW, chatItems, taskRows, workflowTool } from '../shared/agents-data.ts';
-import { AgentDemo } from '../shared/agents.tsx';
 import { DEMO_CHAT, demoChats, forkChats } from '../shared/agents-host.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 
 const tools = chatItems().filter((item): item is ChatToolItem => item.kind === 'tool');
 const reads = tools.filter((tool) => tool.name === 'Read' || tool.name === 'Grep');

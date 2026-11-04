@@ -1,13 +1,13 @@
+import { Icon, Menu } from '@adecore/ui';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Bookmark, Pencil, X } from 'lucide-react';
-import { goToBookmark, removeBookmark } from '../bookmarks';
-import { bookmarkLabel, bookmarksInThreadOrder } from '../logic/bookmarks';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host';
+import { useHostChatPlace } from '../../host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
-import { Icon, Menu } from '@adecore/ui';
-import { useHostChatPlace } from '../../host-hooks';
+import { goToBookmark, removeBookmark } from '../bookmarks';
+import { bookmarkLabel, bookmarksInThreadOrder } from '../logic/bookmarks';
 
 /* A chat's bookmarks in thread order, each a jump to its message with rename and remove; nothing without bookmarks. */
 export function BookmarkSubmenu({ chatId }: { chatId: string }) {

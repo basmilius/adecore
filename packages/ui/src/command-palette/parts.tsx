@@ -1,10 +1,10 @@
-import { useContext, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
-import { flushSync } from 'react-dom';
-import clsx from 'clsx';
-import { Search } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Autocomplete } from '@base-ui/react/autocomplete';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { Search } from 'lucide-react';
+import { useContext, useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from 'react';
+import { flushSync } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import { withClass } from '../class-name.ts';
 import { DialogPopup, DialogRoot, type DialogPopupProps } from '../dialog/parts.tsx';
 import { Icon } from '../Icon.tsx';

@@ -1,12 +1,12 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Circle, CircleCheck, Square } from 'lucide-react';
 import type { ChatQuestion } from '@adecore/agent-contracts';
+import { Icon } from '@adecore/ui';
+import clsx from 'clsx';
+import { Circle, CircleCheck, Square } from 'lucide-react';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useChatHost } from '../../host';
 import { answerFieldKey, choiceKey, stepIndex } from '../logic/keys';
 import { pickPromptChoice, type PromptAnswer } from '../logic/prompts';
-import { Icon } from '@adecore/ui';
-import { useChatHost } from '../../host';
 
 /* One question of a request: its choices, "Something else…", or a written answer when it offers no choices. */
 export function QuestionBody({

@@ -1,15 +1,15 @@
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { CircleX, Info, TriangleAlert } from 'lucide-react';
+import type { EditorPosition } from '@adecore/editor';
 import { fileUriToPath, type Location } from '@adecore/lsp';
 import { Button, Icon, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import type { EditorPosition } from '@adecore/editor';
-import { basenameOf } from './paths.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { CircleX, Info, TriangleAlert } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { codeLabelOf, severityOf, type Problem } from './diagnostics-model.ts';
-import type { HoverInfo } from './popups.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import { SymbolSections } from './HoverSections.tsx';
+import { basenameOf } from './paths.ts';
+import type { HoverInfo } from './popups.ts';
 
 const SEVERITY_ICONS = { error: CircleX, warning: TriangleAlert, info: Info, hint: Info } as const;
 const SEVERITY_COLORS = { error: 'text-status-error', warning: 'text-status-needs-you', info: 'text-status-running', hint: 'text-text-muted' } as const;

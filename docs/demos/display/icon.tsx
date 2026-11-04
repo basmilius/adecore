@@ -1,5 +1,5 @@
-import { Folder } from 'lucide-react';
 import { Icon } from '@adecore/ui';
+import { Folder } from 'lucide-react';
 
 export default function IconDemo() {
     return (

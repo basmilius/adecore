@@ -1,23 +1,3 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import {
-    ArrowDownToLine,
-    BookOpen,
-    ChartNoAxesColumn,
-    CloudSun,
-    FileCode,
-    Folder,
-    GitBranch,
-    GitCompare,
-    MessageSquare,
-    Package,
-    PanelLeft,
-    Play,
-    Plus,
-    Search,
-    Settings,
-    Square,
-    SquareTerminal
-} from 'lucide-react';
 import { useChatScope } from '@adecore/agents-react';
 import { Composer, Timeline } from '@adecore/agents-react/chat/ui';
 import { AgentIcon } from '@adecore/agents-react/providers';
@@ -43,8 +23,28 @@ import {
     updateSplitLayout,
     type SplitLayout
 } from '@adecore/ui';
-import { AgentDemo } from '../shared/agents.tsx';
+import {
+    ArrowDownToLine,
+    BookOpen,
+    ChartNoAxesColumn,
+    CloudSun,
+    FileCode,
+    Folder,
+    GitBranch,
+    GitCompare,
+    MessageSquare,
+    Package,
+    PanelLeft,
+    Play,
+    Plus,
+    Search,
+    Settings,
+    Square,
+    SquareTerminal
+} from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 import { useEditor } from '../shared/editor.ts';
 
 type ViewId = 'chat' | 'review' | 'editor' | 'terminal';

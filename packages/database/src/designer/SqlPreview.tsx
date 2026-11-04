@@ -1,8 +1,8 @@
-import type { Ref } from 'react';
+import { Button, Icon, ScrollArea, copyText } from '@adecore/ui';
 import clsx from 'clsx';
 import { Copy } from 'lucide-react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, ScrollArea, copyText } from '@adecore/ui';
 import { CODE_TEXT } from '../code-text.ts';
 import type { DraftProblem } from '../ddl/index.ts';
 import { scriptOf, type Plan } from './plan.ts';

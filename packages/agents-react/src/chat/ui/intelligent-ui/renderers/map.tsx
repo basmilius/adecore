@@ -1,21 +1,21 @@
-import { useId, useState, type ReactNode } from 'react';
-import type { TFunction } from 'i18next';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import type { UiProps, UiViewNode } from '@adecore/intelligent-ui';
 import { Button, LazyBoundary, Spinner } from '@adecore/ui';
+import clsx from 'clsx';
+import type { TFunction } from 'i18next';
+import { useId, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost, type UiMapSource } from '../../../../host';
 import { useHostMapSource } from '../../../../host-hooks';
 import { lazyNamed } from '../../../../lazy';
 import { DiffFallbackBoundary } from '../../diff/DiffFallbackBoundary';
 import { uiChildrenOf, uiNodeLabel } from '../node-text';
 import type { UiPlacePoint, UiRendererProps } from '../render-context';
-import { placePoint } from './place-point';
 import { useInView } from '../use-in-view';
 import { useLater } from '../use-later';
 import { bindingOf, PENDING } from './binding';
 import { useMapSlot } from './map-slots';
 import type { MapMarker, MapViewStatus } from './map-view';
+import { placePoint } from './place-point';
 
 // MapLibre and its stylesheet load with the first map that is drawn, never with the chat.
 const MapView = lazyNamed(() => import('./map-view'), 'MapView');

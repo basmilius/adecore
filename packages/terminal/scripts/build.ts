@@ -1,6 +1,6 @@
 import { $ } from 'bun';
-import { compileReactDist, describeReactCompilerReport } from '../../../scripts/react-compiler.ts';
 import { copyFile, rm } from 'node:fs/promises';
+import { compileReactDist, describeReactCompilerReport } from '../../../scripts/react-compiler.ts';
 
 /* One JavaScript file and one declaration file per source file. The stylesheet is plain CSS and goes into `dist` as it is. */
 await rm('dist', { recursive: true, force: true });

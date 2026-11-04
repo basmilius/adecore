@@ -1,6 +1,6 @@
+import type { AgentKind } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import type { ReactNode } from 'react';
-import type { AgentKind } from '@adecore/agent-contracts';
 import type { ChatHost } from '../../host';
 import { isBlockingPrompt, type PendingPrompt, type PromptAction, type PromptDraft } from './prompts';
 

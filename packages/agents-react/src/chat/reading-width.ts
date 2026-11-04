@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react';
 import i18next from 'i18next';
+import type { CSSProperties } from 'react';
 
 /* How wide a chat that is a view of its own lets its thread and composer run. A node on a canvas is narrower than any of them. */
 export type ChatReadingWidth = 'narrow' | 'comfortable' | 'full';

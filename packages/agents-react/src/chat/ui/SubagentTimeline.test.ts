@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
+import { workflowAgentRef, type ChatApprovalItem, type ChatSubagentResult } from '@adecore/agent-contracts';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { workflowAgentRef, type ChatApprovalItem, type ChatSubagentResult } from '@adecore/agent-contracts';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import type { ChatTransport } from '../../transport';
 import { MAIN_AGENT, useSubagentView, type SubagentStep } from '../subagent-view';

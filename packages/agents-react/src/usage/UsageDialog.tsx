@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import i18next from 'i18next';
 import { Dialog } from '@adecore/ui';
+import i18next from 'i18next';
+import type { ReactNode } from 'react';
 
 /*
  * The frame of the usage page, wider than the settings for the chart and the breakdown. What goes in

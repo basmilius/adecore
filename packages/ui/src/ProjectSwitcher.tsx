@@ -1,7 +1,7 @@
-import type { ComponentProps, MouseEvent, ReactNode, Ref } from 'react';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { ChevronDown, History } from 'lucide-react';
+import type { ComponentProps, MouseEvent, ReactNode, Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import * as Menu from './menu/index.parts.ts';
 import { ProjectSwitcherRow } from './project-switcher-row.tsx';

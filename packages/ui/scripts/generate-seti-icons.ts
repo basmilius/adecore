@@ -1,6 +1,6 @@
 import { $ } from 'bun';
-import opentype from 'opentype.js';
 import { fileURLToPath } from 'node:url';
+import opentype from 'opentype.js';
 
 /*
  * Writes `src/seti-icons.ts` from Seti UI, the set VS Code ships as its default file icon theme. The

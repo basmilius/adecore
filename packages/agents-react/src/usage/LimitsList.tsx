@@ -1,13 +1,13 @@
-import { Fragment } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import type { UsageLimitsSnapshot, UsageWindow } from '@adecore/agent-contracts';
+import { Icon, Tooltip } from '@adecore/ui';
+import { formatClock, formatWeekdayClock, isSameDay, formatCountdown, formatPercent } from '@adecore/ui/format';
+import clsx from 'clsx';
 import { ChevronRight } from 'lucide-react';
+import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 import { limitsAccountId } from '../agents/account-limits';
 import { accountColor } from '../agents/accounts';
 import { ProviderLogo } from '../agents/ProviderLogo';
-import { Icon, Tooltip } from '@adecore/ui';
-import { formatClock, formatWeekdayClock, isSameDay, formatCountdown, formatPercent } from '@adecore/ui/format';
 import { useChatHost } from '../host';
 import { ChartLogo } from './ChartLogo';
 import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';

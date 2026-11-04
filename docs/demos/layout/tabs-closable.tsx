@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
 import { IconButton, Tabs } from '@adecore/ui';
+import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
 interface Query {
     readonly id: number;

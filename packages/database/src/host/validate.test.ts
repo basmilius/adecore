@@ -1,6 +1,6 @@
+import { describe, expect, test } from 'bun:test';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { describe, expect, test } from 'bun:test';
 import { parseRequest } from './validate.ts';
 
 const FIXTURES = join(import.meta.dir, '../../fixtures/protocol');

@@ -1,5 +1,5 @@
-import { z } from 'zod';
 import { DrawingColorSchema, DrawingStrokeStyleSchema } from '@adecore/drawing/protocol';
+import { z } from 'zod';
 
 /*
  * A diagram is a directed graph with groups, written rather than drawn: the file says what is

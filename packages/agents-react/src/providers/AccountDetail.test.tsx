@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import type { ProviderInfo } from '@adecore/agent-contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ProviderInfo } from '@adecore/agent-contracts';
 import type { AccountEntry, AccountLogin } from '../agents/accounts';
 import { ChatScopeContext, type ChatScope } from '../scope';
 import { AccountDetail } from './AccountDetail';

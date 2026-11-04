@@ -1,9 +1,9 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
-import { act, createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import { FakeEditor } from '@adecore/editor/fake';
 import { createPage } from '@adecore/editor/testing';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import { CompletionPopup } from './CompletionPopup.tsx';
 import type { EditorLanguage } from './editor-language.ts';
 import { PickPopup } from './PickPopup.tsx';

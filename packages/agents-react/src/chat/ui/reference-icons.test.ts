@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { isValidElement } from 'react';
 import { MessageSquare } from 'lucide-react';
+import { isValidElement } from 'react';
 import type { ReferenceIconProps } from '../../host';
 import { referenceGlyph } from './reference-icons';
 

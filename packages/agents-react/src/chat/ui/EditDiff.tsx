@@ -1,13 +1,12 @@
 import { LazyBoundary } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
+import { useChatHost } from '../../host';
 import { lazyNamed } from '../../lazy';
+import type { FileChange } from '../logic/tools';
 import { diffSourceBudget, legacyDiffBudget } from './diff/diff-source-budget';
+import { DiffFallbackBoundary } from './diff/DiffFallbackBoundary';
 import { DiffOmitted } from './diff/DiffOmitted';
 import { DiffUnavailable } from './diff/DiffUnavailable';
-import { DiffFallbackBoundary } from './diff/DiffFallbackBoundary';
-import { useChatHost } from '../../host';
-
-import type { FileChange } from '../logic/tools';
 
 const LegacyEditDiff = lazyNamed(() => import('./diff/LegacyEditDiff'), 'default', { prefetch: false });
 const EditorEditDiff = lazyNamed(() => import('./diff/EditorEditDiff'), 'default');

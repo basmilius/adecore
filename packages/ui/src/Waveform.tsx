@@ -1,5 +1,5 @@
-import { useRef, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
 import clsx from 'clsx';
+import { useRef, type KeyboardEvent, type PointerEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatClockDuration } from './format/duration.ts';
 import { mergeRefs } from './merge-refs.ts';

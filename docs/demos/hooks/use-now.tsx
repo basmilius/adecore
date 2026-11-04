@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Button, useNow, useTickingText } from '@adecore/ui';
 import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
+import { useState } from 'react';
 
 export default function UseNowDemo() {
     const [startedAt, setStartedAt] = useState<number | null>(null);

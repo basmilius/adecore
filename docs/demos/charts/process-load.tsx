@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Chart, type ChartX } from '@adecore/charts';
 import { formatClock, formatPercent } from '@adecore/ui/format';
+import { useState } from 'react';
 
 const WINDOW = 10 * 60_000;
 const END = Date.UTC(2026, 9, 24, 14, 30);

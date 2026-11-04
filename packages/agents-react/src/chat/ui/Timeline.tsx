@@ -1,3 +1,8 @@
+import type { ChatBookmark } from '@adecore/agent-contracts';
+import { ContextMenu, EmptyState, ErrorBoundary, Icon, ScrollArea, SectionLabel } from '@adecore/ui';
+import { defaultRangeExtractor, useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
+import clsx from 'clsx';
+import { LoaderCircle } from 'lucide-react';
 import {
     type CSSProperties,
     memo,
@@ -12,29 +17,15 @@ import {
     type ReactNode
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { defaultRangeExtractor, useVirtualizer, type Virtualizer } from '@tanstack/react-virtual';
-import clsx from 'clsx';
-import { LoaderCircle } from 'lucide-react';
-import type { ChatBookmark } from '@adecore/agent-contracts';
+import { AgentIcon } from '../../agents/AgentIcon';
+import { useModelName } from '../../agents/model-name';
+import { useChatHost, type TimelineFindOptions } from '../../host';
+import { useHostContextSources, useHostHidesFolder, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
+import { useChatScope } from '../../scope';
+import { useChatRow, useChats } from '../../state/chats';
 import { useForkedTurns } from '../forks';
 import { bookmarkRows } from '../logic/bookmarks';
-import { deriveTimelineRows, findSubagentBranch, type TimelineRow } from '../logic/timeline';
-import { timedRowsOf, withTimedRows } from '../logic/thread-cards';
-import { openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
-import {
-    registerItemJumper,
-    registerMessageStepper,
-    registerTimeline,
-    registerTurnJumper,
-    setTimelineAtEnd,
-    wantsEarlier,
-    type ItemJumpOptions,
-    type ReadingAnchor,
-    type TurnTarget
-} from '../timeline-scroll';
-import { useTimelineFlash } from '../timeline-flash';
-import { useChatPreferences } from '../preferences';
-import { readingMeasure, readingWidthStyle } from '../reading-width';
+import { forkRefusal } from '../logic/fork';
 import {
     SCRUBBER_MIN_TICKS,
     STRIP_INSET_PX,
@@ -48,6 +39,8 @@ import {
     ticksWithHits,
     EARLIER_ROW
 } from '../logic/scrubber';
+import { timedRowsOf, withTimedRows } from '../logic/thread-cards';
+import { deriveTimelineRows, findSubagentBranch, type TimelineRow } from '../logic/timeline';
 import {
     EMPTY_TARGET,
     readTimelineTarget,
@@ -57,30 +50,37 @@ import {
     type TimelineTarget,
     type UiReplyTarget
 } from '../logic/timeline-target';
-import { forkRefusal } from '../logic/fork';
-import { UiReplyNavigationContext } from './reply-context';
-import { FindRevealContext } from './find-reveal';
+import { useChatPreferences } from '../preferences';
+import { readingMeasure, readingWidthStyle } from '../reading-width';
+import { openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
+import { useTimelineFlash } from '../timeline-flash';
+import {
+    registerItemJumper,
+    registerMessageStepper,
+    registerTimeline,
+    registerTurnJumper,
+    setTimelineAtEnd,
+    wantsEarlier,
+    type ItemJumpOptions,
+    type ReadingAnchor,
+    type TurnTarget
+} from '../timeline-scroll';
 import { BookmarkMarker } from './BookmarkMarker';
+import { FileLinkContext } from './file-links';
+import { FindRevealContext } from './find-reveal';
 import { MessageActions } from './MessageActions';
+import { QuoteTakerContext, type QuoteTaker } from './quote-selection';
+import { QuoteButton } from './QuoteButton';
+import { UiReplyNavigationContext } from './reply-context';
+import { ReplyHeader } from './rows/MessageRows';
+import { FOLLOW_THRESHOLD_PX, replyHeader } from './rows/row-rhythm';
+import { RowContainer } from './rows/RowContainer';
+import { Row, type RowProps } from './rows/Rows';
 import { Scrubber, type CardChat } from './Scrubber';
 import { TimelineMenuPopup } from './TimelineMenu';
-import { VisualDialogs } from './VisualDialogs';
-import { FOLLOW_THRESHOLD_PX, replyHeader } from './rows/row-rhythm';
-import { QuoteButton } from './QuoteButton';
-import { QuoteTakerContext, type QuoteTaker } from './quote-selection';
 import { useToggleSet } from './useToggleSet';
+import { VisualDialogs } from './VisualDialogs';
 import { WelcomeGreeting } from './Welcome';
-import { Row, type RowProps } from './rows/Rows';
-import { RowContainer } from './rows/RowContainer';
-import { ReplyHeader } from './rows/MessageRows';
-import { useChatRow, useChats } from '../../state/chats';
-import { useChatHost, type TimelineFindOptions } from '../../host';
-import { useChatScope } from '../../scope';
-import { FileLinkContext } from './file-links';
-import { AgentIcon } from '../../agents/AgentIcon';
-import { useModelName } from '../../agents/model-name';
-import { ContextMenu, EmptyState, ErrorBoundary, Icon, ScrollArea, SectionLabel } from '@adecore/ui';
-import { useHostContextSources, useHostHidesFolder, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
 
 const ESTIMATED_ROW_PX = 56;
 // A wheel that counts in lines rather than pixels moves this far per line.

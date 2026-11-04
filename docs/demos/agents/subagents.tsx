@@ -1,8 +1,8 @@
-import { useEffect, useRef } from 'react';
 import { crumbOf, openFromMain, useSubagentItem, useSubagentTrail } from '@adecore/agents-react/chat';
 import { SubagentTitleCrumb, SubagentInfo, SubagentTimeline } from '@adecore/agents-react/chat/ui';
-import { AgentDemo } from '../shared/agents.tsx';
+import { useEffect, useRef } from 'react';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 
 const CALL = 'call-subagent';
 

@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react';
-import type { TFunction } from 'i18next';
-import clsx from 'clsx';
-import { Trans, useTranslation } from 'react-i18next';
-import { Check, Copy, Ellipsis, ExternalLink, FolderDown, ImageIcon, Maximize2 } from 'lucide-react';
 import type { ChatAttachment, ChatToolItem } from '@adecore/agent-contracts';
 import { Button, ButtonGroup, copyText, ErrorBoundary, FileIcon, Icon, IconButton, Menu, Surface } from '@adecore/ui';
+import clsx from 'clsx';
+import type { TFunction } from 'i18next';
+import { Check, Copy, Ellipsis, ExternalLink, FolderDown, ImageIcon, Maximize2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../host';
+import { useHostAttachmentUrl } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';
 import { useCurrentItem } from '../../../state/chats';
 import { formatBytes } from '../../attachments';
@@ -14,10 +15,9 @@ import { toolStartedAt } from '../../logic/tools';
 import { CHIP_IN_MESSAGE, MENTION_TONE } from '../chips';
 import { useFileLinkCwd, useOpenFileLink } from '../file-links';
 import { HostMenuItems } from '../HostMenuItems';
-import { ImageThumb } from '../ImageView';
 import { ROW_GUTTER } from '../icons';
+import { ImageThumb } from '../ImageView';
 import { RunningFor, WorkRow } from './WorkRows';
-import { useHostAttachmentUrl } from '../../../host-hooks';
 
 const SAVED_FLASH_MS = 2000;
 

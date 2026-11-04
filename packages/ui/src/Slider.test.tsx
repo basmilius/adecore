@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
 import { act, useState, type ReactNode } from 'react';
 import type { Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
 import { setFormatSource, type FormatSource } from './format/locale.ts';
 import { Slider, type SliderProps } from './Slider.tsx';
 import { fakeFormatSource } from './testing/fake-source.ts';

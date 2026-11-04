@@ -1,12 +1,12 @@
-import { useTranslation } from 'react-i18next';
-import { Square } from 'lucide-react';
 import type { ChatSubagentItem } from '@adecore/agent-contracts';
+import { IconButton } from '@adecore/ui';
+import { Square } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import { useChatActions } from '../actions';
 import { stopLabel, stopOf, subagentTitle } from '../subagent-list';
-import { IconButton } from '@adecore/ui';
 
 /* Stops one active sub-agent of a chat, or says nothing when stopping it is not on offer. */
 export function SubagentStopButton({

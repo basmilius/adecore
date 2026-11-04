@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from 'bun:test';
 import { rememberCopy } from './controller.ts';
-import type { EditorCopy } from './types.ts';
 import { mountEditor } from './testing.ts';
+import type { EditorCopy } from './types.ts';
 
 const navigatorDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
 

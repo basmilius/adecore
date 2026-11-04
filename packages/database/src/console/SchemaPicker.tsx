@@ -1,6 +1,6 @@
+import { Select } from '@adecore/ui';
 import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Select } from '@adecore/ui';
 import type { SchemaInfo } from '../protocol/index.ts';
 
 export interface SchemaPickerProps {

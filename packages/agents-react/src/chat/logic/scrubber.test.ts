@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatItem } from '@adecore/agent-contracts';
+import { bookmarkRows } from './bookmarks';
 import {
     EARLIER_ROW,
     layoutTicks,
@@ -16,7 +17,6 @@ import {
     type ScrubberTick,
     type TickKind
 } from './scrubber';
-import { bookmarkRows } from './bookmarks';
 import { deriveTimelineRows } from './timeline';
 
 const options = { expandedGroups: new Set<string>(), expandedTurns: new Set<string>(), expandedSubagents: new Set<string>(), activeTurnId: null };

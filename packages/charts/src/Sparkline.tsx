@@ -1,9 +1,9 @@
-import type { Ref } from 'react';
-import clsx from 'clsx';
-import { line } from 'd3-shape';
-import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { line } from 'd3-shape';
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { colorOf } from './color.ts';
 import { sparkColumns } from './spark.ts';
 import type { ChartColor } from './types.ts';

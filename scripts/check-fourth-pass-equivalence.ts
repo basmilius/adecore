@@ -1,8 +1,8 @@
 import { deepStrictEqual } from 'node:assert';
 import { resolve } from 'node:path';
-import type { Plan, PlanOp } from '../packages/plan/src/protocol';
-import type { PlanDraft } from '../packages/plan/src/apply';
 import type { ProviderAccounts } from '../packages/agent-contracts/src/provider-accounts';
+import type { PlanDraft } from '../packages/plan/src/apply';
+import type { Plan, PlanOp } from '../packages/plan/src/protocol';
 
 const baselineRoot = process.argv[2];
 

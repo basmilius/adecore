@@ -1,8 +1,8 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
+import { mountEditor, press } from '@adecore/editor/testing';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { mountEditor, press } from '@adecore/editor/testing';
 import { FindReplace } from './FindReplace.tsx';
 
 const GLOBALS = ['window', 'document', 'Element', 'HTMLElement', 'Node', 'getComputedStyle'] as const;

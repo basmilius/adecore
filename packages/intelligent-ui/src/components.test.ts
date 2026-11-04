@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
-import { compileUiBlock } from './compiler.ts';
-import { evaluateUiBlock, resolveUiChoice, UiState } from './runtime.ts';
 import { UI_CATALOG } from './catalog.ts';
+import { compileUiBlock } from './compiler.ts';
 import { uiPlaceQueries } from './places.ts';
+import { evaluateUiBlock, resolveUiChoice, UiState } from './runtime.ts';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.
 beforeEach(() => setSystemTime(Date.now()));

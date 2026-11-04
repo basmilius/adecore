@@ -33,6 +33,7 @@ import {
 import { ClientSinks } from '../client-sinks.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
+import { homeFolder } from '../home-folder.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
 import { AccountError, definedEnv, isDefaultAccountOf, launchEnv, storedAccount, type AccountLaunches } from '../providers/accounts/launch.ts';
 import { runsClaudeCode } from '../providers/provider.ts';
@@ -67,7 +68,6 @@ import { readableAssistantText } from './readable-text.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
 import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import type { VisualInput, VisualStore } from './visual-store.ts';
-import { homeFolder } from '../home-folder.ts';
 
 /* A turn that was running when the host went down, and the attempt that would take it up again. */
 export interface InterruptedRun {

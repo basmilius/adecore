@@ -1,14 +1,14 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
-import { act, createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import { FakeEditor } from '@adecore/editor/fake';
 import { createPage } from '@adecore/editor/testing';
-import { CallHierarchyPanel } from './CallHierarchyPanel.tsx';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import type { CallRow } from './call-hierarchy-model.ts';
+import { CallHierarchyPanel } from './CallHierarchyPanel.tsx';
 import type { EditorLanguage } from './editor-language.ts';
-import { ProjectLanguage } from './project-language.ts';
 import type { CallHierarchyView } from './popups.ts';
+import { ProjectLanguage } from './project-language.ts';
 
 async function inPage(run: (page: ReturnType<typeof createPage>, root: ReturnType<typeof createRoot>) => Promise<void>): Promise<void> {
     const page = createPage();

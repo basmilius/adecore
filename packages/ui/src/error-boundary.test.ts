@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { ErrorBoundary } from './ErrorBoundary.tsx';
 import { errorMessageOf, errorReport } from './error-boundary.ts';
+import { ErrorBoundary } from './ErrorBoundary.tsx';
 
 describe('ErrorBoundary state', () => {
     const boundary = (resetKeys: unknown[]): { instance: ErrorBoundary; states: unknown[] } => {

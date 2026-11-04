@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
-import { Paperclip, X } from 'lucide-react';
 import type { ChatAttachmentUpload } from '@adecore/agent-contracts';
 import { Icon, IconButton, Tooltip } from '@adecore/ui';
+import { Paperclip, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useChatScope } from '../../../scope';
 import { formatBytes, isImageAttachment, uploadBytes } from '../../attachments';
 import { jumpToTimelineItem } from '../../timeline-scroll';

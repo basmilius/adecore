@@ -1,6 +1,6 @@
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { discoverPackages } from '../../scripts/workspaces.ts';
 import { exportTargets } from '../../scripts/packed-artifacts.ts';
+import { discoverPackages } from '../../scripts/workspaces.ts';
 
 function escapeRegExp(text: string): string {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

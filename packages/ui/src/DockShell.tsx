@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
+import { useEffect, useRef, useState, type HTMLAttributes, type ReactNode, type Ref } from 'react';
 import { Surface } from './Surface.tsx';
 
 /* How close to the bottom of the window the pointer has to come before a hidden dock slides back. */

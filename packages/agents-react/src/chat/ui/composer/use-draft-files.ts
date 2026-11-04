@@ -1,11 +1,11 @@
+import type { ProviderCapabilities } from '@adecore/agent-contracts';
+import { EditorView } from '@codemirror/view';
 import { useRef, useState, type DragEvent, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EditorView } from '@codemirror/view';
-import type { ProviderCapabilities } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
 import { checkAttachmentLimits, filesOf, readAttachments, uploadBytes } from '../../attachments';
-import { pasteBecomesAttachment, pastedTextName } from '../../guards';
 import type { Referable } from '../../chat-references';
+import { pasteBecomesAttachment, pastedTextName } from '../../guards';
 import { carriesMentions, droppedMentions, pastedMentions, readClipboardChips, type ReferenceToken } from '../../mentions';
 import type { ComposerInputHandle } from '../ComposerInput';
 import { copyWithChipsFromEditor, pasteWithChips, withPastedChips, type PasteChoices } from './chip-paste';

@@ -1,21 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, X } from 'lucide-react';
 import { fileUriToPath } from '@adecore/lsp';
 import { FileIcon, IconButton, ScrollArea, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { basenameOf, relativeTo } from './paths.ts';
+import { ChevronDown, ChevronRight, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import type { EditorLanguage } from './editor-language.ts';
 import { shikiLanguageOfPath } from './language-ids.ts';
-import { PathText } from './PathText.tsx';
-import { PanelResizeHandle } from './PanelResizeHandle.tsx';
-import { usePanelBody } from './use-panel-body.ts';
 import { PANEL_BODY_HEIGHT } from './panel-size.ts';
-import { PEEK_HEIGHT } from './peek.ts';
+import { PanelResizeHandle } from './PanelResizeHandle.tsx';
+import { basenameOf, relativeTo } from './paths.ts';
+import { PathText } from './PathText.tsx';
 import { distinguishingFolders, visualColumnOf, type NameRange, type PeekPlace } from './peek-model.ts';
+import { PEEK_HEIGHT } from './peek.ts';
 import type { PeekView } from './popups.ts';
 import { useEditorRendering } from './rendering-context.ts';
+import { usePanelBody } from './use-panel-body.ts';
 
 const TAB_SIZE = 4;
 

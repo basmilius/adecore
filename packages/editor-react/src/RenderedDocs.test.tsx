@@ -1,10 +1,10 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
+import { findDocComments } from '@adecore/editor';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { findDocComments } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
 import { parseDocComment } from './doc-comment-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import { RenderedDocBlock } from './RenderedDocs.tsx';
 
 function markup(source: string, options: { php?: boolean; follow?: boolean } = {}): string {

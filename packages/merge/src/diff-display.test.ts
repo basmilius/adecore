@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { diffDisplay } from './diff-display.ts';
 import { diffDocument } from './diff-document.ts';
-import { parsePatch } from './patch-parser.ts';
 import { patchOf } from './patch-of.ts';
+import { parsePatch } from './patch-parser.ts';
 
 const between = (old: string, fresh: string, context = 3) => diffDocument(patchOf(old, fresh, context), { old, new: fresh });
 

@@ -1,9 +1,9 @@
-import clsx from 'clsx';
-import type { Ref } from 'react';
-import { Bot, ChevronRight, X } from 'lucide-react';
 import { workflowAgentRef, type AgentKind } from '@adecore/agent-contracts';
-import { formatElapsedShort } from '@adecore/ui/format';
 import { Icon, useTickingText } from '@adecore/ui';
+import { formatElapsedShort } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Bot, ChevronRight, X } from 'lucide-react';
+import type { Ref } from 'react';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { workflowAgentPreview, workflowAgentTime, type WorkflowAgentState, type WorkflowAgentView } from '../logic/workflow';
 import type { SubagentStep } from '../subagent-view';

@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import type {
     ChatApprovalItem,
     ChatAssistantItem,
@@ -16,8 +15,9 @@ import type {
     ModelSelection
 } from '@adecore/agent-contracts';
 import { abortedByMachine } from '@adecore/agent-contracts';
-import type { CommandLook, CommandLookSent, ThreadCard, ToolLook } from '../../host';
 import { formatElapsedShort } from '@adecore/ui/format';
+import i18next from 'i18next';
+import type { CommandLook, CommandLookSent, ThreadCard, ToolLook } from '../../host';
 import { lookKey, lookRunOf, sentMessageOf, type Look } from './command-looks';
 import { isImageGeneration } from './generated-image';
 import { handbackReportOf } from './handback';

@@ -1,8 +1,8 @@
+import { Button, Icon, Surface, useContentSize } from '@adecore/ui';
+import clsx from 'clsx';
 import { useId, useState, type CSSProperties, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { Button, Icon, Surface, useContentSize } from '@adecore/ui';
 import { useChartContext, type ChartContextValue } from './context.ts';
 import type { SeriesEntry } from './store.ts';
 import type { ChartNote, ChartX } from './types.ts';

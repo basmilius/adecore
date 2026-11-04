@@ -1,6 +1,6 @@
-import { useState, type CSSProperties, type Ref } from 'react';
-import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { useState, type CSSProperties, type Ref } from 'react';
 import { mergeRefs } from './merge-refs.ts';
 import { useOverlayScrollbars, type ScrollAreaAxis } from './useOverlayScrollbars.tsx';
 

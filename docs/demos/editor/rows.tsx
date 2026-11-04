@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
 import type { Editor } from '@adecore/editor';
+import { useCallback, useState } from 'react';
 import { EditorFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useEditor } from '../shared/editor.ts';
 

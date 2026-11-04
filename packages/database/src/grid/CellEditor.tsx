@@ -1,6 +1,6 @@
-import { useEffect, useRef, type KeyboardEvent } from 'react';
-import clsx from 'clsx';
 import { Input } from '@adecore/ui';
+import clsx from 'clsx';
+import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { CODE_TEXT } from '../code-text.ts';
 
 export type EditMove = 'next' | 'previous';

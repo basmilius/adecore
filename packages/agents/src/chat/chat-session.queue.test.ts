@@ -2,9 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import type { ChatInfo } from '@adecore/agent-contracts';
 import { ManualClock } from '../testing/manual-clock.ts';
 import type { TurnInput } from './backend.ts';
+import { info, flush, rig } from './chat-session.fixture.test.ts';
 import { type ChatSessionOptions } from './chat-session.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
-import { info, flush, rig } from './chat-session.fixture.test.ts';
 
 describe('a queue behind a usage limit', () => {
     test('an unknown reset preserves the queue without owing an automatic resume', async () => {

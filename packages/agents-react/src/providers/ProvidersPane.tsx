@@ -1,22 +1,22 @@
-import { useState, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { AgentKind, ProviderInfo } from '@adecore/agent-contracts';
-import { accountLoginOf, accountsOfKind, type AccountEntry } from '../agents/accounts';
 import { ErrorBoundary, Skeleton } from '@adecore/ui';
 import { MasterDetail } from '@adecore/ui/settings';
+import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { accountLoginOf, accountsOfKind, type AccountEntry } from '../agents/accounts';
 import { useChatHost } from '../host';
+import { useHostLoginBlocked } from '../host-hooks';
 import { useChatScope } from '../scope';
+import { useProviderAccounts } from '../state/provider-accounts';
+import { useProviders } from '../state/providers';
 import { AccountDetail } from './AccountDetail';
 import { AddAccountForm } from './AddAccountForm';
 import { CliDetail } from './CliDetail';
-import { InstallPage } from './InstallPage';
 import type { ProviderInstallStep } from './install-steps';
+import { InstallPage } from './InstallPage';
 import { pickOfCli, pickOfTarget, type Picked } from './pane-target';
 import { groupProviders, type ProviderSetupStatus } from './provider-groups';
 import { ProviderList } from './ProviderList';
-import { useProviderAccounts } from '../state/provider-accounts';
-import { useProviders } from '../state/providers';
-import { useHostLoginBlocked } from '../host-hooks';
 
 interface ProvidersPaneProps {
     /* The row a search result leads to, by its `searchId`; the pane opens on the CLI it belongs to. `providers.install.<kind>` opens on that CLI's install page, or on its detail once it is installed. */

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { jumpToTimelineTurn, registerTurnJumper } from './timeline-scroll';
 import { useTimelineFlash } from './timeline-flash';
+import { jumpToTimelineTurn, registerTurnJumper } from './timeline-scroll';
 
 describe('a jump to the turn of a chat', () => {
     test('reaches the thread that is on screen', () => {

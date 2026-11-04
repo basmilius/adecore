@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
-import type { ReactNode } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { setFormatSource } from '@adecore/ui/format';
 import { fakeFormatSource } from '@adecore/ui/testing';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
+import i18next from 'i18next';
+import type { ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import type { DatabaseClient } from '../client/types.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { Aggregates } from '../grid/aggregates.ts';
 import type { Chip, CommandColumn } from './command-field.ts';
 import { pageBounds } from './paging.ts';

@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import { act, type ReactNode } from 'react';
-import { createRoot } from 'react-dom/client';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
+import { act, type ReactNode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ChatHostProvider, type ChatHost } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';

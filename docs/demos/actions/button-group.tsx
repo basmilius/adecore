@@ -1,5 +1,5 @@
-import { AlignCenter, AlignLeft, AlignRight, Redo, Undo } from 'lucide-react';
 import { ButtonGroup, IconButton } from '@adecore/ui';
+import { AlignCenter, AlignLeft, AlignRight, Redo, Undo } from 'lucide-react';
 
 export default function ButtonGroupDemo() {
     return (

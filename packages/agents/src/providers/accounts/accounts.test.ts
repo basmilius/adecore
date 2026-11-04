@@ -1,5 +1,5 @@
-import { join } from 'node:path';
 import { describe, expect, test } from 'bun:test';
+import { join } from 'node:path';
 import { KNOWN_AGENT_KINDS } from '@adecore/agent-contracts';
 import { providerFor } from '../registry.ts';
 import { accountEnv, accountFolder, accountProblem, canContinue, readAccount, withDefaults, type AccountProviders } from './accounts.ts';

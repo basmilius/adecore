@@ -1,7 +1,7 @@
-import type { ComponentType } from 'react';
+import type { SettingsSectionEntry } from '@adecore/ui/settings';
 import i18next from 'i18next';
 import { Brain, ChartNoAxesColumn, type LucideIcon } from 'lucide-react';
-import type { SettingsSectionEntry } from '@adecore/ui/settings';
+import type { ComponentType } from 'react';
 
 /* A section of this package for the settings dialog of @adecore/ui, with its words read when it is drawn. */
 export interface AgentsSettingsSection {

@@ -1,4 +1,3 @@
-import type { Highlighter, ThemeRegistration } from 'shiki';
 import {
     createSyntaxService,
     type DiffSyntaxDocument,
@@ -7,6 +6,7 @@ import {
     type DiffSyntaxService,
     type DiffSyntaxTokens
 } from '@adecore/editor/shiki-worker';
+import type { Highlighter, ThemeRegistration } from 'shiki';
 import type { ChatHost } from '../../../host';
 
 interface Pending {

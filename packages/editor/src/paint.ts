@@ -1,5 +1,6 @@
-import { offsetOfStop, rowOfStop, stopAtOffset, stopCount, xOfStop } from './geometry-stops.ts';
 import { type AttributedLines, colorValue, tintValue } from './attribution.ts';
+import { BIDI_CONTROLS, BIDI_PATTERN, visibleBidi } from './bidi.ts';
+import { offsetOfStop, rowOfStop, stopAtOffset, stopCount, xOfStop } from './geometry-stops.ts';
 import {
     type BlockReplacement,
     type BlockWidget,
@@ -14,7 +15,6 @@ import {
     type TextRow
 } from './layout.ts';
 import type { EditorChangeKind, EditorGutterIcon, LineToken } from './types.ts';
-import { BIDI_CONTROLS, BIDI_PATTERN, visibleBidi } from './bidi.ts';
 
 const ITALIC = 1;
 const BOLD = 2;

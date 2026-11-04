@@ -1,10 +1,10 @@
+import { ScrollArea } from '@adecore/ui';
+import { MultiFileDiff } from '@pierre/diffs/react';
+import { useHostCodeMode } from '../../../host-hooks';
+import { diffTexts, type FileChange } from '../../logic/tools';
+import { useDiffTheme } from '../diff-theme';
 import { LegacyDiffPool } from './LegacyDiffPool';
 import { useReviewSettled } from './review-settle';
-import { MultiFileDiff } from '@pierre/diffs/react';
-import { ScrollArea } from '@adecore/ui';
-import { useDiffTheme } from '../diff-theme';
-import { diffTexts, type FileChange } from '../../logic/tools';
-import { useHostCodeMode } from '../../../host-hooks';
 
 export default function LegacyEditDiff({ change, maxHeight }: { change: FileChange; maxHeight?: number }) {
     useReviewSettled();

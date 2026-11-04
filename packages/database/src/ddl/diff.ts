@@ -1,8 +1,8 @@
+import { sameList } from '../same-list.ts';
 import { sameDefinition } from './column.ts';
 import type { Dialect } from './dialect.ts';
 import type { ColumnDraft, ForeignKeyDraft, IndexDraft, TableDraft } from './draft.ts';
 import type { TableOptions } from './parse.ts';
-import { sameList } from '../same-list.ts';
 
 export interface KeptColumn {
     readonly original: ColumnDraft;

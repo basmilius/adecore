@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { DrawingElement } from './protocol.ts';
 import {
     arrowHead,
     boundsOfElements,
@@ -13,6 +12,7 @@ import {
     rotatePoint,
     scaleElement
 } from './geometry.ts';
+import type { DrawingElement } from './protocol.ts';
 
 const base = { stroke: 'ink', strokeWidth: 2, seed: 1 } as const;
 

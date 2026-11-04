@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { compileUi, evaluateUiBlock } from '@adecore/intelligent-ui';
 import { parseHTML } from 'linkedom';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { ChatHostProvider, type ChatHost } from '../../../host';
 import { UiReplyNavigationContext } from '../reply-context';
-import { UiReply } from './UiReply';
 import { uiReplyParts } from './reply-parts';
+import { UiReply } from './UiReply';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.
 beforeEach(() => setSystemTime(Date.now()));

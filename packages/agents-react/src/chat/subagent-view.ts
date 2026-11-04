@@ -1,6 +1,6 @@
+import type { ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import { create } from 'zustand';
-import type { ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
 import { useChatScope } from '../scope';
 import { useChatRow } from '../state/chats';
 import { useSubagentSupport } from './subagent-support';

@@ -1,5 +1,5 @@
-import { fileURLToPath } from 'node:url';
 import { expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 
 // A fresh process prevents another test's renderer imports from hiding an eager dependency.
 test('importing the public diff views does not load Pierre or the legacy renderers', async () => {

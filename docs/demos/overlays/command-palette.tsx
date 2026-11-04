@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { Bug, FolderGit2, GitBranch, LayoutDashboard, LogOut, Moon, Search, Settings } from 'lucide-react';
 import { Button, CommandPalette, Icon, Kbd, KEY_SHORTCUTS, matchScore, shortcut, type Shortcut } from '@adecore/ui';
+import { Bug, FolderGit2, GitBranch, LayoutDashboard, LogOut, Moon, Search, Settings } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 
 interface Command {
     id: string;

@@ -1,8 +1,8 @@
 import { closeSync, fstatSync, mkdirSync, openSync, readSync, rmSync, writeSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { ChatEventSchema, type ChatEvent } from '@adecore/agent-contracts';
-import { z } from 'zod';
 import { writeAtomicSync } from '@adecore/utils/fs';
+import { z } from 'zod';
 import { errorText } from '../error-text.ts';
 
 export interface ChatLogLine {

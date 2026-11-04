@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
-import { getFiletypeFromFileName } from '@pierre/diffs';
 import { diffDocument, patchOf } from '@adecore/merge';
+import { getFiletypeFromFileName } from '@pierre/diffs';
 import { canRenderEditorDiff, EDITOR_DIFF_WORK } from './editor-edit-model';
 
 function allows(before: string, after: string): boolean {

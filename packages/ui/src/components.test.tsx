@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
+import { Play, Search, X } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
 import { create } from 'zustand';
-import { Play, Search, X } from 'lucide-react';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { EmptyState } from './EmptyState.tsx';
@@ -12,6 +12,7 @@ import { formatLocale, setFormatSource, type FormatSource } from './format/local
 import { IconButton } from './IconButton.tsx';
 import { Input, TextArea } from './Input.tsx';
 import { Kbd } from './Kbd.tsx';
+import * as KeyValueList from './key-value-list/index.parts.ts';
 import { ListRow } from './ListRow.tsx';
 import * as Menu from './menu/index.parts.ts';
 import { MenuCheck } from './menu/parts.tsx';
@@ -22,12 +23,11 @@ import { SegmentBar } from './SegmentBar.tsx';
 import { SlidingColumn } from './SlidingColumn.tsx';
 import { Spinner } from './Spinner.tsx';
 import { Stepper } from './Stepper.tsx';
-import * as KeyValueList from './key-value-list/index.parts.ts';
-import * as Tabs from './tabs/index.parts.ts';
 import { Surface } from './Surface.tsx';
-import { Toasts } from './Toasts.tsx';
-import { createToastStore, type ToastStore } from './toast-store.ts';
+import * as Tabs from './tabs/index.parts.ts';
 import { fakeFormatSource } from './testing/fake-source.ts';
+import { createToastStore, type ToastStore } from './toast-store.ts';
+import { Toasts } from './Toasts.tsx';
 import { UIProvider } from './UIProvider.tsx';
 import { Waveform } from './Waveform.tsx';
 

@@ -1,8 +1,8 @@
-import type { Ref } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface NamePickerProps {
     /* Every name that can be picked, in the order to show them. */

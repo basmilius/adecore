@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { ChartNoAxesColumn, RefreshCw } from 'lucide-react';
 import { USAGE_PROVIDERS, type UsageAccount } from '@adecore/agent-contracts';
 import { Button, CloseButton, Dialog, EmptyState, FormError, IconButton, ScrollArea, Segmented, Select, Skeleton } from '@adecore/ui';
+import { ChartNoAxesColumn, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
 import { useChatHost } from '../host';
 import { useChatScope } from '../scope';

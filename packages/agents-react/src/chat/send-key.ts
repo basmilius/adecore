@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import { KEY_SHORTCUTS, shortcut, type Shortcut } from '@adecore/ui';
+import i18next from 'i18next';
 
 /*
  * Which key sends a message: Enter, Enter until the message runs over more than one line and Mod+Enter

@@ -1,10 +1,10 @@
 import { expect, test } from 'bun:test';
-import { act, createElement, StrictMode, useLayoutEffect } from 'react';
-import { createRoot } from 'react-dom/client';
-import { createPage } from '@adecore/editor/testing';
 import type { DiffSourceTokens } from '@adecore/editor-react';
 import type { DiffSyntaxDocument, DiffSyntaxTokens } from '@adecore/editor/shiki-worker';
+import { createPage } from '@adecore/editor/testing';
 import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
+import { act, createElement, StrictMode, useLayoutEffect } from 'react';
+import { createRoot } from 'react-dom/client';
 import type { DiffSyntaxRuntime } from './diff-syntax';
 import { useDiffSourceTokens } from './use-diff-source-tokens';
 

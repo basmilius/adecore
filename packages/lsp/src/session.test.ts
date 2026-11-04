@@ -1,6 +1,6 @@
 import { describe, expect, it, jest } from 'bun:test';
-import { LspSession } from './session.ts';
 import type { DocumentHighlight, WorkspaceSymbol } from './protocol.ts';
+import { LspSession } from './session.ts';
 import { flush, origin, rejecting, ScriptedTransport, sessionWith } from './test-transport.ts';
 
 describe('capabilities and server requests', () => {

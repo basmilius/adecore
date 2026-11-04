@@ -1,19 +1,19 @@
-import clsx from 'clsx';
-import { createContext, useContext, useId, useState, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Box } from 'lucide-react';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { ErrorBoundary, Icon, Pill, PreviewCard, Tooltip, Wipe } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Box } from 'lucide-react';
+import { createContext, useContext, useId, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../../host';
-import { CodeBlock } from '../../CodeBlock';
+import { useHostAttachmentUrl } from '../../../../host-hooks';
 import { CodeStreamingContext } from '../../code-streaming';
+import { CodeBlock } from '../../CodeBlock';
+import { DisplayImage } from '../../DisplayImage';
 import { ImageGroup, ImageThumb } from '../../ImageView';
 import { uiChildrenOf, uiNodeLabel, uiNodeText, uiUrlDomain } from '../node-text';
 import type { UiRendererProps } from '../render-context';
 import { useTruncated } from '../use-truncated';
-import { useHostAttachmentUrl } from '../../../../host-hooks';
-import { DisplayImage } from '../../DisplayImage';
 
 // The number of every source by its node id, which the list counts in its own order.
 const SourceNumbers = createContext<ReadonlyMap<string, number>>(new Map());

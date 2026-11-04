@@ -1,6 +1,6 @@
+import type { ChatAttachmentUpload, ChatQueuedMessage } from '@adecore/agent-contracts';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ChatAttachmentUpload, ChatQueuedMessage } from '@adecore/agent-contracts';
 import { useChatHost } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { errorCode, errorMessage } from '../../../transport';

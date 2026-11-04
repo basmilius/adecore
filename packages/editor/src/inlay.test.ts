@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { EditorInlayClick, EditorInlayTarget } from './types.ts';
 import { mountEditor, pointer } from './testing.ts';
+import type { EditorInlayClick, EditorInlayTarget } from './types.ts';
 
 function setup() {
     const mounted = mountEditor({ text: 'one\ntwo\nthree' });

@@ -2,8 +2,6 @@ import { ErrorCodes, JsonRpcConnection, LspError, type RequestHandler } from './
 import { LspDocument } from './document.ts';
 import { createsTaken, deletesTaken, renamesTaken, type CreatedFile, type DeletedFile, type RenamedFile } from './file-operations.ts';
 import { globMatch } from './glob.ts';
-import { fileUriKey } from './uris.ts';
-import type { ResourceOperationKind } from './workspace-operations.ts';
 import type {
     ApplyWorkspaceEditParams,
     ApplyWorkspaceEditResult,
@@ -44,6 +42,8 @@ import type {
     WorkspaceSymbol,
     WorkspaceSymbolResult
 } from './protocol.ts';
+import { fileUriKey } from './uris.ts';
+import type { ResourceOperationKind } from './workspace-operations.ts';
 
 export type SessionState = 'new' | 'initializing' | 'ready' | 'closing' | 'closed';
 

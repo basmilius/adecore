@@ -1,14 +1,14 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import type { ReactNode } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 import { setFormatSource, type FormatSource } from '@adecore/ui/format';
 import { fakeFormatSource } from '@adecore/ui/testing';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
-import type { NumberNotation } from './display.ts';
+import i18next from 'i18next';
+import type { ReactNode } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import type { DatabaseClient } from '../client/types.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import { DataGrid } from './DataGrid.tsx';
+import type { NumberNotation } from './display.ts';
 import type { GridColumn, GridRow } from './types.ts';
 
 const i18n = i18next.createInstance();

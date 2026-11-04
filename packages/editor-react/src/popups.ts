@@ -1,14 +1,14 @@
-import { createStore, type StoreApi } from 'zustand';
 import type { EditorPosition, EditorRange, EditorRect } from '@adecore/editor';
 import type { Location } from '@adecore/lsp';
-import type { CodeAuthorship } from './code-authors.ts';
-import type { Problem } from './diagnostics-model.ts';
-import type { PeekFile, PeekSnippet } from './peek-model.ts';
+import { createStore, type StoreApi } from 'zustand';
 import type { CallDirection, CallRow } from './call-hierarchy-model.ts';
 import type { ActionEntry } from './code-actions-model.ts';
-import type { SymbolEntry } from './symbol-picker-model.ts';
+import type { CodeAuthorship } from './code-authors.ts';
+import type { Problem } from './diagnostics-model.ts';
 import type { HoverText } from './hover-content.ts';
+import type { PeekFile, PeekSnippet } from './peek-model.ts';
 import type { SignatureViewModel } from './signature-model.ts';
+import type { SymbolEntry } from './symbol-picker-model.ts';
 import type { ResourceOperationView } from './workspace-edit.ts';
 
 /* What a hover card shows for the character under the pointer. */

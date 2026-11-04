@@ -1,20 +1,20 @@
 import { useEffect, useReducer, type ReactNode } from 'react';
 import { useStore } from 'zustand';
-import type { EditorLanguage } from './editor-language.ts';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
 import { CallHierarchyPanel } from './CallHierarchyPanel.tsx';
 import { CodeAuthorsCard } from './CodeAuthorsCard.tsx';
 import { CompletionPopup } from './CompletionPopup.tsx';
+import type { EditorLanguage } from './editor-language.ts';
 import { EditorContextMenu } from './EditorContextMenu.tsx';
 import { HoverCard } from './HoverCard.tsx';
 import { PeekPanel } from './PeekPanel.tsx';
 import { PickPopup } from './PickPopup.tsx';
+import type { HoverView } from './popups.ts';
 import { RenameCard } from './RenameCard.tsx';
 import { RenderedDocs } from './RenderedDocs.tsx';
-import { SymbolPicker } from './SymbolPicker.tsx';
 import { SignatureCard } from './SignatureCard.tsx';
+import { SymbolPicker } from './SymbolPicker.tsx';
 import { WrapCard } from './WrapCard.tsx';
-import type { HoverView } from './popups.ts';
 
 export interface LanguagePopupsProps<Language extends EditorLanguage = EditorLanguage> {
     language: Language;

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { FileText } from 'lucide-react';
 import { ContextMenu, DocumentTab, Icon, TabStrip, type TabStripItem } from '@adecore/ui';
+import { FileText } from 'lucide-react';
+import { useState } from 'react';
 
 export default function TabStripDemo() {
     const [items, setItems] = useState<TabStripItem[]>([

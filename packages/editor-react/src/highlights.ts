@@ -1,9 +1,9 @@
-import type { DocumentHighlight } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorHighlight, EditorHighlightKind, EditorPosition, EditorRange } from '@adecore/editor';
-import { comparePositions, rangeHolds } from './diagnostics-model.ts';
+import type { DocumentHighlight } from '@adecore/lsp';
 import { isIdentifierCharacter } from './completion-model.ts';
+import { comparePositions, rangeHolds } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { Refresher } from './refresher.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';

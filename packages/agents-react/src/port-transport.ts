@@ -1,7 +1,7 @@
-import i18next from 'i18next';
 import { parseServerFrame } from '@adecore/agent-contracts/envelope';
 import type { FramePort } from '@adecore/agent-contracts/port';
 import { AGENT_EVENT_SCHEMAS, AGENT_REQUEST_SCHEMAS, type AgentEventType, type AgentRequestType } from '@adecore/agent-contracts/protocol';
+import i18next from 'i18next';
 import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from './transport';
 
 export interface PortTransport extends ChatTransport {

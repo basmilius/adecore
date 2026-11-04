@@ -1,6 +1,6 @@
-import { useContext } from 'react';
-import clsx from 'clsx';
 import type { AgentKind } from '@adecore/agent-contracts';
+import clsx from 'clsx';
+import { useContext } from 'react';
 import { ChatScopeContext } from '../scope';
 import { useProvidersStore } from '../state/providers';
 import { AgentIcon } from './AgentIcon';

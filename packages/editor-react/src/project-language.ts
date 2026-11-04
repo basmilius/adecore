@@ -1,5 +1,4 @@
-import { disposeSnippetTransforms } from './snippet-transform-queue.ts';
-import i18next, { type i18n } from 'i18next';
+import type { Editor, EditorPosition } from '@adecore/editor';
 import {
     fileUriToPath,
     pathToFileUri,
@@ -12,16 +11,17 @@ import {
     type ShowDocumentResult,
     type WorkspaceEdit
 } from '@adecore/lsp';
-import type { Editor, EditorPosition } from '@adecore/editor';
+import i18next, { type i18n } from 'i18next';
 import { ClipboardHistory } from './clipboard-history.ts';
-import { TemplateRegistry } from './templates.ts';
 import { EditLocations } from './edit-locations.ts';
-import { NavigationHistory, type Place } from './navigation-history.ts';
-import { ProjectProblems, serviceProblems } from './project-problems.ts';
-import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
 import type { LanguageHost } from './host-types.ts';
-import { relativeTo } from './paths.ts';
+import { NavigationHistory, type Place } from './navigation-history.ts';
 import { PANEL_BODY_HEIGHT } from './panel-size.ts';
+import { relativeTo } from './paths.ts';
+import { ProjectProblems, serviceProblems } from './project-problems.ts';
+import { disposeSnippetTransforms } from './snippet-transform-queue.ts';
+import { TemplateRegistry } from './templates.ts';
+import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
 
 export interface LanguageDocumentHandle {
     readonly uri: string;

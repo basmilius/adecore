@@ -3,8 +3,8 @@ import type { ChatQuestionItem } from '@adecore/agent-contracts';
 import { flush, info, rig } from '../chat/chat-session.fixture.test.ts';
 import { ChatSession } from '../chat/chat-session.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
-import { deliverWaitingHandler, waitingNoteId, waitingTexts } from './waiting-child.ts';
 import type { DeliverWaitingEntry } from './task-work.ts';
+import { deliverWaitingHandler, waitingNoteId, waitingTexts } from './waiting-child.ts';
 
 test('a long question in a waiting note is cut between two characters', () => {
     // The emoji straddles the 199th unit, where the note cuts to make room for the ellipsis.

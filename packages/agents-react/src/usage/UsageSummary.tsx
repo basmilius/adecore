@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import type { UsageTotals } from '@adecore/agent-contracts';
-import type { UsageMetric } from '../state/usage';
 import { totalTokensOf } from '@adecore/agent-contracts';
+import { useTranslation } from 'react-i18next';
+import type { UsageMetric } from '../state/usage';
 import { ChartLogo } from './ChartLogo';
 import { formatCount, formatTokens, PROVIDER_LABELS } from './format';
 import { useMoney } from './money';

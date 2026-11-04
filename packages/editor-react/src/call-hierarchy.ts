@@ -1,7 +1,5 @@
-import { StaleResultError, type CallHierarchyItem } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorPosition } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
+import { StaleResultError, type CallHierarchyItem } from '@adecore/lsp';
 import {
     CALL_LEVEL_LIMIT,
     childrenOf,
@@ -17,10 +15,12 @@ import {
     type CallNode,
     type CallRow
 } from './call-hierarchy-model.ts';
-import { PEEK_HEIGHT } from './peek.ts';
-import { snippetOf } from './peek-model.ts';
-import { isShortcut } from './shortcut-keys.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
+import { snippetOf } from './peek-model.ts';
+import { PEEK_HEIGHT } from './peek.ts';
+import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, revealRow, type Timers } from './timers.ts';
 
 const TOAST_ID = 'language-call-hierarchy';

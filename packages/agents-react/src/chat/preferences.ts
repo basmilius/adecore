@@ -1,4 +1,3 @@
-import { chatStorageKey, chatStorageLegacyKeys, createChatStore, onChatStorageConfiguration } from '../storage';
 import {
     topAccountOf,
     type AgentKind,
@@ -8,6 +7,7 @@ import {
     type ProviderAccounts,
     type RuntimeMode
 } from '@adecore/agent-contracts';
+import { chatStorageKey, chatStorageLegacyKeys, createChatStore, onChatStorageConfiguration } from '../storage';
 import { persistedJson } from './persisted-json';
 import { DEFAULT_READING_WIDTH, isChatReadingWidth, type ChatReadingWidth } from './reading-width';
 import { DEFAULT_SEND_KEY, isChatSendKey, type ChatSendKey } from './send-key';

@@ -1,5 +1,5 @@
-import { ClipboardPaste, Copy, Scissors } from 'lucide-react';
 import { ContextMenu, EDIT_SHORTCUTS, Icon, Kbd } from '@adecore/ui';
+import { ClipboardPaste, Copy, Scissors } from 'lucide-react';
 
 export default function ContextMenuDemo() {
     return (

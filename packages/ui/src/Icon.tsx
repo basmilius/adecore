@@ -1,6 +1,6 @@
-import type { Ref } from 'react';
-import type { LucideIcon } from 'lucide-react';
 import clsx from 'clsx';
+import type { LucideIcon } from 'lucide-react';
+import type { Ref } from 'react';
 
 // The whole client draws at this weight. 2 is Lucide's default, but at 12 and 14 pixels next to
 // text of the same size a hair thinner keeps the glyph from outweighing the words beside it.

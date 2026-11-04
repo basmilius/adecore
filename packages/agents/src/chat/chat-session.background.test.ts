@@ -2,8 +2,8 @@ import { describe, expect, spyOn, test } from 'bun:test';
 import type { ChatInfo } from '@adecore/agent-contracts';
 import { ManualClock } from '../testing/manual-clock.ts';
 import type { BackendEvent } from './backend.ts';
-import { ChatSession } from './chat-session.ts';
 import { flush, info, rig } from './chat-session.fixture.test.ts';
+import { ChatSession } from './chat-session.ts';
 
 test('a launched workflow stays open, warns on stalled progress and clears its warning on new progress', async () => {
     const clock = new ManualClock();

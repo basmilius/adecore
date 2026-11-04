@@ -1,4 +1,5 @@
-import type { ReactNode, Ref } from 'react';
+import { Button, ButtonGroup, Icon, IconButton, Menu, Separator } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
 import clsx from 'clsx';
 import {
     ChevronsLeft,
@@ -15,13 +16,12 @@ import {
     Trash2,
     Undo2
 } from 'lucide-react';
+import type { ReactNode, Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, ButtonGroup, Icon, IconButton, Menu, Separator } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
 import { EXPORT_FORMATS } from '../export-formats.ts';
 import type { Engine, FileFormat } from '../protocol/index.ts';
-import { CommandField } from './CommandField.tsx';
 import type { Chip, CommandColumn } from './command-field.ts';
+import { CommandField } from './CommandField.tsx';
 import { PAGE_SIZES, type PageBounds } from './paging.ts';
 
 /* The menu of export and import; present only when the app can show file dialogs. */

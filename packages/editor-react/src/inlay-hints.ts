@@ -3,9 +3,9 @@ import type { Command, InlayHint, InlayHintLabelPart, Location, MarkupContent, T
 import { followModKey } from './definition-link.ts';
 import { comparePositions } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { messageOf } from './error-message.ts';
 import { hoverTextOf, isEmptyHover, type HoverText } from './hover-content.ts';
 import { SHOW_DELAY_MS } from './hover.ts';
-import { messageOf } from './error-message.ts';
 import { lineTextOf } from './line-text.ts';
 import { Refresher } from './refresher.ts';
 import { realTimers, type Timers } from './timers.ts';

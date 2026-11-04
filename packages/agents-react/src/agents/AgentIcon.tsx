@@ -1,8 +1,8 @@
 import type { AgentKind } from '@adecore/agent-contracts';
+import { Icon } from '@adecore/ui';
 import clsx from 'clsx';
 import { Bot } from 'lucide-react';
 import { siClaude, siGithubcopilot, siGooglegemini } from 'simple-icons';
-import { Icon } from '@adecore/ui';
 import { type AgentMark, hostAgentMark } from './agent-marks';
 import { PROVIDER_PATHS } from './provider-paths';
 

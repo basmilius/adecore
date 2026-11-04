@@ -1,7 +1,7 @@
-import { useMemo, useState } from 'react';
 import { readingOrder, toSvg } from '@adecore/drawing';
 import type { DrawingRoughness } from '@adecore/drawing/protocol';
 import { Segmented } from '@adecore/ui';
+import { useMemo, useState } from 'react';
 import { THEME_EDGE, THEME_PALETTE, THEME_PAPER } from '../shared/canvas-theme.ts';
 import { SKETCH } from '../shared/sketch.ts';
 

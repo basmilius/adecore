@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { useState } from 'react';
 import { ContextMenu } from '@adecore/ui';
+import { useState } from 'react';
 import type { DatabaseNotice } from '../actions.ts';
 import type { Value } from '../protocol/index.ts';
 import type { Mounted } from '../testing/dom/harness.tsx';

@@ -1,12 +1,12 @@
-import { StaleResultError, fileUriToPath, type LanguageService, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorPosition } from '@adecore/editor';
-import { basenameOf } from './paths.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { StaleResultError, fileUriToPath, type LanguageService, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
 import { rangeHolds } from './diagnostics-model.ts';
-import { placesOfName } from './symbol-links.ts';
-import { isShortcut } from './shortcut-keys.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
+import { basenameOf } from './paths.ts';
+import { isShortcut } from './shortcut-keys.ts';
+import { placesOfName } from './symbol-links.ts';
 import { placeKey, uniqueBy } from './unique.ts';
 
 export type NavigationKind = 'definition' | 'declaration' | 'typeDefinition' | 'implementation';

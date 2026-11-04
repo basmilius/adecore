@@ -1,11 +1,11 @@
-import { Fragment, memo, useEffect, useMemo, useState, type ComponentProps, type MouseEvent as ReactMouseEvent } from 'react';
+import { cameThroughPortal, ContextMenu, copyText, Icon, Menu, PreviewCard } from '@adecore/ui';
+import { formatMoment } from '@adecore/ui/format';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Bookmark, Copy, GitFork, type LucideIcon } from 'lucide-react';
+import { Fragment, memo, useEffect, useMemo, useState, type ComponentProps, type MouseEvent as ReactMouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { layoutTicks, messageAt, slotInView, slotOf, tickWidth, TICK_HEIGHT_PX, type ScrubberTick } from '../logic/scrubber';
 import { BookmarkMenuItems } from './TimelineMenu';
-import { formatMoment } from '@adecore/ui/format';
-import { cameThroughPortal, ContextMenu, copyText, Icon, Menu, PreviewCard } from '@adecore/ui';
 
 const PREVIEW_CHARS = 280;
 

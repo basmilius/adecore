@@ -1,11 +1,11 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
-import { act, createElement } from 'react';
 import { FakeEditorEngine } from '@adecore/editor/fake';
+import { act, createElement } from 'react';
 import { EditorLanguage } from './editor-language.ts';
 import { LanguagePopups } from './LanguagePopups.tsx';
-import { ProjectLanguage } from './project-language.ts';
 import type { HoverView } from './popups.ts';
+import { ProjectLanguage } from './project-language.ts';
 import { inPage } from './test-support.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';
 

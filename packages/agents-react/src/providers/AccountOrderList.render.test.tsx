@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createPage } from '@adecore/editor/testing';
 import { movedIds, type AccountEntry } from '../agents/accounts';
 import { AccountOrderList } from './AccountOrderList';
 

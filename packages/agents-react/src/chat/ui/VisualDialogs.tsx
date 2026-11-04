@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { ChatVisual } from '@adecore/agent-contracts';
 import { CloseButton, Dialog, ErrorBoundary, PromptDialog } from '@adecore/ui';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import { useVisualDialog } from '../visuals';

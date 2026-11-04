@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { UsageProvider } from '@adecore/agent-contracts';
 import { Surface, useMeasuredWidth } from '@adecore/ui';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PROVIDER_COLORS, PROVIDER_LABELS, slotAxisLabel, slotLabel } from './format';
 import { niceScale, type ChartSlot } from './summary';
 

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { TableView, type DatabaseAction } from '@adecore/database';
+import { useState } from 'react';
 import { ShopDatabase } from '../shared/database.tsx';
 import { SHOP } from '../shared/shop.ts';
 

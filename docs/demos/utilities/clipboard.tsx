@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
 import { Button, copyText, readClipboardText, selectAllWithin, selectionWithin } from '@adecore/ui';
+import { useRef, useState } from 'react';
 
 export default function ClipboardDemo() {
     const block = useRef<HTMLParagraphElement>(null);

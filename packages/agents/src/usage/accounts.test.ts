@@ -1,8 +1,8 @@
-import type { ProviderAccounts } from '@adecore/agent-contracts';
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { ProviderAccounts } from '@adecore/agent-contracts';
 import type { ProviderAccountsService } from '../providers/accounts/service.ts';
 import { testAccounts } from '../testing/accounts.ts';
 import { chatSessionAccounts, machineAccounts, limitAccountsOf, usageAccountsOf, usageRootsOf } from './accounts.ts';

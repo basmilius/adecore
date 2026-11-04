@@ -1,5 +1,3 @@
-import { useState } from 'react';
-import { FileText, Folder, Moon, PanelLeft, Search, Settings, Sun } from 'lucide-react';
 import {
     Button,
     Icon,
@@ -16,6 +14,8 @@ import {
     type SplitLayout,
     type WorkspaceLayout
 } from '@adecore/ui';
+import { FileText, Folder, Moon, PanelLeft, Search, Settings, Sun } from 'lucide-react';
+import { useState } from 'react';
 
 function initialLayout(): SplitLayout {
     const first = createSplitLayout(['Brief', 'Notes'], 'documents');

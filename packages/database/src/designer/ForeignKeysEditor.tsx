@@ -1,11 +1,11 @@
+import { Button, EmptyState, Field, Icon, IconButton, Input, Select, Spinner, type SelectItem } from '@adecore/ui';
 import clsx from 'clsx';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, EmptyState, Field, Icon, IconButton, Input, Select, Spinner, type SelectItem } from '@adecore/ui';
 import { FOREIGN_KEY_ACTIONS } from '../ddl/index.ts';
+import { addForeignKey, patchForeignKey, removeForeignKey, setReferencedTable, toggleForeignKeyColumn } from './edit.ts';
 import type { EditorProps } from './editor-props.ts';
 import { NamePicker } from './NamePicker.tsx';
-import { addForeignKey, patchForeignKey, removeForeignKey, setReferencedTable, toggleForeignKeyColumn } from './edit.ts';
 
 export interface ForeignKeysEditorProps extends EditorProps {
     schema: string;

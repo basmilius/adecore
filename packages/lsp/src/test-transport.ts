@@ -1,5 +1,5 @@
-import { LspSession, type LspSessionOptions } from './session.ts';
 import type { LspTransport, RpcMessage, ServerCapabilities } from './protocol.ts';
+import { LspSession, type LspSessionOptions } from './session.ts';
 
 /* A transport that records what is sent and lets a test say what comes back, for tests that assert on the exact wire. */
 export class ScriptedTransport implements LspTransport {

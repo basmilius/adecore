@@ -1,9 +1,9 @@
 import { afterAll, beforeAll, describe, expect, mock, spyOn, test } from 'bun:test';
+import { createPage } from '@adecore/editor/testing';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as reactMarkdown from 'react-markdown';
-import { createPage } from '@adecore/editor/testing';
 import { ChatHostProvider, type ChatHost, type ShellCodeBlockContext } from '../../host';
 import type { Highlighter } from './highlighter';
 import { splitMarkdownBlocks } from './markdown-blocks';

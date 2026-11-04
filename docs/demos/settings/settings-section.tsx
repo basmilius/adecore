@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Globe, Monitor } from 'lucide-react';
 import { Button, Pill, Select, Switch } from '@adecore/ui';
 import { SettingsRow, SettingsSection, TopIcon } from '@adecore/ui/settings';
+import { Globe, Monitor } from 'lucide-react';
+import { useState } from 'react';
 
 export default function SettingsSectionDemo() {
     const [updates, setUpdates] = useState(true);

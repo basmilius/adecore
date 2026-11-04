@@ -1,5 +1,5 @@
-import { Filter, RefreshCw } from 'lucide-react';
 import { ButtonGroup, CloseButton, IconButton, PanelHeader, Separator } from '@adecore/ui';
+import { Filter, RefreshCw } from 'lucide-react';
 
 export default function PanelHeaderDemo() {
     return (

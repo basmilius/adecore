@@ -1,5 +1,5 @@
-import { Play } from 'lucide-react';
 import { Button, Icon } from '@adecore/ui';
+import { Play } from 'lucide-react';
 
 export default function ButtonPill() {
     return (

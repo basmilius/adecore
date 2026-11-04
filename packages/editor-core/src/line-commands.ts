@@ -1,6 +1,6 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
-import { commentSyntax } from './languages.ts';
 import { caseLabel, lineContinues } from './enter.ts';
+import { commentSyntax } from './languages.ts';
 import { indentsByBrackets } from './lexical.ts';
 import { isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { markupGuard } from './markup-regions.ts';

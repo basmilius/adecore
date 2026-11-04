@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { ArrowDown, ArrowRight } from 'lucide-react';
 import { layoutOf, readingOrder, toSvg } from '@adecore/diagram';
 import type { DiagramContent, DiagramDirection } from '@adecore/diagram/protocol';
 import { Segmented } from '@adecore/ui';
+import { ArrowDown, ArrowRight } from 'lucide-react';
+import { useState } from 'react';
 import { THEME_PALETTE, THEME_PAPER } from '../shared/canvas-theme.ts';
 
 const RELEASE: DiagramContent = {

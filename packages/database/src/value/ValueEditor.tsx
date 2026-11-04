@@ -1,7 +1,3 @@
-import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
-import clsx from 'clsx';
-import { Copy, Ellipsis, WrapText } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import {
     Button,
     ButtonGroup,
@@ -18,6 +14,10 @@ import {
     Tooltip
 } from '@adecore/ui';
 import { formatBytes, formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Copy, Ellipsis, WrapText } from 'lucide-react';
+import { useMemo, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CODE_TEXT } from '../code-text.ts';
 import type { GridColumn } from '../grid/types.ts';
 import type { EditValue, Value } from '../protocol/index.ts';

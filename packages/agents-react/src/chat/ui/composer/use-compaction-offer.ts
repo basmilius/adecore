@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import type { ChatInfo, ChatItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import { useEffect, useState } from 'react';
 import { useChatRow } from '../../../state/chats';
 import { RESUME_COMPACTION_TOKENS, resumeCompactionDueAt, resumeCompactionOffer, watchDueAt, type DueClock } from '../../logic/resume-compaction';
 import { useResumeCompactionDismissal } from '../../resume-compaction-dismissals';

@@ -1,5 +1,5 @@
-import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
+import type { ReactNode, Ref } from 'react';
 
 export interface DetailHeaderProps {
     mark: ReactNode;

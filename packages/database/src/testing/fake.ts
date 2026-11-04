@@ -1,3 +1,4 @@
+import type { DatabaseTransport } from '../client/types.ts';
 import type {
     Cell,
     CheckInfo,
@@ -20,7 +21,6 @@ import type {
     TriggerInfo,
     Value
 } from '../protocol/index.ts';
-import type { DatabaseTransport } from '../client/types.ts';
 
 export interface FakeTable {
     /* `table` when left out. A view cannot be edited. */

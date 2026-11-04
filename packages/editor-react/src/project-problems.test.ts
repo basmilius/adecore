@@ -1,7 +1,7 @@
 import './test-setup.ts';
 import { expect, test } from 'bun:test';
-import type { Diagnostic } from '@adecore/lsp';
 import { FakeEditorEngine } from '@adecore/editor/fake';
+import type { Diagnostic } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { ProjectProblems, type ProblemReport, type ProblemSource } from './project-problems.ts';

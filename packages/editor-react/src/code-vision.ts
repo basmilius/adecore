@@ -1,10 +1,10 @@
-import { splitLines } from '@adecore/merge';
-import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 import type { EditorCodeVision, EditorCodeVisionEntry, EditorRect } from '@adecore/editor';
 import type { DocumentSymbolResult, Location } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
+import { splitLines } from '@adecore/merge';
 import { type CodeAuthorship, authorsText, authorshipOf, mapBlame } from './code-authors.ts';
 import { type CodeVisionDeclaration, declarationsOf, usagesText } from './code-vision-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
+import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
 import { realTimers, type Timers } from './timers.ts';
 import { placeKey } from './unique.ts';
 

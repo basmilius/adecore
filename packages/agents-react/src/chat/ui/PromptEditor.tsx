@@ -1,14 +1,14 @@
-import { useLayoutEffect, useRef, type SetStateAction } from 'react';
-import clsx from 'clsx';
-import { Surface } from '@adecore/ui';
 import type { ChatSkill } from '@adecore/agent-contracts';
+import { Surface } from '@adecore/ui';
+import clsx from 'clsx';
+import { useLayoutEffect, useRef, type SetStateAction } from 'react';
 import { useChatHost } from '../../host';
 import type { Referables } from '../chat-references';
-import { ComposerInput, type ComposerInputHandle } from './ComposerInput';
 import { chipDecorations } from './composer/chips';
 import { ComposerMenu } from './composer/ComposerMenu';
 import { pickInMenu } from './composer/key-handler';
 import { usePromptMenus, type PromptDraft } from './composer/use-prompt-menus';
+import { ComposerInput, type ComposerInputHandle } from './ComposerInput';
 
 interface PromptEditorProps {
     value: PromptDraft;

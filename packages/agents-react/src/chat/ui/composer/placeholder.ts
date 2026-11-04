@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatScope } from '../../../scope';
 import { useHostComposerPlaceholder } from '../../../host-hooks';
+import { useChatScope } from '../../../scope';
 
 /* The empty box names its sigils as key caps, so they read as keys to press rather than as punctuation. */
 function hintedPlaceholder(lead: string, joiner: string, hints: ReadonlyArray<{ key: string; label: string }>): HTMLElement {

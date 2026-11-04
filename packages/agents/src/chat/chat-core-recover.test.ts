@@ -1,14 +1,14 @@
 import { expect, spyOn, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import { claudeProvider } from '../providers/claude-provider.ts';
+import { ProviderRegistry } from '../providers/registry.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatLog } from './chat-log.ts';
 import { ChatStore } from './chat-store.ts';
-import { claudeProvider } from '../providers/claude-provider.ts';
-import { ProviderRegistry } from '../providers/registry.ts';
 
 const providers = new ProviderRegistry({
     detect: async () => ({ installed: true, version: 'test' }),

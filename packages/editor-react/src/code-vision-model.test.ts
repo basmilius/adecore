@@ -1,7 +1,7 @@
-import i18next from 'i18next';
-import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
+import './test-setup.ts';
 import type { DocumentSymbol } from '@adecore/lsp';
+import i18next from 'i18next';
 import { declarationsOf, startAfterComments, usagesText, type DeclarationSource } from './code-vision-model.ts';
 import dutchWords from './locales/nl.json';
 

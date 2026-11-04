@@ -1,15 +1,15 @@
+import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { ChatEventSchema, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import type { AgentEvent } from '../events.ts';
 import { createAcpProvider } from '../providers/acp-provider.ts';
 import { ModelCatalog } from '../providers/catalog.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
-import { UsageScanner } from '../usage/scanner.ts';
 import { fakeAcpCapture } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
+import { UsageScanner } from '../usage/scanner.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';

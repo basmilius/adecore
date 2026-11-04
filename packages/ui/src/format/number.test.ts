@@ -1,4 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { fakeFormatSource } from '../testing/fake-source.ts';
+import { setFormatSource, type FormatSource } from './locale.ts';
 import {
     formatBytes,
     formatDecimal,
@@ -12,8 +14,6 @@ import {
     formatUsdSignificant
 } from './number.ts';
 import { FORMAT_SYSTEM } from './regions.ts';
-import { fakeFormatSource } from '../testing/fake-source.ts';
-import { setFormatSource, type FormatSource } from './locale.ts';
 
 const source = fakeFormatSource();
 let previous: FormatSource;

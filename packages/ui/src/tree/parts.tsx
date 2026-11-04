@@ -1,7 +1,7 @@
-import { type MouseEvent } from 'react';
-import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
 import { ChevronRight } from 'lucide-react';
+import { type MouseEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Checkbox as UICheckbox, type CheckboxProps } from '../Checkbox.tsx';
 import { Icon } from '../Icon.tsx';

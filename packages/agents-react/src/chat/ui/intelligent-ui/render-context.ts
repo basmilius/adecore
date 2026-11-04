@@ -1,6 +1,6 @@
-import { createContext, type ReactNode } from 'react';
 import type { UiComponentName, UiProps, UiViewNode } from '@adecore/intelligent-ui';
 import type { UiLinkTarget } from '@adecore/intelligent-ui/links';
+import { createContext, type ReactNode } from 'react';
 
 export type { UiLinkTarget };
 

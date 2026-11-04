@@ -1,8 +1,8 @@
-import { useId, useState, type ReactNode, type Ref } from 'react';
+import { Button, Input, Tooltip } from '@adecore/ui';
 import clsx from 'clsx';
 import { Check, Search } from 'lucide-react';
+import { useId, useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Input, Tooltip } from '@adecore/ui';
 import { matchingItems, toggleGroup } from './legend.ts';
 
 export interface SeriesLegendItem {

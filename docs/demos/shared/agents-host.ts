@@ -1,5 +1,3 @@
-import globalI18next from 'i18next';
-import { useSyncExternalStore } from 'react';
 import type { AgentEventType, AgentRequestType, ChatBookmark, ChatEvent, ChatInfo, ChatItem, ProviderAccounts } from '@adecore/agent-contracts';
 import {
     type ChatHost,
@@ -18,7 +16,8 @@ import chatNl from '@adecore/agents-react/locales/nl/agent-chat';
 import promptsNl from '@adecore/agents-react/locales/nl/agent-prompts';
 import providersNl from '@adecore/agents-react/locales/nl/agent-providers';
 import usageNl from '@adecore/agents-react/locales/nl/agent-usage';
-import { i18n } from './i18n.ts';
+import globalI18next from 'i18next';
+import { useSyncExternalStore } from 'react';
 import {
     ACCENTS,
     chatInfo,
@@ -35,6 +34,7 @@ import {
     usageLimits,
     usageSummary
 } from './agents-data.ts';
+import { i18n } from './i18n.ts';
 
 /*
  * The four namespaces of the package, on the demos' i18next for the components and on the default

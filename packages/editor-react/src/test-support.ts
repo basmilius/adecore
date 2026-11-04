@@ -1,6 +1,6 @@
+import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { createPage } from '@adecore/editor/testing';
 import type { LanguageShortcut } from './shortcut-keys.ts';
 
 export type Page = ReturnType<typeof createPage>;

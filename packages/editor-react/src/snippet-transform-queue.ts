@@ -1,8 +1,8 @@
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
+import type { ProjectLanguage } from './project-language.ts';
 import { createSnippetTransformClient, SnippetTransformError, type SnippetTransformClient } from './snippet-transform-client.ts';
 import { validateSnippetTransformJobs } from './snippet-transform-format.ts';
 import { MAX_TRANSFORM_WORK, type SnippetTransformJob } from './snippet-transform-protocol.ts';
-import type { ProjectLanguage } from './project-language.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 interface RequestOptions {

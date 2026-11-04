@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import type { ProviderInfo } from '@adecore/agent-contracts';
+import { create } from 'zustand';
 import { useChatScope } from '../scope';
 
 export interface ProvidersRow {

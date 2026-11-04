@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import {
     attachmentBytes,
     attachmentImageMime,
@@ -9,6 +8,7 @@ import {
     type ChatAttachmentUpload
 } from '@adecore/agent-contracts';
 import { formatBytes as bytesOf } from '@adecore/ui/format';
+import i18next from 'i18next';
 
 interface IncomingFile {
     name: string;

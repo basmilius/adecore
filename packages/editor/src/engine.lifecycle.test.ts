@@ -1,8 +1,8 @@
 import { describe, expect, jest, test } from 'bun:test';
-import { EditorView } from './view.ts';
+import { setup } from './engine.fixture.test.ts';
 import { parseChord } from './keymap-table.ts';
 import type { KeyChord } from './types.ts';
-import { setup } from './engine.fixture.test.ts';
+import { EditorView } from './view.ts';
 
 describe('messages', () => {
     test('rename the fold controls without laying the text out again', () => {

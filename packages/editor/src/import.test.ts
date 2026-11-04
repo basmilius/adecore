@@ -1,5 +1,5 @@
-import { fileURLToPath } from 'node:url';
 import { expect, it } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 
 /* How many Intl objects importing `entry` builds, counted in a process of its own so no earlier import hides one. */
 function intlBuiltAtImport(entry: string): number {

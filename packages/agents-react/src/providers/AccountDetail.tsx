@@ -1,16 +1,16 @@
+import type { ProviderInfo } from '@adecore/agent-contracts';
+import { Button, copyText, Icon, Input, Switch, Tooltip } from '@adecore/ui';
+import { ConfirmDialog, DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
+import { LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { LogIn } from 'lucide-react';
-import type { ProviderInfo } from '@adecore/agent-contracts';
 import { AccountDot } from '../agents/AccountDot';
 import { accountName, FOLDER_VARIABLES, type AccountEntry, type AccountLogin } from '../agents/accounts';
-import { ConfirmDialog, DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
-import { Button, copyText, Icon, Input, Switch, Tooltip } from '@adecore/ui';
 import { useChatHost } from '../host';
 import { useChatScope } from '../scope';
 import { removeAccount, saveAccount } from './account-actions';
-import { AccountVariables } from './AccountVariables';
 import { AccountColors } from './AccountColors';
+import { AccountVariables } from './AccountVariables';
 import { CliMark } from './parts';
 
 // The states in which the machine's own sentence says more than the usual line under the login.

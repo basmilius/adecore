@@ -1,7 +1,7 @@
 import type { ProviderInfo } from '@adecore/agent-contracts';
 import { ProvidersPane } from '@adecore/agents-react/providers';
-import { AgentDemo } from '../shared/agents.tsx';
 import { MISSING_PROVIDER, PROVIDERS } from '../shared/agents-data.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 
 /* A model the host runs itself and a person turns on in its detail, so it waits under "Needs setup". */
 const LOCAL_PROVIDER: ProviderInfo = {

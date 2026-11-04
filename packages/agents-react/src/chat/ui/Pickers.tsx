@@ -1,20 +1,20 @@
+import type { AgentKind, ModelSelection, ProviderInfo, UsageProvider } from '@adecore/agent-contracts';
+import { Button, Icon, IconButton, Menu, Popover, ScrollArea, Tooltip } from '@adecore/ui';
+import { Bookmark, ChevronDown, ChevronRight, Search, Star, Trash2 } from 'lucide-react';
 import { useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, ChevronDown, ChevronRight, Search, Star, Trash2 } from 'lucide-react';
-import type { AgentKind, ModelSelection, ProviderInfo, UsageProvider } from '@adecore/agent-contracts';
 import { AgentIcon } from '../../agents/AgentIcon';
-import { ProviderLogo } from '../../agents/ProviderLogo';
 import { agentChipOf, modelName } from '../../agents/model-name';
 import { modelRequirementOf } from '../../agents/model-requirement';
+import { ProviderLogo } from '../../agents/ProviderLogo';
 import { useChatHost } from '../../host';
+import { useHostMachineLabel } from '../../host-hooks';
 import { ChatScopeContext } from '../../scope';
 import { useReportedModels } from '../../state/chats';
-import { ModelMarks } from './ModelMarks';
 import { inPickerOrder, pickerEntriesOf, separatesGroups, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { forgetStashed, STASH_SHORTCUT, useStash, type StashedPrompt } from '../stash';
-import { Button, Icon, IconButton, Menu, Popover, ScrollArea, Tooltip } from '@adecore/ui';
-import { useHostMachineLabel } from '../../host-hooks';
+import { ModelMarks } from './ModelMarks';
 
 const triggerClass =
     'flex h-7 shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-2 text-xs text-text-muted hover:bg-surface-hover hover:text-text data-[popup-open]:bg-surface-active data-[popup-open]:text-text';

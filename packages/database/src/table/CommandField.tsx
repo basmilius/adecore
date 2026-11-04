@@ -1,8 +1,8 @@
-import { useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { Icon, IconButton, Kbd, KEY_SHORTCUTS, Keys, Menu, shortcut } from '@adecore/ui';
 import clsx from 'clsx';
 import { ArrowDown, ArrowDownWideNarrow, ArrowRightToLine, ArrowUp, Code, Filter, Search, X, type LucideIcon } from 'lucide-react';
+import { useId, useImperativeHandle, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Icon, IconButton, Kbd, KEY_SHORTCUTS, Keys, Menu, shortcut } from '@adecore/ui';
 import type { Engine } from '../protocol/index.ts';
 import {
     addChip,

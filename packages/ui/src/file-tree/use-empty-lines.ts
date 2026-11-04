@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { FileTree } from '@pierre/trees';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { emptyLineChanges, isEmptyLine, pastEmptyLine, skipEmptyLine, type FileTreeEmptyLabel } from './empty-lines.ts';
 import { movesFocus, visibleRows } from './helpers.ts';
 

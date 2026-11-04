@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
 import { act, useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { UIProvider } from '../UIProvider.tsx';
-import { SplitView } from './SplitView.tsx';
 import { ContextMenu } from '../index.ts';
+import { UIProvider } from '../UIProvider.tsx';
+import type { WorkspaceLayout } from './context.ts';
+import { createSplitLayout, updateSplitLayout, type SplitBranch, type SplitCommand, type SplitLayout } from './model.ts';
+import { SplitView } from './SplitView.tsx';
 import { DocumentTab, TabStrip } from './TabStrip.tsx';
 import { Workspace } from './Workspace.tsx';
-import { createSplitLayout, updateSplitLayout, type SplitBranch, type SplitCommand, type SplitLayout } from './model.ts';
-import type { WorkspaceLayout } from './context.ts';
-import i18next from 'i18next';
 
 const i18n = i18next.createInstance();
 

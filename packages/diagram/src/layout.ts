@@ -1,8 +1,8 @@
-import type { DiagramDocument, DiagramEdge, DiagramGroup, DiagramNode, DiagramShape } from './protocol.ts';
 import { centerOf, intersects, roundPoint, type Point, type Rect } from '@adecore/drawing';
 import { placeAcross } from './across.ts';
 import { DUMMY_MARGIN, NODE_MARGIN, bandCode, type Band, type Hop, type Layering, type Unit } from './graph.ts';
 import { orderLayers } from './order.ts';
+import type { DiagramDocument, DiagramEdge, DiagramGroup, DiagramNode, DiagramShape } from './protocol.ts';
 import { routeChannel, type ChannelHop, type ChannelLabel } from './route.ts';
 import { LABEL_LINE, LABEL_SIZE, SUB_LINE, SUB_SIZE, estimateTextWidth, widestLine, wrapText } from './text.ts';
 

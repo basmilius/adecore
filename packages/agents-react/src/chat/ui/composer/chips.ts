@@ -1,8 +1,8 @@
-import { createElement, Fragment, type ComponentType } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
 import { syntaxTree } from '@codemirror/language';
 import { Facet, StateField, type EditorState, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
+import { createElement, Fragment, type ComponentType } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import type { ReferenceIconProps } from '../../../host';
 import type { ReferableKind, ReferenceStep } from '../../chat-references';
 import { chipRanges, type ReferenceToken } from '../../mentions';

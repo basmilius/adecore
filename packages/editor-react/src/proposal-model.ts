@@ -1,5 +1,5 @@
-import { diffLines } from '@adecore/merge';
 import type { EditorPosition, EditorRange } from '@adecore/editor';
+import { diffLines } from '@adecore/merge';
 import { replacedWords } from './word-diff.ts';
 
 /* The one-based lines a range covers; a selection that ends at the start of a line did not take that line. */

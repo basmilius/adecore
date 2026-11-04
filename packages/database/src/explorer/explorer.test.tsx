@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { Connection } from '../client/types.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import { stubClient } from '../testing/stub.ts';
 import { DatabaseExplorer } from './DatabaseExplorer.tsx';
 

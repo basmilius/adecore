@@ -1,16 +1,16 @@
-import { useReviewSettled } from './review-settle';
-import { useEffect, useState, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { getFiletypeFromFileName } from '@pierre/diffs';
 import type { EditorEngine } from '@adecore/editor';
 import { DiffView, type DiffSource } from '@adecore/editor-react';
 import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
+import { getFiletypeFromFileName } from '@pierre/diffs';
+import { useEffect, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useHostCodeMode, useHostCodeThemes } from '../../../host-hooks';
 import { diffTexts, type FileChange } from '../../logic/tools';
 import { useDiffSourceTokens } from '../use-diff-source-tokens';
 import { diffSourceBudget } from './diff-source-budget';
 import { DiffOmitted } from './DiffOmitted';
 import { canRenderEditorDiff, EDITOR_DIFF_LIMITS, EDITOR_DIFF_WORK } from './editor-edit-model';
-import { useHostCodeMode, useHostCodeThemes } from '../../../host-hooks';
+import { useReviewSettled } from './review-settle';
 
 type EngineLoader = () => Promise<EditorEngine>;
 

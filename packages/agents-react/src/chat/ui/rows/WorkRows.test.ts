@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import type { ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
+import { parseHTML } from 'linkedom';
 import { createElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseHTML } from 'linkedom';
-import type { ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { TurnFoldRow, WorkGroupRow, WorkingRow, WorkRow } from './WorkRows';
 

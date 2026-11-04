@@ -1,8 +1,8 @@
-import { useState, type Ref } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Container, Network, Plug, RefreshCw, Terminal, type LucideIcon } from 'lucide-react';
 import { Button, Field, IconButton, Input, Segmented, Select, Switch, useAsyncAction, type SegmentedOption, type SelectItem } from '@adecore/ui';
+import clsx from 'clsx';
+import { Container, Network, Plug, RefreshCw, Terminal, type LucideIcon } from 'lucide-react';
+import { useState, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Connection } from '../client/types.ts';
 import type { DockerContainer, DockerTunnel, MysqlConnectionConfig, MysqlTlsMode, SqliteConnectionConfig, SshTunnel, Engine } from '../protocol/index.ts';
 import {

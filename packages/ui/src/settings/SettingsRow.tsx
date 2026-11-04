@@ -1,6 +1,6 @@
-import { useEffect, useRef, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
+import { useEffect, useRef, type ReactNode, type Ref } from 'react';
 import { Icon } from '../Icon.tsx';
 import { mergeRefs } from '../merge-refs.ts';
 import { useSettingsTarget } from './target.ts';

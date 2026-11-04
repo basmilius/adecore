@@ -1,9 +1,9 @@
-import { createContext, useContext, useId, type MouseEvent, type ReactNode } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { Button, Checkbox, Input, Segmented, Select, Slider, Switch, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { createContext, useContext, useId, type MouseEvent, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { uiChildrenOf, uiNodeLabel, uiOwnLabel, uiWithUnit } from '../node-text';
 import type { UiRendererProps } from '../render-context';
 import { useTruncated } from '../use-truncated';

@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import type { TFunction } from 'i18next';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { Button, ScrollArea, SegmentBar, Tooltip, useMeasuredWidth } from '@adecore/ui';
 import { formatNumber, formatRounded } from '@adecore/ui/format';
+import clsx from 'clsx';
+import type { TFunction } from 'i18next';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useBlockLocal } from '../block-local';
 import {
     UI_CHART_CHARACTER,
@@ -20,9 +20,9 @@ import {
     type UiChartValues
 } from '../chart-data';
 import { uiWithUnit } from '../node-text';
-import { useTruncated } from '../use-truncated';
 import type { UiRenderContext, UiRendererProps } from '../render-context';
 import { UiFallbackPart } from '../UiFallbackPart';
+import { useTruncated } from '../use-truncated';
 
 type ChartKind = UiProps<'Chart'>['kind'];
 

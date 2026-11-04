@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Segmented } from '@adecore/ui';
+import { useState } from 'react';
 
 type Resolution = 'minute' | 'hour' | 'day';
 

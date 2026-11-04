@@ -1,9 +1,9 @@
-import { useTranslation } from 'react-i18next';
+import { Icon, Menu } from '@adecore/ui';
 import { ChevronRight, GitFork } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { useHostChatPlace } from '../../../host-hooks';
 import { useForkIdsAfter } from '../../forks';
 import { ROW_GUTTER } from '../icons';
-import { Icon, Menu } from '@adecore/ui';
-import { useHostChatPlace } from '../../../host-hooks';
 
 const LINE = '-mx-1 mb-0.5 flex h-7 items-center gap-2 rounded-md px-1 text-xs text-text-muted';
 const LINK = `${LINE} hover:bg-surface-hover hover:text-text data-[popup-open]:bg-surface-hover data-[popup-open]:text-text`;

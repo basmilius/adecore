@@ -1,7 +1,7 @@
+import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, test } from 'bun:test';
 import { parseSync, type Program } from 'oxc-parser';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));

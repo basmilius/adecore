@@ -1,7 +1,7 @@
-import { useState, type Ref } from 'react';
 import { Select as BaseSelect } from '@base-ui/react/select';
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
+import { useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import { MENU_LABEL } from './menu/parts.tsx';

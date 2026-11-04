@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Database, Table } from 'lucide-react';
 import { Icon, Tree } from '@adecore/ui';
+import { Database, Table } from 'lucide-react';
+import { useState } from 'react';
 
 export default function TreeDemo() {
     const [expanded, setExpanded] = useState(true);

@@ -1,8 +1,8 @@
-import { useEffect, useState, type ReactNode, type Ref } from 'react';
+import { Banner, Button, EmptyState, Icon, Pill, ScrollArea, Separator, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
 import clsx from 'clsx';
 import { CircleAlert, Copy, KeyRound, Link2 } from 'lucide-react';
+import { useEffect, useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Banner, Button, EmptyState, Icon, Pill, ScrollArea, Separator, Spinner, Tabs, copyText, messageOf } from '@adecore/ui';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { CODE_TEXT } from '../code-text.ts';

@@ -1,6 +1,6 @@
-import type { DrawingColor, DrawingElement, DrawingFont } from './protocol.ts';
 import { drawnBoundsOfElements, type Rect } from './geometry.ts';
 import { pathsOfElement, type ElementPath } from './paths.ts';
+import type { DrawingColor, DrawingElement, DrawingFont } from './protocol.ts';
 import { DEFAULT_FONT_STACKS, LINE_HEIGHT, approximateMeasure, fontOf, linesOf, writingFrameOf, type MeasureLine, type WrittenElement } from './text.ts';
 
 export interface SvgOptions {

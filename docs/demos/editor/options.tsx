@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Switch } from '@adecore/ui';
+import { useEffect, useState } from 'react';
 import { EditorFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useEditor } from '../shared/editor.ts';
 

@@ -1,18 +1,18 @@
-import { useState } from 'react';
+import type { UsageModel, UsageProject, UsageProvider, UsageSummaryResult } from '@adecore/agent-contracts';
+import { USAGE_PROVIDERS, totalTokensOf } from '@adecore/agent-contracts';
+import { EmptyState, Icon, SectionLabel, Segmented, Tooltip } from '@adecore/ui';
 import clsx from 'clsx';
 import { CircleHelp, Folder, Info } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { UsageModel, UsageProject, UsageProvider, UsageSummaryResult } from '@adecore/agent-contracts';
-import { EmptyState, Icon, SectionLabel, Segmented, Tooltip } from '@adecore/ui';
+import { useModelName } from '../agents/model-name';
+import { useHostProjectLook } from '../host-hooks';
 import { useChatScope } from '../scope';
 import type { UsageMetric } from '../state/usage';
-import { USAGE_PROVIDERS, totalTokensOf } from '@adecore/agent-contracts';
 import { ChartLogo } from './ChartLogo';
-import { useModelName } from '../agents/model-name';
 import { formatCount, formatTokens, PROVIDER_COLORS, PROVIDER_LABELS, shortPath, slotLabel } from './format';
 import { useMoney } from './money';
 import { deriveDays } from './summary';
-import { useHostProjectLook } from '../host-hooks';
 
 type Breakdown = 'models' | 'projects' | 'day';
 

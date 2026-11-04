@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Segmented } from '@adecore/ui';
-import { formatTokens } from '@adecore/ui/format';
 import { windowFor, type UsageMetric } from '@adecore/agents-react/state';
 import { useMoney, deriveUsage, labelEveryFor, UsageBreakdown, UsageChart, UsageSummary, UsageTiles } from '@adecore/agents-react/usage';
+import { Segmented } from '@adecore/ui';
+import { formatTokens } from '@adecore/ui/format';
+import { useState } from 'react';
 import { usageSummary } from '../shared/agents-data.ts';
 import { AgentDemo } from '../shared/agents.tsx';
 

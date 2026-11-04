@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type { WakeChat } from '../chat/wake-chat.ts';
-import type { OutboxEntryOf } from '../outbox/outbox.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
+import type { OutboxEntryOf } from '../outbox/outbox.ts';
 import type { MessageWords } from './deliver-notice.ts';
 import type { NoticeStore } from './notice-store.ts';
 

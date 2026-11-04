@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Monitor, Moon, Sun } from 'lucide-react';
 import { Segmented } from '@adecore/ui';
+import { Monitor, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 

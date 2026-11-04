@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Kbd, formatShortcut, isApplePlatform, matchesShortcut, shortcut, shortcutParts } from '@adecore/ui';
+import { useEffect, useState } from 'react';
 
 const SAVE = shortcut('Mod+S');
 

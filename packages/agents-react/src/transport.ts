@@ -1,5 +1,5 @@
-import type { z } from 'zod';
 import type { AGENT_EVENT_SCHEMAS, AGENT_REQUEST_SCHEMAS, AgentEventType, AgentRequestType } from '@adecore/agent-contracts/protocol';
+import type { z } from 'zod';
 
 export type ChatRequestMap = {
     [T in AgentRequestType]: {

@@ -1,6 +1,6 @@
+import type { ChatBookmark } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import { create } from 'zustand';
-import type { ChatBookmark } from '@adecore/agent-contracts';
 import type { ChatHost } from '../host';
 import type { ChatScope } from '../scope';
 import { errorMessage } from '../transport';

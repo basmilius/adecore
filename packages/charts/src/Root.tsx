@@ -1,3 +1,6 @@
+import { useContentSize, useOverlayScrollbars } from '@adecore/ui';
+import { formatNumber, formatRounded } from '@adecore/ui/format';
+import clsx from 'clsx';
 import {
     useContext,
     useEffect,
@@ -12,10 +15,7 @@ import {
     type ReactNode,
     type Ref
 } from 'react';
-import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { useContentSize, useOverlayScrollbars } from '@adecore/ui';
-import { formatNumber, formatRounded } from '@adecore/ui/format';
 import { readValue, warnMissingKey, warnOnce, xOf } from './access.ts';
 import { LABEL_GAP as X_AXIS_GAP } from './axes.tsx';
 import { bandLayout, GROUP_GAP } from './band.ts';

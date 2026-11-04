@@ -1,6 +1,5 @@
-import { ErrorCodes, LspError, StaleResultError, type CodeAction, type Command, type Diagnostic, type Position } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorPosition, EditorRange } from '@adecore/editor';
+import { ErrorCodes, LspError, StaleResultError, type CodeAction, type Command, type Diagnostic, type Position } from '@adecore/lsp';
 import {
     ACTION_GROUPS,
     REFACTOR_GROUPS,
@@ -15,11 +14,12 @@ import {
 } from './code-actions-model.ts';
 import { comparePositions, type Problem } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
+import { messageOf } from './error-message.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import type { PickGroup, PickPreview } from './popups.ts';
 import { Refresher } from './refresher.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
-import { messageOf } from './error-message.ts';
 
 const METHOD = 'textDocument/codeAction';
 const PAUSE_MS = 250;

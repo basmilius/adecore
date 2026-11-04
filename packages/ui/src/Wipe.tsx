@@ -1,8 +1,8 @@
-import { useRef, type KeyboardEvent, type PointerEvent, type ReactNode, type Ref } from 'react';
 import clsx from 'clsx';
 import { ChevronsLeftRight } from 'lucide-react';
-import { Icon } from './Icon.tsx';
+import { useRef, type KeyboardEvent, type PointerEvent, type ReactNode, type Ref } from 'react';
 import { formatPercent } from './format/number.ts';
+import { Icon } from './Icon.tsx';
 import { mergeRefs } from './merge-refs.ts';
 import { splitAt, splitForKey } from './wipe-split.ts';
 

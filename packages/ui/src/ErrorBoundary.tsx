@@ -1,6 +1,6 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react';
 import clsx from 'clsx';
 import { RotateCw, TriangleAlert } from 'lucide-react';
+import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './Button.tsx';
 import { ButtonGroup } from './ButtonGroup.tsx';

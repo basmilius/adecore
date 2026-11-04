@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 /* Something of the app's own under a connection, such as a file that belongs to it. */
 export interface ExplorerItem {

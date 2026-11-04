@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { Heatmap, type HeatmapCell } from '@adecore/charts';
 import { formatClock, formatHour, formatNumber, formatWeekday, useFormatLocale } from '@adecore/ui/format';
+import { useState } from 'react';
 import { eventsPerWeekdayAndHour } from '../shared/heatmap-data.ts';
 
 const counts = eventsPerWeekdayAndHour();

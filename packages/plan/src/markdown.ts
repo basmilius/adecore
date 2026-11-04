@@ -1,5 +1,5 @@
-import type { Plan, PlanItem, PlanStep, PlanStepState } from './protocol.ts';
 import type { PlanDraft, PlanDraftItem, PlanDraftSection, PlanDraftStep, PlanDraftText } from './apply.ts';
+import type { Plan, PlanItem, PlanStep, PlanStepState } from './protocol.ts';
 import { PLAN_STATE_MARKERS } from './text.ts';
 import { refuse, stepState, type PlanRefusal } from './tree.ts';
 

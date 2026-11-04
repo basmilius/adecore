@@ -1,6 +1,6 @@
-import { fileURLToPath } from 'node:url';
-import { describe, expect, test } from 'bun:test';
 import { Glob } from 'bun';
+import { describe, expect, test } from 'bun:test';
+import { fileURLToPath } from 'node:url';
 import type { ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DemoFrame } from './.vitepress/theme/DemoFrame.tsx';

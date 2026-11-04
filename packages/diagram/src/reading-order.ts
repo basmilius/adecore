@@ -1,5 +1,5 @@
-import type { DiagramDocument, DiagramNode } from './protocol.ts';
 import { layersOf } from './layout.ts';
+import type { DiagramDocument, DiagramNode } from './protocol.ts';
 
 function nameOf(node: DiagramNode | undefined, id: string): string {
     return node && node.label.trim() !== '' ? node.label : id;

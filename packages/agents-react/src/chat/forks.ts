@@ -1,7 +1,7 @@
 import type { ChatInfo } from '@adecore/agent-contracts';
-import { forkIdsAfter, forkedTurnIds } from './logic/fork';
 import { useChatScope } from '../scope';
 import { useChats, type ChatStatuses } from '../state/chats';
+import { forkIdsAfter, forkedTurnIds } from './logic/fork';
 
 /* The chats this client holds of one host, which is where the forks it knows of are. */
 function* forkInfosOn(statuses: ChatStatuses, owns: (key: string) => boolean): Generator<ChatInfo> {

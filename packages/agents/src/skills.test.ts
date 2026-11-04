@@ -1,7 +1,7 @@
+import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { mkdtemp, mkdir, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
 import { discoverSkills, mapLimited, parseFrontmatter, pluginSkillRoots, scanSkillRoots, SkillIndex, whileBusy } from './skills.ts';
 
 let home = '';

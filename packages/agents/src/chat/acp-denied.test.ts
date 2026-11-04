@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, expect, test } from 'bun:test';
 import type { AgentKind, ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import type { AgentEvent } from '../events.ts';
 import { createAcpProvider, type AcpProviderSpec } from '../providers/acp-provider.ts';

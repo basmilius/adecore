@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
-import { createPortal } from 'react-dom';
-import { Button } from '@adecore/ui';
 import type { Editor } from '@adecore/editor';
 import { ChangeReview, RowHost } from '@adecore/editor-react';
+import { Button } from '@adecore/ui';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { createPortal } from 'react-dom';
 import { EditorFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useEditor } from '../shared/editor.ts';
 

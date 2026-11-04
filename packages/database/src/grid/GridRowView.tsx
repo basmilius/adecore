@@ -1,10 +1,10 @@
-import { memo, type MouseEvent, type PointerEvent } from 'react';
-import clsx from 'clsx';
 import { Spinner } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { memo, type MouseEvent, type PointerEvent } from 'react';
 import { CODE_TEXT } from '../code-text.ts';
-import { CellEditor, type EditMove } from './CellEditor.tsx';
 import { cellIdOf } from './cell-id.ts';
+import { CellEditor, type EditMove } from './CellEditor.tsx';
 import { columnNotation, cellView, type CellView, type NumberNotation } from './display.ts';
 import type { EnumType } from './enum-type.ts';
 import { EnumPicker } from './EnumPicker.tsx';

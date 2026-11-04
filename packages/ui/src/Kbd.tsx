@@ -1,5 +1,5 @@
-import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
+import type { ReactNode, Ref } from 'react';
 import { isApplePlatform } from './platform.ts';
 import { formatShortcut, shortcutParts, type Shortcut } from './shortcut.ts';
 

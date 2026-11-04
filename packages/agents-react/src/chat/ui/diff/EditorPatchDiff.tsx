@@ -1,8 +1,8 @@
-import { useMemo, type ReactNode } from 'react';
 import type { ChatFileChange } from '@adecore/agent-contracts';
 import type { EditorEngine } from '@adecore/editor';
 import type { DiffSource } from '@adecore/editor-react';
 import { diffDocument, parsePatch } from '@adecore/merge';
+import { useMemo, type ReactNode } from 'react';
 import type { DiffContents } from '../full-diff';
 import { diffSourceBudget, patchSourceBudget } from './diff-source-budget';
 import { DiffOmitted } from './DiffOmitted';

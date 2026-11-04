@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Eye, Link, Paperclip, ShieldCheck } from 'lucide-react';
 import { Icon, Tabs } from '@adecore/ui';
+import { Eye, Link, Paperclip, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
 
 export default function TabsIconsDemo() {
     const [view, setView] = useState('preview');

@@ -1,9 +1,9 @@
-import { useRef, type MouseEvent, type PointerEvent } from 'react';
-import clsx from 'clsx';
-import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, Pin, PinOff } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { ColumnResizeHandle, ContextMenu, copyText, Icon, IconButton, isApplePlatform, isModHeld, Menu, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, Copy, Eye, EyeOff, Pin, PinOff } from 'lucide-react';
+import { useRef, type MouseEvent, type PointerEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CODE_TEXT } from '../code-text.ts';
 import { keyLabelOf } from '../column-keys.ts';
 import { KeyIcon } from '../KeyIcon.tsx';

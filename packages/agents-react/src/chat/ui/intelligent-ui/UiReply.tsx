@@ -1,3 +1,15 @@
+import type { ChatUiAnswer, ChatUiQueryState } from '@adecore/agent-contracts';
+import {
+    evaluateUiBlock,
+    uiInputValues,
+    isUiComponent,
+    UI_CATALOG_VERSION,
+    UiState,
+    type UiBlock,
+    type UiNode,
+    type UiViewNode
+} from '@adecore/intelligent-ui';
+import { ErrorBoundary, Tooltip } from '@adecore/ui';
 import {
     Component,
     createContext,
@@ -12,34 +24,22 @@ import {
     type ComponentProps,
     type ReactNode
 } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
 import { useTranslation } from 'react-i18next';
-import {
-    evaluateUiBlock,
-    uiInputValues,
-    isUiComponent,
-    UI_CATALOG_VERSION,
-    UiState,
-    type UiBlock,
-    type UiNode,
-    type UiViewNode
-} from '@adecore/intelligent-ui';
-import { ErrorBoundary, Tooltip } from '@adecore/ui';
-import type { ChatUiAnswer, ChatUiQueryState } from '@adecore/agent-contracts';
+import ReactMarkdown, { type Components } from 'react-markdown';
 import { useChatHost } from '../../../host';
-import { UiReplyNavigationContext } from '../reply-context';
 import { ReplyMarkdown } from '../Markdown';
 import { rehypeFadeWords } from '../rehype-fade';
+import { UiReplyNavigationContext } from '../reply-context';
+import { UiPageMemory } from './block-local';
+import { uiChildrenOf, revealUiSource, uiLiveChoiceReason, uiUrlDomain } from './node-text';
 import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer } from './render-context';
-import { UiPageMemory } from './block-local';
+import { UiSourceCitation } from './renderers/content';
+import { uiReplyParts } from './reply-parts';
 import { UiBlockFrame } from './UiBlockFrame';
 import { UiFallbackPart } from './UiFallbackPart';
 import { useUiLinks } from './use-ui-links';
 import { useUiQueries, useUiLiveValues } from './use-ui-queries';
-import { UiSourceCitation } from './renderers/content';
-import { uiChildrenOf, revealUiSource, uiLiveChoiceReason, uiUrlDomain } from './node-text';
-import { uiReplyParts } from './reply-parts';
 
 const localStates = new UiPageMemory<UiState>(64);
 

@@ -1,6 +1,6 @@
-import i18next from 'i18next';
 import type { ChatInfo } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
+import i18next from 'i18next';
 
 export interface LimitView {
     /* The state in a word or two with its time, for a pill in a header. */

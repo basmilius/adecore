@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Tabs } from '@adecore/ui';
+import { useState } from 'react';
 
 const VIEWS = [
     { id: 'preview', label: 'Preview', count: 0 },

@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { ReviewDiff } from './ReviewDiff';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ReviewEntry } from './review-plan';
+import { ReviewDiff } from './ReviewDiff';
 
 export function ApprovalReview({ entries, maxHeight }: { entries: readonly ReviewEntry[]; maxHeight: number }) {
     const { t } = useTranslation('agent-prompts');

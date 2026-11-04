@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+import { UIProvider } from '@adecore/ui';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { UIProvider } from '@adecore/ui';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import type { DatabaseStorage } from '../actions.ts';
 import type { Connection } from '../client/types.ts';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import { stubClient, stubSession } from '../testing/stub.ts';
 import { DatabaseWorkbench } from './DatabaseWorkbench.tsx';
 import { emptyState, openConsole, openDesigner, openTable, serializeState, STORAGE_KEY } from './tabs.ts';

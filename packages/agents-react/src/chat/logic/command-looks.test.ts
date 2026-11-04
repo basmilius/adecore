@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { CommandLook } from '../../host';
-import { EMBEDDED_CODE_LIMIT } from './embedded-code';
 import { matchCommandLook } from './command-looks';
+import { EMBEDDED_CODE_LIMIT } from './embedded-code';
 
 const Mark = () => null;
 

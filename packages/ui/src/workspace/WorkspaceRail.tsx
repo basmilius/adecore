@@ -1,6 +1,6 @@
+import { useRender } from '@base-ui/react/use-render';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { useRender } from '@base-ui/react/use-render';
 
 export type WorkspaceRailProps = useRender.ComponentProps<'nav'>;
 

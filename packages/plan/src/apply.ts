@@ -1,3 +1,5 @@
+import { z } from 'zod';
+import { canApply } from './permissions.ts';
 import {
     PlanChecksSchema,
     PlanItemIdSchema,
@@ -19,8 +21,6 @@ import {
     type PlanStepState,
     type PlanText
 } from './protocol.ts';
-import { z } from 'zod';
-import { canApply } from './permissions.ts';
 import { allItems, allSteps, effectiveChecks, locateItem, missingItem, refuse, structureProblem, type PlanRefusal } from './tree.ts';
 
 export interface PlanApplyOptions {

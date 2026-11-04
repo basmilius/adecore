@@ -1,13 +1,13 @@
 import './test-setup.ts';
 import { afterEach, expect, test } from 'bun:test';
-import { mountEditor } from '@adecore/editor/testing';
 import { FakeEditorEngine } from '@adecore/editor/fake';
+import { mountEditor } from '@adecore/editor/testing';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
-import { parseSnippet, tabOrder } from './snippet.ts';
-import { SnippetFeature } from './snippet-session.ts';
 import { signatureViewOf } from './signature-model.ts';
+import { SnippetFeature } from './snippet-session.ts';
+import { parseSnippet, tabOrder } from './snippet.ts';
+import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 const cleanup: (() => void)[] = [];
 

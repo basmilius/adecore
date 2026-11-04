@@ -1,5 +1,5 @@
-import { TriangleAlert } from 'lucide-react';
 import { Banner, Button } from '@adecore/ui';
+import { TriangleAlert } from 'lucide-react';
 
 export default function BannerInlineDemo() {
     return (

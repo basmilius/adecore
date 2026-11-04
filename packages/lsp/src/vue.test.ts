@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { bridgeVueTypeScript, isVueExpression, vueServerOrder } from './vue.ts';
 import { flush, sessionWith } from './test-transport.ts';
+import { bridgeVueTypeScript, isVueExpression, vueServerOrder } from './vue.ts';
 
 describe('Vue bridge', () => {
     it('forwards Vue 3.3 positional notification tuples and unwraps the tsserver body', async () => {

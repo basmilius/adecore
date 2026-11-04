@@ -1,5 +1,5 @@
-import { useEffect, useState, type MouseEvent } from 'react';
 import { Tooltip } from '@adecore/ui';
+import { useEffect, useState, type MouseEvent } from 'react';
 import { BaselineStatus } from './BaselineStatus.tsx';
 import { hoverSectionsOf, markdownParts, type DocTag, type HoverSection, type HoverText } from './hover-content.ts';
 import { Markdown } from './Markdown.tsx';

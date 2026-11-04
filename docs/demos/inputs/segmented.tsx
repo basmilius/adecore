@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Columns2, LayoutGrid, List } from 'lucide-react';
 import { Segmented } from '@adecore/ui';
+import { Columns2, LayoutGrid, List } from 'lucide-react';
+import { useState } from 'react';
 
 type View = 'list' | 'grid' | 'split';
 

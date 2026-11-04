@@ -1,20 +1,20 @@
-import { useState } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { ChevronRight, Square, TriangleAlert, Workflow } from 'lucide-react';
 import type { AgentKind, ChatToolItem, ChatWorkflow } from '@adecore/agent-contracts';
 import { Icon, IconButton } from '@adecore/ui';
-import { workflowCounts, workflowDescription, workflowPhases, type WorkflowCounts, type WorkflowPhaseView } from '../../logic/workflow';
+import clsx from 'clsx';
+import { ChevronRight, Square, TriangleAlert, Workflow } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useChatHost } from '../../../host';
+import { useChatScope } from '../../../scope';
+import { useChats } from '../../../state/chats';
+import { useChatActions } from '../../actions';
 import { hasToolBody } from '../../logic/tools';
+import { workflowCounts, workflowDescription, workflowPhases, type WorkflowCounts, type WorkflowPhaseView } from '../../logic/workflow';
 import { useSubagentSupport } from '../../subagent-support';
 import type { SubagentStep } from '../../subagent-view';
 import { ROW_GUTTER } from '../icons';
 import { WorkflowAgentLine } from '../WorkflowAgentLine';
 import { ToolBody } from './WorkRows';
-import { useChatScope } from '../../../scope';
-import { useChats } from '../../../state/chats';
-import { useChatActions } from '../../actions';
-import { useChatHost } from '../../../host';
 
 function PhaseBlock({ phase, provider, onOpen }: { phase: WorkflowPhaseView; provider: AgentKind | undefined; onOpen?(step: SubagentStep): void }) {
     const { t } = useTranslation('agent-chat');

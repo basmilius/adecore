@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
+import { fakeFormatSource } from '../testing/fake-source.ts';
 import {
     formatAge,
     formatClock,
@@ -13,9 +14,8 @@ import {
     formatWeekdayDay,
     isSameDay
 } from './datetime.ts';
-import { FORMAT_LANGUAGE } from './regions.ts';
-import { fakeFormatSource } from '../testing/fake-source.ts';
 import { setFormatSource, type FormatSource } from './locale.ts';
+import { FORMAT_LANGUAGE } from './regions.ts';
 
 const source = fakeFormatSource();
 let previous: FormatSource;

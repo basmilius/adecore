@@ -1,8 +1,8 @@
+import { Glob } from 'bun';
+import { describe, expect, test } from 'bun:test';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, posix } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Glob } from 'bun';
-import { describe, expect, test } from 'bun:test';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(HERE, '..');

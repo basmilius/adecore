@@ -1,13 +1,13 @@
 import type { EditorPosition, EditorRange } from '@adecore/editor';
 import type { CompletionItem } from '@adecore/lsp';
-import type { LocalCompletionItem } from './completion.ts';
 import { identifierPrefix, isIdentifierCharacter } from './completion-model.ts';
+import type { LocalCompletionItem } from './completion.ts';
 import { comparePositions } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { textBeforeOf } from './line-text.ts';
-import { isShortcut } from './shortcut-keys.ts';
 import { PostfixFeature } from './postfix.ts';
+import { isShortcut } from './shortcut-keys.ts';
 import { bodyWithIndentUnit, dedentLines, indentUnitOf, insertSnippet, type SnippetPlacement } from './snippet-insert.ts';
 import { escapeSnippetText } from './snippet.ts';
 import { SNIPPET_KIND, sortAfterServer, templateApplies, templateContextAt, type TemplateContext } from './template-context.ts';

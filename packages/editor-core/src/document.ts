@@ -1,32 +1,36 @@
-import { scriptSource } from './script-source.ts';
-import { CloserTracker } from './closer-tracker.ts';
-import { planBlockComment, planLineComments } from './comments.ts';
-import { planEnter } from './enter.ts';
-import { planCodeBlock } from './code-blocks.ts';
-import { planCompleteStatement } from './complete-statement.ts';
-import { planMoveStatement, statementMoveMode } from './statement-move.ts';
-import { planHippie, type HippieCycle, type HippieOptions } from './hippie.ts';
-import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
-import { mapOffset, offsetMapper } from './offsets.ts';
-import { planPaste } from './paste.ts';
-import type { EnterOptions, EnterPlan } from './enter.ts';
-import type { EditPlan, EditSource } from './edit-source.ts';
-import { isPlainText, vueRegionAt } from './languages.ts';
 import { blockFolds } from './block-folds.ts';
-import { applyFoldHints, markFileHeader } from './fold-roles.ts';
-import { lexicalFolds } from './lexical-folds.ts';
-import { rangeOf, whitespaceOf } from './line-text.ts';
-import { isQuote, replacesComparison, surround, swapQuotes, templateLiteralEdits, templateString } from './typing-handlers.ts';
+import { BracketTracker } from './bracket-tracker.ts';
 import { scanBrackets } from './brackets.ts';
 import type { BracketIndex, BracketMatch } from './brackets.ts';
-import { BracketTracker } from './bracket-tracker.ts';
+import { CloserTracker } from './closer-tracker.ts';
+import { planCodeBlock } from './code-blocks.ts';
+import { planBlockComment, planLineComments } from './comments.ts';
+import { planCompleteStatement } from './complete-statement.ts';
+import type { EditPlan, EditSource } from './edit-source.ts';
+import { planEnter } from './enter.ts';
+import type { EnterOptions, EnterPlan } from './enter.ts';
+import { applyFoldHints, markFileHeader } from './fold-roles.ts';
+import { planHippie, type HippieCycle, type HippieOptions } from './hippie.ts';
+import { isPlainText, vueRegionAt } from './languages.ts';
+import { lexicalFolds } from './lexical-folds.ts';
 import { hasSmartSemicolon, isPhp } from './lexical.ts';
+import { planAutoIndent, planJoinLines, planToggleCase, properIndent, spacingBetween } from './line-commands.ts';
+import { type LineOrder, planConvertIndents, planLineOrder } from './line-order.ts';
+import { rangeOf, whitespaceOf } from './line-text.ts';
+import { mapOffset, offsetMapper } from './offsets.ts';
+import { planPaste } from './paste.ts';
+import { postfixOperands, type PostfixOperand } from './postfix-operands.ts';
 import { clampInteger, TextRope, ROPE_CHUNK_SIZE } from './rope.ts';
 import type { DocumentLine } from './rope.ts';
+import { scriptSource } from './script-source.ts';
 import { findMatches, findMatchFrom, replacementText, splitsSurrogate } from './search.ts';
 import type { FindMatch, FindNextOptions, FindOptions } from './search.ts';
+import { planMoveStatement, statementMoveMode } from './statement-move.ts';
 import { dedupeFoldingRanges, deriveFoldingRanges, indentationColumn, scanStructure, tabWidth } from './structure.ts';
 import type { FoldingOptions, FoldingRange, StructureRange } from './structure.ts';
+import { surroundShape, type SurroundShape } from './surround-shape.ts';
+import { placeAt, type TextPlace } from './text-places.ts';
+import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
 import type {
     CommandOptions,
     ContentEdit,
@@ -40,13 +44,9 @@ import type {
     TextEdit
 } from './types.ts';
 import { TypingContexts } from './typing-context.ts';
-import { placeAt, type TextPlace } from './text-places.ts';
-import { postfixOperands, type PostfixOperand } from './postfix-operands.ts';
-import { surroundShape, type SurroundShape } from './surround-shape.ts';
-import { unwrapTargets, type UnwrapTarget } from './unwrap.ts';
 import type { TypingContext } from './typing-context.ts';
-import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
-import { type LineOrder, planConvertIndents, planLineOrder } from './line-order.ts';
+import { isQuote, replacesComparison, surround, swapQuotes, templateLiteralEdits, templateString } from './typing-handlers.ts';
+import { unwrapTargets, type UnwrapTarget } from './unwrap.ts';
 import { ModifiedStretches, planWhitespaceCleanup, type WhitespaceCleanupOptions } from './whitespace-cleanup.ts';
 import { isHumpBoundary, isWordBoundary } from './words.ts';
 

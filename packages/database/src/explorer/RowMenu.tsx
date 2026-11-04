@@ -1,4 +1,4 @@
-import { Fragment, type ReactNode } from 'react';
+import { ContextMenu, copyText, Icon } from '@adecore/ui';
 import {
     Copy,
     Eraser,
@@ -14,8 +14,8 @@ import {
     Unplug,
     type LucideIcon
 } from 'lucide-react';
+import { Fragment, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, copyText, Icon } from '@adecore/ui';
 import type { DatabaseAction } from '../actions.ts';
 import { useDatabaseAction, useDatabaseClient } from '../client-context.ts';
 import type { Connection, TableRef } from '../client/types.ts';

@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import { activeWorkflows, type ChatItem, type ChatToolItem, type ChatWorkflow } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 import { workflowCounts, workflowPhases } from './logic/workflow';
 
 /* A Workflow call that reported what it runs, which is every one `activeWorkflows` keeps. */

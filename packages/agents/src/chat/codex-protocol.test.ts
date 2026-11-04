@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { codexProvider } from '../providers/codex-provider.ts';
 import type { BackendEvent } from './backend.ts';
 import { parseGoalCommand } from './codex-backend.ts';
 import { codexGoal, CodexProtocol, unwrapCommand } from './codex-protocol.ts';
@@ -6,9 +7,8 @@ import nativeApprovalCapture from './fixtures/codex-0.159.2-native-approval.json
 import nativeFileApprovalCapture from './fixtures/codex-0.159.2-native-file-approval.json';
 import nativeInteractedCapture from './fixtures/codex-0.159.2-native-interacted.json';
 import usageWindowsCapture from './fixtures/codex-0.159.2-usage-windows.json';
-import { ChatThread } from './thread.ts';
 import { ThreadProjector } from './projector.ts';
-import { codexProvider } from '../providers/codex-provider.ts';
+import { ChatThread } from './thread.ts';
 
 const ids = { threadId: 't1', turnId: 'ct1' };
 

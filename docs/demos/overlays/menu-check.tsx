@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Button, ColorSwatch, Menu } from '@adecore/ui';
+import { useState } from 'react';
 
 const LAYOUTS = ['Columns', 'Rows', 'Grid'];
 

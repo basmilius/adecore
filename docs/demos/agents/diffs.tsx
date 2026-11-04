@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Segmented } from '@adecore/ui';
 import type { ChatFileChange } from '@adecore/agent-contracts';
 import { DiffPool, EditDiff, UnifiedDiff } from '@adecore/agents-react/chat/ui';
+import { Segmented } from '@adecore/ui';
 import DiffWorker from '@pierre/diffs/worker/worker.js?worker';
+import { useState } from 'react';
 
 const PATCH: ChatFileChange = {
     path: 'src/station.ts',

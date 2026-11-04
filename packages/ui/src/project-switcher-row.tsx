@@ -1,7 +1,7 @@
-import type { MouseEvent } from 'react';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { MoreHorizontal } from 'lucide-react';
+import type { MouseEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import * as Menu from './menu/index.parts.ts';
 import type { ProjectSwitcherItem } from './ProjectSwitcher.tsx';
 import { Tooltip } from './Tooltip.tsx';

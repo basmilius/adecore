@@ -1,6 +1,6 @@
-import { useRef, useState } from 'react';
-import { Button } from '@adecore/ui';
 import { ComposerInput, type ComposerInputHandle } from '@adecore/agents-react/chat/ui';
+import { Button } from '@adecore/ui';
+import { useRef, useState } from 'react';
 
 export default function ComposerInputDemo() {
     const [text, setText] = useState('');

@@ -1,12 +1,12 @@
 import { afterEach, expect, jest, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { ChatCore } from './chat-core.ts';
-import { ChatStore } from './chat-store.ts';
-import { AttachmentStore } from './attachment-store.ts';
+import { join } from 'node:path';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { AttachmentStore } from './attachment-store.ts';
+import { ChatCore } from './chat-core.ts';
+import { ChatStore } from './chat-store.ts';
 
 const providers = new ProviderRegistry({
     detect: async () => ({ installed: true, version: 'test' }),

@@ -1,6 +1,6 @@
-import type { TFunction } from 'i18next';
 import { parseUiEventTime, type UiComponentName, type UiProps, type UiViewNode } from '@adecore/intelligent-ui';
 import { formatClock, formatDateTime, formatDay, formatDayClock, formatDayClockWithYear, formatDayWithYear } from '@adecore/ui/format';
+import type { TFunction } from 'i18next';
 import type { UiLiveStatus } from './render-context';
 
 /* The text a node holds, every `$text` below it joined as written, such as the code of a CodeBlock. */

@@ -1,5 +1,5 @@
-import type { ComponentProps, CSSProperties } from 'react';
 import clsx from 'clsx';
+import type { ComponentProps, CSSProperties } from 'react';
 
 const DOTS = [0, 1, 2];
 

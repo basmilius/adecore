@@ -1,7 +1,7 @@
 import { expect, spyOn, test } from 'bun:test';
+import { resolveTheme } from '@pierre/diffs';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { resolveTheme } from '@pierre/diffs';
 import { ChatHostProvider, type ChatHost } from '../../host';
 import { useDiffTheme } from './diff-theme';
 

@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import type { EditorMarkColor, EditorRect } from '@adecore/editor';
+import type { ReactNode } from 'react';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
 
 export interface AttributionCardProps {

@@ -1,7 +1,3 @@
-import { createHolder } from './holder.ts';
-import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 import {
     DEFAULT_SMART_KEYS,
     DEFAULT_TODO_WORDS,
@@ -13,10 +9,14 @@ import {
     type EditorSmartKeys
 } from '@adecore/editor';
 import { useOverlayScrollbars } from '@adecore/ui';
+import type { TFunction } from 'i18next';
+import { useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { EditorLanguage, type EditorLanguageOptions } from './editor-language.ts';
+import { createHolder } from './holder.ts';
 import { LanguagePopups } from './LanguagePopups.tsx';
-import type { ProjectLanguage } from './project-language.ts';
 import type { HoverView } from './popups.ts';
+import type { ProjectLanguage } from './project-language.ts';
 import type { Timers } from './timers.ts';
 
 export interface EditorViewProps {

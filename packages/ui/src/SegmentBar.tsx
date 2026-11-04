@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type Ref } from 'react';
 import clsx from 'clsx';
+import { useEffect, useRef, useState, type Ref } from 'react';
 import { mergeRefs } from './merge-refs.ts';
 import { Tooltip } from './Tooltip.tsx';
 import { useMeasuredWidth } from './useMeasuredWidth.ts';

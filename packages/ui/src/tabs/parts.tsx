@@ -1,3 +1,7 @@
+import { Tabs as BaseTabs } from '@base-ui/react/tabs';
+import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { ChevronDown, X } from 'lucide-react';
 import {
     Children,
     createContext,
@@ -11,11 +15,7 @@ import {
     type ReactElement,
     type ReactNode
 } from 'react';
-import clsx from 'clsx';
-import { ChevronDown, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Tabs as BaseTabs } from '@base-ui/react/tabs';
-import { useRender } from '@base-ui/react/use-render';
 import { withClass } from '../class-name.ts';
 import { formatNumber } from '../format/number.ts';
 import { Icon } from '../Icon.tsx';

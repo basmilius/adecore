@@ -1,5 +1,5 @@
-import { existsSync } from 'node:fs';
 import { describe, expect, test } from 'bun:test';
+import { existsSync } from 'node:fs';
 import type { AcpSessionInfo } from '../../chat/acp-protocol.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../../testing/fake-acp.ts';
 import { inProcess, type FakeCli } from '../../testing/fake-cli.ts';

@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { DocumentModel } from './document.ts';
-import { TextRope } from './rope.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
+import { TextRope } from './rope.ts';
 import type { ContentEdit, TextEdit } from './types.ts';
 
 function sequential(source: string, edits: readonly TextEdit[]): string {

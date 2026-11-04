@@ -1,12 +1,12 @@
+import { IconButton, ScrollArea } from '@adecore/ui';
+import { Code, Workflow } from 'lucide-react';
 import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Code, Workflow } from 'lucide-react';
-import { IconButton, ScrollArea } from '@adecore/ui';
-import { CodeBlock } from './CodeBlock';
+import { useHostCodeMode } from '../../host-hooks';
 import { CodeStreamingContext } from './code-streaming';
+import { CodeBlock } from './CodeBlock';
 import { DIAGRAM_TOKENS, GROUND_TOKEN, renderOptions, svgDataUrl, themedSvg, type DiagramFont } from './mermaid';
 import { watchTheme } from './theme-watch';
-import { useHostCodeMode } from '../../host-hooks';
 
 interface LaidOut {
     svg: string;

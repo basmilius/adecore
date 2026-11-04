@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { platformServiceManager, serviceDefinition, type PlatformServiceOptions } from './platform.js';
 import type { ServiceSpec } from './definitions.js';
+import { platformServiceManager, serviceDefinition, type PlatformServiceOptions } from './platform.js';
 
 const options: PlatformServiceOptions = {
     launchd: {

@@ -1,5 +1,5 @@
-import { expect, test } from 'bun:test';
 import { Glob } from 'bun';
+import { expect, test } from 'bun:test';
 import { fileURLToPath } from 'node:url';
 
 const SRC = fileURLToPath(new URL('../../../../', import.meta.url));

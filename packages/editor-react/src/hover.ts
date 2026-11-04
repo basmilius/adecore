@@ -1,11 +1,11 @@
 import type { EditorHover, EditorPosition, EditorRange } from '@adecore/editor';
-import { KEY_PRIORITY } from './key-priority.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { rangeHolds, type Problem } from './diagnostics-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import { hoverTextOf, isEmptyHover, locationsOf, type HoverText } from './hover-content.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { lineTextOf } from './line-text.ts';
-import { wordRangeAt } from './rename-model.ts';
 import type { HoverInfo } from './popups.ts';
+import { wordRangeAt } from './rename-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
 

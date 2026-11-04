@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { diffLines } from './diff.ts';
 import { splitBlocks } from './blocks.ts';
+import { diffLines } from './diff.ts';
 import { draftOf, wandLines } from './resolve.ts';
 import { joinLines, shapeOf, splitLines } from './text.ts';
 

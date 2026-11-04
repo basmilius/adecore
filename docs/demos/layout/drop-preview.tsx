@@ -1,5 +1,5 @@
-import { useRef, useState, type PointerEvent } from 'react';
 import { DropPreview, rectDropPreview, tabDropPreview, tabGapAt, type DropPreviewShape } from '@adecore/ui';
+import { useRef, useState, type PointerEvent } from 'react';
 
 const BAR_HEIGHT = 36;
 const TAB_WIDTH = 96;

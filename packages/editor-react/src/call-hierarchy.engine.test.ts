@@ -4,9 +4,9 @@ import { mountEditor, type MountedEditor } from '@adecore/editor/testing';
 import type { CallHierarchyIncomingCall, CallHierarchyItem } from '@adecore/lsp';
 import { CALL_LEVEL_LIMIT } from './call-hierarchy-model.ts';
 import { EditorLanguage } from './editor-language.ts';
+import type { HoverView, SignatureView } from './popups.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';
-import type { HoverView, SignatureView } from './popups.ts';
 
 const uri = 'file:///work/src/run.ts';
 const other = 'file:///work/src/other.ts';

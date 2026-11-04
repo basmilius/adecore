@@ -1,7 +1,7 @@
-import type { Ref } from 'react';
-import { TriangleAlert } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { PromptDialog, ScrollArea } from '@adecore/ui';
+import { TriangleAlert } from 'lucide-react';
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DestructiveStatement } from './destructive.ts';
 
 export interface DestructiveDialogProps {

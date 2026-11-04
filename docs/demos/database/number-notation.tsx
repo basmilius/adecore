@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import { Segmented, type SegmentedOption } from '@adecore/ui';
 import { DatabaseProvider, TableView, type NumberNotation } from '@adecore/database';
+import { Segmented, type SegmentedOption } from '@adecore/ui';
+import { useEffect, useState } from 'react';
 import { PreferencesBar } from '../shared/preferences-bar.tsx';
 import { createShopClient, SHOP } from '../shared/shop.ts';
 

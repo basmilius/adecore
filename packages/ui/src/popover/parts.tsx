@@ -1,6 +1,6 @@
-import { useState, type ComponentProps } from 'react';
 import { Popover as BasePopover } from '@base-ui/react/popover';
 import { PreviewCard as BasePreviewCard } from '@base-ui/react/preview-card';
+import { useState, type ComponentProps } from 'react';
 import { withClass } from '../class-name.ts';
 import { mergeRefs } from '../merge-refs.ts';
 import { splitPlacement, type PlacementKey } from '../placement.ts';

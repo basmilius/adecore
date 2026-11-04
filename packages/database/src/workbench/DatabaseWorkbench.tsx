@@ -1,7 +1,3 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
-import clsx from 'clsx';
-import { PencilRuler, Settings2, SquareTerminal, Table, TableProperties, type LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import {
     Button,
     CloseButton,
@@ -19,12 +15,16 @@ import {
     useColumnResize
 } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { DatabaseProvider } from '../DatabaseProvider.tsx';
+import clsx from 'clsx';
+import { PencilRuler, Settings2, SquareTerminal, Table, TableProperties, type LucideIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DatabaseAction, ExplorerSelection } from '../actions.ts';
 import { useDatabaseAction, useDatabaseStorage } from '../client-context.ts';
 import type { Connection } from '../client/types.ts';
 import { ConnectionManager } from '../connections/ConnectionManager.tsx';
 import { QueryConsole } from '../console/QueryConsole.tsx';
+import { DatabaseProvider } from '../DatabaseProvider.tsx';
 import { DatabaseExplorer } from '../explorer/DatabaseExplorer.tsx';
 import { useStableCallback } from '../use-stable-callback.ts';
 import { DesignerTab } from './DesignerTab.tsx';

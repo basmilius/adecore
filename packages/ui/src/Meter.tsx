@@ -1,5 +1,5 @@
-import type { Ref } from 'react';
 import clsx from 'clsx';
+import type { Ref } from 'react';
 
 export interface MeterProps {
     /* In the unit of `min` and `max`, held to them. Null draws an empty track, for a level not measured yet. */

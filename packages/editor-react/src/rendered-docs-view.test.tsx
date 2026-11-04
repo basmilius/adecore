@@ -1,9 +1,9 @@
 import './test-setup.ts';
 import { expect, spyOn, test } from 'bun:test';
-import { act, createElement } from 'react';
-import { createRoot } from 'react-dom/client';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createPage } from '@adecore/editor/testing';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
 import { EditorLanguage } from './editor-language.ts';
 import { LanguagePopups } from './LanguagePopups.tsx';
 import * as markdown from './Markdown.tsx';

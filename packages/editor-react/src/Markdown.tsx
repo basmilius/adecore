@@ -1,7 +1,7 @@
-import ReactMarkdown, { type Components } from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
 import { ScrollArea } from '@adecore/ui';
+import ReactMarkdown, { type Components } from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
+import remarkGfm from 'remark-gfm';
 
 /* A code block wider than its card scrolls on its own. */
 const CODE_BLOCKS: Components = {

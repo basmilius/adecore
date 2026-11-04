@@ -2,12 +2,12 @@ import './test-setup.ts';
 import { afterEach, expect, test } from 'bun:test';
 import { mountEditor } from '@adecore/editor/testing';
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
-import { SnippetFeature } from './snippet-session.ts';
-import { parseSnippet, tabOrder } from './snippet.ts';
-import { ProjectLanguage } from './project-language.ts';
 import { EditorLanguage } from './editor-language.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { ProjectLanguage } from './project-language.ts';
+import { SnippetFeature } from './snippet-session.ts';
 import type { SnippetTransformInput } from './snippet-transform-protocol.ts';
+import { parseSnippet, tabOrder } from './snippet.ts';
+import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 const cleanup: (() => void)[] = [];
 

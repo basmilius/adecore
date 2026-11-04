@@ -1,7 +1,5 @@
 import { ErrorCodes, LspError, StaleResultError } from './connection.ts';
 import { minimalChange } from './edits.ts';
-import type { LspSession } from './session.ts';
-import { TextMirror } from './text-mirror.ts';
 import type {
     CallHierarchyIncomingCall,
     CallHierarchyItem,
@@ -48,6 +46,8 @@ import type {
     TypeHierarchyItem,
     WorkspaceEdit
 } from './protocol.ts';
+import type { LspSession } from './session.ts';
+import { TextMirror } from './text-mirror.ts';
 
 /* The delay of the VS Code language client for servers with full sync. */
 const FULL_SYNC_DELAY_MS = 200;

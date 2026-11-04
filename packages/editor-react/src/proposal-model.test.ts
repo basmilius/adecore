@@ -1,5 +1,6 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
+import { endOfInsertion } from './diagnostics-model.ts';
 import {
     diffSegments,
     emphasisOf,
@@ -12,7 +13,6 @@ import {
     replaceRange,
     textInRange
 } from './proposal-model.ts';
-import { endOfInsertion } from './diagnostics-model.ts';
 
 const at = (line: number, character: number) => ({ line, character });
 

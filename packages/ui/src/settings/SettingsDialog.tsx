@@ -1,17 +1,17 @@
-import { useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Tabs } from '@base-ui/react/tabs';
+import clsx from 'clsx';
 import { Search, X, type LucideIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type ComponentProps, type ComponentType, type ReactNode, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CloseButton } from '../CloseButton.tsx';
 import { DialogDescription, DialogPopup, DialogRoot, DialogTitle } from '../dialog/parts.tsx';
 import { ErrorBoundary } from '../ErrorBoundary.tsx';
 import { Icon } from '../Icon.tsx';
 import { IconButton } from '../IconButton.tsx';
-import { LazyBoundary } from '../LazyBoundary.tsx';
 import { Input } from '../Input.tsx';
-import { Select } from '../Select.tsx';
+import { LazyBoundary } from '../LazyBoundary.tsx';
 import { ScrollArea } from '../ScrollArea.tsx';
+import { Select } from '../Select.tsx';
 import { SettingsTargetContext } from './target.ts';
 
 /* A pane that is not split scrolls as one column: the panel's own props land on the viewport, which stays the tab panel. */

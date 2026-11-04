@@ -1,10 +1,10 @@
+import { Button, Checkbox, EmptyState, Icon, IconButton, Input } from '@adecore/ui';
 import clsx from 'clsx';
 import { Plus, Trash2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button, Checkbox, EmptyState, Icon, IconButton, Input } from '@adecore/ui';
+import { addIndex, patchIndex, removeIndex, toggleIndexColumn } from './edit.ts';
 import type { EditorProps } from './editor-props.ts';
 import { NamePicker } from './NamePicker.tsx';
-import { addIndex, patchIndex, removeIndex, toggleIndexColumn } from './edit.ts';
 
 /* The indexes of the table other than its primary key, each over columns picked from the draft. */
 export function IndexesEditor({ draft, disabled, onChange, className, ref }: EditorProps) {

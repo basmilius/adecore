@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import { ContextMenu } from '@adecore/ui';
+import { FileCode } from 'lucide-react';
 import type { DatabaseAction, ExplorerSelection } from '../actions.ts';
 import type { Connection, SchemaChange } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
-import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import {
     byText,
     clientOver,
@@ -21,9 +22,8 @@ import {
     type,
     waitFor
 } from '../testing/dom/harness.tsx';
+import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import { fakeDatabaseTransport } from '../testing/index.ts';
-import { FileCode } from 'lucide-react';
-import { ContextMenu } from '@adecore/ui';
 import { DatabaseExplorer } from './DatabaseExplorer.tsx';
 import type { ExplorerItem } from './folders.ts';
 

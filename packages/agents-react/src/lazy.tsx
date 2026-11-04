@@ -1,5 +1,5 @@
-import { lazy, type ComponentProps, type ComponentType } from 'react';
 import { LoadedComponent } from '@adecore/ui';
+import { lazy, type ComponentProps, type ComponentType } from 'react';
 
 type Loader = () => Promise<unknown>;
 

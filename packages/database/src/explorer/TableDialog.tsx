@@ -1,8 +1,8 @@
-import { useTranslation } from 'react-i18next';
 import { PromptDialog } from '@adecore/ui';
-import { dialectOf } from '../ddl/index.ts';
+import { useTranslation } from 'react-i18next';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection, TableRef } from '../client/types.ts';
+import { dialectOf } from '../ddl/index.ts';
 import type { TableKind } from '../protocol/index.ts';
 import { statementOf, type TableChange } from './table-statements.ts';
 

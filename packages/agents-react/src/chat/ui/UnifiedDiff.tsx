@@ -1,13 +1,13 @@
 import { LazyBoundary } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
+import { useChatHost } from '../../host';
 import { lazyNamed } from '../../lazy';
+import type { UnifiedDiffProps } from './diff/diff-props';
 import { diffSourceBudget, legacyDiffBudget, patchSourceBudget } from './diff/diff-source-budget';
+import { DiffFallbackBoundary } from './diff/DiffFallbackBoundary';
 import { DiffOmitted } from './diff/DiffOmitted';
 import { DiffUnavailable } from './diff/DiffUnavailable';
 import { RawDiff } from './diff/RawDiff';
-import { DiffFallbackBoundary } from './diff/DiffFallbackBoundary';
-import { useChatHost } from '../../host';
-import type { UnifiedDiffProps } from './diff/diff-props';
 
 const LegacyUnifiedDiff = lazyNamed(() => import('./diff/LegacyUnifiedDiff'), 'default', { prefetch: false });
 const EditorPatchDiff = lazyNamed(() => import('./diff/EditorPatchDiff'), 'default');

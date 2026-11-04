@@ -1,21 +1,21 @@
 import { expect, test, spyOn } from 'bun:test';
-import { act, createElement, lazy, Suspense, type ReactNode } from 'react';
-import { createRoot, type Root } from 'react-dom/client';
+import type { ChatApprovalItem } from '@adecore/agent-contracts';
+import type { EditorEngine } from '@adecore/editor';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createPage } from '@adecore/editor/testing';
-import type { EditorEngine } from '@adecore/editor';
 import * as merge from '@adecore/merge';
-import * as sourceBudget from './diff-source-budget';
+import { act, createElement, lazy, Suspense, type ReactNode } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ApprovalBody } from '../../../prompts/ui/ApprovalBody';
+import type { FileChange } from '../../logic/tools';
 import EditDiff from '../EditDiff';
 import UnifiedDiff from '../UnifiedDiff';
-import { ApprovalBody } from '../../../prompts/ui/ApprovalBody';
-import type { ChatApprovalItem } from '@adecore/agent-contracts';
-import type { FileChange } from '../../logic/tools';
-import EditorEditDiff from './EditorEditDiff';
-import EditorPatchDiff from './EditorPatchDiff';
+import * as sourceBudget from './diff-source-budget';
 import { DiffFallbackBoundary } from './DiffFallbackBoundary';
 import { EDITOR_DIFF_WORK } from './editor-edit-model';
+import EditorEditDiff from './EditorEditDiff';
+import EditorPatchDiff from './EditorPatchDiff';
 
 const CODE: ChatHost['code'] = { useMode: () => 'light', useThemes: () => ({ light: 'github-light', dark: 'github-dark' }), custom: [] };
 

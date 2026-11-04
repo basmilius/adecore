@@ -1,14 +1,13 @@
-import type { Keymap } from './keymap-table.ts';
 import type { CommandOptions, EditorCommand, Selection, TextEdit } from '@adecore/editor-core';
+import { columnSelections, sameCell } from './column-selection.ts';
 import { replacementEdits } from './input.ts';
-import { emit, subscribe } from './listeners.ts';
+import type { Keymap } from './keymap-table.ts';
 import { chordMatches, type KeyAction, keyAction, type MoveKey } from './keymap.ts';
+import { emit, subscribe } from './listeners.ts';
 import { DoubleModifierGesture } from './modifier-gesture.ts';
 import { NativeInput } from './native-input.ts';
-import { columnSelections, sameCell } from './column-selection.ts';
 import { PointerSelection } from './pointer.ts';
 import { TouchSelection } from './touch.ts';
-import { WheelZoom } from './zoom.ts';
 import type {
     EditorClick,
     EditorClickHandler,
@@ -25,6 +24,7 @@ import type {
     KeyChord
 } from './types.ts';
 import type { EditorView } from './view.ts';
+import { WheelZoom } from './zoom.ts';
 
 export interface ControllerOptions {
     keymap?: Keymap;

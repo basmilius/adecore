@@ -1,9 +1,8 @@
+import { Glob } from 'bun';
+import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Glob } from 'bun';
-import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
-
 // The docs workspace does not depend on the package, so the test reads its source and its zod directly.
 import { z } from '../packages/intelligent-ui/node_modules/zod';
 import { compileUi, evaluateUiBlock, UiState, type UiNode } from '../packages/intelligent-ui/src/index.ts';

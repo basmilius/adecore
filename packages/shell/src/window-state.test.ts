@@ -1,7 +1,7 @@
+import { afterAll, describe, expect, test } from 'bun:test';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterAll, describe, expect, test } from 'bun:test';
 import type { Rectangle } from 'electron';
 import { createWindowState, fileStorage, fitBounds, renameRetrying, type StateWindow, type WindowStateStorage } from './window-state.ts';
 

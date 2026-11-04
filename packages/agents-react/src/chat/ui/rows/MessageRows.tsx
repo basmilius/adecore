@@ -1,6 +1,19 @@
-import { useContext, useState, type ReactNode } from 'react';
+import type {
+    ChatApprovalItem,
+    ChatAttachment,
+    ChatAssistantItem,
+    ChatNoteMessage,
+    ChatQuestionItem,
+    ChatThinkingItem,
+    ChatToolItem,
+    ChatUiChoiceOrigin,
+    ChatUserItem,
+    ModelSelection
+} from '@adecore/agent-contracts';
+import { WAITING_NOTE_PREFIX } from '@adecore/agent-contracts';
+import { Icon, IconButton, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
+import { formatAgo, formatElapsedShort, formatMoment, formatTokens } from '@adecore/ui/format';
 import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import {
     Bot,
     Brain,
@@ -16,48 +29,35 @@ import {
     TriangleAlert,
     X
 } from 'lucide-react';
-import type {
-    ChatApprovalItem,
-    ChatAttachment,
-    ChatAssistantItem,
-    ChatNoteMessage,
-    ChatQuestionItem,
-    ChatThinkingItem,
-    ChatToolItem,
-    ChatUiChoiceOrigin,
-    ChatUserItem,
-    ModelSelection
-} from '@adecore/agent-contracts';
-import { WAITING_NOTE_PREFIX } from '@adecore/agent-contracts';
-import { fileBadge, formatBytes, isImageAttachment } from '../../attachments';
-import { useChatRow, useCurrentItem } from '../../../state/chats';
+import { useContext, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host';
+import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';
-import { splitQuote } from '../../quote';
-import { jumpToTimelineItem } from '../../timeline-scroll';
+import { useChatRow, useCurrentItem } from '../../../state/chats';
 import { useProviders } from '../../../state/providers';
+import { fileBadge, formatBytes, isImageAttachment } from '../../attachments';
 import { referenceTokens } from '../../chat-references';
-import { presentReferences } from '../../mentions';
-import { ReferenceChip } from '../ReferenceChip';
-import { ReferenceLookupContext } from '../reference-lookup';
-import { ImageGroup, ImageThumb } from '../ImageView';
-import { Markdown, MessageMarkdown, ReplyMarkdown } from '../Markdown';
-import { FadingWords } from '../FadingWords';
-import { settledBlocksText } from '../markdown-blocks';
-import { WHOLE_FADE_CLASS } from '../rehype-fade';
-import { useRevealedText } from '../reveal';
-import { formatAgo, formatElapsedShort, formatMoment, formatTokens } from '@adecore/ui/format';
-import { Icon, IconButton, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
 import { selectionSwitchText } from '../../logic/selection-switch';
 import { thoughtLine, thoughtPreview } from '../../logic/thought';
 import { toolStartedAt, toolSummary, toolSummaryIsPath } from '../../logic/tools';
-import { ROW_GUTTER } from '../icons';
-import { useOpenForFind } from '../find-reveal';
-import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
-import { UiReply } from '../intelligent-ui/UiReply';
-import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host';
-import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
-import { REFERENCE_TONE, TOKEN_IN_MESSAGE } from '../chips';
+import { presentReferences } from '../../mentions';
+import { splitQuote } from '../../quote';
+import { jumpToTimelineItem } from '../../timeline-scroll';
 import { copySelectionWithChips } from '../chip-clipboard';
+import { REFERENCE_TONE, TOKEN_IN_MESSAGE } from '../chips';
+import { FadingWords } from '../FadingWords';
+import { useOpenForFind } from '../find-reveal';
+import { ROW_GUTTER } from '../icons';
+import { ImageGroup, ImageThumb } from '../ImageView';
+import { UiReply } from '../intelligent-ui/UiReply';
+import { Markdown, MessageMarkdown, ReplyMarkdown } from '../Markdown';
+import { settledBlocksText } from '../markdown-blocks';
+import { ReferenceLookupContext } from '../reference-lookup';
+import { ReferenceChip } from '../ReferenceChip';
+import { WHOLE_FADE_CLASS } from '../rehype-fade';
+import { ReplyContext, UiReplyNavigationContext } from '../reply-context';
+import { useRevealedText } from '../reveal';
 import { useReferenceLookup } from '../thread-references';
 import { RunningFor, ToolBody } from './WorkRows';
 

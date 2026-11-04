@@ -1,9 +1,9 @@
-import { createPortal } from 'react-dom';
-import { memo, useSyncExternalStore, type MouseEvent } from 'react';
 import type { DocComment } from '@adecore/editor';
+import { memo, useSyncExternalStore, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import type { EditorLanguage } from './editor-language.ts';
 import { DOC_LINK_PREFIX, sectionsOf, type DocTagEntry, type ParsedDocComment } from './doc-comment-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
 import { markdownParts } from './hover-content.ts';
 import { Signature } from './HoverSections.tsx';
 import { shikiLanguageOf } from './language-ids.ts';

@@ -1,10 +1,10 @@
 import { StaleResultError, type Location } from '@adecore/lsp';
+import type { EditorLanguage } from './editor-language.ts';
+import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
 import { basenameOf } from './paths.ts';
-import type { EditorLanguage } from './editor-language.ts';
-import { entriesOf, workspaceEntriesOf, type SymbolEntry, type WorkspaceEntry } from './symbol-picker-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { messageOf } from './error-message.ts';
+import { entriesOf, workspaceEntriesOf, type SymbolEntry, type WorkspaceEntry } from './symbol-picker-model.ts';
 
 const TOAST_ID = 'language-symbols';
 

@@ -1,11 +1,11 @@
-import { useRef, useState, type ComponentProps, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { Copy, Scan } from 'lucide-react';
+import { useRef, useState, type ComponentProps, type KeyboardEvent as ReactKeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from './clipboard.ts';
 import { Icon } from './Icon.tsx';
 import { Kbd } from './Kbd.tsx';
-import { mergeRefs } from './merge-refs.ts';
 import { ContextMenuRoot, ContextMenuTrigger, MenuItem, MenuPopup, MenuSeparator } from './menu/parts.tsx';
+import { mergeRefs } from './merge-refs.ts';
 import { isApplePlatform } from './platform.ts';
 import { selectAllWithin, selectionWithin } from './selection.ts';
 import { EDIT_SHORTCUTS, matchesShortcut } from './shortcut.ts';

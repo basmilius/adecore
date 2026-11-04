@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+import type { ProviderInfo } from '@adecore/agent-contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import type { ProviderInfo } from '@adecore/agent-contracts';
 import type { AccountEntry } from '../agents/accounts';
 import type { Picked } from './pane-target';
-import { ProviderList } from './ProviderList';
 import type { ProviderGroups, ProviderRow } from './provider-groups';
+import { ProviderList } from './ProviderList';
 
 const providerOf = (kind: string, name: string, installed = true): ProviderInfo =>
     ({ kind, name, installed, version: '2.1.0', models: [], capabilities: { terminal: true } }) as unknown as ProviderInfo;

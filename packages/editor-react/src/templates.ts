@@ -1,5 +1,5 @@
-import { BUILT_IN_LIVE_TEMPLATES, BUILT_IN_POSTFIX_TEMPLATES } from './template-builtins.ts';
 import { checkSnippet } from './snippet.ts';
+import { BUILT_IN_LIVE_TEMPLATES, BUILT_IN_POSTFIX_TEMPLATES } from './template-builtins.ts';
 
 export { BUILT_IN_LIVE_TEMPLATES, BUILT_IN_POSTFIX_TEMPLATES };
 export { type TemplatesFeature } from './live-templates.ts';

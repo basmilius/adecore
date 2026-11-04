@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { Select } from '@adecore/ui';
+import { useState } from 'react';
 
 export default function SelectGroups() {
     const [font, setFont] = useState<string | null>('jetbrains');

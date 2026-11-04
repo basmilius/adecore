@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { ChatApprovalItem, ChatQuestionItem } from '@adecore/agent-contracts';
 import {
     orderPrompts,
@@ -11,6 +10,7 @@ import {
     PromptView
 } from '@adecore/agents-react/prompts';
 import { Button } from '@adecore/ui';
+import { useState } from 'react';
 
 const approval: ChatApprovalItem = {
     id: 'approval-1',

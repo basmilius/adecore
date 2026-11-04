@@ -1,8 +1,8 @@
-import { useContext, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { CircleOff } from 'lucide-react';
 import { Icon, Tooltip } from '@adecore/ui';
+import clsx from 'clsx';
+import { CircleOff } from 'lucide-react';
+import { useContext, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host';
 import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_ICON_BOX, TOKEN_IN_MESSAGE } from './chips';
 import { referenceGlyph } from './reference-icons';

@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
+import { useEffect, useRef, useState } from 'react';
 
 export interface Loaded<T> {
     /* The last value that arrived; stays while the next one loads, so a page does not vanish under a reload. */

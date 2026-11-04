@@ -12,8 +12,8 @@ import {
     type WorkspaceEdit,
     type WorkspaceEditStep
 } from '@adecore/lsp';
-import type { DiskText } from './host-types.ts';
 import { messageOf } from './error-message.ts';
+import type { DiskText } from './host-types.ts';
 
 /* A file that changed without an editor of this project holding it: its new text waits as an unsaved draft. */
 export interface StagedFile {

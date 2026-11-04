@@ -1,8 +1,8 @@
 import type { Editor, EditorContentChange, EditorRange } from '@adecore/editor';
 import { comparePositions, shiftPosition } from './diagnostics-model.ts';
-import type { SnippetTransform } from './snippet.ts';
-import type { SnippetTransformLease } from './snippet-transform-queue.ts';
 import type { SnippetTransformJob } from './snippet-transform-protocol.ts';
+import type { SnippetTransformLease } from './snippet-transform-queue.ts';
+import type { SnippetTransform } from './snippet.ts';
 
 export interface FieldTransformTarget {
     readonly id: symbol;

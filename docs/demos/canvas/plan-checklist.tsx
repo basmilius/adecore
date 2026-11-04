@@ -1,8 +1,8 @@
-import { useState } from 'react';
-import { Bot, User } from 'lucide-react';
 import { applyPlanOps, createPlan, effectiveChecks, isParentStep, planProgress, planToMarkdown, progressText, stepState, type PlanDraft } from '@adecore/plan';
 import type { Plan, PlanActor, PlanItem, PlanOp, PlanStep } from '@adecore/plan/protocol';
 import { Button, Checkbox, ScrollArea, Segmented } from '@adecore/ui';
+import { Bot, User } from 'lucide-react';
+import { useState } from 'react';
 
 const DRAFT: PlanDraft = {
     meta: { title: 'Ship the release' },

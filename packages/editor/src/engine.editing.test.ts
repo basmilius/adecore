@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { EditorOptions } from './types.ts';
 import { setup, settle } from './engine.fixture.test.ts';
+import type { EditorOptions } from './types.ts';
 
 describe('folding by default', () => {
     const text = 'class A {\n    run() {\n        body();\n    }\n}\n';

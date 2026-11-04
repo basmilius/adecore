@@ -1,9 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import type { DrawingColor, DrawingElement } from './protocol.ts';
-import { pathsOfElement } from './paths.ts';
-import { DEFAULT_PALETTE, escapeXml, toSvg } from './svg.ts';
 import { rotatePoint } from './geometry.ts';
+import { pathsOfElement } from './paths.ts';
+import type { DrawingColor, DrawingElement } from './protocol.ts';
 import { readingOrder } from './reading-order.ts';
+import { DEFAULT_PALETTE, escapeXml, toSvg } from './svg.ts';
 
 const palette = Object.fromEntries(
     (['ink', 'muted', 'accent', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink'] as DrawingColor[]).map((name) => [name, `var(${name})`])

@@ -1,5 +1,5 @@
-import clsx from 'clsx';
 import { ScrollArea } from '@adecore/ui';
+import clsx from 'clsx';
 import { useReviewSettled } from './review-settle';
 
 export function RawDiff({ text, overflow, fill, maxHeight }: { text: string; overflow: 'wrap' | 'scroll'; fill: boolean; maxHeight?: number }) {

@@ -1,7 +1,3 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
-import clsx from 'clsx';
-import { ArrowUpRight, Ban, ChevronDown, ChevronUp, Copy, Maximize2, Minimize2, RotateCcw, X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import {
     ButtonGroup,
     ContextMenu,
@@ -18,11 +14,15 @@ import {
     Spinner
 } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { ArrowUpRight, Ban, ChevronDown, ChevronUp, Copy, Maximize2, Minimize2, RotateCcw, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNumberNotation } from '../client-context.ts';
 import { CODE_TEXT } from '../code-text.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
-import { ValueEditor } from '../value/ValueEditor.tsx';
 import { isNumericKind } from '../sql.ts';
+import { ValueEditor } from '../value/ValueEditor.tsx';
 import { columnNotation, cellView, copyTextOf, isPreview, numeralText, type NumberNotation } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';

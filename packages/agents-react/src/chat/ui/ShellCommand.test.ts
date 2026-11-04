@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseHTML } from 'linkedom';
 import { codeHighlighter } from './highlighter';
 import { ShellCommand } from './ShellCommand';
 

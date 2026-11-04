@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, jest, setSystemTime, test } from 'bun:test';
-import { z } from 'zod';
 import type { ChatAssistantItem, ChatEvent, ChatInfo, ChatUiPlaceReading } from '@adecore/agent-contracts';
 import { compileUiBlock, evaluateUiBlock, resolveUiChoice, uiQueryArguments } from '@adecore/intelligent-ui';
+import { z } from 'zod';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { ChatSession } from './chat-session.ts';
 import { ChatUiQueries, ChatUiRefusal, type ChatUiHost } from './ui-queries.ts';

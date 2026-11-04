@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import type { ProviderAccounts, ProviderAccountStatus, ProviderInfo } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 import { accountsOfKind, type AccountEntry } from '../agents/accounts';
 
 /* A few words beside a provider in the list; `warning` asks the person to act. */

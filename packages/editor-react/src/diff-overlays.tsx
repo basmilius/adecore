@@ -1,10 +1,10 @@
+import type { Editor, EditorEngine } from '@adecore/editor';
+import type { DiffDisplay } from '@adecore/merge';
+import { Button, Tooltip } from '@adecore/ui';
+import { formatNumber } from '@adecore/ui/format';
 import { useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { Button, Tooltip } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
-import type { Editor, EditorEngine } from '@adecore/editor';
-import type { DiffDisplay } from '@adecore/merge';
 import { RowHost, LineActionHost } from './row-host.ts';
 
 export interface MountedDiff {

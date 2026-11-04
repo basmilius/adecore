@@ -1,17 +1,17 @@
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
-import clsx from 'clsx';
-import { Target } from 'lucide-react';
 import type { ChatGoal, ChatGoalAction, ChatInfo, ProviderCapabilities } from '@adecore/agent-contracts';
 import { Button, Icon, Pill, Tooltip } from '@adecore/ui';
 import { formatTokens, useFormatLocale } from '@adecore/ui/format';
+import clsx from 'clsx';
+import type { TFunction } from 'i18next';
+import { Target } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
+import { errorMessage } from '../../transport';
 import { useChatActions } from '../actions';
 import { goalView } from '../logic/goal';
-import { errorMessage } from '../../transport';
 
 /* How far the goal got, in what its CLI counts: the checks that sent the agent on, or the tokens it spent. */
 function progressOf(goal: ChatGoal, t: TFunction<'agent-chat'>): string | null {

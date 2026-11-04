@@ -1,5 +1,5 @@
-import { Suspense, useState } from 'react';
 import { Button, lazyNamed, prefetcher } from '@adecore/ui';
+import { Suspense, useState } from 'react';
 
 // A module the app splits off, loaded on its first use.
 const Chart = lazyNamed(() => import('../shared/lazy-chart.tsx'), 'LazyChart');

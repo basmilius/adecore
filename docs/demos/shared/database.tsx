@@ -1,5 +1,5 @@
-import { useEffect, useState, type ReactNode } from 'react';
 import { DatabaseProvider, type DatabaseAction, type DatabaseStorage } from '@adecore/database';
+import { useEffect, useState, type ReactNode } from 'react';
 import { createShopClient } from './shop.ts';
 
 /* Where an app would keep console history, column widths and open tabs; here it lasts until the page reloads. */

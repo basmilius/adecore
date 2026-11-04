@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { ChatClient } from '@adecore/agents-react/chat';
+import type { ProviderInfo } from '@adecore/agent-contracts';
 import { ChatHostProvider, ChatScopeContext, type ChatScope } from '@adecore/agents-react';
+import { ChatClient } from '@adecore/agents-react/chat';
 import {
     chatSink,
     useChats,
@@ -10,7 +10,7 @@ import {
     useProvidersStore,
     useUsageStore
 } from '@adecore/agents-react/state';
-import type { ProviderInfo } from '@adecore/agent-contracts';
+import { useEffect, useState, type ReactNode } from 'react';
 import { initialAccounts, PROVIDERS } from './agents-data.ts';
 import { DEMO_CHAT_HOST, demoChats, FakeAgentHost, type DemoChats } from './agents-host.ts';
 

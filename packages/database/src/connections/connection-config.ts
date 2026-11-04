@@ -1,5 +1,5 @@
-import type { ConnectionConfig, Engine, MysqlConnectionConfig, SqliteConnectionConfig } from '../protocol/index.ts';
 import type { Connection } from '../client/types.ts';
+import type { ConnectionConfig, Engine, MysqlConnectionConfig, SqliteConnectionConfig } from '../protocol/index.ts';
 
 export const DEFAULT_MYSQL_PORT = 3306;
 export const DEFAULT_HOST = '127.0.0.1';

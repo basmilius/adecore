@@ -1,10 +1,11 @@
 import { changedSpans, DocumentModel, type EditorSnapshot, type FoldHints, replacementText } from '@adecore/editor-core';
-import { MAX_REPLACEMENT_CHARACTERS } from './search-protocol.ts';
-import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
-import { GrammarPreparation } from './grammar-preparation.ts';
 import { InputController } from './controller.ts';
-import { resolveSmartKeys } from './smart-keys.ts';
+import { GrammarPreparation } from './grammar-preparation.ts';
+import { fillLens, lensSignature } from './lens.ts';
 import { emit, type Listener, subscribe } from './listeners.ts';
+import { MAX_REPLACEMENT_CHARACTERS } from './search-protocol.ts';
+import { resolveSmartKeys } from './smart-keys.ts';
+import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
 import type {
     Editor,
     EditorAttributionHover,
@@ -64,7 +65,6 @@ import type {
     EditorWidget,
     SmartEditorEngineOptions
 } from './types.ts';
-import { fillLens, lensSignature } from './lens.ts';
 import { EditorView, type ViewSettings } from './view.ts';
 import { clampFontSize, type FontSizeRange, fontSizeRange } from './zoom.ts';
 

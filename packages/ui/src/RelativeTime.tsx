@@ -1,5 +1,5 @@
-import type { Ref } from 'react';
 import clsx from 'clsx';
+import type { Ref } from 'react';
 import { formatAge, formatDayClockWithYear, useFormatLocale } from './format/index.ts';
 import { Tooltip, type TooltipSide } from './Tooltip.tsx';
 import { useNow } from './useNow.ts';

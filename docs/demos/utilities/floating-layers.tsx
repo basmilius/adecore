@@ -1,5 +1,5 @@
-import { useState, type PointerEvent } from 'react';
 import { Button, Menu, isInFloatingLayer } from '@adecore/ui';
+import { useState, type PointerEvent } from 'react';
 
 export default function FloatingLayersDemo() {
     const [clicks, setClicks] = useState(0);

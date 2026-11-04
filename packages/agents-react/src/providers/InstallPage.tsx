@@ -1,9 +1,9 @@
-import { useState, type ReactNode } from 'react';
-import clsx from 'clsx';
-import { Trans, useTranslation } from 'react-i18next';
-import { Check, Copy, ExternalLink, SquareTerminal } from 'lucide-react';
 import type { ProviderInfo, ProviderPlatform, ProviderSignIn } from '@adecore/agent-contracts';
 import { Button, copyText, Icon, Pill, Segmented } from '@adecore/ui';
+import clsx from 'clsx';
+import { Check, Copy, ExternalLink, SquareTerminal } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { Trans, useTranslation } from 'react-i18next';
 import { useChatHost } from '../host';
 import { useHostMachinePlatform } from '../host-hooks';
 import { useChatScope } from '../scope';

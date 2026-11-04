@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { createChart, type ChartX } from '@adecore/charts';
 import { formatNumber } from '@adecore/ui/format';
+import { useState } from 'react';
 import { LAB_COLORS, scoresByModel, type ModelScore } from '../shared/chart-data.ts';
 
 const ScoreChart = createChart<ModelScore>();

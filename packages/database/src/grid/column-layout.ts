@@ -1,6 +1,6 @@
+import { sameList } from '../same-list.ts';
 import type { ColumnView } from './column-view.ts';
 import { MAX_RESIZED_WIDTH, MIN_COLUMN_WIDTH } from './layout.ts';
-import { sameList } from '../same-list.ts';
 
 /* What a person did to the columns of a grid, by column name so it outlives a change of the column order. */
 export interface GridLayout {

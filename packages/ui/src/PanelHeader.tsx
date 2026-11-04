@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
-import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import type { ReactNode } from 'react';
 import { SectionLabel } from './SectionLabel.tsx';
 
 export type PanelHeaderProps = useRender.ComponentProps<'header'> & {

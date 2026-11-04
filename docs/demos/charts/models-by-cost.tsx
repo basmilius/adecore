@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { createChart, SeriesLegend } from '@adecore/charts';
 import { Segmented } from '@adecore/ui';
+import { useState } from 'react';
 import { costsByModel, formatCost, LAB_COLORS, MODEL_COLORS, type ModelCost } from '../shared/chart-data.ts';
 
 const CostChart = createChart<ModelCost>();

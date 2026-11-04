@@ -1,6 +1,6 @@
-import { useRef, useState, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
 import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
+import clsx from 'clsx';
+import { useRef, useState, type ReactNode, type Ref } from 'react';
 import { assignRef } from '../assign-ref.ts';
 
 export const VALUE_PANEL_WIDTH = 320;

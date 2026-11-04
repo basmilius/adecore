@@ -1,5 +1,5 @@
-import { DemoBlock } from '../shared/intelligent-ui.tsx';
 import { ui } from '../shared/intelligent-ui-tree.ts';
+import { DemoBlock } from '../shared/intelligent-ui.tsx';
 
 export default function StatusDemo() {
     return (

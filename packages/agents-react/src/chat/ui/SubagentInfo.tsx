@@ -1,14 +1,14 @@
+import { useNow } from '@adecore/ui';
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useModelName } from '../../agents/model-name';
+import { useHostTask } from '../../host-hooks';
+import { useChatScope } from '../../scope';
+import { useChatRow } from '../../state/chats';
 import { entryTimeOf, statusWordOf, subagentFacts, taskIdOf } from '../subagent-list';
 import { useSubagentItem } from '../subagent-view';
 import { StatusIcon } from './ChatActivity';
 import { SubagentActions, SubagentBreadcrumb } from './SubagentControls';
-import { useNow } from '@adecore/ui';
-import { useModelName } from '../../agents/model-name';
-import { useChatRow } from '../../state/chats';
-import { useChatScope } from '../../scope';
-import { useHostTask } from '../../host-hooks';
 
 /*
  * What a sub-agent is, over its conversation: the way down to it, its state and time, the model it runs on

@@ -1,13 +1,13 @@
+import type { ProviderAccount } from '@adecore/agent-contracts';
+import { Button, FormError, Icon, IconButton, Input, Tooltip } from '@adecore/ui';
+import { SettingsRow, SettingsSection } from '@adecore/ui/settings';
+import { Lock, LockOpen, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Lock, LockOpen, Plus, X } from 'lucide-react';
-import type { ProviderAccount } from '@adecore/agent-contracts';
 import { useChatHost } from '../host';
 import { useChatScope } from '../scope';
 import { saveAccount } from './account-actions';
 import { draftsOf, emptyDraft, variablesChanged, variablesOf, variablesProblem, type VariableDraft } from './variables';
-import { SettingsRow, SettingsSection } from '@adecore/ui/settings';
-import { Button, FormError, Icon, IconButton, Input, Tooltip } from '@adecore/ui';
 
 interface AccountVariablesProps {
     id: string;

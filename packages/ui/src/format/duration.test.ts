@@ -1,8 +1,8 @@
 import { afterAll, afterEach, beforeAll, describe, expect, test } from 'bun:test';
-import { formatAgo, formatClockDuration, formatCountdown, formatDuration, formatElapsedShort, formatPreciseDuration } from './duration.ts';
-import { FORMAT_SYSTEM } from './regions.ts';
 import { fakeFormatSource } from '../testing/fake-source.ts';
+import { formatAgo, formatClockDuration, formatCountdown, formatDuration, formatElapsedShort, formatPreciseDuration } from './duration.ts';
 import { setFormatSource, type FormatSource } from './locale.ts';
+import { FORMAT_SYSTEM } from './regions.ts';
 
 const source = fakeFormatSource();
 let previous: FormatSource;

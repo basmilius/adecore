@@ -1,6 +1,6 @@
-import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
+import type { ReactNode, Ref } from 'react';
 import { Icon } from './Icon.tsx';
 import { Surface } from './Surface.tsx';
 

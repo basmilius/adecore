@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test';
+import type { ChatToolItem } from '@adecore/agent-contracts';
+import { createInstance } from 'i18next';
+import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseHTML } from 'linkedom';
-import { createInstance } from 'i18next';
 import { I18nextProvider } from 'react-i18next';
-import type { ChatToolItem } from '@adecore/agent-contracts';
 import words from '../../locales/en/agent-chat';
+import { ChatScopeContext, type ChatScope } from '../../scope';
 import { AnsiOutput } from '../ui/AnsiOutput';
 import { WorkLiveRow } from '../ui/rows/WorkRows';
-import { ChatScopeContext, type ChatScope } from '../../scope';
 import { parseAnsi, stripAnsi } from './ansi';
 
 const i18n = createInstance();

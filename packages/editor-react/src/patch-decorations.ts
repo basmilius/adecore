@@ -1,6 +1,6 @@
+import type { Editor, EditorChangeMark, EditorLineHighlight } from '@adecore/editor';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Editor, EditorChangeMark, EditorLineHighlight } from '@adecore/editor';
 import { patchLayoutOf, type PatchLayout, type PatchLayoutLine, type PatchLimits } from './patch-layout.ts';
 
 /* The sentences a screen reader reads with a line of the patch, in the host's words. */

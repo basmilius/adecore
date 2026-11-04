@@ -1,8 +1,3 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
-import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, RefreshCw, Trash2, Undo2 } from 'lucide-react';
-import type { TFunction } from 'i18next';
-import { useTranslation } from 'react-i18next';
 import {
     Banner,
     Button,
@@ -19,13 +14,18 @@ import {
     Spinner
 } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import { DatabaseRequestError, type Connection } from '../client/types.ts';
+import clsx from 'clsx';
+import type { TFunction } from 'i18next';
+import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, RefreshCw, Trash2, Undo2 } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage } from '../client-context.ts';
+import { DatabaseRequestError, type Connection } from '../client/types.ts';
 import { aggregateBlock, blockSize, type RangeBlock } from '../grid/aggregates.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
+import { RecordView } from '../grid/RecordView.tsx';
 import type { GridSort } from '../grid/sort.ts';
 import type { ColumnRequest, FocusedCell, FocusRequest, GridMenuContext } from '../grid/types.ts';
-import { RecordView } from '../grid/RecordView.tsx';
 import { ValueDock } from '../grid/ValueDock.tsx';
 import { valueOfCell, type EditValue, type RowChange, type TableStructure, type Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';

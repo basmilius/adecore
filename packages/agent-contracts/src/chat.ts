@@ -1,11 +1,11 @@
 import { UiLinkResolutionSchema } from '@adecore/intelligent-ui/links';
-import { z } from 'zod';
 import { UiBlocksSchema } from '@adecore/intelligent-ui/protocol';
+import { z } from 'zod';
 import { AgentKindSchema, AgentStatusSchema, SuggestedTitleSchema } from './agent.ts';
-import { WorktreeSchema } from './worktree.ts';
 import { ModelSelectionSchema, RuntimeModeSchema } from './model.ts';
 import { ProviderAccountIdSchema } from './provider-accounts.ts';
 import { ChatVisualsSchema } from './visual.ts';
+import { WorktreeSchema } from './worktree.ts';
 
 // The client picks the id (its node id), like a terminal session.
 export const ChatIdSchema = z.string().min(1);

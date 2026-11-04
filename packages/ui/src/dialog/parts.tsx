@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, type ComponentProps } from 'react';
-import clsx from 'clsx';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { createContext, useContext, useState, type ComponentProps } from 'react';
 import { withClass } from '../class-name.ts';
 import { useDialogLayer } from '../dialog-layer.ts';
 

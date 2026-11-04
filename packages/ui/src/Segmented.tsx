@@ -1,6 +1,6 @@
-import type { KeyboardEvent, Ref } from 'react';
 import clsx from 'clsx';
 import type { LucideIcon } from 'lucide-react';
+import type { KeyboardEvent, Ref } from 'react';
 import { Icon } from './Icon.tsx';
 import { segmentedStop, segmentedTarget } from './segmented-keys.ts';
 import { Tooltip } from './Tooltip.tsx';

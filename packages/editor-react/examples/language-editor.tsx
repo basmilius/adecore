@@ -1,10 +1,10 @@
-import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
-import { createInstance } from 'i18next';
-import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { createSmartEditorEngine } from '@adecore/editor';
 import { EditorLanguage, LanguagePopups, ProjectLanguage, createHolder } from '@adecore/editor-react';
-import { FakeLanguageService } from '@adecore/editor-react/testing';
 import en from '@adecore/editor-react/locales/en.json';
+import { FakeLanguageService } from '@adecore/editor-react/testing';
+import { createInstance } from 'i18next';
+import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
 
 export default function LanguageEditorExample() {
     const element = useRef<HTMLDivElement>(null);

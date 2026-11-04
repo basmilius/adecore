@@ -1,5 +1,5 @@
-import type { ReactNode, Ref } from 'react';
 import clsx from 'clsx';
+import type { ReactNode, Ref } from 'react';
 
 /* Every ground is an alpha over whatever the pill stands on, the way a border is: a solid sunken ground read as a hole on a dark row. */
 const TONES = {

@@ -1,5 +1,5 @@
-import { create } from 'zustand';
 import type { ProviderAccounts } from '@adecore/agent-contracts';
+import { create } from 'zustand';
 import { useChatScope } from '../scope';
 import { whenOpen, type ChatTransport } from '../transport';
 

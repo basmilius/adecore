@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { STASH_CHATS_LIMIT, STASH_LIMIT, parseStash, restorableChats, stashedFrom, withStashed, type StashedPrompt } from './stash.ts';
 import { EMPTY_DRAFT } from './drafts.ts';
+import { STASH_CHATS_LIMIT, STASH_LIMIT, parseStash, restorableChats, stashedFrom, withStashed, type StashedPrompt } from './stash.ts';
 
 function prompt(id: string): StashedPrompt {
     return { id, text: id, mentions: [], skills: [], chats: [], attachments: [], createdAt: 1, references: [] };

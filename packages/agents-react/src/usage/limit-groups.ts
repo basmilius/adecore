@@ -1,4 +1,3 @@
-import i18next from 'i18next';
 import {
     evenPace,
     USAGE_PROVIDERS,
@@ -9,9 +8,10 @@ import {
     type UsageProvider,
     type UsageWindow
 } from '@adecore/agent-contracts';
+import { formatDuration } from '@adecore/ui/format';
+import i18next from 'i18next';
 import { limitsAccountId } from '../agents/account-limits';
 import { accountName, accountsOfKind, accountStatusLine } from '../agents/accounts';
-import { formatDuration } from '@adecore/ui/format';
 import { PROVIDER_LABELS } from './format';
 
 export { evenPace, type EvenPace, type PaceStanding } from '@adecore/agent-contracts';

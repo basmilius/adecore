@@ -1,6 +1,6 @@
+import { Check, Copy } from 'lucide-react';
 import { useEffect, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Copy } from 'lucide-react';
 import { Button, type ButtonSize, type ButtonVariant } from './Button.tsx';
 import { copyText } from './clipboard.ts';
 import { Icon } from './Icon.tsx';

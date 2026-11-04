@@ -1,13 +1,13 @@
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import { FileIcon, Icon, Menu, MiddleTruncate, ScrollArea } from '@adecore/ui';
 import clsx from 'clsx';
 import { SquareSlash, Zap } from 'lucide-react';
-import { FileIcon, Icon, Menu, MiddleTruncate, ScrollArea } from '@adecore/ui';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../host';
 import type { Referable } from '../../chat-references';
 import { referenceGlyph } from '../reference-icons';
-import type { ComposerMenus as Menus } from './use-composer-menus';
 import { optionIdOf } from './menu-aria';
+import type { ComposerMenus as Menus } from './use-composer-menus';
 
 function splitPath(path: string): { name: string; dir: string } {
     const slash = path.lastIndexOf('/');

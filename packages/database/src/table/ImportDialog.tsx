@@ -1,8 +1,8 @@
-import type { Ref } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Button, Dialog, FormError, ScrollArea, Select, Spinner, Switch } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
+import clsx from 'clsx';
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { ColumnInfo } from '../protocol/index.ts';
 import { hasMapping } from './import-mapping.ts';
 

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { SegmentBar, Waveform } from '@adecore/ui';
+import { useState } from 'react';
 
 const DURATION = 225;
 

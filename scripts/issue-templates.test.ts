@@ -1,6 +1,6 @@
+import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { expect, test } from 'bun:test';
 import { discoverPackages, repositoryRoot } from './workspaces.ts';
 
 interface IssueForm {

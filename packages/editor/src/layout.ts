@@ -1,10 +1,9 @@
 import type { DocumentChange, Position } from '@adecore/editor-core';
-
-import { offsetOfStop, rowOfStop, stopAtOffset, stopCount, xOfStop } from './geometry-stops.ts';
 import { BIDI_COLUMNS, bidiControl, visibleBidi } from './bidi.ts';
-import { uniformGeometry } from './uniform-geometry.ts';
+import { offsetOfStop, rowOfStop, stopAtOffset, stopCount, xOfStop } from './geometry-stops.ts';
 import { lineChangeMapper } from './layout-changes.ts';
 import { offsetMapper } from './offsets.ts';
+import { uniformGeometry } from './uniform-geometry.ts';
 
 export type Affinity = 'before' | 'after';
 

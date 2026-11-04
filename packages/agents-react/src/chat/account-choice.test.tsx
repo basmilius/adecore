@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from 'bun:test';
-import { act } from 'react';
-import { createRoot } from 'react-dom/client';
 import type { ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
+import { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { ChatScopeContext, type ChatScope } from '../scope';
 import { useProviderAccountsStore, type ProviderAccountsRow } from '../state/provider-accounts';
 import { useProvidersStore } from '../state/providers';

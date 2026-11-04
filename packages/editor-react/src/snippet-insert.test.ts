@@ -1,8 +1,8 @@
 import './test-setup.ts';
 import { afterEach, describe, expect, test } from 'bun:test';
 import { FakeEditorEngine } from '@adecore/editor/fake';
-import type { EditorNotification } from './host-types.ts';
 import { EditorLanguage } from './editor-language.ts';
+import type { EditorNotification } from './host-types.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { bodyWithIndentUnit, dedentLines, insertSnippet } from './snippet-insert.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';

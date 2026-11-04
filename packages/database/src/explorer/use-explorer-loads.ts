@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
 import { messageOf } from '@adecore/ui';
+import { useEffect, useRef, useState } from 'react';
 import { useDatabaseClient } from '../client-context.ts';
 import type { Connection, SchemaChange } from '../client/types.ts';
 import type { SchemaInfo, TableInfo, TableStructure } from '../protocol/index.ts';

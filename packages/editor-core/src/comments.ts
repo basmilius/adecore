@@ -1,8 +1,8 @@
-import type { EditPlan, EditSource } from './edit-source.ts';
 import { editRegions, phpLiteralAt, phpTagAt, type EditRegions } from './edit-regions.ts';
-import { hasJsx } from './markup-regions.ts';
+import type { EditPlan, EditSource } from './edit-source.ts';
 import { type BlockComment, type CommentSyntax, commentSyntax } from './languages.ts';
 import { indentText, isBlank, rangeOf, whitespaceOf } from './line-text.ts';
+import { hasJsx } from './markup-regions.ts';
 import { mapOffset } from './offsets.ts';
 import { indentationColumn } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';

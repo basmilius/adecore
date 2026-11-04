@@ -1,10 +1,10 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { act, useState, type ReactNode } from 'react';
 import { List } from 'lucide-react';
+import { act, useState, type ReactNode } from 'react';
 import type { Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Segmented, type SegmentedProps } from './Segmented.tsx';
 import { segmentedTarget } from './segmented-keys.ts';
+import { Segmented, type SegmentedProps } from './Segmented.tsx';
 
 const OPTIONS = [
     { id: 'list', label: 'List' },

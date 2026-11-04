@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
+import { createSmartEditorEngine } from '@adecore/editor';
+import editorWords from '@adecore/editor-react/locales/en.json';
+import { FakeEditorEngine } from '@adecore/editor/fake';
+import { createPage, press } from '@adecore/editor/testing';
 import i18next from 'i18next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { FakeEditorEngine } from '@adecore/editor/fake';
-import { createSmartEditorEngine } from '@adecore/editor';
-import { createPage, press } from '@adecore/editor/testing';
-import editorWords from '@adecore/editor-react/locales/en.json';
 import { ChatHostProvider, type ChatHost } from '../../../host';
 import { PromptCard } from '../../../prompts/ui/PromptCard';
 import { ApprovalReview } from './ApprovalReview';

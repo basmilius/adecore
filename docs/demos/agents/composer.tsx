@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useChatScope } from '@adecore/agents-react';
 import type { ChatSendExtras } from '@adecore/agents-react/chat';
 import { Composer } from '@adecore/agents-react/chat/ui';
-import { useChatScope } from '@adecore/agents-react';
 import { useChatRow } from '@adecore/agents-react/state';
 import { ScrollArea } from '@adecore/ui';
+import { useState } from 'react';
 import { chatInfo } from '../shared/agents-data.ts';
 import { AgentDemo } from '../shared/agents.tsx';
 

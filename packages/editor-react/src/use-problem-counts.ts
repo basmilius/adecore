@@ -1,6 +1,6 @@
 import { useMemo, useSyncExternalStore } from 'react';
-import type { EditorLanguage } from './editor-language.ts';
 import type { ProblemCounts } from './diagnostics.ts';
+import type { EditorLanguage } from './editor-language.ts';
 
 const NONE: ProblemCounts = { error: 0, warning: 0, info: 0 };
 

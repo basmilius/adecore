@@ -1,24 +1,24 @@
-import { useState, type ReactNode } from 'react';
-import clsx from 'clsx';
-import { useShallow } from 'zustand/shallow';
-import { useTranslation } from 'react-i18next';
-import { Activity, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
 import type { ChatBackgroundTask, ChatSubagentItem } from '@adecore/agent-contracts';
+import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
+import { formatElapsedShort } from '@adecore/ui/format';
+import clsx from 'clsx';
+import { Activity, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useShallow } from 'zustand/shallow';
+import { statusLookOf, type StatusWord } from '../../agents/status-look';
+import { useChatHost } from '../../host';
+import { useHostTask, useHostTasks } from '../../host-hooks';
+import { useChatScope } from '../../scope';
+import { useChatRow, useChats } from '../../state/chats';
+import { useChatActions } from '../actions';
 import { backgroundCounts } from '../activity';
 import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskIdOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
 import { flyoutWorkflows, workflowPillOf, type WorkflowCall, type WorkflowWord } from '../workflow-list';
-import { SubagentStopButton } from './SubagentStopButton';
 import { WorkflowRow } from './rows/WorkflowRow';
-import { formatElapsedShort } from '@adecore/ui/format';
-import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
-import { useChatRow, useChats } from '../../state/chats';
-import { useChatHost } from '../../host';
-import { useChatScope } from '../../scope';
-import { useChatActions } from '../actions';
-import { statusLookOf, type StatusWord } from '../../agents/status-look';
-import { useHostTask, useHostTasks } from '../../host-hooks';
+import { SubagentStopButton } from './SubagentStopButton';
 
 const NO_TASKS: readonly ChatBackgroundTask[] = [];
 

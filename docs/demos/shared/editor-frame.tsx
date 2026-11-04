@@ -1,6 +1,6 @@
-import type { ReactNode, RefObject } from 'react';
 import type { Editor, EditorOptions } from '@adecore/editor';
 import { EditorView, type EditorLanguage, type ProjectLanguage } from '@adecore/editor-react';
+import type { ReactNode, RefObject } from 'react';
 import { DEMO_OPTIONS, DEMO_URI, demoEngine } from './editor.ts';
 
 function Framed({ toolbar, children }: { toolbar?: ReactNode; children: ReactNode }) {

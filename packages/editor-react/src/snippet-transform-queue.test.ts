@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
+import type { SnippetTransformInput, SnippetTransformOutput } from './snippet-transform-protocol.ts';
 import { acquireSnippetTransforms, SnippetTransformQueueError, SnippetTransforms } from './snippet-transform-queue.ts';
 import { ManualTimers } from './timers.ts';
-import type { SnippetTransformInput, SnippetTransformOutput } from './snippet-transform-protocol.ts';
 
 const settle = async (): Promise<void> => {
     for (let index = 0; index < 12; index++) {

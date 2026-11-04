@@ -1,5 +1,5 @@
-import type { CompletionItem, Diagnostic, DocumentSymbol, Location, Position, Range, TextEdit } from '@adecore/lsp';
 import type { FakeLanguageService, LanguageCall } from '@adecore/editor-react/testing';
+import type { CompletionItem, Diagnostic, DocumentSymbol, Location, Position, Range, TextEdit } from '@adecore/lsp';
 import { DEMO_URI, FORMAT_SOURCE } from './editor.ts';
 
 /*

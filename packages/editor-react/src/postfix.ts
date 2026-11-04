@@ -1,7 +1,7 @@
 import type { EditorPosition, EditorPostfixOperand, EditorRange } from '@adecore/editor';
 import type { CompletionItem } from '@adecore/lsp';
-import type { LocalCompletionItem } from './completion.ts';
 import { isIdentifierCharacter } from './completion-model.ts';
+import type { LocalCompletionItem } from './completion.ts';
 import { comparePositions } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';

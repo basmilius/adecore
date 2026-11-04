@@ -1,8 +1,11 @@
-import { useTranslation } from 'react-i18next';
 import { ErrorBoundary } from '@adecore/ui';
+import { useTranslation } from 'react-i18next';
 import type { ThreadCard } from '../../../host';
+import { isImageGeneration } from '../../logic/generated-image';
 import type { TimelineRow } from '../../logic/timeline';
 import type { SubagentStep } from '../../subagent-view';
+import { ForksRow } from './ForksRow';
+import { GeneratedImageRow } from './GeneratedImageRow';
 import {
     AgentTurnRow,
     ApprovalHistoryRow,
@@ -18,9 +21,6 @@ import {
     ThinkingRow,
     UserRow
 } from './MessageRows';
-import { isImageGeneration } from '../../logic/generated-image';
-import { ForksRow } from './ForksRow';
-import { GeneratedImageRow } from './GeneratedImageRow';
 import { SubagentBranchRow } from './SubagentRow';
 import { VisualRow } from './VisualRow';
 import { WorkflowRow } from './WorkflowRow';

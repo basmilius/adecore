@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
-import { z } from 'zod';
 import { compileUi } from '@adecore/intelligent-ui';
+import { z } from 'zod';
 import { ChatAssistantItemSchema, ChatEventSchema, ChatUiPlaceReadingSchema, ChatUiQueryStateSchema } from './chat.ts';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.

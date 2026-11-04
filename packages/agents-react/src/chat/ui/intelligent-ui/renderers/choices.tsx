@@ -1,9 +1,9 @@
-import { useId, useState } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Check } from 'lucide-react';
 import { uiChoiceLabel, type UiProps } from '@adecore/intelligent-ui';
 import { DisabledReason, formatShortcut, Icon, KEY_SHORTCUTS, Spinner, Tooltip } from '@adecore/ui';
+import clsx from 'clsx';
+import { Check } from 'lucide-react';
+import { useId, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../../host';
 import type { UiRendererProps } from '../render-context';
 import { UiFallbackPart } from '../UiFallbackPart';

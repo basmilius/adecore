@@ -1,5 +1,5 @@
-import { useContext, type ComponentProps, type ReactNode } from 'react';
 import clsx from 'clsx';
+import { useContext, type ComponentProps, type ReactNode } from 'react';
 import { TopRowSlotContext } from './context.ts';
 
 export interface WorkspaceTopRowProps extends Omit<ComponentProps<'header'>, 'children'> {

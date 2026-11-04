@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
-import * as tree from '../packages/plan/src/tree.ts';
-import * as permissions from '../packages/plan/src/permissions.ts';
 import * as apply from '../packages/plan/src/apply.ts';
+import * as permissions from '../packages/plan/src/permissions.ts';
+import * as tree from '../packages/plan/src/tree.ts';
 import { measurePairs } from './paired-performance';
 import { planPermissionCases } from './plan-permission-performance-cases';
 

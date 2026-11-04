@@ -1,8 +1,8 @@
+import { useNow, PreviewCard } from '@adecore/ui';
 import i18next from 'i18next';
 import { useState, type ReactElement } from 'react';
-import { AccountLimitsList } from './LimitsList';
 import { useLimitGroups, useUsageLimits } from './limits';
-import { useNow, PreviewCard } from '@adecore/ui';
+import { AccountLimitsList } from './LimitsList';
 
 const MINUTE_MS = 60_000;
 

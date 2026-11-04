@@ -1,6 +1,6 @@
-import type { Ref } from 'react';
 import clsx from 'clsx';
 import { Maximize, Minus, Plus, Scan, type LucideIcon } from 'lucide-react';
+import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ButtonGroup } from './ButtonGroup.tsx';
 import { Icon } from './Icon.tsx';

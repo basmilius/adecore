@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Search } from 'lucide-react';
 import { Combobox, matchScore } from '@adecore/ui';
+import { Search } from 'lucide-react';
+import { useState } from 'react';
 
 const KEYS: Record<string, { about: string; values: string[] }> = {
     is: { about: 'unresolved, resolved or ignored', values: ['unresolved', 'resolved', 'ignored'] },

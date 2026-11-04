@@ -1,5 +1,5 @@
-import { Bell } from 'lucide-react';
 import { Button, IconButton, Popover } from '@adecore/ui';
+import { Bell } from 'lucide-react';
 
 export default function PopoverDemo() {
     return (

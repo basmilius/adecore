@@ -1,8 +1,8 @@
-import i18next from 'i18next';
-import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
-import type { GitBlameCommit } from './host-types.ts';
+import './test-setup.ts';
+import i18next from 'i18next';
 import { UNCOMMITTED, authorsText, authorshipOf, mapBlame, shortName } from './code-authors.ts';
+import type { GitBlameCommit } from './host-types.ts';
 import dutchWords from './locales/nl.json';
 
 const commit = (author: string, at: number, summary = 'Change'): GitBlameCommit => ({

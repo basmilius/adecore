@@ -1,6 +1,6 @@
+import { Glob, plugin } from 'bun';
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { dirname, join, sep } from 'node:path';
-import { Glob, plugin } from 'bun';
 
 /*
  * What `resolve.dedupe` does for Vite, for `bun test` in an app that links a checkout: a second React,

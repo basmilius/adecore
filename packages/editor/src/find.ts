@@ -1,6 +1,6 @@
 import type { DocumentChange, DocumentModel, FindMatch, TextEdit } from '@adecore/editor-core';
-import { mapOffset } from './offsets.ts';
 import { FindSearchQueue, scheduleFind, type FindSearchOptions } from './find-search.ts';
+import { mapOffset } from './offsets.ts';
 import { EditorSearchError } from './search-client.ts';
 import type { EditorSearchSnapshot } from './search-protocol.ts';
 import { SEARCH_LIMIT, MAX_REPLACEMENT_PAGE, MAX_REPLACEMENT_CHARACTERS } from './search-protocol.ts';

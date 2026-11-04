@@ -1,5 +1,5 @@
-import i18next from 'i18next';
 import type { ChatApprovalItem, ChatItem, ChatQuestionItem, ChatSubagentResult } from '@adecore/agent-contracts';
+import i18next from 'i18next';
 import { isWaiting } from '../state/chats';
 import { errorCode, isConnectionError, type ChatTransport } from '../transport';
 

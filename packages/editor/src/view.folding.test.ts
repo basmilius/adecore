@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { EditorView } from './view.ts';
 import { mount, rendered } from './view.fixture.test.ts';
+import { EditorView } from './view.ts';
 
 describe('folding', () => {
     const text = 'function a() {\n    one();\n    two();\n}\nconst b = 1;\n';

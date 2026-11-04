@@ -1,7 +1,7 @@
-import type { Ref } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
 import { Button, Pill, Switch, Tooltip } from '@adecore/ui';
+import clsx from 'clsx';
+import type { Ref } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export type TransactionMode = 'auto' | 'manual';
 

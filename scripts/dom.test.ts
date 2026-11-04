@@ -1,9 +1,9 @@
+import { Glob } from 'bun';
+import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { Glob } from 'bun';
-import { expect, test } from 'bun:test';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const PRELOAD = './packages/ui/src/file-tree/testing/preload.ts';

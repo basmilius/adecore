@@ -1,7 +1,4 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
-import { act, Children, type ReactElement, type ReactNode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { EditorView } from '@codemirror/view';
 import type {
     ChatInfo,
     ChatItem,
@@ -16,6 +13,9 @@ import type {
 } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { Menu } from '@adecore/ui';
+import { EditorView } from '@codemirror/view';
+import { act, Children, type ReactElement, type ReactNode } from 'react';
+import { createRoot } from 'react-dom/client';
 import {
     ChatHostProvider,
     type ChatActions,
@@ -27,16 +27,16 @@ import {
 } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
-import { useProvidersStore } from '../../state/providers';
 import { useProviderAccountsStore } from '../../state/provider-accounts';
+import { useProvidersStore } from '../../state/providers';
 import { useUsageStore } from '../../state/usage';
 import { ChatTransportError } from '../../transport';
 import type { ChatSendExtras } from '../chat-client';
 import type { Referables } from '../chat-references';
+import { stepEffortFromComposer } from '../composer-effort';
 import { EMPTY_DRAFT, readDraft, writeDraft } from '../drafts';
 import { readChatPreferences, rememberChatPreferences } from '../preferences';
 import { useStash, type StashedPrompt } from '../stash';
-import { stepEffortFromComposer } from '../composer-effort';
 import { Composer } from './Composer';
 
 const SCOPE_ID = 'composer-test';

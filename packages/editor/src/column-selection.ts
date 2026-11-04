@@ -1,5 +1,5 @@
-import { stopCount, xOfStop } from './geometry-stops.ts';
 import type { Selection } from '@adecore/editor-core';
+import { stopCount, xOfStop } from './geometry-stops.ts';
 import { type EditorLayout, TEXT_PADDING } from './layout.ts';
 
 export interface ContentPoint {

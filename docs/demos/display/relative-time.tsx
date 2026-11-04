@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { RelativeTime } from '@adecore/ui';
+import { useState } from 'react';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;

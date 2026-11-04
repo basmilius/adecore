@@ -1,8 +1,5 @@
-import type { Diagnostic } from '@adecore/lsp';
-import { KEY_PRIORITY } from './key-priority.ts';
 import type { EditorContentChange, EditorPosition, EditorReveal } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
-import { isShortcut } from './shortcut-keys.ts';
+import type { Diagnostic } from '@adecore/lsp';
 import {
     comparePositions,
     markerOf,
@@ -14,6 +11,9 @@ import {
     shiftRange,
     type Problem
 } from './diagnostics-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
+import { isShortcut } from './shortcut-keys.ts';
 
 export interface ProblemCounts {
     readonly error: number;

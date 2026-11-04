@@ -1,8 +1,8 @@
-import { type ComponentProps, type ReactElement, type ReactNode } from 'react';
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip';
+import { type ComponentProps, type ReactElement, type ReactNode } from 'react';
 import { Kbd } from './Kbd.tsx';
-import type { Shortcut } from './shortcut.ts';
 import { registerShortcutHint } from './shortcut-hints.ts';
+import type { Shortcut } from './shortcut.ts';
 
 export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 

@@ -1,6 +1,6 @@
-import i18next from 'i18next';
 import type { ChatSubagentStatus, ChatWorkflow, ChatWorkflowAgent } from '@adecore/agent-contracts';
 import { formatElapsedShort } from '@adecore/ui/format';
+import i18next from 'i18next';
 
 /* `waiting` has not started yet; `stopped` was still at work by the last report when the workflow ended. */
 export type WorkflowAgentState = ChatSubagentStatus | 'waiting' | 'stopped';

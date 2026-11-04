@@ -1,5 +1,5 @@
-import { useCallback, useState } from 'react';
 import { AGENT_COLORS, type Editor, type EditorAttributionHover } from '@adecore/editor';
+import { useCallback, useState } from 'react';
 import { EditorFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useEditor } from '../shared/editor.ts';
 

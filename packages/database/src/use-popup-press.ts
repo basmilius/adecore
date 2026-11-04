@@ -1,5 +1,5 @@
-import { useEffect, useRef } from 'react';
 import { isInFloatingLayer } from '@adecore/ui';
+import { useEffect, useRef } from 'react';
 
 /*
  * Catches the click that follows a press in a popup, menu or dialog. When a popup closes on that

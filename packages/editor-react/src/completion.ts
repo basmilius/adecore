@@ -1,12 +1,6 @@
-import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
-import { KEY_PRIORITY } from './key-priority.ts';
-import { SnippetTransformError } from './snippet-transform-client.ts';
-import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK } from './snippet-transform-protocol.ts';
-import { jobTable } from './snippet-field-transforms.ts';
-import { fileUriToPath, StaleResultError, type CompletionContext, type CompletionItem } from '@adecore/lsp';
 import type { EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
-import { comparePositions, sameRange, shiftPosition } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { fileUriToPath, StaleResultError, type CompletionContext, type CompletionItem } from '@adecore/lsp';
+import { PARAMETER_HINTS_COMMAND, isCallItem, planCall, withParentheses, type CallPlan } from './completion-call.ts';
 import {
     completionDocsOf,
     editRangeOf,
@@ -23,18 +17,24 @@ import {
     type Insertion,
     type Ranked
 } from './completion-model.ts';
-import { PARAMETER_HINTS_COMMAND, isCallItem, planCall, withParentheses, type CallPlan } from './completion-call.ts';
-import { compileSnippet } from './snippet.ts';
-import { createSnippetResolver } from './snippet-variables.ts';
-import { wordRangeAt } from './rename-model.ts';
-import { RecentChoices, recentChoicesOf } from './recent-choices.ts';
+import { comparePositions, sameRange, shiftPosition } from './diagnostics-model.ts';
+import type { EditorLanguage } from './editor-language.ts';
+import { messageOf } from './error-message.ts';
+import { KEY_PRIORITY } from './key-priority.ts';
 import { shikiLanguageOf } from './language-ids.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
-import { isEmptyRange } from './proposal-model.ts';
-import { isShortcut } from './shortcut-keys.ts';
 import type { CompletionRow, CompletionView } from './popups.ts';
+import { isEmptyRange } from './proposal-model.ts';
+import { RecentChoices, recentChoicesOf } from './recent-choices.ts';
+import { wordRangeAt } from './rename-model.ts';
+import { isShortcut } from './shortcut-keys.ts';
+import { jobTable } from './snippet-field-transforms.ts';
+import { SnippetTransformError } from './snippet-transform-client.ts';
+import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK } from './snippet-transform-protocol.ts';
+import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
+import { createSnippetResolver } from './snippet-variables.ts';
+import { compileSnippet } from './snippet.ts';
 import { realTimers, type Timers } from './timers.ts';
-import { messageOf } from './error-message.ts';
 
 const METHOD = 'textDocument/completion';
 const START_DELAY_MS = 80;

@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import type { EditorFindState } from '@adecore/editor';
 import { Button, Input } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
-import type { EditorFindState } from '@adecore/editor';
+import { useEffect, useState } from 'react';
 import { EditorFrame } from '../shared/editor-frame.tsx';
 import { SAMPLE, useEditor } from '../shared/editor.ts';
 

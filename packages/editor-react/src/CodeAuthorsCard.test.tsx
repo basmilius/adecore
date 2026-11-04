@@ -1,9 +1,9 @@
 import './test-setup.ts';
 import { afterAll, beforeAll, expect, setSystemTime, test } from 'bun:test';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { setFormatSource, type FormatSource } from '@adecore/ui/format';
 import { fakeFormatSource } from '@adecore/ui/testing';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { LatestCommit } from './CodeAuthorsCard.tsx';
 
 const DAY = 24 * 60 * 60;

@@ -1,16 +1,16 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
-import { createInstance } from 'i18next';
-import { createElement } from 'react';
-import { renderToStaticMarkup } from 'react-dom/server';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { resolveKeymap } from '@adecore/editor/keymap';
 import { StaleResultError } from '@adecore/lsp';
+import { createInstance } from 'i18next';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { ChangeReview } from './ChangeReview.tsx';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
 import { SignatureCard } from './SignatureCard.tsx';
-import { ChangeReview } from './ChangeReview.tsx';
+import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 const uri = 'file:///work/src/example.ts';
 const position = { line: 0, character: 0 };

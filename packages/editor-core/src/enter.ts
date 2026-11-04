@@ -1,5 +1,5 @@
-import type { EditSource } from './edit-source.ts';
 import { editRegions } from './edit-regions.ts';
+import type { EditSource } from './edit-source.ts';
 import { commentSyntax } from './languages.ts';
 import { hasHashComments, isBraced, isPhp, openers } from './lexical.ts';
 import { whitespaceOf } from './line-text.ts';

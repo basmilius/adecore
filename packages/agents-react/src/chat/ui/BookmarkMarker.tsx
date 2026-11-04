@@ -1,13 +1,13 @@
-import { useEffect, useRef } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { Bookmark, Pencil, X } from 'lucide-react';
 import { CHAT_BOOKMARK_LIMITS, type ChatBookmark } from '@adecore/agent-contracts';
-import { nameBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';
-import { bookmarkLabel } from '../logic/bookmarks';
+import { ButtonGroup, Icon, IconButton, Input } from '@adecore/ui';
+import clsx from 'clsx';
+import { Bookmark, Pencil, X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host';
 import { useChatScope } from '../../scope';
-import { ButtonGroup, Icon, IconButton, Input } from '@adecore/ui';
+import { nameBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';
+import { bookmarkLabel } from '../logic/bookmarks';
 
 interface BookmarkMarkerProps {
     chatId: string;

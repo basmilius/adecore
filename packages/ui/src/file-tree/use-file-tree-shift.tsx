@@ -1,7 +1,7 @@
-import { type ReactElement } from 'react';
 import type { FileTree } from '@pierre/trees';
-import { useTreeShift, type TreeShiftSource } from '../tree/use-tree-shift.tsx';
+import { type ReactElement } from 'react';
 import { shiftNeed } from '../tree/shift.ts';
+import { useTreeShift, type TreeShiftSource } from '../tree/use-tree-shift.tsx';
 
 const ROWS = '[data-type="item"]:not([data-item-parked="true"])';
 

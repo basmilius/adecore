@@ -1,5 +1,5 @@
-import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
 import type { Editor, EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
+import { fileUriToPath } from '@adecore/lsp';
 import { comparePositions, shiftPosition } from './diagnostics-model.ts';
 import type { EditorLanguage } from './editor-language.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
@@ -9,9 +9,9 @@ import { indentSnippet } from './snippet-indent.ts';
 import { positionInInsertion } from './snippet-session.ts';
 import { SnippetTransformError } from './snippet-transform-client.ts';
 import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK } from './snippet-transform-protocol.ts';
-import { compileSnippet, tabOrder, type ParsedSnippet, type SnippetTemplate } from './snippet.ts';
+import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
 import { createSnippetResolver } from './snippet-variables.ts';
-import { fileUriToPath } from '@adecore/lsp';
+import { compileSnippet, tabOrder, type ParsedSnippet, type SnippetTemplate } from './snippet.ts';
 
 /* The same limits as an inserted completion item. */
 const MAX_CHARACTERS = 2_000_000;

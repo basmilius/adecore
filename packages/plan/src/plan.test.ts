@@ -1,5 +1,4 @@
 import { describe, expect, test } from 'bun:test';
-import type { Plan, PlanActor, PlanChecks, PlanItem, PlanOp, PlanStep, PlanStepState } from './protocol.ts';
 import {
     applyPlanOps,
     canApply,
@@ -22,6 +21,7 @@ import {
     type PlanDraftText,
     type PlanRefusal
 } from './index.ts';
+import type { Plan, PlanActor, PlanChecks, PlanItem, PlanOp, PlanStep, PlanStepState } from './protocol.ts';
 import { deriveState, locateItem } from './tree.ts';
 
 const NOW = '2026-09-16T14:30:00Z';

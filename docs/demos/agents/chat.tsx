@@ -1,11 +1,11 @@
-import { useEffect } from 'react';
-import { AgentIcon } from '@adecore/agents-react/providers';
+import { useChatScope } from '@adecore/agents-react';
 import { useSubagentTrail } from '@adecore/agents-react/chat';
 import { AccountPill, Composer, LimitPill, SubagentBreadcrumb, SubagentTitleCrumb, SubagentTimeline, Timeline } from '@adecore/agents-react/chat/ui';
-import { useChatScope } from '@adecore/agents-react';
+import { AgentIcon } from '@adecore/agents-react/providers';
 import { useChatRow } from '@adecore/agents-react/state';
-import { AgentDemo } from '../shared/agents.tsx';
+import { useEffect } from 'react';
 import { DEMO_CHAT } from '../shared/agents-host.ts';
+import { AgentDemo } from '../shared/agents.tsx';
 
 function Chat() {
     const scope = useChatScope();

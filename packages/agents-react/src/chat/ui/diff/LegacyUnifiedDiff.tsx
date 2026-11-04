@@ -1,13 +1,13 @@
-import { LegacyDiffPool } from './LegacyDiffPool';
-import { useReviewSettled } from './review-settle';
-import clsx from 'clsx';
-import { FileDiff, PatchDiff } from '@pierre/diffs/react';
 import type { ChatFileChange } from '@adecore/agent-contracts';
 import { ScrollArea } from '@adecore/ui';
+import { FileDiff, PatchDiff } from '@pierre/diffs/react';
+import clsx from 'clsx';
+import { useHostCodeMode } from '../../../host-hooks';
 import { useDiffTheme } from '../diff-theme';
 import { fullFileDiff } from '../full-diff';
 import type { UnifiedDiffProps } from './diff-props';
-import { useHostCodeMode } from '../../../host-hooks';
+import { LegacyDiffPool } from './LegacyDiffPool';
+import { useReviewSettled } from './review-settle';
 
 /*
  * A patch the CLI reported itself. The renderer needs a file header, which a CLI that only sends hunks

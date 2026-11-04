@@ -1,15 +1,15 @@
+import { isModHeld, matchesShortcut } from '@adecore/ui';
 import { indentLess, indentMore, insertNewline } from '@codemirror/commands';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorView } from '@codemirror/view';
-import { isModHeld, matchesShortcut } from '@adecore/ui';
 import type { ChatHost } from '../../../host';
 import type { ComposerSend } from '../../composer-send';
 import type { ChatSendKey } from '../../send-key';
 import { STASH_SHORTCUT } from '../../stash';
 import { pageTimeline } from '../../timeline-scroll';
+import { enterAction, inCode, inFenceBody, inOpenFence, listItemAt, recallDirection, tabSpaces } from './keys';
 import type { ComposerMenus } from './use-composer-menus';
 import type { PromptHistory } from './use-prompt-history';
-import { enterAction, inCode, inFenceBody, inOpenFence, listItemAt, recallDirection, tabSpaces } from './keys';
 
 const SEND_HOW: Readonly<Record<'send' | 'send-alternate' | 'send-and-new', ComposerSend>> = {
     send: 'default',

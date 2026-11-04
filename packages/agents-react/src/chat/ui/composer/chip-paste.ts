@@ -1,6 +1,6 @@
 import type { EditorView } from '@codemirror/view';
-import type { ChatDraft } from '../../drafts';
 import type { Referable } from '../../chat-references';
+import type { ChatDraft } from '../../drafts';
 import {
     chipRanges,
     clipboardChipsOf,

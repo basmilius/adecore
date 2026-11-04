@@ -7,8 +7,8 @@ import { fileExists } from '@adecore/utils/fs';
 import { filledStr as str } from '../fields.ts';
 import { readLines } from '../title-file.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
-import { readingThread, settledReading } from './subagent-projection.ts';
 import type { ThreadProjector } from './projector.ts';
+import { readingThread, settledReading } from './subagent-projection.ts';
 import type { ChatThread } from './thread.ts';
 
 const CHUNK_BYTES = 4 * 1024 * 1024;

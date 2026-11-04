@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { SplitView, type SplitLayout } from '@adecore/ui';
+import { useState } from 'react';
 
 const INITIAL: SplitLayout = {
     root: {

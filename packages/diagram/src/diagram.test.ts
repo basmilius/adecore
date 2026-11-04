@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { DiagramDocument, DiagramEdge, DiagramNode } from './protocol.ts';
 import wire from './fixtures/wire.json';
 import { layersOf, layoutOf, sizeOfNode, type DiagramLayout, type Point, type Rect } from './layout.ts';
+import type { DiagramDocument, DiagramEdge, DiagramNode } from './protocol.ts';
 import { readingOrder } from './reading-order.ts';
 import { shapePaths, textLinesOf } from './shapes.ts';
 import { toSvg } from './svg.ts';

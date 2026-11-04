@@ -1,5 +1,5 @@
-import type { Ref } from 'react';
 import clsx from 'clsx';
+import type { Ref } from 'react';
 import { dropPreviewPath, type DropPreviewShape } from './preview.ts';
 
 export interface DropPreviewProps {

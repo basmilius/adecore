@@ -1,18 +1,18 @@
-import { useState, type FormEvent } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { ChevronRight } from 'lucide-react';
 import type { ProviderInfo } from '@adecore/agent-contracts';
+import { Button, FormError, Icon, Input } from '@adecore/ui';
+import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
+import clsx from 'clsx';
+import { ChevronRight } from 'lucide-react';
+import { useState, type FormEvent } from 'react';
+import { useTranslation } from 'react-i18next';
 import { freeAccountColor, mintAccountId, type AccountEntry, type AccountLogin } from '../agents/accounts';
 import { useChatHost } from '../host';
 import { useChatScope } from '../scope';
-import { createAccount, linkAccount } from './account-actions';
-import { AccountColors } from './AccountColors';
-import { DetailHeader, SettingsRow, SettingsSection } from '@adecore/ui/settings';
-import { Button, FormError, Icon, Input } from '@adecore/ui';
-import { CliTile } from './parts';
 import { providerAccountsOf } from '../state/provider-accounts';
 import { errorMessage } from '../transport';
+import { createAccount, linkAccount } from './account-actions';
+import { AccountColors } from './AccountColors';
+import { CliTile } from './parts';
 
 interface AddAccountFormProps {
     provider: ProviderInfo;

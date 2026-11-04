@@ -1,6 +1,6 @@
 import { describe, expect, jest, spyOn, test } from 'bun:test';
-import type { LineTokenizer } from './types.ts';
 import { setup, settle } from './engine.fixture.test.ts';
+import type { LineTokenizer } from './types.ts';
 
 describe('revealing a line', () => {
     test('puts the cursor at the start of the line', () => {

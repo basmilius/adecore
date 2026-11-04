@@ -4,7 +4,6 @@ import type { DatabaseAction, DatabaseFiles, DatabaseNotice } from '../actions.t
 import type { Connection } from '../client/types.ts';
 import type { DatabaseResponse, StatementResult } from '../protocol/index.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
-import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import {
     MOD,
     byLabel,
@@ -25,6 +24,7 @@ import {
     type,
     waitFor
 } from '../testing/dom/harness.tsx';
+import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import { fakeDatabaseTransport } from '../testing/index.ts';
 import type { QueryConsoleEditorProps } from './editor-slot.ts';
 import { historyKey, parseHistory } from './history.ts';

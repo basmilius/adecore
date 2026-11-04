@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react';
-import clsx from 'clsx';
-import { useTranslation } from 'react-i18next';
-import { FileDiff, GitCommitHorizontal, SquareDashed } from 'lucide-react';
 import type { UiProps } from '@adecore/intelligent-ui';
 import { FileIcon, Icon, Tooltip } from '@adecore/ui';
+import clsx from 'clsx';
+import { FileDiff, GitCommitHorizontal, SquareDashed } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CHIP_IN_MESSAGE } from '../../chips';
 import { uiReasonText } from '../node-text';
 import type { UiLink, UiLinkTarget, UiRenderContext, UiRendererProps } from '../render-context';

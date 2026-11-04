@@ -1,8 +1,8 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { ArrowUpRight, ChevronLeft, ChevronRight, CircleAlert, Download, PanelRight } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Banner, ButtonGroup, ContextMenu, Icon, IconButton, Menu, Spinner } from '@adecore/ui';
 import { formatDecimal, formatNumber } from '@adecore/ui/format';
+import { ArrowUpRight, ChevronLeft, ChevronRight, CircleAlert, Download, PanelRight } from 'lucide-react';
+import { useMemo, useState, type ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { DatabaseNotice } from '../actions.ts';
 import { EXPORT_FORMATS } from '../export-formats.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
@@ -12,8 +12,8 @@ import { ValueDock } from '../grid/ValueDock.tsx';
 import type { Engine, FileFormat, StatementResult } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import type { Reference } from '../table/references.ts';
-import type { ResultKeys } from './result-keys.ts';
 import { ValuePanel } from '../value/ValuePanel.tsx';
+import type { ResultKeys } from './result-keys.ts';
 
 /* What "Copy as SQL INSERT" names the table of a result that comes from no table. */
 const RESULT_TABLE = 'result';

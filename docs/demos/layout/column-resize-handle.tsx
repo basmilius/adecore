@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
 import { ColumnResizeHandle, useColumnResize } from '@adecore/ui';
+import { useRef, useState } from 'react';
 
 export default function ColumnResizeHandleDemo() {
     const column = useRef<HTMLElement>(null);

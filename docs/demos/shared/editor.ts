@@ -1,9 +1,9 @@
-import i18next from 'i18next';
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { createSmartEditorEngine, type Editor, type EditorOptions, type LineToken, type TokenizedLine, type TokenizerSource } from '@adecore/editor';
 import { ProjectLanguage, type EditorLanguage, type ProjectFiles } from '@adecore/editor-react';
-import { FakeLanguageService } from '@adecore/editor-react/testing';
 import editorWords from '@adecore/editor-react/locales/en.json';
+import { FakeLanguageService } from '@adecore/editor-react/testing';
+import i18next from 'i18next';
+import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { i18n } from './i18n.ts';
 
 // The cards read the words through the provider's instance, the features through the global one, so both get them.

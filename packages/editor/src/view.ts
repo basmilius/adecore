@@ -1,5 +1,3 @@
-import { offsetOfStop, xOfStop } from './geometry-stops.ts';
-import { visibleBidi } from './bidi.ts';
 import {
     type DocumentChange,
     type DocumentModel,
@@ -11,8 +9,11 @@ import {
     replacementText,
     type Selection as EditorSelection
 } from '@adecore/editor-core';
-import { createSearchClient, type EditorSearchClientOptions } from './search-client.ts';
+import { type AttributedLines, AttributionRuns, colorValue, tintValue } from './attribution.ts';
+import { visibleBidi } from './bidi.ts';
+import { renderCodeBlock } from './code-block.ts';
 import { FindController } from './find.ts';
+import { offsetOfStop, xOfStop } from './geometry-stops.ts';
 import {
     type BlockReplacement,
     type BlockWidget,
@@ -26,15 +27,9 @@ import {
     subRowBand,
     type VerticalWindow
 } from './layout.ts';
-import { createMetrics, type EditorFont, readEditorFont } from './metrics.ts';
-import { zoomedFont } from './zoom.ts';
-import { type AttributedLines, AttributionRuns, colorValue, tintValue } from './attribution.ts';
-import { renderCodeBlock } from './code-block.ts';
 import { emit, subscribe } from './listeners.ts';
+import { createMetrics, type EditorFont, readEditorFont } from './metrics.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
-import { mapTrackedRange } from './tracked-range.ts';
-import { type ScrollKind, scrollPosition } from './scroll.ts';
-import { easeOut, scrollDuration } from './scroll-animation.ts';
 import { Outline, scopeChain, type StickyPlacement, stickyCover, stickyPlacements, structuralEntries } from './outline.ts';
 import { type OverviewSpan, overviewTicks, paintOverview } from './overview.ts';
 import {
@@ -50,9 +45,13 @@ import {
     type StickyEntry,
     type WrapSign
 } from './paint.ts';
+import { easeOut, scrollDuration } from './scroll-animation.ts';
+import { type ScrollKind, scrollPosition } from './scroll.ts';
+import { createSearchClient, type EditorSearchClientOptions } from './search-client.ts';
 import { overlayTokens, type SemanticSpan } from './semantic.ts';
 import { TodoMarks } from './todos.ts';
 import { TokenCache } from './tokens.ts';
+import { mapTrackedRange } from './tracked-range.ts';
 import type {
     EditorBlock,
     EditorChangeKind,
@@ -73,6 +72,7 @@ import type {
     LineTokenizer,
     ScopeColors
 } from './types.ts';
+import { zoomedFont } from './zoom.ts';
 
 function sameRect(left: EditorRect, right: EditorRect): boolean {
     return left.left === right.left && left.top === right.top && left.right === right.right && left.bottom === right.bottom;

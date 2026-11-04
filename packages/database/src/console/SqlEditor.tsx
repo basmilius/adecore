@@ -1,6 +1,6 @@
-import { useEffect, useImperativeHandle, useRef, type KeyboardEvent } from 'react';
-import clsx from 'clsx';
 import { isApplePlatform, TextArea } from '@adecore/ui';
+import clsx from 'clsx';
+import { useEffect, useImperativeHandle, useRef, type KeyboardEvent } from 'react';
 import { CODE_TEXT } from '../code-text.ts';
 import { applyEdit, indentEdit, newlineEdit, outdentEdit, type TextEdit } from './editing.ts';
 import type { QueryConsoleEditorProps } from './editor-slot.ts';

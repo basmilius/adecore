@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { isDeepStrictEqual } from 'node:util';
 import { appendFile, mkdir, readFile, rename, truncate } from 'node:fs/promises';
 import { join } from 'node:path';
+import { isDeepStrictEqual } from 'node:util';
 import { isNotFound } from '@adecore/utils/errors';
 import { removeFile, writeAtomic } from '@adecore/utils/fs';
 import { errorText } from '../error-text.ts';

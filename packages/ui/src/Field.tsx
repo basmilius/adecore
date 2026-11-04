@@ -1,6 +1,6 @@
-import { useId, type ReactNode, type Ref } from 'react';
-import clsx from 'clsx';
 import { useRender } from '@base-ui/react/use-render';
+import clsx from 'clsx';
+import { useId, type ReactNode, type Ref } from 'react';
 import { FieldContext } from './field-context.ts';
 import { SectionLabel } from './SectionLabel.tsx';
 

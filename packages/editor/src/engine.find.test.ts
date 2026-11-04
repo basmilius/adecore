@@ -1,8 +1,8 @@
 import { describe, expect, test, spyOn } from 'bun:test';
 import { DocumentModel } from '@adecore/editor-core';
-import type { EditorFindQuery, EditorFindState } from './types.ts';
 import { setup as mount } from './engine.fixture.test.ts';
 import { searchWorker, findAsync, findEvent } from './search.fixture.test.ts';
+import type { EditorFindQuery, EditorFindState } from './types.ts';
 
 const setup: typeof mount = (options, engineOptions) => mount(options, { searchWorker, ...engineOptions });
 

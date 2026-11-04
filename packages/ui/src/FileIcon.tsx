@@ -1,5 +1,5 @@
-import { useInsertionEffect, type Ref } from 'react';
 import clsx from 'clsx';
+import { useInsertionEffect, type Ref } from 'react';
 import { fileIconFor, fileIconOverrideFor, mountFileIconSprite } from './file-icon.ts';
 
 export interface FileIconProps {

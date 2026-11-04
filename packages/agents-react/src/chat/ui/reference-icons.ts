@@ -1,4 +1,4 @@
-import { createElement, type ComponentType, type ReactNode } from 'react';
+import { Icon } from '@adecore/ui';
 import {
     Database,
     FileText,
@@ -15,7 +15,7 @@ import {
     Workflow,
     type LucideIcon
 } from 'lucide-react';
-import { Icon } from '@adecore/ui';
+import { createElement, type ComponentType, type ReactNode } from 'react';
 import type { ReferenceIconProps } from '../../host';
 import type { ReferableKind } from '../chat-references';
 

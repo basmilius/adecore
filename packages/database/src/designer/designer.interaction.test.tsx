@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import type { DatabaseAction } from '../actions.ts';
 import type { Connection, SchemaChange } from '../client/types.ts';
 import type { Mounted, RecordedTransport } from '../testing/dom/harness.tsx';
-import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import { MOD, byText, clientOver, click, done, find, findAll, mount, perform, press, recordTransport, type, waitFor } from '../testing/dom/harness.tsx';
+import { SHOP_PATH, shopDatabase } from '../testing/dom/shop.ts';
 import { fakeDatabaseTransport } from '../testing/index.ts';
 import { TableDesigner } from './TableDesigner.tsx';
 

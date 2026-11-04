@@ -1,12 +1,12 @@
-import { labelCollator } from '@adecore/ui/format';
-import type { SnippetTransformJob } from './snippet-transform-protocol.ts';
 import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
 import { applyCompletionDefaults, type CompletionItem, type CompletionResult, type MarkupContent } from '@adecore/lsp';
+import { labelCollator } from '@adecore/ui/format';
 import { comparePositions, sameRange } from './diagnostics-model.ts';
 import { escapeMarkdown, isEmptyHover, splitSignatures, type HoverText } from './hover-content.ts';
 import type { CompletionDocs } from './popups.ts';
-import { compileSnippet, parseSnippet, tabOrder, type SnippetField, type SnippetStop, type SnippetTemplate, type SnippetVariableResolver } from './snippet.ts';
 import { indentSnippet } from './snippet-indent.ts';
+import type { SnippetTransformJob } from './snippet-transform-protocol.ts';
+import { compileSnippet, parseSnippet, tabOrder, type SnippetField, type SnippetStop, type SnippetTemplate, type SnippetVariableResolver } from './snippet.ts';
 
 const IDENTIFIER_CHARACTER = /[\p{L}\p{N}\p{M}_$]/u;
 

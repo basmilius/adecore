@@ -1,7 +1,7 @@
+import { describe, expect, test } from 'bun:test';
 import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, test } from 'bun:test';
 import { scheduledTask } from './definitions.js';
 import { taskSchedulerManager } from './manager.js';
 import { diskFiles, runCommand } from './system.js';

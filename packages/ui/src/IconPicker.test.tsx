@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
+import { Bug, Cloud, GitBranch, Rocket, Server } from 'lucide-react';
 import { act, useState, type ReactNode } from 'react';
 import type { Root } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
-import { Bug, Cloud, GitBranch, Rocket, Server } from 'lucide-react';
 import { setFormatSource, type FormatSource } from './format/locale.ts';
 import { IconPicker, type IconPickerGroup, type IconPickerProps } from './IconPicker.tsx';
 import { fakeFormatSource } from './testing/fake-source.ts';

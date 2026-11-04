@@ -1,6 +1,6 @@
-import { useState, type PointerEvent } from 'react';
 import { boundsOf, boundsOfElements, DEFAULT_SVG_MARGIN, elementAt, handlePoint, RESIZE_HANDLES, toSvg } from '@adecore/drawing';
 import type { DrawingElement } from '@adecore/drawing/protocol';
+import { useState, type PointerEvent } from 'react';
 import { THEME_EDGE, THEME_PALETTE, THEME_PAPER } from '../shared/canvas-theme.ts';
 import { SKETCH } from '../shared/sketch.ts';
 

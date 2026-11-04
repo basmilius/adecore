@@ -1,5 +1,5 @@
-import { useReviewSettled } from './review-settle';
 import { useTranslation } from 'react-i18next';
+import { useReviewSettled } from './review-settle';
 
 export function DiffOmitted({ path }: { path: string }) {
     useReviewSettled();

@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 import { UiBudget } from './budget.ts';
-import { compileUi, compileUiBlock, uiHasFence, uiMayReferenceHost } from './compiler.ts';
 import { UI_CATALOG, UI_CATALOG_VERSION, UI_GROUPS, uiCatalogText } from './catalog.ts';
+import { compileUi, compileUiBlock, uiHasFence, uiMayReferenceHost } from './compiler.ts';
 import { copyUiValue, evaluateUiExpression, parseUiExpression, sameUiValue } from './expression.ts';
-import { evaluateUiBlock, UiState } from './runtime.ts';
 import { UiBlockSchema, UiNodeSchema } from './protocol.ts';
+import { evaluateUiBlock, UiState } from './runtime.ts';
 import { uiCompactCatalog, uiFallbackText, uiGroupReference, uiReferenceText, uiSessionNote } from './text.ts';
 
 function expression(source: string, variables = {}): unknown {

@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { ColorSwatch, Tooltip } from '@adecore/ui';
+import { useState } from 'react';
 
 const COLORS = [
     { name: 'Blue', color: '#2563eb' },

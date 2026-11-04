@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Database, FileCode, House } from 'lucide-react';
 import { Icon, Tabs } from '@adecore/ui';
+import { Database, FileCode, House } from 'lucide-react';
+import { useState } from 'react';
 
 interface Page {
     readonly id: string;

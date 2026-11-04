@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
+import { compileUiBlock } from '@adecore/intelligent-ui';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { z } from 'zod';
-import { compileUiBlock } from '@adecore/intelligent-ui';
 import { ChatHostProvider, type ChatHost } from '../../../host';
 import { UiReply } from './UiReply';
 

@@ -1,6 +1,4 @@
-import { createWorkerRequestClient, WorkerRequestError } from './worker-client.ts';
 import type { FindMatch } from '@adecore/editor-core';
-import type { EditorFindQuery } from './types.ts';
 import {
     SEARCH_LIMIT,
     MAX_REPLACEMENT_PAGE,
@@ -15,6 +13,8 @@ import {
     type EditorSearchResult,
     type EditorSearchSnapshot
 } from './search-protocol.ts';
+import type { EditorFindQuery } from './types.ts';
+import { createWorkerRequestClient, WorkerRequestError } from './worker-client.ts';
 
 export type EditorSearchErrorKind = 'timeout' | 'superseded' | 'unavailable' | 'syntax' | 'range' | 'snapshot' | 'error' | 'disposed';
 

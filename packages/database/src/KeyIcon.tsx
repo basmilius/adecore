@@ -1,6 +1,6 @@
+import { Icon } from '@adecore/ui';
 import clsx from 'clsx';
 import { KeyRound } from 'lucide-react';
-import { Icon } from '@adecore/ui';
 import type { ColumnKeys } from './column-keys.ts';
 
 /*

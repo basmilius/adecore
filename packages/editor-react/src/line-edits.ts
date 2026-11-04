@@ -1,5 +1,5 @@
-import { shapeOf, splitLines } from '@adecore/merge';
 import type { EditorContentChange } from '@adecore/editor';
+import { shapeOf, splitLines } from '@adecore/merge';
 
 /* A replacement of whole lines, zero-based with `to` exclusive, such as a block a review puts back. */
 export interface LineReplacement {

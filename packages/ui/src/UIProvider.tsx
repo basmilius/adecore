@@ -1,5 +1,5 @@
-import { useLayoutEffect, useState, type ReactNode } from 'react';
 import type { i18n as I18n } from 'i18next';
+import { useLayoutEffect, useState, type ReactNode } from 'react';
 import { I18nextProvider } from 'react-i18next';
 import { setFormatSource, type FormatSource } from './format/locale.ts';
 import { addUiResources } from './locales.ts';

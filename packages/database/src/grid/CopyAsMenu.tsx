@@ -1,6 +1,6 @@
+import { ContextMenu, Icon } from '@adecore/ui';
 import { Braces, Copy, Database, FileSpreadsheet, Table2, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { ContextMenu, Icon } from '@adecore/ui';
 import type { CopyFormat } from './copy-formats.ts';
 
 const ICONS: Record<CopyFormat, LucideIcon> = { tsv: Table2, csv: FileSpreadsheet, json: Braces, sql: Database };

@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import i18next from 'i18next';
 import { Select, type SelectProps } from './Select.tsx';
 import { UIProvider } from './UIProvider.tsx';
 

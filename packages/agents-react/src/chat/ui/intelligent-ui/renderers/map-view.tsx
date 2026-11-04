@@ -1,13 +1,13 @@
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { useEffect, useRef, useState } from 'react';
-import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl';
-import { Maximize, Minus, Plus } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { ButtonGroup, IconButton } from '@adecore/ui';
+import { Maximize, Minus, Plus } from 'lucide-react';
+import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl';
+import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useChatHost, type UiMapSource } from '../../../../host';
+import { useHostCodeMode } from '../../../../host-hooks';
 import { watchTheme } from '../../theme-watch';
 import { baseMapStyle, boundsOf, localizedTextField, mapFitOptions, spreadOverlaps, type MapColors, type MapPoint } from './map-style';
-import { useHostCodeMode } from '../../../../host-hooks';
 
 /*
  * What the view is drawing: `base` by the source's choice, `offline` and `unavailable` as a fallback from tiles that

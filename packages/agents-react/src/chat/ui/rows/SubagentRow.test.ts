@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import type { ChatItem, ChatSubagentItem, ChatToolItem } from '@adecore/agent-contracts';
+import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { parseHTML } from 'linkedom';
-import type { ChatItem, ChatSubagentItem, ChatToolItem } from '@adecore/agent-contracts';
 import { ChatHostProvider } from '../../../host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { SubagentRow } from './SubagentRow';

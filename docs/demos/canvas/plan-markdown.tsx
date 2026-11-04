@@ -1,6 +1,6 @@
-import { useState } from 'react';
 import { createPlan, parsePlanMarkdown, renderPlanText } from '@adecore/plan';
 import { ScrollArea, TextArea } from '@adecore/ui';
+import { useState } from 'react';
 
 const MARKDOWN = `# Ship the release
 

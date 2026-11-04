@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react';
 import { useWorkerPool } from '@pierre/diffs/react';
+import type { ReactNode } from 'react';
 import { useChatHost } from '../../../host';
 import DiffPool from '../DiffPool';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, setSystemTime } from 'bun:test';
-import { ContentLengthDecoder, connectWebSocket, createMemoryTransportPair, createStreamTransport, encodeMessage, type ByteStream } from './transport.ts';
 import type { RpcMessage } from './protocol.ts';
+import { ContentLengthDecoder, connectWebSocket, createMemoryTransportPair, createStreamTransport, encodeMessage, type ByteStream } from './transport.ts';
 
 const hello: RpcMessage = { jsonrpc: '2.0', method: 'hello', params: { text: '🙂 é' } };
 

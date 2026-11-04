@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, setSystemTime, spyOn, test } from 'bun:test';
+import { DocumentModel } from '@adecore/editor-core';
 import { createHighlighter, type Highlighter } from 'shiki';
 import { loadGrammar, shikiTokenizers } from './shiki.ts';
-import { DocumentModel } from '@adecore/editor-core';
 import { TokenCache } from './tokens.ts';
 
 // A stopped clock, so a slow runner cannot reach the time limit Shiki puts on a line.
