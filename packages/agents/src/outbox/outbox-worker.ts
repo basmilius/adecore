@@ -146,7 +146,7 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
                 busy.add(lane);
             }
 
-            // The other lanes only wait for work that is running; work that is merely owed there is what ending takes away.
+            // The other lanes only wait for work that is running; work that is only owed there is what ending takes away.
             if (lanes.some((lane) => lane !== entry.target && this.running.has(lane))) {
                 continue;
             }

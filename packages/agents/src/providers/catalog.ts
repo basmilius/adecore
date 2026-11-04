@@ -25,9 +25,10 @@ function profileIn(data: ModelCatalogInput, slug: string): ModelCatalogProfile |
 }
 
 /*
- * The agent's models in the agent's order, with the agent's default. A model the base knows keeps how the base names
- * it and its profile, with the size it reported where that profile names none; every other one gets the profile of the base's default, with the context window it reported as
- * its only size. The options an agent reports replace the profile's options of the same id either way.
+ * The agent's models in the agent's order, with the agent's default. A model the base knows keeps the base's name
+ * and profile, and takes the size the agent reported where that profile names none. Every other model gets the
+ * profile of the base's default, with the context window the agent reported as its only size. Either way, the
+ * options an agent reports replace the profile's options of the same id.
  */
 function compose(base: ModelCatalogInput, adopted: Adopted): ModelCatalogInput {
     const replaced = new Set(adopted.options.map((option) => option.id));

@@ -1,8 +1,8 @@
 import { z } from 'zod';
 import { AgentKindSchema, type AgentKind } from './agent.ts';
 
-// Options a model exposes (effort, context window, thinking). Generic descriptors instead of
-// per-provider enums: a new model is a catalog entry, not a code change.
+// Options a model exposes (effort, context window, thinking). Generic descriptors rather than
+// per-provider enums, so a new model needs a catalog entry and no code change.
 export const ModelOptionChoiceSchema = z.object({
     id: z.string().min(1),
     label: z.string(),
@@ -97,7 +97,7 @@ export const RuntimeModeSchema = z.enum(['supervised', 'auto-accept-edits', 'aut
 export type RuntimeMode = z.infer<typeof RuntimeModeSchema>;
 
 // What a provider's CLI can do, so a client never offers what it would drop and the daemon
-// never asks for what the protocol has no room for. Read by the composer and the thread rows.
+// never asks for what the protocol has no room for.
 export const ProviderCapabilitiesSchema = z.object({
     // Where this CLI can be opened: as a chat node, as a terminal node, or both.
     chat: z.boolean(),
@@ -217,9 +217,9 @@ export const ProviderListResultSchema = z.object({
 export type ProviderListResult = z.infer<typeof ProviderListResultSchema>;
 
 /*
- * Fills a provider's resume template; the id is quoted so a shell takes it as one word. `{flags}` is
- * a word of its own rather than a substring, since it stands for none, one or several words and a
- * substitution would leave a double space behind where a launch carries no flags at all.
+ * Fills a provider's resume template and quotes the id, so a shell takes it as one word. `{flags}`
+ * must be a word of its own. It stands for zero or more words, so replacing it as a substring would
+ * leave a double space where a launch carries no flags.
  */
 export function resumeCommandFor(template: string, agentSessionId: string, flags: string[] = []): string {
     const id = `'${agentSessionId.replaceAll("'", `'\\''`)}'`;

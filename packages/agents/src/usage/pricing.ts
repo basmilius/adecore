@@ -56,7 +56,7 @@ function rate(value: unknown): number | null {
 }
 
 /*
- * The LiteLLM table as this app needs it: the Anthropic and OpenAI chat and responses models, keyed
+ * The LiteLLM table as the host needs it: the Anthropic and OpenAI chat and responses models, keyed
  * by the lowercase name and by the bare name behind a provider prefix. A model priced on one side
  * only is dropped, because half a price reads as a cheap model rather than an unknown one.
  */
@@ -302,7 +302,7 @@ export class PriceBook {
             const table = parsePriceTable(document);
 
             if (table.size === 0) {
-                throw new Error('The LiteLLM table held no model this app prices');
+                throw new Error('The LiteLLM table held no model the host prices');
             }
 
             this.table = table;

@@ -176,11 +176,11 @@ function permissionResult(frame: unknown): PermissionResult {
 }
 
 /*
- * Claude Code driven through the Claude Agent SDK. The CLI is the person's own: the SDK starts the launch
- * command through `launch.spawn`, never the binary it bundles. The process
- * stays alive between turns; the session starts a new backend with a resume when it needs one, which is
- * also how a changed model takes effect. The SDK's messages are the CLI's frames, so `ClaudeProtocol`
- * reads them, and a permission request reaches it as the `can_use_tool` frame the SDK answered through `canUseTool`.
+ * Claude Code driven through the Claude Agent SDK. The CLI is the person's own, so the SDK starts the
+ * launch command through `launch.spawn` and never the binary it bundles. The process stays alive between
+ * turns; the session starts a new backend with a resume when it needs one, which is also how a changed
+ * model takes effect. The SDK's messages are the CLI's frames, so `ClaudeProtocol` reads them. A
+ * permission request reaches it as the `can_use_tool` frame the SDK answered through `canUseTool`.
  */
 export class ClaudeBackend implements ChatBackend {
     readonly acknowledgesTurns = true;

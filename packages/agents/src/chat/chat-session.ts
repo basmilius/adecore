@@ -1063,7 +1063,7 @@ export class ChatSession {
                 effectiveRuntimeMode: undefined,
                 permissionMode: undefined,
                 slashCommands: [],
-                // The next CLI starts on the current pick, so the window the one that just went reported is not its.
+                // The next CLI starts on the current pick, so the window the previous CLI reported no longer applies.
                 usage: {
                     ...usage,
                     contextTokens: 0,

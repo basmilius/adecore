@@ -8,7 +8,7 @@ export type BackgroundWork = ChatSubagentItem | ChatToolItem;
  * background (Claude's `run_in_background`, every agent Codex spawns) and a Claude workflow, whose call
  * answers at launch. A command or a monitor sent to the background is not work of this kind but a
  * `ChatBackgroundTask` in the chat's info, held to `BACKGROUND_COMMAND_LIMIT_MS`; a row the host drew for
- * work it delegated itself (origin `ruimte` on the wire) is that work's own.
+ * work it delegated itself (`HOST_TASK_ORIGIN`) is that work's own.
  */
 export function isBackgroundWork(item: ChatItem): item is BackgroundWork {
     return (item.kind === 'subagent' && item.background && item.origin !== HOST_TASK_ORIGIN) || (item.kind === 'tool' && item.name === 'Workflow');

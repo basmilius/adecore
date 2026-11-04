@@ -11,7 +11,7 @@ A host for agent chats in Node, Bun or an Electron utility process. It runs Clau
 bun add @adecore/agents @adecore/agent-contracts
 ```
 
-The package brings no CLI: install Claude Code or Codex and sign in with it.
+The package brings no CLI. Install Claude Code or Codex and sign in with it.
 
 ## Use
 

@@ -54,7 +54,7 @@ async function checkedPath(cwd: string, path: string, signal?: AbortSignal, crea
             break;
         }
         if ((await lstat(target)).isSymbolicLink()) {
-            throw new Error('Symbolic links are unavailable in this PoC.');
+            throw new Error('Symbolic links are not supported.');
         }
     }
     await verifyPath(root, create ? dirname(target) : target);

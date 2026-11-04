@@ -942,9 +942,9 @@ export class ChatCore {
     }
 
     /*
-     * Stops a running subagent, using `stopNode` for a host task. The CLI that started its own subagent ends it with `stop_task`
-     * and the parent keeps working. Without such a process the row is only marked, and only while no
-     * turn runs: stopping that turn is the composer's Stop.
+     * Stops a running subagent, through `stopNode` for a host task. The CLI that started its own subagent
+     * ends it with `stop_task` and the parent keeps working. Without such a process the row is only
+     * marked, and only while no turn runs, since stopping that turn is the composer's Stop.
      */
     async stopSubagent(chatId: string, toolUseId: string, stopNode?: (nodeId: string, reason: string) => Promise<void>): Promise<void> {
         await this.loaded(chatId);
@@ -1483,10 +1483,10 @@ export class ChatCore {
     }
 
     /*
-     * Puts a chat nobody needs in memory back on disk alone: nobody reads it, it has no CLI, no turn,
-     * request, hold or move is under way, no resume is owed and it holds no preamble that is asked
-     * again before it is said (`NoteDelivery.holds`). Answers whether it left. The next
-     * create, attach or note loads it again from its record, as after a restart.
+     * Leaves a chat on disk alone once memory has no use for it. That holds when nobody reads it, it
+     * has no CLI, no turn, request, hold or move is under way, no resume is owed, and it holds no
+     * preamble that is asked again before it is said (`NoteDelivery.holds`). Answers whether it left.
+     * The next create, attach or note loads it again from its record, as after a restart.
      */
     async unloadIdle(chatId: string): Promise<boolean> {
         this.cancelUnload(chatId);

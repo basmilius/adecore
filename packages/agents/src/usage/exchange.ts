@@ -28,8 +28,8 @@ export function parseRate(document: unknown, currency: string): Omit<UsageRate, 
 
 /*
  * What a dollar is worth in euros, asked of the ECB through frankfurter.app once a day and kept on
- * disk between runs. It is the same shape as the price table: the page works without it and simply
- * stays in dollars, so nothing here is allowed to hold up a scan or fail one.
+ * disk between runs. Like the price table, it is optional. The page works without it and stays in
+ * dollars, so nothing here may hold up a scan or fail one.
  */
 export class ExchangeRates {
     private readonly home: string;

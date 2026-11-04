@@ -356,7 +356,7 @@ export class UsageScanner {
                         changedFiles += 1;
                     }
                 } catch (e) {
-                    // One unreadable transcript is not the root failing; the count simply misses it.
+                    // One unreadable transcript is not the root failing; the count misses only that one.
                     failure ??= errorText(e);
                 }
             }

@@ -85,9 +85,9 @@ export const API_TOOLS: readonly ApiToolDefinition[] = [
 ];
 
 /*
- * The mode a chat on a plain API really works in. `auto` is a CLI's own classifier deciding what is safe, which
- * a plain API has none of, so it takes the narrower mode that has a rule here instead of guessing: reads and
- * edits go through, a command still asks.
+ * The mode a chat on a plain API works in. `auto` is a CLI's own classifier deciding what is safe, which a
+ * plain API lacks, so it takes the narrower mode that has a rule here instead of guessing. Reads and edits go
+ * through, and a command still asks.
  */
 export function apiEffectiveMode(mode: RuntimeMode): RuntimeMode {
     return mode === 'auto' ? 'auto-accept-edits' : mode;
