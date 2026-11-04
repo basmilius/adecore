@@ -1,26 +1,4 @@
-/*
- * How an error reaches a log, a note or a reply. Bun prints an Error object handed to the console with a
- * code frame of the bundle it came from, which in a compiled binary is a few lines of minified source,
- * so an error is always turned into a string first.
- */
-
-/** The message of an error, or its whole stack with `debug` set. */
-export function describeError(error: unknown, debug: boolean): string {
-    if (!(error instanceof Error)) {
-        return String(error);
-    }
-
-    if (debug) {
-        return error.stack ?? `${error.name}: ${error.message}`;
-    }
-
-    return error.message === '' ? error.name : error.message;
-}
-
-/* What was thrown, as an Error a rejection can carry. */
-export function asError(thrown: unknown): Error {
-    return thrown instanceof Error ? thrown : new Error(String(thrown));
-}
+import { describeError } from '@adecore/utils/errors';
 
 // The host decides once whether a stack is worth showing; the package reads no variable of its own.
 let showStacks = false;

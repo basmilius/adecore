@@ -3,8 +3,8 @@ import { open, readdir, readFile, realpath, stat } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, parse } from 'node:path';
 import type { AgentKind, ChatSkill, ChatSkillSource } from '@adecore/agent-contracts';
-import { wait } from './async.ts';
-import { hasErrorCode, isNotFound } from './fs.ts';
+import { wait } from '@adecore/utils/async';
+import { hasErrorCode, isNotFound } from '@adecore/utils/errors';
 
 export interface SkillRoot {
     dir: string;

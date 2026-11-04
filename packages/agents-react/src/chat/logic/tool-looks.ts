@@ -1,7 +1,7 @@
 import type { ChatToolItem } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import type { ToolLook, ToolLookMatch } from '../../host';
 import type { CommandLookWord, LookRun } from './command-looks';
-import { isRecord } from './json';
 
 // A value keeps this many characters of what it says.
 const FOLD_LENGTH = 40;

@@ -12,10 +12,11 @@ import {
     type VisualLayout
 } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import { isNotFound, writeAtomic } from '../fs.ts';
-import { KeyedSerializer } from '../serializer.ts';
 import type { AttachmentStore } from './attachment-store.ts';
 import { ChatError } from './errors.ts';
+import { isNotFound } from '@adecore/utils/errors';
+import { writeAtomic } from '@adecore/utils/fs';
+import { KeyedSerializer } from '@adecore/utils/async';
 
 const SUFFIX = '.visuals.json';
 

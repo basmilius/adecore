@@ -299,6 +299,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
         ]),
         group('Reference', [['Exports', '/agents-react/reference']])
     ],
+    '/utils/': [group('Utils', [['Overview', '/utils/']])],
     '/merge/': [
         group('Merge', [
             ['Overview', '/merge/'],

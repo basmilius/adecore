@@ -1,6 +1,6 @@
 import type { AgentKind } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/agent-contracts';
-import { withTimeout } from '../../async.ts';
+import { withTimeout } from '@adecore/utils/async';
 import { filledStr as text } from '../../fields.ts';
 import { CodexTransport, type CodexClientInfo } from '../../chat/codex-transport.ts';
 import { runProcess } from '../../run-process.ts';

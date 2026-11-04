@@ -26,6 +26,11 @@ export class Serializer {
 export class KeyedSerializer {
     private readonly chains = new Map<string, Promise<unknown>>();
 
+    /* How many keys still have work queued or running. */
+    get size(): number {
+        return this.chains.size;
+    }
+
     run<T>(key: string, work: () => Promise<T>): Promise<T> {
         const previous = this.chains.get(key) ?? Promise.resolve();
         const next = previous.then(work, work);

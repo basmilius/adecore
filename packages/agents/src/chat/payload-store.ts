@@ -5,7 +5,8 @@ import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { gunzip, gzip, gzipSync } from 'node:zlib';
 import { CHAT_PAYLOAD_INLINE_BYTES, ChatCheckpointDiffSchema, type ChatCheckpointDiff, type ChatItem, type ChatPayloadRef } from '@adecore/agent-contracts';
-import { isNotFound, writeAtomic, writeAtomicSync } from '../fs.ts';
+import { isNotFound } from '@adecore/utils/errors';
+import { writeAtomic, writeAtomicSync } from '@adecore/utils/fs';
 import { ChatError } from './errors.ts';
 
 /* How much of a value stored apart the item keeps: what a timeline shows before anyone asks for the rest. */

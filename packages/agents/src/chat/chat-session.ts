@@ -37,9 +37,10 @@ import type { SubagentSettlement } from './subagent-settlement.ts';
 import { turnHop } from '../messages/deliver-notice.ts';
 import { ChatThread } from './thread.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
-import { asError, errorText } from '../error-text.ts';
+import { errorText } from '../error-text.ts';
 import { systemClock, type OutboxClock } from '../outbox/outbox-worker.ts';
 import { cleanTitle } from '../title-file.ts';
+import { asError } from '@adecore/utils/errors';
 
 /* What a host keeps of a chat's turns in git (or anything like it), so a turn can show what it changed. */
 export interface TurnCheckpoints {

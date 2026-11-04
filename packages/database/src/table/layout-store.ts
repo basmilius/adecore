@@ -1,3 +1,4 @@
+import { isRecord } from '@adecore/utils/record';
 import type { GridLayout } from '../grid/column-layout.ts';
 import type { StoredFilter } from './command-field.ts';
 import { PAGE_SIZES } from './paging.ts';
@@ -22,8 +23,6 @@ export const EMPTY_LAYOUT: StoredLayout = { widths: {}, hidden: [], pinned: [], 
 export const layoutStorageKey = (connectionId: string, schema: string, table: string): string => `database:table:${connectionId}:${schema}.${table}`;
 
 const isStringList = (value: unknown): value is string[] => Array.isArray(value) && value.every((item) => typeof item === 'string');
-
-const isRecord = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === 'object' && !Array.isArray(value);
 
 const isStoredFilter = (value: unknown): value is StoredFilter =>
     isRecord(value) && typeof value.text === 'string' && typeof value.sql === 'string' && value.sql.trim() !== '';

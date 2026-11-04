@@ -99,7 +99,8 @@ export default defineConfig({
             category('Platform', [
                 ['Shell', 'shell'],
                 ['Service', 'service'],
-                ['Database', 'database']
+                ['Database', 'database'],
+                ['Utils', 'utils']
             ]),
             category('Canvas', [
                 ['Drawing', 'drawing'],

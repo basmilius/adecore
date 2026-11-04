@@ -1,7 +1,7 @@
+import { isRecord } from '@adecore/utils/record';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore } from '../storage';
 import { uploadBytes } from './attachments';
 import { isEmptyDraft, type ChatDraft } from './drafts';
-import { isRecord } from './logic/json';
 import { persistedJson } from './persisted-json';
 import { withQuote } from './quote';
 import { shortcut } from '@adecore/ui';

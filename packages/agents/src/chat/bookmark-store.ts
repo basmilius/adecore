@@ -2,8 +2,9 @@ import { mkdir, readFile, rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { CHAT_BOOKMARK_LIMITS, ChatBookmarksSchema, clipText, type ChatBookmark } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import { isNotFound, writeAtomic } from '../fs.ts';
-import { KeyedSerializer } from '../serializer.ts';
+import { isNotFound } from '@adecore/utils/errors';
+import { writeAtomic } from '@adecore/utils/fs';
+import { KeyedSerializer } from '@adecore/utils/async';
 import { ChatError } from './errors.ts';
 
 const SUFFIX = '.bookmarks.json';

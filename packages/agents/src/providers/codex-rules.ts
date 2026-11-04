@@ -1,7 +1,8 @@
 import { mkdir, readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { isNotFound } from '@adecore/utils/errors';
+import { writeAtomic } from '@adecore/utils/fs';
 import { errorText } from '../error-text.ts';
-import { isNotFound, writeAtomic } from '../fs.ts';
 import { homeFolder } from '../home-folder.ts';
 
 /*

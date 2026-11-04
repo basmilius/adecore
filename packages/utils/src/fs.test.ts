@@ -3,12 +3,12 @@ import * as crypto from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { entryExists, fileExists, hasErrorCode, removeFile, tempNameFor, writeAtomic, writeAtomicSync } from './fs.ts';
+import { entryExists, fileExists, isBusyRename, removeFile, replaceSync, tempNameFor, writeAtomic, writeAtomicSync } from './fs.ts';
 
 let dir: string;
 
 beforeEach(async () => {
-    dir = await mkdtemp(join(tmpdir(), 'ruimte-fs-'));
+    dir = await mkdtemp(join(tmpdir(), 'adecore-fs-'));
 });
 
 afterEach(async () => {
@@ -97,18 +97,25 @@ describe('removeFile', () => {
     });
 });
 
-describe('hasErrorCode', () => {
-    test('matches the code of an error against any of the codes given', () => {
-        const error = Object.assign(new Error('gone'), { code: 'ENOENT' });
+describe('isBusyRename', () => {
+    test('counts a file another process holds, never running out of descriptors', () => {
+        const coded = (code: string) => Object.assign(new Error(code), { code });
 
-        expect(hasErrorCode(error, 'ENOENT')).toBe(true);
-        expect(hasErrorCode(error, 'EXDEV', 'ENOENT')).toBe(true);
-        expect(hasErrorCode(error, 'EXDEV')).toBe(false);
+        expect(['EPERM', 'EBUSY', 'EACCES'].map((code) => isBusyRename(coded(code)))).toEqual([true, true, true]);
+        expect(['EMFILE', 'ENFILE', 'ENOENT'].map((code) => isBusyRename(coded(code)))).toEqual([false, false, false]);
     });
+});
 
-    test('is false for a value without a code', () => {
-        expect(hasErrorCode(new Error('plain'), 'ENOENT')).toBe(false);
-        expect(hasErrorCode(null, 'ENOENT')).toBe(false);
-        expect(hasErrorCode('ENOENT', 'ENOENT')).toBe(false);
+describe('replaceSync', () => {
+    test('moves the file over the target', async () => {
+        const temp = join(dir, 'next.tmp');
+        const target = join(dir, 'state.json');
+        await writeFile(temp, 'new');
+        await writeFile(target, 'old');
+
+        replaceSync(temp, target);
+
+        expect(await readFile(target, 'utf8')).toBe('new');
+        expect(await readdir(dir)).toEqual(['state.json']);
     });
 });

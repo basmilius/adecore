@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { withDeadline } from '../../async.ts';
+import { withDeadline } from '@adecore/utils/async';
 import { DEFAULT_ACP_CLIENT, type AcpClientInfo } from '../../chat/acp-backend.ts';
 import {
     ACP_AUTH_REQUIRED,

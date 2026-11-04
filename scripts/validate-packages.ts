@@ -8,6 +8,9 @@ import { dependencyOrder, discoverPackages, repositoryRoot, type PackageManifest
 
 /* What a consumer runs against each packed package that is selected, in this order. */
 const SMOKE_CHECKS: Record<string, string> = {
+    '@adecore/utils': `const { isBelow } = await import('@adecore/utils/path');
+assert.equal(isBelow('/project', '/project/..cache'), true); assert.equal(isBelow('/project', '/project/../other'), false);
+const { KeyedSerializer } = await import('@adecore/utils/async'); assert.equal(new KeyedSerializer().size, 0);`,
     '@adecore/service': `const service = await import('@adecore/service');
 const spec = { label: 'com.example.worker', description: 'Example worker', program: process.execPath, args: [], environment: {}, workingDirectory: process.cwd(), logFile: '/tmp/example.log' };
 assert.match(service.systemdUnit(spec), /Description=Example worker/);

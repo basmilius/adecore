@@ -37,6 +37,9 @@
     "typecheck": "bun check --no-script",
     "test": "bun test"
   },
+  "dependencies": {
+    "@adecore/utils": "workspace:*"
+  },
   "peerDependencies": {
     "electron": ">=44",
     "electron-updater": "^6.8.9"

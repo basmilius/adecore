@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { writeAtomic } from './fs.ts';
+import { writeAtomic } from '@adecore/utils/fs';
 import { RecordDirectory, type RecordDirectoryOptions, recordFileName } from './record-directory.ts';
 
 const RecordSchema = z.object({ id: z.string(), text: z.string() });

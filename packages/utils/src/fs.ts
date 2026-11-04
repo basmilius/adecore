@@ -3,6 +3,7 @@ import { closeSync, openSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { lstat, open, rename, rm, stat } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { wait } from './async.ts';
+import { hasErrorCode } from './errors.ts';
 
 // Windows can refuse a rename while a watcher or an indexer holds the target; a few short retries cover it.
 const RENAME_RETRIES = 5;
@@ -13,11 +14,8 @@ function sleepSync(ms: number): void {
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
-export function hasErrorCode(e: unknown, ...codes: string[]): boolean {
-    return typeof e === 'object' && e !== null && 'code' in e && codes.includes(e.code as string);
-}
-
-function isTransient(e: unknown): boolean {
+/* Whether a rename failed because another process holds the file open for a moment, as Windows reports it. */
+export function isBusyRename(e: unknown): boolean {
     return hasErrorCode(e, 'EPERM', 'EBUSY', 'EACCES');
 }
 
@@ -46,7 +44,7 @@ async function createTemp(target: string, mode: number) {
 }
 
 // Windows cannot open a directory to flush it, and NTFS journals the rename itself.
-async function syncDirectory(path: string): Promise<void> {
+export async function syncDirectory(path: string): Promise<void> {
     if (process.platform === 'win32') {
         return;
     }
@@ -85,7 +83,7 @@ export async function writeAtomic(target: string, content: string | Uint8Array, 
 
                 break;
             } catch (e) {
-                if (!isTransient(e) || attempt >= RENAME_RETRIES) {
+                if (!isBusyRename(e) || attempt >= RENAME_RETRIES) {
                     throw e;
                 }
 
@@ -113,7 +111,7 @@ export function replaceSync(temp: string, target: string): void {
 
             return;
         } catch (e) {
-            if (!isTransient(e) || attempt >= RENAME_RETRIES) {
+            if (!isBusyRename(e) || attempt >= RENAME_RETRIES) {
                 throw e;
             }
 
@@ -151,10 +149,6 @@ export function writeAtomicSync(target: string, content: string | Uint8Array, mo
             rmSync(temp, { force: true });
         }
     }
-}
-
-export function isNotFound(e: unknown): boolean {
-    return hasErrorCode(e, 'ENOENT');
 }
 
 // Bun on Windows fails a forced rm with EFAULT while another delete of the same file is pending; it goes either way.

@@ -1,12 +1,12 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
-export { wait, withTimeout, cancellableTimeout, unrefTimeout, type Timer } from './async.ts';
+// The generic helpers moved to @adecore/utils; these names stay until every app imports them from there.
+export { wait, withTimeout, cancellableTimeout, unrefTimeout, type Timer, Serializer, KeyedSerializer, SingleFlight } from '@adecore/utils/async';
+export { describeError, hasErrorCode, isNotFound } from '@adecore/utils/errors';
+export { tempNameFor, writeAtomic, replaceSync, writeAtomicSync, fileExists, entryExists, type WriteAtomicOptions } from '@adecore/utils/fs';
 export { CodedError } from './coded-error.ts';
-export { describeError, setErrorStacks, errorText } from './error-text.ts';
-export { tempNameFor, writeAtomic, replaceSync, writeAtomicSync, hasErrorCode, isNotFound, fileExists, entryExists, type WriteAtomicOptions } from './fs.ts';
+export { setErrorStacks, errorText } from './error-text.ts';
 export { RecordDirectory, type RecordDirectoryOptions } from './record-directory.ts';
 export { runProcess, type ProcessResult, type RunProcessOptions } from './run-process.ts';
-export { Serializer, KeyedSerializer } from './serializer.ts';
-export { SingleFlight } from './single-flight.ts';
 export { cleanTitle, readLines } from './title-file.ts';
 
 export {

@@ -1,4 +1,7 @@
-import { asError } from './error-text.ts';
+import { asError } from './errors.ts';
+
+export { KeyedSerializer, Serializer } from './serializer.ts';
+export { SingleFlight } from './single-flight.ts';
 
 /*
  * Resolves after `ms`, or at once when the signal is raised. An abort resolves instead of rejecting:

@@ -1,8 +1,9 @@
 import { mkdir, readdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { z } from 'zod';
-import { isNotFound, removeFile, writeAtomic } from './fs.ts';
-import { KeyedSerializer } from './serializer.ts';
+import { isNotFound } from '@adecore/utils/errors';
+import { removeFile, writeAtomic } from '@adecore/utils/fs';
+import { KeyedSerializer } from '@adecore/utils/async';
 
 // The id is a node id or a chat id a client chose, so it is encoded before it becomes a file name.
 export function recordFileName(id: string): string {

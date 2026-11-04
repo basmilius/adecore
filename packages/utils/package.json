@@ -1,0 +1,60 @@
+{
+    "name": "@adecore/utils",
+    "version": "0.0.0",
+    "description": "Small helpers without dependencies: atomic file writes, path containment, async ordering and error reading.",
+    "license": "FSL-1.1-MIT",
+    "author": "Bas Milius",
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/basmilius/adecore.git",
+        "directory": "packages/utils"
+    },
+    "bugs": {
+        "url": "https://github.com/basmilius/adecore/issues"
+    },
+    "homepage": "https://adecore.dev/utils/",
+    "type": "module",
+    "sideEffects": false,
+    "files": [
+        "dist",
+        "src",
+        "!src/**/*.test.ts"
+    ],
+    "exports": {
+        "./async": {
+            "source": "./src/async.ts",
+            "types": "./dist/async.d.ts",
+            "default": "./dist/async.js"
+        },
+        "./errors": {
+            "source": "./src/errors.ts",
+            "types": "./dist/errors.d.ts",
+            "default": "./dist/errors.js"
+        },
+        "./fs": {
+            "source": "./src/fs.ts",
+            "types": "./dist/fs.d.ts",
+            "default": "./dist/fs.js"
+        },
+        "./path": {
+            "source": "./src/path.ts",
+            "types": "./dist/path.d.ts",
+            "default": "./dist/path.js"
+        },
+        "./record": {
+            "source": "./src/record.ts",
+            "types": "./dist/record.d.ts",
+            "default": "./dist/record.js"
+        }
+    },
+    "scripts": {
+        "build": "bun scripts/build.ts",
+        "typecheck": "bun check --no-script",
+        "test": "bun test --conditions=source"
+    },
+    "devDependencies": {
+        "@types/bun": "^1.4.4",
+        "@types/node": "^26.6.6",
+        "typescript": "^7.0.2"
+    }
+}

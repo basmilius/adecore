@@ -1,5 +1,6 @@
 import { realpath, readFile, stat } from 'node:fs/promises';
-import { extname, isAbsolute, join, relative, resolve } from 'node:path';
+import { extname, join, resolve } from 'node:path';
+import { isBelow } from '@adecore/utils/path';
 import type { CustomScheme } from 'electron';
 import { appWindowNavigation, isAppSender, originOf, type NavigationVerdict, type SenderFrame } from './web-guards.ts';
 
@@ -124,12 +125,6 @@ export const segmentsOf = (pathname: string): string[] | null => {
     return segments;
 };
 
-const isInside = (root: string, path: string): boolean => {
-    const between = relative(root, path);
-
-    return between !== '' && !between.startsWith('..') && !isAbsolute(between);
-};
-
 /*
  * Registers nothing by itself: the app hands `privileged` to `protocol.registerSchemesAsPrivileged`
  * before it is ready and `handle` to `protocol.handle`, on the sessions it picks. Every file it serves
@@ -152,7 +147,7 @@ export function createAppScheme(options: AppSchemeOptions): AppScheme {
         try {
             const [realRoot, realFile] = await Promise.all([realpath(resolve(root)), realpath(resolve(file))]);
 
-            if (!isInside(realRoot, realFile) || !(await stat(realFile)).isFile()) {
+            if (!isBelow(realRoot, realFile) || !(await stat(realFile)).isFile()) {
                 return notFound();
             }
 

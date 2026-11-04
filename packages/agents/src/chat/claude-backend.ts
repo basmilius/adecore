@@ -16,12 +16,13 @@ import type {
     SpawnOptions
 } from '@anthropic-ai/claude-agent-sdk';
 import { isRecord, type ModelSelection, type RuntimeMode } from '@adecore/agent-contracts';
-import { asError, errorText } from '../error-text.ts';
+import { errorText } from '../error-text.ts';
 import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from '../providers/claude.ts';
 import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
 import { ChatChild } from './chat-process.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { buildUserMessage } from './input.ts';
+import { asError } from '@adecore/utils/errors';
 
 // How long the messages of a CLI that exited may still take through the SDK.
 const EXIT_DRAIN_MS = 500;

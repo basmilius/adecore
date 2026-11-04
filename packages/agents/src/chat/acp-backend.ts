@@ -1,7 +1,8 @@
 import { readFileSync, realpathSync, statSync } from 'node:fs';
-import { isAbsolute, relative, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { attachmentImageMime, type AgentKind, type ChatAttachment, type ModelSelection } from '@adecore/agent-contracts';
+import { isWithin } from '@adecore/utils/path';
 import { errorText } from '../error-text.ts';
 import { MODE_ORDER } from '../modes.ts';
 import {
@@ -89,12 +90,6 @@ const REQUEST_TIMEOUT_MS = 60_000;
 // What a prompt carries of mentioned files; a larger file stays a path the agent opens with its own tools.
 const MAX_EMBEDDED_FILE_BYTES = 256 * 1024;
 const MAX_EMBEDDED_BYTES = 1024 * 1024;
-
-function inside(folder: string, path: string): boolean {
-    const rest = relative(folder, path);
-
-    return rest === '' || (!rest.startsWith('..') && !isAbsolute(rest));
-}
 
 function nameOf(client: AcpClientInfo): string {
     return client.title ?? client.name;
@@ -505,7 +500,7 @@ export class AcpBackend implements ChatBackend {
         for (const mention of new Set(mentions)) {
             const path = real(resolve(this.launch.cwd, mention));
 
-            if (path === null || !folders.some((folder) => inside(folder, path))) {
+            if (path === null || !folders.some((folder) => isWithin(folder, path))) {
                 continue;
             }
 

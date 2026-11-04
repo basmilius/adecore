@@ -1,5 +1,5 @@
 import type { ChatFileChange, ChatToolItem } from '@adecore/agent-contracts';
-import { isRecord } from './json';
+import { isRecord } from '@adecore/utils/record';
 import { toolEntry } from './tool-catalog';
 
 export interface FileChange {

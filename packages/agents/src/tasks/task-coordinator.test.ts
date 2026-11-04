@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { notResumedNote, type ChatBackgroundTask, type ChatItem, type ChatTurnItem, type Task } from '@adecore/agent-contracts';
 import { compileUi } from '@adecore/intelligent-ui';
+import { writeAtomic } from '@adecore/utils/fs';
 import type { AgentEvent } from '../events.ts';
-import { writeAtomic } from '../fs.ts';
 import { TaskCoordinator, resultOfTurn } from './task-coordinator.ts';
 import { TaskStore } from './task-store.ts';
 

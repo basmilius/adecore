@@ -1,5 +1,5 @@
 import type { UsageLimitsProvider } from '@adecore/agent-contracts';
-import { withTimeout } from '../../async.ts';
+import { withTimeout } from '@adecore/utils/async';
 import { spawnChatProcess, type ChatProcess, type SpawnChatProcess } from '../../chat/chat-process.ts';
 import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
 import { errorText } from '../../error-text.ts';
