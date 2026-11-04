@@ -6,7 +6,7 @@ import type { Shortcut } from './shortcut.ts';
 
 export type TooltipSide = 'top' | 'bottom' | 'left' | 'right';
 
-/* One provider per app. Tooltips share a delay, so moving along a row of buttons feels instant. `UIProvider` mounts it. */
+/* One provider per app. Tooltips share a delay, so the next one along a row of buttons opens at once. `UIProvider` mounts it. */
 export function TooltipProvider({ children }: { children: ReactNode }) {
     return (
         <BaseTooltip.Provider delay={150} closeDelay={0}>

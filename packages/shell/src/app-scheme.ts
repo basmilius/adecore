@@ -126,7 +126,7 @@ export const segmentsOf = (pathname: string): string[] | null => {
 };
 
 /*
- * Registers nothing by itself: the app hands `privileged` to `protocol.registerSchemesAsPrivileged`
+ * Registers nothing by itself. The app hands `privileged` to `protocol.registerSchemesAsPrivileged`
  * before it is ready and `handle` to `protocol.handle`, on the sessions it picks. Every file it serves
  * lies inside the folder of its host, also after following a symlink.
  */

@@ -19,7 +19,7 @@ export interface ProjectSwitcherItem {
 
     disabled?: boolean;
 
-    /* A stale or disconnected project can still be selected to try opening it. */
+    /* A person can still pick a stale or disconnected project, to try to open it. */
     muted?: boolean;
 
     /* For the submenu beside this project's row. */

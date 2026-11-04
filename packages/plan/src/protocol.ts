@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-// Depth and item count require the whole tree and are checked by validatePlan.
+// validatePlan checks depth and item count, since they need the whole tree.
 export const PLAN_LIMITS = {
     idLength: 64,
     title: 200,

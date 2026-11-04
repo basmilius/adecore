@@ -89,7 +89,7 @@ class WebglBudget {
     }
 
     private apply(change: SlotChange): void {
-        // Free first, the browser has to be back under its own limit before the next context exists.
+        // Free first, because the browser has to be back under its own limit before the next context exists.
         for (const id of change.revoked) {
             this.unload(id);
         }
@@ -150,7 +150,7 @@ class WebglBudget {
 
     private handleLoss(id: string): void {
         this.unload(id);
-        // Not gone for good, the terminal waits in line and takes a context again when it is focused.
+        // The loss is not final. The terminal waits in line and takes a context again when it is focused.
         this.apply(this.slots.lost(id));
     }
 

@@ -2,7 +2,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { MENU_BAR_ROLES, MENU_ROLES, type MenuNode, type MenuSpec } from './bridge/menu.ts';
 import type { PageKeys } from './page-keys.ts';
 
-/* Named instead of the role: that one follows the focused web contents, which is a guest page as soon as one has the keyboard. */
+/* Named instead of the role, because the role follows the focused web contents, which is a guest page as soon as one has the keyboard. */
 export const devToolsAccelerator = (platform: NodeJS.Platform = process.platform): string => (platform === 'darwin' ? 'Alt+Command+I' : 'Ctrl+Shift+I');
 
 export interface MenuTemplateOptions<Action extends string> {

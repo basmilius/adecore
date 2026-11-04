@@ -35,6 +35,6 @@ export default {
         less: 'Minder',
         more: 'Meer',
         keyboard:
-            'Pijltjestoetsen gaan langs de cellen, Home en End naar het begin en het eind van een rij, met Control naar de eerste en de laatste cel, Escape wist.'
+            'Pijltjestoetsen gaan langs de cellen. Home en End gaan naar het begin en het eind van een rij, of met Control naar de eerste en de laatste cel. Escape wist.'
     }
 };

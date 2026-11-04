@@ -106,7 +106,7 @@ function sketchOf(hop: ChannelHop, track: number): Point[] {
 /*
  * The inside of one channel between two layers. Every hop that changes place across the flow gets a
  * vertical track of its own where its range meets another's, in the order that crosses the fewest
- * lines; labels go in a lane before the tracks, beside the line their hop leaves on, and the lane
+ * lines. Labels go in a lane before the tracks, beside the line their hop leaves on, and the lane
  * grows a column where two labels would otherwise cover each other.
  */
 export function routeChannel(input: ChannelInput): ChannelResult {

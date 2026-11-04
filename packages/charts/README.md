@@ -1,6 +1,6 @@
 # @adecore/charts
 
-Charts in the theme of [`@adecore/ui`](https://adecore.dev/ui/): lines, areas and columns over time or per category, scatters with a legend of many series, heatmaps, trace timelines and sparklines, with markers and bands, a tooltip, a legend and a table of values. A chart follows the width of its container, draws on whole pixels, and is one stop for the keyboard that a screen reader reads bucket by bucket. `d3-scale` and `d3-shape` do the math.
+Charts in the theme of [`@adecore/ui`](https://adecore.dev/ui/): lines, areas and columns over time or per category, scatters with a legend of many series, heatmaps, trace timelines and sparklines, with markers and bands, a tooltip, a legend and a table of values. A chart follows the width of its container and draws on whole pixels. It takes one tab stop, and a screen reader reads it bucket by bucket. `d3-scale` and `d3-shape` do the math.
 
 **[Documentation](https://adecore.dev/charts/)**
 

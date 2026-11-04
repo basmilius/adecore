@@ -126,9 +126,9 @@ function sizeOfEdgeLabel(text: string): { w: number; h: number; lines: string[] 
 
 /*
  * The layer of every node: the longest path to it from a node without incoming edges. A cycle has
- * no such path, so it is broken first by a depth-first walk in file order (sources first, then every
- * node still unvisited) and every edge that points back at a node still on the walk is left out of
- * the layering. The walk only depends on the order of the file, so the same file breaks the same edges.
+ * no such path, so a depth-first walk in file order (sources first, then every node still unvisited)
+ * breaks it first. Every edge that points back at a node still on the walk stays out of the layering.
+ * The walk only depends on the order of the file, so the same file breaks the same edges.
  */
 export function layersOf(nodes: readonly Pick<DiagramNode, 'id'>[], edges: readonly Pick<DiagramEdge, 'from' | 'to'>[]): Map<string, number> {
     const known = new Set(nodes.map((node) => node.id));

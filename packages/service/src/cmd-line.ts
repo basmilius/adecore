@@ -16,9 +16,9 @@ export function scheduledTaskScriptName(label: string): string {
 }
 
 /*
- * What a manager finds the cmd.exe of a task from before it had a script by: `schtasks /End` ends that
- * process alone, so a stop has to end the tree under it first. Its title is the label, which is the name
- * of the task. A task on a script is found by the script's name on the cmd.exe line.
+ * How a manager finds the cmd.exe of a task from before it had a script. `schtasks /End` ends only that
+ * process, so a stop has to end the tree under it first. Its title is the label, which is the name of the
+ * task. A manager finds a task with a script by the script's name on the cmd.exe line.
  */
 export function scheduledTaskMarker(label: string): string {
     return `title ${cmdEscaped(label)} && `;

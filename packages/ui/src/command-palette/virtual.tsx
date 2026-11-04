@@ -56,7 +56,7 @@ function virtualRowsOf<ItemValue, Group extends { items: readonly ItemValue[] }>
     return { groups, rows, itemRows, count };
 }
 
-/* The root retains every value for keyboard navigation; only the visible rows need DOM elements. */
+/* The root keeps every value for the keyboard; only the visible rows need DOM elements. */
 export function CommandPaletteVirtualList<ItemValue, Group extends { items: readonly ItemValue[] } = { items: readonly ItemValue[] }>({
     children,
     groupLabel,

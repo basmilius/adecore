@@ -42,7 +42,7 @@ export interface SplitViewInfo {
 export interface SplitViewBounds extends SplitViewInfo {
     viewId: string;
 
-    /** Viewport coordinates, suitable for a native surface kept outside the layout's DOM. */
+    /** In viewport coordinates, for a native view kept outside the layout's DOM. */
     rect: SplitRect;
 
     borderRadius: string;
@@ -51,7 +51,7 @@ export interface SplitViewBounds extends SplitViewInfo {
 export interface SplitDropTarget {
     paneId: string;
 
-    /** A body drop names its zone; an omitted side denotes the tab strip. */
+    /** A drop on the body names its zone; without a side it lands in the tab strip. */
     side?: 'left' | 'right' | 'top' | 'bottom' | 'center';
 
     /** A gap in the original tab order, before the source is lifted out. */

@@ -215,7 +215,7 @@ export function ChartRoot<Row>({
         }
     }, [orientation, band, dropped]);
 
-    // Without explicit dependencies the emitted cursor render repeats these data accessors.
+    // Kept by hand: the compiled code would run these accessors again on every move of the cursor.
     const { xs, keys, rowLabels, groupKeys, groupLabels } = useMemo(() => {
         const xs = data.map((row, index) => {
             const value = readValue(x, row, index);
@@ -248,7 +248,7 @@ export function ChartRoot<Row>({
     const marginLeft = margin.left ?? inset;
     const marginRight = margin.right ?? inset;
 
-    // Explicit dependencies keep the emitted band calculation out of cursor-only renders.
+    // Kept by hand: the compiled code would measure the bands again on a render that only moves the cursor.
     const layout = useMemo(
         () =>
             horizontal
@@ -262,7 +262,7 @@ export function ChartRoot<Row>({
     const width = layout === null || horizontal ? room : Math.max(room, Math.ceil(layout.width + marginLeft + marginRight));
     const scrolls = layout !== null && width > room;
     // A scrolling plot clips what hangs out of its first buckets, such as a value label or a slanted name, so the
-    // scroller reaches over the y axis by its width and gives that back as padding: the plot stays where it was.
+    // scroller reaches over the y axis by its width and gives that back as padding, so the plot stays where it was.
     const overhang = scrolls ? leftAxis : 0;
     const scrollbars = useOverlayScrollbars(scrolls ? scrollBox : null, { axis: 'x' });
     const xRows = [...xAxes.values()];

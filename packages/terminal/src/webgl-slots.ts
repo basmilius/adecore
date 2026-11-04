@@ -143,7 +143,7 @@ export class WebglSlots {
         return change;
     }
 
-    /* The browser reported a context loss, free the slot and wait for a focus before asking again. */
+    /* The browser reported a context loss. The slot frees up, and the terminal waits for a focus before it asks again. */
     lost(id: string): SlotChange {
         const member = this.members.get(id);
 

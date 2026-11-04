@@ -288,7 +288,7 @@ export interface DocumentTabProps extends Omit<useRender.ComponentProps<'span'>,
     onDragEnd?: TabStripProps['onDragEnd'];
 }
 
-/** A tab with application-owned metadata and menus, rendered inside TabStrip's renderTab slot. */
+/** A tab whose metadata and menus belong to the app, drawn in the `renderTab` slot of `TabStrip`. */
 export function DocumentTab({ item, onClose, closeShortcut, onDoubleClick, onDragStart, onDragEnd, className, render, ref, ...props }: DocumentTabProps) {
     const context = useContext(TabContext);
 

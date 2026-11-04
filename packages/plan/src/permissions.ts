@@ -82,8 +82,8 @@ function mayHoldChildren(plan: Plan, under: string | undefined, after: string | 
 
 /*
  * Whether this actor may apply the operation to the plan as it is now: who sets which step, what a
- * person set, what a person unlocked. The shape of the result (depth, size, positions) is checked
- * when the operation is applied.
+ * person set, what a person unlocked. Applying the operation checks the shape of the result (depth,
+ * size, positions).
  */
 export function canApply(op: PlanOp, actor: PlanActor, plan: Plan): PlanVerdict {
     if (!(actor === 'person' ? PERSON_OPS : AGENT_OPS).has(op.op)) {

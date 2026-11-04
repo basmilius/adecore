@@ -74,7 +74,7 @@ export const createUpdater = (options: UpdaterOptions) => {
 
     const refused = (version: string | undefined): boolean => allowPrerelease === false && version?.includes('-') === true;
 
-    /* A prerelease the person no longer follows: nothing may finish it or install it, also not a quit, which installs what is downloaded. */
+    /* A prerelease the person no longer follows. Nothing may finish or install it, not even a quit, which installs what is downloaded. */
     const discard = (): void => {
         download?.cancel();
         download = null;
@@ -178,7 +178,7 @@ export const createUpdater = (options: UpdaterOptions) => {
             }
         },
 
-        /* The hourly check starts with the first preference the page sends, never before: until then the shell does not know whether it may download what a check turns up. */
+        /* The hourly check waits for the first preference the page sends. Until then the shell does not know whether it may download what a check turns up. */
         configure: (autoDownload: unknown): void => {
             if (!updater) {
                 return;

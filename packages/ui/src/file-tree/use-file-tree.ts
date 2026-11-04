@@ -10,7 +10,7 @@ import { FILE_TREE_CSS } from './style.ts';
 type WithoutSizing<Options> = Options extends unknown ? Omit<Options, 'itemHeight' | 'density'> : never;
 export type FileTreeOptions = WithoutSizing<PierreOptions>;
 
-// Model options are initial; paths and status can subsequently change through the model's mutation methods.
+// The model reads its options once; paths and status change later through its own methods.
 export function useFileTree(options: FileTreeOptions) {
     const latest = useRef(options.onSelectionChange);
 

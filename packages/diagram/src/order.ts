@@ -5,10 +5,10 @@ const SWEEPS = 12;
 
 /*
  * The order inside every layer, in place. A unit moves to the average position of the units it is
- * joined to in the layer it was compared with, a tie keeps the order it had (file order to begin
+ * joined to in the layer it was compared with. A tie keeps the order it had (file order to begin
  * with), and the members of a group stay together as one block. The blocks of groups keep one order
- * in every layer, and a unit that is not in a group stays on the same side of a group from one layer
- * to the next inside it, so no hop has to cross a group it does not belong to.
+ * in every layer. A unit outside a group stays on the same side of that group in every layer the
+ * group spans, so no hop has to cross a group it does not belong to.
  */
 export function orderLayers(layering: Layering): void {
     const { units, hops, bands, items } = layering;

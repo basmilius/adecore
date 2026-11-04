@@ -65,7 +65,7 @@ function optionsOf(element: DrawingElement): Options {
     };
 }
 
-// Rough has no rounded-rectangle primitive.
+// Rough cannot draw a rounded rectangle by itself.
 function roundedRectPath(w: number, h: number, radius: number): string {
     const corner = Math.min(radius, w / 2, h / 2);
 

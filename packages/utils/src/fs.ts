@@ -151,7 +151,7 @@ export function writeAtomicSync(target: string, content: string | Uint8Array, mo
     }
 }
 
-// Bun on Windows fails a forced rm with EFAULT while another delete of the same file is pending; it goes either way.
+// Bun on Windows fails a forced rm with EFAULT while another delete of the same file is pending. That delete removes it anyway.
 export async function removeFile(path: string, remove: (path: string, options: { force: true }) => Promise<void> = rm): Promise<void> {
     try {
         await remove(path, { force: true });

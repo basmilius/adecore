@@ -13,9 +13,8 @@ export function isNotFound(e: unknown): boolean {
 }
 
 /*
- * The message of an error, or its whole stack with `debug` set. Bun prints an Error object handed to the
- * console with a code frame of the bundle it came from, which in a compiled binary is a few lines of
- * minified source, so an error is turned into a string first.
+ * The message of an error, or its whole stack with `debug` set. Bun prints an Error object with a code
+ * frame of its bundle, which in a compiled binary is a few lines of minified source. A string avoids that.
  */
 export function describeError(error: unknown, debug: boolean): string {
     if (!(error instanceof Error)) {

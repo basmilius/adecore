@@ -21,7 +21,7 @@ export default {
         start: 'starts at +{{offset}}',
         duration: 'takes {{duration}}',
         moment: '{{label}} at +{{offset}}',
-        keyboard: 'Up and down move between rows, right opens a row and left closes it, Enter shows its details.'
+        keyboard: 'Up and Down move between rows, Right opens a row and Left closes it, Enter shows its details.'
     },
     keyboard: {
         move: 'Arrow keys move between values, Home and End go to the ends, Escape clears.',
@@ -34,6 +34,6 @@ export default {
         name: 'heatmap',
         less: 'Less',
         more: 'More',
-        keyboard: 'Arrow keys move between cells, Home and End go to the ends of a row, with Control to the first and the last cell, Escape clears.'
+        keyboard: 'Arrow keys move between cells. Home and End go to the ends of a row, or with Control to the first and the last cell. Escape clears.'
     }
 };

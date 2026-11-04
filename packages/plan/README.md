@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@adecore/plan)](https://www.npmjs.com/package/@adecore/plan)
 [![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/plan/)
 
-A plan that a person and an agent work through together: steps, sub-steps, sections and notes, with rules for who may check what. Every change is a batch of operations that applies as a whole or is refused with a code and a reason. Plans read and write as a Markdown task list. No storage, no clock and no UI: the app brings those.
+A plan that a person and an agent work through together: steps, sub-steps, sections and notes, with rules for who may check what. Every change is a batch of operations that applies as a whole, or fails as a whole with a code and a reason. Plans read and write as a Markdown task list. The app brings its own storage, clock and UI.
 
 **[Documentation with live demos](https://adecore.dev/plan/)**
 

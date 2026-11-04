@@ -28,7 +28,7 @@ export interface ServiceManager {
     read(): string | null;
     /*
      * Puts the definition on disk, so the service starts with the person's session. A running daemon
-     * keeps running, on the definition it was started from: true says that one is not this one.
+     * keeps the definition it started from; true means that one differs from this one.
      */
     install(definition: string): boolean;
     /* Starts the daemon from the definition on disk; nothing when it already runs. */

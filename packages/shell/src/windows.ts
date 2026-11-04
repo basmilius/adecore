@@ -435,7 +435,7 @@ export const createWindows = (options: WindowsOptions) => {
             writeSession();
         },
 
-        /* The window a page or a `<webview>` inside it belongs to, such as whose menu a guest opens. Not a check of who may speak for the app: that is `fromPage`. */
+        /* The window a page or a `<webview>` inside it belongs to, such as whose menu a guest opens. Not a check of who may speak for the app; `fromPage` is. */
         fromContents: (contents: WebContents): BrowserWindow | null => {
             const guestOwner = guestOwners.get(contents.id);
 
@@ -548,7 +548,7 @@ export const createWindows = (options: WindowsOptions) => {
             });
         },
 
-        /* The quit did not go ahead after all: a window that closes leaves the session again. `attach` calls it when `confirmQuit` says no. */
+        /* The quit did not go ahead after all. A window that closes leaves the session again. `attach` calls it when `confirmQuit` says no. */
         resume
     };
 };
