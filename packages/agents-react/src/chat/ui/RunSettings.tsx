@@ -638,7 +638,8 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
                 <Menu.Item
                     unstyled
                     className="flex shrink-0 cursor-default items-center gap-0.5 rounded font-medium text-accent outline-none data-disabled:opacity-50 data-highlighted:underline"
-                    disabled={disabled || usage.contextTokens === 0}
+                    // A CLI can report the system prompt before any turn, which leaves nothing of the conversation to compact.
+                    disabled={disabled || usage.contextTokens === 0 || usage.turns === 0}
                     onClick={onCompact}
                 >
                     {t('contextMeter.compactNow')}
