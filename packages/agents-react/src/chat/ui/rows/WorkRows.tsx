@@ -352,7 +352,6 @@ function DiffBody({ tool, entries, patched, chatId }: { tool: ChatToolItem; entr
             {hasOutput(text) && !patched && (
                 <div className="border-t border-border px-3 py-2">
                     <ScrollArea
-                        axis="both"
                         render={<pre />}
                         data-find-field="output"
                         className="max-h-64"
@@ -386,7 +385,6 @@ function ToolOutput({ tool, chatId }: { tool: ChatToolItem; chatId: string | und
         <>
             {hasOutput(rest) && (
                 <ScrollArea
-                    axis="both"
                     render={<pre />}
                     data-find-field="output"
                     className="max-h-64"
@@ -426,13 +424,13 @@ function OwnToolBody({ tool, chatId }: { tool: ChatToolItem; chatId?: string | u
     return (
         <div className="mt-0.5 mb-2 ml-6 flex flex-col gap-1.5 font-mono text-code select-text">
             {lines.command !== null && (
-                <ScrollArea axis="both" render={<pre />} className="max-h-64" viewportClassName="whitespace-pre-wrap wrap-anywhere text-text">
+                <ScrollArea render={<pre />} className="max-h-64" viewportClassName="whitespace-pre-wrap wrap-anywhere text-text">
                     <ShellCommand command={lines.command.slice(0, OUTPUT_LIMIT)} />
                     {clipNotice(lines.command)}
                 </ScrollArea>
             )}
             {lines.args.length > 0 && (
-                <ScrollArea axis="both" render={<dl />} className="max-h-64" viewportClassName="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3">
+                <ScrollArea render={<dl />} className="max-h-64" viewportClassName="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3">
                     {lines.args.map(([key, value]) => (
                         <Fragment key={key}>
                             <dt className="text-text-faint">{key}</dt>
@@ -442,7 +440,7 @@ function OwnToolBody({ tool, chatId }: { tool: ChatToolItem; chatId?: string | u
                 </ScrollArea>
             )}
             {lines.text !== null && (
-                <ScrollArea axis="both" render={<pre />} className="max-h-64" viewportClassName="whitespace-pre-wrap wrap-anywhere text-text">
+                <ScrollArea render={<pre />} className="max-h-64" viewportClassName="whitespace-pre-wrap wrap-anywhere text-text">
                     {clip(lines.text)}
                 </ScrollArea>
             )}
@@ -555,7 +553,6 @@ export function WorkLiveRow({ chatId, tool: derived }: { chatId: string; tool: C
             {open && opens && <ToolBody tool={tool} chatId={chatId} />}
             {tail !== null && !open && (
                 <ScrollArea
-                    axis="both"
                     render={<pre />}
                     className="mt-1.5 mb-2 ml-6 max-h-48 rounded-md border border-border bg-surface-raised"
                     viewportClassName="px-3 py-2 font-mono text-code whitespace-pre-wrap text-chat-output select-text"

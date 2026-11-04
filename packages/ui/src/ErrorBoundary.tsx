@@ -50,12 +50,7 @@ function ErrorFallback({ label, error, componentStack, compact, reload, classNam
     const { t } = useTranslation('ui');
 
     return (
-        <ScrollArea
-            axis="both"
-            role="alert"
-            className={clsx('bg-surface', className)}
-            viewportClassName={clsx('grid place-items-center', compact ? 'p-3' : 'p-6')}
-        >
+        <ScrollArea role="alert" className={clsx('bg-surface', className)} viewportClassName={clsx('grid place-items-center', compact ? 'p-3' : 'p-6')}>
             <div className={clsx('flex max-w-[360px] flex-col items-center text-center', compact ? 'gap-1' : 'gap-2')}>
                 {!compact && <Icon icon={TriangleAlert} size={20} className="text-status-error" />}
                 <p className="text-sm font-medium text-text">{label}</p>

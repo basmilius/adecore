@@ -63,7 +63,6 @@ function ApprovalDetails({ item }: { item: ChatApprovalItem }) {
                     <summary className="flex h-7 cursor-pointer items-center text-xs text-text-muted">{t('approval.details')}</summary>
                     <TextMenu>
                         <ScrollArea
-                            axis="both"
                             render={<pre />}
                             className="max-h-64 rounded-xl bg-surface-sunken"
                             viewportClassName="whitespace-pre-wrap break-words p-3 font-mono text-code text-text select-text"

@@ -135,7 +135,7 @@ export function ValueEditor({ column, value, editable, onCommit }: ValueEditorPr
         return (
             <>
                 <ScrollArea
-                    axis="both"
+                    axis={wrapped ? 'y' : 'both'}
                     render={<pre />}
                     className={READING_FRAME}
                     viewportClassName={clsx(READING, wrapped ? 'break-words whitespace-pre-wrap' : 'whitespace-pre')}

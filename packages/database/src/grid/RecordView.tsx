@@ -257,7 +257,7 @@ export function RecordView({
             {row === undefined ? (
                 <p className="px-4 py-6 text-xs text-text-muted">{empty}</p>
             ) : (
-                <ScrollArea axis="both" role="group" aria-label={label} className="flex-1" viewportClassName="py-1">
+                <ScrollArea role="group" aria-label={label} className="flex-1" viewportClassName="py-1">
                     {columns.map((column, position) => {
                         const cell = row.cells[position] ?? null;
                         const enumType = enumTypes[position] ?? null;

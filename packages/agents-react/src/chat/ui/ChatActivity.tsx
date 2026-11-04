@@ -162,7 +162,7 @@ function WorkflowFlyout({ chatId, calls }: { chatId: string; calls: readonly Wor
             </Surface>
             <Popover.Popup side="top" className="w-96">
                 <div className="px-2.5 pt-1.5 pb-1 text-xs text-text-faint">{t('activity.workflows', { count: calls.length })}</div>
-                <ScrollArea axis="both" className="max-h-96" viewportClassName="px-2.5 pb-1.5">
+                <ScrollArea className="max-h-96" viewportClassName="px-2.5 pb-1.5">
                     {calls.map((call) => (
                         <WorkflowRow key={call.id} chatId={chatId} tool={call} workflow={call.workflow} onOpenAgent={openAgent} place="flyout" />
                     ))}

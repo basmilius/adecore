@@ -73,7 +73,7 @@ export function ImportForm({
             </div>
             {sample !== null && (
                 <>
-                    <ScrollArea axis="both" viewportClassName="grid grid-cols-2 items-center gap-x-3 gap-y-1.5">
+                    <ScrollArea viewportClassName="grid grid-cols-2 items-center gap-x-3 gap-y-1.5">
                         <span className="text-xs text-text-faint">{t('table.import.fileColumn')}</span>
                         <span className="text-xs text-text-faint">{t('table.import.tableColumn')}</span>
                         {sample.columns.map((name, index) => (

@@ -77,7 +77,7 @@ export function PromptCard({ kind, heading, meta, top, actions, busy, notice, er
         >
             {/* The scroll box would clip the focus ring of whatever sits against its edge, so it carries the
                 room that ring needs and gives the same amount back to the card's own padding. */}
-            <ScrollArea axis="both" className="-m-1.5 max-h-[min(50dvh,480px)]" viewportClassName="overscroll-contain p-1.5">
+            <ScrollArea className="-m-1.5 max-h-[min(50dvh,480px)]" viewportClassName="overscroll-contain p-1.5">
                 <div className="flex flex-col gap-2">
                     <div className="flex items-start gap-2">
                         <Icon icon={ICONS[kind]} size={16} className="mt-[3px] shrink-0 text-status-needs-you" />
