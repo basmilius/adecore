@@ -128,7 +128,7 @@ describe('the axes of a point chart', () => {
         const scale = yScaleOf('linear', [min, max], { min, max, step }, [200, 0], 5);
 
         expect(scale.domain).toEqual([min, max]);
-        expect(scale.ticks.length).toBeLessThanOrEqual(20);
+        expect(scale.ticks.length).toBeLessThanOrEqual(202);
         expect(scale.ticks.every(Number.isFinite)).toBe(true);
         expect(new Set(scale.ticks).size).toBe(scale.ticks.length);
         expect(scale.ticks.every((tick, i) => i === 0 || tick > scale.ticks[i - 1]!)).toBe(true);
@@ -140,6 +140,22 @@ describe('the axes of a point chart', () => {
         expect(scale.ticks).toEqual([20, 30, 40, 50, 60, 70, 80]);
         expect(yScaleOf('linear', [23, 71], { step: 10 }, [100, 0], 5).domain).toEqual([0, 80]);
         expect(extentOf([{ base: [0, 0], top: [23, 71] }], 'linear', false)).toEqual([23, 71]);
+    });
+
+    test('a step draws every tick the axis has pixels for', () => {
+        const scale = yScaleOf('linear', [0, 31], { step: 1 }, [200, 0], 5);
+        expect(scale.domain).toEqual([0, 31]);
+        expect(scale.ticks).toEqual(Array.from({ length: 32 }, (_, i) => i));
+    });
+
+    test('a step thinned for a short axis keeps a tick over its highest value', () => {
+        const open = yScaleOf('linear', [0, 31], { step: 1 }, [20, 0], 5);
+        expect(open.domain).toEqual([0, 32]);
+        expect(open.ticks).toEqual(Array.from({ length: 17 }, (_, i) => i * 2));
+
+        const fixed = yScaleOf('linear', [0, 31], { max: 31, step: 1 }, [20, 0], 5);
+        expect(fixed.domain).toEqual([0, 31]);
+        expect(fixed.ticks.at(-1)).toBe(31);
     });
 });
 
