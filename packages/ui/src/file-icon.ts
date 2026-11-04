@@ -30,11 +30,26 @@ const resolveIcon: ReturnType<typeof createFileTreeIconResolver>['resolveIcon'] 
 export const fileIconFor = (path: string): string => resolveIcon('file-tree-icon-file', path).name;
 
 let override: ((path: string) => string | null) | null = null;
+let overrideVersion = 0;
+const overrideListeners = new Set<() => void>();
 
 /* What an app knows better about a file's icon: the address of an svg, or null for the icon this set has. */
 export function setFileIconOverride(next: ((path: string) => string | null) | null): void {
     override = next;
+    overrideVersion++;
+    overrideListeners.forEach((listener) => listener());
 }
+
+export function subscribeFileIconOverride(onChange: () => void): () => void {
+    overrideListeners.add(onChange);
+
+    return () => {
+        overrideListeners.delete(onChange);
+    };
+}
+
+/* A mounted icon reads this so it draws again once the override changes. */
+export const fileIconOverrideVersion = (): number => overrideVersion;
 
 export function fileIconOverrideFor(path: string): string | null {
     return override?.(path) ?? null;
