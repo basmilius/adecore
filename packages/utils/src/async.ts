@@ -9,16 +9,24 @@ export { SingleFlight } from './single-flight.ts';
  */
 export function wait(ms: number, signal?: AbortSignal): Promise<void> {
     return new Promise((resolve) => {
-        const timer = setTimeout(resolve, ms);
+        if (signal?.aborted) {
+            resolve();
 
-        signal?.addEventListener(
-            'abort',
-            () => {
-                clearTimeout(timer);
-                resolve();
-            },
-            { once: true }
-        );
+            return;
+        }
+
+        const onAbort = (): void => {
+            clearTimeout(timer);
+            resolve();
+        };
+
+        // A long-lived signal outlives many waits, so each one takes its listener back.
+        const timer = setTimeout(() => {
+            signal?.removeEventListener('abort', onAbort);
+            resolve();
+        }, ms);
+
+        signal?.addEventListener('abort', onAbort, { once: true });
     });
 }
 

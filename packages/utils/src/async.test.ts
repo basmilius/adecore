@@ -1,8 +1,34 @@
-import { afterEach, describe, expect, jest, test } from 'bun:test';
-import { cancellableTimeout, unrefTimeout, type Timer } from './async.ts';
+import { afterEach, describe, expect, jest, spyOn, test } from 'bun:test';
+import { cancellableTimeout, unrefTimeout, wait, type Timer } from './async.ts';
 
 afterEach(() => {
     jest.useRealTimers();
+});
+
+describe('wait', () => {
+    test('resolves at once on a signal raised before the call', async () => {
+        jest.useFakeTimers();
+        const controller = new AbortController();
+        controller.abort();
+        let done = false;
+        void wait(60_000, controller.signal).then(() => {
+            done = true;
+        });
+        await Promise.resolve();
+
+        expect(done).toBe(true);
+    });
+
+    test('takes its abort listener back once the time is up', async () => {
+        jest.useFakeTimers();
+        const signal = new AbortController().signal;
+        const removing = spyOn(signal, 'removeEventListener');
+        const waited = wait(100, signal);
+        jest.advanceTimersByTime(100);
+        await waited;
+
+        expect(removing.mock.calls.map(([type]) => type)).toEqual(['abort']);
+    });
 });
 
 describe.each<[string, Timer]>([
