@@ -9,7 +9,7 @@ import { useChatScope } from '../scope';
 import { useProvidersStore } from '../state/providers';
 import { askedKey, summaryPayload, USAGE_PERIODS, useUsage, useUsageStore, type UsageMetric, type UsagePeriod } from '../state/usage';
 import { whenOpen, type ChatTransport } from '../transport';
-import { formatClock, formatCount, formatDate, formatTokens, PROVIDER_LABELS } from './format';
+import { formatClock, formatCount, formatDate, formatRateDate, formatTokens, PROVIDER_LABELS } from './format';
 import { useMoney } from './money';
 import { deriveUsage, labelEveryFor } from './summary';
 import { UsageBreakdown } from './UsageBreakdown';
@@ -121,7 +121,8 @@ function Provenance() {
         summary.pricing.fetchedAt === null ? t('provenance.bundledPrices') : t('provenance.fetchedPrices', { date: formatDate(summary.pricing.fetchedAt) });
 
     // The rate is named only when it is being used, so a page in dollars says nothing about euros.
-    const rate = currency === 'USD' || summary.rate === null ? null : t('provenance.rate', { currency: summary.rate.currency, date: summary.rate.date });
+    const rate =
+        currency === 'USD' || summary.rate === null ? null : t('provenance.rate', { currency: summary.rate.currency, date: formatRateDate(summary.rate.date) });
 
     return (
         <p className="mt-auto text-center text-xs text-text-muted">

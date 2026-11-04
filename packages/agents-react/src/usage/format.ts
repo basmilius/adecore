@@ -84,6 +84,13 @@ export function formatDate(at: number): string {
     return formatDay(at);
 }
 
+/* The bank's day of a rate (`YYYY-MM-DD`), read in UTC so no zone moves it to the day before. */
+export function formatRateDate(date: string): string {
+    const at = Date.parse(`${date}T00:00:00Z`);
+
+    return Number.isNaN(at) ? date : formatDay(at, 'UTC');
+}
+
 /* Enough of a path's tail to tell two checkouts of the same repository apart, under a row that already carries the name. */
 export function shortPath(path: string): string {
     const parts = path.split('/').filter(Boolean);

@@ -3,7 +3,7 @@ import { SettingsRow, SettingsSection } from '@adecore/ui/settings';
 import { ChartNoAxesColumn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useUsage, useUsageStore } from '../state/usage';
-import type { UsageCurrency } from './format';
+import { formatRateDate, type UsageCurrency } from './format';
 
 const CURRENCIES: readonly UsageCurrency[] = ['USD', 'EUR'];
 
@@ -26,7 +26,7 @@ export function UsagePane({ onOpenPage }: { onOpenPage(): void }) {
                         ? t('settings.currency.dollars')
                         : rate === null
                           ? t('settings.currency.noRate')
-                          : t('settings.currency.converted', { date: rate.date })
+                          : t('settings.currency.converted', { date: formatRateDate(rate.date) })
                 }
                 control={
                     <Segmented
