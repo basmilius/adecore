@@ -46,6 +46,16 @@ A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes t
 
 `stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
+### Resuming a turn after a restart
+
+A turn the host went down in can go on once the chat loads again. Put `ResumeRunWorkSchema` in the outbox's union. Hand `oweResume` to the chat core as its interrupted-run hook. It needs `projectOf`, `entries` and `enqueue` (`OweResumeDeps`), and enqueues one `ResumeRunEntry` per turn and attempt, however often the chat is loaded. Register `resumeRunHandler` for the kind. It calls `resumeRun(chatId, turnId, attempt)` from `ResumeRunDeps`, so a CLI that will not start retries on the outbox's delays. `resumeRunParked` goes in `onParked`. It ends a resume the worker gave up on through `abandonRun`, with `notResumedNote` and the error as its reason, and leaves other kinds alone.
+
+```ts
+const owe = oweResume({ projectOf, entries: () => outbox.list(), enqueue: (projectId, target, work) => worker.enqueue(projectId, target, work) });
+const resumeRun = resumeRunHandler({ resumeRun: (chatId, turnId, attempt) => chats.resumeRun(chatId, turnId, attempt) });
+const onParked = resumeRunParked({ abandonRun: (chatId, turnId, reason) => chats.abandonRun(chatId, turnId, reason) });
+```
+
 ## Tasks
 
 A task is what a chat asked of a chat it opened. `TaskStore` keeps them under `tasks/`. `wireTasks` builds the coordinator that settles tasks, the outbox work that starts and wakes chats, and the verbs a context command calls. A set and an array stand in for your app's placement and notifications here:

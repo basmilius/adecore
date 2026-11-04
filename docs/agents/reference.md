@@ -128,6 +128,7 @@ The outbox, tasks between chats, lineage and messages.
 | --- | --- |
 | [`outbox/outbox`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/outbox/outbox.ts) | `OutboxEntryOf`, `OutboxStore`, `OutboxWorkShape`, `OutboxEntryFields`, `OutboxStoreOptions` |
 | [`outbox/outbox-worker`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/outbox/outbox-worker.ts) | `RETRY_DELAYS_MS`, `OutboxClock`, `systemClock`, `OutboxOutcome`, `OutboxHandlers`, `OutboxWorker`, `OutboxWorkerOptions` |
+| [`outbox/resume-run`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/outbox/resume-run.ts) | `ResumeRunWorkSchema`, `ResumeRunWork`, `ResumeRunEntry`, `OweResumeDeps`, `ResumeRunDeps`, `oweResume`, `resumeRunHandler`, `resumeRunParked` |
 | [`tasks/background-limit`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/background-limit.ts) | `restartBackgroundLimits`, `RestartedOutbox` |
 | [`tasks/end-children`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/end-children.ts) | `EndChildrenWorkSchema`, `endChildren`, `EndChildrenWork`, `EndChildrenEntry`, `EndChildrenOutbox`, `EndChildrenDeps`, `EndChildren` |
 | [`tasks/task-coordinator`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-coordinator.ts) | `TaskCoordinatorDeps`, `TaskCoordinator` |

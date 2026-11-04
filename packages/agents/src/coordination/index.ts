@@ -11,6 +11,17 @@ export {
     type OutboxWorkerOptions
 } from '../outbox/outbox-worker.ts';
 
+export {
+    ResumeRunWorkSchema,
+    type ResumeRunWork,
+    type ResumeRunEntry,
+    type OweResumeDeps,
+    type ResumeRunDeps,
+    oweResume,
+    resumeRunHandler,
+    resumeRunParked
+} from '../outbox/resume-run.ts';
+
 export { restartBackgroundLimits, type RestartedOutbox } from '../tasks/background-limit.ts';
 
 export {
