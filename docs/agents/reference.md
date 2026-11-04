@@ -131,6 +131,7 @@ The outbox, tasks between chats, lineage and messages.
 | [`tasks/task-coordinator`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-coordinator.ts) | `TaskCoordinatorDeps`, `TaskCoordinator` |
 | [`tasks/task-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-store.ts) | `TaskStore`, `TaskListener`, `TaskEvent`, `TaskSink` |
 | [`tasks/task-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-work.ts) | `BackgroundLimitWorkSchema`, `WakeParentWorkSchema`, `GiveTaskWorkSchema`, `DeliverWaitingWorkSchema`, `BackgroundLimitWork`, `WakeParentWork`, `GiveTaskWork`, `DeliverWaitingWork`, `TaskWork`, `BackgroundLimitEntry`, `AnyOutboxEntry`, `TaskOutbox` |
+| [`tasks/answer-question`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/answer-question.ts) | `answerQuestion`, `AnswerFieldNames`, `QuestionAnswer` |
 | [`tasks/waiting-child`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/waiting-child.ts) | `ChatRequests`, `chatRequests`, `WAITING_GRACE_MS`, `WaitingObserver`, `WaitingRequest`, `WaitingObserverDeps`, `WaitingAnswerCall`, `WaitingWords` |
 | [`tasks/wake-parent`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wake-parent.ts) | `RESULT_PREVIEW_BYTES`, `wakePrompt` |
 | [`tasks/wiring`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wiring.ts) | `TaskVerbs`, `TaskWords`, `wireTasks`, `TaskChats`, `TaskRecord`, `TaskWiringDeps`, `TaskWiring` |

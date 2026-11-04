@@ -60,6 +60,8 @@ export {
     type TaskOutbox
 } from '../tasks/task-work.ts';
 
+export { answerQuestion, type AnswerFieldNames, type QuestionAnswer } from '../tasks/answer-question.ts';
+
 export {
     type ChatRequests,
     chatRequests,
