@@ -39,7 +39,7 @@ export interface ProjectFiles {
     readonly supportsOverwrite?: boolean;
     /* Whether a draft or an open editor at the path, or under it for a folder, holds text that is not saved. A delete that would lose it is refused. */
     isUnsaved?(path: string): boolean;
-    /* Whether anything is at the path: a file of any kind or a folder. Without it, what is no text file is of unknown existence: an edit may move or delete it and the machine decides, and `ignoreIfNotExists` cannot be honored. */
+    /* Whether anything is at the path, a file of any kind or a folder. Without it, an edit cannot tell whether something that is no text file exists. It may move or delete it and leave the outcome to the machine, and `ignoreIfNotExists` cannot be honored. */
     exists?(path: string): Promise<boolean>;
     /* Whether the path is a folder. Without it, deleting anything that is no text file needs `recursive`. */
     isFolder?(path: string): Promise<boolean>;

@@ -1,7 +1,7 @@
 import type { Location, SymbolInformation, WorkspaceSymbol, WorkspaceSymbolResult } from '@adecore/lsp';
 import { uniqueBy } from './unique.ts';
 
-/* The classes a name in a signature has: a pointer and an underline on hover, and the accent only then, so the signature stays calm. */
+/* The classes a name in a signature has: a pointer, an underline and the accent, all only on hover, so the signature keeps its colors at rest. */
 export const SYMBOL_LINK_CLASS = 'cursor-pointer hover:text-accent hover:underline';
 
 const TYPE_NAME = /^[A-Z][A-Za-z0-9_]*$/;

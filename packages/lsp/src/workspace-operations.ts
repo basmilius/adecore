@@ -21,10 +21,10 @@ export interface WorkspaceEditSource {
     /* The text of a file; null when there is no such text file, which also covers folders and files that are not text. */
     read(uri: string): Promise<WorkspaceEditText | null>;
     /*
-     * Whether anything is at the URI: a file of any kind or a folder. Asked only after `read` answered null.
-     * Without it, what `read` has no text for is of unknown existence: a rename or delete of it is planned and
-     * left to the host (`ignoreIfNotExists` cannot be honored), and a create or rename onto it is planned as no
-     * overwrite, so the host has to refuse a target that is there.
+     * Whether anything is at the URI, a file of any kind or a folder. Asked only after `read` answered null.
+     * Without it, the plan cannot tell whether a URI without text exists. It plans a rename or delete of it and
+     * leaves the check to the host (`ignoreIfNotExists` cannot be honored), and plans a create or rename onto it
+     * without overwrite, so the host has to refuse a target that is there.
      */
     exists?(uri: string): Promise<boolean>;
     /* Whether the URI is a folder. Without it, anything that exists and is no text file may be a folder, so deleting it needs `recursive`. */
@@ -139,8 +139,8 @@ function ancestorsOf(uri: string): string[] {
  * - A create over a file that is there is refused, unless it says `overwrite` (planned as an overwrite) or
  *   `ignoreIfExists` (left out). A rename onto a target that is there works the same way; a rename of
  *   something that is not there is always refused. Without `source.exists`, that is left to the host.
- * - A delete of something that is not there is refused unless it says `ignoreIfNotExists`. Emptiness of a
- *   folder cannot be told, so deleting a folder, or anything that exists and is no text file when the source
+ * - A delete of something that is not there is refused unless it says `ignoreIfNotExists`. The plan cannot tell
+ *   whether a folder is empty, so deleting a folder, or anything that exists and is no text file when the source
  *   cannot say which, needs `recursive`.
  * - Text edits to a URI after it was deleted or renamed away are refused. Edits to a renamed file are read
  *   from where it stood, and edits to a file the plan makes become its text.
@@ -376,7 +376,7 @@ export async function planWorkspaceOperations(edit: WorkspaceEdit, source: Works
             const recursive = change.options?.recursive === true;
 
             if (found.kind !== 'text' && !recursive && (await folderAt(found.readUri ?? change.uri))) {
-                throw new LspError(`${change.uri} is a folder, or cannot be told from one, and is only deleted with recursive set`);
+                throw new LspError(`${change.uri} may be a folder, so deleting it needs recursive set`);
             }
 
             forget(change.uri);

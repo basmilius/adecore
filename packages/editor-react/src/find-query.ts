@@ -6,7 +6,7 @@ export interface FindOptions {
 
 export interface FindQuery extends FindOptions {
     text: string;
-    /* A surface that can search a selection only: just the text selected when this turned on. */
+    /* Searches only the text that was selected when this turned on. */
     inSelection?: boolean;
 }
 

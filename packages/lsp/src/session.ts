@@ -62,8 +62,8 @@ export interface LspSessionOptions {
     completionItemDefaults?: readonly string[];
     /*
      * The resource operations the host carries out for a workspace edit, announced to servers. Defaults to create
-     * and rename. The failure handling is `abort`: the client stops at the first change that fails, and the changes
-     * that already ran are not rolled back.
+     * and rename. The failure handling is `abort`. The client stops at the first change that fails and does not
+     * roll back the changes that already ran.
      */
     resourceOperations?: readonly ResourceOperationKind[];
     onConfiguration?: (item: ConfigurationItem) => unknown | Promise<unknown>;

@@ -13,7 +13,7 @@ export interface PickSpec {
     /* The row the list opens on; the first one without it. */
     readonly active?: string;
     accept(id: string): void;
-    /* A list can hand Tab back to its surrounding workflow after it closes. */
+    /* Tab and Shift+Tab close the list and go to what opened it, such as a snippet that steps to its next field. */
     onTab?(backwards: boolean): void;
     /*
      * Asked before the list closes on a row. A reason it cannot be taken keeps the list open with the reason

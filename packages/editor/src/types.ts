@@ -66,7 +66,7 @@ export interface EditorFolds {
 export type EditorTheme = string;
 
 export interface EditorOptions {
-    /* Additional host shortcuts for this mount, preserving the engine's handBack chords. */
+    /* More host shortcuts for this mount, on top of the engine's handBack chords. */
     readonly handBack?: readonly KeyChord[];
     readonly text: string;
     /* A Shiki language id. Without one, or with one Shiki does not know, it is plain text. */
@@ -675,9 +675,9 @@ export interface Editor {
     findStep(direction: 1 | -1): void;
     /* Replaces the match the find is on, with `$1` and the like expanded for a regular expression, and moves to the next one. Regex returns true when the worker operation starts; false when there is no match or the editor is read only. */
     replace(replacement: string, options?: EditorReplaceOptions): boolean;
-    /* Complete literal results return the number replaced; otherwise starts asynchronous replacement, returns zero and reports through onFind. */
+    /* The number replaced when the find already holds every match; otherwise it replaces in the background, returns zero and reports through onFind. */
     replaceAll(replacement: string, options?: EditorReplaceOptions): number;
-    /* Atomic, one undo step; excessive output or matches are refused through onFind. */
+    /* All or nothing, as one undo step. Too many matches or too much output fail through onFind. */
     replaceAllAsync(replacement: string, options?: EditorReplaceOptions): Promise<number>;
     /* What a regular expression replacement writes for the match the find is on, drawn under it while the find is open; null takes it away. */
     setReplacePreview(replacement: string | null, options?: EditorReplaceOptions): void;
@@ -927,7 +927,7 @@ export interface TokenizedLine {
 }
 
 /*
- * The coloring seam. A grammar needs the state the line before it ended in, so an edit recolors from
+ * Colors a document line by line. A grammar needs the state the line before it ended in, so an edit recolors from
  * the changed line on, and stops as soon as a line ends in the state it ended in before.
  */
 export interface LineTokenizer {

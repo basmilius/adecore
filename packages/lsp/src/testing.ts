@@ -28,7 +28,7 @@ export interface ReceivedMessage {
 /*
  * A language server for tests, on the far end of a transport. It answers the handshake, keeps the
  * text of every document it was told about the way a real server does, and answers whatever a test
- * registers with `handle`; any other request is refused as unsupported.
+ * registers with `handle`. It refuses any other request as unsupported.
  */
 export class FakeLanguageServer {
     readonly connection: JsonRpcConnection;

@@ -2,7 +2,7 @@ import type { DocumentSymbol, DocumentSymbolResult, Position, SymbolInformation 
 import { formatNumber } from '@adecore/ui/format';
 import type { i18n } from 'i18next';
 
-/* More declarations than this in one file and the rows are left out, which is the file that is too big for them to be quiet. */
+/* Past this many declarations in one file the rows are left out, since that many rows would be noise. */
 export const MAX_DECLARATIONS = 3000;
 
 /* LSP's SymbolKind: the kinds a row is drawn for and the ones whose children can be declarations too. */

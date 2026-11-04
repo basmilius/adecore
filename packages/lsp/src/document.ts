@@ -53,8 +53,8 @@ import { TextMirror } from './text-mirror.ts';
 const FULL_SYNC_DELAY_MS = 200;
 
 /*
- * One open text document in one session. It owns the version: every change raises it by one, and a
- * result that arrives for an older version is refused, so nothing computed for a text that is gone
+ * One open text document in one session. It owns the version, which every change raises by one. It
+ * refuses a result that arrives for an older version, so nothing computed for a text that is gone
  * reaches the caller.
  */
 export class LspDocument {

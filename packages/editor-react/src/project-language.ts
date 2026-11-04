@@ -296,7 +296,7 @@ export class ProjectLanguage {
         this.host.openPlace?.(place);
     }
 
-    /* Where an editor's caret stands now, so a jump from a surface without an editor, such as the Problems panel, still knows what it left. */
+    /* Where an editor's caret stands now, so a jump from a view without an editor, such as the Problems panel, still knows what it left. */
     noteCaret(place: Place): void {
         this.lastPlace = place;
     }

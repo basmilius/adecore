@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@adecore/lsp)](https://www.npmjs.com/package/@adecore/lsp)
 [![Docs](https://img.shields.io/badge/docs-adecore.dev-blue)](https://adecore.dev/lsp/)
 
-A client for the Language Server Protocol 3.17, without a DOM and without Node or Bun APIs, so it runs in a backend, a utility process or a page. It also defines `LanguageService`, the interface [`@adecore/editor-react`](https://adecore.dev/editor-react/) asks its features through. It starts no server: the app hands it a transport.
+A client for the Language Server Protocol 3.17, without a DOM and without Node or Bun APIs, so it runs in a backend, a utility process or a page. It also defines `LanguageService`, the interface [`@adecore/editor-react`](https://adecore.dev/editor-react/) asks its features through. It starts no server. The app hands it a transport.
 
 ## Install
 

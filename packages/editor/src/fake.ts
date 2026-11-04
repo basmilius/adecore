@@ -1343,7 +1343,7 @@ export class FakeEditorEngine implements EditorEngine {
         return editor;
     }
 
-    /* The editor mounted last, which is the one a test of a single surface drives. */
+    /* The editor mounted last, which is the one a test of a single editor drives. */
     get last(): FakeEditor {
         const editor = this.editors.at(-1);
 
