@@ -49,6 +49,7 @@ test('the answer call is the cli verb by default, and the host its own words whe
     );
     expect(byTool.preamble).toContain('this chat with answer_tool {"id":"child","request":"r1","questions":1}. Whoever answers first wins');
     expect(byTool.note).not.toContain('--answer');
+    expect(byTool.note).not.toContain('verb');
 });
 
 function pendingQuestion(): ChatQuestionItem {

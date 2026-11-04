@@ -181,7 +181,7 @@ export function waitingTexts(child: { id: string; title: string }, item: Waiting
             note: `${who} waits for a person to approve ${what}`,
             preamble: [
                 `${words.app}: ${who}, an agent you gave a task, waits for a person to approve ${what} (request ${item.requestId}). This did not wake you.`,
-                'Only a person answers an approval; there is no verb for it. If it holds up your plan, tell the person.'
+                'Only a person answers an approval; you have no way to. If it holds up your plan, tell the person.'
             ].join('\n')
         };
     }
@@ -191,7 +191,7 @@ export function waitingTexts(child: { id: string; title: string }, item: Waiting
 
     const how = [
         ...item.questions.map(questionLine),
-        `A person can answer it in that node, and this chat with ${call}. Whoever answers first wins; the verb refuses a question that was answered already.`
+        `A person can answer it in that node, and this chat with ${call}. Whoever answers first wins; an answer to a question that was answered already is refused.`
     ];
 
     return {
