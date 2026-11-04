@@ -56,6 +56,16 @@ const resumeRun = resumeRunHandler({ resumeRun: (chatId, turnId, attempt) => cha
 const onParked = resumeRunParked({ abandonRun: (chatId, turnId, reason) => chats.abandonRun(chatId, turnId, reason) });
 ```
 
+### Holding a first prompt
+
+`PendingPromptStore` keeps the first prompt of a node on disk until its chat or session exists, one file per node under `dir`. `take(nodeId)` hands it out once. Two callers in the same tick cannot both get it, and a restart after the take hands out nothing. A host that keeps more beside the prompt passes an `extra` schema in `PendingPromptStoreOptions`. Those fields sit at the top level of each record, beside `PendingPromptFields`, and `take` returns them with the prompt as a `FirstPrompt`. `PendingPromptExtra` is the shape `extra` must have. `prune(drop)` removes what `drop` picks, such as prompts for nodes deleted before anyone ran them. Call `load()` before anything takes a prompt.
+
+```ts
+const prompts = new PendingPromptStore({ dir: join(dataDir, 'prompts'), extra: z.object({ brief: z.string().optional() }) });
+await prompts.load();
+await prompts.put(projectId, nodeId, 'Start on the parser', { brief: 'Publish the result' });
+```
+
 ## Tasks
 
 A task is what a chat asked of a chat it opened. `TaskStore` keeps them under `tasks/`. `wireTasks` builds the coordinator that settles tasks, the outbox work that starts and wakes chats, and the verbs a context command calls. A set and an array stand in for your app's placement and notifications here:

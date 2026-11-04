@@ -22,6 +22,14 @@ export {
     resumeRunParked
 } from '../outbox/resume-run.ts';
 
+export {
+    PendingPromptStore,
+    type PendingPromptStoreOptions,
+    type PendingPromptFields,
+    type PendingPromptExtra,
+    type FirstPrompt
+} from '../tasks/pending-prompts.ts';
+
 export { restartBackgroundLimits, type RestartedOutbox } from '../tasks/background-limit.ts';
 
 export {
