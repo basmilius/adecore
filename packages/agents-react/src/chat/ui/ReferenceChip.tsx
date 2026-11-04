@@ -25,6 +25,7 @@ interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children
 /*
  * One token in the transcript. One that opens is a span with a button's role rather than a button,
  * since a button is a box with a baseline of its own and would not sit on the line the others sit on.
+ * It stays out of prose, whose margins on an image would lift a host's picture mark off the line.
  */
 export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, className, ...rest }: TokenChipProps) {
     const onKeyDown = (e: KeyboardEvent<HTMLSpanElement>): void => {
@@ -37,7 +38,13 @@ export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, class
     return (
         <span
             {...rest}
-            className={clsx(TOKEN_IN_MESSAGE, tone, onOpen !== undefined && 'cursor-pointer focus-visible:outline-2 focus-visible:outline-accent', className)}
+            className={clsx(
+                'not-prose',
+                TOKEN_IN_MESSAGE,
+                tone,
+                onOpen !== undefined && 'cursor-pointer focus-visible:outline-2 focus-visible:outline-accent',
+                className
+            )}
             data-chip={kind}
             data-chip-value={value}
             data-chip-name={kind === 'reference' ? label : undefined}
