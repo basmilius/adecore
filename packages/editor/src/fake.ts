@@ -1,4 +1,5 @@
 import { changedSpan, changedSpans, DocumentModel } from '@adecore/editor-core';
+import { isHighSurrogate, isLowSurrogate } from '@adecore/utils/text';
 import { emit, type Listener, subscribe } from './listeners.ts';
 import { placeAt, postfixOperands, surroundShape, unwrapTargets } from './text-queries.ts';
 import { mapTrackedRange } from './tracked-range.ts';
@@ -94,14 +95,6 @@ function linesOf(text: string): { start: number; end: number }[] {
     lines.push({ start, end: text.length });
 
     return lines;
-}
-
-function isHighSurrogate(code: number): boolean {
-    return code >= 0xd800 && code <= 0xdbff;
-}
-
-function isLowSurrogate(code: number): boolean {
-    return code >= 0xdc00 && code <= 0xdfff;
 }
 
 /* Clamps to the text and moves back off the middle of a CRLF or a surrogate pair, as the real document does. */

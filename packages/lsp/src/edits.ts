@@ -1,3 +1,4 @@
+import { isHighSurrogate, isLowSurrogate } from '@adecore/utils/text';
 import { ErrorCodes, LspError } from './connection.ts';
 import type { ContentChange, CreateFile, Position, TextEdit, WorkspaceEdit } from './protocol.ts';
 import { fileUriKey } from './uris.ts';
@@ -189,14 +190,6 @@ export function applyContentChanges(text: string, changes: readonly ContentChang
     }
 
     return result;
-}
-
-function isHighSurrogate(code: number): boolean {
-    return code >= 0xd800 && code <= 0xdbff;
-}
-
-function isLowSurrogate(code: number): boolean {
-    return code >= 0xdc00 && code <= 0xdfff;
 }
 
 /*

@@ -1,17 +1,11 @@
+import { isHighSurrogate, isLowSurrogate } from '@adecore/utils/text';
+
 export interface TextSpan {
     /* UTF-16 offsets into the text before the change. */
     readonly start: number;
     readonly end: number;
     /* What stands between them after it. */
     readonly text: string;
-}
-
-function isHighSurrogate(code: number): boolean {
-    return code >= 0xd800 && code <= 0xdbff;
-}
-
-function isLowSurrogate(code: number): boolean {
-    return code >= 0xdc00 && code <= 0xdfff;
 }
 
 /*

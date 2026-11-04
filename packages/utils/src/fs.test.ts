@@ -118,4 +118,43 @@ describe('replaceSync', () => {
         expect(await readFile(target, 'utf8')).toBe('new');
         expect(await readdir(dir)).toEqual(['state.json']);
     });
+
+    const refusal = (code: string) => Object.assign(new Error(code), { code });
+
+    test('tries again while the target is held, as Windows refuses a rename then', () => {
+        let attempts = 0;
+
+        replaceSync('a.tmp', 'a', () => {
+            attempts++;
+
+            if (attempts < 3) {
+                throw refusal('EPERM');
+            }
+        });
+
+        expect(attempts).toBe(3);
+    });
+
+    test('gives up after a few tries, and at once on any other error', () => {
+        let attempts = 0;
+
+        expect(() =>
+            replaceSync('a.tmp', 'a', () => {
+                attempts++;
+
+                throw refusal('EBUSY');
+            })
+        ).toThrow('EBUSY');
+        expect(attempts).toBe(6);
+        attempts = 0;
+
+        expect(() =>
+            replaceSync('a.tmp', 'a', () => {
+                attempts++;
+
+                throw refusal('ENOENT');
+            })
+        ).toThrow('ENOENT');
+        expect(attempts).toBe(1);
+    });
 });

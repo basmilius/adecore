@@ -3,7 +3,7 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Rectangle } from 'electron';
-import { createWindowState, fileStorage, fitBounds, renameRetrying, type StateWindow, type WindowStateStorage } from './window-state.ts';
+import { createWindowState, fileStorage, fitBounds, type StateWindow, type WindowStateStorage } from './window-state.ts';
 
 const DEFAULTS = { width: 1440, height: 900 };
 const LAPTOP = { workArea: { x: 0, y: 25, width: 1512, height: 944 } };
@@ -219,46 +219,5 @@ describe('fileStorage', () => {
         storage.write('two');
         expect(storage.read()).toBe('two');
         expect(readFileSync(join(folder, 'window-state.json'), 'utf8')).toBe('two');
-    });
-});
-
-describe('renameRetrying', () => {
-    const refusal = (code: string) => Object.assign(new Error(code), { code });
-
-    test('tries again while the target is held, as Windows refuses a rename then', () => {
-        let attempts = 0;
-
-        renameRetrying('a.tmp', 'a', () => {
-            attempts++;
-
-            if (attempts < 3) {
-                throw refusal('EPERM');
-            }
-        });
-
-        expect(attempts).toBe(3);
-    });
-
-    test('gives up after a few tries, and at once on any other error', () => {
-        let attempts = 0;
-
-        expect(() =>
-            renameRetrying('a.tmp', 'a', () => {
-                attempts++;
-
-                throw refusal('EBUSY');
-            })
-        ).toThrow('EBUSY');
-        expect(attempts).toBe(6);
-        attempts = 0;
-
-        expect(() =>
-            renameRetrying('a.tmp', 'a', () => {
-                attempts++;
-
-                throw refusal('ENOENT');
-            })
-        ).toThrow('ENOENT');
-        expect(attempts).toBe(1);
     });
 });

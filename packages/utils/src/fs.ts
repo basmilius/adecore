@@ -104,10 +104,10 @@ export async function writeAtomic(target: string, content: string | Uint8Array, 
  * an awaited write comes back, and an exit path is gone before one lands, so what has to be on disk
  * before the process turns around goes through here.
  */
-export function replaceSync(temp: string, target: string): void {
+export function replaceSync(temp: string, target: string, rename: (from: string, to: string) => void = renameSync): void {
     for (let attempt = 0; ; attempt++) {
         try {
-            renameSync(temp, target);
+            rename(temp, target);
 
             return;
         } catch (e) {

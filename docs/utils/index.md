@@ -11,6 +11,7 @@ bun add @adecore/utils
 | `@adecore/utils/async`  | a page or Node | waits, deadlines, timers and the order of async work   |
 | `@adecore/utils/errors` | a page or Node | reading a thrown value                                 |
 | `@adecore/utils/record` | a page or Node | the plain object guard                                 |
+| `@adecore/utils/text`   | a page or Node | the halves of a UTF-16 surrogate pair                  |
 | `@adecore/utils/fs`     | Node or Bun    | atomic writes and small file checks                    |
 | `@adecore/utils/path`   | Node or Bun    | whether a path lies inside a folder                    |
 
@@ -46,11 +47,15 @@ A sentence for a person to read is a different thing from a log line. The UI pac
 
 `isRecord(value)` is true for a plain object and false for `null` and arrays. Use it on input from the wire or a file before you read its fields.
 
+## text
+
+`isHighSurrogate(code)` and `isLowSurrogate(code)` take a UTF-16 code unit from `charCodeAt`. Check them before you cut a string at an offset, so the cut never lands between the two halves of an emoji or another character outside the Basic Multilingual Plane.
+
 ## fs
 
 `writeAtomic(target, content, mode, options)` writes a temporary file next to the target and renames it over the target. A process that dies halfway leaves a stray temporary file, never half a file. With `durable` set in `WriteAtomicOptions` it flushes the file before the rename and the folder after it. Without that flush, APFS and ext4 can keep an empty target after a power cut. `writeAtomicSync` does the same without awaiting, for an exit path or a reload that will not wait for a promise.
 
-`tempNameFor(target)` gives the temporary name. The temporary file is opened exclusively, so a link someone put on that name stays untouched. `replaceSync(temp, target)` is the rename on its own. Both renames retry a few times when `isBusyRename(e)` says Windows refused because a scanner or an indexer held the file. That covers `EPERM`, `EBUSY` and `EACCES`, never `EMFILE` or `ENFILE`, which mean the process ran out of descriptors.
+`tempNameFor(target)` gives the temporary name. The temporary file is opened exclusively, so a link someone put on that name stays untouched. `replaceSync(temp, target, rename)` is the rename on its own; `rename` defaults to `renameSync` and lets a test refuse it. Both renames retry a few times when `isBusyRename(e)` says Windows refused because a scanner or an indexer held the file. That covers `EPERM`, `EBUSY` and `EACCES`, never `EMFILE` or `ENFILE`, which mean the process ran out of descriptors.
 
 `syncDirectory(path)` flushes a folder, and does nothing on Windows, which cannot open a folder for it. `removeFile(path)` removes a file and leaves a missing one alone. `fileExists(path)` follows a link; `entryExists(path)` counts a link that leads nowhere.
 

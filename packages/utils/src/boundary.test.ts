@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 
 // A page imports these entries, so neither they nor what they import may reach for Node or Bun.
-const PAGE_ENTRIES = ['async.ts', 'errors.ts', 'record.ts'];
+const PAGE_ENTRIES = ['async.ts', 'errors.ts', 'record.ts', 'text.ts'];
 
 function importsOf(file: string, seen = new Set<string>()): string[] {
     if (seen.has(file)) {

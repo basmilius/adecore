@@ -7,6 +7,7 @@ import { gunzip, gzip, gzipSync } from 'node:zlib';
 import { CHAT_PAYLOAD_INLINE_BYTES, ChatCheckpointDiffSchema, type ChatCheckpointDiff, type ChatItem, type ChatPayloadRef } from '@adecore/agent-contracts';
 import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic, writeAtomicSync } from '@adecore/utils/fs';
+import { isHighSurrogate } from '@adecore/utils/text';
 import { ChatError } from './errors.ts';
 
 /* How much of a value stored apart the item keeps: what a timeline shows before anyone asks for the rest. */
@@ -82,10 +83,6 @@ export function previewOf(text: string, maxBytes: number): string {
     const lineEnd = prefix.lastIndexOf('\n');
 
     return lineEnd >= prefix.length / 2 ? prefix.slice(0, lineEnd + 1) : prefix;
-}
-
-function isHighSurrogate(code: number): boolean {
-    return code >= 0xd800 && code <= 0xdbff;
 }
 
 /* Every file of a diff, with the diffs that fit the preview in order and the rest held back as empty. */
