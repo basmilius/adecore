@@ -4,7 +4,7 @@ const EVENT_TIME =
 export interface UiEventTime {
     kind: 'time' | 'date' | 'datetime';
     date: Date;
-    // True when the text gave no offset: `date` then holds the parts as written in UTC, to be written in UTC, so no zone or clock change moves them. False is a real instant, to be written in the reader's zone.
+    // True when the text gave no offset. `date` then holds the written parts in UTC and is formatted in UTC, so no zone or clock change moves them. False is a real instant, formatted in the reader's zone.
     written: boolean;
     // True for a lone time that wrote seconds (`14:05:30`), which then shows them. A date-time shows its minutes only.
     seconds: boolean;
@@ -14,7 +14,7 @@ function validClock(hour: number, minute: number, second = 0): boolean {
     return hour <= 23 && minute <= 59 && second <= 59;
 }
 
-/* The minutes east of UTC that `Z` or `+02:00` stand for, or null for an offset no zone has: from -12:00 to +14:00. */
+/* The minutes east of UTC that `Z` or `+02:00` stand for, or null outside -12:00 to +14:00, where no zone lies. */
 function zoneOffset(zone: string): number | null {
     if (zone === 'Z') {
         return 0;

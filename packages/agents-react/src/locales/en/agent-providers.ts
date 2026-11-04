@@ -24,7 +24,7 @@ export default {
         missing: 'Missing',
         notInstalledNote: 'Install to use it here.',
         none: 'No agents found on this machine.',
-        noAccounts: 'Update Ruimte on this machine to add accounts.'
+        noAccounts: 'Update the app on this machine to add accounts.'
     },
     install: {
         notInstalled: 'Not installed',
@@ -58,7 +58,7 @@ export default {
             description: 'Pick {{provider}} for your next chat or terminal.'
         },
         footer: {
-            missing: 'Not found yet. Ruimte checks again when you come back to this window.',
+            missing: 'Not found yet. The app checks again when you come back to this window.',
             found: 'Found on this machine.'
         },
         fallback: 'Install {{provider}} to use it here.'
@@ -161,7 +161,7 @@ export default {
         advanced: 'Advanced',
         link: {
             label: 'Link an existing folder',
-            description: 'Use an existing config folder. Ruimte never moves or deletes it.',
+            description: 'Use an existing config folder. The app never moves or deletes it.',
             placeholder: 'Path on the machine'
         },
         create: 'Add account',

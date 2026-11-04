@@ -25,7 +25,7 @@ export const UI_GROUPS = {
         description: 'Show places on a map the host draws.',
         rules: 'Give lat and lon in decimal degrees, or an address the host looks up. Never a tile or map URL. The host chooses the map.'
     },
-    links: { description: 'Refer to a host-owned resource.', rules: 'Targets are checked by the host. No arbitrary navigation or file reads.' },
+    links: { description: 'Refer to a host-owned resource.', rules: 'The host checks every target. No arbitrary navigation or file reads.' },
     inputs: {
         description: 'Change local block state.',
         rules: 'Bind value={$name}. A Button sets a literal with action={@Set($name, value)} or restores a default with {@Reset($name)} or {@Reset()}. State stays local until a Choice sends visible context.'

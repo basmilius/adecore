@@ -1,6 +1,6 @@
 type Bundle = Record<string, unknown>;
 
-/* The words of this package, a namespace per surface, which the app adds to its i18next beside its own namespaces. */
+/* The words of this package, a namespace per part of the package, which the app adds to its i18next beside its own namespaces. */
 export const AGENTS_NAMESPACES = ['agent-chat', 'agent-prompts', 'agent-providers', 'agent-usage'] as const;
 
 export type AgentsNamespace = (typeof AGENTS_NAMESPACES)[number];

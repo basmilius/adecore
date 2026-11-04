@@ -473,7 +473,7 @@ export default {
         backToMain: 'Terug naar de main agent',
         loading: 'Gesprek laden…',
         working: 'Bezig…',
-        unsupported: 'Werk Ruimte op deze machine bij om sub-agents te lezen.',
+        unsupported: 'Werk de app op deze machine bij om sub-agents te lezen.',
         unreadable: 'Kon het gesprek niet lezen.',
         noAnswer: 'De machine antwoordde niet',
         stopFailed: 'Kon de sub-agent niet stoppen',

@@ -8,7 +8,7 @@ export interface UiDiagnostic {
     start: number;
     end: number;
     nodeId?: string;
-    // Only a warning says so: the part it names still drew. Absent means an error, a part that could not be drawn.
+    // A warning leaves the part it names drawn. Absent means an error, a part that could not be drawn.
     severity?: 'warning';
 }
 

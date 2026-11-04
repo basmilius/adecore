@@ -78,7 +78,7 @@ function dueAtOf(info: ChatInfo, endedAt: number): number {
 
 /*
  * When the next message would pay for the whole thread again, or null while nothing could be offered,
- * so a surface knows whether to keep a timer.
+ * so a view knows whether to keep a timer.
  */
 export function resumeCompactionDueAt(input: OfferInput): number | null {
     const endedAt = offerableTurn(input)?.endedAt ?? null;

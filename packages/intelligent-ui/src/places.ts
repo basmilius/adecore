@@ -20,7 +20,7 @@ function nameOf(node: UiViewNode): string {
 
 /*
  * The complete, valid Places that give an address, by node id, as the block evaluates with `input` and the
- * values of its `queries`. A place that also gives coordinates is looked up too: what the host finds for
+ * values of its `queries`. A place that also gives coordinates is looked up too. What the host finds for
  * the address wins, and the coordinates stand when it finds nothing.
  */
 export function uiPlaceQueries(

@@ -10,7 +10,7 @@ import { isBlockingPrompt, type PendingPrompt, type PromptAction, type PromptDra
  * rest and keeps its draft.
  */
 export interface HostPrompt {
-    /* Unique across the prompts of a surface, and stable while the prompt waits. */
+    /* Unique across the prompts of a view, and stable while the prompt waits. */
     id: string;
     createdAt: number;
     blocking: boolean;
@@ -59,7 +59,7 @@ export interface ApprovalButtonSpec {
     action: PromptAction;
 }
 
-/* Unique across the chats of a surface and the app's own prompts, and stable while the prompt waits. */
+/* Unique across the chats of a view and the app's own prompts, and stable while the prompt waits. */
 export function promptIdOf(subject: PromptSubject): string {
     return subject.kind === 'chat' ? `agent-chat:${subject.nodeId}:${subject.item.requestId}` : subject.prompt.id;
 }

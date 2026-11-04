@@ -71,7 +71,7 @@ export const PROMPT_SAMPLES: Array<{ label: string; items: PendingPrompt[] }> = 
                 kind: 'approval',
                 toolName: 'Bash',
                 toolUseId: null,
-                input: { command: 'bun run check && bun test', cwd: '/projects/ruimte' },
+                input: { command: 'bun run check && bun test', cwd: '/projects/app' },
                 description: "Run the project's validation checks before continuing.",
                 canAllowAlways: true,
                 allowAlways: { label: 'Allow for this session', description: 'Allow commands in this session until it ends.' },

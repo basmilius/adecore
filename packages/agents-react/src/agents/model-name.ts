@@ -26,7 +26,7 @@ export function modelNameFromSlug(slug: string): string {
     return words.map((word) => (word === 'gpt' ? 'GPT' : word.charAt(0).toUpperCase() + word.slice(1))).join(' ');
 }
 
-/* What the CLI calls the model, so every surface says the same thing; a slug it no longer offers is read as one. */
+/* What the CLI calls the model, so every view says the same thing; a slug it no longer offers is read as one. */
 export function modelName(slug: string, models: readonly ModelInfo[] | undefined): string {
     return models?.find((entry) => entry.slug === slug)?.name ?? modelNameFromSlug(slug);
 }

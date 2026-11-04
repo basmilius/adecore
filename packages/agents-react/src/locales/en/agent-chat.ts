@@ -473,7 +473,7 @@ export default {
         backToMain: 'Back to main agent',
         loading: 'Loading conversation…',
         working: 'Working…',
-        unsupported: 'Update Ruimte on this machine to read sub-agents.',
+        unsupported: 'Update the app on this machine to read sub-agents.',
         unreadable: 'Could not read conversation.',
         noAnswer: 'The machine did not answer',
         stopFailed: 'Could not stop sub-agent',

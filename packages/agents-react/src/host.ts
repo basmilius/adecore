@@ -48,7 +48,7 @@ export interface ChatToast {
 }
 
 /*
- * What a person does to a chat from its own surfaces. Without an app's own set, each one is the request
+ * What a person does to a chat from its own views. Without an app's own set, each one is the request
  * a chat host answers; an app that runs every action through one door (confirmations, voice, an
  * activity log) hands its own. A refusal throws something with a `code`.
  */

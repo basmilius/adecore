@@ -24,7 +24,7 @@ export default {
         missing: 'Ontbreekt',
         notInstalledNote: 'Installeer om hem hier te gebruiken.',
         none: 'Geen agents gevonden op deze machine.',
-        noAccounts: 'Werk Ruimte op deze machine bij om accounts toe te voegen.'
+        noAccounts: 'Werk de app op deze machine bij om accounts toe te voegen.'
     },
     install: {
         notInstalled: 'Niet geïnstalleerd',
@@ -58,7 +58,7 @@ export default {
             description: 'Kies {{provider}} voor je volgende chat of terminal.'
         },
         footer: {
-            missing: 'Nog niet gevonden. Ruimte kijkt opnieuw als je terugkomt in dit venster.',
+            missing: 'Nog niet gevonden. De app kijkt opnieuw als je terugkomt in dit venster.',
             found: 'Gevonden op deze machine.'
         },
         fallback: 'Installeer {{provider}} om hem hier te gebruiken.'
@@ -161,7 +161,7 @@ export default {
         advanced: 'Geavanceerd',
         link: {
             label: 'Een bestaande map koppelen',
-            description: 'Gebruik een bestaande configuratiemap. Ruimte verplaatst of verwijdert hem nooit.',
+            description: 'Gebruik een bestaande configuratiemap. De app verplaatst of verwijdert hem nooit.',
             placeholder: 'Pad op de machine'
         },
         create: 'Account toevoegen',

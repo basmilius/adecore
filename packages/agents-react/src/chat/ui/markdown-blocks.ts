@@ -157,9 +157,9 @@ function scanMarkdownBlocks(text: string, checkpoints = false): MarkdownScan {
     const blocks: MarkdownBlock[] = [];
     let start = 0;
     let offset = 0;
-    // The fence as a reading line by line sees it, blind to lists and indented code. A blank line is
-    // only cut at where this reading agrees, so every such cut is one this split made before it
-    // followed fences any further.
+    // The fence as a reading line by line sees it, blind to lists and indented code. The split cuts
+    // at a blank line only where this reading agrees, so it made every such cut before it followed
+    // fences any further.
     let lineFence: OpenFence | null = null;
     let afterBlank = false;
     // A fence inside a list item.

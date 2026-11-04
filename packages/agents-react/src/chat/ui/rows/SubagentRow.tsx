@@ -154,7 +154,7 @@ export function SubagentRow({
     work: ChatItem[];
     expanded: boolean;
     onToggle(): void;
-    /* Opens everything it did in the thread's place, for a surface that has somewhere to open it. */
+    /* Opens everything it did in the thread's place, for a view that has somewhere to open it. */
     onOpenConversation?(): void;
 }) {
     const { t } = useTranslation('agent-chat');

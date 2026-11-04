@@ -17,7 +17,7 @@ export function choiceWord(optionId: string, choice: { id: string; label: string
     return catalogWord(`agent-chat:modelOptions.${optionId}.choices.${choice.id}`, choice.label);
 }
 
-/* The option with the words a person reads, for a surface that draws its labels and choices. */
+/* The option with the words a person reads, for a view that draws its labels and choices. */
 export function localizedOption(option: ModelOptionDescriptor): ModelOptionDescriptor {
     const label = optionWord(option);
 

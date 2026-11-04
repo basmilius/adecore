@@ -6,7 +6,7 @@ import { AccountLimitsList } from './LimitsList';
 
 const MINUTE_MS = 60_000;
 
-/* Asking the CLIs starts a process each, so the question waits until the card is actually opened. */
+/* Asking the CLIs starts a process each, so the question waits until the card opens. */
 function CardBody({ folded, onFoldedChange }: { folded: ReadonlySet<string>; onFoldedChange: (folded: ReadonlySet<string>) => void }) {
     const limits = useUsageLimits();
     const groups = useLimitGroups(limits);
