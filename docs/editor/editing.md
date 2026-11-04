@@ -10,6 +10,8 @@ Mount options and `revealLine` count lines from one. Everything else counts from
 
 `setText(text)` is for outside changes, such as a reload from disk or an edit in another view of the file. It applies only the differing lines as one `external` undo step, so caret, scroll, folds and decorations stay with their text.
 
+`setText(text, { clearHistory: true })` (`EditorSetTextOptions`) sets the text without an undo step and empties the history, for a reload of what is on disk. Undo then never steps back to a version from before the reload, and the history holds no copy of the old text.
+
 `applyEdits(changes, options?)` replaces ranges of the current text as one undo step. Every range refers to the text before the batch. It returns `false` and changes nothing when the editor is read-only, the list is empty or ranges overlap. `editor.isReadOnly()` reports the read-only state; it is optional on `Editor`, so a wrapper checks `editor.isReadOnly?.() ?? false`.
 
 ```ts
