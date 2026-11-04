@@ -1,10 +1,11 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
-import { defineConfig, postcssIsolateStyles, type DefaultTheme } from 'vitepress';
+import { defineConfig, postcssIsolateStyles } from 'vitepress';
 import llmstxt from 'vitepress-plugin-llms';
 import { demoPlugin } from './demo-plugin.ts';
+import { exportTablePlugin } from './export-reference.ts';
 import { librarySourceAliases } from './library-source.ts';
-import { sidebar } from './navigation.ts';
+import { nav, sidebar } from './navigation.ts';
 
 // The library reads light and dark from `data-theme` on <html>, VitePress toggles a class there. Inline in
 // the head, so the attribute is right before the first paint and follows every toggle after it.
@@ -18,15 +19,6 @@ const followAppearance = `(() => {
 // A demo draws the library with its own reset, so the prose styles of a page stop at `.vp-raw`.
 // The base reset stays, since a library button without it would wear the browser's own border.
 const isolateDemos = postcssIsolateStyles({ includeFiles: [/vp-doc\.css/] });
-
-/* A dropdown of a category's packages that lights up on any page of them. */
-function category(text: string, packages: [string, string][]): DefaultTheme.NavItemWithChildren {
-    return {
-        text,
-        activeMatch: `^/(${packages.map(([, folder]) => folder).join('|')})/`,
-        items: packages.map(([label, folder]) => ({ text: label, link: `/${folder}/` }))
-    };
-}
 
 export default defineConfig({
     title: 'ADE CORE',
@@ -43,6 +35,7 @@ export default defineConfig({
         languageAlias: { ui: 'jsx' },
         config(md) {
             md.use(demoPlugin);
+            md.use(exportTablePlugin);
         }
     },
     vite: {
@@ -76,38 +69,7 @@ export default defineConfig({
         search: {
             provider: 'local'
         },
-        nav: [
-            { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
-            category('Interface', [
-                ['UI', 'ui'],
-                ['Charts', 'charts'],
-                ['Terminal', 'terminal']
-            ]),
-            category('Agents', [
-                ['Agent contracts', 'agent-contracts'],
-                ['Agents', 'agents'],
-                ['Agent views', 'agents-react'],
-                ['Intelligent UI', 'intelligent-ui']
-            ]),
-            category('Editor', [
-                ['Editor core', 'editor-core'],
-                ['Editor', 'editor'],
-                ['Editor views', 'editor-react'],
-                ['LSP', 'lsp'],
-                ['Merge', 'merge']
-            ]),
-            category('Platform', [
-                ['Shell', 'shell'],
-                ['Service', 'service'],
-                ['Database', 'database'],
-                ['Utils', 'utils']
-            ]),
-            category('Canvas', [
-                ['Drawing', 'drawing'],
-                ['Diagram', 'diagram'],
-                ['Plan', 'plan']
-            ])
-        ],
+        nav,
         sidebar,
         socialLinks: [
             { icon: 'github', link: 'https://github.com/basmilius/adecore' },

@@ -1,5 +1,4 @@
-import { Glob } from 'bun';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, globSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -13,7 +12,7 @@ export interface PublishedEntry {
     readonly file: string;
 }
 
-function moduleOf(from: string, specifier: string): string | null {
+export function moduleOf(from: string, specifier: string): string | null {
     const base = resolve(dirname(from), specifier);
     return (
         [base, `${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')].find((path) => /\.tsx?$/.test(path) && existsSync(path)) ?? null
@@ -66,7 +65,9 @@ export function exportedNames(file: string, seen = new Set<string>()): string[] 
 /* Every TypeScript entry point of every package that is published, a wildcard export expanded to its modules. */
 export function publishedEntries(): PublishedEntry[] {
     const entries: PublishedEntry[] = [];
-    for (const manifest of [...new Glob('packages/*/package.json').scanSync({ cwd: ROOT })].map((path) => path.replaceAll('\\', '/')).sort()) {
+    for (const manifest of globSync('packages/*/package.json', { cwd: ROOT })
+        .map((path) => path.replaceAll('\\', '/'))
+        .sort()) {
         const json = JSON.parse(readFileSync(join(ROOT, manifest), 'utf8')) as { name: string; private?: boolean; exports?: Record<string, unknown> };
         if (json.private === true) {
             continue;
@@ -82,7 +83,7 @@ export function publishedEntries(): PublishedEntry[] {
                 continue;
             }
             const [before, after] = source.split('*') as [string, string];
-            for (const path of [...new Glob(source.replace('*', '**/*')).scanSync({ cwd: join(ROOT, folder) })]
+            for (const path of globSync(source.replace('*', '**/*'), { cwd: join(ROOT, folder) })
                 .map((path) => path.replaceAll('\\', '/'))
                 .sort()) {
                 if (!/\.test\.tsx?$/.test(path)) {

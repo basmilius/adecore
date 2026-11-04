@@ -8,13 +8,105 @@ function group(text: string, items: [string, string][]): DefaultTheme.SidebarIte
     };
 }
 
+/* The packages by area, as `[label, folder]`, in the order the nav and the guide list them. */
+const PACKAGES: [string, [string, string][]][] = [
+    [
+        'Interface',
+        [
+            ['UI', 'ui'],
+            ['Charts', 'charts'],
+            ['Terminal', 'terminal']
+        ]
+    ],
+    [
+        'Agents',
+        [
+            ['Agent contracts', 'agent-contracts'],
+            ['Agents', 'agents'],
+            ['Agent views', 'agents-react'],
+            ['Intelligent UI', 'intelligent-ui']
+        ]
+    ],
+    [
+        'Editor',
+        [
+            ['Editor core', 'editor-core'],
+            ['Editor', 'editor'],
+            ['Editor views', 'editor-react'],
+            ['LSP', 'lsp'],
+            ['Merge', 'merge']
+        ]
+    ],
+    [
+        'Platform',
+        [
+            ['Shell', 'shell'],
+            ['Service', 'service'],
+            ['Database', 'database'],
+            ['Utils', 'utils']
+        ]
+    ],
+    [
+        'Canvas',
+        [
+            ['Drawing', 'drawing'],
+            ['Diagram', 'diagram'],
+            ['Plan', 'plan']
+        ]
+    ]
+];
+
+/* The reference page of each package that has one, until every package has its generated export table. */
+const REFERENCES: Record<string, string> = {
+    'agent-contracts': '/agent-contracts/reference',
+    agents: '/agents/reference',
+    'agents-react': '/agents-react/reference',
+    'intelligent-ui': '/intelligent-ui/reference',
+    'editor-core': '/editor-core/api',
+    editor: '/editor/reference',
+    'editor-react': '/editor-react/reference',
+    lsp: '/lsp/reference',
+    terminal: '/terminal/reference',
+    utils: '/utils/reference',
+    database: '/database/api/client'
+};
+
+const folders = PACKAGES.flatMap(([, packages]) => packages.map(([, folder]) => folder));
+
+export const nav: DefaultTheme.NavItem[] = [
+    { text: 'Guide', link: '/guide/', activeMatch: '^/guide/' },
+    {
+        text: 'Packages',
+        activeMatch: `^/(${folders.join('|')})/`,
+        items: [
+            { text: 'Choosing packages', link: '/guide/packages' },
+            ...PACKAGES.map(([area, packages]) => ({
+                text: area,
+                items: packages.map(([label, folder]) => ({ text: label, link: `/${folder}/` }))
+            }))
+        ]
+    },
+    { text: 'Reference', link: '/reference/', activeMatch: '^/reference/' }
+];
+
 const guide: DefaultTheme.SidebarItem[] = [
     group('Guide', [
         ['Introduction', '/guide/'],
+        ['Choosing packages', '/guide/packages'],
         ['Installing', '/guide/installing'],
         ['Styles', '/guide/styles'],
         ['React Compiler', '/guide/react-compiler']
     ])
+];
+
+const reference: DefaultTheme.SidebarItem[] = [
+    group('Reference', [['All packages', '/reference/']]),
+    ...PACKAGES.map(([area, packages]) =>
+        group(
+            area,
+            packages.filter(([, folder]) => REFERENCES[folder] !== undefined).map(([label, folder]): [string, string] => [label, REFERENCES[folder]!])
+        )
+    ).filter((item) => item.items!.length > 0)
 ];
 
 const desktopUi: DefaultTheme.SidebarItem[] = [
@@ -158,7 +250,35 @@ const desktopShell: DefaultTheme.SidebarItem[] = [
     ])
 ];
 
-const terminal: DefaultTheme.SidebarItem[] = [group('Terminal', [['TerminalView', '/terminal/']])];
+const terminal: DefaultTheme.SidebarItem[] = [
+    group('Terminal', [
+        ['Overview', '/terminal/'],
+        ['Getting started', '/terminal/getting-started']
+    ]),
+    group('Guides', [
+        ['Input and output', '/terminal/input-output'],
+        ['Theme and font', '/terminal/theme'],
+        ['Links', '/terminal/links'],
+        ['WebGL', '/terminal/webgl'],
+        ['Going past the props', '/terminal/xterm']
+    ]),
+    group('Reference', [['Props, handle and exports', '/terminal/reference']])
+];
+
+const utils: DefaultTheme.SidebarItem[] = [
+    group('Utils', [['Overview', '/utils/']]),
+    group('Page or Node', [
+        ['Async', '/utils/async'],
+        ['Errors', '/utils/errors'],
+        ['Records', '/utils/record'],
+        ['Text', '/utils/text']
+    ]),
+    group('Node or Bun', [
+        ['Files', '/utils/fs'],
+        ['Paths', '/utils/path']
+    ]),
+    group('Reference', [['Exports', '/utils/reference']])
+];
 
 const charts: DefaultTheme.SidebarItem[] = [
     group('Charts', [
@@ -203,6 +323,7 @@ const database: DefaultTheme.SidebarItem[] = [
 
 export const sidebar: DefaultTheme.SidebarMulti = {
     '/guide/': guide,
+    '/reference/': reference,
     '/ui/': desktopUi,
     '/shell/': desktopShell,
     '/terminal/': terminal,
@@ -299,7 +420,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
         ]),
         group('Reference', [['Exports', '/agents-react/reference']])
     ],
-    '/utils/': [group('Utils', [['Overview', '/utils/']])],
+    '/utils/': utils,
     '/merge/': [
         group('Merge', [
             ['Overview', '/merge/'],

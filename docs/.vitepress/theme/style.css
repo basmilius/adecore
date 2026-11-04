@@ -115,3 +115,30 @@
 .vp-doc .demo-code > div[class*='language-'] pre {
     max-height: 480px;
 }
+
+/* The kind of each name in a generated export table, so a scan finds the components or the types. */
+.vp-doc .export-table td:first-child {
+    white-space: nowrap;
+}
+
+.vp-doc .export-kind {
+    display: inline-block;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    line-height: 20px;
+    color: var(--vp-c-text-2);
+    background: var(--vp-c-default-soft);
+}
+
+.vp-doc .export-kind[data-kind='component'],
+.vp-doc .export-kind[data-kind='hook'] {
+    color: var(--vp-c-brand-1);
+    background: var(--vp-c-brand-soft);
+}
+
+.vp-doc .export-kind[data-kind='function'],
+.vp-doc .export-kind[data-kind='class'] {
+    color: var(--vp-c-tip-1);
+    background: var(--vp-c-tip-soft);
+}
