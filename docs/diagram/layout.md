@@ -12,7 +12,7 @@ const layout = layoutOf(diagram);
 // layout.bounds: { x, y, w, h }
 ```
 
-`nodes`, `edges` and `groups` come in file order. A group that wraps no node has no box and is left out. `EdgeRoute.index` is the edge's position in the file, and `points` run from source to target, with the arrow head at the last. `bounds` covers everything drawn and is all zero for an empty diagram. The types are `DiagramLayout`, `NodeBox`, `GroupBox`, `EdgeRoute` and `EdgeLabelBox`.
+`nodes`, `edges` and `groups` come in file order. A group that wraps no node has no box, and the layout leaves it out. `EdgeRoute.index` is the edge's position in the file, and `points` run from source to target, with the arrow head at the last. `bounds` covers everything drawn and is all zero for an empty diagram. The types are `DiagramLayout`, `NodeBox`, `GroupBox`, `EdgeRoute` and `EdgeLabelBox`.
 
 ## Layers
 
@@ -22,7 +22,7 @@ To rank a cycle, the layout leaves out the edges that point back, walking in fil
 
 ## Order and placement
 
-Inside a column, nodes are sorted to cross fewer edges, with ties kept in file order. Group members stay together, and groups keep their order across columns. Then nodes shift towards their neighbors, so a chain lines up straight. The ordering is a heuristic, so dense graphs can still cross edges, and spacing has no options.
+Inside a column, the layout sorts nodes to cross fewer edges, with ties kept in file order. Group members stay together, and groups keep their order across columns. Then nodes shift towards their neighbors, so a chain lines up straight. The ordering is a heuristic, so dense graphs can still cross edges, and spacing has no options.
 
 A `down` diagram is a `right` one mirrored across the diagonal, with boxes and text kept upright.
 
@@ -36,7 +36,7 @@ A node's box follows from its wrapped text and its shape:
 
 An edge label is `SUB_SIZE`, wrapped at 160.
 
-Text widths are estimated from common system fonts, never measured, and lean wide. Text wraps at spaces, and a line break reads as a space. In a font the estimate does not fit, text can run past its box. A view that draws its own text sets it in `LABEL_SIZE` and `SUB_SIZE` and takes the lines from the layout.
+The layout estimates text widths from common system fonts instead of measuring them, and the estimates lean wide. Text wraps at spaces, and a line break reads as a space. In a font the estimate does not fit, text can run past its box. A view that draws its own text sets it in `LABEL_SIZE` and `SUB_SIZE` and takes the lines from the layout.
 
 ## Groups
 

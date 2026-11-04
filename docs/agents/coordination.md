@@ -46,9 +46,11 @@ A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes t
 
 `stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
+A kind of work is an `OutboxWorkShape`: a schema whose `kind` is a literal, so the kinds of one outbox form a discriminated union. An entry is an `OutboxEntryOf` that work, the work plus the `OutboxEntryFields` the store adds. `OutboxHandlers` maps every kind to its handler, which resolves to an `OutboxOutcome`: nothing, or `'wait'`. The worker reads time from an `OutboxClock`, `systemClock` by default. `OutboxStoreOptions` and `OutboxWorkerOptions` list the options of the two.
+
 ### Resuming a turn after a restart
 
-A turn the host went down in can go on once the chat loads again. Put `ResumeRunWorkSchema` in the outbox's union. Hand `oweResume` to the chat core as its interrupted-run hook. It needs `projectOf`, `entries` and `enqueue` (`OweResumeDeps`), and enqueues one `ResumeRunEntry` per turn and attempt, however often the chat is loaded. Register `resumeRunHandler` for the kind. It calls `resumeRun(chatId, turnId, attempt)` from `ResumeRunDeps`, so a CLI that will not start retries on the outbox's delays. `resumeRunParked` goes in `onParked`. It ends a resume the worker gave up on through `abandonRun`, with `notResumedNote` and the error as its reason, and leaves other kinds alone.
+A turn the host went down in can go on once the chat loads again. Put `ResumeRunWorkSchema` in the outbox's union. Hand `oweResume` to the chat core as its interrupted-run hook. It needs `projectOf`, `entries` and `enqueue` (`OweResumeDeps`), and enqueues one `ResumeRunEntry` per turn and attempt, however often the chat is loaded. Register `resumeRunHandler` for the kind. It calls `resumeRun(chatId, turnId, attempt)` from `ResumeRunDeps`, so a CLI that will not start retries on the outbox's delays. `resumeRunParked` goes in `onParked`. It ends a resume the worker gave up on through `abandonRun`, with `notResumedNote` and the error as its reason, and leaves other kinds alone. `ResumeRunWork` is the type of the work.
 
 ```ts
 const owe = oweResume({ projectOf, entries: () => outbox.list(), enqueue: (projectId, target, work) => worker.enqueue(projectId, target, work) });
@@ -133,17 +135,29 @@ export async function openTaskServices(dataDir: string, chats: ChatCore, placedI
 
 `TaskStore.subscribe` reports every task written. Send it over your own protocol as `TaskChangedEventSchema`. Call `wireTasks` once per core.
 
+The types around `wireTasks`:
+
+- `TaskWiringDeps` is what it takes, and `TaskWiring` what it returns: the `coordinator` (a `TaskCoordinator`, built from `TaskCoordinatorDeps`), the `waiting` observer, the `verbs`, the `requests`, the outbox `handlers` and `recover`.
+- `TaskChats` is what tasks need of the chats, which a `ChatCore` has. `TaskOutbox` is the outbox as tasks use it, whatever else it holds; an entry of any kind is an `AnyOutboxEntry`.
+- `TaskWork` is the union of the four kinds tasks owe, `BackgroundLimitWork`, `WakeParentWork`, `GiveTaskWork` and `DeliverWaitingWork`, which a host puts in its own union. `BackgroundLimitEntry` is an entry of the first, and `RestartedOutbox` is what `restartBackgroundLimits` needs of the outbox.
+- `TaskVerbs` is what a context command reaches, and `TaskRecord` what `verbs.open` and `verbs.give` take.
+- `TaskWords` holds the host's words: those of `WaitingWords` (its name and how an agent answers a question), plus the optional `assignment` and `restOf`.
+- `chatRequests(chats)` reads what the loaded chats wait on, as `ChatRequests`. A chat nobody loaded since a restart waits on nothing.
+- `WaitingObserver` (with `WaitingObserverDeps`) owes a parent one note when a child's `WaitingRequest`, a question or an approval, waited out `WAITING_GRACE_MS`. It never writes the note or wakes the parent itself.
+- `wakePrompt` builds the prompt a woken parent gets, with at most `RESULT_PREVIEW_BYTES` of each result.
+- `TaskStore` reports to a `TaskListener` with the whole task, and to a `TaskSink` with a `TaskEvent`, `{ event: 'task.changed', payload }`.
+
 ## Lineage
 
 `AgentLineageStore` records under `lineage/` which chat opened which, with depth, project, runtime mode ceiling and end time. A fork a person made has `relation: 'fork'` and is no descendant. `depthOf` and `openedCount` let your app cap depth and count. The store caps nothing itself. Keep the ceiling `ceilingForOpening(opener, requested)` returns and clamp later starts with `narrowerMode`, so a restart never widens an agent.
 
-`endChildren` ends the chats a chat opened, recursively. Add `EndChildrenWorkSchema` to the outbox. `owe(target)` writes the obligation first. Its handler marks the lineage ended, removes work that would restart them, cancels their tasks and stops them deepest first through your `stop(nodeId, reason)`. List every kind of your own work that would restart a chat in `reviving`.
+`endChildren` ends the chats a chat opened, recursively. Add `EndChildrenWorkSchema` to the outbox. `owe(target)` writes the obligation first. Its handler marks the lineage ended, removes work that would restart them, cancels their tasks and stops them deepest first through your `stop(nodeId, reason)`. List every kind of your own work that would restart a chat in `reviving`. `endChildren(deps)` takes `EndChildrenDeps`, with the outbox as an `EndChildrenOutbox`, and returns an `EndChildren`. Its work is an `EndChildrenWork`, and an entry of it an `EndChildrenEntry`.
 
 `rehome(nodeId, projectId)` moves a node's record to another project, for a chat your app moved. It returns false when no record exists.
 
 ## Messages
 
-`NoticeStore` keeps messages waiting for a chat under `notices/`, capped per chat and in age. `take` hands them to the model once. `show` marks them seen by a person, independently.
+`NoticeStore` keeps messages waiting for a chat under `notices/`, capped per chat and in age: at most `MAX_NOTICES` per chat, none older than `NOTICE_MAX_AGE_MS`. A message is a `Notice`. `take` hands them to the model once. `show` marks them seen by a person, independently.
 
 After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets(core), notice)` stores a message and returns what happens next:
 
@@ -156,4 +170,6 @@ After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets
 
 Every message counts one hop past the turn that sent it, which `ChatNoticeTargets.hop(id)` answers. A turn a person or a settled task started counts from zero. `SteerChat` is what `steerNotices` needs of a chat, and `NoticeStore.onSettled` says when a message was heard or dropped, so a thread can stop showing it as waiting.
 
-`NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person.
+`NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person, in the chat as a `NoticeChat`.
+
+`MessageWords` are the host's words in a message: its app, its nodes and its CLI. `deliverMessageHandler` takes `DeliverMessageDeps` and handles a `DeliverMessageWork`, whose entry is a `DeliverMessageEntry`.

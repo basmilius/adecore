@@ -29,14 +29,14 @@ app.on('before-quit', () => windowState.flush());
 
 ## When it writes
 
-Half a second (`delayMs`) after a window stops moving or resizing, at once when it closes, and on `flush` at quit. `setTimeout` and `clearTimeout` replace the timer in a test. It saves the normal bounds, so a maximized window comes back maximized and unmaximizes to its own size.
+It writes half a second (`delayMs`) after a window stops moving or resizing, at once when it closes, and on `flush` at quit. `setTimeout` and `clearTimeout` replace the timer in a test. It saves the normal bounds, so a maximized window comes back maximized and unmaximizes to its own size.
 
 ## Displays that changed
 
-Saved bounds are kept only while a display still shows enough of the window to grab its title bar. The window then moves fully onto that display and shrinks to its work area. Otherwise it opens at its default size, centered.
+A window keeps its saved bounds only while a display still shows enough of it to grab its title bar. The window then moves fully onto that display and shrinks to its work area. Otherwise it opens at its default size, centered.
 
 ## Storage
 
 `fileStorage` writes one JSON file atomically. An unreadable file, or one from another version, counts as a first start. Any `WindowStateStorage`, an object with `read()` and `write(text)`, can replace the file.
 
-`WindowStateOptions`, `WindowState`, `SavedWindow`, `StateWindow` (the part of a `BrowserWindow` it uses), `WindowDisplay` and `WindowSize` are exported types.
+`WindowStateOptions`, `WindowState`, `SavedWindow`, `StateWindow` (the part of a `BrowserWindow` it uses), `WindowDisplay` and `WindowSize` are exported types; the [reference](/shell/reference#windowstateoptions) lists the options.

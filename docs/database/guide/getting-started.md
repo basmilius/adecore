@@ -94,9 +94,9 @@ app.on('web-contents-created', (_event, contents) => {
 app.on('before-quit', () => void host.dispose());
 ```
 
-`isTrustedSender` is yours: compare the frame's origin with the page you loaded. A reloaded window keeps its owner and its old sessions until it closes. Call `host.release(owner)` on a main-frame navigation if that matters.
+`isTrustedSender` is yours. Compare the frame's origin with the page you loaded. A reloaded window keeps its owner and its old sessions until it closes. Call `host.release(owner)` on a main-frame navigation if that matters.
 
-The host asks the app before it opens a connection, touches a file or lists containers, through `authorize`, `authorizeFile` and `authorizeDiscovery`. Without `authorizeFile`, export and import are refused. Without `authorizeDiscovery`, the form finds no Docker containers. See [Security](/database/guide/security).
+The host asks the app before it opens a connection, touches a file or lists containers, through `authorize`, `authorizeFile` and `authorizeDiscovery`. Without `authorizeFile`, the host refuses export and import. Without `authorizeDiscovery`, the form finds no Docker containers. See [Security](/database/guide/security).
 
 ### Electron utility process
 
@@ -344,3 +344,12 @@ Numbers, dates and durations follow the [format source](/ui/formatting/) of `UIP
 ## Try it without a server
 
 `fakeDatabaseTransport` answers the protocol from memory, so a page runs without a backend or helper. See [Testing](/database/api/testing).
+
+## Checklist
+
+- `helperPath()` finds the helper, and a packaged app unpacks it from `app.asar`.
+- The backend checks the sender before it calls `host.handle`, and names one owner per window or socket.
+- `authorize`, `authorizeFile` and `authorizeDiscovery` on the host allow what the app means to allow.
+- `DatabaseProvider` sits inside `UIProvider`, above every view.
+- Tailwind scans `@adecore/database` next to `@adecore/ui`.
+- The app splits the password off a connection before it saves one; see [Security](/database/guide/security#passwords).

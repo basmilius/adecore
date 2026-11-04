@@ -1,4 +1,4 @@
-# Text and reading order
+# Text
 
 A `text` and a `note` are both a `WrittenElement`: they carry `text`, a `size` and an optional `font` and `align`. Lines are `size * LINE_HEIGHT` apart, and `LINE_HEIGHT` is 1.25.
 
@@ -37,19 +37,6 @@ const svg = toSvg(elements, {
 
 If you pass `fonts`, measure with those stacks too.
 
-## Reading order
+## Text for a reader
 
-`readingOrder(elements)` turns a drawing into lines of plain text, for an agent or for a text alternative next to the canvas. The [demo on the overview](/drawing/) prints them under the drawing:
-
-```
-Idea
-Review
-Shipped
-Ask for a second review when the change touches billing
-Idea -> Review
-Review -> Shipped
-```
-
-First come the texts and notes, in rows top to bottom and left to right within a row. Then every line with an arrow head becomes `from -> to`, in the direction the head points. Each end takes the name of the nearest text, note or labeled shape. An arrow with an unnamed end, or the same name at both ends, is left out.
-
-It is a guess from positions. When the connections matter, keep them as data: [`@adecore/diagram`](/diagram/) stores edges and reads them back exactly.
+To turn a drawing into lines of text, for an agent or a screen reader, see [Reading order](/drawing/reading-order).

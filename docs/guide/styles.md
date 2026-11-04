@@ -1,6 +1,6 @@
 # Styles
 
-The views are styled with Tailwind 4 on the theme of `@adecore/ui`. An app imports Tailwind, the theme and the stylesheet of each package it uses, in that order, and lets Tailwind scan the packages whose components carry utility classes.
+The views use Tailwind 4 on the theme of `@adecore/ui`. An app imports Tailwind, the theme and the stylesheet of each package it uses, in that order, and lets Tailwind scan the packages whose components carry utility classes.
 
 ## Per package
 

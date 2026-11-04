@@ -52,7 +52,7 @@ The width follows the container. `height` covers the plot and the x axis.
 | `grow` | `boolean` | `false` | Fills the container's height, never less than `height`. The container needs a height of its own. |
 | `margin` | `ChartMargin` | | Pixels around the plot, beside the axes. Defaults: `top` 8, `bottom` 4 under an x axis, `left` and `right` 6 on a time or linear scale without buckets. Set them to 0 for a chart that draws to its edges. |
 | `surface` | `'base' \| 'raised'` | `'base'` | The surface behind the chart, used for label halos and point rings. Pass `'raised'` in a dialog or a popover. |
-| `interactive` | `boolean` | `true` | `false` makes the chart an image named by `label`, with no tab stop, keys or live region; see [keyboard and screen reader](/charts/#keyboard-and-screen-reader). |
+| `interactive` | `boolean` | `true` | `false` makes the chart an image named by `label`, with no tab stop, keys or live region; see [keyboard and screen reader](/charts/keyboard). |
 | `cursor` | `'full' \| 'line' \| 'none'` | `'full'` | How the cursor shows: a lit bucket on a band scale or a line with dots on a time or linear one, the line alone, or nothing beyond the tooltip. Picked buckets stay lit. |
 | `format` | `(value: number) => string` | | Writes values in the tooltip, live region and table, and on a y axis without its own `format`. |
 | `rowLabel` | `keyof Row \| (row, index) => string` | | The bucket name in the tooltip, live region and table, in place of the axis label: "Fri, Oct 9" for "Oct 9". |
@@ -68,7 +68,7 @@ A `ChartX` is a number (a moment in milliseconds) or the key of a category; a `C
 
 `Chart.Grid` draws a line on every tick of the value axis, with a stronger ground line. `axis` takes `'y'` (default), `'x'` or `'both'`. `dashed` dashes every line but the ground. `lines="ground"` draws the ground alone, for columns that carry their own value labels.
 
-`Chart.YAxis` writes ticks beside the plot, on the `left` or `right` (`side`), and sizes itself to its widest label. `Chart.XAxis` writes them under the plot. Time labels come from `@adecore/ui/format`. Labels that would overlap or hang past the edge are thinned out. On a time scale of columns, `align="bucket"` writes each bucket's start under its column instead of round moments on ticks.
+`Chart.YAxis` writes ticks beside the plot, on the `left` or `right` (`side`), and sizes itself to its widest label. `Chart.XAxis` writes them under the plot. Time labels come from `@adecore/ui/format`. The axis thins out labels that would overlap or hang past the edge. On a time scale of columns, `align="bucket"` writes each bucket's start under its column instead of round moments on ticks.
 
 Axis props:
 

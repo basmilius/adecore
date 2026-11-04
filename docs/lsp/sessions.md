@@ -1,46 +1,18 @@
-# Sessions and transports
+# Sessions
 
-## Transports
-
-An `LspTransport` sends and receives whole JSON-RPC messages: `send(message)`, `onMessage(listener)`, `onClose(listener)` and `close()`. Messages that arrive before the first listener are kept for it. One transport carries one connection.
-
-| Transport                                  | Over                                                                                          |
-| ------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `createStreamTransport(stream, options?)`  | A `ByteStream`, such as the stdin and stdout of a server process, with `Content-Length` framing |
-| `connectWebSocket(url, options?)`          | A WebSocket, one JSON text frame per message; resolves once the socket is open                |
-| `createMemoryTransportPair()`              | From `@adecore/lsp/testing`: two ends in memory, each message JSON-copied and delivered on a microtask |
-
-A `ByteStream` is the app's adapter over a process: `write(chunk)`, `onData`, `onClose` and `close`. Wire stdout to `onData` and keep stderr apart, since a log line in stdout breaks the framing. A frame over `maxMessageBytes` (32 MiB) or one it cannot read closes the stream.
+`new LspSession(transport, options?)` is one conversation with one server over a [transport](/lsp/transports). Await `initialize()` before anything else. It runs the handshake and then sends the `configuration`, if any.
 
 ```ts
-import { spawn } from 'node:child_process';
-import { createStreamTransport, type ByteStream } from '@adecore/lsp';
+const session = new LspSession(transport, {
+    rootUri: pathToFileUri('/work'),
+    configuration: { php: { version: '8.4' } },
+    onMessage: (params) => toast(params.message)
+});
 
-const child = spawn(executable, ['--stdio'], { cwd: projectFolder });
-
-const stream: ByteStream = {
-    write: (chunk) => void child.stdin.write(chunk),
-    onData: (listener) => {
-        child.stdout.on('data', listener);
-        return { dispose: () => child.stdout.off('data', listener) };
-    },
-    onClose: (listener) => {
-        const exited = (): void => listener();
-        child.once('exit', exited);
-        return { dispose: () => child.off('exit', exited) };
-    },
-    close: () => void child.kill()
-};
-
-const transport = createStreamTransport(stream);
-child.stderr.on('data', (chunk) => log(String(chunk)));
+await session.initialize();
 ```
 
-`connectWebSocket` takes `protocols`, a `signal` to cancel opening, `timeoutMs` (default 10 seconds) and a `createWebSocket` factory for runtimes without a global `WebSocket`. A binary or non-JSON frame closes the socket. Reconnecting and authentication are the app's job.
-
-## LspSession
-
-`new LspSession(transport, options?)` is one conversation with one server. Await `initialize()` before anything else. It runs the handshake and then sends the `configuration`, if any.
+## Options
 
 | `LspSessionOptions`      | Default            | Meaning                                                                    |
 | ------------------------ | ------------------ | -------------------------------------------------------------------------- |
@@ -54,7 +26,7 @@ child.stderr.on('data', (chunk) => log(String(chunk)));
 | `snippetSupport`         | `false`            | Whether completion items may be snippets                                   |
 | `insertTextModes`        | not advertised     | Supported completion insertion modes: `1` as-is, `2` adjusted indentation   |
 | `completionItemDefaults` | not advertised     | Completion-list default fields the consumer applies to each item           |
-| `resourceOperations`     | `create`, `rename` | The resource operations the host carries out for a workspace edit, announced to servers. A host that also deletes lists `delete`; see [workspace edits](/lsp/documents#workspace-edits) |
+| `resourceOperations`     | `create`, `rename` | The resource operations the host carries out for a workspace edit, announced to servers. A host that also deletes lists `delete`; see [workspace edits](/lsp/edits#workspace-edits) |
 | `onConfiguration(item)`  |                    | Answers each configuration item instead of `configuration`                 |
 | `onApplyEdit(params)`    | refuses            | Applies a `workspace/applyEdit` of the server                              |
 | `onShowMessage(params)`  | `null`             | Answers a `window/showMessageRequest`                                      |
@@ -70,7 +42,7 @@ Advertise insertion modes and list defaults only when the completion consumer im
 
 Without `onConfiguration`, a query without a section gets all settings, and a section gets that key or dotted path, or `null`. `setConfiguration(settings)` replaces the settings and notifies the server. Answer `onApplyEdit` with `applied: true` only once the edit is made.
 
-`state` goes `new`, `initializing`, `ready`, `closing`, `closed`. A closed session does not restart.
+`state` is a `SessionState`, which goes `new`, `initializing`, `ready`, `closing`, `closed`. A closed session does not restart.
 
 ## Completion defaults
 
@@ -82,7 +54,7 @@ Without `onConfiguration`, a query without a section gets all settings, and a se
 
 `onCapabilitiesChanged(listener)` fires when the server registers or unregisters a capability, and when it asks for a refresh of semantic tokens, inlay hints, diagnostics, code lenses, inline values, folding ranges or document content. Request again whatever depends on it.
 
-The client announces all of LSP 3.17 and the 3.18 additions. `showDocument` is announced only when the host handles it.
+The client announces all of LSP 3.17 and the 3.18 additions. It announces `showDocument` only when the host handles it.
 
 ## The workspace
 
@@ -105,7 +77,7 @@ Notebook cells do not go through `openDocument`. `openNotebook(notebook, cellTex
 | `onDiagnostics(listener)`       | Published diagnostics of open documents; a report for another version is dropped, and closing a document sends an empty one |
 | `onProgress(listener)`          | `$/progress`                                                                   |
 | `onNotification(method, listener)` | Any notification of the server                                              |
-| `onRequest(method, handler)`    | A request of the server; the handler gets the params and an `AbortSignal`      |
+| `onRequest(method, handler)`    | A request of the server; the `RequestHandler` gets the params and an `AbortSignal`, and its result is the answer |
 | `onError(listener)`             | Errors of the connection and of listeners                                      |
 
 The session answers configuration, workspace folders, `applyEdit`, message requests, progress creation, registrations and refreshes itself. `request(method, params?, options?)`, `notify(method, params?)`, `executeCommand`, `workspaceSymbols` and `resolveWorkspaceSymbol` reach the server directly.

@@ -51,7 +51,7 @@ It swaps the checkout's copy of these packages for the app's:
 - `@codemirror/*` and `@lezer/*`, which reject extensions made by a second copy.
 - `shiki`, for a highlighter the app hands to the chat views.
 
-It covers every package of the checkout's repository. A package the app has no copy of is left alone. With the library from the registry the preload does nothing.
+It covers every package of the checkout's repository. It leaves alone a package the app has no copy of. With the library from the registry the preload does nothing.
 
 An app adds names in its own `package.json`, in the folder `bun test` runs in or a workspace that depends on the library. `@scope/*` stands for every package of a scope:
 

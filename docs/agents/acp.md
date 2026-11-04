@@ -50,11 +50,11 @@ A host that builds its `ChatProvider` by hand uses `createAcpBackend(spec)` as i
 
 ## A session
 
-`start` runs `initialize` and opens the session before the first turn. Only protocol version 1 is accepted. The client advertises no file system or terminal, so the agent uses its own tools.
+`start` runs `initialize` and opens the session before the first turn. The backend accepts only protocol version 1. The client advertises no file system or terminal, so the agent uses its own tools.
 
 Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it.
 
-A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The history a load replays is dropped, as the thread already holds it. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
+A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The backend drops the history a load replays, since the thread already holds it. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
 
 ACP has no system prompt. The launch's `instructions` go before the first prompt of a new session. `resumeInstructions` and `resumeNote` go before the first prompt of a resumed one.
 
@@ -81,7 +81,7 @@ Everything else becomes an approval in the thread.
 
 A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it: Antigravity in the tool call's `_meta.mcp.server`, Grok in the `<server>__<tool>` name of its `use_tool`, matched against the launch's own server names, the longest first. A call of a kind other than `other`, or one with `_meta.is_mcp_tool_call: false`, is never an MCP call. The mark of a call holds for the permission request that names only its `toolCallId`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`.
 
-ACP does not tell a client which servers an agent loaded. A server of the agent's own configuration with the same name as one in `mcpServers` gets the same calls allowed, so give a server with `allowTools` a name no configuration uses. What the backend can see, it refuses: `start` throws before the agent runs when two servers in `mcpServers` share a name, or when one name is another followed by `__`, since `own__events__delete` could then be a tool of either. A server the agent could not take (see [A session](#a-session)) never counts, so a call to a server of that name asks.
+ACP does not tell a client which servers an agent loaded. A server of the agent's own configuration with the same name as one in `mcpServers` gets the same calls allowed, so give a server with `allowTools` a name no configuration uses. The backend refuses the clashes it can see. `start` throws before the agent runs when two servers in `mcpServers` share a name, or when one name is another followed by `__`, since `own__events__delete` could then be a tool of either. A server the agent could not take (see [A session](#a-session)) never counts, so a call to a server of that name asks.
 
 A host that checks some calls itself, such as its own command line tool, passes `autoAllow`. The backend calls it for every permission request the runtime mode leaves open, with an `AcpPermissionRequest`: the tool `kind`, the `title`, in `commands` every text the call may run, and in `mcpServer` the server of an MCP tool where the agent marks it. True answers with allow once (never allow always), and the call shows in the thread without an approval. False or a throw leaves it to the person.
 
@@ -143,11 +143,11 @@ Two agents ask questions outside the protocol. Both become a `question.requested
 | `usage_update` | `usage` with the context tokens and window, and the cost when in USD |
 | `session_info_update` | Ignored unless the spec sets `adoptTitles`. Then the `title`, cut to `SUGGESTED_TITLE_LIMIT`, becomes the suggested title. A title that only repeats the start of a sent prompt is left out. |
 
-Other updates and unknown fields are ignored. Agent requests the backend does not handle, file system and terminal included, get "method not found".
+The backend ignores other updates and unknown fields. Agent requests the backend does not handle, file system and terminal included, get "method not found".
 
 ## Models
 
-`AcpSessionInfo.models` holds the models a session offers, from a `model` config option or the older `models` field. The backend switches through the option or `session/set_model`. A model the agent does not offer leaves the agent's own, with a note. `AcpSessionInfo.thoughtLevel` holds the reasoning effort as an `AcpThoughtLevel` with `AcpChoice` values. After the model, the backend sets the selection's `effort` when the agent offers that value for the model.
+`AcpSessionInfo` names the session, the agent as an `AcpAgentInfo` (name, title and version), its models as an `AcpModelState` and its modes as an `AcpModeState`. Each state lists its options, `AcpModel` or `AcpMode`, with the config option that picks one in `configId`, or `null` where the agent takes `session/set_model` or `session/set_mode`. `AcpSessionInfo.models` holds the models a session offers, from a `model` config option or the older `models` field. The backend switches through the option or `session/set_model`. A model the agent does not offer leaves the agent's own, with a note. `AcpSessionInfo.thoughtLevel` holds the reasoning effort as an `AcpThoughtLevel` with `AcpChoice` values. After the model, the backend sets the selection's `effort` when the agent offers that value for the model.
 
 The provider adopts the models a session reports into its `catalog` (`ModelCatalog.adopt`). The agent's current model becomes the default, the rest follow in the agent's order and names. A reported reasoning effort becomes the profile's `effort` option, with the agent's current value as default. A session without models leaves the catalog as it was. Account checks open sessions too, so the list is usually there before the first chat. Set `adoptModels: false` to keep the host's catalog. `onSession` still sees every session.
 

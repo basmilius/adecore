@@ -73,7 +73,7 @@ The axis runs from the earliest start to the latest end, or to `end`, which cuts
 
 `Timeline.Axis` writes `heading` over the labels and round ticks over the bars. `durationTicks(total, count)` returns the same ticks for an axis of the app's own.
 
-`Timeline.Moment` goes inside the axis: a diamond at `at`, in the `error` tone by default, with a tooltip of its label and offset ("Payment status timed out at +394 ms"). Moments outside the spans stand at the axis ends.
+`Timeline.Moment` goes inside the axis and draws a diamond at `at`, in the `error` tone by default, with a tooltip of its label and offset ("Payment status timed out at +394 ms"). Moments outside the spans stand at the axis ends.
 
 `TimelineLegendProps`, `TimelineAxisProps` and `TimelineMomentProps` are the props.
 

@@ -22,7 +22,7 @@ import { UsageLimits, UsageLimitsCard } from '@adecore/agents-react/usage';
 
 `useUsageLimits()` returns the scope's `UsageLimitsSnapshot`, or `null` until the host answers. All views of a host share one read of `usage.limits`, following `usage.limitsChanged`.
 
-`useLimitGroups(limits)` groups the windows per CLI with the scope's accounts, so a signed-out account still gets a row; `limitGroups(snapshot, accounts)` does it outside React. A window without a reading is unknown, not room left.
+`useLimitGroups(limits)` groups the windows per CLI with the scope's accounts, a `LimitGroup` per CLI, so a signed-out account still gets a row; `limitGroups(snapshot, accounts)` does it outside React. A window without a reading is unknown, not room left.
 
 ## Lists
 

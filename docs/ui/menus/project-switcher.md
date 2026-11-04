@@ -10,7 +10,7 @@ import { ProjectSwitcher } from '@adecore/ui';
 
 ## Projects
 
-Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. The lists are drawn as given, in order and unfiltered.
+Each `ProjectSwitcherItem` has an `id`, unique within its list, and a `name`. The menu draws the lists as given, in order and unfiltered.
 
 | Item field | What it draws |
 | --- | --- |

@@ -40,7 +40,7 @@ import { Composer, Timeline } from '@adecore/agents-react/chat/ui';
 </ChatHostProvider>;
 ```
 
-[Getting started](https://adecore.dev/agents-react/guide/getting-started) covers the words, the host, the scope and its transport.
+[Getting started](https://adecore.dev/agents-react/getting-started) covers the words, the host, the scope and its transport.
 
 The root holds the host, the scope and the transport; `/chat`, `/chat/ui`, `/prompts`, `/providers`, `/state`, `/usage`, `/locales` and `/testing` hold the rest. A module that no entry exports is internal.
 
@@ -48,7 +48,7 @@ The root holds the host, the scope and the transport; `/chat`, `/chat/ui`, `/pro
 
 | Page | What it covers |
 |---|---|
-| [Getting started](https://adecore.dev/agents-react/guide/getting-started) | Install, CSS, words, the host and a first chat |
+| [Getting started](https://adecore.dev/agents-react/getting-started) | Install, CSS, words, the host and a first chat |
 | [Host adapters](https://adecore.dev/agents-react/guide/host) | Everything a `ChatHostProvider` takes |
 | [Chat client and state](https://adecore.dev/agents-react/guide/chat-client) | The transport, `ChatClient` and the stores |
 | [Persistence](https://adecore.dev/agents-react/guide/persistence) | Drafts, preferences and their storage keys |

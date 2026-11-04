@@ -1,79 +1,36 @@
-# @adecore/agent-contracts
+# Agent contracts
 
-The Zod schemas and TypeScript types an agent chat host and its clients share: wire frames, requests and events, chats and items, providers and models, accounts, tasks, worktrees and usage. The package opens no connection, starts no process and makes no permission decision. It runs in a browser, a preload, Node and Bun.
+`@adecore/agent-contracts` holds the Zod schemas and TypeScript types that a host of agent chats and its clients share. It describes the frames on the wire, every request and event, a chat and its thread, the CLIs and their models, accounts, tasks, worktrees and usage. Both sides import it, so a window and a backend agree on every shape without sharing code beyond this package.
 
 ```ts
 import { AGENT_REQUEST_SCHEMAS, parseRequest } from '@adecore/agent-contracts';
 ```
 
-[`@adecore/agents`](/agents/) is a host that answers these requests, and [`@adecore/agents-react`](/agents-react/) draws a chat from them. Either side can be your own.
+## What it does
 
-## Install
+- Parses the frames of the wire with `parseRequest` and `parseServerFrame`, which never throw.
+- Maps every request name to a payload and a result schema, and every event name to its payload schema.
+- Describes a chat as a `ChatInfo` and a thread of items, with attachments, approvals, questions, bookmarks and checkpoints.
+- Describes the CLIs a host runs, their model catalogs, capabilities and permission modes, and the accounts they sign in with.
+- Holds the helpers both sides need to read the same shapes the same way, such as `appendToolOutput`, `outlineItems` and `evenPace`.
+- Defines the bridge between an agent's published page and the app, with its theme and bootstrap.
 
-::: code-group
+## What it leaves to the app
 
-```sh [bun]
-bun add @adecore/agent-contracts
-```
+The package opens no connection, starts no process and makes no permission decision. The app wraps its own channel as a `FramePort`, decides who may connect, and checks who asks before a request reaches a host. A host such as [`@adecore/agents`](/agents/) answers the requests, and [`@adecore/agents-react`](/agents-react/) draws a chat from them. Either side can be your own.
 
-```sh [npm]
-npm install @adecore/agent-contracts
-```
+## Where to next
 
-```sh [pnpm]
-pnpm add @adecore/agent-contracts
-```
+- [Getting started](/agent-contracts/getting-started) checks a message with a schema and connects a client and a host over a port.
+- [Protocol](/agent-contracts/protocol) covers the frames, the port, replay after a reconnect, and adding requests of your own.
+- [Requests and events](/agent-contracts/requests) lists every request and event with its schemas.
+- [Conversation](/agent-contracts/conversation) covers a chat's info and items, attachments, approvals and questions, bookmarks and checkpoints.
+- [UI blocks in replies](/agent-contracts/ui-replies) covers the blocks of components an assistant item carries, and the requests that act on them.
+- [Visuals](/agent-contracts/visuals) covers pages an agent publishes in a chat, the bridge between a page and the app, and its theme.
+- [Providers and models](/agent-contracts/providers) covers agent kinds, model catalogs, capabilities, runtime modes and terminal agents.
+- [Accounts](/agent-contracts/accounts) covers the config folders a CLI signs in with, their order and their status.
+- [Tasks and worktrees](/agent-contracts/tasks) covers tasks between chats and the git worktrees they work in.
+- [Usage](/agent-contracts/usage) covers token totals, usage summaries and plan limits.
+- [Reference](/agent-contracts/reference) lists every export of every entry point.
 
-:::
-
-Zod 4 comes along as a dependency. There is no CSS and no words to load.
-
-## A first check
-
-A schema parses what crosses a boundary and throws on what does not fit. Inferred types describe the parsed output.
-
-```ts
-import { AGENT_REQUEST_SCHEMAS, ChatAttachmentUploadSchema } from '@adecore/agent-contracts';
-import type { ChatSendPayload } from '@adecore/agent-contracts/chat';
-
-const message: ChatSendPayload = {
-    chatId: 'chat-1',
-    text: 'Read the attached note.',
-    attachments: [ChatAttachmentUploadSchema.parse({ name: 'note.txt', mime: 'text/plain', data: 'SGVsbG8=' })]
-};
-
-const payload = AGENT_REQUEST_SCHEMAS['chat.send'].payload.parse(message);
-const result = AGENT_REQUEST_SCHEMAS['chat.send'].result.parse({ queued: false });
-```
-
-`.parse()` throws a `ZodError`. `.safeParse()` returns `{ success, data }` or `{ success, error }`. A parse strips unknown keys. Few fields have a default, so an omitted optional field stays absent and the reader decides what that means. The pages say so where it matters, such as an account without `enabled`, which is on.
-
-## Entry points
-
-The root exports everything below. Each group also has its own subpath for bundle splitting.
-
-| Import                                       | What it holds                                                                                     |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `@adecore/agent-contracts/envelope`          | The frames: request, reply, event, `WireError`, `parseRequest`, `parseServerFrame`. See [Protocol](/agent-contracts/protocol). |
-| `@adecore/agent-contracts/port`              | `FramePort`, types only.                                                                          |
-| `@adecore/agent-contracts/protocol`          | `AGENT_REQUEST_SCHEMAS`, `AGENT_EVENT_SCHEMAS`, `EmptySchema` and their key types.                |
-| `@adecore/agent-contracts/chat`              | A chat, its items, events, attachments, requests, bookmarks, forks. See [Conversation](/agent-contracts/conversation). |
-| `@adecore/agent-contracts/model`             | Models, catalogs, selections, capabilities, runtime modes, `resumeCommandFor`.                    |
-| `@adecore/agent-contracts/provider-accounts` | Account ids, records, variables, statuses and the account requests.                              |
-| `@adecore/agent-contracts/agent`             | `AgentKind`, `AgentStatus`, a terminal agent's info and its approvals.                            |
-| `@adecore/agent-contracts/task`              | Tasks between chats and `TaskChangedEventSchema`.                                                 |
-| `@adecore/agent-contracts/worktree`          | Git worktree metadata and the work in one.                                                        |
-| `@adecore/agent-contracts/usage`             | Token totals, usage summaries, prices, plan limits.                                               |
-| `@adecore/agent-contracts/visual`            | A chat's visuals, the bridge to their page, its theme and its bootstrap. See [Visuals](/agent-contracts/visuals). |
-| `@adecore/agent-contracts/ids`               | `SessionIdSchema` and `SessionId`.                                                                |
-| `@adecore/agent-contracts/text`              | `clipText`, `appendToolOutput` and `TOOL_OUTPUT_TAIL`.                                            |
-
-The [source](https://github.com/basmilius/adecore/tree/main/packages/agent-contracts/src) documents every field.
-
-## Where to go next
-
-- [Protocol](/agent-contracts/protocol): frames, the request and event tables, replay after a reconnect, and adding requests of your own.
-- [Conversation](/agent-contracts/conversation): a chat's info and items, attachments, approvals and questions, bookmarks and checkpoints.
-- [Visuals](/agent-contracts/visuals): pages an agent publishes in a chat, the bridge between a page and the app, and the theme it is drawn in.
-- [Providers and accounts](/agent-contracts/providers-and-accounts): agent kinds, model catalogs, capabilities, runtime modes and accounts.
-- [Tasks and usage](/agent-contracts/tasks-and-usage): tasks between chats, worktrees, token totals, summaries and plan limits.
+The package is licensed under [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/agent-contracts/LICENSE).

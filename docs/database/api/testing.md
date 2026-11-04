@@ -72,7 +72,7 @@ const shop: FakeDatabase = {
 
 ## Limits
 
-- `where` and `orderBy` are ignored: `rows` and `count` return every row in stored order.
+- The fake ignores `where` and `orderBy`, so `rows` and `count` return every row in stored order.
 - Any SQL beyond `SELECT * FROM <table>` fails, including the designer's `ALTER TABLE` and the explorer's `DROP TABLE`.
 - Inserts enforce only the primary key. Other indexes and foreign keys are only reported.
 

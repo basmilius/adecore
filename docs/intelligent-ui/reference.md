@@ -1,22 +1,6 @@
-# Exports
+# Reference
 
-Every public name, by the entry point you import it from: `@adecore/intelligent-ui/<module>`. The root, `@adecore/intelligent-ui`, exports every name below. A module name links to its source, where each export has its full type.
-
-| Module | Exports |
-| --- | --- |
-| [`catalog`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/catalog.ts) | `UI_CATALOG_VERSION`, `UiToneSchema`, `UiTone`, `UI_GROUPS`, `UI_CATALOG`, `UiGroupName`, `UiComponentName`, `UiProps`, `isUiComponent`, `uiCatalogText` |
-| [`compiler`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/compiler.ts) | `UI_FENCE_LANGUAGE`, `UI_REPLY_LIMITS`, `UI_HOST_LIMITS`, `uiMayReferenceHost`, `UiNode`, `UiQuery`, `UiBlock`, `UiCompileOptions`, `compileUiBlock`, `UiCompilerOptions`, `UiCompileUpdate`, `UiCompiler`, `uiHasFence`, `compileUi` |
-| [`stream`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/stream.ts) | `UI_STREAM_INTERVAL_MS`, `UiStreamClock`, `UiStreamPreview`, `UiStreamOptions`, `UiStream` |
-| [`syntax`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/syntax.ts) | `UiDiagnostic`, `UiSyntaxNode`, `UiSyntax`, `uiDiagnostic`, `parseUiSyntax` |
-| [`expression`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/expression.ts) | `UiValue`, `UiExpression`, `parseUiExpression`, `sameUiValue`, `copyUiValue`, `evaluateUiExpression` |
-| [`runtime`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/runtime.ts) | `UiBinding`, `UiViewNode`, `UiEvaluation`, `UiState`, `evaluateUiBlock`, `UiChoiceSelection`, `uiInputValues`, `resolveUiChoice`, `uiChoiceLabel` |
-| [`query`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/query.ts) | `uiValidatedState`, `uiQueryArguments`, `uiQueryFallback` |
-| [`links`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/links.ts) | `UiLinkTargetSchema`, `UiLinkTarget`, `UiLinkResolutionSchema`, `UiLinkResolution`, `uiLinkTargets` |
-| [`places`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/places.ts) | `UiPlaceQuery`, `uiPlaceQueries` |
-| [`protocol`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/protocol.ts) | `UiNodeSchema`, `UiDiagnosticSchema`, `UiBlockSchema`, `UiBlocksSchema` |
-| [`text`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/text.ts) | `uiCompactCatalog`, `UiTextOptions`, `uiSessionNote`, `uiGroupReference`, `uiReferenceText`, `uiFallbackText` |
-| [`event-time`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/event-time.ts) | `UiEventTime`, `parseUiEventTime` |
-| [`budget`](https://github.com/basmilius/adecore/blob/main/packages/intelligent-ui/src/budget.ts) | `UiLimits`, `UI_LIMITS`, `UiFailure`, `UiBudget`, `safeKey` |
+Every name each entry point exports, types included, read from its source. Anything not listed is internal and may change in any release. The root exports every name of the subpaths below; a subpath holds one part, for a page that wants to import less.
 
 ## Where each is described
 
@@ -31,3 +15,87 @@ Every public name, by the entry point you import it from: `@adecore/intelligent-
 | `parseUiEventTime` | [Status](/intelligent-ui/components/status#timeline-and-event) |
 | `uiLinkTargets` and the link schemas | [Links](/intelligent-ui/host/links) |
 | `uiPlaceQueries` | [Live queries](/intelligent-ui/host/queries#places) |
+
+## `@adecore/intelligent-ui`
+
+Every name below, from one import.
+
+<ExportTable entry="@adecore/intelligent-ui" />
+
+## `@adecore/intelligent-ui/catalog`
+
+The components, their props and the group rules.
+
+<ExportTable entry="@adecore/intelligent-ui/catalog" />
+
+## `@adecore/intelligent-ui/compiler`
+
+`compileUi`, `UiCompiler` and the reply and host limits.
+
+<ExportTable entry="@adecore/intelligent-ui/compiler" />
+
+## `@adecore/intelligent-ui/stream`
+
+`UiStream`, the throttled compiler for a streaming reply.
+
+<ExportTable entry="@adecore/intelligent-ui/stream" />
+
+## `@adecore/intelligent-ui/syntax`
+
+The parser's intermediate tree and its diagnostics.
+
+<ExportTable entry="@adecore/intelligent-ui/syntax" />
+
+## `@adecore/intelligent-ui/expression`
+
+The expression parser, the interpreter and the value helpers.
+
+<ExportTable entry="@adecore/intelligent-ui/expression" />
+
+## `@adecore/intelligent-ui/runtime`
+
+`UiState`, `evaluateUiBlock` and `resolveUiChoice`.
+
+<ExportTable entry="@adecore/intelligent-ui/runtime" />
+
+## `@adecore/intelligent-ui/query`
+
+Validated inputs, query arguments and the query fallback.
+
+<ExportTable entry="@adecore/intelligent-ui/query" />
+
+## `@adecore/intelligent-ui/links`
+
+Link targets and the host's resolution.
+
+<ExportTable entry="@adecore/intelligent-ui/links" />
+
+## `@adecore/intelligent-ui/places`
+
+The places a block names, for the host to look up.
+
+<ExportTable entry="@adecore/intelligent-ui/places" />
+
+## `@adecore/intelligent-ui/protocol`
+
+Zod schemas of compiled blocks on the wire.
+
+<ExportTable entry="@adecore/intelligent-ui/protocol" />
+
+## `@adecore/intelligent-ui/text`
+
+The instructions for the agent and the text fallback.
+
+<ExportTable entry="@adecore/intelligent-ui/text" />
+
+## `@adecore/intelligent-ui/event-time`
+
+The time of an `Event`, read from its text.
+
+<ExportTable entry="@adecore/intelligent-ui/event-time" />
+
+## `@adecore/intelligent-ui/budget`
+
+The work limits and the refusal type.
+
+<ExportTable entry="@adecore/intelligent-ui/budget" />

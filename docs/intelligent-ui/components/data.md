@@ -70,7 +70,7 @@ Labeled numeric series. Each row of `data` has a `label` and up to six numeric s
 
 A value that is not a finite number is a gap. A chart without a usable series, or with numbers it cannot scale, draws as its data.
 
-Bars and `hbar` grow from zero in either direction, so negative values work. Stacked data with a negative value draws as side-by-side bars, with a note. A drawing holds the first 60 rows and six series and names what it leaves out, with every value a press away. More than six series get `too_many_series`. Labels that do not fit are truncated.
+Bars and `hbar` grow from zero in either direction, so negative values work. Stacked data with a negative value draws as side-by-side bars, with a note. A drawing holds the first 60 rows and six series and names what it leaves out, with every value a press away. More than six series get `too_many_series`. The chart truncates labels that do not fit.
 
 ```ui
 $weeks = [{"label": "W1", "opened": 12, "closed": 9}, {"label": "W2", "opened": 8, "closed": 14}]

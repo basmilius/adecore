@@ -1,46 +1,21 @@
-# @adecore/drawing
+# Drawing
 
-Hand-drawn shapes, arrows, freehand strokes, text and sticky notes as plain JSON, and the code to work with them: hit tests and resizing for an editor, paths for a painter, an SVG export, and a reading of the drawing as lines of text. It needs no DOM, so a backend exports a stored drawing the same way a page draws it.
-
-```sh
-bun add @adecore/drawing
-```
-
-```ts
-import { DEFAULT_PALETTE, readingOrder, toSvg } from '@adecore/drawing';
-import { duplicateElementIdIn, migrateDrawing } from '@adecore/drawing/protocol';
-
-const drawing = migrateDrawing(JSON.parse(file));
-
-if (drawing === null || duplicateElementIdIn(drawing.elements) !== null) {
-    throw new Error('Not a drawing');
-}
-
-const svg = toSvg(drawing.elements, { palette: DEFAULT_PALETTE });
-const lines = readingOrder(drawing.elements);
-```
+`@adecore/drawing` stores hand-drawn shapes, arrows, freehand strokes, text and sticky notes as plain JSON. It has the code an editor needs around that JSON: hit tests and resizing, paths for a painter, an SVG export, edits by id and a reading of the drawing as lines of text. It needs no DOM, so a backend exports a stored drawing the same way a page draws it.
 
 <Demo src="canvas/drawing-export" />
 
 The demo passes one drawing to `toSvg` and `readingOrder`. Each shape stores a `seed`, so it wobbles the same way on every render.
 
-## What is in it
+## What it does
 
-- [Documents](/drawing/documents): the schemas of a drawing and its seven element kinds, on `@adecore/drawing/protocol`.
-- [Geometry](/drawing/geometry): bounds, hit tests, marquee selection and resizing in world coordinates.
-- [Paths and SVG](/drawing/rendering): the paths of one element for a painter of your own, and `toSvg` for a whole drawing.
-- [Text and reading order](/drawing/text): wrapping and measuring text, and `readingOrder`, which turns a drawing into lines an agent can read.
+- Validates a drawing file with Zod schemas, on an entry point that loads nothing else.
+- Applies an edit by id from a second writer, such as an agent, all or nothing.
+- Rebases unsaved edits on a newer document and names the elements both sides changed.
+- Finds the element under the pointer, the elements in a marquee and the new box of a resize.
+- Gives the paths of one element for a canvas of your own, and writes a whole drawing as SVG.
+- Wraps and measures text, and turns a drawing into lines an agent can read.
 
-## Two entry points
-
-| Entry point                 | Holds                                        | Loads                         |
-| --------------------------- | -------------------------------------------- | ----------------------------- |
-| `@adecore/drawing/protocol` | Zod schemas, types, `migrateDrawing`         | Zod                           |
-| `@adecore/drawing`          | Geometry, paths, SVG, text and reading order | Rough.js and perfect-freehand |
-
-A store that only validates files imports the protocol alone.
-
-## What the app does
+## What it leaves to the app
 
 The package keeps no state and registers no listener. The app owns:
 
@@ -49,3 +24,16 @@ The package keeps no state and registers no listener. The app owns:
 - Theme and fonts. A drawing names palette colors and fonts, and the app says what they are when it paints or exports.
 
 [`@adecore/diagram`](/diagram/) builds on this package for graphs that are written rather than drawn.
+
+## Where to next
+
+- [Getting started](/drawing/getting-started) creates a drawing, changes it and exports it.
+- [Documents](/drawing/documents) describes the file and its seven element kinds.
+- [Edits and rebasing](/drawing/edits) covers writers other than the editor on screen.
+- [Geometry](/drawing/geometry) covers bounds, hit tests, marquee selection and resizing.
+- [Paths and SVG](/drawing/rendering) covers painting one element and exporting a whole drawing.
+- [Text](/drawing/text) covers wrapping and measuring text.
+- [Reading order](/drawing/reading-order) turns a drawing into lines of text.
+- [Reference](/drawing/reference) lists the limits and every export.
+
+The package is licensed under [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/drawing/LICENSE).

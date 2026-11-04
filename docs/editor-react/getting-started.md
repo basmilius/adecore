@@ -18,7 +18,7 @@ pnpm add @adecore/editor-react
 
 :::
 
-`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies. `@adecore/editor` and `@adecore/lsp` are installed with it. Set up [`@adecore/ui`](/ui/guide/getting-started) first.
+`@adecore/ui`, React 19, `react-dom`, `i18next` and `react-i18next` are peer dependencies. The package brings `@adecore/editor` and `@adecore/lsp` along. Set up [`@adecore/ui`](/ui/guide/getting-started) first.
 
 ## Styles
 
@@ -76,3 +76,16 @@ export function File() {
 Keep `engine`, `project`, `uri` and `languageId` stable between renders: changing one remounts the editor and loses its history. To change the theme, wrap or read-only state of an open file, use the setters of the `Editor` that `onMount` receives.
 
 Call `project.dispose()` after its editors when the window or project closes. Stop the language servers separately.
+
+## A real language server
+
+Replace `FakeLanguageService` with a `LanguageService` over the app's servers. [Getting started with the LSP client](/lsp/getting-started) starts a server and sketches a service over one session. Hand the project the file operations it may use, so a rename across files can stage drafts; see [Workspace edits](/editor-react/workspace-edits).
+
+## Checklist
+
+- The page imports the theme, `editor.css` and `editor-react.css` in that order, and Tailwind scans the package.
+- The `editor` words are added before the first editor mounts, to the same i18next instance `UIProvider` gets.
+- `engine`, `project`, `uri` and `languageId` are stable between renders.
+- `uri` is a `file:` URI made with `pathToFileUri`, the same one the servers see.
+- The host has `openPlace`, which going to a definition in another file calls.
+- The project is disposed after its editors.

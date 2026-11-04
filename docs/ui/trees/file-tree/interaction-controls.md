@@ -76,7 +76,7 @@ Give every control an accessible name and its real mixed and disabled state. Scr
 
 ## Context menus and dragging
 
-`onRowContextMenu(path, targets, event)` receives the native `MouseEvent`, and `onRowDragStart(path, targets, event)` the native `DragEvent`, after the engine wrote its drag data. `targets` is the selection when it holds the row and more, otherwise the row alone (`FileTree.menuTargetsOf`). The wrapper opens no menu: call `event.preventDefault()` and open yours at the pointer.
+`onRowContextMenu(path, targets, event)` receives the native `MouseEvent`, and `onRowDragStart(path, targets, event)` the native `DragEvent`, after the engine wrote its drag data. `targets` is the selection when it holds the row and more, otherwise the row alone (`FileTree.menuTargetsOf`). The wrapper opens no menu. Call `event.preventDefault()` and open yours at the pointer.
 
 ```tsx
 import { FileTree, type FileTreeModel } from '@adecore/ui';

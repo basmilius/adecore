@@ -12,7 +12,7 @@ The glyphs and colors are those of [Seti UI](https://github.com/jesseweed/seti-u
 
 ## An icon of the app's own
 
-`setFileIconOverride` lets an app draw some files with an icon of its own. The function gets each path and returns the address of an SVG for it, or `null` to keep the icon from this set. Pass `null` to remove it. Every mounted `FileIcon` draws again when you set or remove one. A [`FileTree`](/ui/trees/file-tree) does not read it: its rows keep the icons of `FILE_TREE_ICONS`.
+`setFileIconOverride` lets an app draw some files with an icon of its own. The function gets each path and returns the address of an SVG for it, or `null` to keep the icon from this set. Pass `null` to remove it. Every mounted `FileIcon` draws again when you set or remove one. A [`FileTree`](/ui/trees/file-tree) does not read it. Its rows keep the icons of `FILE_TREE_ICONS`.
 
 ```tsx
 setFileIconOverride((path) => (path.endsWith('.acme') ? '/icons/acme.svg' : null));

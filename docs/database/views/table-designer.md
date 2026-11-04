@@ -34,7 +34,7 @@ The panel under the tabs shows the draft's statements, with a Copy button. A new
 - MySQL and MariaDB get one `ALTER TABLE`, or two when clauses must run in order, such as a foreign key dropped and re-added under one name.
 - SQLite gets `ALTER TABLE` where its version supports it (adding a column, renaming a column from 3.25, dropping one from 3.35, renaming the table) and `CREATE INDEX` or `DROP INDEX`. Any other change, such as a new type, primary key, column order or foreign key, rebuilds the table as SQLite documents, step by step in the panel.
 
-Draft problems are listed under the tabs, such as a missing name or type, duplicate columns or an incomplete foreign key. Apply is disabled, with the reason on hover, while there are problems or no changes, and on a read only connection or a view. Cmd or Ctrl+S applies.
+The designer lists draft problems under the tabs, such as a missing name or type, duplicate columns or an incomplete foreign key. Apply is disabled, with the reason on hover, while there are problems or no changes, and on a read only connection or a view. Cmd or Ctrl+S applies.
 
 Apply opens a dialog with the statements and warns when a removed column loses data. Confirming runs them in one `execute`. On failure the designer shows the server's message and keeps the draft; a failed SQLite rebuild rolls back. It uses the default session, outside any [console](/database/views/query-console#transactions) transaction.
 

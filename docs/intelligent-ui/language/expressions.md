@@ -29,7 +29,7 @@ An expression gives a `UiValue`: `null`, a boolean, a finite number, a string, o
 | `$runs[0]`        | An item of an array, by index                               |
 | `$run["ms"]`      | An own field by a computed key                              |
 
-Only own data fields are read. Inherited fields, accessors, missing fields and the keys `__proto__`, `constructor` and `prototype` get `refused_access`.
+An expression reads only own data fields. Inherited fields, accessors, missing fields and the keys `__proto__`, `constructor` and `prototype` get `refused_access`.
 
 ## Operators
 

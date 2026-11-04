@@ -20,7 +20,7 @@ The key is a letter, a digit, one of ``, . / ; ' ` \ [ ]``, `+`, `-`, `=`, a nam
 
 ## Matching
 
-`matchesShortcut(target, event, apple)` is strict: every modifier the shortcut does not name must be up, so Ctrl+K on a Mac is not Cmd+K. Letters, digits and punctuation match on the physical key (`event.code`), so Shift and Option do not change them. `+`, `-` and `=` match on the character, as their keys differ per layout.
+`matchesShortcut(target, event, apple)` is strict. Every modifier the shortcut does not name must be up, so Ctrl+K on a Mac is not Cmd+K. Letters, digits and punctuation match on the physical key (`event.code`), so Shift and Option do not change them. `+`, `-` and `=` match on the character, as their keys differ per layout.
 
 `isModHeld(event, apple)` says whether the platform's modifier is down during a pointer gesture, such as a Cmd-click.
 

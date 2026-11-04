@@ -21,7 +21,7 @@ import { Tree } from '@adecore/ui';
 | `Tree.Control` | Wraps an interactive control so its events never reach the row. |
 | `Tree.Checkbox` | A [`Checkbox`](/ui/inputs/checkbox) inside a `Tree.Control`, with real mixed and disabled states. |
 
-Every part takes `className`, `ref` and Base UI's `render` prop, except `Tree.Checkbox`. Keep a row that holds controls a `<div>`: a row rendered as a button would nest other buttons inside it.
+Every part takes `className`, `ref` and Base UI's `render` prop, except `Tree.Checkbox`. Keep a row that holds controls a `<div>`. A row rendered as a button would nest other buttons inside it.
 
 ## Rows wider than the tree
 

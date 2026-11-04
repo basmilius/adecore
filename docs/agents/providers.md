@@ -9,7 +9,7 @@ A provider is one agent CLI: its models, its capabilities, how it starts and how
 
 An agent that speaks the Agent Client Protocol becomes a provider from a spec (see [ACP agents](/agents/acp)).
 
-The two differ. Claude Code reports a file change as before and after text and compacts by prompt. Codex reports unified diffs, streams tool output, compacts natively and has questions that can wait, but reports no cost and takes no reason with a denial. `provider.list` returns each one's [capabilities](/agent-contracts/providers-and-accounts#providers). Offer a control only when its capability is there.
+The two differ. Claude Code reports a file change as before and after text and compacts by prompt. Codex reports unified diffs, streams tool output, compacts natively and has questions that can wait, but reports no cost and takes no reason with a denial. `provider.list` returns each one's [capabilities](/agent-contracts/providers#providers). Offer a control only when its capability is there.
 
 ## The registry
 
@@ -25,7 +25,9 @@ The two differ. Claude Code reports a file change as before and after text and c
 | `add(provider)`, `remove(kind)` | Offers or replaces a provider after start, or stops offering one |
 | `onChange(listener)` | Calls the listener with the kind of every provider added, removed, or whose models or capabilities changed (`ChatProvider.onChange`). Returns an unsubscribe function. |
 
-`AgentHost` and `wireAgents` always use the two built-ins. A host with other providers builds the registry, `ChatCore` and services itself.
+`AgentHost` and `wireAgents` always use the two built-ins, made by `createClaudeProvider` and `createCodexProvider`. A host with other providers builds the registry, `ChatCore` and services itself. The registry's options are `ProviderRegistryOptions`, with the providers, the environment and a `detect`.
+
+A provider finds its CLI with `detectCli(command, env?, spawn?, flags?)`, which asks for the version and returns a `CliDetection`, `{ installed, version }`. A missing binary is "not installed", never an error.
 
 ## Models
 
@@ -53,11 +55,11 @@ catalog.normalize({ model: 'standard', options: { effort: 'unknown', other: true
 // { model: 'standard-model', options: { effort: 'medium' } }
 ```
 
-`normalize` takes a slug or alias and falls back to the default model for an unknown one. It resets missing or invalid options to their default and drops options the model lacks. `resolveModel(name)` returns the slug, or `null` for an unknown name, for a caller that would rather refuse. `contextWindowFor(selection)` returns the context size or `null`. `replace(data)` takes a newer catalog, never an older one. `adopt(models, defaultModel, options)` takes the list, order and default an agent reported, keeping the catalog's name and profile for models it knows. A later `replace` keeps that list.
+`normalize` takes a slug or alias and falls back to the default model for an unknown one. It resets missing or invalid options to their default and drops options the model lacks. `resolveModel(name)` returns the slug, or `null` for an unknown name, for a caller that would rather refuse. `contextWindowFor(selection)` returns the context size or `null`. `replace(data)` takes a newer catalog, never an older one. `adopt(models, defaultModel, options)` takes the list, order and default an agent reported, keeping the catalog's name and profile for models it knows. A later `replace` keeps that list. The constructor takes a `ModelCatalogInput`, which needs no date for a catalog that is never replaced.
 
 ## Runtime modes
 
-A chat's [runtime mode](/agent-contracts/providers-and-accounts#runtime-modes) becomes the CLI's own permission settings:
+A chat's [runtime mode](/agent-contracts/providers#runtime-modes) becomes the CLI's own permission settings:
 
 | Mode                | Claude Code `--permission-mode` | Codex approval policy and sandbox |
 | ------------------- | ------------------------------- | --------------------------------- |
@@ -66,15 +68,17 @@ A chat's [runtime mode](/agent-contracts/providers-and-accounts#runtime-modes) b
 | `auto`              | `auto`                          | `on-request`, `workspace-write`   |
 | `full-access`       | `bypassPermissions`             | `never`, `danger-full-access`     |
 
-The Codex column is the closest match, not an exact one. A new chat defaults to `full-access`, so name a mode, and narrow it in `runtimeModeFor` when the host has a ceiling. `MODE_ORDER` lists the modes narrowest first, and `narrowerMode(mode, ceiling)` returns the narrower of two. `ceilingForOpening(opener, requested)` refuses a mode wider than the opener's, for an agent that opens another.
+The Codex column is the closest match, not an exact one. A new chat defaults to `full-access`, so name a mode, and narrow it in `runtimeModeFor` when the host has a ceiling. `MODE_ORDER` lists the modes narrowest first, and `narrowerMode(mode, ceiling)` returns the narrower of two. `ceilingForOpening(opener, requested)` refuses a mode wider than the opener's, for an agent that opens another. `modeField` is the optional `mode` field of a tool that opens an agent, which accepts only those modes. `codexThreadOptions(mode)` returns the Codex approval policy and sandbox of a mode, and `codexServiceTier(selection)` the service tier a selection asks for, or `null` for the standard one.
 
 `claude.allowedTools` lets Claude Code use the named tools without asking, in every mode. `codexRules` writes command prefixes Codex may run without asking into every Codex home. A home it cannot write to only costs an approval per call.
+
+The rules are `CodexRules`, `{ app, commands }`. `codexRulesText(rules)` is the file they become, and `codexRulesPathIn(home, rules)` where it goes: the `rules` folder of a Codex home, named after `app`, so it never touches a person's own rules. `installCodexRules(path, rules)` writes the file and returns a `CodexRulesResult`, `unchanged` or `written`. `defaultCodexHome(env)` is `CODEX_HOME`, or `.codex` in the person's home.
 
 ## Claude Code through the Agent SDK
 
 A Claude chat drives Claude Code through `@anthropic-ai/claude-agent-sdk`, a dependency of this package pinned to one version. The SDK starts the CLI the person installed, from `command`, with the command's own arguments right after the executable. Each server in the launch's `mcpServers` goes to the CLI, and one with `allowTools` is allowed as `mcp__<name>__*`. The system prompt goes over in the SDK's handshake, so it never lands on a command line.
 
-`claude.entrypoint` names your app to the CLI as `CLAUDE_CODE_ENTRYPOINT`, on the person's sign-in and on an API key. Without it the SDK's `sdk-ts` stays. It is set in the process environment only, so an `env` the person put in their own Claude settings still wins.
+`claude.entrypoint` names your app to the CLI as `CLAUDE_CODE_ENTRYPOINT`, on the person's sign-in and on an API key. Without it the SDK's `sdk-ts` stays. The host sets it in the process environment only, so an `env` the person put in their own Claude settings still wins.
 
 On Stop, a message sent into the running turn that the CLI has not taken in yet goes back to the queue. That needs a call the SDK has but does not declare. On a runtime without it, such a message runs after the Stop.
 
@@ -91,11 +95,11 @@ createClaudeProvider({
 });
 ```
 
-`key()` is read at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `DISABLE_AUTOUPDATER`, `DISABLE_BUG_COMMAND`, `DISABLE_ERROR_REPORTING` and `DISABLE_TELEMETRY` set. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` would turn those off at once, but also the title the CLI gives the session, which the chat takes as its own. Nothing in the host's environment may send the key or the prompts elsewhere: every `ANTHROPIC_*` variable (base URLs, auth tokens, custom headers), the `CLAUDE_CODE_USE_*` switches to another cloud with their `CLAUDE_CODE_SKIP_*_AUTH`, `CLAUDE_CODE_OAUTH_TOKEN` and `AWS_BEARER_TOKEN_BEDROCK` are left out. No settings file loads and only the launch's `mcpServers` do, whatever `projectConfigFor` says.
+The host calls `key()` at every start, so a replaced key reaches the next process. The CLI gets it as `ANTHROPIC_API_KEY`, with `CLAUDE_CONFIG_DIR` set to `configDir` and `DISABLE_AUTOUPDATER`, `DISABLE_BUG_COMMAND`, `DISABLE_ERROR_REPORTING` and `DISABLE_TELEMETRY` set. `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` would turn those off at once, but also the title the CLI gives the session, which the chat takes as its own. The host leaves out every variable of its environment that could send the key or the prompts elsewhere. Those are every `ANTHROPIC_*` variable (base URLs, auth tokens, custom headers), the `CLAUDE_CODE_USE_*` switches to another cloud with their `CLAUDE_CODE_SKIP_*_AUTH`, `CLAUDE_CODE_OAUTH_TOKEN` and `AWS_BEARER_TOKEN_BEDROCK`. No settings file loads, and no MCP server beyond the launch's `mcpServers`, whatever `projectConfigFor` says.
 
 It runs on the CLI the person installed, like every other Claude chat, and never on the one the SDK bundles.
 
-A provider whose chats run Claude Code carries `claudeCode`, a `ClaudeCodeRuntime`, whatever its `kind`. That is what makes a chat behave as Claude: the queue waits for the turn the CLI opens once its background work ended, and subagents, titles and rows a closed process left are read from its transcripts. `createClaudeProvider` sets it, with `configDir` when it has an `apiKey`. A provider you assemble yourself under another kind copies it, `configDir` included, so its transcripts are read from that folder and not from `~/.claude`. For the usage page, add `claudeTranscriptRoot(kind, configDir)` to the roots (see [Accounts](/agents/accounts)).
+A provider whose chats run Claude Code carries `claudeCode`, a `ClaudeCodeRuntime`, whatever its `kind`. That is what makes a chat behave as Claude: the queue waits for the turn the CLI opens once its background work ended, and the host reads subagents, titles and the rows a closed process left from its transcripts. `createClaudeProvider` sets it, with `configDir` when it has an `apiKey`. A provider you assemble yourself under another kind copies it, `configDir` included, so the host reads its transcripts from that folder and not from `~/.claude`. For the usage page, add `claudeTranscriptRoot(kind, configDir)` to the roots (see [Accounts](/agents/accounts)).
 
 ## Grok, Copilot and Antigravity
 
@@ -133,13 +137,13 @@ const registry = new ProviderRegistry({
 
 Every factory takes `AcpVendorOptions`. `client` is how your host names itself in `initialize`. `launch` runs on every launch before its backend starts, for example to add your MCP servers to `mcpServers`. `catalogStore` keeps the models an agent reported across a restart.
 
-`CopilotProviderOptions` adds two fields. `args` goes on Copilot's line after its ACP arguments. Copilot's permission requests name no MCP server, so a server's tools run without asking only with `--allow-tool=<server>` there (measured on Copilot CLI 1.0.104). `usageLog` is the folder each turn's usage is written to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
+`CopilotProviderOptions` adds two fields. `args` goes on Copilot's line after its ACP arguments. Copilot's permission requests name no MCP server, so a server's tools run without asking only with `--allow-tool=<server>` there (measured on Copilot CLI 1.0.104). `usageLog` is the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
 
 Antigravity's chat runs on a server installed apart from the `agy` CLI. `AntigravityProviderOptions.server` is an `AcpServerLaunch`: its `launch()` returns the server's command, or `null` while none is installed. Without an installed server the provider offers no chat and refuses to start one, but still runs as a terminal. An absent or `null` server keeps the chat capability, for a host that only reads what the CLI can do. `ANTIGRAVITY_CLI` is the executable a terminal starts, and `antigravityOneShotArgs(prompt)` gives the arguments for a single prompt to it.
 
 The three start from the models in `providers/<kind>-models.json` (`shippedAgentCatalog(kind)`) and take the ones a session reports. `AGENT_DEFAULT_MODEL` leaves the choice to the agent: `agentModel(selection)` maps it to `null`, and `agentDefaultCatalog()` offers only that model. `GROK_MODES`, `COPILOT_MODES` and `ANTIGRAVITY_MODES` are their `AcpModeMap`s.
 
-Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left (`grokAuthMethod(env)`). Its accounts are read from `grok models`, which opens no session. `askGrokModels(command, env)` runs it and `readGrokModels(output)` turns the output into `GrokModels`. `adoptGrokModels(catalog, store, listed)` writes that list to the catalog and the store, and keeps the names, context windows and options a chat learned.
+Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left (`grokAuthMethod(env)`). The host checks its accounts with `grok models`, which opens no session. `askGrokModels(command, env)` runs it and `readGrokModels(output)` turns the output into `GrokModels`. `adoptGrokModels(catalog, store, listed)` writes that list to the catalog and the store, and keeps the names, context windows and options a chat learned.
 
 ## A model API with no CLI
 
@@ -180,9 +184,9 @@ const provider = createApiChatProvider({
 });
 ```
 
-`createApiChatProvider` takes an `ApiChatService`: the `catalog`, a `status()` with whether a key is set and how many models it brought, and `onChange`. The provider counts as installed once both are there, and runs only as a chat.
+`createApiChatProvider` takes `ApiChatProviderOptions`, among them an `ApiChatService`: the `catalog`, a `status()` with whether a key is set and how many models it brought, and `onChange`. The provider counts as installed once both are there, and runs only as a chat.
 
-`createChatCompletionsBackend` takes a `ChatCompletionsSpec`. The API keeps no conversation, so the thread is `<session id>.json` in `directory()`, written after every step and read back on resume. A request goes to `<url>/chat/completions` with the key as a bearer token and follows no redirect. Every error the backend writes starts with `name`, and only an error that starts with it reaches the person. Any other failure ends the turn with `words.failed`, since a raw error can quote the key. Build `httpError(status)` from the status alone, and start its message with `name`. The `ChatCompletionsWords` are the sentences that tell a person what to do in your app.
+`createChatCompletionsBackend` takes a `ChatCompletionsSpec`. The API keeps no conversation, so the backend keeps the thread as `<session id>.json` in `directory()`. It writes the file after every step and reads it back on resume. A request goes to `<url>/chat/completions` with the key as a bearer token and follows no redirect. Every error the backend writes starts with `name`, and only an error that starts with it reaches the person. Any other failure ends the turn with `words.failed`, since a raw error can quote the key. Build `httpError(status)` from the status alone, and start its message with `name`. The `ChatCompletionsWords` are the sentences that tell a person what to do in your app.
 
 The model gets project tools: list, read, search, edit and write files under the working folder, run a command (`/bin/sh`, PowerShell on Windows, 30 seconds, output clipped), and `ask_user`, which opens a question card. A file tool refuses paths outside the folder, symbolic links, hidden files and credential files. `supervised` asks before every tool, `auto-accept-edits` and `auto` ask only for a command (a plain API has no classifier, so `auto` runs as `auto-accept-edits`), and `full-access` asks for none. `ask_user` waits for the person in every mode. A model for which `supportsTools` answers `false` is offered no tools at all.
 
@@ -225,10 +229,10 @@ Measured on Claude Code 2.1.300 and Codex 0.162.1. A provider of your own sets `
 
 ## A provider of your own
 
-A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts, `detect`, the first-prompt and one-shot arguments, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports `BackendEvent`s through `host.onEvent`. See [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) for the interface (exported from `@adecore/agents/chat`) and the built-ins as examples.
+A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts (a `ProviderHome`: the variable the CLI reads its folder from and the folder it uses without it), `detect`, the first-prompt and one-shot arguments, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports `BackendEvent`s through `host.onEvent`. See [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) for the interface (exported from `@adecore/agents/chat`) and the built-ins as examples.
 
 The optional `ChatBackend.steerTurn(input)` adds user input to the running turn without interrupting it. Resolve `true` only once the CLI accepted it, `false` only when no turn is active, and reject when the outcome is unknown.
 
 A changed model, option or runtime mode applies when the next turn starts, as a new process would. With the optional `ChatBackend.reconfigure(change)`, a `BackendChange` of the selection and the mode, the session first asks the running process to take it. Resolve `true` once it took all of it, `false` for a new process. A change of account, working folder, folders or project configuration always starts a new one. The Claude backend changes the model, effort, fast mode and permission mode in place. It needs a new process for a context window that moves where the CLI compacts, and for full access in a process that was not started with it.
 
-`LineSplitter` from `@adecore/agents/chat` cuts stdout into frames. A line longer than `MAX_LINE_LENGTH` is dropped and reported as `failed`, and reading goes on.
+`LineSplitter` from `@adecore/agents/chat` cuts stdout into frames. It drops a line longer than `MAX_LINE_LENGTH`, reports it as `failed`, and reads on.

@@ -20,9 +20,9 @@
 }
 ```
 
-A `Plan` has an `id`, a `rev` that every applied batch raises by one, a `createdAt`, its `meta` and its `items`.
+A `Plan` has an `id`, a `rev` that every applied batch raises by one, a `createdAt`, its `meta` and its `items`. The schemas and types are on `@adecore/plan/protocol`; the [reference](/plan/reference#schemas) lists them.
 
-`meta` holds the `title`, a `kind` and the default `checks` of its steps, with an optional `summary` and a one-line `status`. The `kind` is `steps` for work to get through, or `test` for a list of checks with outcomes; it changes how [progress](#progress) reads.
+`meta` holds the `title`, a `kind` and the default `checks` of its steps, with an optional `summary` and a one-line `status`. The `kind` is `steps` for work to get through, or `test` for a list of checks with outcomes; it changes how [progress](/plan/state#progress) reads.
 
 ## Items
 
@@ -32,7 +32,9 @@ A `Plan` has an `id`, a `rev` that every applied batch raises by one, a `created
 | `text`    | At the top or in a section            | Nothing               |
 | `step`    | At the top, in a section or in a step | Steps                 |
 
-Every item has an `id`, a `title` and an optional `description`. A step also has optional `checks`, `state`, `note` and `unlocked`, plus `by` and `at` (who set its state last, and when). The app fills `by` and `at` from `actor` and `now`; an agent never writes them.
+Every item has an `id`, a `title` and an optional `description`. A step also has optional `checks`, `state`, `note` and `unlocked`, plus `by` and `at` (who set its state last, and when). The app fills `by` and `at` from `actor` and `now`; an agent never writes them. [State and progress](/plan/state) explains `state`, and [Permissions](/plan/permissions) explains `checks` and `unlocked`.
+
+## Ids and limits
 
 Ids are lowercase letters, digits and hyphens, unique across the plan. `PLAN_LIMITS` holds the limits a plan must stay within:
 
@@ -47,49 +49,21 @@ Ids are lowercase letters, digits and hyphens, unique across the plan. `PLAN_LIM
 | `items`        | 300   | Every item in the plan, sections and text included                            |
 | `plansPerChat` | 20    | Not checked here; a limit for the app's own list of plans in one conversation |
 
-`PlanSchema` checks each item on its own. `validatePlan(value)` also checks the whole tree (unique ids, depth, item count, placement, no state on a parent). It returns `{ ok: true, plan }` or a [refusal](/plan/operations#refusals). Run it on every plan you load.
+## Loading a plan
 
-## State
+`PlanSchema` checks each item on its own. `validatePlan(value)` also checks the whole tree (unique ids, depth, item count, placement, no state on a parent). It returns `{ ok: true, plan }` or a [refusal](/plan/operations#refusals). Run it on every plan you load:
 
-A step without sub-steps carries its own `state`, and an absent state is `open`:
+```ts
+import { validatePlan } from '@adecore/plan';
 
-| State     | Marker | Means                            |
-| --------- | ------ | -------------------------------- |
-| `open`    | `[ ]`  | Not started                      |
-| `active`  | `[~]`  | Being worked on now              |
-| `done`    | `[x]`  | Finished                         |
-| `failed`  | `[!]`  | Ran and failed                   |
-| `skipped` | `[-]`  | Did not run                      |
-| `blocked` | `[?]`  | Waiting on something             |
-| `warning` | `[w]`  | Finished, with something to read |
-| `info`    | `[i]`  | Finished, with a remark          |
+const loaded = validatePlan(JSON.parse(stored));
 
-A step with sub-steps has no state of its own. `stepState(step)` derives it from its children, by the first row that matches:
-
-| Children                           | Parent                                      |
-| ---------------------------------- | ------------------------------------------- |
-| One failed                         | `failed`                                    |
-| One blocked                        | `blocked`                                   |
-| All done, skipped, warning or info | `warning` if one has a warning, else `done` |
-| One active, done, warning or info  | `active`                                    |
-| Otherwise                          | `open`                                      |
-
-A skipped step next to open ones leaves the parent open.
-
-## Who checks a step
-
-`effectiveChecks(plan, step)` is `anyone`, `agent` or `person`: `anyone` when a person unlocked the step, else the step's own `checks`, else `meta.checks`. A sub-step does not take the checks of the step above it. [Operations](/plan/operations#permissions) lists what each value allows.
-
-## Progress
-
-`planProgress(items)` returns a `PlanProgress` that counts the leaf steps under some items: `total`, one count per state, and `finished`, which is done, failed, skipped, warning and info together. Sections, text and parent steps are not counted. `progressText(plan)` puts it in words:
-
-```
-3 of 5 done, 1 with a warning, 1 blocked        (kind: steps)
-4 of 6 run, 2 passed, 1 warning, 1 failed       (kind: test)
+if (!loaded.ok) {
+    throw new Error(`${loaded.code}: ${loaded.message}`);
+}
 ```
 
-In a `steps` plan a warning or info counts as done. In a `test` plan only `done` counts as passed, and a failed step has run.
+A stored plan has no format version. The protocol schemas drop keys they do not know, so a later optional field does not break an older reader.
 
 ## Walking the tree
 
@@ -102,40 +76,8 @@ In a `steps` plan a warning or info counts as done. In a `test` plan only `done`
 | `isParentStep(step)`  | Whether it has sub-steps                                  |
 | `activeStepIds(plan)` | The ids of the leaf steps set to `active`                 |
 
-## Creating a plan
-
-An agent proposes a plan as a `PlanDraft`. It is the same tree without `by`, `at` or `unlocked`, with optional ids and meta. The draft schemas are strict: a misspelled field is refused by its path, not dropped.
-
 ```ts
-import { createPlan, parsePlanDraft } from '@adecore/plan';
+import { activeStepIds, findItem } from '@adecore/plan';
 
-const draft = parsePlanDraft(JSON.parse(body));
-const created = draft.ok ? createPlan(draft.draft, { id: 'release', now: new Date().toISOString() }) : draft;
+const now = activeStepIds(plan).map((id) => findItem(plan, id)?.title);
 ```
-
-`createPlan(draft, options)` takes a `PlanCreateOptions` and returns `{ ok: true, plan, minted, dropped }` at `rev` 0, or a refusal. The title comes from `options.meta` or the draft, and `options.meta` wins. `kind` defaults to `steps`, `checks` to `anyone`. A state in the draft counts as the agent's, so a state on a step only a person checks is refused.
-
-Items without an id get one from `options.mintId`, or from `randomItemId` (six random lowercase letters and digits). `minted` lists the new ids. Pass `mintId` for predictable ids in tests; a `mintId` that keeps returning taken ids ends in a `duplicate-id` refusal.
-
-## Schemas
-
-On `@adecore/plan/protocol`:
-
-| Schema                | Type            | Schema               | Type           |
-| --------------------- | --------------- | -------------------- | -------------- |
-| `PlanSchema`          | `Plan`          | `PlanOpSchema`       | `PlanOp`       |
-| `PlanMetaSchema`      | `PlanMeta`      | `PlanPersonOpSchema` | `PlanPersonOp` |
-| `PlanItemSchema`      | `PlanItem`      | `PlanSetOpSchema`    | `PlanSetOp`    |
-| `PlanSectionSchema`   | `PlanSection`   | `PlanNoteOpSchema`   | `PlanNoteOp`   |
-| `PlanTextSchema`      | `PlanText`      | `PlanUnlockOpSchema` | `PlanUnlockOp` |
-| `PlanStepSchema`      | `PlanStep`      | `PlanAddOpSchema`    | `PlanAddOp`    |
-| `PlanIdSchema`        | `PlanId`        | `PlanEditOpSchema`   | `PlanEditOp`   |
-| `PlanItemIdSchema`    | `PlanItemId`    | `PlanMoveOpSchema`   | `PlanMoveOp`   |
-| `PlanStepStateSchema` | `PlanStepState` | `PlanRemoveOpSchema` | `PlanRemoveOp` |
-| `PlanChecksSchema`    | `PlanChecks`    | `PlanMetaOpSchema`   | `PlanMetaOp`   |
-| `PlanActorSchema`     | `PlanActor`     |                      |                |
-| `PlanKindSchema`      | `PlanKind`      |                      |                |
-
-On `@adecore/plan`, the strict drafts: `PlanDraftMetaSchema`, `PlanDraftSectionSchema`, `PlanDraftTextSchema` and `PlanDraftStepSchema`, with the types `PlanDraft`, `PlanDraftItem`, `PlanDraftSection`, `PlanDraftText` and `PlanDraftStep`. `parsePlanDraft` checks a whole draft.
-
-A stored plan has no format version. The protocol schemas drop keys they do not know, so a later optional field does not break an older reader.

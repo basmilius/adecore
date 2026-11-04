@@ -13,6 +13,8 @@ const disconnect = host.connect(port);
 
 ## Options
 
+The options are `AgentHostOptions`. `wireAgents` takes the same, as `AgentWiringOptions`, without `background`.
+
 | Option                                       |                                                                                                       |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | `dataDir`                                    | Where the chats, attachments, bookmarks, visuals, accounts and usage history go. See [Storage](/agents/storage). |
@@ -31,7 +33,7 @@ const disconnect = host.connect(port);
 
 ## Clients
 
-`host.connect(port)` serves one client over a [`FramePort`](/agent-contracts/protocol#frameport) and returns a disconnect function. A frame or payload that does not parse gets `bad-request`. An unknown name gets `unknown-request`. A coded error from a handler returns its code. Any other error returns `internal` and is logged.
+`host.connect(port)` serves one client over a [`FramePort`](/agent-contracts/protocol#frameport) and returns a disconnect function. A frame or payload that does not parse gets `bad-request`. An unknown name gets `unknown-request`. A coded error from a handler returns its code. Any other error returns `internal`, and the host logs it.
 
 A client gets every chat's status, the accounts, the limits, and the thread events of chats it attached. Disconnecting detaches its chats and usage page, and the chats go on. The port has no authentication, timeout or reconnect. Whoever hands the host a port has already decided who is on the other end.
 
@@ -53,6 +55,8 @@ const result = await wiring.handlers['chat.send'](payload, clientId);
 ```
 
 `wiring.handlers` has a `(payload, clientId) => result` handler for every agent request. `connect(clientId, send)` streams one client its events until you call the returned function. A handler checks nothing itself, so your wire must validate the frame and payload and check who asks. Load the accounts before the first request. `start()` runs the periodic checks and `stop()` ends everything. `chatHandlers`, `accountHandlers` and `usageHandlers` are the three parts of `handlers`. `ClientSinks` is the per-client fan-out behind `connect`, and `WatchedSinks` the same for events that only go to clients that called `watch`.
+
+`wireAgents` returns an `AgentWiring`. Its `handlers` are `AgentHandlers`, one `AgentHandler` per request, typed from `AgentRequestMap`, which pairs every request name with its payload and result. `ChatRequestType` names the requests `chatHandlers` answers: every request but the `accounts.*` and `usage.*` ones. The `send` of `connect` has the shape of an `AgentSink`. It receives an `AgentEvent`, the `{ event, payload }` before framing, with the payload typed from `AgentEventMap`.
 
 ## ChatCore
 
@@ -114,4 +118,4 @@ A subclass of `ChatCore` can add host methods and pass its hooks to `super` as a
 
 Run the host in a utility process and keep the window to the contracts and views. The main process starts the utility process with the data folder and makes a `MessageChannelMain` per window. After it checked which window and frame asked, it hands one port to the utility process and the other to the window. The utility process wraps its `MessagePortMain` as a `FramePort` (`postMessage` to send, `on('message')` with `{ data }` to receive, `start()`), calls `host.connect`, and disconnects when the window goes.
 
-On quit, wait for `host.close()` before the utility process exits, so threads are written and no CLI is left behind. Give it a time limit in case it hangs. The channel names and window checks are your app's. The package registers none.
+On quit, wait for `host.close()` before the utility process exits, so the host writes every thread and ends every CLI. Give it a time limit in case it hangs. The channel names and window checks are your app's. The package registers none.

@@ -1,13 +1,19 @@
 # Models
 
-`@adecore/editor-react/models` exports the pure functions the features are built on, without React or an editor, for a host and for tests. The helpers behind the cards are internal.
+`@adecore/editor-react/models` exports the pure functions the features are built on, and the types of what they compute, without React or an editor. A host uses them to draw its own cards or to run the same logic elsewhere, and a test uses them without mounting anything. The helpers behind the cards are internal.
 
-## Completion
+```ts
+import { parseSnippet, tabOrder } from '@adecore/editor-react/models';
+```
+
+## Completion and snippets
 
 | Export                                       | What it does                   |
 | -------------------------------------------- | ------------------------------ |
 | `parseSnippet`, `compileSnippet`, `tabOrder` | A snippet's text and stops     |
 | `insertionOf`                                | What a completion item inserts |
+
+[Snippets](/editor-react/snippets) explains the snippet types. `MatchDetail` and `Ranked` (how a row matched and ranks), `KindTone` (the color of a row's kind) and `RowWindow` (the rows in view) describe the completion list. `CallPlan` and `CallSite` describe the parentheses completion adds after a function.
 
 ## Hover, signatures and problems
 
@@ -16,12 +22,23 @@
 | `severityOf`, `codeLabelOf`        | The severity and label of a diagnostic |
 | `decodeSemanticTokens`, `scopesOf` | Semantic tokens as scopes              |
 
+A `Problem` is a diagnostic as the features hold it. The hover card's content is a `HoverText` of `HoverSection`s: a `SignatureBlock`, Markdown as `MarkdownPart`s, `DocTag`s and a browser-support `Baseline` with its `BaselineLevel`. The signature card draws a `SignatureViewModel`.
+
 ## Navigation, rename and actions
 
 | Export                  | What it does                               |
 | ----------------------- | ------------------------------------------ |
 | `distinguishingFolders` | The folders that tell peeked files apart   |
 | `ResourceOperationView` | The files an edit makes, moves and deletes |
+
+The types of what these features show:
+
+- Rename: `RenameTarget`, `Occurrences`, `RenameRow` and `RenameFile`.
+- Peek: `NameRange`, `PeekPlace`, `PeekFile` and `PeekSnippet`.
+- Call hierarchy: `CallDirection`, `CallLoad`, `CallNode` and `CallRow`; see [call hierarchy](/editor-react/call-hierarchy).
+- Symbol picker: `SymbolGroup`, `SymbolTone`, `SymbolEntry`, `EntryGroup`, `PickerMode` and `WorkspaceEntry`.
+- Code actions: `ActionGroup`, `ActionEntry` and `EditPreview`.
+- Code vision: `CodeVisionDeclaration` and `DeclarationSource` for the usage rows, `CodeAuthor` and `CodeAuthorship` for the authors.
 
 ## Proposals and diffs
 
@@ -43,8 +60,14 @@ parseAnswer('Shorter:\n```replacement\nconst total = sum(lines);\n```\nIt reads 
 // { replacement: 'const total = sum(lines);', rest: 'Shorter:\nIt reads better.' }
 ````
 
+Their types: `LineSpan`, `InlineProblem` and `InlineAnswer` for a proposal, `DiffSegment` for `diffSegments`, `LineReplacement` for `replaceLines`, and `ConflictStretch` and `ConflictPlan` for `planConflict`. [Patch files](/editor-react/patch-files) explains `PatchLayout`, `PatchLayoutLine`, `PatchLineRole`, `PatchFileLayout`, `PatchFileStatus`, `PatchHunkLayout` and `PatchLimits`.
+
 ## Find and placement
 
 | Export                                                                     | What it does                                               |
 | -------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `compileFind`, `matchesIn`, `stepIndex`, `EMPTY_FIND_QUERY`, `MATCH_LIMIT` | A find query checked, run over a text, and stepped through |
+
+A `FindQuery` with its `FindOptions` compiles to a `CompiledFind`, which finds `TextMatch`es. These are the find bar's own model, apart from the editor's [matcher](/editor/find).
+
+`PopupSize`, `PopupPlacement` and `PlaceOptions` describe where a card sits beside its anchor; [`AnchoredPopup`](/editor-react/editor-view#anchoredpopup) takes `PlaceOptions` as its `placement`.

@@ -19,13 +19,13 @@ A `PickRow` with a one-character `mnemonic` shows it in a column; typing it pick
 
 ## Peek
 
-`language.peek.open(position?)` shows the references of a name in a panel between the editor's lines, grouped by file, with the code of the selected one. `peek.openDefinition(position?)` does the same for definitions. The arrow keys pick a place, Enter goes there, Escape closes. Other files are read through the project's [`files`](/editor-react/project#workspace-edits), at most 30 per peek. Dragging the bottom edge, or the arrow keys, Home or End on it, resizes the panel; `panelBodyHeight` and `onPanelResize` on the [host](/editor-react/project#languagehost) keep the height, which the call hierarchy shares. The panel lives in an editor widget row and scrolls with the text.
+`language.peek.open(position?)` shows the references of a name in a panel between the editor's lines, grouped by file, with the code of the selected one. `peek.openDefinition(position?)` does the same for definitions. The arrow keys pick a place, Enter goes there, Escape closes. The peek reads other files through the project's [`files`](/editor-react/workspace-edits#the-files), at most 30 per peek. Dragging the bottom edge, or the arrow keys, Home or End on it, resizes the panel; `panelBodyHeight` and `onPanelResize` on the [host](/editor-react/project#languagehost) keep the height, which the call hierarchy shares. The panel lives in an editor widget row and scrolls with the text.
 
 `language.callHierarchy.open()` opens the same panel for callers and callees; see [call hierarchy](/editor-react/call-hierarchy).
 
 ## Symbols
 
-`language.symbols` passes every symbol to the editor with `setDeclarations`, so they are the stops of Method Up and Down. Those jumps are recorded in the history.
+`language.symbols` passes every symbol to the editor with `setDeclarations`, so they are the stops of Method Up and Down. The history records those jumps.
 
 `language.symbolPicker.open()` (Mod+F12) filters the document's symbols. `:12` goes to line 12, and `#name` searches the project through `workspace/symbol` where supported.
 

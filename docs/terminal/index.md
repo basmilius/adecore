@@ -1,6 +1,6 @@
 # Terminal
 
-`@adecore/terminal` is a terminal pane on [xterm.js](https://xtermjs.org) in the theme of `@adecore/ui`. It fits its box, opens links and takes typing or only shows output. The app owns the program behind it: it writes output and reads the screen through a handle.
+`@adecore/terminal` is a terminal pane on [xterm.js](https://xtermjs.org) in the theme of `@adecore/ui`. It fits its box, opens links and takes typing or only shows output. The app owns the program behind it. It writes output and reads the screen through a handle.
 
 <Demo src="terminal/terminal-view" />
 

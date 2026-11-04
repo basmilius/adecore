@@ -27,18 +27,21 @@ The package has no React and no DOM, so the backend and the page both import it.
 `uiSessionNote()` returns a short note (under 2,400 characters) for the start of every session: the tag syntax, the rules for state, actions and expressions, the compact catalog and one example.
 
 ```ts
-import { ChatCore } from '@adecore/agents/chat';
+import { ChatCore, type ChatCoreOptions } from '@adecore/agents/chat';
+import { AgentHost } from '@adecore/agents/host';
 import { uiSessionNote } from '@adecore/intelligent-ui/text';
 
 const fenceLanguage = 'ui';
 
-function core(options) {
+function core(options: ChatCoreOptions): ChatCore {
     return new ChatCore({
         ...options,
         instructions: [appInstructions, uiSessionNote({ fenceLanguage })].join('\n\n'),
         uiFenceLanguage: fenceLanguage
     });
 }
+
+const host = await AgentHost.open({ dataDir, core });
 ```
 
 `fenceLanguage` is the info string after the opening backticks, `UI_FENCE_LANGUAGE` (`ui`) by default. Pass the same value to the note, the compiler and the session; a fence the compiler does not look for stays code.
@@ -139,3 +142,11 @@ draw();
 - A Choice sends its label and context once; the backend checks it against the stored block with `resolveUiChoice`. See [choices](/intelligent-ui/host/choices).
 - A live query reads a host source with the writing chat's access. See [live queries](/intelligent-ui/host/queries).
 - A File, Diff, Commit or Node becomes a chip only after the host checks it. See [links](/intelligent-ui/host/links).
+
+## Checklist
+
+- The note, the compiler and the session use the same fence language.
+- Only the final blocks of `finish` are stored; previews go to attached clients and never into the log.
+- Every block on the wire is checked with `UiBlocksSchema`.
+- The host answers `chat.uiChoice`, `ui.query` and `ui.link` only for a client attached to the chat, and checks each read and target again.
+- `ChatHost.intelligentUi` has at least `sendChoice`; leave out what the app does not offer, and the block degrades.

@@ -13,7 +13,7 @@ Smaller pieces of the thread and composer, for a header, card or chat list of yo
 | `ImageThumb(props: ImageThumbProps)` | `@adecore/agents-react/chat/ui` | An image that opens in a lightbox. `source` is a `ResourceUrl`; without a URL it shows its `failure`. `aspect` (width over height) reserves its space before the bytes arrive, `actions` go in the lightbox header, and `open` with `onOpenChange` control it. |
 | `WelcomeGreeting({ chatId, now? })`    | `@adecore/agents-react/chat/ui` | The greeting over an empty chat, by the part of the day.                                              |
 
-`statusLookOf(word)` returns the icon and tone of a `StatusWord`, and `taskStatusWord(task)` a task's word (`paused` while it waits out a limit).
+`statusLookOf(word)` returns the `StatusLook` of a `StatusWord`: its icon, tone and whether it spins. `taskStatusWord(task)` returns a task's word (`paused` while it waits out a limit), from a `TaskState`: its status and whether it is paused.
 
 `imageForDisplay(blob)` from `@adecore/agents-react/images` converts HEIC or HEIF to PNG and returns other blobs as they are. Call it before making a display URL or reading pixels; the decoder loads lazily.
 

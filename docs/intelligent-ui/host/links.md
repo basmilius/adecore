@@ -4,7 +4,7 @@ A File, Diff, Commit or Node in a block names something the host owns. The host 
 
 ## Targets
 
-`uiLinkTargets(block, input?, queries?, limits?)` evaluates a completed block with validated input and lists its visible link targets by node id. Hidden, unfinished and invalid nodes are left out.
+`uiLinkTargets(block, input?, queries?, limits?)` evaluates a completed block with validated input and lists its visible link targets by node id. It leaves out hidden, unfinished and invalid nodes.
 
 ```ts
 import { uiLinkTargets } from '@adecore/intelligent-ui/links';
@@ -46,7 +46,7 @@ With `@adecore/agents`, the optional `ChatUiHost.link(info, access, target)` res
 - When a reply is final, the backend resolves the first `UI_HOST_LIMITS.links` (64) targets of each block with the default input and stores them with the frozen readings.
 - `ui.link` resolves one node again for an attached client. The client names the block, node id and input values, never a target. The backend takes the target from the stored block.
 - A node that is no longer a visible link answers `link-unsupported`.
-- An unparsable resolution, or a chip without a target, is refused.
+- The backend refuses an unparsable resolution, or a chip without a target.
 
 ## The page's part
 

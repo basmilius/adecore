@@ -2,7 +2,7 @@
 
 A visual is a page an agent published in a chat, such as a chart or a mockup. The [`Timeline`](/agents-react/chat/timeline) draws each one in the thread, in the app's theme. The record, the bridge and the host page live in [`@adecore/agent-contracts/visual`](/agent-contracts/visuals).
 
-Nothing is drawn until the host sets [`visuals`](/agents-react/guide/host#visuals).
+The timeline draws no visual until the host sets [`visuals`](/agents-react/guide/host#visuals).
 
 ## Where a visual goes
 
@@ -26,7 +26,7 @@ The timeline draws the large view and the removal question once per thread. `use
 
 The frame loads the host's `frameUrl` in `<iframe sandbox="allow-scripts allow-forms">`, so the page runs on an opaque origin. A theme change never reloads it.
 
-`VisualPageFrame({ page, title, maxHeight?, fill?, className? })` draws the same frame outside a thread, such as for a page your app kept. `page` returns the HTML; keep it the same function while the page is the same, since a new one reloads the frame. `fill` lets the page scroll inside its positioned parent. It draws nothing without the host's `visuals`.
+`VisualPageFrame({ page, title, maxHeight?, fill?, className? })` draws the same frame outside a thread, such as for a page your app kept. `page` returns the HTML; keep it the same function while the page is the same, since a new one reloads the frame. `fill` lets the page scroll inside its positioned parent. It draws nothing without the host's `visuals`. Its props are `VisualPageFrameProps`.
 
 `VisualBridge` talks to the frame's window (`VisualFrameWindow`), with `VisualBridgeOptions`:
 

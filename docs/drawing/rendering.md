@@ -13,7 +13,7 @@ const svg = toSvg(drawing.elements, {
 });
 ```
 
-The SVG is sized to the bounds of the elements plus a margin, and keeps their stacking order. Every option has a default:
+`toSvg` sizes the SVG to the bounds of the elements plus a margin, and keeps their stacking order. Every option has a default:
 
 | `SvgOptions` | Default                  |                                                                                |
 | ------------ | ------------------------ | ------------------------------------------------------------------------------ |
@@ -27,7 +27,7 @@ The SVG is sized to the bounds of the elements plus a margin, and keeps their st
 
 `DEFAULT_PALETTE`, `DEFAULT_PAPER` and `DEFAULT_EDGE` are light theme colors, for a backend without a theme. To export in the theme a person sees, resolve its colors to plain values first. A CSS variable only works while the SVG sits inside the page.
 
-Fonts are named, not embedded, so another machine falls back to a font it has. `escapeXml(value)` escapes text the way `toSvg` does, for an app that writes its own SVG around a drawing. Colors go into attributes unescaped, since they come from the app, never from the document.
+The SVG names fonts instead of embedding them, so another machine falls back to a font it has. `escapeXml(value)` escapes text the way `toSvg` does, for an app that writes its own SVG around a drawing. Colors go into attributes unescaped, since they come from the app, never from the document.
 
 ## pathsOfElement
 
@@ -52,7 +52,7 @@ Each `ElementPath` has an SVG path `d` in the element's own frame, with `(0, 0)`
 | `fill`   | Fill it in the `fillColor`, or the `stroke` color when there is none.   |
 | `ink`    | Fill it in the `stroke` color: the outline of a freehand stroke.        |
 
-A `fill` path with a `strokeWidth` above 0 is a hachure: stroke it in the fill color instead of filling it. `dash` is `null` for a solid line, `[4w, 4w]` for dashed and `[w, 3w]` for dotted, where `w` is the stroke width. An arrow head is always solid.
+A `fill` path with a `strokeWidth` above 0 is a hachure. Stroke it in the fill color instead of filling it. `dash` is `null` for a solid line, `[4w, 4w]` for dashed and `[w, 3w]` for dotted, where `w` is the stroke width. An arrow head is always solid.
 
 How each kind is drawn:
 

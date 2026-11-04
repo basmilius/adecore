@@ -1,4 +1,4 @@
-# Documents and edits
+# Documents and requests
 
 ## LspDocument
 
@@ -54,66 +54,5 @@ The guards:
 - A completion item, code action, lens or hint resolves only for the version it came from.
 - `signal` and `timeoutMs` cancel a request from outside.
 
-## Edit helpers
+To apply what a request returns, such as the edits of `formatting` or `rename`, see [Edits](/lsp/edits).
 
-The protocol has two shapes of edit, and mixing them up gives wrong text:
-
-| Shape                                  | Ranges are in                        | Helper                               |
-| -------------------------------------- | ------------------------------------ | ------------------------------------ |
-| `ContentChange`, as in `didChange`     | The text the change before it left   | `applyContentChanges(text, changes)` |
-| `TextEdit`, as in formatting or rename | The text before all of them, at once | `applyTextEdits(text, edits)`        |
-
-```ts
-import { applyContentChanges, applyTextEdits, minimalChange } from '@adecore/lsp';
-
-const after = applyTextEdits('red blue red', [
-    { range: { start: { line: 0, character: 0 }, end: { line: 0, character: 3 } }, newText: 'green' },
-    { range: { start: { line: 0, character: 9 }, end: { line: 0, character: 12 } }, newText: 'green' }
-]);
-// 'green blue green'
-
-applyContentChanges('red blue red', [minimalChange('red blue red', after)]) === after; // true
-```
-
-`applyTextEdits` rejects overlapping edits. Insertions at one position keep their order. `minimalChange(before, after)` returns the single `ContentChange` between two texts, never splitting a surrogate pair or a `\r\n`.
-
-A host that keeps its own copy of a document can hold it in a `TextMirror`. `new TextMirror(text)` stores lines, so `applyChanges(changes)` costs only the touched lines. `text` joins them and `lineCount` counts them. A change that does not fit throws and leaves the text unchanged, including earlier entries of the same call.
-
-## Workspace edits
-
-`planWorkspaceEdit(edit, snapshots)` works out a `WorkspaceEdit` in memory. `snapshots` maps each URI to a `DocumentSnapshot` (`text`, `version` or `null`). It returns a `PlannedDocumentEdit` per document: `uri`, `version`, `before` and the planned `text`. A created file has no snapshot and is planned from empty text with `created: true`. Create it exclusively so a file that appeared meanwhile is not overwritten.
-
-It throws an `LspError` for a missing snapshot, a version mismatch, overlapping edits, a create over an existing snapshot (unless `overwrite` or `ignoreIfExists`), and any rename or delete. The app applies the plan after its own permission checks. For renames and deletes, use [resource operations](#resource-operations).
-
-### Resource operations
-
-`planWorkspaceOperations(edit, source)` plans for a host that also creates, moves and deletes files. It is async, changes nothing and returns a `WorkspaceEditPlan` whose `steps` follow the edit's order. It rejects with an `LspError` on the first change that does not fit. A version mismatch has the code `ContentModified`.
-
-The `WorkspaceEditSource` is the host's side:
-
-| Member          | What it gives                                                                                                                                                                                                                                                                                       |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `read(uri)`     | A `WorkspaceEditText` (`text`, `version`, `open`), or `null` when there is no such text file                                                                                                                                                                                                        |
-| `exists(uri)`   | Optional. Whether anything is there, asked after `read` returned `null`. Without it, such a URI counts as unknown: moves and deletes of it are left to the host, and creates onto it plan no overwrite |
-| `isFolder(uri)` | Optional. Whether the URI is a folder                                                                                                                                                                                                                                                               |
-| `operations`    | The `ResourceOperationKind`s (`create`, `rename`, `delete`) the host carries out                                                                                                                                                                                                                    |
-
-A step is a `PlannedTextStep` (`uri`, `readUri`, `edits`, `before`, `after`, `version`, `open`), a `PlannedCreateStep` (`uri`, `text`, `overwrite`), a `PlannedRenameStep` (`oldUri`, `newUri`, `overwrite`) or a `PlannedDeleteStep` (`uri`, `recursive`). The rules:
-
-- A text edit's version must equal the source's `version`. A version on a file that is not `open` is refused. Legacy `changes` and files the plan creates are not checked.
-- An operation outside `operations` is refused.
-- A create or rename onto an existing target is refused unless it says `overwrite` or `ignoreIfExists` (`overwrite` wins). A rename of something missing is always refused.
-- A delete of something missing is refused unless it says `ignoreIfNotExists`.
-- Deleting a folder needs `recursive`. Without `isFolder`, so does deleting anything that exists and is not a text file.
-- Edits to a URI after it was deleted or moved away are refused. Edits to a moved file are read from its old place (`readUri`). Edits to a created file become its `text`.
-- Overlapping edits are refused. Folders match by URI prefix as spelled, so spell the URIs of one edit the same way.
-
-Running the plan is up to the host and is not atomic. The session announces `failureHandling: 'abort'`: a failing step leaves earlier steps done, with no rollback. [`applyWorkspaceEdit`](/editor-react/project#workspace-edits) is a host built on this planner. Pass `resourceOperations` to the [session](/lsp/sessions) so servers send only what the host supports.
-
-## Files and URIs
-
-`pathToFileUri(path)` makes a `file:` URI of a POSIX or Windows path, escaping each segment. `fileUriToPath(uri)` goes back, or returns `null` for another scheme. Neither checks that a path is inside the project.
-
-`session.watchedFiles()` returns the watchers the server registered. `watchesFile(watchers, root, path, type)` says whether a change concerns them, with `type` `1` created, `2` changed or `3` deleted. Send matches with `session.didChangeWatchedFiles(changes)`. A path in `node_modules`, `vendor` or `.git` only matches a pattern that names that folder. Watching the disk is the app's job.
-
-For file operations the session has a `will` and a `did` method each: `willRenameFiles`/`didRenameFiles` take `RenamedFile` entries (`oldUri`, `newUri`, `directory`), `willCreateFiles`/`didCreateFiles` take `CreatedFile` and `willDeleteFiles`/`didDeleteFiles` take `DeletedFile` (`uri`, `directory`). A `will` method returns the server's `WorkspaceEdit`, such as changed imports, or `null`. Apply it as any other [workspace edit](/editor-react/project#workspace-edits) before the files change, then call the `did` method. A server asked before a delete expects the files to still exist. Only files the server's filters accept are sent. `fileOperationFilters(operation)` builds that filter. Moving, creating and deleting the files is the app's job.

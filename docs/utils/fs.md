@@ -14,7 +14,7 @@ File helpers for Node and Bun. A page cannot import this entry point.
 await writeAtomic(settingsPath, JSON.stringify(settings, null, 4));
 ```
 
-A process that dies is one thing; a power cut is another. After a power cut, APFS and ext4 can keep an empty target. With `durable` set in `WriteAtomicOptions`, the write flushes the file before the rename and the folder after it. Use it for a file whose loss costs a person their work:
+A power cut can still leave an empty target on APFS and ext4. With `durable` set in `WriteAtomicOptions`, the write flushes the file before the rename and the folder after it. Use it for a file whose loss costs a person their work:
 
 ```ts
 await writeAtomic(draftPath, draft, 0o600, { durable: true });

@@ -10,7 +10,7 @@ Treat whatever reaches `host.handle` as written by code you did not ship, such a
 
 `host.handle(request, owner)` takes `unknown` and checks it with [`parseRequest`](/database/api/host#parserequest) before anything reaches the helper:
 
-- A request has exactly the keys of its method. An unknown key is refused, so a typo cannot pass for an option.
+- A request has exactly the keys of its method. The host refuses an unknown key, so a typo cannot pass for an option.
 - An id is a string of 1 to 200 characters. `limit` is an integer from 1 to 10000, `cellLimit` from 1 to 1048576, `maxBytes` from 1 to 67108864, and `offset` a safe integer of 0 or more.
 - The path of a SQLite connection or a file is absolute, so it never resolves against the helper's working directory.
 - A port is an integer from 1 to 65535, a tunnel has the fields of its kind, and a format is one the method takes.
@@ -25,15 +25,15 @@ A session belongs to the owner that opened it. Another owner that sends its id g
 
 ### The helper's answers
 
-A helper line that is not a protocol response becomes an `internal` error. A helper with another `PROTOCOL_VERSION` is stopped at its first line.
+A helper line that is not a protocol response becomes an `internal` error. The host stops a helper with another `PROTOCOL_VERSION` at its first line.
 
 ## What the app must do
 
 1. Check the sender before calling `host.handle`. In Electron, compare the origin of `event.senderFrame` with the page you loaded. On a server, authenticate the WebSocket upgrade.
 2. Name one owner per window or socket, so none reaches another's sessions, and call `release` when it goes away. See [Getting started](/database/guide/getting-started#wire-the-host).
 3. Decide which connections a page may open, with `authorize`. Without it, a page can open any SQLite file the helper's user can read and any server the machine can reach, through any SSH host or Docker container it can see.
-4. Decide which files a page may use, with `authorizeFile`. Without it every file is refused. See [Files](#files).
-5. Decide whether a page may list Docker containers, with `authorizeDiscovery`. Without it discovery is refused. See [Discovery](#discovery).
+4. Decide which files a page may use, with `authorizeFile`. Without it the host refuses every file. See [Files](#files).
+5. Decide whether a page may list Docker containers, with `authorizeDiscovery`. Without it the host refuses discovery. See [Discovery](#discovery).
 
 ## Restricting connections
 
@@ -88,7 +88,7 @@ The host calls `authorizeDiscovery(kind, owner)` on every `discover`, and refuse
 
 ## Files
 
-`export`, `sample` and `import` carry a path the page chose. The host calls `authorizeFile(path, access, owner)` on each, with `'write'` for an export and `'read'` for a sample or import. Without it every file is refused.
+`export`, `sample` and `import` carry a path the page chose. The host calls `authorizeFile(path, access, owner)` on each, with `'write'` for an export and `'read'` for a sample or import. Without it the host refuses every file.
 
 - The shape check refuses a relative path. It does not follow links, resolve `..` or check the extension; your check must.
 - An export replaces an existing file. A path in a startup folder or shell profile can run code later.

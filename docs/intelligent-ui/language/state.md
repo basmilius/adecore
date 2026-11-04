@@ -35,7 +35,7 @@ Six inputs take a `value`. With `value={$name}` the control is bound, and a pers
 
 A binding needs a bare reference to a declared variable that is not a query. `value={$limit + 1}` shows a number and binds nothing. A control changes state only after its tag closes, and only with a value its schema accepts. [Inputs](/intelligent-ui/components/inputs) lists their props.
 
-A `TextField` value is state like any other. Text over its limit is never written, so a variable always fits its field. A query that reads `$q` reads again once the typing rests.
+A `TextField` value is state like any other. The field never writes text over its limit, so a variable always fits its field. A query that reads `$q` reads again once the typing rests.
 
 Everything else reads state through expressions. A Summary that counts the checked items redraws when the checklist changes.
 

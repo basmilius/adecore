@@ -6,7 +6,7 @@
 
 `language.rename.start()` (Shift+F6) opens the rename card over the name at the caret. With `prepareProvider`, it asks `textDocument/prepareRename` for the range and placeholder; otherwise it takes the word at the caret. Other uses of the name light up while the card is open.
 
-Enter renames. Shift+Enter first previews the changed lines by file, with Enter to apply. Escape or an edit in the file cancels. A refusal from the service stays under the input. The edit goes through [`applyWorkspaceEdit`](/editor-react/project#workspace-edits). The preview also lists `Creates`, `Moves` and `Deletes` rows from `RenameView.operations`.
+Enter renames. Shift+Enter first previews the changed lines by file, with Enter to apply. Escape or an edit in the file cancels. A refusal from the service stays under the input. The edit goes through [`applyWorkspaceEdit`](/editor-react/workspace-edits). The preview also lists `Creates`, `Moves` and `Deletes` rows from `RenameView.operations`.
 
 With `suggestNames` on the [host](/editor-react/project#languagehost), the card shows suggested names. The callback gets the name, its kind (`function`, `class`) when known, the surrounding code, a few uses and an `AbortSignal`.
 

@@ -14,6 +14,7 @@ Three renderers of GitHub-flavored Markdown with the typography plugin's `prose`
 
 - `MessageMarkdown({ text, mentions?, skills? })` draws what a person sent. Line breaks stay, a typed tag stays text, and picked files and skills become chips.
 - `ReplyMarkdown({ text, streaming, arriving? })` draws a reply, parsing one block at a time. While `streaming`, new words fade in and an open code fence highlights as it grows; `arriving` fades in whole blocks instead.
+- The rows of a reply read the CLI and chat they belong to from `ReplyContext`, `{ provider, chatId? }`, which a subagent's conversation sets to its own.
 - `Markdown({ text, breaks?, fileLinks?, muted?, rehypePlugins?, componentOverrides? })` draws any other text. `breaks` keeps line breaks, `fileLinks` (on by default) links paths through the host's `fileLinks`, and `muted` dims the text like a thought.
 
 A path becomes a link when the host's `fileLinks.target(text, cwd)` finds one. `FileLinkContext` sets the folder for relative paths; the thread sets it to the chat's `cwd`.
@@ -36,7 +37,7 @@ Copy copies `code` exactly. The controls show on hover or focus, and always with
 
 ## Mermaid diagrams
 
-A ```` ```mermaid ```` fence is drawn as a diagram by [Pele](https://pele.run) (MIT), which reads Mermaid 12.1 syntax. Pele loads lazily with the first closed fence. An open fence shows its source; text Pele cannot draw stays source with a note.
+[Pele](https://pele.run) (MIT) draws a ```` ```mermaid ```` fence as a diagram, and reads Mermaid 12.1 syntax. Pele loads lazily with the first closed fence. An open fence shows its source; text Pele cannot draw stays source with a note.
 
 A button beside Copy switches between diagram and source; Copy copies the source either way. The diagram uses the theme's tokens and follows theme changes.
 
@@ -44,7 +45,7 @@ The drawing is an SVG `data:` image without links, images or scripts. A Content 
 
 ## AnsiOutput and FadingWords
 
-`AnsiOutput({ text, limit?, tailLines? })` draws command output with its colors, bold, italics and underlines, and drops other control sequences. `tailLines` keeps the last lines and `limit` the first characters, with a line saying how much was left out. The colors come from the `--term-ansi-*` tokens; see [CSS](/agents-react/guide/getting-started#css).
+`AnsiOutput({ text, limit?, tailLines? })` draws command output with its colors, bold, italics and underlines, and drops other control sequences. `tailLines` keeps the last lines and `limit` the first characters, with a line saying how much was left out. The colors come from the `--term-ansi-*` tokens; see [CSS](/agents-react/getting-started#css).
 
 `FadingWords({ text })` fades in each word as text grows.
 

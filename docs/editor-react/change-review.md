@@ -1,60 +1,12 @@
 # Reviews and agents
 
-These parts draw what an agent proposed or wrote. Asking the agent, keeping its proposals and deciding who may accept them stay with the app.
-
-## DiffView
-
-`DiffView` (`DiffViewProps`) is a read-only diff in the editor `engine`. Pass a `DiffDocument` from [`@adecore/merge`](/merge/lines), a syntax `theme` and an accessible `label`.
-
-| Prop             | Meaning                                                                                       |
-| ---------------- | --------------------------------------------------------------------------------------------- |
-| `layout`         | `'unified'` (default) or `'split'`, two editors with synchronized vertical scrolling         |
-| `wrap`           | Wraps lines; `true` by default                                                                |
-| `splitWrapLimit` | Above this many rows (2,000), split turns wrap off                                            |
-| `fill`           | The parent sets the height; otherwise the view grows to its content                           |
-| `maxHeight`      | Caps that growth in pixels; taller diffs scroll inside. Ignored with `fill`                   |
-| `numbered`       | `false` draws no line numbers, for a fragment whose place in its file is not known; `true` by default |
-| `unfoldLimits`   | A `DiffLimits` (`rows`, `characters`, `lineLength`) for context expansion; 20,000 rows, 2,000,000 UTF-16 units, 10,000 per line |
-| `tokens`         | [Source tokens](#source-tokens)                                                               |
-| `onMount(editor, side)` | Runs per editor, to attach a find bar or commands; may return a cleanup. `side` is `old` or `new` in split, absent in unified |
-| `onSource(source)` | Runs per editor with a `DiffSource`: its `editor`, its `side` and `at()`, the line and column of the new file under the caret (`sourceLineOf`), or null where the new file has none. For a host that opens the file there; `jumpToSource` in the keymap is the key for it |
-
-`className` and `ref` belong to the outer element.
-
-```tsx
-import { DiffView } from '@adecore/editor-react';
-import { diffDocument, patchOf } from '@adecore/merge';
-
-const document = diffDocument(patchOf(before, after), { old: before, new: after });
-
-<DiffView engine={engine} document={document} theme="github-dark" label="Proposed changes" />;
-```
-
-Removed and added lines are document text, so selection, copy, find and wrapping work as in the editor. Line numbers stay out of copied text, and copy joins lines with LF. Hidden context unfolds on click, within `unfoldLimits`; a gap that cannot unfold within them is disabled. A partial patch cannot unfold omitted text. In split, each side holds only its own text, and filler rows take no part in it. A side that is wholly absent falls back to unified.
-
-The view keeps its editor when the document, tokens, theme or wrap change. Folding, sticky blocks and indentation guides are off. Replaced words get a stronger tint; large changes keep only line tints. Mod+Enter passes to the container, so a prompt card's primary action still works.
-
-### Gutter
-
-A changed line has a gutter tinted in its change color, with its number in a readable shade of that color and a bar along the left edge: solid for added, striped for removed. There is no `+` or `-` sign. The colors come from `--editor-added` and `--editor-deleted`; [`--editor-mark-number-mix` and `--editor-mark-bar-width`](/editor/theme) tune the number shade and bar width.
-
-### Accessibility
-
-Color is not the only signal. Each gutter holds hidden text a screen reader reads with the line: `Added, new line 12`, `Removed, old line 8`, or in unified `Old line 3, new line 3`. Split wraps the view in a group named by `label` and each side in a group named `Before` or `After`. No table roles are used.
-
-No screen reader has tested this; only LinkeDOM tests check the text and roles.
-
-### Source tokens
-
-`tokens` implements `DiffSourceTokens`. `get(side, index)` returns the `LineToken` array of a zero-based source line, `undefined` while pending, or `null` for plain text. `DiffSourceSide` is `old` or `new`. `subscribe(listener)` reports changes and returns an unsubscribe function. Return the same array while a line is unchanged.
-
-`diffSyntaxDocument(document, language, theme)` returns `DiffSyntaxSources`. `documents.old` and `documents.new` are worker `DiffSyntaxDocument` definitions, and `locate(side, index)` returns a line's `{ block, line }`. The host opens a session per side, requests the block and decodes the line with [`lineTokensOf`](/editor/theme#diff-syntax-in-a-worker). An oversized side gets no blocks and renders plain.
+These parts draw what an agent proposed or wrote. Asking the agent, keeping its proposals and deciding who may accept them stay with the app. A read-only diff of a whole file is a [`DiffView`](/editor-react/diff-view).
 
 ## ChangeReview
 
 <Demo src="editor/change-review" />
 
-`ChangeReview` draws a proposed change to a stretch of the file in the editor's font and colors: removed lines faded with `-`, added lines with `+`, replaced words in a stronger tint. It belongs in an [editor row](#rows-and-actions-in-react) under the stretch.
+`ChangeReview` (`ChangeReviewProps`) draws a proposed change to a stretch of the file in the editor's font and colors: removed lines faded with `-`, added lines with `+`, replaced words in a stronger tint. It belongs in an [editor row](#rows-and-actions-in-react) under the stretch.
 
 | Prop        | Type        | Meaning                                                |
 | ----------- | ----------- | ------------------------------------------------------ |
@@ -76,13 +28,13 @@ if (current !== null && editor.textInRange(current) === selected) {
 }
 ```
 
-`fitReplacement` and `parseAnswer` are described under [proposals](/editor-react/models#proposals-and-diffs).
+[Proposals](/editor-react/models#proposals-and-diffs) describes `fitReplacement` and `parseAnswer`.
 
 ## AttributionCard
 
 <Demo src="editor/attribution-card" />
 
-`AttributionCard` describes a run of lines an agent wrote, placed at the `rect` that [`onAttributionHover`](/editor/agents#attribution-marks) reports.
+`AttributionCard` (`AttributionCardProps`) describes a run of lines an agent wrote, placed at the `rect` that [`onAttributionHover`](/editor/agents#attribution-marks) reports.
 
 | Prop                | Meaning                                                         |
 | ------------------- | --------------------------------------------------------------- |
@@ -116,8 +68,24 @@ return container === undefined ? null : createPortal(<ChangeReview editor={edito
 
 `set(rows)` replaces the owner's rows, and `clear()` removes them. A `HostedRow` with `fixed` has an exact height; one with `filler` draws a hatched spacer without a portal. Keep state outside the element, since it comes and goes.
 
-`LineActionHost(editor, owner)` does the same for [line actions](/editor/rows#line-actions). `set` takes `{ id, line }`s, and an element lives as long as its action, so React state in it survives.
+`LineActionHost(editor, owner)` does the same for [line actions](/editor/rows#line-actions). `set` takes `HostedAction`s, `{ id, line }` with a zero-based line, and an element lives as long as its action, so React state in it survives.
 
 The editor has one set of line highlights, which a review and a conflict may share. `highlightLayers(editor)` returns its `HighlightLayers`. `set(owner, provider)` takes a function returning that owner's current highlights, and `set(owner, null)` removes them.
 
-`DiffView` throws asynchronous alignment failures during render, so an error boundary can replace it. The initial changes are not bounded by `unfoldLimits`; the caller bounds them.
+## One file in several editors
+
+When two editors in a window show the same file, an answer to a review in one is an answer in both. `joinReviewGroup(key)` returns the `ReviewGroup` of a file key the host chooses, such as the path, and a `leave()` that releases it with its last editor. Each editor's review joins the group as a `ReviewMember` with `hide(runIds)`, `show(runIds)` and `refresh()`. The group calls them on every member, so a run the person accepted in one editor leaves the other at once.
+
+```ts
+const { group, leave } = joinReviewGroup(path);
+const stop = group.join({ hide: (ids) => review.hide(ids), show: (ids) => review.show(ids), refresh: () => review.reload() });
+
+// An answer in this editor:
+group.hide(['run-3']);
+
+// When the editor closes:
+stop();
+leave();
+```
+
+`hide` hides runs before the host answers, and `show` restores them when the host refuses.

@@ -35,7 +35,7 @@ A chat attachment with an optional caption as its children. Give exactly one of 
 
 ## Gallery
 
-A grid of images with captions. `Gallery` has no props and holds only `Image`, one to 24 of them; more written are refused. After `Each` or `Show`, a `Gallery` that draws none fails as a whole, and one that draws more than 24 shows the first 24 with `too_many_children`. Each `Image` follows the rules above.
+A grid of images with captions. `Gallery` has no props and holds only `Image`, one to 24 of them; the compiler refuses more. After `Each` or `Show`, a `Gallery` that draws none fails as a whole, and one that draws more than 24 shows the first 24 with `too_many_children`. Each `Image` follows the rules above.
 
 ```ui
 <Gallery>

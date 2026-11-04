@@ -39,7 +39,7 @@ Every member but `restart` is synchronous. A manager has no queue or lock, so ru
 | `files` | A `ServiceFiles`. |
 | `sleep(ms)` | Resolves after `ms` milliseconds; `restart` waits with it. |
 
-`install` writes the property list but loads nothing. `start` runs `kickstart` when the label is loaded, else `bootstrap`. `restart` runs `bootout`, waits for the label to go and runs `bootstrap`, which throws when the old job does not exit in time. `stop` runs `bootout` and ignores its result. `uninstall` only removes the file.
+`install` writes the property list but loads nothing. `start` runs `kickstart` when the label is loaded, else `bootstrap`. `restart` runs `bootout` when the label is loaded, waits up to five seconds for the label to go and runs `bootstrap`, which throws when the old job has not exited by then. `stop` runs `bootout` when the label is loaded and ignores its result. `uninstall` only removes the file.
 
 ## systemd
 
@@ -72,9 +72,20 @@ A user unit stops when the person's last session ends. `manager.linger?.enabled(
 | `files` | A `ServiceFiles`. |
 | `sleep(ms)` | Resolves after `ms` milliseconds; `restart` waits with it. |
 
-`isInstalled` is true when the copy is on disk and `schtasks /Query` finds the task. `install` runs `schtasks /Create /XML /F` when the copy changed or the task is gone, and starts nothing.
+```ts
+const manager = taskSchedulerManager({
+    taskName: spec.label,
+    definitionFile: join(dataFolder, 'service', `${spec.label}.xml`),
+    logFile: spec.logFile,
+    run: runCommand,
+    files: diskFiles,
+    sleep: (ms) => setTimeout(ms)
+});
+```
 
-`stop` kills the process tree with `taskkill /T /F`, then ends and disables the task, so it stays stopped across logons. `start` enables the task and runs it. `restart` kills the tree, waits for the task to stop and starts it. `uninstall` deletes the task and the copy without checking the result. The manager cannot stop a deleted task, so stop it first.
+`isInstalled` is true when the copy is on disk and `schtasks /Query` finds the task. `install` writes the copy and the [script](/service/definitions#escaping) the task runs, then runs `schtasks /Create /XML /F` when the copy changed or the task is gone. It starts nothing.
+
+`stop` kills the process tree with `taskkill /T /F`, then ends and disables the task, so it stays stopped across logons. `start` enables the task and runs it. `restart` kills the tree of a running task, waits up to five seconds for the task to stop and starts it. `uninstall` deletes the task, the script and the copy without checking the result. The manager cannot stop a deleted task, so stop it first.
 
 ## Picking the platform
 
@@ -82,39 +93,4 @@ A user unit stops when the person's last session ends. `manager.linger?.enabled(
 
 ## Adapters
 
-A `CommandRunner` is `(command, args) => CommandResult`, where `CommandResult` is `{ code, stdout, stderr }`. It is synchronous so a service can stop while the app quits. `ServiceFiles` has `read(path)` (text or `null`), `write(path, text)`, `remove(path)` and `makeDirectory(path)`, which creates every parent.
-
-`@adecore/service/system` holds the real adapters. `runCommand` uses `spawnSync` without a shell, with a 15 second timeout per command. A missing exit code becomes `1`, and a spawn error lands in `stderr`. `diskFiles` creates parent folders on write. Its `read` returns `null` on any error, including a missing permission, so pass a stricter adapter where that matters.
-
-## Testing
-
-With a recording runner and a `Map` for files, every step runs in a test without `launchctl`, `systemctl` or a real wait:
-
-```ts
-import { launchdManager, type CommandRunner, type ServiceFiles } from '@adecore/service/manager';
-
-const disk = new Map<string, string>();
-const commands: string[][] = [];
-
-const files: ServiceFiles = {
-    read: (path) => disk.get(path) ?? null,
-    write: (path, text) => {
-        disk.set(path, text);
-    },
-    remove: (path) => {
-        disk.delete(path);
-    },
-    makeDirectory: () => {}
-};
-
-// A nonzero exit of `launchctl print` means the label is not loaded.
-const run: CommandRunner = (command, args) => {
-    commands.push([command, ...args]);
-    return { code: args[0] === 'print' ? 113 : 0, stdout: '', stderr: '' };
-};
-
-const manager = launchdManager({ label: 'com.example.worker', uid: 501, home: '/Users/ada', logFile: '/Users/ada/Library/Logs/worker.log', run, files, sleep: async () => {} });
-manager.install('<plist/>');
-manager.start();
-// commands: print, then bootstrap gui/501 /Users/ada/Library/LaunchAgents/com.example.worker.plist
-```
+Every manager takes a `CommandRunner` as `run` and a `ServiceFiles` as `files`. [Adapters and testing](/service/adapters) covers the real ones in `@adecore/service/system` and a test with fakes.

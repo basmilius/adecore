@@ -86,6 +86,13 @@ Without one, the formatters write English. [Format source](/ui/formatting/) expl
 
 Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once to print every visible button's shortcut while Cmd (Ctrl elsewhere) is held. Mount [`<Toasts store={toasts} />`](/ui/status/toasts) once for toasts from `createToastStore()`.
 
+## Checklist
+
+- The CSS imports Tailwind, then `@adecore/ui/theme.css`, and has an `@source` for the library.
+- `<html>` carries `data-theme="light"` or `data-theme="dark"`.
+- The app sets its own [accent](/ui/guide/theme#your-own-accent), or keeps the neutral blue.
+- `UIProvider` sits once above every component, with the app's i18next and a format source.
+
 ## Working on a local checkout
 
 The `source` export condition points into `src`, so an app can use a checkout without building it. Link the checkout:

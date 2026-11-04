@@ -1,35 +1,28 @@
-# @adecore/merge
+# Merge
 
-Line diffs, patches and three-way merges for text. A merge sorts a base and two versions into blocks that merge by themselves and blocks a person decides, then builds the file from the answers. It does no I/O and needs no DOM, so it runs in a page and in a backend.
+`@adecore/merge` diffs, patches and merges text by line. A three-way merge sorts a base and two versions into blocks that merge by themselves and blocks a person decides, then builds the file from the answers. A diff becomes rows for a view or text for an editor. The package does no I/O and needs no DOM, so it runs in a page and in a backend.
 
-```sh
-bun add @adecore/merge
-```
+## What it does
 
-```ts
-import { draftOf, joinLines, shapeOf, splitBlocks, splitLines, wandLines, type MergeBlock } from '@adecore/merge';
+- Splits text into lines and joins it back with the original line endings.
+- Diffs two arrays of lines, and computes a unified patch with context from two texts.
+- Parses a unified patch, and checks that it fits the two versions it claims to describe.
+- Turns a patch into rows for a unified or split view, with gaps that unfold, and highlights the changed words in a line.
+- Builds editor text for one or two diff panes, and maps a caret back to the file.
+- Sorts a three-way merge into blocks, answers the easy conflicts and builds an editable draft.
 
-export async function merge(base: string, ours: string, theirs: string, ask: (block: MergeBlock) => Promise<string[]>): Promise<string> {
-    const blocks = splitBlocks(splitLines(base), splitLines(ours), splitLines(theirs));
-    const answers = new Map<number, readonly string[]>();
-
-    for (const [index, block] of blocks.entries()) {
-        if (block.kind === 'conflict') {
-            answers.set(index, wandLines(block) ?? (await ask(block)));
-        }
-    }
-
-    return joinLines(draftOf(blocks, answers).lines, shapeOf(ours));
-}
-```
-
-With `base` as `'title\r\nold value\r\nfooter\r\n'`, `ours` changing the middle line to `our value` and `theirs` to `their value`, `splitBlocks` returns a `stable`, a `conflict` and a `stable` block. If `ask` answers `['combined value']`, the result is `'title\r\ncombined value\r\nfooter\r\n'`, with the line endings of `ours`.
-
-- [Lines and diffs](/merge/lines): lines and line endings, diffs, patches and diff displays.
-- [Three-way merge](/merge/three-way): blocks, automatic answers, the editable draft and what to check before saving.
-
-## What the app owns
+## What it leaves to the app
 
 Every function is synchronous and keeps no state. The app reads the versions, decides who may resolve a conflict, shows the blocks and writes the result. A large comparison blocks its thread, so run it in a worker when the page must stay responsive.
+
+## Where to next
+
+- [Getting started](/merge/getting-started) diffs two texts and merges two versions of a file.
+- [Lines and diffs](/merge/lines) covers line endings and `diffLines`.
+- [Patches](/merge/patches) covers parsing, checking and computing unified patches.
+- [Diff rows](/merge/diff-rows) covers the rows of a diff view, gaps and word changes.
+- [Diffs in an editor](/merge/diff-editor) covers text for one or two editor panes.
+- [Three-way merge](/merge/three-way) covers blocks, automatic answers, the draft and what to check before saving.
+- [Reference](/merge/reference) lists the limits and every export.
 
 The package is licensed under [FSL-1.1-MIT](https://github.com/basmilius/adecore/blob/main/packages/merge/LICENSE).

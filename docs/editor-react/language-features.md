@@ -4,7 +4,7 @@ Each of these features adds one part of the protocol. It only asks when the serv
 
 ## Document links
 
-`language.links` (`DocumentLinksFeature`) holds the links a server finds (`textDocument/documentLink`), such as import paths or web addresses in comments. They refresh 500 ms after the last edit. Mod+click follows a link before going to a definition, and holding Mod draws the link under the pointer. A link without a target is resolved first (`documentLink/resolve`).
+`language.links` (`DocumentLinksFeature`) holds the links a server finds (`textDocument/documentLink`), such as import paths or web addresses in comments. They refresh 500 ms after the last edit. Mod+click follows a link before going to a definition, and holding Mod draws the link under the pointer. The feature resolves a link without a target first (`documentLink/resolve`).
 
 A file target, or a document of a server's scheme, opens through the host's `openPlace` at the one-based line and column of its fragment: `#L12`, `#12` or `#L12,4`. A web address goes to `openExternal(url)`, or a new browser window without it. `all()`, `linkAt(position)`, `follow(link)` and `refresh()` serve a host that lists links itself.
 
@@ -22,9 +22,24 @@ The swatch is the `swatch` field of an [`EditorInlayHint`](/editor/decorations):
 
 `language.inlineCompletion` (`InlineCompletionFeature`) draws a server's suggestion as ghost text after the caret (`textDocument/inlineCompletion`). It is off until `configure({ enabled: true })`, since a host may draw its own suggestions there. It asks 300 ms after typing stops, or at once with the `suggestInline` key. Tab accepts and runs its command, Alt+] and Alt+[ step through alternatives, and Escape or moving the caret away dismisses it. A suggestion list or running snippet takes Tab first. An `InlineSuggestion` holds what it inserts and what the ghost shows.
 
+## Format on type
+
+`language.formatOnType` lets the language server tidy code as a person types, through `textDocument/onTypeFormatting`: a `}` moved to its block's indentation, the line after Enter, a `;` that closes a statement.
+
+It needs the service's optional `onTypeFormatting` ([`LanguageService`](/lsp/language-service)) and a server with `documentOnTypeFormattingProvider`; `supported` says so. The trigger characters are the server's `firstTriggerCharacter` and `moreTriggerCharacter`, listed by `triggerCharacters()`.
+
+It is off by default. A host turns it on with `language.formatOnType.configure(true)` when the person chooses it. `configure(false)` turns it off and cancels a pending request. `isEnabled` reads the state.
+
+After a typed trigger character, it sends the character as `ch` and the editor's `tabSize` and `insertSpaces`. Only when all of these hold:
+
+- The change is typed (`source` is `'input'`, or marked `typed` as Enter is). Undo, redo, host commands, reloads, completions, multi-character pastes and IME commits of several characters do not ask.
+- The editor has one caret, is writable and has no [snippet](/editor-react/snippets) session.
+
+The answer applies only if the text and caret are unchanged; a later edit cancels the request. Overlapping edits, empty answers and failures change nothing. The edits join the undo step of the typed character (`editor.applyEdits(edits, { mergeUndo: true })`), so one undo removes both.
+
 ## Saving
 
-`language.prepareSave(reason?)` sends `textDocument/willSave` and applies what `textDocument/willSaveWaitUntil` returns, such as sorted imports. A server that takes longer than a second is skipped. Call it, write the file, then let the service send `didSave`. `reason` is `1` for a manual save, `2` after a delay and `3` on focus loss.
+`language.prepareSave(reason?)` sends `textDocument/willSave` and applies what `textDocument/willSaveWaitUntil` returns, such as sorted imports. It skips a server that takes longer than a second. Call it, write the file, then let the service send `didSave`. `reason` is `1` for a manual save, `2` after a delay and `3` on focus loss.
 
 ## Formatting a selection
 
@@ -32,6 +47,6 @@ The swatch is the `swatch` field of an [`EditorInlayHint`](/editor/decorations):
 
 ## The project
 
-`project.pullWorkspaceProblems(uri)` asks the server of `uri` for the problems of every file it knows (`workspace/diagnostic`) and puts them in [`project.problems`](/editor-react/project#problems). It returns false when no server offers workspace diagnostics. The host decides when to pull, such as after a save.
+`project.pullWorkspaceProblems(uri)` asks the server of `uri` for the problems of every file it knows (`workspace/diagnostic`) and puts them in [`project.problems`](/editor-react/problems#in-the-project). It returns false when no server offers workspace diagnostics. The host decides when to pull, such as after a save.
 
 `project.readText(uri)` reads a document of a server-owned scheme, such as a decompiled class, through `textDocumentContent`, so peek and the call hierarchy can show it. A server's `window/showDocument` goes to `openPlace` or `openExternal`, and its messages to `onServerMessage`.

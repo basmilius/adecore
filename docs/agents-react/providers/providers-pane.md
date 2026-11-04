@@ -16,7 +16,7 @@ The list has three groups, each shown only when it has providers:
 
 With several accounts, they sit under the provider with their plans, and the default one has a Default pill. A provider's detail shows its version, abilities, new-chat defaults and accounts. An account shows its state, name, color, folder and environment variables. The plus beside a provider adds an account, in a new folder or, under Advanced, an existing one.
 
-Run `watchProviderAccounts(scopeId, transport)` for the scope; see [Getting started](/agents-react/guide/getting-started#a-scope). Sign in runs the CLI's login through the host's `openLogin`; without it there is no button. A provider with a `home` but no `loginCommand` signs in from its first chat instead. The host checks every save and may refuse it, such as a reserved variable.
+Run `watchProviderAccounts(scopeId, transport)` for the scope; see [Getting started](/agents-react/getting-started#a-scope). Sign in runs the CLI's login through the host's `openLogin`; without it there is no button. A provider with a `home` but no `loginCommand` signs in from its first chat instead. The host checks every save and may refuse it, such as a reserved variable.
 
 ## Props
 
@@ -40,7 +40,7 @@ A provider without a CLI login cannot report readiness through its accounts. Ret
 
 ## Install page
 
-A CLI reported with `installed: false` and an `install` field (see [Providers](/agent-contracts/providers-and-accounts#providers)) gets numbered steps: install, sign in, start working.
+A CLI reported with `installed: false` and an `install` field (see [Providers](/agent-contracts/providers#providers)) gets numbered steps: install, sign in, start working.
 
 The install step lists a command per system, opening on the scope machine's system from the host's `useMachinePlatform`. Each command has Copy. "Run in a terminal" needs the host's `runProviderCommand`, and the install guide link needs a `guideUrl`. The sign-in step names the provider's `signIn` ways and adds the host's `providerKeyNote` after an environment key. See [the host](/agents-react/guide/host).
 
@@ -70,7 +70,7 @@ A CLI that needs more, such as a server your app installs beside it, gets an ext
 
 ## In the settings dialog
 
-`settingsSection(section, Pane)` makes the dialog's entry. `PROVIDERS_SECTION` is this pane's section and `USAGE_SECTION` the one of [`UsagePane`](/agents-react/usage/usage-page#usagepane).
+`settingsSection(section, Pane)` makes the dialog's entry. `PROVIDERS_SECTION` is this pane's section and `USAGE_SECTION` the one of [`UsagePane`](/agents-react/usage/usage-page#usagepane). Each is an `AgentsSettingsSection`: an id, an icon, and its label and description, read when the dialog draws it.
 
 ```tsx
 import { SettingsDialog, useSettingsTarget } from '@adecore/ui/settings';
@@ -91,4 +91,4 @@ Keep the pane component the same between renders, or its forms start over.
 
 The detail and its forms are internal. A refused save shows a toast through the host's `notify`. Removing an account keeps its folder; new chats fall back to the CLI's default account.
 
-`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. `topAccountEntry` picks the account a start without one goes to: the first in the order that is on. `AccountRule` is the shape a host's `useAccountRule` answers with, per CLI the project's default and the accounts it turned off. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.
+`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. The first returns an `AccountEntry` per account (its id, record, status and whether it is the default), and the second a line with an `AccountTone`: `muted`, `needs-you` or `error`. `ACCOUNT_TONE_CLASSES` maps each tone to its text color class. `canContinueOn(accounts, kind, from, to)` says whether a chat of one account can go on under another: the same account, or two accounts of the CLI that write to one conversation folder. `topAccountEntry` picks the account a start without one goes to: the first in the order that is on. `AccountRule` is the shape a host's `useAccountRule` answers with, per CLI the project's default and the accounts it turned off. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.

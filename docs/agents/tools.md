@@ -43,9 +43,9 @@ const noteWrite = defineTool('note', {
 export const registry = createToolRegistry([defineToolkit('note', [noteWrite])]);
 ```
 
-A tool belongs to one toolkit, named as the first argument of `defineTool`. `defineToolkit` throws when a tool names another toolkit or two tools share a name, and `createToolRegistry` throws when two toolkits do. Those are mistakes in your code, so they throw a plain `Error`. A tool name is lower snake case, and `defineTool` also throws for an input `toolInputSchema` cannot describe.
+`defineTool` takes a `ToolSpec` and returns a `Tool`. A `Toolkit` holds the tools of one area, such as everything about notes, and `createToolRegistry` returns a `ToolRegistry`. A tool belongs to one toolkit, named as the first argument of `defineTool`. `defineToolkit` throws when a tool names another toolkit or two tools share a name, and `createToolRegistry` throws when two toolkits do. Those are mistakes in your code, so they throw a plain `Error`. A tool name is lower snake case, and `defineTool` also throws for an input `toolInputSchema` cannot describe.
 
-`annotations` tells a client what to expect before it runs a tool: `readOnly` for one that changes nothing, `destructive` for one that removes or overwrites what it cannot give back.
+`annotations`, the `ToolAnnotations`, tell a client what to expect before it runs a tool: `readOnly` for one that changes nothing, `destructive` for one that removes or overwrites what it cannot give back.
 
 Your `write` must check the revision in the same step as the write. `REVISION_FIELD` and `DRY_RUN_FIELD` are the field names this package uses for both. `DRY_RUN_PREVIEW` is a sentence that tells a model a dry run is never needed for safety.
 
@@ -59,7 +59,7 @@ Input that is no object, a field the tool does not have (also when it is `null`)
 
 ## Schemas
 
-`toolInputSchema(tool.input)` is the input schema an MCP client lists. It keeps `type`, `description`, `enum`, `required`, `items` and the `properties` of an object, at every depth. An `enum` holds strings, numbers or booleans, so `z.literal([1, 2])` and `z.literal(true)` keep their choices. A record is an `object` without `properties`. Bounds, `additionalProperties`, null branches and every union branch but the first are left out. A field of no one type, such as `z.unknown()`, `z.date()` or a literal of a string and a number, throws instead of being listed as text. A field with a default or `.optional()` is not required, and a transform shows the type it starts from. The description comes from `.describe()` or `.meta()`.
+`toolInputSchema(tool.input)` is the input schema an MCP client lists, a `ToolInputSchema` whose fields are `ToolField`s. It keeps `type`, `description`, `enum`, `required`, `items` and the `properties` of an object, at every depth. An `enum` holds strings, numbers or booleans, so `z.literal([1, 2])` and `z.literal(true)` keep their choices. A record is an `object` without `properties`. It leaves out bounds, `additionalProperties`, null branches and every union branch but the first. A field of no one type, such as `z.unknown()`, `z.date()` or a literal of a string and a number, throws instead of being listed as text. A field with a default or `.optional()` is not required, and a transform shows the type it starts from. The description comes from `.describe()` or `.meta()`.
 
 The bounds still hold, since a run checks the input against the full schema. A model learns them from a refusal instead of from every tool list.
 
@@ -76,10 +76,10 @@ const tools = registry.tools.map((tool) => ({
 
 `ToolRefusal(code, message, lines?)` is a refusal with advice. It is a `CodedError`, so a host that catches those catches a refusal too. A name `registry.run` does not know refuses `unknown-tool`, with a `tools` line that names every tool.
 
-`refusalBody` writes `refused`, the code and the message as one tab-separated line, then one advice row per line. `refusalRows` leaves out `refused`. `parseRefusalBody` reads either back, or returns `null` for other text. `field(value)` makes a value safe for one field, so a tab in a title cannot break a row. None of them shape what a client receives; the host does.
+`refusalBody` writes `refused`, the code and the message as one tab-separated line, then one advice row per line. `refusalRows` leaves out `refused`. `parseRefusalBody` reads either back as a `ParsedRefusal`, or returns `null` for other text. `field(value)` makes a value safe for one field, so a tab in a title cannot break a row. None of them shape what a client receives; the host does.
 
 ## Chat transcripts
 
-`renderTranscript(items)` from `@adecore/agents/context` renders chat items as a conversation for another agent. Assistant UI blocks use their stored text fallback. Nested subagent activity is omitted from the parent conversation; each subagent has one summary line. Tool calls include up to 300 characters of input and 2000 characters of output, with workflow phases when present. Questions and approvals retain their request ids and current state, and pending questions include their answer fields and choices.
+`renderTranscript(items)` from `@adecore/agents/context` renders chat items as a conversation for another agent. Assistant UI blocks use their stored text fallback. A subagent gets one summary line in the parent conversation, without its own activity. Tool calls show up to 300 characters of input and 2000 characters of output, with workflow phases when present. Questions and approvals keep their request ids and current state, and pending questions include their answer fields and choices.
 
 The host controls access to a thread, selects which items to expose and applies any final line limit.

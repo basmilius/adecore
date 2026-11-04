@@ -39,7 +39,7 @@ The view virtualizes, so it needs a height to scroll in. With `fitContent` it ta
 
 ## Defaults and ownership
 
-`useFileTree` starts with closed directories, directories first in numeric order ([`FileTree.compareRows`](/ui/trees/file-tree/models-loading#sorting-and-flattened-paths)), the [`FileIcon`](/ui/display/file-icon) set (`FILE_TREE_ICONS`), and the engine's search, sticky folders and context menu off. You can override each. Density and row height are fixed. `unsafeCSS` is appended to the wrapper's styles inside the shadow root.
+`useFileTree` starts with closed directories, directories first in numeric order ([`FileTree.compareRows`](/ui/trees/file-tree/models-loading#sorting-and-flattened-paths)), the [`FileIcon`](/ui/display/file-icon) set (`FILE_TREE_ICONS`), and the engine's search, sticky folders and context menu off. You can override each. Density and row height are fixed. The wrapper appends `unsafeCSS` to its styles inside the shadow root.
 
 The options only create the model. A new `paths` or `initialExpansion` on a later render does not rebuild it; use the model's methods (`resetPaths`, `add`, `remove`, `move`, `batch`, `setGitStatus`, `setIcons`).
 

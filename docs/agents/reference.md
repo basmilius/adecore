@@ -1,174 +1,61 @@
-# Export reference
+# Reference
 
-Every name each entry point exports, types included. Each row links the module's source, which has the full types. Anything not listed is internal and may change in any release.
-
-Six entries are JSON: the model catalogs `@adecore/agents/providers/<kind>-models.json` (`claude`, `codex`, `grok`, `copilot`, `antigravity`) and the bundled prices `@adecore/agents/usage/prices-snapshot.json`. Import them with `with { type: 'json' }` where the runtime asks for it.
+Every name each entry point exports, types included, read from its source. Anything not listed is internal and may change in any release.
 
 These entries run in the backend, never in a window. A window imports [`@adecore/agent-contracts`](/agent-contracts/) and [`@adecore/agents-react`](/agents-react/).
 
+## JSON entries
+
+Six entries are JSON: the model catalogs `@adecore/agents/providers/<kind>-models.json` (`claude`, `codex`, `grok`, `copilot`, `antigravity`) and the bundled prices `@adecore/agents/usage/prices-snapshot.json`. Import them with `with { type: 'json' }` where the runtime asks for it. See [Providers](/agents/providers#models) and [Usage](/agents/usage#prices).
+
 ## `@adecore/agents`
 
-Files, processes, watching, serialization and errors, shared by the other entries.
+Files, processes, watching, serialization and errors, shared by the other entries. See [Storage](/agents/storage).
 
-| Module | Exports |
-| --- | --- |
-| [`coded-error`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/coded-error.ts) | `CodedError` |
-| [`error-text`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/error-text.ts) | `setErrorStacks`, `errorText` |
-| [`record-directory`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/record-directory.ts) | `RecordDirectory`, `RecordDirectoryOptions` |
-| [`run-process`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/run-process.ts) | `runProcess`, `ProcessResult`, `RunProcessOptions` |
-| [`title-file`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/title-file.ts) | `cleanTitle`, `readLines` |
-| [`watch-seam`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/watch-seam.ts) | `DirectoryWatcher`, `WatchSeams`, `supportsRecursive`, `SYSTEM_WATCH`, `Settled`, `settled`, `PerClientWatches`, `WatchDirectory`, `Schedule` |
+<ExportTable entry="@adecore/agents" />
 
 ## `@adecore/agents/host`
 
-Serving the requests over a port or a wire of your own.
+Serving the requests over a port or a wire of your own. See [Host](/agents/host).
 
-| Module | Exports |
-| --- | --- |
-| [`host/agent-host`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/host/agent-host.ts) | `AgentHost`, `AgentHostOptions` |
-| [`client-sinks`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/client-sinks.ts) | `ClientSinks`, `WatchedSinks` |
-| [`host/environment`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/host/environment.ts) | `cliEnvironment`, `CliEnvironmentPolicy` |
-| [`host/handlers`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/host/handlers.ts) | `AgentHandler`, `AgentHandlers`, `chatHandlers`, `accountHandlers`, `usageHandlers`, `AgentRequestMap`, `ChatRequestType` |
-| [`host/memory-port`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/host/memory-port.ts) | `memoryPortPair` |
-| [`host/wiring`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/host/wiring.ts) | `AgentWiring`, `wireAgents`, `AgentWiringOptions` |
-| [`client-sinks`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/client-sinks.ts) | `ClientSinks` |
-| [`events`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/events.ts) | `AgentEvent`, `AgentEventMap`, `AgentSink` |
+<ExportTable entry="@adecore/agents/host" />
 
 ## `@adecore/agents/chat`
 
-The core, a session per chat, the thread and what is written of it, and the backends.
+The core, a session per chat, the thread and what is written of it, and the backends. See [Chats and turns](/agents/chats).
 
 `spawnChatProcess` calls `onExit(code, signal)`, and `ChatChild` calls `onExit(code, stderr, signal)`. The signal is `null` when none ended the process, and a custom `SpawnChatProcess` may omit it. Use it to tell a crash from a deliberate stop such as `SIGTERM`.
 
-| Module | Exports |
-| --- | --- |
-| [`chat/acp-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-backend.ts) | `AcpAgentSpec`, `AcpClientInfo`, `AcpUsageReport`, `createAcpBackend` |
-| [`chat/acp-protocol`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/acp-protocol.ts) | `AcpAgentInfo`, `AcpModel`, `AcpModelState`, `AcpMode`, `AcpModeState`, `AcpSessionInfo`, `AcpModeMap`, `AcpTurnUsage` |
-| [`chat/api-chat`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/api-chat.ts) | `ApiHostTools`, `ApiToolOutcome`, `ToolRounds` |
-| [`chat/api-tools`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/api-tools.ts) | `ApiToolDefinition` |
-| [`chat/attachment-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/attachment-store.ts) | `AttachmentStore` |
-| [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) | `BackendChange`, `BackendLaunch`, `ChatMcpServer`, `TurnInput`, `ApprovalDecision`, `BackendEvent`, `BackendHost`, `ChatBackend` |
-| [`chat/background-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/background-work.ts) | `runningInBackground`, `BackgroundWork` |
-| [`chat/bookmark-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/bookmark-store.ts) | `BookmarkStore`, `BookmarkListener` |
-| [`chat/chat-completions-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-completions-backend.ts) | `createChatCompletionsBackend`, `ChatCompletionsSpec`, `ChatCompletionsUsage`, `ChatCompletionsWords` |
-| [`chat/chat-completions-stream`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-completions-stream.ts) | `ChatCompletionsTokens` |
-| [`chat/chat-core`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-core.ts) | `InterruptedRun`, `ChatCoreHooks`, `ChatCoreOptions`, `ChatCore` |
-| [`chat/chat-log`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-log.ts) | `COMPACT_ABOVE_BYTES`, `ChatLogLine` |
-| [`chat/chat-process`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-process.ts) | `ChatSpawnOptions`, `SpawnChatProcess`, `spawnChatProcess`, `MAX_LINE_LENGTH`, `LineSplitter`, `ChatChild`, `ChatProcess`, `ChatChildOptions` |
-| [`chat/chat-session`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-session.ts) | `PromptNotes`, `ChatReferences`, `ResumeWords`, `ChatSession`, `TurnCheckpoints`, `ChatSessionOptions`, `LimitResumeHooks`, `ChatSendExtras`, `ResumeDecision` |
-| [`chat/chat-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-store.ts) | `ChatRecordExtras`, `ChatRecord`, `ChatStore`, `ChatSeq`, `ChatStoreOptions` |
-| [`chat/chat-title`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/chat-title.ts) | `suggestChatTitle`, `ChatTitleInput` |
-| [`chat/claude-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-backend.ts) | `ClaudeBackendOptions`, `ClaudeApiKeyOptions` |
-| [`chat/claude-title`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-title.ts) | `ClaudeTitleReader` |
-| [`chat/claude-transcript`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/claude-transcript.ts) | `claudeProjectSlug`, `findClaudeSession` |
-| [`chat/codex-backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/codex-backend.ts) | `CodexBackendOptions` |
-| [`chat/codex-thread`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/codex-thread.ts) | `forkThreadOnce`, `ThreadItemsParams`, `CodexProcessSpec`, `ThreadForkParams` |
-| [`chat/codex-transport`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/codex-transport.ts) | `CodexClientInfo` |
-| [`chat/composer-preferences`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/composer-preferences.ts) | `ComposerPreference` |
-| [`chat/errors`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/errors.ts) | `ChatErrorCode`, `ChatError` |
-| [`chat/external-sessions`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/external-sessions.ts) | `SessionFs`, `ExternalSession`, `listClaudeSessions`, `listCodexSessions`, `nodeSessionFs` |
-| [`chat/limit-resume`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/limit-resume.ts) | `limitedTurn`, `limitResumeAt` |
-| [`chat/readable-text`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/readable-text.ts) | `readableAssistantText` |
-| [`chat/subagent-reader`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/subagent-reader.ts) | `SubagentChat`, `SubagentReaderOptions` |
-| [`chat/subagent-settlement`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/subagent-settlement.ts) | `SubagentSettlement` |
-| [`chat/thread-search`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/thread-search.ts) | `searchThreadItems`, `ThreadHit`, `ThreadSearchOptions` |
-| [`chat/thread`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/thread.ts) | `ChatThread` |
-| [`chat/ui-queries`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/ui-queries.ts) | `ChatUiSource`, `ChatUiHost`, `ChatUiRefusal` |
-| [`chat/visual-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/visual-store.ts) | `visualFileName`, `VisualStore`, `VisualInput`, `VisualStoreOptions`, `VisualListener` |
-| [`chat/wake-chat`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/wake-chat.ts) | `WakeChat`, `chatOpener`, `ChatOpenerDeps` |
-| [`skills`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/skills.ts) | `SkillRootOptions` |
+<ExportTable entry="@adecore/agents/chat" />
 
 ## `@adecore/agents/providers`
 
-The registry, the model catalogs, the runtime modes and the accounts of each CLI.
+The registry, the model catalogs, the runtime modes and the accounts of each CLI. See [Providers](/agents/providers) and [Accounts](/agents/accounts).
 
-| Module | Exports |
-| --- | --- |
-| [`providers/acp-agent-state`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/acp-agent-state.ts) | `AcpCatalogStore` |
-| [`providers/acp-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/acp-provider.ts) | `ACP_CAPABILITIES`, `AcpProviderSpec`, `createAcpProvider` |
-| [`providers/api-chat-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/api-chat-provider.ts) | `ApiChatService`, `ApiChatProviderOptions`, `createApiChatProvider` |
-| [`providers/acp-vendors`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/acp-vendors.ts) | `AcpVendorOptions`, `AcpServerLaunch`, `CopilotProviderOptions`, `AntigravityProviderOptions`, `GrokModels`, `AGENT_DEFAULT_MODEL`, `agentDefaultCatalog`, `shippedAgentCatalog`, `agentModel`, `GROK_MODES`, `COPILOT_MODES`, `ANTIGRAVITY_MODES`, `ANTIGRAVITY_CLI`, `grokAuthMethod`, `readGrokModels`, `askGrokModels`, `adoptGrokModels`, `copilotUsageDirectory`, `antigravityOneShotArgs`, `createGrokProvider`, `createCopilotProvider`, `createAntigravityProvider` |
-| [`providers/accounts/acp-account`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/acp-account.ts) | `AcpAccountProbe`, `askAcpAccount`, `ProbeTimer` |
-| [`providers/accounts/choose`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/choose.ts) | `chooseAccount`, `AccountChoiceInput`, `AccountUnusable`, `ChosenAccount` |
-| [`providers/accounts/launch`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/launch.ts) | `AccountError`, `AccountLaunches`, `storedAccount`, `launchEnv` |
-| [`providers/accounts/service`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/service.ts) | `ProviderAccountsService`, `ProviderAccountsOptions` |
-| [`providers/accounts/shadow-home`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/shadow-home.ts) | `ShadowHomeReport` |
-| [`providers/accounts/status`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/status.ts) | `AccountReading`, `AskAccount` |
-| [`providers/accounts/variables`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/accounts/variables.ts) | `AccountsHost`, `variablesProblem`, `keychainService`, `SecretStore`, `ReservedVariables` |
-| [`providers/catalog`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/catalog.ts) | `ModelCatalog`, `ModelCatalogInput` |
-| [`providers/cli-mcp`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/cli-mcp.ts) | `CliMcpServer`, `cliMcpHeaders`, `cliMcpArgs`, `cliMcpAllowArgs` |
-| [`providers/claude-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/claude-provider.ts) | `createClaudeProvider` |
-| [`providers/codex-provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex-provider.ts) | `createCodexProvider` |
-| [`providers/codex-rules`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex-rules.ts) | `CodexRules`, `codexRulesText`, `codexRulesPathIn`, `defaultCodexHome`, `installCodexRules`, `CodexRulesResult` |
-| [`providers/codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/codex.ts) | `codexThreadOptions`, `codexServiceTier` |
-| [`providers/detect`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/detect.ts) | `CliDetection`, `detectCli` |
-| [`providers/nanogpt-vendor`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/nanogpt-vendor.ts) | `nanoGptVendorOf` |
-| [`providers/provider`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/provider.ts) | `ChatProvider`, `ClaudeCodeRuntime`, `ProviderHome` |
-| [`providers/registry`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/providers/registry.ts) | `ProviderRegistry`, `ProviderRegistryOptions` |
-| [`modes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/modes.ts) | `MODE_ORDER`, `narrowerMode`, `ceilingForOpening`, `modeField` |
+<ExportTable entry="@adecore/agents/providers" />
 
 ## `@adecore/agents/usage`
 
-Transcripts, prices and plan limits.
+Transcripts, prices and plan limits. See [Usage](/agents/usage).
 
-| Module | Exports |
-| --- | --- |
-| [`usage/accounts`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/accounts.ts) | `usageAccountsOf`, `usageRootsOf`, `limitAccountsOf`, `chatSessionAccounts` |
-| [`usage/limits/monitor`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/limits/monitor.ts) | `UsageMonitor`, `ProbeEnv`, `LimitAccount`, `LimitAccounts`, `UsageMonitorOptions` |
-| [`usage/limits/normalize`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/limits/normalize.ts) | `fraction`, `LimitsUpdate`, `ProviderReading` |
-| [`usage/limits/probe`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/limits/probe.ts) | `ProbeResult` |
-| [`usage/pricing`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/pricing.ts) | `LITELLM_URL` |
-| [`usage/projects`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/projects.ts) | `KnownProject` |
-| [`usage/readers/host-log`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/readers/host-log.ts) | `hostUsageLine`, `HostUsageEntry` |
-| [`usage/roots`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/roots.ts) | `UsageRootPath`, `usageRoots`, `claudeTranscriptRoot` |
-| [`usage/scanner`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/scanner.ts) | `UsageScannerOptions` |
-| [`usage/usage-service`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/usage/usage-service.ts) | `UsageService`, `UsageServiceOptions` |
+<ExportTable entry="@adecore/agents/usage" />
 
 ## `@adecore/agents/coordination`
 
-The outbox, tasks between chats, lineage and messages.
+The outbox, tasks between chats, lineage and messages. See [Coordination](/agents/coordination).
 
-| Module | Exports |
-| --- | --- |
-| [`outbox/outbox`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/outbox/outbox.ts) | `OutboxEntryOf`, `OutboxStore`, `OutboxWorkShape`, `OutboxEntryFields`, `OutboxStoreOptions` |
-| [`outbox/outbox-worker`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/outbox/outbox-worker.ts) | `RETRY_DELAYS_MS`, `OutboxClock`, `systemClock`, `OutboxOutcome`, `OutboxHandlers`, `OutboxWorker`, `OutboxWorkerOptions` |
-| [`outbox/resume-run`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/outbox/resume-run.ts) | `ResumeRunWorkSchema`, `ResumeRunWork`, `ResumeRunEntry`, `OweResumeDeps`, `ResumeRunDeps`, `oweResume`, `resumeRunHandler`, `resumeRunParked` |
-| [`tasks/pending-prompts`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/pending-prompts.ts) | `PendingPromptStore`, `PendingPromptStoreOptions`, `PendingPromptFields`, `PendingPromptExtra`, `FirstPrompt` |
-| [`tasks/background-limit`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/background-limit.ts) | `restartBackgroundLimits`, `RestartedOutbox` |
-| [`tasks/end-children`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/end-children.ts) | `EndChildrenWorkSchema`, `endChildren`, `EndChildrenWork`, `EndChildrenEntry`, `EndChildrenOutbox`, `EndChildrenDeps`, `EndChildren` |
-| [`tasks/task-coordinator`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-coordinator.ts) | `TaskCoordinatorDeps`, `TaskCoordinator` |
-| [`tasks/task-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-store.ts) | `TaskStore`, `TaskListener`, `TaskEvent`, `TaskSink` |
-| [`tasks/task-work`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/task-work.ts) | `BackgroundLimitWorkSchema`, `WakeParentWorkSchema`, `GiveTaskWorkSchema`, `DeliverWaitingWorkSchema`, `BackgroundLimitWork`, `WakeParentWork`, `GiveTaskWork`, `DeliverWaitingWork`, `TaskWork`, `BackgroundLimitEntry`, `AnyOutboxEntry`, `TaskOutbox` |
-| [`tasks/answer-question`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/answer-question.ts) | `answerQuestion`, `AnswerFieldNames`, `QuestionAnswer` |
-| [`tasks/waiting-child`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/waiting-child.ts) | `ChatRequests`, `chatRequests`, `WAITING_GRACE_MS`, `WaitingObserver`, `WaitingRequest`, `WaitingObserverDeps`, `WaitingAnswerCall`, `WaitingWords` |
-| [`tasks/wake-parent`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wake-parent.ts) | `RESULT_PREVIEW_BYTES`, `wakePrompt` |
-| [`tasks/wiring`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/tasks/wiring.ts) | `TaskVerbs`, `TaskWords`, `wireTasks`, `TaskChats`, `TaskRecord`, `TaskWiringDeps`, `TaskWiring` |
-| [`messages/deliver-message`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/deliver-message.ts) | `DeliverMessageWorkSchema`, `deliverMessageHandler`, `DeliverMessageWork`, `DeliverMessageEntry`, `DeliverMessageDeps` |
-| [`messages/deliver-notice`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/deliver-notice.ts) | `MessageWords`, `ChatNoticeTargets`, `ChatDelivery`, `chatNoticeTargets`, `deliverToChat`, `showNotices`, `NoticeChat`, `MAX_MESSAGE_HOPS`, `withinHops`, `steerNotices`, `SteerChat` |
-| [`messages/notice-notes`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/notice-notes.ts) | `NoticeNotes`, `unshownNotes` |
-| [`messages/notice-store`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/messages/notice-store.ts) | `MAX_NOTICES`, `NOTICE_MAX_AGE_MS`, `Notice`, `NoticeStore` |
-| [`lineage`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/lineage.ts) | `AgentLineageStore` |
+<ExportTable entry="@adecore/agents/coordination" />
 
 ## `@adecore/agents/context`
 
-Tools an agent calls back into, their input schemas and refusals.
+Tools an agent calls back into, their input schemas and refusals. See [Tools](/agents/tools).
 
-| Module | Exports |
-| --- | --- |
-| [`context/refusal`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/refusal.ts) | `field`, `refusalBody`, `refusalRows`, `ParsedRefusal`, `parseRefusalBody` |
-| [`context/tool`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/tool.ts) | `ToolRefusal`, `ToolCallBase`, `ToolAnnotations`, `ToolSpec`, `Tool`, `Toolkit`, `ToolRegistry`, `REVISION_FIELD`, `DRY_RUN_FIELD`, `DRY_RUN_PREVIEW`, `defineTool`, `defineToolkit`, `parseToolInput`, `createToolRegistry`, `lengthOf`, `requiredField`, `orNote` |
-| [`context/tool-schema`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/context/tool-schema.ts) | `ToolField`, `ToolInputSchema`, `toolInputSchema` |
+<ExportTable entry="@adecore/agents/context" />
 
 ## `@adecore/agents/testing`
 
-CLIs, a clock, a watcher and accounts for tests. Two more entries export nothing and run a fake as a process: start `@adecore/agents/testing/bin/fake-claude` or `@adecore/agents/testing/bin/fake-codex` with `bun` in place of the CLI. The captures the fakes follow are under `@adecore/agents/testing/fixtures/`.
+CLIs, a clock, a watcher and accounts for tests. See [Testing](/agents/testing).
 
-| Module | Exports |
-| --- | --- |
-| [`testing/fake-cli`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-cli.ts) | `FakeIo`, `FakeProgram`, `FakeCli`, `StartedFake`, `InProcessCli`, `inProcess`, `runOverStdio` |
-| [`testing/fake-acp`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-acp.ts) | `FakeAcpOptions`, `fakeAcpWith`, `fakeAcp` |
-| [`testing/fake-claude`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-claude.ts) | `fakeClaude`, `claudeStoppingOnResume` |
-| [`testing/fake-codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-codex.ts) | `FAKE_CHILD_STEPS`, `fakeCodexForks`, `FakeCodexOptions`, `fakeCodexWith`, `fakeCodex` |
-| [`testing/accounts`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/accounts.ts) | `testAccounts` |
-| [`testing/manual-clock`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/manual-clock.ts) | `ManualClock` |
-| [`testing/watch`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/watch.ts) | `FakeWatch`, `EventLog` |
+Two more entries export nothing and run a fake as a process: start `@adecore/agents/testing/bin/fake-claude` or `@adecore/agents/testing/bin/fake-codex` with `bun` in place of the CLI. The captures the fakes follow are under `@adecore/agents/testing/fixtures/`.
+
+<ExportTable entry="@adecore/agents/testing" />

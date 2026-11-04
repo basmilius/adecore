@@ -14,7 +14,7 @@ The build is green.
 Want the slow ones?
 ````
 
-A fence opens with three or more backticks or tildes, indented at most three spaces, followed by the fence language and nothing else. It closes with at least as many of the same character and nothing after. The language is `ui` unless the host [chose another](/intelligent-ui/guide/getting-started#tell-the-agent). A UI fence inside another code fence is code. An unclosed fence is a block still streaming. Prose outside the fences stays Markdown.
+A fence opens with three or more backticks or tildes, indented at most three spaces, followed by the fence language and nothing else. It closes with at least as many of the same character and nothing after. The language is `ui` unless the host [chose another](/intelligent-ui/getting-started#tell-the-agent). A UI fence inside another code fence is code. An unclosed fence is a block still streaming. Prose outside the fences stays Markdown.
 
 ## Declarations
 

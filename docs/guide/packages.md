@@ -57,7 +57,7 @@ Every view draws on the theme of `@adecore/ui`. The editor goes from a document 
 | Package | What it holds |
 |---|---|
 | [Shell](/shell/) (`@adecore/shell`) | The main process of an Electron app: its menu, its updater, its windows and the guards around its page |
-| [Service](/service/) (`@adecore/service`) | Definitions and managers for a launchd job on macOS or a systemd user service on Linux |
+| [Service](/service/) (`@adecore/service`) | Definitions and managers for a launchd job on macOS, a systemd user service on Linux or a scheduled task on Windows |
 | [Database](/database/) (`@adecore/database`) | Views to browse, query and edit SQLite and MySQL databases, a host for the backend and a native helper |
 | [Utils](/utils/) (`@adecore/utils`) | Waits, deadlines, atomic file writes and path checks, with no dependencies |
 

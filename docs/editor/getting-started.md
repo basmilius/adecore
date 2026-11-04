@@ -53,7 +53,7 @@ const stopSave = editor.onSave(() => save(editor.getText()));
 
 Give the element a position and size, such as `position: relative; height: 400px`. In a flex or grid layout, its parent may also need `min-height: 0`. The editor follows the element's size.
 
-Mod+S (Cmd+S on a Mac, Ctrl+S elsewhere) only calls the `onSave` listeners. The app does the actual saving.
+Mod+S (Cmd+S on a Mac, Ctrl+S elsewhere) only calls the `onSave` listeners. The app does the saving.
 
 ## Engine options
 
@@ -67,7 +67,7 @@ One engine mounts any number of editors. Each has its own document, history and 
 | `handBack`                 | `[]`     | `KeyChord`s the editor leaves alone, so the app's own shortcuts work from inside it |
 | `apple`                    | `false`  | Read Ctrl and Meta the way macOS does                                               |
 
-The editor is editable while the tokenizer loads. A tokenizer that fails, or answers after a newer theme was set, is ignored.
+The editor is editable while the tokenizer loads. The editor ignores a tokenizer that fails, or that answers after a newer theme was set.
 
 ## Tear down
 
@@ -77,3 +77,12 @@ The editor is editable while the tokenizer loads. A tokenizer that fails, or ans
 stopSave();
 editor.dispose();
 ```
+
+## Checklist
+
+- The page imports `theme.css` and then `editor.css`.
+- The element has a position and a height, and its flex or grid parent has `min-height: 0`.
+- One engine serves every editor, with the same resolved [key table](/editor/options#keymaps) the app's menus print.
+- `label` names each editor in the app's language.
+- The app saves in `onSave`; the editor writes nothing.
+- Every editor is disposed before its element goes or another editor mounts into it.

@@ -67,7 +67,7 @@ A refresh, page change, new filter or import asks first whether to discard pendi
 
 A [schema change](/database/api/client#schema-changes) for the table's schema reloads the structure and page. With pending changes it shows a banner with Reload instead.
 
-Rows are found by the row key: the primary key, else the first unique index over non-null columns. Generated columns are read only.
+The view finds rows by the row key: the primary key, else the first unique index over non-null columns. Generated columns are read only.
 
 ## Record view
 

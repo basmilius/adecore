@@ -41,4 +41,4 @@ import { Button } from '@adecore/ui';
 
 ## Accessibility
 
-`disabled` is the native attribute: the button leaves the tab order and fades. `Button` styles no `aria-disabled` state; an [`IconButton`](/ui/actions/icon-button) does.
+`disabled` is the native attribute. The button leaves the tab order and fades. `Button` styles no `aria-disabled` state; an [`IconButton`](/ui/actions/icon-button) does.

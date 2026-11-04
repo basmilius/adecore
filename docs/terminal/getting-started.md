@@ -10,7 +10,7 @@ xterm and its addons are peer dependencies, so the app picks their version:
 bun add @adecore/terminal @xterm/xterm @xterm/addon-fit @xterm/addon-web-links @xterm/addon-webgl
 ```
 
-React 19 is a peer as well. The WebGL addon loads only once a terminal asks for it, see [WebGL](/terminal/webgl).
+React 19 is a peer as well. The WebGL addon loads only once a terminal asks for it; see [WebGL](/terminal/webgl).
 
 ## Load the styles
 

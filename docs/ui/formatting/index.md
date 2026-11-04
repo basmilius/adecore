@@ -31,7 +31,7 @@ Without a source the formatters write English, in the system's region when it is
 
 ## Drawing again on a change
 
-A formatter is a plain function, so a component that calls one does not rerender on a change by itself. Call `useFormatLocale()` in it: it subscribes to the source and returns the current locale.
+A formatter is a plain function, so a component that calls one does not rerender on a change by itself. Call `useFormatLocale()` in it. It subscribes to the source and returns the current locale.
 
 ```tsx
 function LastSaved({ at }: { at: number }) {

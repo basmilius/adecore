@@ -1,10 +1,11 @@
 # App scheme
 
-A page served from a scheme of its own, such as `app://app`, gets a real origin without a server. `createAppScheme` serves each host of the scheme from its folder and binds the scheme and origin to the [web guards](/shell/web-guards).
+A page served from a scheme of its own, such as `app://app`, gets a real origin without a server. `createAppScheme` serves each host of the scheme from its folder and binds the scheme and origin to the [navigation guards](/shell/navigation) and the [sender check](/shell/ipc).
 
 The package registers nothing itself. Hand `privileged` to Electron before it is ready, and `handle` to the sessions you pick:
 
 ```ts
+import { join } from 'node:path';
 import { app, protocol, session } from 'electron';
 import { createAppScheme } from '@adecore/shell';
 
@@ -43,7 +44,7 @@ The default privileges give a real origin, a secure context, fetch and CORS, str
 
 ## What it serves
 
-Each request is answered from the folder of its host. `/` serves `index.html`, and so does an address without an extension when the folder routes itself. A missing file is a 404, so a chunk replaced by a newer build fails as a load error. A path that climbs out of the folder (`..`, an escaped slash, a symlink) is a 404 too. The content type follows the extension.
+The scheme answers each request from the folder of its host. `/` serves `index.html`, and so does an address without an extension when the folder routes itself. A missing file is a 404, so a chunk replaced by a newer build fails as a load error. A path that climbs out of the folder (`..`, an escaped slash, a symlink) is a 404 too. The content type follows the extension.
 
 A `SchemeFolder` is `{ root, routes?, headers? }`. A host whose files are not one folder, such as files found by an id, is a `SchemeResolver`: `(request, url) => Response`. It finds the file and answers through `serveFile(root, file, request, headers?)`, which serves only files inside `root`. `segmentsOf(pathname)` returns the decoded segments of a path, or `null` when one climbs out.
 
@@ -65,8 +66,10 @@ const scheme = createAppScheme({
 
 ## The guards
 
-The returned `AppScheme` has `origin` (the app's origin for the guards), `url` (what the window loads) and the guards bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/web-guards#appwindownavigation) and `isAppSender(isAppWindow, frame)`. With `pageUrl` set, the app's origin is the dev server's, and the scheme's own page host no longer counts as the app.
+The returned `AppScheme` has `origin` (the app's origin for the guards), `url` (what the window loads) and the guards bound to both: `originOf(url)`, `isAppUrl(url)`, `navigation(url)` for [`appWindowNavigation`](/shell/navigation#appwindownavigation) and `isAppSender(isAppWindow, frame)` for [`isAppSender`](/shell/ipc#isappsender). With `pageUrl` set, the app's origin is the dev server's, and the scheme's own page host no longer counts as the app.
 
 ```ts
-const fromApp = (event: Electron.IpcMainInvokeEvent): boolean => scheme.isAppSender(isAppWindow(event.sender), event.senderFrame);
+const fromApp = (event: Electron.IpcMainInvokeEvent): boolean => scheme.isAppSender(windows.fromPage(event.sender) !== null, event.senderFrame);
 ```
+
+`AppScheme` also has `scheme`, `privileged` for `protocol.registerSchemesAsPrivileged` and `handle` for `protocol.handle`.

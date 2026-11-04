@@ -1,6 +1,6 @@
 # FindReplace
 
-A find and replace bar over the [matcher of an editor](/editor/find-folding#find).
+A find and replace bar over the [matcher of an editor](/editor/find).
 
 <Demo src="editor/find-replace" />
 

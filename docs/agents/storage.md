@@ -21,7 +21,7 @@ A host keeps everything in its data folder. Give each host its own folder. The s
 
 ## Usage
 
-The CLIs remove old transcripts, but what a transcript counted stays in `usage/history.jsonl`. That file is the only record of it and cannot be rebuilt. Back it up if usage history matters.
+The CLIs remove old transcripts, but what a transcript counted stays in `usage/history.jsonl`. That file is the only record of it, and nothing can rebuild it. Back it up if usage history matters.
 
 - Deleting `scan-state.json` resets the scan cache. Every transcript still on disk is read again, and the usage of removed transcripts stays.
 - Deleting `history.jsonl` resets the history. Only transcripts still on disk count again.
@@ -34,7 +34,7 @@ A record this version cannot read stays untouched and fails with `chat-unreadabl
 
 ## Large outputs
 
-A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (8 KiB) is stored apart. The record keeps the first 2 KiB, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn. `id` is the SHA-256 of the whole.
+A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` (8 KiB) goes to a file of its own. The record keeps the first 2 KiB, and the item gets a ref to the whole as `{ id, bytes }`: `outputRef` on a tool, `checkpointDiffRef` on a turn. `id` is the SHA-256 of the whole.
 
 - `chat.toolOutput { chatId, itemId }` returns the whole output (`ChatCore.toolOutput`), and `chat.turnDiff` the whole diff. Anyone who may send requests about the chat may send these.
 - A missing payload fails with `payload-missing`.
@@ -46,16 +46,20 @@ A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` 
 
 `ChatCore` batches writes. `save` and `persisted(chatId)` wait for one. `after(since)` returns the events after a sequence number while the log holds them all. Otherwise a client gets a full snapshot. `host.close()` writes every record, even mid-turn, and ends the CLIs even when a write fails. `persistAllSync` is for an exit that cannot wait.
 
+A line of the log is a `ChatLogLine`, `{ seq, at, event }`. Once the log passes `COMPACT_ABOVE_BYTES`, the next write of the record folds it in. `ChatStore` reads a `ChatRecord`: the thread as the host last wrote it, the snapshot with the log played over it. `ChatRecordExtras` is what a host keeps beside the thread, which never reaches the wire, and `ChatSeq` where a snapshot stands in the chat's stream.
+
+`BookmarkStore` keeps the bookmarks of every chat, one file per chat, and tells a `BookmarkListener` every new list. `VisualStore` keeps the visuals, with `VisualStoreOptions`; it tells a `VisualListener` of changes and takes a `VisualInput`, the page as the agent wrote it. `visualFileName(chatId)` is the name of a chat's visuals file.
+
 ## File helpers
 
 Atomic writes, serializers and the error checks the stores use come from [`@adecore/utils`](/utils/).
 
-`RecordDirectory<T>` is a folder of JSON records, validated by a schema on load and written one at a time per id. A record that does not parse stays on disk. `keep` can rewrite or drop records on load. `write` and `remove` replace the file operations in tests.
+`RecordDirectory<T>` is a folder of JSON records, validated by a schema on load and written one at a time per id. A record that does not parse stays on disk. `keep` can rewrite or drop records on load. `write` and `remove` replace the file operations in tests. Both go in its `RecordDirectoryOptions`.
 
 ## Other helpers
 
-- `runProcess(command, options)` runs a short command in its own process group and returns its output and `exitCode` (`null` after a signal). A nonzero exit is a result, not an error. `timeoutMs` rejects and kills the group. Output past 16 MB does the same, so use it for commands that print little.
-- `WatchSeams` is swappable file watching. `SYSTEM_WATCH` uses `fs.watch`, recursive where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes. `PerClientWatches` keeps a watch per client and path.
+- `runProcess(command, options)` runs a short command in its own process group and returns its output and `exitCode` (`null` after a signal), as a `ProcessResult`. The options are `RunProcessOptions`. A nonzero exit is a result, not an error. `timeoutMs` rejects and kills the group. Output past 16 MB does the same, so use it for commands that print little.
+- `WatchSeams` is swappable file watching. `SYSTEM_WATCH` uses `fs.watch`, recursive where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes and returns a `Settled`: every `nudge` puts the run off again, and `stop` drops the one waiting. `PerClientWatches` keeps a watch per client and path. The seams are a `WatchDirectory` that hands out `DirectoryWatcher`s, the part of an `fs.watch` handle the watchers use, and a `Schedule` that runs a callback after a delay and returns its cancel function.
 - `cleanTitle` and `readLines` read titles from a transcript. `readLines` stops at the last whole line.
 - `CodedError` is an error with a `code`. `errorText` formats an error for a log, with its stack once `setErrorStacks` turned stacks on for the package.
 

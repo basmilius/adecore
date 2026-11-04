@@ -10,7 +10,7 @@ Each package page lists its peer dependencies and how to wire it into an app.
 
 ## One version
 
-Every package is released under the same version, from one tag, and tested against the same version of the others. Upgrade them together.
+Every package releases under the same version, from one tag, and is tested against the same version of the others. Upgrade them together.
 
 While the version is `0.x`, a breaking change bumps the minor and everything else the patch. The GitHub release notes say how to migrate each breaking change.
 

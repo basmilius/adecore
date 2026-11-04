@@ -60,7 +60,7 @@ Every element has these fields:
 
 `font` defaults to `hand`, `align` to `left`.
 
-The schema does not check that `w` and `h` are positive or that a line's points fit its box. Keep both in step when you edit an element: geometry and export read the box, not the points.
+The schema does not check that `w` and `h` are positive or that a line's points fit its box. Keep both in step when you edit an element, because geometry and export read the box, not the points.
 
 ## Schemas and constants
 
@@ -79,40 +79,6 @@ The schema does not check that `w` and `h` are positive or that a line's points 
 
 `DRAWING_COLORS` lists the palette names in the order a color menu shows them. `DRAWING_TEXT_SIZE_MIN` and `DRAWING_TEXT_SIZE_MAX` are 12 and 96.
 
-## Editing by id
+## Changing a document
 
-A writer other than the editor on screen, such as an agent, sends an edit instead of a whole document, so it never overwrites what a person draws at the same time. These are on `@adecore/drawing`.
-
-```ts
-import { DrawingEditSchema, applyDrawingEdit } from '@adecore/drawing';
-
-const edit = DrawingEditSchema.parse({
-    add: [{ kind: 'ellipse', x: 620, y: 40, w: 90, h: 90, stroke: 'orange', fill: 'solid', fillColor: 'yellow' }],
-    update: [{ id: 'box', stroke: 'blue' }],
-    remove: ['arrow']
-});
-
-const outcome = applyDrawingEdit(drawing.elements, edit, { id: () => crypto.randomUUID(), seed: () => Math.floor(Math.random() * 2 ** 31) });
-```
-
-`DrawingEditSchema` (type `DrawingEdit`) has three optional lists:
-
-- `add` takes `NewDrawingElementSchema` (`NewDrawingElement`), an element without `id`, `seed` and `locked`. `stroke` defaults to `ink`, `strokeWidth` to `2`, and a text or note `size` to `20`.
-- `update` takes `DrawingElementPatchSchema` (`DrawingElementPatch`), an `id` and the fields that change. The kind stays.
-- `remove` takes ids.
-
-Every level is strict: a misspelled field fails on its path.
-
-`applyDrawingEdit` returns a `DrawingEditOutcome`. That is `{ ok: true, elements, added }` with the new ids in order, or `{ ok: false, problems }`, a list of `DrawingEditProblem` with a `path` and a `message`. It applies all or nothing. An unknown, locked or repeated id is a problem, as is a field of another kind (`text` on a `rect`), and an edit beyond `DRAWING_EDIT_LIMITS`. Updated elements keep their stacking place; added ones go on top. The `DrawingEditMint` makes the id and seed of each new element.
-
-## Rebasing unsaved edits
-
-When a newer document arrives before the editor saved its own edits, the editor puts its edits on top by id.
-
-```ts
-import { rebaseDrawingElements } from '@adecore/drawing';
-
-const outcome = rebaseDrawingElements(saved.elements, onScreen.elements, incoming.elements);
-```
-
-`rebaseDrawingElements(base, mine, theirs)` returns a `DrawingRebase`: `{ ok: true, elements }`, or `{ ok: false, conflicts }` with the ids both sides changed. `base` is the document both sides started from. A change on one side wins; the same change on both sides is no conflict. The stacking order follows the side that changed it, or `theirs` when neither or both did.
+Write a whole document only from the editor that owns it, and raise `rev` on every save. A second writer, such as an agent, sends an edit by id instead; see [Edits and rebasing](/drawing/edits).

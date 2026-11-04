@@ -25,7 +25,7 @@ The workbench nests its own [`DatabaseProvider`](/database/guide/getting-started
 - A tab closes with its button, a middle click, Delete or Backspace, or Cmd or Ctrl+W. A table tab with pending edits asks first.
 - The explorer column resizes from its edge, between 200 pixels and half the window.
 
-With `storage` on the provider, the open tabs, the front tab, console text and each table's data or structure switch are kept under `database:workbench`. Tabs of missing connections are dropped, except while `connections` is empty and may still be loading.
+With `storage` on the provider, the workbench keeps the open tabs, the front tab, console text and each table's data or structure switch under `database:workbench`. It drops tabs of missing connections, except while `connections` is empty and may still be loading.
 
 ## Managing connections
 

@@ -18,7 +18,7 @@ A node asks for its calls once, when first opened. Calls keep the server's order
 
 A row shows the symbol's kind badge, name, detail, file and line, and for a caller with several call sites their count (`×3`). Deprecated symbols are struck through. An opened node shows `Loading…`, `No callers`, `No callees` or the server's error; pressing that row retries.
 
-The code on the right is the active row's first call site (`fromRanges`), or the symbol itself for a root. With several sites, the header steps through them (`stepSite(1)`, `stepSite(-1)`). Other files are read through the project's [`files`](/editor-react/project#workspace-edits).
+The code on the right is the active row's first call site (`fromRanges`), or the symbol itself for a root. With several sites, the header steps through them (`stepSite(1)`, `stepSite(-1)`). The panel reads other files through the project's [`files`](/editor-react/workspace-edits#the-files).
 
 ## Keyboard
 
@@ -39,7 +39,7 @@ A host that draws its own tree reads `CallHierarchyView` from the `callHierarchy
 
 ## Accessibility
 
-The tree is a `role="tree"` named `Call hierarchy`. Rows are `treeitem`s with `aria-level`, `aria-posinset`, `aria-setsize`, `aria-expanded` where they have calls, and `aria-selected` when active. Focus stays in the text, which points at the tree through `aria-controls` and `aria-activedescendant` (`setInputPopup`). Each answer is announced, as in `3 callers of run`. The direction control is a radio group.
+The tree is a `role="tree"` named `Call hierarchy`. Rows are `treeitem`s with `aria-level`, `aria-posinset`, `aria-setsize`, `aria-expanded` where they have calls, and `aria-selected` when active. Focus stays in the text, which points at the tree through `aria-controls` and `aria-activedescendant` (`setInputPopup`). The tree announces each answer, as in `3 callers of run`. The direction control is a radio group.
 
 ## Models
 

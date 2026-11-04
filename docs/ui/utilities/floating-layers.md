@@ -1,6 +1,6 @@
 # Floating layers
 
-Every popup, menu, tooltip and dialog of the library is portaled to `<body>`, but its React events still bubble through the tree it was declared in. A canvas that handles pointer events has to tell the two apart.
+The library portals every popup, menu, tooltip and dialog to `<body>`, but its React events still bubble through the tree it was declared in. A canvas that handles pointer events has to tell the two apart.
 
 ```tsx
 import { cameThroughPortal, isInFloatingLayer } from '@adecore/ui';

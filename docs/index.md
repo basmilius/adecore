@@ -10,6 +10,9 @@ hero:
             text: Get started
             link: /guide/
         -   theme: alt
+            text: Choose packages
+            link: /guide/packages
+        -   theme: alt
             text: GitHub
             link: https://github.com/basmilius/adecore
 ---

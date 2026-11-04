@@ -76,7 +76,7 @@ Its children get a `ChartPointSeries` (`key`, `label`, `rows` and `color`) and r
 
 ## Series legend
 
-`SeriesLegend` lists many series beside a chart, with a search, group toggles, a toggle per series and a highlight on hover or focus. It needs no `Chart.Root`. It only reports: `hidden`/`onHiddenChange` hold the keys that are off, and `highlighted`/`onHighlightedChange` the one under the pointer. The app decides what hiding means, such as leaving rows out of `data`.
+`SeriesLegend` lists many series beside a chart, with a search, group toggles, a toggle per series and a highlight on hover or focus. It needs no `Chart.Root`. It only reports. `hidden`/`onHiddenChange` hold the keys that are off, and `highlighted`/`onHighlightedChange` the one under the pointer. The app decides what hiding means, such as leaving rows out of `data`.
 
 ```tsx
 <SeriesLegend

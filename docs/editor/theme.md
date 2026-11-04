@@ -41,7 +41,7 @@ const engine = createSmartEditorEngine({
 });
 ```
 
-The adapter loads languages and themes by Shiki id on first use. An unknown or failing one is plain text. Embedded languages, such as `lang="scss"` in a Vue file or a Markdown code fence, load when the text names them, also while editing. For `php` the whole file colors as HTML with PHP between its tags. PHP inside an HTML attribute is not colored.
+The adapter loads languages and themes by Shiki id on first use. An unknown or failing one is plain text. Embedded languages, such as `lang="scss"` in a Vue file or a Markdown code fence, load when the text names them, also while editing. For `php` the whole file colors as HTML with PHP between its tags. The adapter does not color PHP inside an HTML attribute.
 
 `loadGrammar(highlighter, grammar, text?)` and `documentLanguageOf(language)` from `@adecore/editor/shiki` are the adapter's steps, for a code viewer that colors the same way.
 
@@ -56,7 +56,7 @@ const highlightBlock = shikiDocumentHighlighter(getHighlighter, ['/* opening', '
 const html = await highlightBlock(1);
 ```
 
-A later block first highlights its predecessors, yielding between blocks. Results are cached. Creating the helper loads nothing. Unsupported languages render as plain text. A failed load rejects and can be retried. An invalid index rejects with `RangeError`. Create a new helper when the text, language, theme or transformers change. Register custom themes on the shared highlighter before `getHighlighter` returns it.
+A later block first highlights its predecessors, yielding between blocks. The helper caches results. Creating it loads nothing. Unsupported languages render as plain text. A failed load rejects, and the next call tries again. An invalid index rejects with `RangeError`. Create a new helper when the text, language, theme or transformers change. Register custom themes on the shared highlighter before `getHighlighter` returns it.
 
 ## Tokens for a document
 
@@ -113,4 +113,4 @@ The editor colors the visible lines plus a margin and recolors from the changed 
 
 ## Semantic colors
 
-`setSemanticTokens` takes ranges with TextMate scopes, and `scopeColors(theme)` picks the theme's color for each scope stack. A scope the theme does not style keeps the grammar's color. A tokenizer may set a `kind` on a `LineToken`, a `LineTokenKind` of `comment`, `string` or `regex`. The Shiki tokenizer does, and a semantic token with `within` applies only over tokens of that kind. [`@adecore/editor-react`](/editor-react/hover#semantic-tokens-inlay-hints-and-folds) decodes a language server's semantic tokens into these.
+`setSemanticTokens` takes ranges with TextMate scopes, and the engine's `scopeColors` picks the theme's color for each scope stack. It is a `ScopeColorSource`: given a theme, it resolves to `ScopeColors`, a function from a scope stack to a `ScopeStyle` (`color` and `fontStyle`), or `null` for a theme without colors. A scope the theme does not style keeps the grammar's color. A tokenizer may set a `kind` on a `LineToken`, a `LineTokenKind` of `comment`, `string` or `regex`. The Shiki tokenizer does, and a semantic token with `within` applies only over tokens of that kind. [`@adecore/editor-react`](/editor-react/hover#semantic-tokens-inlay-hints-and-folds) decodes a language server's semantic tokens into these.

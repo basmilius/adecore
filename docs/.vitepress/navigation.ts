@@ -56,21 +56,6 @@ const PACKAGES: [string, [string, string][]][] = [
     ]
 ];
 
-/* The reference page of each package that has one, until every package has its generated export table. */
-const REFERENCES: Record<string, string> = {
-    'agent-contracts': '/agent-contracts/reference',
-    agents: '/agents/reference',
-    'agents-react': '/agents-react/reference',
-    'intelligent-ui': '/intelligent-ui/reference',
-    'editor-core': '/editor-core/api',
-    editor: '/editor/reference',
-    'editor-react': '/editor-react/reference',
-    lsp: '/lsp/reference',
-    terminal: '/terminal/reference',
-    utils: '/utils/reference',
-    database: '/database/api/client'
-};
-
 const folders = PACKAGES.flatMap(([, packages]) => packages.map(([, folder]) => folder));
 
 export const nav: DefaultTheme.NavItem[] = [
@@ -93,20 +78,25 @@ const guide: DefaultTheme.SidebarItem[] = [
     group('Guide', [
         ['Introduction', '/guide/'],
         ['Choosing packages', '/guide/packages'],
+        ['Architecture', '/guide/architecture']
+    ]),
+    group('Setup', [
         ['Installing', '/guide/installing'],
         ['Styles', '/guide/styles'],
-        ['React Compiler', '/guide/react-compiler']
+        ['React Compiler', '/guide/react-compiler'],
+        ['Troubleshooting', '/guide/troubleshooting']
     ])
 ];
 
 const reference: DefaultTheme.SidebarItem[] = [
     group('Reference', [['All packages', '/reference/']]),
+    // Every package keeps its reference at the same place in its folder.
     ...PACKAGES.map(([area, packages]) =>
         group(
             area,
-            packages.filter(([, folder]) => REFERENCES[folder] !== undefined).map(([label, folder]): [string, string] => [label, REFERENCES[folder]!])
+            packages.map(([label, folder]): [string, string] => [label, `/${folder}/reference`])
         )
-    ).filter((item) => item.items!.length > 0)
+    )
 ];
 
 const desktopUi: DefaultTheme.SidebarItem[] = [
@@ -233,21 +223,28 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['useNow', '/ui/hooks/use-now'],
         ['useOverlayScrollbars', '/ui/hooks/use-overlay-scrollbars']
     ]),
-    group('Testing', [['Testing', '/ui/utilities/testing']])
+    group('Testing', [['Testing', '/ui/utilities/testing']]),
+    group('Reference', [['Exports', '/ui/reference']])
 ];
 
 const desktopShell: DefaultTheme.SidebarItem[] = [
     group('Shell', [
         ['Overview', '/shell/'],
+        ['Getting started', '/shell/getting-started']
+    ]),
+    group('Guides', [
         ['Application menu', '/shell/menu'],
         ['Updater', '/shell/updater'],
         ['Windows', '/shell/windows'],
+        ['Quitting', '/shell/quitting'],
         ['Window state', '/shell/window-state'],
         ['Theme', '/shell/theme'],
-        ['Web guards', '/shell/web-guards'],
         ['App scheme', '/shell/app-scheme'],
+        ['Navigation and links', '/shell/navigation'],
+        ['IPC and senders', '/shell/ipc'],
         ['Bridge', '/shell/bridge']
-    ])
+    ]),
+    group('Reference', [['Options and exports', '/shell/reference']])
 ];
 
 const terminal: DefaultTheme.SidebarItem[] = [
@@ -283,6 +280,9 @@ const utils: DefaultTheme.SidebarItem[] = [
 const charts: DefaultTheme.SidebarItem[] = [
     group('Charts', [
         ['Overview', '/charts/'],
+        ['Getting started', '/charts/getting-started']
+    ]),
+    group('Charts and parts', [
         ['Series chart', '/charts/series'],
         ['Columns and groups', '/charts/columns'],
         ['Scatter and series legend', '/charts/scatter'],
@@ -290,14 +290,17 @@ const charts: DefaultTheme.SidebarItem[] = [
         ['Sparkline', '/charts/sparkline'],
         ['Heatmap', '/charts/heatmap'],
         ['Timeline', '/charts/timeline'],
-        ['useChart', '/charts/use-chart']
-    ])
+        ['useChart', '/charts/use-chart'],
+        ['Keyboard and screen reader', '/charts/keyboard']
+    ]),
+    group('Reference', [['Parts and exports', '/charts/reference']])
 ];
 
 const database: DefaultTheme.SidebarItem[] = [
     group('Database', [
         ['Overview', '/database/'],
         ['Getting started', '/database/guide/getting-started'],
+        ['How it fits together', '/database/guide/architecture'],
         ['Connections', '/database/guide/connections'],
         ['Opening tables as tabs', '/database/guide/tabs'],
         ['Files', '/database/guide/files'],
@@ -318,7 +321,8 @@ const database: DefaultTheme.SidebarItem[] = [
         ['Client', '/database/api/client'],
         ['Host', '/database/api/host'],
         ['Testing', '/database/api/testing']
-    ])
+    ]),
+    group('Reference', [['Exports', '/database/reference']])
 ];
 
 export const sidebar: DefaultTheme.SidebarMulti = {
@@ -332,34 +336,45 @@ export const sidebar: DefaultTheme.SidebarMulti = {
     '/agent-contracts/': [
         group('Agent contracts', [
             ['Overview', '/agent-contracts/'],
+            ['Getting started', '/agent-contracts/getting-started']
+        ]),
+        group('Guides', [
             ['Protocol', '/agent-contracts/protocol'],
+            ['Requests and events', '/agent-contracts/requests'],
             ['Conversation', '/agent-contracts/conversation'],
+            ['UI blocks in replies', '/agent-contracts/ui-replies'],
             ['Visuals', '/agent-contracts/visuals'],
-            ['Providers and accounts', '/agent-contracts/providers-and-accounts'],
-            ['Tasks and usage', '/agent-contracts/tasks-and-usage']
+            ['Providers and models', '/agent-contracts/providers'],
+            ['Accounts', '/agent-contracts/accounts'],
+            ['Tasks and worktrees', '/agent-contracts/tasks'],
+            ['Usage', '/agent-contracts/usage']
         ]),
         group('Reference', [['Exports', '/agent-contracts/reference']])
     ],
     '/agents/': [
         group('Agents', [
             ['Overview', '/agents/'],
-            ['Getting started', '/agents/getting-started'],
+            ['Getting started', '/agents/getting-started']
+        ]),
+        group('Guides', [
             ['Host', '/agents/host'],
             ['Chats and turns', '/agents/chats'],
             ['Providers', '/agents/providers'],
             ['ACP agents', '/agents/acp'],
-            ['Accounts and usage', '/agents/accounts'],
+            ['Accounts', '/agents/accounts'],
+            ['Usage', '/agents/usage'],
             ['Coordination', '/agents/coordination'],
             ['Tools', '/agents/tools'],
             ['Storage', '/agents/storage'],
-            ['Testing', '/agents/testing']
+            ['Testing', '/agents/testing'],
+            ['Error codes', '/agents/errors']
         ]),
         group('Reference', [['Exports', '/agents/reference']])
     ],
     '/intelligent-ui/': [
         group('Intelligent UI', [
             ['Overview', '/intelligent-ui/'],
-            ['Getting started', '/intelligent-ui/guide/getting-started'],
+            ['Getting started', '/intelligent-ui/getting-started'],
             ['Security model', '/intelligent-ui/guide/security']
         ]),
         group('Language', [
@@ -381,15 +396,16 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Live queries', '/intelligent-ui/host/queries'],
             ['Choices', '/intelligent-ui/host/choices'],
             ['Links', '/intelligent-ui/host/links'],
-            ['Compilation and streaming', '/intelligent-ui/host/compilation'],
-            ['Performance', '/intelligent-ui/performance']
+            ['Compilation and streaming', '/intelligent-ui/host/compilation']
         ]),
         group('Reference', [['Exports', '/intelligent-ui/reference']])
     ],
     '/agents-react/': [
         group('Agent views', [
             ['Overview', '/agents-react/'],
-            ['Getting started', '/agents-react/guide/getting-started'],
+            ['Getting started', '/agents-react/getting-started']
+        ]),
+        group('Guides', [
             ['Host adapters', '/agents-react/guide/host'],
             ['Chat client and state', '/agents-react/guide/chat-client'],
             ['Persistence', '/agents-react/guide/persistence'],
@@ -402,6 +418,7 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Messages and code', '/agents-react/chat/messages'],
             ['Diffs', '/agents-react/chat/diffs'],
             ['Subagents', '/agents-react/chat/subagents'],
+            ['Forks', '/agents-react/chat/forks'],
             ['Limits', '/agents-react/chat/limits'],
             ['Chat parts', '/agents-react/chat/parts'],
             ['Attachments and mentions', '/agents-react/chat/attachments'],
@@ -424,73 +441,118 @@ export const sidebar: DefaultTheme.SidebarMulti = {
     '/merge/': [
         group('Merge', [
             ['Overview', '/merge/'],
+            ['Getting started', '/merge/getting-started']
+        ]),
+        group('Guides', [
             ['Lines and diffs', '/merge/lines'],
+            ['Patches', '/merge/patches'],
+            ['Diff rows', '/merge/diff-rows'],
+            ['Diffs in an editor', '/merge/diff-editor'],
             ['Three-way merge', '/merge/three-way']
-        ])
+        ]),
+        group('Reference', [['Exports', '/merge/reference']])
     ],
     '/drawing/': [
         group('Drawing', [
             ['Overview', '/drawing/'],
+            ['Getting started', '/drawing/getting-started']
+        ]),
+        group('Guides', [
             ['Documents', '/drawing/documents'],
+            ['Edits and rebasing', '/drawing/edits'],
             ['Geometry', '/drawing/geometry'],
             ['Paths and SVG', '/drawing/rendering'],
-            ['Text and reading order', '/drawing/text']
-        ])
+            ['Text', '/drawing/text'],
+            ['Reading order', '/drawing/reading-order']
+        ]),
+        group('Reference', [['Exports', '/drawing/reference']])
     ],
     '/diagram/': [
         group('Diagram', [
             ['Overview', '/diagram/'],
+            ['Getting started', '/diagram/getting-started']
+        ]),
+        group('Guides', [
             ['Documents', '/diagram/documents'],
             ['Layout', '/diagram/layout'],
-            ['Painting and reading', '/diagram/rendering']
-        ])
+            ['Export to SVG', '/diagram/rendering'],
+            ['A painter of your own', '/diagram/painter'],
+            ['Reading order', '/diagram/reading-order']
+        ]),
+        group('Reference', [['Exports', '/diagram/reference']])
     ],
     '/plan/': [
         group('Plan', [
             ['Overview', '/plan/'],
+            ['Getting started', '/plan/getting-started']
+        ]),
+        group('Guides', [
             ['Plans', '/plan/plans'],
+            ['State and progress', '/plan/state'],
+            ['Creating a plan', '/plan/drafts'],
             ['Operations', '/plan/operations'],
-            ['Markdown and text', '/plan/markdown']
-        ])
+            ['Permissions', '/plan/permissions'],
+            ['Markdown', '/plan/markdown'],
+            ['Text for an agent', '/plan/agent-text']
+        ]),
+        group('Reference', [['Exports', '/plan/reference']])
     ],
     '/service/': [
         group('Service', [
             ['Overview', '/service/'],
+            ['Getting started', '/service/getting-started']
+        ]),
+        group('Guides', [
             ['Definitions', '/service/definitions'],
-            ['Managers', '/service/managers']
-        ])
+            ['Managers', '/service/managers'],
+            ['Adapters and testing', '/service/adapters']
+        ]),
+        group('Reference', [['Options and exports', '/service/reference']])
     ],
     '/editor-core/': [
         group('Editor core', [
             ['Overview', '/editor-core/'],
+            ['Getting started', '/editor-core/getting-started']
+        ]),
+        group('Guides', [
             ['Documents and edits', '/editor-core/documents'],
             ['Typing and commands', '/editor-core/commands'],
-            ['Search and folding', '/editor-core/search-folding']
+            ['Search', '/editor-core/search'],
+            ['Folding', '/editor-core/folding'],
+            ['Lexical queries', '/editor-core/lexical']
         ]),
-        group('Reference', [['Exports', '/editor-core/api']])
+        group('Reference', [['Model and exports', '/editor-core/reference']])
     ],
     '/editor/': [
         group('Editor', [
             ['Overview', '/editor/'],
-            ['Getting started', '/editor/getting-started'],
+            ['Getting started', '/editor/getting-started']
+        ]),
+        group('Guides', [
             ['Options and keymaps', '/editor/options'],
             ['Text and events', '/editor/editing'],
-            ['Theme and syntax', '/editor/theme'],
-            ['Testing', '/editor/testing']
-        ]),
-        group('Rendering', [
             ['Decorations', '/editor/decorations'],
             ['Rows and widgets', '/editor/rows'],
             ['Agents', '/editor/agents'],
-            ['Find and folding', '/editor/find-folding']
+            ['Find', '/editor/find'],
+            ['Folding and structure', '/editor/folding'],
+            ['Theme and syntax', '/editor/theme'],
+            ['Accessibility and touch', '/editor/accessibility'],
+            ['Testing', '/editor/testing']
         ]),
-        group('Reference', [['Exports', '/editor/reference']])
+        group('Reference', [['Exports and compatibility', '/editor/reference']])
     ],
     '/lsp/': [
         group('LSP', [
             ['Overview', '/lsp/'],
-            ['Sessions and transports', '/lsp/sessions'],
-            ['Documents and edits', '/lsp/documents'],
+            ['Getting started', '/lsp/getting-started']
+        ]),
+        group('Guides', [
+            ['Transports', '/lsp/transports'],
+            ['Sessions', '/lsp/sessions'],
+            ['Documents and requests', '/lsp/documents'],
+            ['Edits', '/lsp/edits'],
+            ['Files', '/lsp/files'],
             ['Language service', '/lsp/language-service'],
             ['Testing', '/lsp/testing']
         ]),
@@ -499,27 +561,37 @@ export const sidebar: DefaultTheme.SidebarMulti = {
     '/editor-react/': [
         group('Editor views', [
             ['Overview', '/editor-react/'],
-            ['Getting started', '/editor-react/getting-started'],
-            ['Projects and documents', '/editor-react/project'],
-            ['View state', '/editor-react/view-state'],
-            ['Testing', '/editor-react/testing']
+            ['Getting started', '/editor-react/getting-started']
         ]),
-        group('Views', [
+        group('Project', [
+            ['Projects and documents', '/editor-react/project'],
+            ['Workspace edits', '/editor-react/workspace-edits'],
             ['EditorView', '/editor-react/editor-view'],
+            ['View state', '/editor-react/view-state']
+        ]),
+        group('Language features', [
             ['Completion and signatures', '/editor-react/completion'],
-            ['Hover and problems', '/editor-react/hover'],
+            ['Snippets', '/editor-react/snippets'],
+            ['Hover, hints and colors', '/editor-react/hover'],
+            ['Problems', '/editor-react/problems'],
             ['Navigation', '/editor-react/navigation'],
             ['Call hierarchy', '/editor-react/call-hierarchy'],
             ['Rename and code actions', '/editor-react/rename'],
-            ['Format on type', '/editor-react/format-on-type'],
             ['Markup', '/editor-react/markup'],
             ['Templates', '/editor-react/templates'],
             ['Links, colors and more', '/editor-react/language-features'],
             ['FindReplace', '/editor-react/find-replace'],
-            ['Reviews and agents', '/editor-react/change-review'],
-            ['Patch files', '/editor-react/patch-files'],
             ['Code vision', '/editor-react/code-vision'],
             ['Rendered documentation', '/editor-react/rendered-documentation']
+        ]),
+        group('Reviews and diffs', [
+            ['DiffView', '/editor-react/diff-view'],
+            ['Reviews and agents', '/editor-react/change-review'],
+            ['Patch files', '/editor-react/patch-files']
+        ]),
+        group('More', [
+            ['Accessibility', '/editor-react/accessibility'],
+            ['Testing', '/editor-react/testing']
         ]),
         group('Reference', [
             ['Models', '/editor-react/models'],

@@ -52,21 +52,63 @@ editor.onSave(() => {
 
 Each returns an unsubscribe function. Use `onChange` for a dirty marker, since a reload should not mark the file dirty, and `onTextChange` to keep a language server in sync.
 
-`EditorTextChange` has a `source` (`input`, `command` or `external`), `typed` when typing caused a command such as Enter, and `changes`: `EditorContentChange`s in order, each relative to the text the previous one left. That is the shape of `textDocument/didChange`, not of `applyEdits`, so the list cannot be passed back as one batch.
+`EditorTextChange` has a `source` (`input`, `command` or `external`), `typed` when typing caused a command such as Enter, and `changes`: `EditorContentChange`s in order, each relative to the text the previous one left. That is the shape of `textDocument/didChange`, not of `applyEdits`, so `applyEdits` cannot take the list back as one batch.
 
 ## Selections
 
 `getCaret()` returns the primary caret. `getSelection()` returns the primary selection, start before end, and `getSelections()` returns all of them, primary last. `setCaret(position, reveal?)`, `setSelection(range, reveal?)` and `setSelections(ranges, reveal?)` replace them and scroll the primary into view. An empty list changes nothing.
 
-`reveal` sets the scroll. `relative` (default) keeps the caret in view with a line of margin. `center` puts an off-screen target a third from the top. `centerDown` and `centerUp` do the same while stepping through results in one direction. `revealLine(line, reveal?)` puts the caret at the start of a one-based line.
+`reveal` is an `EditorReveal` that sets the scroll. `relative` (default) keeps the caret in view with a line of margin. `center` puts an off-screen target a third from the top. `centerDown` and `centerUp` do the same while stepping through results in one direction. `revealLine(line, reveal?)` puts the caret at the start of a one-based line.
 
-`getVisibleRange()` returns the lines on screen. `rectAt(position)` returns a character's box in page pixels, or `null` without layout, as a popup anchor. Reposition the popup on `onViewChange`.
+`getVisibleRange()` returns the lines on screen. `rectAt(position)` returns a character's box in page pixels as an `EditorRect` (`left`, `top`, `right`, `bottom`), or `null` without layout, as a popup anchor. Reposition the popup on `onViewChange`. The `EditorHover` that `onHover` reports carries the same box for the character under the pointer.
 
 ## Pointer and keys
 
-`onClick(handler)` sees a primary-button press on the text before the editor. The first handler returning `true` takes it, and the caret stays put. `EditorClick` carries the `position` and the `mod`, `alt` and `shift` keys, for example to follow Mod+click to a definition.
+`onClick(handler)` sees a primary-button press on the text before the editor. The handler is an `EditorClickHandler`. The first one returning `true` takes the press, and the caret stays put. `EditorClick` carries the `position` and the `mod`, `alt` and `shift` keys, for example to follow Mod+click to a definition.
 
-`onContextMenu(listener)` reports a context menu request: the `position`, whether it is `inSelection`, and `x` and `y` in page pixels. The editor draws no menu and keeps the caret. `onKeyDown` is on [Options and keymaps](/editor/options#keymaps).
+```ts
+const stop = editor.onClick((click) => {
+    if (!click.mod) {
+        return false;
+    }
+
+    void goToDefinition(click.position);
+    return true;
+});
+```
+
+`onContextMenu(listener)` reports a context menu request as an `EditorContextMenu`: the `position`, whether it is `inSelection`, and `x` and `y` in page pixels. The editor draws no menu and keeps the caret. `onKeyDown` takes an `EditorKeyHandler` and is on [Options and keymaps](/editor/options#keymaps). Touch has its own gestures, on [Accessibility and touch](/editor/accessibility#touch).
+
+## Clipboard
+
+Copy, cut and paste work through the system clipboard without setup. Three optional members of `Editor` let a host keep a clipboard history:
+
+- `onCopy(listener)` reports each copy or cut as an `EditorCopy`: the `text` and `wholeLines`, true when bare carets copied their lines.
+- `paste(text, options?)` pastes a text the way a clipboard paste does, at every caret and with indent on paste. Its `EditorPasteOptions` take `wholeLines` and `reindent: false`, which leaves the text's indentation alone. It returns `false` when nothing was pasted, such as in a read-only editor.
+- `rememberCopy(text, wholeLines)` makes a text paste back as whole lines, like a copy from bare carets, for a paste from a history that kept what the copy was.
+
+```ts
+const history: EditorCopy[] = [];
+
+editor.onCopy?.((copy) => history.unshift(copy));
+
+// Later, from a menu:
+editor.paste?.(history[1].text, { wholeLines: history[1].wholeLines });
+```
+
+## Questions about the code
+
+`placeAt`, `postfixOperands`, `surroundShape` and `unwrapTargets` on `Editor` are optional and answer the [lexical queries of editor-core](/editor-core/lexical) in editor positions, with the editor's language and indentation. They return an `EditorTextPlace`, `EditorPostfixOperand` values, an `EditorSurroundShape` and `EditorUnwrapTarget` values whose `edits` go straight to `applyEdits`. `FakeEditorEngine` answers them too.
+
+```ts
+const place = editor.placeAt?.(editor.getCaret());
+
+if (place?.kind === 'comment') {
+    // Offer comment templates only.
+}
+```
+
+`commentSyntax(language)`, re-exported from editor-core, returns the comment markers of a language id as a `CommentSyntax`.
 
 ## Commands
 

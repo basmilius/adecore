@@ -17,7 +17,7 @@ if (result.ok) {
 }
 ```
 
-`applyPlanOps(plan, ops, options)` works on a copy. Each operation sees the ones before it. The batch is all or nothing: one refusal leaves your plan untouched. A batch that passes raises `rev` by one.
+`applyPlanOps(plan, ops, options)` works on a copy. Each operation sees the ones before it. The batch is all or nothing, so one refusal leaves your plan untouched. A batch that passes raises `rev` by one.
 
 `options` is a `PlanApplyOptions`: the `actor`, the `now` written into `at`, and an optional `mintId`. A success is a `PlanApplied`, `{ ok: true, plan, minted, dropped }`. `minted` lists the ids made for new items. `dropped` lists the steps that lost their state when they got their first sub-step.
 
@@ -36,27 +36,26 @@ if (result.ok) {
 
 `under` names the section or step to put an item in, and `after` the item it follows there. Without either the item goes last at the top. With only `after` it goes right after that item. A section only stands at the top, a text block never under a step.
 
-A `set` only takes leaf steps. Several steps may be active at once; `next` does not end the others. When a person sets a step back to `open`, `by` and `at` go away, so a misclick leaves no mark the agent has to respect.
+A `set` only takes leaf steps. Several steps may be active at once; `next` does not end the others.
 
-`PlanOpSchema` parses any operation and `PlanPersonOpSchema` only the three a person may send.
+`PlanOpSchema` parses any operation and `PlanPersonOpSchema` only the three a person may send. Who may send which, and on which steps, is on [Permissions](/plan/permissions).
 
-## Permissions
+## Building a plan in one batch
 
-A person sends `set`, `note` and `unlock`. The agent sends everything except `unlock`: building the plan is the agent's job, and only a person can lift a lock.
+Operations in a batch see the ones before them, so an agent can add a section and fill it at once:
 
-Who may set a step depends on [its checks](/plan/plans#who-checks-a-step):
-
-| Checks   | A person                      | The agent                   |
-| -------- | ----------------------------- | --------------------------- |
-| `anyone` | Yes                           | Yes, unless a person set it |
-| `agent`  | Not until a person unlocks it | Yes, unless a person set it |
-| `person` | Yes                           | Never                       |
-
-A state a person set belongs to the person. The agent cannot change it, remove the step or anything holding it, rename it, or give it a first sub-step. Setting the same state again is allowed.
-
-A step only a person checks keeps its title and checks, cannot be removed by the agent, and only takes sub-steps a person checks too. `meta.checks` stays `person` while a step still inherits it. The agent cannot lock a step a person unlocked. Notes, descriptions and moves stay open to the agent.
-
-`canApply(op, actor, plan)` checks the permission for one operation without applying it, to disable a control. It does not check that the result is valid. `canDeletePlan(plan, actor)` refuses an agent that would delete a plan holding a state a person set. Deleting a plan is up to the app.
+```ts
+applyPlanOps(
+    plan,
+    [
+        { op: 'add', type: 'section', id: 'release', title: 'Release' },
+        { op: 'add', type: 'step', id: 'approve', title: 'Approve the release', checks: 'person', under: 'release' },
+        { op: 'add', type: 'step', id: 'publish', title: 'Publish to npm', under: 'release', after: 'approve' },
+        { op: 'meta', status: 'Waiting for approval' }
+    ],
+    { actor: 'agent', now: new Date().toISOString() }
+);
+```
 
 ## Refusals
 

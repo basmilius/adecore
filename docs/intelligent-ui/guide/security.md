@@ -15,10 +15,10 @@ A block is text an agent wrote. The agent may be wrong, and the text may carry i
 ## What a block cannot do
 
 - Run code. There is no JavaScript, no function call besides the fixed helpers, no assignment and no loop besides `@Filter` and `Each`.
-- Reach the network. No component takes an address it loads. A Source is opened only by the host, after a person clicked it, and only for `http` or `https`.
+- Reach the network. No component takes an address it loads. Only the host opens a Source, after a person clicked it, and only for `http` or `https`.
 - Read a file. File, Diff, Commit and Node are names the host checks; Image takes only an attachment id of the chat or `generated="latest"`, never a URL or a path.
-- Style anything. Unknown props are refused with `refused_prop` and dropped. No prop takes a class, a color or a size.
-- Reach prototypes or accessors. `__proto__`, `constructor` and `prototype` are refused anywhere a key is read or written (`safeKey`). Only own data fields are read.
+- Style anything. The compiler refuses unknown props with `refused_prop` and drops them. No prop takes a class, a color or a size.
+- Reach prototypes or accessors. `__proto__`, `constructor` and `prototype` are refused anywhere a key is read or written (`safeKey`). The interpreter reads only own data fields.
 - Change anything outside itself. State lives in the page and resets when it reloads.
 - Send a message without a person. Only a click on an enabled Choice sends, and only once per block.
 
@@ -26,7 +26,7 @@ A block is text an agent wrote. The agent may be wrong, and the text may carry i
 
 `UiBudget` bounds parser and interpreter work, nodes, nesting, iterations and string length against `UI_LIMITS`, inside helpers too. The limits are deterministic; a positive `milliseconds` adds an elapsed-time limit. `Each` reserves all its iterations before it allocates a child. `UI_REPLY_LIMITS` caps a whole reply, and `UI_HOST_LIMITS` the host reads per block. The numbers are under [limits](/intelligent-ui/host/compilation#limits).
 
-A block over its budget is replaced by its text and one `budget_exceeded` diagnostic. A part that fails alone shows its own fallback; the parts beside it still draw.
+A block over its budget becomes its text with one `budget_exceeded` diagnostic. A part that fails alone shows its own fallback; the parts beside it still draw.
 
 ## Values that cross in
 
@@ -38,7 +38,7 @@ A choice sends what a person could see, and nothing else.
 
 - A control changes state only through its binding, only after its own tag closed, and only with a value its schema accepts. A read-only control (a prop that is not a bare reference to a local variable) has no binding.
 - `resolveUiChoice` runs on the backend, over the stored block, never over what the client says the block is. The client sends only identities and the values of declared inputs.
-- A submitted value must equal its default, be held by a visible complete control within the options it offers, or be the exact value a visible enabled Button sets. Anything else is refused with `invalid_value`.
+- A submitted value must equal its default, be held by a visible complete control within the options it offers, or be the exact value a visible enabled Button sets. The backend refuses anything else with `invalid_value`.
 - A hidden, disabled or unfinished Choice cannot be sent. Neither can a block that is still streaming.
 - The message is the Choice's evaluated `context`, or its label without one. Both were on screen.
 

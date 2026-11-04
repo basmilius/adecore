@@ -2,9 +2,24 @@
 
 `new DocumentModel(text?)` starts a document with one caret at offset 0 and an empty history. An old snapshot keeps its own text after later edits.
 
+## Coordinates
+
+Every offset is a UTF-16 code unit, like a JavaScript string index. Lines and columns are zero-based. An emoji takes two code units and a tab takes one.
+
+| Shape          | Fields                     | Meaning                                                    |
+| -------------- | -------------------------- | ---------------------------------------------------------- |
+| `Selection`    | `anchor`, `head`           | Offsets; `anchor > head` is a backward selection           |
+| `TextEdit`     | `from`, `to`, `text`       | Replaces the half-open range `[from, to)`                  |
+| `OffsetRange`  | `from`, `to`               | A range of offsets, such as a language server's selection range |
+| `Position`     | `line`, `column`           | Zero-based line and UTF-16 column                          |
+| `ContentEdit`  | `start`, `end`, `text`     | Two positions, in the order a language server applies them |
+| `FoldingRange` | `startLine`, `endLine`, .. | Zero-based inclusive lines plus offsets                    |
+
+The view and LSP packages call the column `character`. The unit is the same.
+
 ## Text and lines
 
-`getText()` builds the full string once per revision. For a small region, use `getLength()`, `getLineCount()`, `getLine(line)` or `slice(from, to)`.
+`getText()` builds the full string once per revision. For a small region, use `getLength()`, `getLineCount()`, `getLine(line)` or `slice(from, to)`. `getLine` returns a `DocumentLine`: the `start` and `end` offsets of its text, the `next` offset after its line break and the `text`.
 
 ```ts
 const document = new DocumentModel('first\r\nsecond');
@@ -64,8 +79,28 @@ It returns `true` when the text changed, and `false` for a no-op batch or a stal
 | `historyGroup`        | Joins this batch to the previous undo step of the same group                           |
 | `joinPrevious`        | Joins the previous undo step when the text is exactly as that step left it             |
 | `typed`               | Marks the change as a person's typing though it ran as a command; the snapshot says so |
+| `selectionPositions`  | Anchor and head as line and column positions in the resulting text                     |
+
+`EditOptions` holds every field but `expectedRevision` and `selectionPositions`, which `DocumentEditOptions` adds. `source` is a `ChangeSource`. In `selectionPositions` columns clamp to their line, and a line outside the text throws. Offset `selections` win when both are given.
 
 `setText(text)` replaces everything as one undoable `external` edit and keeps the history. Make a new model to start without one.
+
+## Replacing the text from outside
+
+When a file changes on disk, replacing the whole text moves every caret, fold and mark to the end of the change. `changedSpans(before, after)` runs a line diff instead and returns one `TextSpan` (`start`, `end`, `text`) per changed stretch, relative to `before`. Apply them as one batch, and everything outside the changes stays where it was:
+
+```ts
+import { changedSpans } from '@adecore/editor-core';
+
+const spans = changedSpans(document.getText(), textFromDisk);
+
+document.applyEdits(
+    spans.map((span) => ({ from: span.start, to: span.end, text: span.text })),
+    { source: 'external' }
+);
+```
+
+A very large diff falls back to a single span. `changedSpan(before, after)` always returns that single span, or `null` when the texts are equal. The editor view's `setText` does this for you.
 
 ## Revisions
 
@@ -97,11 +132,11 @@ It leaves the marks alone. Call `markSaved()` once the text is written.
 
 `getSnapshot()` returns an `EditorSnapshot`: `text`, `selections`, `revision`, `canUndo` and `canRedo`. A kept snapshot still returns its own text after later edits.
 
-`subscribe(listener)` returns a `Disposable` and calls the listener synchronously after every change, not right away. A throwing listener is reported with `console.error`, and the change and the other listeners go on. A snapshot of a text change adds three fields:
+`subscribe(listener)` returns a `Disposable` and calls the listener synchronously after every change, not right away. The model reports a throwing listener with `console.error`, and the change and the other listeners go on. A snapshot of a text change adds three fields:
 
 - `source`: what made the change.
 - `changes`: one list of `DocumentChange`s (`from`, `to`, `insertedLength`) per transaction, each relative to the text before that transaction. Undoing a typing group gives one list per keystroke.
-- `contentEdits`: the same change as `ContentEdit`s with line and column positions, each relative to the text the previous edit left, as `didChange` expects.
+- `contentEdits`: the same change as `ContentEdit`s with line and column positions, each relative to the text the previous edit left, as `didChange` expects. A large dense batch may report one stretch over the changed region instead of one per edit.
 
 ```ts
 const subscription = document.subscribe((snapshot) => {

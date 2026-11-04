@@ -1,6 +1,6 @@
 # ConnectionManager
 
-The saved connections beside the picked one's form. A person adds a SQLite file, a MySQL or MariaDB server or a Docker container, tests it and deletes it. The manager stores nothing: every change goes out as the whole new list, and the app saves it.
+The saved connections beside the picked one's form. A person adds a SQLite file, a MySQL or MariaDB server or a Docker container, tests it and deletes it. The manager stores nothing. Every change goes out as the whole new list, and the app saves it.
 
 ```tsx
 import { ConnectionForm, ConnectionManager } from '@adecore/database';

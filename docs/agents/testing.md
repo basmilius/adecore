@@ -21,6 +21,8 @@ For real pipes and exit codes, start `@adecore/agents/testing/bin/fake-claude` o
 
 `fakeClaude` answers a message with `echo:` and its text. `slow` keeps the turn running so a test can stop it. `crash` and `crash loudly` end the process like a crash. [`fake-claude`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-claude.ts) and [`fake-codex`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/testing/fake-codex.ts) list the rest. Some of those write files or start a process, so read them first.
 
+A fake of your own is a `FakeCli`: a function that gets a `FakeIo` in place of `process` (arguments, folder and output) and returns a `FakeProgram` that reads one line at a time. The same fake then runs in a test and as a child process. `inProcess(cli)` returns an `InProcessCli`, whose `started` lists a `StartedFake` per run. `FakeCodexOptions` are the options of `fakeCodexWith`. `fakeCodexForks` lists every thread fork a fake Codex was asked, and `FAKE_CHILD_STEPS` is how many steps an agent it spawns takes. `claudeStoppingOnResume(sessionIds, how)` is the Claude fake, except that resuming one of those sessions fails: as for a session without a transcript (`missing`), or by exiting on the first prompt (`exit`).
+
 An `inProcess` run has `runLater()` for deferred work, `crash(code)` and `exited`. Wait on events, not time, and put a limit on every wait so a broken test fails instead of hanging:
 
 ```ts
@@ -42,23 +44,3 @@ refresh.stop();
 
 That scans once. Close everything a test opened (host, clients, outbox worker, watches) and check that it closed. An answered request says nothing about what still runs.
 
-## Error codes
-
-A refusal carries a code. Branch on the code and show the message.
-
-| Code                                                     |                                                                                   |
-| -------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `bad-request`, `unknown-request`                         | The frame, the name or the payload does not fit the protocol.                    |
-| `chat-not-found`                                         | Create or load the chat first.                                                    |
-| `chat-unreadable`                                        | Its record is from a version this one cannot read. It is left on disk.           |
-| `chat-busy`                                              | A turn runs; wait, or ask for `force`.                                            |
-| `request-not-found`                                      | The approval, question or queued message is no longer there: read the state again. |
-| `history-expired`                                        | The cursor is gone; attach again.                                                 |
-| `chat-unsupported`                                       | This host or this CLI does not do that.                                           |
-| `project-config-unsupported`                             | `projectConfigFor` turned the folder's configuration off and this CLI cannot ignore it; the turn does not start. |
-| `invalid-attachments`                                    | An attachment the host could not take.                                            |
-| `account-unavailable`, `account-incompatible`, `invalid-account` | The account is not there, cannot take the chat over, or is not valid.     |
-| `secrets-unavailable`                                    | No keychain on this machine.                                                      |
-| `internal`                                               | Something else failed; the host logged it.                                        |
-
-Others name what was not found (`subagent-not-found`, `task-not-found`, `turn-not-found`, `item-not-found`, `bookmark-not-found`), `too-many-bookmarks`, a visual that breaks a limit (`visual-invalid`, `visual-too-large`), and a CLI transcript that is missing or not readable (`transcript-missing`, `transcript-format`). [Tools](/agents/tools#refusals) refuse in their own format.

@@ -1,6 +1,6 @@
 # Patch files
 
-An editable `.patch` or `.diff` file can look like the [diff views](/editor-react/change-review), with its files listed in a tree. `patchLayoutOf` reads the text and `decoratePatch` applies the result to a mounted editor. The editor stays editable; saving is up to the host.
+An editable `.patch` or `.diff` file can look like a [`DiffView`](/editor-react/diff-view), with its files listed in a tree. `patchLayoutOf` reads the text and `decoratePatch` applies the result to a mounted editor. The editor stays editable; saving is up to the host.
 
 ## Reading a patch
 
@@ -24,7 +24,7 @@ A file `status` is `added`, `deleted`, `renamed`, `copied`, `modified` or `binar
 
 ### An edited patch
 
-Editing a patch breaks its counts, and the reading copes. A hunk whose lines no longer match its header gets `consistent: false`. A line typed below a complete hunk extends it. Line numbers follow the header and the lines above and are not repaired.
+Editing a patch breaks its counts, and the reading copes. A hunk whose lines no longer match its header gets `consistent: false`. A line typed below a complete hunk extends it. Line numbers follow the header and the lines above, and the reading does not repair them.
 
 ### Limits
 
@@ -44,12 +44,12 @@ for (const file of layout.files) {
 
 `decoratePatch(editor, options?)` styles a mounted editor that holds the patch text:
 
-- Added and removed lines get the bars, tints and numbers of the [diff views](/editor-react/change-review#gutter).
+- Added and removed lines get the bars, tints and numbers of the [diff views](/editor-react/diff-view#gutter).
 - The gutter shows hunk numbers instead of file line numbers, and none on headers. `numbers: 'single'` shows the old number on removed lines and the new one otherwise; `'both'` shows both.
 - File headers sit on a raised surface; hunk headers are tinted in the accent color.
 - With `labels`, a screen reader hears `Removed, old line 8`, `Added, new line 12` or `Old line 3, new line 3`. The hook below fills them.
 
-`onLayout` gets the layout after the first read, after `refresh()`, and once edits rest for `delay` ms (150), so a file tree is not rebuilt per keystroke. The call returns a `PatchDecoration` with the current `layout`, `refresh()` and `dispose()`. `dispose()` removes only its own decorations. Patches under `immediateBelow` characters (100,000) redecorate within a frame of an edit; larger ones after `delay`. `timer` replaces `setTimeout` and `clearTimeout` in tests.
+These are `PatchDecorationOptions`. `labels` is a `PatchLineLabels` with a function per kind of line that returns the sentence for a number. `onLayout` gets the layout after the first read, after `refresh()`, and once edits rest for `delay` ms (150), so a file tree is not rebuilt per keystroke. The call returns a `PatchDecoration` with the current `layout`, `refresh()` and `dispose()`. `dispose()` removes only its own decorations. Patches under `immediateBelow` characters (100,000) redecorate within a frame of an edit; larger ones after `delay`. `timer`, a `PatchTimer` with `set` and `clear`, replaces `setTimeout` and `clearTimeout` in tests.
 
 ```ts
 import { decoratePatch } from '@adecore/editor-react';

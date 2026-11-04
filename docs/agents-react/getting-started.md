@@ -1,5 +1,7 @@
 # Getting started
 
+This page installs the views, loads their styles and words, connects a scope to a host of chats and renders a first chat. The host runs in the app's backend, as in [Getting started with the host](/agents/getting-started); this page takes the window's end of its port.
+
 ## Install
 
 ::: code-group
@@ -42,7 +44,7 @@ Import `terminal.css` of [`@adecore/terminal`](/terminal/) to give tool output, 
 
 ## Words
 
-Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
+Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`, each an `AgentsNamespace`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
 
 Some helpers call the default `i18next` instance directly. Add the words to that instance and pass it to `UIProvider`:
 
@@ -121,6 +123,32 @@ export function openScope(id: string, port: MessagePort): ChatScope {
 
 `keyOf` places a chat's row in the shared store and `owns` recognizes those keys; two scopes need keys that never overlap. `providerSinkFor` fills the list of CLIs. `watchProviderAccounts` keeps their accounts current and returns a stop function. [Chat client and state](/agents-react/guide/chat-client) covers the rest, including closing a scope.
 
+## The port from the host
+
+In Electron, the main process sends the window one end of a `MessageChannelMain` (see [Connect a window](/agents/getting-started#connect-a-window)). A port cannot cross the context bridge, so the preload posts it on to the page:
+
+```ts
+// preload.ts
+import { ipcRenderer } from 'electron';
+
+ipcRenderer.on('agents:port', (event) => {
+    window.postMessage('agents:port', '*', event.ports);
+});
+```
+
+```ts
+// In the page, before the first render.
+let scope: ChatScope | undefined;
+
+window.addEventListener('message', (event) => {
+    if (event.source === window && event.data === 'agents:port' && event.ports[0] !== undefined) {
+        scope = openScope('local', event.ports[0]);
+    }
+});
+```
+
+The channel name is the app's own. Without Electron, any `MessagePort` or socket that carries the frames will do; [Implement a port](/agent-contracts/getting-started#implement-a-port) shows the shape.
+
 ## A first chat
 
 Render the scope in `ChatScopeContext`, inside `UIProvider`, and a thread with its composer under it:
@@ -173,3 +201,12 @@ export function ChatView({ scope, chatId, cwd }: { scope: ChatScope; chatId: str
 ```
 
 Give every flex parent down to the thread `min-h-0`. A component that reads a chat outside a `ChatScopeContext` throws.
+
+## Checklist
+
+- `@adecore/ui` is set up, and the page imports its theme before `theme.css` of this package.
+- Tailwind scans `@adecore/ui` and `@adecore/agents-react`.
+- The four namespaces are on the default `i18next` instance, which `UIProvider` gets.
+- `configureChatStorage` runs before anything reads a store.
+- One scope per connection, made outside render, with keys that never overlap another scope's.
+- Every view sits inside a `ChatScopeContext`, and every flex parent down to the thread has `min-h-0`.

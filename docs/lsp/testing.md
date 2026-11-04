@@ -27,7 +27,7 @@ test('the server follows the document', async () => {
 });
 ```
 
-`FakeLanguageServer` answers the handshake with its `capabilities` (`textDocumentSync: 2` by default), tracks the text of open documents and answers what `handlers` or `handle(method, handler)` registers. Anything else is refused. Declare the provider in `capabilities` too, since the session asks only what the server declares.
+`FakeLanguageServer` answers the handshake with its `capabilities` (`textDocumentSync: 2` by default), tracks the text of open documents and answers what `handlers` or `handle(method, handler)` registers. It refuses anything else. Declare the provider in `capabilities` too, since the session asks only what the server declares. `FakeLanguageServerOptions` holds `capabilities`, `serverInfo`, `handlers` and `silent`. Each entry of `documents` is a `FakeDocument`, and each entry of `received` a `ReceivedMessage` with its `method`, `params` and, for a request, its `id`.
 
 | Member                                     | What it does                                                    |
 | ------------------------------------------ | --------------------------------------------------------------- |

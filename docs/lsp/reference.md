@@ -1,8 +1,17 @@
-# Export reference
+# Reference
 
-Every name each entry point exports, types included, by the path you import it from. An entry links to its source, where each export has its full type.
+Every name each entry point exports, read from its source. Anything not listed is internal and may change in any release.
 
-| Entry                                                                                                | Exports                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
-| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [`@adecore/lsp`](https://github.com/basmilius/adecore/blob/main/packages/lsp/src/index.ts)           | `ErrorCodes`, `LspError`, `StaleResultError`, `RequestHandler`, `LspDocument`, `applyContentChanges`, `applyTextEdits`, `minimalChange`, `planWorkspaceEdit`, `DocumentSnapshot`, `PlannedDocumentEdit`, `planWorkspaceOperations`, `WorkspaceEditSource`, `WorkspaceEditText`, `WorkspaceEditPlan`, `WorkspaceEditStep`, `PlannedTextStep`, `PlannedCreateStep`, `PlannedRenameStep`, `PlannedDeleteStep`, `ResourceOperationKind`, `RenamedFile`, `CreatedFile`, `DeletedFile`, `watchesFile`, `FileChangeType`, `LspSession`, `LspSessionOptions`, `SessionState`, `TextMirror`, `DiagnosticsReport`, `LanguageDocument`, `LanguageRequestOptions`, `LanguageService`, `unservedLanguageService`, `ServerMessage`, `connectWebSocket`, `createStreamTransport`, `ByteStream`, `WebSocketTransportOptions`, `fileUriToPath`, `pathToFileUri`, `bridgeVueTypeScript`, `vueServerOrder`, `VueServer` |
-| [`@adecore/lsp/testing`](https://github.com/basmilius/adecore/blob/main/packages/lsp/src/testing.ts) | `createMemoryTransportPair`, `FakeLanguageServerOptions`, `FakeDocument`, `ReceivedMessage`, `FakeLanguageServer`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+## `@adecore/lsp`
+
+The client, the edit helpers, the transports and the `LanguageService` contract.
+
+<ExportTable entry="@adecore/lsp" />
+
+The entry also exports every type of `src/protocol.ts` with `export type *`, which the table leaves out: the protocol shapes such as `Position`, `Range`, `TextEdit`, `ContentChange`, `Diagnostic`, `WorkspaceEdit`, `ServerCapabilities` and `LspTransport`. They follow the LSP specification of the same names.
+
+## `@adecore/lsp/testing`
+
+A language server for tests and the memory transport. See [Testing](/lsp/testing).
+
+<ExportTable entry="@adecore/lsp/testing" />

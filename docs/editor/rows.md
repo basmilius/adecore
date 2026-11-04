@@ -47,7 +47,7 @@ The lines stay in the document, so text, history and language servers are unaffe
 
 ## Line highlights
 
-`setLineHighlights(highlights)` tints lines behind the text. Each has one-based inclusive `startLine` and `endLine`, a `color`, and optionally a gutter `sign`, a `bar`, a `fill` and `emphasis`:
+`setLineHighlights(highlights)` tints lines behind the text. Each `EditorLineHighlight` has one-based inclusive `startLine` and `endLine`, a `color`, and optionally a gutter `sign`, a `bar`, a `fill` and `emphasis`:
 
 - `fill` paints the rows in `color` as is, instead of a light tint.
 - `bar: 'solid' | 'hatched'` draws a review gutter: the cell tinted, the number in a readable shade and a solid or striped bar along the left edge across consecutive lines. A line with a bar shows no change mark.
@@ -59,7 +59,7 @@ A color here, in `renderCode` and in the [agent marks](/editor/agents) is a cust
 
 ## Displayed lines from other documents
 
-`setLineNumbers(labels)` supplies a string or `null` per zero-based line. A `null` label hides that number, and a `null` provider restores normal numbering. The gutter and sticky headers use the labels, and the gutter fits the longest. Labels are read again after each edit or call.
+`setLineNumbers(labels)` supplies a string or `null` per zero-based line. A `null` label hides that number, and a `null` provider restores normal numbering. The gutter and sticky headers use the labels, and the gutter fits the longest. The editor reads the labels again after each edit or call.
 
 `setLineTokens(provider)` supplies prepared `LineToken` arrays per line, for a document assembled from lines of different files. Grammar tokenization pauses while a provider is set. A `null` or `undefined` result draws plain text. Return the same array for an unchanged line, so scrolling reuses painted spans. Call the setter again when results change; `null` restores grammar coloring. Keep the provider in step with the text.
 

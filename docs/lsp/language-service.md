@@ -31,7 +31,9 @@ Every request takes `LanguageRequestOptions`: a `signal`, and `parallel: true` t
 
 `unservedLanguageService()` is the service for a document no server handles. It accepts documents, supports nothing and rejects every request with an `LspError` of `-32601`.
 
-The package ships no service over processes. A minimal one over a single session forwards each method to the open `LspDocument`, counts clients per URI, and maps `session.onCapabilitiesChanged` and `onDiagnostics` to the two events. Server discovery, installation, starting and permissions stay in the app.
+`openDocument` takes a `LanguageDocument`: the `file:` `uri`, the `languageId` and the `text`.
+
+The package ships no service over processes. A minimal one over a single session forwards each method to the open `LspDocument`, counts clients per URI, and maps `session.onCapabilitiesChanged` and `onDiagnostics` to the two events. [Getting started](/lsp/getting-started#hand-a-language-service-to-the-editor) sketches one. Server discovery, installation, starting and permissions stay in the app.
 
 ## Vue and TypeScript
 
@@ -44,4 +46,4 @@ await typescript.initialize();
 await vue.initialize();
 ```
 
-`vueServerOrder(method, text, params)` says which server to ask first, with the other as fallback. TypeScript goes first inside a `<script>` block, an interpolation, a `v-`, `:` or `@` attribute, and for inlay hints. Vue goes first elsewhere. The check is lexical, not a Vue parser.
+`vueServerOrder(method, text, params)` says which server to ask first, with the other as fallback, as a pair of `VueServer` names (`vue` or `typescript`). TypeScript goes first inside a `<script>` block, an interpolation, a `v-`, `:` or `@` attribute, and for inlay hints. Vue goes first elsewhere. The check is lexical, not a Vue parser.

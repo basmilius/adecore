@@ -40,7 +40,7 @@ When `onSend` returns nothing, the composer clears its draft at once. If a send 
 
 `sendFromComposer(key, how)` from `@adecore/agents-react/chat` sends what a composer on screen holds, for a menu row of your own. Pass the scope's `keyOf(chatId)` and a `ComposerSend` (`default`, `alternate` or `and-new`). It returns `false` when that chat has no composer on screen. `SEND_AND_NEW_SHORTCUT` is Mod+Alt+Enter, for a menu to print.
 
-`stepEffortFromComposer(key, step)` steps the chat's reasoning effort `up` or `down` and reports it in the composer's notice line. It also returns `false` without a composer on screen. Bind its key in the host.
+`stepEffortFromComposer(key, step)` steps the chat's reasoning effort `up` or `down` (an `EffortStep`) and reports it in the composer's notice line. It also returns `false` without a composer on screen. Bind its key in the host.
 
 Before the first message, picking another CLI's model calls `onRetarget(provider, selection)`, which moves the empty chat. After it, or with `providerFixed`, the picker offers only the chat's own CLI.
 
@@ -68,7 +68,7 @@ The send key is the person's `sendKey` in the [chat preferences](/agents-react/g
 | Mod+S                       | Stashes the draft; in an empty box, brings back the newest stashed prompt.   |
 | Mod+Shift+V                 | Pastes a long text inline instead of as a file.                              |
 
-The composer handles `/model`, `/compact` and `/clear`. Other CLI commands go out as text, except terminal-only ones (`usableSlashCommands`). `/goal` is listed for every CLI with the `goals` capability.
+The composer handles `/model`, `/compact` and `/clear`. Other CLI commands go out as text, except terminal-only ones (`usableSlashCommands`). The picker lists `/goal` for every CLI with the `goals` capability.
 
 ## Pointer
 
@@ -94,7 +94,7 @@ Each chat keeps its draft while the composer is away; see [Persistence](/agents-
 
 The stash holds prompts for every chat. Mod+S puts the draft there, and the stash picker lists them. A restored prompt brings back its text, mentions and skills, not its files.
 
-A send during a turn queues the message. Option or Alt with Send or Enter steers the running agent instead, and `useSendDelivery` reverses the two. The composer passes `delivery: "steer"` or `delivery: "queue"` in `ChatSendExtras`. Steering needs the provider's [`steer` capability](/agent-contracts/providers-and-accounts#providers); without it every send queues. A queued message can be sent at once or taken back into the draft.
+A send during a turn queues the message. Option or Alt with Send or Enter steers the running agent instead, and `useSendDelivery` reverses the two. The composer passes `delivery: "steer"` or `delivery: "queue"` in `ChatSendExtras`. Steering needs the provider's [`steer` capability](/agent-contracts/providers#providers); without it every send queues. A person can send a queued message at once or take it back into the draft.
 
 ## Holding a prompt card
 
@@ -106,7 +106,7 @@ While a person types, an approval or question card stays out of the way, so a ke
 
 ## Quoting
 
-`splitQuote` separates a quoted block from the text under it. A quote leads back to its reply with `jumpToTimelineItem`, which takes `ItemJumpOptions` (`flash`, `onMissing`). `StashedQuote` is the quote of a stashed prompt.
+`splitQuote` separates a quoted block from the text under it. A quote leads back to its reply with `jumpToTimelineItem`, which takes `ItemJumpOptions` (`flash`, `onMissing`). `StashedQuote` is the quote of a stashed prompt. The thread hands a selected quote to the composer under it through `QuoteTakerContext`; a `QuoteTaker` gets the quote and the id of the reply it came from.
 
 ## Props
 
@@ -134,6 +134,6 @@ const input = useRef<ComposerInputHandle>(null);
 <ComposerInput ref={input} value={text} placeholder="Describe the change" disabled={false} tabbable onChange={(value) => setText(value)} />;
 ```
 
-The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown`, `onPaste` and `onCopy` (also for cut) get `(event, view)`, run before the editor's own and return `true` when they handled it. `onChange` and `onSelectionChange` get the text, an `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` stable between renders, since a new one reconfigures the editor. An outside `value` moves the caret to the end and skips the undo history.
+The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown`, `onPaste` and `onCopy` (also for cut) get `(event, view)`, run before the editor's own and return `true` when they handled it. `onChange` and `onSelectionChange` get the text, an `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` stable between renders, since a new one reconfigures the editor. An outside `value` moves the caret to the end and skips the undo history. Such a transaction carries the `externalChange` annotation, so an extension of your own can tell it from typing.
 
 `composerEditorExtensions` builds the composer's extensions for an input of your own. `PlainTextarea` is the textarea for a written answer unless the host's `dictation` hands another.

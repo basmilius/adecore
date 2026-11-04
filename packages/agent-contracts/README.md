@@ -31,8 +31,10 @@ The root exports everything. Each group also has a subpath of its own: `agent`, 
 | [Overview](https://adecore.dev/agent-contracts/) | Install, a first check and the entry points |
 | [Protocol](https://adecore.dev/agent-contracts/protocol) | Frames, the request and event tables, replay and adding requests |
 | [Conversation](https://adecore.dev/agent-contracts/conversation) | A chat's info and items, attachments, approvals, bookmarks and forks |
-| [Providers and accounts](https://adecore.dev/agent-contracts/providers-and-accounts) | Agent kinds, model catalogs, capabilities, runtime modes and accounts |
-| [Tasks and usage](https://adecore.dev/agent-contracts/tasks-and-usage) | Tasks, worktrees, token totals, summaries and plan limits |
+| [Providers and models](https://adecore.dev/agent-contracts/providers) | Agent kinds, model catalogs, capabilities and runtime modes |
+| [Accounts](https://adecore.dev/agent-contracts/accounts) | Provider accounts and sign-ins |
+| [Tasks and worktrees](https://adecore.dev/agent-contracts/tasks) | Tasks and worktrees |
+| [Usage](https://adecore.dev/agent-contracts/usage) | Token totals, summaries and plan limits |
 
 ## License
 

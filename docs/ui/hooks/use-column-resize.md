@@ -21,7 +21,7 @@ const { startResize } = useColumnResize(column, {
 
 `from` is the edge the column hangs from, and with it the axis of the drag. A column pinned to the right edge grows as the pointer moves left. `top` and `bottom` do the same for a row, as in the demo.
 
-`startResize` goes on the handle's `onPointerDown`. During a drag the column carries `data-resizing`, so a transition on its size can turn off. Every move calls `onSize` with a whole number between `min` and `max()`. `max` is read at drag time.
+`startResize` goes on the handle's `onPointerDown`. During a drag the column carries `data-resizing`, so a transition on its size can turn off. Every move calls `onSize` with a whole number between `min` and `max()`. The hook reads `max` at drag time.
 
 ## clampColumnSize
 

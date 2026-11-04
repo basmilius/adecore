@@ -2,7 +2,7 @@
 
 A reopened file should keep its scroll position, folds and caret line. These helpers keep that in memory per window for the page's lifetime. Storing it on disk is up to the app.
 
-`viewStates` is a `Map` from a key to a `ViewState`: `scrollTop` in pixels, a one-based `line` and `column`, and the `folds` of [`getFolds()`](/editor/find-folding#folding). Build the key from a namespace, such as the machine or project, and the path: `` `${namespace}:${path}` ``.
+`viewStates` is a `Map` from a key to a `ViewState`: `scrollTop` in pixels, a one-based `line` and `column`, and the `folds` of [`getFolds()`](/editor/folding#folding). Build the key from a namespace, such as the machine or project, and the path: `` `${namespace}:${path}` ``.
 
 ```ts
 const key = `${machine}:${path}`;

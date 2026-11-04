@@ -1,17 +1,19 @@
 # Markup
 
-`language.markup` holds three helpers from IntelliJ: Emmet abbreviations, automatic end tags and paired tag renames. They work in `html`, `xhtml`, `xml`, `svg`, `xsl`, `vue` and `php` documents.
+`language.markup`, a `MarkupFeature`, holds three helpers from IntelliJ: Emmet abbreviations, automatic end tags and paired tag renames. They work in `html`, `xhtml`, `xml`, `svg`, `xsl`, `vue` and `php` documents.
 
 ```ts
 language.markup.supported; // whether the document is markup
 language.markup.configure({ emmet: true, closeTags: true, linkedTags: true }); // each on unless false
 ```
 
+`configure` takes `MarkupSettings`.
+
 ## Emmet
 
 Tab after an abbreviation expands it through the [`emmet`](https://github.com/emmetio/emmet) package. `div>p>lipsum` becomes a `div` with a paragraph of lorem ipsum, and `ul>li.item$*3` a list of three numbered items. The expansion uses the editor's indentation and lands as a snippet, so Tab walks the places to fill and Escape ends it.
 
-Tab only expands in document text, with a single caret and no selection. Tags, attribute values, comments, `script`, `style`, PHP code and Vue `{{ }}` are excluded. A suggestion list, a running snippet, [live templates](/editor-react/templates#tab) and higher-[priority](/editor-react/editor-view#keys) handlers see Tab first. `language.markup.expand()` does the same for a menu and returns false when there was nothing to expand. `language.markup.abbreviationAt()` returns where the abbreviation Tab would expand starts, or `null`.
+Tab only expands in document text, with a single caret and no selection. It does not expand in tags, attribute values, comments, `script`, `style`, PHP code or Vue `{{ }}`. A suggestion list, a running snippet, [live templates](/editor-react/templates#tab) and higher-[priority](/editor-react/editor-view#keys) handlers see Tab first. `language.markup.expand()` does the same for a menu and returns false when there was nothing to expand. `language.markup.abbreviationAt()` returns where the abbreviation Tab would expand starts, or `null`.
 
 ### Wrap with an abbreviation
 
@@ -27,4 +29,4 @@ Renaming a start tag renames its end tag, and the other way around, in one undo 
 
 ## Limits
 
-A scanner reads the document, not a parser, so implied end tags (an `li` closing the one before) are unknown. Documents over 1,000,000 characters get no helpers. JSX and stylesheets are not covered.
+A scanner reads the document, not a parser, so the helpers do not know implied end tags (an `li` closing the one before). Documents over 1,000,000 characters get no helpers. The helpers do not cover JSX or stylesheets.

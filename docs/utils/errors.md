@@ -40,4 +40,4 @@ console.error(describeError(e, process.env.DEBUG === '1'));
 
 ## What stays out
 
-A sentence for a person to read is a different thing from a log line. `@adecore/ui` keeps its own helper for that, see [error messages](/ui/utilities/error-messages). A host that wants stacks in its logs decides that in its own code.
+A sentence for a person to read is a different thing from a log line. `@adecore/ui` keeps its own helper for that; see [error messages](/ui/utilities/error-messages). A host that wants stacks in its logs decides that in its own code.

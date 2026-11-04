@@ -1,15 +1,15 @@
 # Protocol
 
-A client and a host exchange four kinds of frame. The envelope names the request or event, and the tables describe its payload. Check both, because the envelope parsers leave `payload` and `result` as `unknown`.
+A client and a host exchange four kinds of frame. The envelope names the request or event, and [the tables](/agent-contracts/requests) describe its payload. Check both, because the envelope parsers leave `payload` and `result` as `unknown`.
 
-| Frame   | Shape                                                         |
-| ------- | ------------------------------------------------------------- |
-| Request | `{ id, type, payload }`                                       |
-| Success | `{ id, ok: true, result }`                                    |
-| Failure | `{ id: string \| null, ok: false, error: { code, message } }` |
-| Event   | `{ type: 'event', event, payload }`                           |
+| Frame   | Shape                                                         | Type |
+| ------- | ------------------------------------------------------------- | --- |
+| Request | `{ id, type, payload }`                                       | `Request` |
+| Success | `{ id, ok: true, result }`                                    | `ReplyOk` |
+| Failure | `{ id: string \| null, ok: false, error: { code, message } }` | `ReplyError` |
+| Event   | `{ type: 'event', event, payload }`                           | `Event` |
 
-A request's `id` and `type` are nonempty strings. A failure has a `null` id when the host could not read the request. `WireError` is `{ code, message }`. Branch on the code and show the message.
+`Reply` is a success or a failure, and `ServerFrame` is a reply or an event: everything a host sends. A request's `id` and `type` are nonempty strings. A failure has a `null` id when the host could not read the request. `WireError` is `{ code, message }`. Branch on the code and show the message.
 
 ```ts
 import { AGENT_REQUEST_SCHEMAS, parseRequest } from '@adecore/agent-contracts';
@@ -24,7 +24,7 @@ if (frame.value.type === 'chat.send') {
 }
 ```
 
-`parseRequest` and `parseServerFrame` return `{ ok: true, value }` or `{ ok: false, message }` and never throw. An unknown request name still parses as a frame, and the host refuses it. `RequestSchema`, `ReplySchema`, `ReplyOkSchema`, `ReplyErrorSchema`, `EventSchema`, `ServerFrameSchema` and `ErrorSchema` are the schemas behind them, and `ParseResult<T>` is the result type.
+`parseRequest` and `parseServerFrame` return `{ ok: true, value }` or `{ ok: false, message }` and never throw. An unknown request name still parses as a frame, and the host refuses it. The parsers check against `RequestSchema` and `ServerFrameSchema`, which build on `EventSchema` and on `ReplySchema`, the union of `ReplyOkSchema` and `ReplyErrorSchema`. `ErrorSchema` checks the `WireError` a failure carries. `ParseResult<T>` is what both parsers return.
 
 ## FramePort
 
@@ -37,45 +37,7 @@ interface FramePort {
 }
 ```
 
-A frame arrives as `unknown` because the receiver checks it. `onFrame` returns an unsubscribe function. The port knows nothing of connecting, closing, timeouts or who is on the other end. The implementation decides. Pass frames as they are over a cloning port, or as JSON over a socket.
-
-## Requests
-
-`AGENT_REQUEST_SCHEMAS` maps every request name to `{ payload, result }`. `AgentRequestType` is the union of its names.
-
-| Group                  | Requests                                                                                              |
-| ---------------------- | ----------------------------------------------------------------------------------------------------- |
-| Open and read          | `chat.create`, `chat.list`, `chat.attach`, `chat.detach`, `chat.history`, `chat.toolOutput`           |
-| Send and control       | `chat.send`, `chat.unqueue`, `chat.sendNow`, `chat.cancel`, `chat.compact`, `chat.clear`, `chat.restart`, `chat.kill` |
-| Answer                 | `chat.approve`, `chat.answer`, `chat.dismiss`                                                         |
-| Configure              | `chat.configure`, `chat.setPreferences`, `skills.list`, `provider.list`                               |
-| Turns and forks        | `chat.turnDiff`, `chat.fork`, `chat.forkInfo`, `chat.summarize`, `chat.continueOn`                    |
-| Delegated work         | `chat.subagent`, `chat.stopSubagent`, `chat.stopTask`, `chat.goal`                                    |
-| Bookmarks              | `chat.addBookmark`, `chat.renameBookmark`, `chat.removeBookmark`                                      |
-| Visuals                | `chat.removeVisual`                                                                                   |
-| Accounts               | `accounts.list`, `accounts.save`, `accounts.refresh`, `accounts.create`, `accounts.watchLogin`, `accounts.reorder` |
-| Usage                  | `usage.summary`, `usage.subscribe`, `usage.unsubscribe`, `usage.limits`, `usage.refreshLimits`        |
-
-Not every host implements every request. A host that only runs chats refuses the fork requests with `chat-unsupported` (see [Host](/agents/host#what-a-plain-host-refuses)). Requests without a payload or result use `EmptySchema`, `{}`.
-
-`accounts.refresh` answers once every CLI was asked again. `accounts.watchLogin` answers at once, and later results arrive as `accounts.changed`.
-
-## Events
-
-`AGENT_EVENT_SCHEMAS` maps every event name to its payload schema. `AgentEventType` is the union of its names.
-
-| Event                  | Payload and what a client does with it                                                           |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| `chat.event`           | `{ chatId, event, seq? }`: apply the `ChatEvent` to a thread the client attached.                |
-| `chat.status`          | `{ chatId, info }`: the chat's whole `ChatInfo`, to every client, attached or not.               |
-| `chat.subagentChanged` | `{ chatId, toolUseId }`: ask for the watched subagent page again. It carries no conversation.    |
-| `chat.bookmarks`       | `{ chatId, bookmarks }`: the attached chat's whole bookmark list.                                |
-| `chat.visuals`         | `{ chatId, visuals }`: the attached chat's whole list of [visuals](/agent-contracts/visuals).    |
-| `accounts.changed`     | The whole account snapshot.                                                                      |
-| `usage.changed`        | `{ scannedAt }`: ask for the period on screen again.                                             |
-| `usage.limitsChanged`  | The whole plan limit snapshot.                                                                   |
-
-`chat.status` goes to every client, so a chat waiting on a person shows it everywhere. `info.requests` carries a card-sized summary of the waiting approvals and questions.
+A frame arrives as `unknown` because the receiver checks it. `onFrame` returns an unsubscribe function. The port knows nothing of connecting, closing, timeouts or who is on the other end. The implementation decides. Pass frames as they are over a cloning port, or as JSON over a socket. [Getting started](/agent-contracts/getting-started#implement-a-port) wraps a `MessagePort` and serves both ends.
 
 ## Attaching and replay
 
@@ -87,6 +49,8 @@ Not every host implements every request. A host that only runs chats refuses the
 | `delta` | Append `text` to the item `itemId`: a reply, a thought, or the output of a running tool. |
 | `info`  | Replace the chat's `ChatInfo`.                                                      |
 | `reset` | Replace the info and the whole thread.                                              |
+
+`ChatEventSchema` is that union, and `ChatEventEnvelopeSchema` the `chat.event` payload around it: `{ chatId, event, seq? }`.
 
 `chat.attach` returns `{ info, items }` and may add:
 
@@ -101,9 +65,9 @@ Not every host implements every request. A host that only runs chats refuses the
 
 Keep the last `seq` applied and send it as `since` on reconnect. A host that still holds every later event returns them as `events`, with an empty `items`. Otherwise it returns a fresh snapshot. Replace the thread with that snapshot, since appending it duplicates the conversation. An older host without `seq` always returns a snapshot.
 
-`activeSubagents(items)` returns the sub-agents still relevant beside a thread: running ones, ones settled after the last message, and settled ones whose turn still runs another. A client holding only the newest page shows those next to it.
+`activeSubagents(items)` returns the subagents still relevant beside a thread: running ones, ones settled after the last message, and settled ones whose turn still runs another. A client holding only the newest page shows those next to it.
 
-`activeWorkflows(items)` returns the Workflow calls still relevant beside a thread by the same rule: running ones and ones that ended after the last message, counting only calls that reported what they run. `finishedAt` on a workflow is when its call settled. `workflowEndedAt(workflow)` returns that moment, falling back to the last end of its agents or its last report for a call stored without it, and null for one that never reported. A client holding only the newest page keeps these next to it too, and applies the events that change them.
+`activeWorkflows(items)` returns the Workflow calls still relevant beside a thread by the same rule: running ones and ones that ended after the last message, counting only calls that reported what they run. `finishedAt` on a workflow is when its call settled. `workflowEndedAt(workflow)` returns that moment. For a call stored without it, the function falls back to the last end of its agents or its last report, and returns null when the call never reported. A client holding only the newest page keeps these next to it too, and applies the events that change them.
 
 `outlineItems(items, marked)` returns the scrubber stops: every message of the person, every turn woken by tasks or messages, and the replies in `marked`, with text cut to `CHAT_OUTLINE_TEXT_CHARS`. A client holding only the newest page draws a tick for each and loads earlier pages when one is picked.
 
@@ -128,7 +92,7 @@ const events = {
 };
 ```
 
-Keep the agent names and shapes unchanged, so clients written against the tables keep working. Some contracts stay out of the tables on purpose and compose the same way: a terminal agent's status and approvals in `/agent` (see [Providers and accounts](/agent-contracts/providers-and-accounts#terminal-agents)) and `TaskChangedEventSchema` in `/task`.
+Keep the agent names and shapes unchanged, so clients written against the tables keep working. Some contracts stay out of the tables on purpose and compose the same way: a terminal agent's status and approvals in `/agent` (see [Providers and models](/agent-contracts/providers#terminal-agents)) and `TaskChangedEventSchema` in `/task` (see [Tasks and worktrees](/agent-contracts/tasks)).
 
 ## Changing a contract
 

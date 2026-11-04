@@ -91,7 +91,7 @@ An open, empty directory looks the same as one that has not loaded. Pass `emptyL
 <FileTree.Root model={model} label="Project files" emptyLabel={(row) => (listed.has(row.path) ? 'Empty folder' : undefined)} />
 ```
 
-It is called for every open directory without children and draws nothing where it returns `undefined`. Return `undefined` until a listing has come back empty, so a loading directory never reads as empty.
+The tree calls it for every open directory without children and draws nothing where it returns `undefined`. Return `undefined` until a listing has come back empty, so a loading directory never reads as empty.
 
 The line is no item. The arrow keys skip it, and a click, context menu or drag on it does nothing. The wrapper adds it to the model as a child, so `getVisibleRows`, `getVisibleCount` and `FileTree.visibleRows` count it while it shows; `onSelectionChange` and the render functions never see it.
 

@@ -15,7 +15,7 @@ interface ChatTransport {
 
 The names and payloads are those of the [agent protocol](/agent-contracts/protocol). A refused request rejects with an error with a string `code`. `ChatTransportError(code, message)` is such an error, `errorCode(error)` reads the code of any error, and `isConnectionError(error)` is true for `not-connected` and `disconnected`. A reconnecting socket keeps the same transport object and reports through `subscribeStatus`; when `status` turns `open` again, the views reload their state.
 
-`portTransport(port)` is a transport over a [`FramePort`](/agent-contracts/protocol#frameport). It is open from the start, drops malformed frames with a warning, and rejects a result that fails its schema with `bad-reply`. It cannot reconnect and has no timeout. The port's owner calls `close()`, which rejects waiting requests with `disconnected`, and closes the port itself.
+`portTransport(port)` returns a `PortTransport`, a transport over a [`FramePort`](/agent-contracts/protocol#frameport) with a `close()`. It is open from the start, drops malformed frames with a warning, and rejects a result that fails its schema with `bad-reply`. It cannot reconnect and has no timeout. The port's owner calls `close()`, which rejects waiting requests with `disconnected`, and closes the port itself.
 
 ## ChatClient
 
@@ -41,6 +41,8 @@ The names and payloads are those of the [agent protocol](/agent-contracts/protoc
 
 `open` takes `provider`, `account`, `cwd`, `resume`, `selection` and `runtimeMode` for a new chat; an existing chat keeps its own. On a reconnect the client reattaches every open chat and catches up on what it missed. Open a chat id once per client, since a second `open` and a `detach` cancel each other.
 
+A client of your own that keeps something per open node can follow the same reconnect rule with `MountedRegistry`, a `Map` of `MountedEntry` records with an `attached` flag. `detachAll` marks everything detached when the link goes, and `reattachAll(reattach)` attaches what is mounted but not attached again, a few at a time, once the link is back.
+
 Close a scope in the reverse order of opening it:
 
 ```ts
@@ -63,6 +65,8 @@ The stores are Zustand stores shared by every scope.
 - `waitingRequestsOf(chat)` lists every waiting approval and question, also those before the loaded page.
 - `useProviders(select)` and `useProviderAccounts(select)` read the CLIs and accounts of the scope in context; `providersOf(scopeId)` and `providerAccountsOf(scopeId)` do the same outside React. `knownAccounts(row)` is `undefined` until the host answered and `null` for a host without accounts.
 - `applyEvent(state, event)` is the pure step the store takes for an event, for a store of your own.
+- `ChatsById` holds the rows keyed with the scope's `keyOf`, and `ChatStatuses` what each chat is doing without its thread. `ChatPage` is the newest part of a thread as `chat.attach` hands it over, and `ChatHistoryPage` an earlier page.
+- `ProvidersRow` and `ProviderAccountsRow` are a scope's entry in the providers and accounts stores.
 
 ```tsx
 function Title({ chatId }: { chatId: string }) {

@@ -1,6 +1,6 @@
 # Regions
 
-The regions a person can pick for the notation, beside their language's region and the system's. The list is short on purpose: it fixes a mismatched computer and is no country picker.
+The regions a person can pick for the notation, beside their language's region and the system's. The list is short on purpose. It fixes a mismatched computer and is no country picker.
 
 ```ts
 import { FORMAT_LANGUAGE, FORMAT_REGION_CHOICES, FORMAT_REGIONS, FORMAT_SYSTEM, formatRegionFrom, regionName } from '@adecore/ui/format';

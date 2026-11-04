@@ -24,7 +24,7 @@ document.getText(); // 'call(x);'
 
 A `<script>` body inside PHP markup follows JavaScript rules, and PHP-only syntax stays inside PHP islands. Enter in a script string concatenates with `+`, in a PHP string with `.`. A literal `</script>` ends the script, as in HTML. Every non-self-closing script body uses JavaScript rules, whatever its `type`. In very large script bodies, pairing and brace completion stop.
 
-Nothing pairs in plain text (`text`, `plaintext`, `txt` or `log`), in a comment or in a string. Longer text is inserted as is. Consecutive calls join one undo step, the `typing` group.
+Nothing pairs in plain text (`text`, `plaintext`, `txt` or `log`), in a comment or in a string. `typeText` inserts longer text as is. Consecutive calls join one undo step, the `typing` group.
 
 ## paste
 
@@ -89,13 +89,13 @@ The plain word commands stop at camel humps only with `camelCase: true`. The `ca
 | `lineSpan(line)`                             |                | The lines that stand on one row, such as a collapsed fold             |
 | `onLinesMoved(moves)`                        |                | Where each line went after a move, as `{ from, to }` pairs            |
 
-`typeText` also takes `historyGroup` and `expectedRevision`, and `paste` takes `wholeLines`.
+`typeText` takes `TypeTextOptions`, which add `historyGroup` and `expectedRevision`, and `paste` takes `wholeLines`.
 
 A view with folds passes `lineSpan`. A collapsed fold is then one line to delete, duplicate, comment and move, one word stop, and a row that `addCaretAbove` and `addCaretBelow` skip. `onLinesMoved` lets the view move line-bound state, such as a fold, with the text.
 
 ## Comments
 
-`toggleLineComment` and `toggleBlockComment` read markers per language: `//` and `/* */` for the C family, PHP and JSON, `#` for Python, shell and YAML, `<!-- -->` for HTML, XML and Markdown, `--` for SQL, Lua and Haskell. In a Vue file the marker follows the block the caret is in. A language with only block comments, such as CSS, wraps each line. An unknown id has no markers, so the toggle does nothing.
+`toggleLineComment` and `toggleBlockComment` read markers per language, the same ones [`commentSyntax`](/editor-core/lexical#comment-markers) returns: `//` and `/* */` for the C family, PHP and JSON, `#` for Python, shell and YAML, `<!-- -->` for HTML, XML and Markdown, `--` for SQL, Lua and Haskell. In a Vue file the marker follows the block the caret is in. A language with only block comments, such as CSS, wraps each line. An unknown id has no markers, so the toggle does nothing.
 
 JSX child text and element lines use `{/* */}`. Attribute lines and expression bodies keep JavaScript markers. A multiline JSX selection uses its first line's markers throughout, so toggling stays reversible. PHP markup uses HTML comments, `<script>` content JavaScript markers and `<style>` content CSS markers.
 
@@ -105,6 +105,6 @@ The toggles leave alone what they cannot comment safely:
 - In `toggleLineComment`, a line mixing PHP tags and markup, a PHP line containing `?>`, and PHP heredoc, nowdoc and multiline-string lines.
 - A PHP or Vue selection that would need different markers.
 - In `toggleBlockComment`, a selection that starts or ends inside a PHP literal or crosses a PHP tag or script boundary.
-- Multiline HTML comments. A complete one-line comment can still be unwrapped.
+- Multiline HTML comments. The toggles still unwrap a complete one-line comment.
 
 HTML comments do not disable embedded PHP. In very large documents, JSX keeps script markers. The scans are lexical and need recognizable JSX elements and static markup tags.

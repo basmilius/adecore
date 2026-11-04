@@ -51,11 +51,11 @@ The helper runs the system's `ssh -W <host>:<port>` with `BatchMode=yes`:
 - `ssh` never asks for a password or passphrase. A key without a passphrase, the agent or an `IdentityFile` of the config must log in.
 - `ssh` never asks to trust an unknown host. The first connection to a new machine fails until its key is in `known_hosts`, for example after one terminal login.
 - When `ssh` exits early, the request fails with `tunnel-failed` and the message holds its stderr.
-- With `tls: 'verify'`, the certificate is checked against `host`, the server's name on the far side.
+- With `tls: 'verify'`, the helper checks the certificate against `host`, the server's name on the far side.
 
 ## Docker
 
-A `tunnel` of kind `docker` reaches a server in a container. `tunnel.container` is a name or id, `tunnel.port` the port inside the container (default 3306), and `tunnel.context` another Docker context. The helper asks Docker where the container is, so `host`, `port` and `socket` are ignored, and `host` may be empty.
+A `tunnel` of kind `docker` reaches a server in a container. `tunnel.container` is a name or id, `tunnel.port` the port inside the container (default 3306), and `tunnel.context` another Docker context. The helper asks Docker where the container is, so it ignores `host`, `port` and `socket`, and `host` may be empty.
 
 ```ts
 const config: ConnectionConfig = {
@@ -69,7 +69,7 @@ const config: ConnectionConfig = {
 
 The helper uses a published port when there is one. Otherwise it pipes the connection through `docker exec`, which needs `bash` and `cat` in the image. A context on another machine always uses `docker exec`.
 
-A missing or stopped container fails with `tunnel-failed`. With `tls: 'verify'` the certificate chain is checked, but not the host name.
+A missing or stopped container fails with `tunnel-failed`. With `tls: 'verify'` the helper checks the certificate chain, but not the host name.
 
 The helper looks for `docker` and `ssh` in `PATH`, then in folders a macOS app started from the Dock often lacks: `/usr/local/bin`, `/opt/homebrew/bin`, `/Applications/Docker.app/Contents/Resources/bin` and `/usr/bin`.
 

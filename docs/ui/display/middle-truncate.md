@@ -1,6 +1,6 @@
 # MiddleTruncate
 
-A path or a branch name on one line, cut in the middle instead of at the end: the start says where it is, the end says which one it is. `packages/ui/src/…/Settings.tsx` instead of `packages/ui/src/settings/Sett…`.
+A path or a branch name on one line, cut in the middle instead of at the end. The start says where it is, the end says which one it is. `packages/ui/src/…/Settings.tsx` instead of `packages/ui/src/settings/Sett…`.
 
 ```tsx
 import { MiddleTruncate } from '@adecore/ui';

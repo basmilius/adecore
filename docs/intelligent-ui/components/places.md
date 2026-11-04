@@ -16,7 +16,7 @@ $picked = ""
 
 ## Map
 
-One to 50 places, with a numbered list under the map; more written are refused. After `Each` or `Show`, a `Map` that draws none fails as a whole, and one that draws more than 50 shows the first 50 with `too_many_children` and a count of the rest (`UiViewNode.omitted`). The list is the accessible form of the map and holds every place, also those without a point.
+One to 50 places, with a numbered list under the map; the compiler refuses more. After `Each` or `Show`, a `Map` that draws none fails as a whole, and one that draws more than 50 shows the first 50 with `too_many_children` and a count of the rest (`UiViewNode.omitted`). The list is the accessible form of the map and holds every place, also those without a point.
 
 | Prop    | Type   | Required | Notes                                                |
 | ------- | ------ | -------- | ---------------------------------------------------- |

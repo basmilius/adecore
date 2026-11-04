@@ -28,7 +28,7 @@
 | `hoverFooter`      | `(view, language) => ReactNode`              | Sections of the app at the foot of the [hover card](#languagepopups)                                                             |
 | `className`, `ref` |                                              | On the outer element, which needs a height                                                                                       |
 
-Changing `engine`, `project`, `uri` or `languageId` remounts the editor with a fresh document and undo history. Everything else is read at mount, so inline `options` and `onMount` cost nothing per render. Later changes of `theme`, `readOnly`, `readOnlyReason`, `wrap`, `indentation`, `smartKeys`, `guides`, `stickyScroll`, `whitespace`, `rightMargin`, `foldOutline`, `label` and `messages` apply in place; other options only count at mount. On unmount it runs the `onMount` cleanup, then disposes the `EditorLanguage` and the editor. It never disposes the project.
+Changing `engine`, `project`, `uri` or `languageId` remounts the editor with a fresh document and undo history. The view reads everything else at mount, so inline `options` and `onMount` cost nothing per render. Later changes of `theme`, `readOnly`, `readOnlyReason`, `wrap`, `indentation`, `smartKeys`, `guides`, `stickyScroll`, `whitespace`, `rightMargin`, `foldOutline`, `label` and `messages` apply in place; other options only count at mount. On unmount it runs the `onMount` cleanup, then disposes the `EditorLanguage` and the editor. It never disposes the project.
 
 ## EditorLanguage
 
@@ -99,7 +99,31 @@ An app adds its own parts through `LanguagePopupsProps`:
 
 The cards render through portals, so a provider around `LanguagePopups`, such as `EditorRenderingProvider`, reaches all of them.
 
-`createHolder<T>()` is the store `EditorView` uses to hand its `EditorLanguage` to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`.
+`createHolder<T>()` is the store `EditorView` uses to hand its `EditorLanguage` to React: `get`, `set` and `subscribe`, for `useSyncExternalStore`. The props of `EditorView` are `EditorViewProps`.
+
+### Drawing your own cards
+
+The features keep what their cards show in `language.popups`, a `PopupStore` (a zustand store) of a `PopupState`. Each field is a view, or `null` while its card is closed. `LanguagePopups` draws them all; a host that draws one card itself reads that field and leaves the rest to `LanguagePopups`.
+
+| Field           | View                | What it holds                                                                       |
+| --------------- | ------------------- | ----------------------------------------------------------------------------------- |
+| `hover`         | `HoverView`         | The anchor, the problems there and the `info`, a `HoverInfo` with the text and definition |
+| `completion`    | `CompletionView`    | The `rows` as `CompletionRow`s, the active one and its `docs`, a `CompletionDocs`  |
+| `signature`     | `SignatureView`     | The anchor and the `SignatureViewModel`                                             |
+| `pick`          | `PickView`          | The title, the `groups` as `PickGroup`s of `PickRow`s, the `query` and `chosen` ids |
+| `rename`        | `RenameView`        | The name, its occurrences and the preview, one `RenameFileView` per file            |
+| `peek`          | `PeekView`          | References or definitions and the row the panel is drawn in                         |
+| `callHierarchy` | `CallHierarchyView` | The tree of [calls](/editor-react/call-hierarchy)                                   |
+| `symbols`       | `SymbolsView`       | The file's name and its symbols                                                     |
+| `menu`          | `MenuView`          | Where the context menu opens and the refactorings on offer                          |
+| `authors`       | `AuthorsView`       | The [code vision](/editor-react/code-vision) authors card                           |
+| `wrap`          | `WrapView`          | The [Wrap with Abbreviation](/editor-react/markup#wrap-with-an-abbreviation) field  |
+
+```tsx
+const completion = useSyncExternalStore(language.popups.subscribe, () => language.popups.getState().completion);
+```
+
+The views are read-only; act through the feature, such as `language.completion.accept(false)`.
 
 ## AnchoredPopup
 
@@ -119,7 +143,7 @@ Render it again when the rect changes; it places itself on every render.
 
 ## EditorRenderingProvider
 
-Code in hover cards and peeks is plain text unless an `EditorRenderingProvider` colors it. Its `value` is an `EditorRendering`: the syntax `theme` and an optional `highlight(code, language, theme)` that resolves to HTML, such as Shiki's `codeToHtml`. The HTML is inserted unescaped, so use a highlighter the app trusts.
+Code in hover cards and peeks is plain text unless an `EditorRenderingProvider` colors it. Its `value` is an `EditorRendering`: the syntax `theme` and an optional `highlight(code, language, theme)` that resolves to HTML, such as Shiki's `codeToHtml`. The cards insert the HTML unescaped, so use a highlighter the app trusts.
 
 ```tsx
 <EditorRenderingProvider value={{ theme: 'github-light', highlight: (code, lang, theme) => highlighter.codeToHtml(code, { lang, theme }) }}>

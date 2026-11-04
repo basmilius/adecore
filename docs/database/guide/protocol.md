@@ -175,7 +175,7 @@ The host talks to the helper over its standard streams, one JSON message per lin
 
 - Before it reads a request, the helper writes a ready line: `{"event":"ready","protocol":5,"version":"0.1.0"}`. `protocol` is its `PROTOCOL_VERSION` and `version` its release.
 - The host stops a helper whose `protocol` differs from its own, or that sends no ready line within `readyTimeoutMs` (10000 by default). The request that started it fails with `helper-unavailable`.
-- Then one request per line on stdin and one response per line on stdout. Empty lines are ignored. An invalid line gets `invalid-request`, with its id when readable.
+- Then one request per line on stdin and one response per line on stdout. The helper ignores empty lines. An invalid line gets `invalid-request`, with its id when readable.
 - Requests run concurrently, so responses can arrive out of order; the `id` matches them. Requests on one session queue in arrival order on its single connection.
 - When a MySQL or MariaDB session loses its connection (killed, `wait_timeout`, a dropped tunnel), the session ends. The request that hit it and every request queued behind it answer `unknown-session`.
 - `cancel` interrupts the statement on SQLite and runs `KILL QUERY` from a second connection on MySQL. The cancelled request answers `cancelled`, except a completed write, which answers its result, and an `execute` that had begun.

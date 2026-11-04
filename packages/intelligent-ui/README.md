@@ -33,7 +33,7 @@ for (const block of blocks) {
 
 | Page | What it covers |
 |---|---|
-| [Getting started](https://adecore.dev/intelligent-ui/guide/getting-started) | Instructions, compilation, the wire and rendering |
+| [Getting started](https://adecore.dev/intelligent-ui/getting-started) | Instructions, compilation, the wire and rendering |
 | [Security model](https://adecore.dev/intelligent-ui/guide/security) | What a block can and cannot do |
 | [Syntax](https://adecore.dev/intelligent-ui/language/syntax) | The language an agent writes |
 | [Components](https://adecore.dev/intelligent-ui/components/status) | Every component and its props |

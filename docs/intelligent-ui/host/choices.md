@@ -55,12 +55,12 @@ For a block with queries, the backend accepts only readings it issued itself:
 
 - The page sends `reads`, the read id of each reading on screen.
 - For every declared query, the read id must name a reading the backend issued for the current arguments and still holds, or the frozen first reading while the arguments are the defaults.
-- Otherwise the choice is refused with `stale-ui-query` and the code `stale-read`. The page reads again and reopens the choices.
+- Otherwise the backend refuses the choice with `stale-ui-query` and the code `stale-read`. The page reads again and reopens the choices.
 
 The page closes choices while a block reads and while a changed input awaits its read. `uiLiveChoiceReason` in agents-react says why.
 
 ## Answers
 
-The backend records the answer on the assistant item as `uiAnswers[blockId]`, a `ChatUiAnswer`: the identities, `label`, `values`, `sourceAt`, `older` (whether a newer reply had come), `at`, `queued` and `turnId`. The user message carries the same origin as `uiChoice`. The message is logged before the answer, so a crash cannot send it twice.
+The backend records the answer on the assistant item as `uiAnswers[blockId]`, a `ChatUiAnswer`: the identities, `label`, `values`, `sourceAt`, `older` (whether a newer reply had come), `at`, `queued` and `turnId`. The user message carries the same origin as `uiChoice`. The backend logs the message before the answer, so a crash cannot send it twice.
 
 A page draws an answered block with its answer's label and time, and closes every input and Choice. The sent values stay, after a reload too. `ChatHost.intelligentUi.sendChoice` resolves `sent` or `queued`; without it, choices stay closed.

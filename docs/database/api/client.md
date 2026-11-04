@@ -69,7 +69,7 @@ Every method but `close` takes `RequestOptions` (`{ signal? }`) last; `ExecuteOp
 A session ends when the helper exits or the server connection drops, and its next request gets `unknown-session`. The session retries only where safe:
 
 - A read (`schemas`, `tables`, `structure`, `rows`, `count`, `cell` and `page`) reopens the connection and is sent once more.
-- `apply`, `execute`, `transaction`, `export` and `import` are not resent, since nobody knows whether they ran. The call fails with `unknown-session`, and the next call reconnects.
+- The session does not resend `apply`, `execute`, `transaction`, `export` and `import`, since nobody knows whether they ran. The call fails with `unknown-session`, and the next call reconnects.
 
 Concurrent calls on a closed session share one `open`. When it fails, the next call tries again.
 
@@ -87,7 +87,7 @@ const stop = client.onSchemaChange((change) => {
 
 A `SchemaChange` is a `connectionId` and a `schema`. An `undefined` schema means reload every schema of the connection.
 
-The client announces a change itself after an `execute` with a successful `CREATE`, `ALTER`, `DROP`, `RENAME` or `TRUNCATE` statement. Code that changes the shape another way calls `client.notifySchemaChange({ connectionId, schema })`. A throwing listener is logged and does not block the others. [`DatabaseExplorer`](/database/views/explorer), [`StructureView`](/database/views/structure-view), [`TableView`](/database/views/table-view) and [`TableDesigner`](/database/views/table-designer) listen.
+The client announces a change itself after an `execute` with a successful `CREATE`, `ALTER`, `DROP`, `RENAME` or `TRUNCATE` statement. Code that changes the shape another way calls `client.notifySchemaChange({ connectionId, schema })`. The client logs a listener that throws and still calls the others. [`DatabaseExplorer`](/database/views/explorer), [`StructureView`](/database/views/structure-view), [`TableView`](/database/views/table-view) and [`TableDesigner`](/database/views/table-designer) listen.
 
 ## Abort and cancel
 

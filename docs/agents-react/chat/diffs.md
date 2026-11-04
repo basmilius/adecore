@@ -10,7 +10,7 @@ import { UnifiedDiff, EditDiff, DiffPool } from '@adecore/agents-react/chat/ui';
 
 ## UnifiedDiff
 
-A unified patch in a `ChatFileChange`. A patch without a file header gets one from the path; text without hunks shows as plain lines.
+A unified patch in a `ChatFileChange`. A patch without a file header gets one from the path; text without hunks shows as plain lines. Its props are `UnifiedDiffProps`. Pass the two whole texts the patch was made between as `contents`, a `DiffContents` (`{ old, new }`), and a person can unfold the lines between hunks.
 
 | Prop        | Type                     |                                                                                     |
 | ----------- | ------------------------ | ----------------------------------------------------------------------------------- |
@@ -55,7 +55,7 @@ A turn whose diff the host keeps apart (`checkpointDiffRef`) lists every file. A
 
 ## Editor source tokens
 
-These helpers connect a [`DiffView`](/editor-react/change-review#diffview) to the shared Shiki runtime. The editor path installs `@adecore/editor-react` even for hosts that do not use it, but loads it lazily.
+These helpers connect a [`DiffView`](/editor-react/diff-view) to the shared Shiki runtime. The editor path installs `@adecore/editor-react` even for hosts that do not use it, but loads it lazily.
 
 ```ts
 import { diffSourceTokens, diffSyntaxRuntime } from '@adecore/agents-react/chat/ui';

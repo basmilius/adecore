@@ -10,11 +10,11 @@ import { LimitDock, LimitPill, ResumeCompactionDock } from '@adecore/agents-reac
 
 ## LimitDock and LimitPill
 
-`LimitDock({ chatId, info })` sits at the top of the composer. It says what stopped the turn and when the limit lifts, with a switch to resume then. `LimitPill({ chatId })` says the same in a few words, from the status every client gets. Both draw nothing while a turn runs or after a normal stop. `limitView(info, now)` returns their words.
+`LimitDock({ chatId, info })` sits at the top of the composer. It says what stopped the turn and when the limit lifts, with a switch to resume then. `LimitPill({ chatId })` says the same in a few words, from the status every client gets. Both draw nothing while a turn runs or after a normal stop. `limitView(info, now)` returns their words as a `LimitView`: a pill, a title and when it goes on.
 
 The switch sets the chat's `resumeAtReset` through `configure`, and shows only while the host's `useResumeAtReset(scopeId)` allows it. The host decides whether and when the chat resumes.
 
-When another account of the CLI is on, signed in and has room, the dock offers to continue there (`continueOn`). The host decides whether that takes the chat over or forks it. The button names the account with the most session left; with several, a chevron opens a menu of all of them. An account that cannot read the conversation is marked as continuing in a fork. Nothing switches without a press.
+When another account of the CLI is on, signed in and has room, the dock offers to continue there (`continueOn`). The host decides whether that takes the chat over or forks it. The button names the account with the most session left; with several, a chevron opens a menu of all of them. The menu marks an account that cannot read the conversation as continuing in a fork. Nothing switches without a press.
 
 ## ResumeCompactionDock
 

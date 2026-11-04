@@ -26,13 +26,13 @@ During a run, Run becomes Cancel. A run cancelled midway shows the statements th
 
 The editor is a plain text area without highlighting or completion. Tab and Shift+Tab indent and outdent the selected lines, and a new line keeps the indent above. See [Your own editor](#your-own-editor) for a replacement.
 
-A run is never sent twice. When the session was lost, the console shows the `unknown-session` error instead of running the SQL again.
+The console never sends a run twice. When the session was lost, the console shows the `unknown-session` error instead of running the SQL again.
 
 ## Results
 
 Before the first run the editor fills the console. A run opens the results below it as a split. Drag the divider to resize, or Close results to hide them until the next run.
 
-The results start at half the console. The dragged height is kept in the provider's `storage` under `database:console-results`, in pixels, for every console.
+The results start at half the console. The console keeps the dragged height in the provider's `storage` under `database:console-results`, in pixels, for every console.
 
 ## Keys in the results
 

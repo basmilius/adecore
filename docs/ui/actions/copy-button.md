@@ -1,6 +1,6 @@
 # CopyButton
 
-A button that copies text and confirms it: the icon turns into a check and the button reads "Copied" for a moment. For a token, an id, a command.
+A button that copies text and confirms it. The icon turns into a check and the button reads "Copied" for a moment. For a token, an id, a command.
 
 ```tsx
 import { CopyButton } from '@adecore/ui';

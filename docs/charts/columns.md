@@ -241,7 +241,7 @@ The x is still the bucket and the y the value, so every part keeps its name and 
 - `valueLabels` writes the value past the bar's end. A stack writes its total once, through the `valueLabels` of its last part.
 - `Chart.Rule` runs down through the rows.
 - Up and Down move row by row, Home and End go to the ends. `group` adds gaps that Page Up and Page Down jump between; `Chart.GroupAxis` draws nothing.
-- Lines, areas, points, markers and bands are left out, with a warning in development. On a `time` or `linear` scale, or with `rows="points"`, the chart stays vertical.
+- The chart leaves out lines, areas, points, markers and bands, with a warning in development. On a `time` or `linear` scale, or with `rows="points"`, the chart stays vertical.
 
 ## Value labels
 

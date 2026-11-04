@@ -12,7 +12,7 @@ The swatches sit on rings, outermost first, each ring in order from the top, wit
 
 While the wheel is open, `onPreviewChange` reports the swatch under the pointer or focus, so the page can preview it. It reports null when the pointer leaves, when the wheel closes, and after a pick (which `onValueChange` reports first). The wheel opens with focus on the color in use.
 
-The name of the swatch looked at, or of the color in use, shows under the wheel, so swatches have no tooltip. The color in use wears the ring of a picked [`ColorSwatch`](/ui/pickers/color-swatch). The wheel is a `radiogroup` and one tab stop: arrow keys walk it, Home and End go to its ends, and only Enter, Space or a click picks and closes it. The trigger is named by `label` plus the color's name.
+The name of the swatch looked at, or of the color in use, shows under the wheel, so swatches have no tooltip. The color in use wears the ring of a picked [`ColorSwatch`](/ui/pickers/color-swatch). The wheel is a `radiogroup` and one tab stop: arrow keys walk it, Home and End go to its ends, and only Enter, Space or a click picks and closes it. The trigger's accessible name is `label` plus the color's name.
 
 ## Props
 

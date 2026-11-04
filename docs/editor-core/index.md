@@ -1,10 +1,6 @@
-# @adecore/editor-core
+# Editor core
 
-The document model of a code editor, with no DOM and no dependencies. `DocumentModel` holds the text, selections, undo history and editing commands, from bracket pairing and smart Enter to multiple carets, search and folding. It runs in a browser, Bun and Node.
-
-```sh
-bun add @adecore/editor-core
-```
+`@adecore/editor-core` is the document model of a code editor, with no DOM. `DocumentModel` holds the text, the selections, the undo history and the editing commands, including bracket pairing, smart Enter, multiple carets, search and folding. It runs in a browser, Bun and Node, so the same editing logic works in a view, a worker or a test.
 
 ```ts
 import { DocumentModel } from '@adecore/editor-core';
@@ -17,32 +13,33 @@ document.getText(); // 'const greeting = "hello";\n()'
 document.undo();
 ```
 
-[`@adecore/editor`](/editor/) draws a model and maps keys to its commands. Use this package alone for editing logic without a view, such as in a test or a worker.
+## What it does
 
-## What is in it
+- Keeps the text in the line endings it was given and converts between offsets and line and column positions.
+- Applies batches of edits as one undo step, with a revision that guards slow answers such as a language server's.
+- Types the way a code editor does: closing brackets and quotes, wrapping a selection, indenting on Enter, continuing comments.
+- Runs 59 editing commands on every caret at once, from duplicating a line to moving a statement.
+- Finds and replaces, with regular expressions and case preservation, and lists folding ranges with their roles.
+- Answers lexical questions about the code: matching brackets, whether an offset is in a string or a comment, TODO comments and documentation comments.
+- Reports every change with the positions a language server's `didChange` expects.
 
-- [Documents and edits](/editor-core/documents): text, lines, selections, edit batches, revisions, history and change events.
-- [Typing and commands](/editor-core/commands): `typeText`, `paste` and the commands of `execute`, with their options.
-- [Search and folding](/editor-core/search-folding): find and replace, and folding ranges.
-- [API reference](/editor-core/api): the helpers next to the model, such as `changedSpans`, `scanBrackets` and the word predicates.
+## What it leaves to the app
 
-## Coordinates
+The package draws nothing and reads no keys. [`@adecore/editor`](/editor/) draws a model and maps keys to its commands. The model holds no file either. Reading, saving, drafts and whether a person may save stay with the host. It knows no language server, but it takes a server's folding ranges and selection ranges when the host passes them.
 
-Every offset is a UTF-16 code unit, like a JavaScript string index. Lines and columns are zero-based. An emoji takes two code units and a tab takes one.
+## Where to next
 
-| Shape          | Fields                     | Meaning                                                      |
-| -------------- | -------------------------- | ------------------------------------------------------------ |
-| `Selection`    | `anchor`, `head`           | Offsets; `anchor > head` is a backward selection             |
-| `TextEdit`     | `from`, `to`, `text`       | Replaces the half-open range `[from, to)`                    |
-| `Position`     | `line`, `column`           | Zero-based line and UTF-16 column                            |
-| `ContentEdit`  | `start`, `end`, `text`     | Two positions, in the order a language server applies them   |
-| `FoldingRange` | `startLine`, `endLine`, .. | Zero-based inclusive lines plus offsets                      |
-
-The view and LSP packages call the column `character`. The unit is the same.
+- [Getting started](/editor-core/getting-started) installs the package and takes a document through edits, typing, undo and change events.
+- [Documents and edits](/editor-core/documents) covers coordinates, lines, selections, edit batches, revisions, history, saving and listeners.
+- [Typing and commands](/editor-core/commands) covers `typeText`, `paste`, the commands of `execute` and their options.
+- [Search](/editor-core/search) covers find and replace, on a model or on a plain string.
+- [Folding](/editor-core/folding) covers folding ranges and the roles a view folds by default.
+- [Lexical queries](/editor-core/lexical) covers brackets, places in the code, TODO and documentation comments, and indentation.
+- [Reference](/editor-core/reference) lists the members of `DocumentModel` and every export.
 
 ## Limits
 
-- Typing, Enter, comments and folding use lexical scanners, not parsers. A `/` after an ambiguous construct can read as a regular expression or a division. JSX text, Python triple quotes and HTML tag pairs are not modeled.
+- Typing, Enter, comments and folding use lexical scanners, not parsers. A `/` after an ambiguous construct can read as a regular expression or a division. The scanners do not model JSX text, Python triple quotes or HTML tag pairs.
 - A language is a string id, such as `typescript` or `php`. An unknown id has no comments and no brackets, so nothing pairs, toggles or indents.
 - Auto-indent uses brackets, keywords and the previous line, not a formatter. It skips languages without braces, JSX elements, Vue templates, PHP markup, and string and comment bodies.
 - Search, folding and selection expansion scan the whole document synchronously on each call. A regular expression has no timeout, so run untrusted patterns in a worker.

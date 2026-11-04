@@ -44,7 +44,7 @@ The strip reads tabs from their props, so they must be direct children of `Tabs.
 
 ## Closable tabs
 
-`onClose` on `Tabs.Tab` draws a close button and also fires on a middle click and on Delete or Backspace. It only asks: remove the tab from your list yourself, and pick the next one if it was picked. The close button is out of the tab order. Tabs in the "More" menu have no close button.
+`onClose` on `Tabs.Tab` draws a close button and also fires on a middle click and on Delete or Backspace. It only asks. Remove the tab from your list yourself, and pick the next one if it was picked. The close button is out of the tab order. Tabs in the "More" menu have no close button.
 
 `overflow="scroll"` on `Tabs.List` scrolls an overflowing row sideways instead of using "More". Hidden edges fade and the picked tab scrolls into view. The row carries the class `tabs-scroll`.
 

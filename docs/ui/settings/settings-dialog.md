@@ -20,7 +20,7 @@ You hold the open section. `onNavigate` fires when a person picks another.
 
 ## Search
 
-`search.find(query)` returns the results, so it can search your own words in any language. While the field holds a query, the results replace the navigation. A result names a section and optionally the `searchId` of a [`SettingsRow`](/ui/settings/settings-section). Picking one calls `onNavigate` with the row as `target`. Pass it back as `target`: the row scrolls into view and flashes, then `onTargetShown` fires, where you clear it.
+`search.find(query)` returns the results, so it can search your own words in any language. While the field holds a query, the results replace the navigation. A result names a section and optionally the `searchId` of a [`SettingsRow`](/ui/settings/settings-section). Picking one calls `onNavigate` with the row as `target`. Pass it back as `target`. The row scrolls into view and flashes, then `onTargetShown` fires, where you clear it.
 
 Escape clears the query first and closes the dialog only from an empty field. Enter jumps to the first result. `search.hint` prints the shortcut that focuses the field. `search.focusAt` focuses the field each time the number grows, so your shortcut handler can bump it.
 

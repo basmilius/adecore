@@ -14,15 +14,15 @@ const project = new ProjectLanguage(service, { templates });
 
 ## Live templates
 
-A `LiveTemplate` has a stable `id` (built-ins use `builtin.<language>.<key>`), a `key` of 1 to 40 non-whitespace characters, a `body` in [snippet syntax](/editor-react/completion#snippets), an optional `description` and `group`, and the `languages` and `places` it applies to. `places` holds `'code'`, `'comment'` and `'string'`, and defaults to `['code']`. `group` sorts Insert Live Template and defaults to the first language. A leading tab in the body is one indentation unit of the editor. A body with `$TM_SELECTED_TEXT` wraps the selection.
+A `LiveTemplate` has a stable `id` (built-ins use `builtin.<language>.<key>`), a `key` of 1 to 40 non-whitespace characters, a `body` in [snippet syntax](/editor-react/snippets), an optional `description` and `group`, and the `languages` and `places` it applies to. `places` holds `TemplatePlace`s, `'code'`, `'comment'` and `'string'`, and defaults to `['code']`. `group` sorts Insert Live Template and defaults to the first language. A leading tab in the body is one indentation unit of the editor. A body with `$TM_SELECTED_TEXT` wraps the selection.
 
-`languages` are families: `javascript`, `typescript`, `php`, `css`, `html`, `xml` and `other`. TypeScript and TSX count as `javascript` and `typescript`, `vue` and `xhtml` as `html`, `svg` and `xsl` as `xml`, `scss` and `less` as `css`. Where the editor can tell, the place under the caret decides: the `<script lang="ts">` of a Vue file is TypeScript, its template HTML, and the markup of a PHP file HTML.
+`languages` are `TemplateLanguage` families: `javascript`, `typescript`, `php`, `css`, `html`, `xml` and `other`. TypeScript and TSX count as `javascript` and `typescript`, `vue` and `xhtml` as `html`, `svg` and `xsl` as `xml`, `scss` and `less` as `css`. Where the editor can tell, the place under the caret decides: the `<script lang="ts">` of a Vue file is TypeScript, its template HTML, and the markup of a PHP file HTML.
 
-`BUILT_IN_LIVE_TEMPLATES` are IntelliJ's keys for JavaScript (`log`, `itar`, `ritar`, `iter`, `itin`), PHP (`fore`, `forek`, `pubf`, `prif`, `prof`, `pubsf`, `thr`), HTML and XML (`T`, which wraps the selection in a tag) and XML (`CD`). CSS has none. `BUILT_IN_POSTFIX_TEMPLATES` are listed under [postfix completion](#postfix-completion).
+`BUILT_IN_LIVE_TEMPLATES` are IntelliJ's keys for JavaScript (`log`, `itar`, `ritar`, `iter`, `itin`), PHP (`fore`, `forek`, `pubf`, `prif`, `prof`, `pubsf`, `thr`), HTML and XML (`T`, which wraps the selection in a tag) and XML (`CD`). CSS has none. [Postfix completion](#postfix-completion) lists `BUILT_IN_POSTFIX_TEMPLATES`.
 
 ## The registry
 
-`new TemplateRegistry({ builtins })` holds the built-in templates unless `builtins` is false. `set({ live, postfix, disabled, settings })` replaces what it names and keeps the rest; `disabled` lists built-in ids to turn off. `set` drops templates that fail `checkTemplate` and never throws. `live` and `postfix` list the enabled built-ins, then the host's. Two templates with one key become a choice on expansion. `onChange(listener)` runs after every `set` and returns its unsubscribe function.
+`new TemplateRegistry({ builtins })` holds the built-in templates unless `builtins` is false; the argument is a `TemplateRegistryOptions`. `set({ live, postfix, disabled, settings })` takes a `TemplateUpdate`, replaces what it names and keeps the rest; `disabled` lists built-in ids to turn off. `set` drops templates that fail `checkTemplate` and never throws. `live` and `postfix` list the enabled built-ins, then the host's. Two templates with one key become a choice on expansion. `onChange(listener)` runs after every `set` and returns its unsubscribe function.
 
 `checkTemplate(template, kind?)` returns a reason in English for the host's form, or `null` when the template is valid. `kind` is `'live'` or `'postfix'`; without it, a template with an `expression` or `example` counts as postfix.
 
@@ -33,7 +33,7 @@ A `LiveTemplate` has a stable `id` (built-ins use `builtin.<language>.<key>`), a
 Tab expands the key before the caret, as IntelliJ's `TemplateManager` does:
 
 - The key is the longest text before the caret on its line that is a template key. A key starting with a letter, `_` or `$` must not follow an identifier character, so `xlog` is not `log`, while `x.iter` is `iter`. A postfix template takes `x.log` first.
-- The template must apply where the key starts. If the longest key applies nowhere, no shorter key is tried.
+- The template must apply where the key starts. If the longest key applies nowhere, Tab tries no shorter key.
 - Several templates with one key open the suggestion list with only those rows.
 - With several carets, every caret expands and the fields mirror. If one caret lacks the key, Tab does its usual work.
 - A selection or a read-only editor leaves Tab alone.
@@ -73,7 +73,7 @@ With `postfixInCompletion` on, the suggestion list after a dot gets a row per ap
 
 ### Surround With
 
-`open()` surrounds the selection, or at a bare caret the trimmed content of its line. With several carets every range is surrounded and the fields mirror; overlapping ranges merge, and two ranges on one line refuse. All ranges must be in one language, as `placeAt` reports; otherwise `host.notify` gets "Couldn't find Surround With variants applicable to the current context".
+`open()` surrounds the selection, or at a bare caret the trimmed content of its line. With several carets it surrounds every range and the fields mirror; overlapping ranges merge, and two ranges on one line refuse. All ranges must be in one language, as `placeAt` reports; otherwise `host.notify` gets "Couldn't find Surround With variants applicable to the current context".
 
 `surroundShape` decides what applies: statement rows for whole statements, `(expr)` and `!(expr)` for one expression. The "Surround With" list numbers its rows `1` to `9`, `0`, then `A`, `B` and on; typing the character picks the row.
 

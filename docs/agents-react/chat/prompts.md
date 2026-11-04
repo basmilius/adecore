@@ -1,6 +1,6 @@
 # Prompts
 
-The cards for a chat's approvals and questions. The [composer](/agents-react/chat/composer) draws them for its chat and its delegated chats. The parts are exported for a stack elsewhere, such as over a canvas of chats.
+The cards for a chat's approvals and questions. The [composer](/agents-react/chat/composer) draws them for its chat and its delegated chats. The package exports the parts for a stack elsewhere, such as over a canvas of chats.
 
 ```tsx
 import { PromptView, usePromptSession } from '@adecore/agents-react/prompts';
@@ -12,7 +12,7 @@ import { PromptView, usePromptSession } from '@adecore/agents-react/prompts';
 
 An approval names the tool and shows the command or diff, with Deny and Allow. When the CLI proposes a rule to remember, a third button grants it for good. The keyboard never starts on Allow or that button. A denial can carry a reason when the CLI takes one.
 
-A question shows single or multiple choices, or a field for a written answer. Several questions page before they are answered together. Multiple picks are joined by commas. A question marked `async` can be dismissed.
+A question shows single or multiple choices, or a field for a written answer. Several questions page before they are answered together. The answer joins multiple picks with commas. A person can dismiss a question marked `async`.
 
 Blocking requests come first, oldest first, then optional questions. A new request never replaces the card being read. A refusal keeps the card, with the host's message under it.
 
@@ -67,7 +67,7 @@ A chat's `PromptSubject` is `{ kind: 'chat', nodeId, item }`, where `nodeId` is 
 
 ## Keys
 
-Arrows, Home and End move through the choices and Space picks; Enter on a single choice picks and answers. Mod+Enter is the card's main action, and Mod+Shift+Left and Right page through a stack (`PROMPT_SHORTCUTS`). A request that arrives while a person types puts the focus on its heading, not a button. `focusPromptStart` and `useFocusAfterAnswer` do the same for a stack of your own.
+Arrows, Home and End move through the choices and Space picks; Enter on a single choice picks and answers. Mod+Enter is the card's main action, and Mod+Shift+Left and Right page through a stack (`PROMPT_SHORTCUTS`). A request that arrives while a person types puts the focus on its heading, not a button. `focusPromptStart` and `useFocusAfterAnswer` do the same for a stack of your own. The hook returns a `FocusAfterAnswer` with `hold()`, called before the front card changes, and `release()`, for a card that stays after all. `pageKey(event, apple, typing)` reads a `PromptKeyEvent` and returns `-1` or `1` for a key that pages through the stack, or `null`.
 
 ## Prompts of your own
 
@@ -88,3 +88,13 @@ A `HostPrompt` is `{ id, createdAt, blocking, asks, data }`: a stable id, whethe
 ## Parts
 
 `PromptView` is made of `PromptCard` (the frame with heading, meta, notice and error), the approval and question bodies, and the action rows. `PROMPT_SURFACE` is the card's surface class, for a matching frame. `emptyPromptDraft` and `orderPrompts` are pure helpers for a stack of your own.
+
+The types of those parts:
+
+- `PromptViewProps` is what a card gets to draw, the chat's and the app's alike: the subject, its draft, `onDraft`, `onAction` and the rest of the props in the example above.
+- `PromptAction` is what a card asks for: `approve` with a decision and an optional message, `answer` with the answers, `dismiss`, or `choose` for a terminal's permission request. `PromptAnswer` is the draft of one question: the picked choices, the written text and whether it is a custom answer.
+- `PromptSession` is what `usePromptSession` returns. `PendingPrompt` is a waiting approval or question item, and `ChatPromptClients` the requests a chat's own prompts are answered with: `approve`, `answer` and `dismiss`.
+- `PromptCardKind` is the mark of a `PromptCard`: `approval`, `question` or `waiting`.
+- `approvalButtons` returns an `ApprovalButtonSpec` per button of a chat's permission request, and `ApprovalActions` draws `ApprovalButton`s.
+
+`PROMPT_SAMPLES` from `@adecore/agents-react/testing` holds prompts in every state, labeled, for a preview or a test. They never enter the chat store or the transport.

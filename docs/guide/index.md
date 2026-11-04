@@ -4,7 +4,7 @@ ADE CORE holds the packages that desktop apps for working with agents share: the
 
 ## How these docs are organized
 
-- The **Guide** covers what holds for every package: [choosing packages](/guide/packages), [installing](/guide/installing), [styles](/guide/styles) and the [React Compiler](/guide/react-compiler).
+- The **Guide** covers what holds for every package: [choosing packages](/guide/packages), the [architecture](/guide/architecture) of an app, [installing](/guide/installing), [styles](/guide/styles), the [React Compiler](/guide/react-compiler) and [troubleshooting](/guide/troubleshooting).
 - **Packages** has a section per package. Each starts with an overview and a getting started page, followed by guides on one topic each.
 - **Reference** lists every name each package exports, read from the source, with a link to the page that explains it.
 
@@ -12,7 +12,7 @@ ADE CORE holds the packages that desktop apps for working with agents share: the
 
 - React 19 and Tailwind 4 for every view, on the theme of `@adecore/ui`.
 - TypeScript sources that an app can read straight from a checkout, see [Installing](/guide/installing#working-on-a-local-checkout).
-- No work at import time and no global listeners: the app wires what a package needs.
+- No work at import time and no global listeners. The app wires what a package needs.
 - One version for all packages. Upgrade them together.
 
 ## Next

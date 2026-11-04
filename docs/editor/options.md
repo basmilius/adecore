@@ -24,7 +24,7 @@
 | `foldOutline`    | `'hover'`            | `setFoldOutline` | When the fold arrows show in the gutter: `'off'`, `'hover'` or `'always'`                                                                                                                                          |
 | `messages`       | none                 |                  | `{ noMoreOccurrences, fold, unfold }`: the first is said when select next occurrence finds no more (without it the editor says nothing); the others name the fold controls with `{start}` and `{end}` placeholders |
 | `label`          | `Code editor`        | `setLabel`       | The accessible name of the editor, such as `Commit message`, in the app's language                                                                                                                                 |
-| `folds`          |                      |                  | Folds kept from the last time; see [folding](/editor/find-folding#folding)                                                                                                                                         |
+| `folds`          |                      |                  | Folds kept from the last time; see [folding](/editor/folding#folding)                                                                                                                                         |
 | `foldDefaults`   |                      |                  | Fold roles to collapse when a file opens without kept folds                                                                                                                                                        |
 | `line`, `column` |                      |                  | One-based, where the caret starts                                                                                                                                                                                  |
 | `scrollTop`      |                      |                  | In pixels, where the view starts; without it the caret's line is in view                                                                                                                                           |
@@ -35,15 +35,17 @@
 
 `setReadOnly` blocks typing, commands and `applyEdits`. `setText` still works, for a reload from disk.
 
+The types behind a few options: `theme` is an `EditorTheme`, a string id. `indentation` is an `EditorIndentation`. `messages` is a partial `EditorMessages`, and `setMessages` changes it later. `foldOutline` is an `EditorFoldOutline`.
+
 ## TODO comments
 
-A comment containing one of the `todoWords` (`TODO` and `FIXME` by default, whole words in any case) is drawn in `--editor-todo` italics from the word to the end of the comment's line, with a tick in the scroll track. Words in strings or code do not count. An empty list turns it off. `findTodos(text, language, options?)` returns the same `TodoMatch`es for a host that lists them.
+The editor draws a comment containing one of the `todoWords` (`TODO` and `FIXME` by default, whole words in any case) in `--editor-todo` italics from the word to the end of the comment's line, with a tick in the scroll track. Words in strings or code do not count. An empty list turns it off. `findTodos(text, language, options?)` returns the same `TodoMatch`es for a host that lists them.
 
 ## Zoom
 
 `runCommand('increaseFontSize')` and `runCommand('decreaseFontSize')` change the code size by one pixel, and `runCommand('resetFontSize')` returns to the page's `--code-font-size`. Ctrl or Cmd with the wheel, or a pinch, does the same unless `zoom.wheel` is `false`. The size stays in whole pixels between `zoom.min` and `zoom.max`, never below 12. Line height scales with it.
 
-Each zoom step goes to `onFontSizeChange` with the new size, or `null` after a reset. The host can store it and pass it back as `fontSize`, or apply it to other editors with `setFontSize`, which is not reported. `getFontSize()` returns the current size. The commands have no default chord, since other editors' zoom chords are fold keys here.
+Each zoom step goes to `onFontSizeChange` with the new size, or `null` after a reset. The host can store it and pass it back as `fontSize`, or apply it to other editors with `setFontSize`, which does not fire `onFontSizeChange`. `getFontSize()` returns the current size. The commands have no default chord, since other editors' zoom chords are fold keys here.
 
 `refreshFont()` measures the code font again. Call it after changing `--font-mono`, `--code-font-size` or `--code-line-height`, or after a web font loads.
 
@@ -88,7 +90,9 @@ const engine = createSmartEditorEngine({
 chordOf('duplicateLine', apple, keymap); // 'Mod+Shift+D'
 ```
 
-`resolveKeymap` fills every id the overrides leave out from `KEYMAP`. `parseChord` throws on a chord it cannot read, so validate stored chords first. A `KeyBinding` may carry `takenMac` or `takenOther` (`{ platform, by }`) to record that a platform also uses the chord. The editor ignores it.
+`resolveKeymap` takes `KeymapOverrides` and fills every id they leave out from `KEYMAP`, returning a full `Keymap`. A `KeymapId` names a command of the table, and `KEYMAP_IDS` lists them all, for a settings screen. Commands added after the first table are `OptionalKeymapId`s, so a `Keymap` written before them stays valid. `parseChord` throws on a chord it cannot read, so validate stored chords first. A `KeyBinding` may carry `takenMac` or `takenOther`, a `TakenKey` (`{ platform, by }`), to record that a platform also uses the chord. The editor ignores it.
+
+`typesInsteadOfChord(event, apple)` tells whether a Ctrl+Alt press off macOS types a character, as AltGr+Q types `@` on many layouts. Such a press does not match a chord. Keys that type nothing, such as arrows, always match. A host that matches its own chords uses it to leave typing alone.
 
 Two hooks let the app take keys:
 

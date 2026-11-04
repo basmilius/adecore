@@ -12,9 +12,9 @@ language.renderedDocs.toggleAt(line); // the comment that starts on a line
 
 ## Which comments
 
-A `/** ... */` comment on lines of its own is formatted, in TypeScript, JavaScript, Vue scripts, PHP and other languages with slash-star comments (Java, C#, Go, Rust, Kotlin, Swift, Dart). Plain `/* */` and `//` comments, banners of three or more stars, comments sharing a line with code, and text in a PHP heredoc or nowdoc are not. A quote inside a heredoc can hide the comments after it. `findDocComments(text, languageId)` of `@adecore/editor-core` and `@adecore/editor` returns them as `DocComment`s.
+The feature formats a `/** ... */` comment on lines of its own, in TypeScript, JavaScript, Vue scripts, PHP and other languages with slash-star comments (Java, C#, Go, Rust, Kotlin, Swift, Dart). It skips plain `/* */` and `//` comments, banners of three or more stars, comments sharing a line with code, and text in a PHP heredoc or nowdoc. A quote inside a heredoc can hide the comments after it. `findDocComments(text, languageId)` of `@adecore/editor-core` and `@adecore/editor` returns them as `DocComment`s.
 
-At most `MAX_DOC_COMMENTS` (500) comments per document are formatted; the rest stay text.
+It formats at most `MAX_DOC_COMMENTS` (500) comments per document; the rest stay text.
 
 ## What it shows
 
@@ -32,9 +32,9 @@ The description is Markdown. The tags follow, grouped by name, as a two-column l
 | `@since`, `@version`, `@author`            | The text                                                                       |
 | Any other tag                              | `tag:` and the text                                                            |
 
-JSDoc types go in braces (`{number}`). PHPDoc types without braces (`@param array<string, int> $filter`) are read in PHP only. `psalm-` and `phpstan-` prefixes read as the plain tag. A TSDoc dash between name and text is dropped.
+JSDoc types go in braces (`{number}`). The feature reads PHPDoc types without braces (`@param array<string, int> $filter`) in PHP only. `psalm-` and `phpstan-` prefixes read as the plain tag. A TSDoc dash between name and text is dropped.
 
-Inline `{@link Name}`, `{@link Name label}`, `{@link Name|label}`, `{@linkcode}`, `{@linkplain}` and `{@see}` are links; `{@code text}` is code. A fixed set of HTML elements (`p`, `br`, `b`, `strong`, `i`, `em`, `code`, `tt`, `kbd`, `pre`, `a`, `ul`, `ol`, `li`, `h1` to `h6`, `blockquote`, `hr`) and the common entities become Markdown. Other elements, such as `script` or `img`, are dropped with their content. Only `http`, `https` and `mailto` link targets survive. The feature never sets HTML from a comment, and images show as their alt text.
+Inline `{@link Name}`, `{@link Name label}`, `{@link Name|label}`, `{@linkcode}`, `{@linkplain}` and `{@see}` are links; `{@code text}` is code. A fixed set of HTML elements (`p`, `br`, `b`, `strong`, `i`, `em`, `code`, `tt`, `kbd`, `pre`, `a`, `ul`, `ol`, `li`, `h1` to `h6`, `blockquote`, `hr`) and the common entities become Markdown. It drops other elements, such as `script` or `img`, with their content. Only `http`, `https` and `mailto` link targets survive. The feature never sets HTML from a comment, and images show as their alt text.
 
 ## Switching
 
@@ -50,7 +50,7 @@ Cmd+click (Ctrl elsewhere) follows a name link through `workspace/symbol`. Witho
 
 ## Layout
 
-The block uses the code face for names and types, the interface face for prose, and the theme's colors. It is at most 520 pixels wide and sits at the comment's indentation. Folding a rendered comment shows the fold placeholder. Only comments in view are parsed and drawn.
+The block uses the code face for names and types, the interface face for prose, and the theme's colors. It is at most 520 pixels wide and sits at the comment's indentation. Folding a rendered comment shows the fold placeholder. The feature parses and draws only the comments in view.
 
 `LanguagePopups` draws the blocks. A host with its own popups reads `language.renderedDocs.getEntries()` with `useSyncExternalStore` and its `subscribe`, both called on the feature, and draws each `RenderedDocEntry` into its `container`. `entries()` builds a fresh list for code outside a render.
 

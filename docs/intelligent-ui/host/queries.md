@@ -140,8 +140,8 @@ const intelligentUi: ChatUiHost = {
 };
 ```
 
-`uiPlaceQueries(block, input?, queries?)` returns the complete Places with an address as `{ [nodeId]: { address, name } }`. The host calls `place` for at most `UI_HOST_LIMITS.places` (50) of them. `uiMayReferenceHost` is true for text with a `<Place` that has `address=`.
+`uiPlaceQueries(block, input?, queries?)` returns the complete Places with an address as `{ [nodeId]: { address, name } }`, each a `UiPlaceQuery`. The host calls `place` for at most `UI_HOST_LIMITS.places` (50) of them. `uiMayReferenceHost` is true for text with a `<Place` that has `address=`.
 
-Your `place` returns `found` with `lat`, `lon` and an optional `label`, or `missing` with an optional `code` and `reason`; the host adds the trimmed `address`. A reading applies only to a node whose current address matches. A lookup that throws, takes over five seconds or fails the schema is frozen as `missing` and never retried. A block has fifteen seconds for all its lookups; the rest freeze as `missing` with `timed-out`, and `signal` aborts. A reply settled while offline keeps `missing`.
+Your `place` returns `found` with `lat`, `lon` and an optional `label`, or `missing` with an optional `code` and `reason`; the host adds the trimmed `address`. A reading applies only to a node whose current address matches. A lookup that throws, takes over five seconds or fails the schema freezes as `missing`, and the host never retries it. A block has fifteen seconds for all its lookups; the rest freeze as `missing` with `timed-out`, and `signal` aborts. A reply settled while offline keeps `missing`.
 
-Without `place`, nothing is frozen and a map draws only the places the agent gave coordinates for. Leave it out if the host may not store coordinates.
+Without `place`, the host freezes no points and a map draws only the places the agent gave coordinates for. Leave it out if the host may not store coordinates.

@@ -1,6 +1,6 @@
 # Select
 
-A Base UI select styled as a menu. Arrows, Home and End, typeahead, Enter and Escape work out of the box.
+A Base UI select styled as a menu. Arrows, Home and End, typeahead, Enter and Escape work.
 
 ```tsx
 import { Select } from '@adecore/ui';

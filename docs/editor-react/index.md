@@ -1,6 +1,6 @@
-# @adecore/editor-react
+# Editor views
 
-Language features for [`@adecore/editor`](/editor/) over a [`LanguageService`](/lsp/language-service), with the React cards that show them: suggestions and snippets, hover, signature help, problems, go to definition, peek, rename, code actions, symbols, semantic colors, inlay hints, folds and code vision. The package starts no language server and touches no file. The app hands it a service and the file operations it allows.
+`@adecore/editor-react` adds language features to [`@adecore/editor`](/editor/) over a [`LanguageService`](/lsp/language-service), with the React cards that show them. It also draws diffs and reviews of what an agent proposed. The package starts no language server and touches no file. The app hands it a service and the file operations it allows.
 
 ```tsx
 import { EditorView, ProjectLanguage } from '@adecore/editor-react';
@@ -14,51 +14,47 @@ const project = new ProjectLanguage(service, { folder: '/shop', keymap, openPlac
 
 The demos run over [`FakeLanguageService`](/editor-react/testing), with answers from `docs/demos/shared/order-service.ts`. No server runs.
 
-## What is in it
+## What it does
 
-- [Getting started](/editor-react/getting-started): install, styles, translations and a first editor with a fake service.
-- [Projects and documents](/editor-react/project): `ProjectLanguage`, the operations the app hands it, shared documents, workspace edits and the problems of a project.
-- [EditorView](/editor-react/editor-view): the component, `EditorLanguage` for an editor mounted by hand, `LanguagePopups` and `AnchoredPopup`.
-- [Completion and signatures](/editor-react/completion), [Hover and problems](/editor-react/hover), [Navigation](/editor-react/navigation) and [Rename and code actions](/editor-react/rename): the features and their cards.
-- [FindReplace](/editor-react/find-replace): a find and replace bar.
-- [Call hierarchy](/editor-react/call-hierarchy), [Format on type](/editor-react/format-on-type), [Patch files](/editor-react/patch-files) and [Rendered documentation](/editor-react/rendered-documentation): callers and callees, typing-time formatting, editable `.patch` files and documentation comments drawn in place of their lines.
-- [Reviews and agents](/editor-react/change-review): `DiffView`, `ChangeReview`, `AttributionCard` and React in editor rows.
-- [Code vision](/editor-react/code-vision): usages and authors above declarations.
-- [Models](/editor-react/models): the pure functions behind the features.
-- [View state](/editor-react/view-state): where a file was scrolled, folded and left.
-- [Testing](/editor-react/testing): `FakeLanguageService` and `ManualTimers`.
+- Suggests completions and walks snippets, shows signatures, hover cards and problems, and colors code by its meaning.
+- Goes to definitions, peeks at references, walks call and type hierarchies, and keeps a history of places across files.
+- Renames across files and applies code actions, through workspace edits the app's file operations carry out.
+- Expands live templates, postfix templates and Emmet abbreviations, and closes and renames tags.
+- Shows usages and authors above declarations, and draws documentation comments as formatted text.
+- Draws diffs, proposed changes and agent attribution in the editor's font and colors.
+- Shares one document per file between the editors of a project, so a server hears each change once.
 
-## Entry points
+## What it leaves to the app
 
-| Import                                             | What it holds                                                                  |
-| -------------------------------------------------- | ------------------------------------------------------------------------------ |
-| `@adecore/editor-react`                            | The components, `ProjectLanguage`, `EditorLanguage`, the hosts and every model |
-| `@adecore/editor-react/models`                     | Only the [models](/editor-react/models), without React                         |
-| `@adecore/editor-react/testing`                    | `FakeLanguageService`, `ManualTimers` and the `LanguageCall` type              |
-| `@adecore/editor-react/editor-react.css`           | The styles of the cards                                                        |
-| `@adecore/editor-react/locales/en.json`, `nl.json` | The words of the `editor` namespace                                            |
+The app starts, stops and routes the language servers and implements the `LanguageService` over them. It owns the files. Reading, drafts, saving, renaming and deleting go through the `ProjectFiles` it hands over, with its own permission checks. Git stays with the app too; code vision takes a blame the app ran. Where a file opens, which keys open which bar, and what a toast looks like are the app's to decide through the [`LanguageHost`](/editor-react/project#languagehost).
 
-## Accessibility
+## Where to next
 
-The features work through the editor's [accessibility methods](/editor/#accessibility) and the words of the `editor` namespace, in English and Dutch:
-
-- The suggestion list and a snippet's choice list are listboxes. While one is open, the textarea points at it with `aria-controls` and at its active option with `aria-activedescendant`, so the option is read while focus stays in the text.
-- Moving to a problem says its severity and message, such as `Error: Cannot find name`.
-- A snippet says `Field 2 of 3` on each field, and `Field 1 of 3, 4 choices` when a field opens a choice list.
-- `EditorView` names the fold controls from `language.fold`.
-- [`DiffView`](/editor-react/change-review#accessibility) marks changed lines in text.
-
-The symbol picker is a dialog with its own input. Nothing here has been tested with a screen reader.
+- [Getting started](/editor-react/getting-started) installs the package, loads styles and words, and mounts a first editor with a fake service.
+- [Projects and documents](/editor-react/project) covers `ProjectLanguage`, the host, shared documents, language ids and the clipboard history.
+- [Workspace edits](/editor-react/workspace-edits) covers how an edit across files reaches the app's files.
+- [EditorView](/editor-react/editor-view) covers the component, `EditorLanguage` for an editor mounted by hand, the cards and how to draw your own.
+- [Completion and signatures](/editor-react/completion) and [Snippets](/editor-react/snippets) cover suggestions, signature help and snippet sessions.
+- [Hover, hints and colors](/editor-react/hover) and [Problems](/editor-react/problems) cover hover cards, inlay hints, semantic colors and diagnostics.
+- [Navigation](/editor-react/navigation), [Call hierarchy](/editor-react/call-hierarchy) and [Rename and code actions](/editor-react/rename) cover moving through code and changing it.
+- [Markup](/editor-react/markup), [Templates](/editor-react/templates) and [Links, colors and more](/editor-react/language-features) cover the smaller features, format on type included.
+- [FindReplace](/editor-react/find-replace) covers the find and replace bar.
+- [DiffView](/editor-react/diff-view), [Reviews and agents](/editor-react/change-review) and [Patch files](/editor-react/patch-files) cover diffs, proposals and editable patches.
+- [Code vision](/editor-react/code-vision) and [Rendered documentation](/editor-react/rendered-documentation) cover usages, authors and formatted doc comments.
+- [View state](/editor-react/view-state) covers where a file was scrolled, folded and left.
+- [Accessibility](/editor-react/accessibility) covers what a screen reader hears.
+- [Testing](/editor-react/testing) covers `FakeLanguageService` and `ManualTimers`.
+- [Models](/editor-react/models) and [Reference](/editor-react/reference) list the pure functions and every export.
 
 ## Limits
 
 - Features depend on the service. A feature only asks for methods the service supports; a command it lacks tells the person through `notify`.
 - The editor's limits hold: no bidirectional text, and its [performance limits](/editor/#limits).
-- Accessibility is [untested with a screen reader](#accessibility).
-- Snippets follow the LSP syntax, with transforms in a worker. Without `snippetTransformWorker`, variables stay untransformed and field transforms do not run. Oversized or deeply nested snippets insert as plain text. See [snippets](/editor-react/completion#snippets).
+- [Accessibility](/editor-react/accessibility) is untested with a screen reader.
+- Snippets follow the LSP syntax, with transforms in a worker. Without `snippetTransformWorker`, variables stay untransformed and field transforms do not run. Oversized or deeply nested snippets insert as plain text. See [snippets](/editor-react/snippets).
 - Inlay hint actions need a pointer; only the tooltip has a keyboard path, through Quick Info. See [inlay hints](/editor-react/hover#inlay-hints).
-- A server with neither semantic token deltas nor ranges is asked for the whole document after each pause in typing.
-- A workspace edit is refused when it would overwrite without `supportsOverwrite` or lose unsaved work, and a failure halfway does not roll back. See [workspace edits](/editor-react/project#workspace-edits).
-- Code vision rows are skipped in files over 20,000 lines.
+- A server with neither semantic token deltas nor ranges gets a request for the whole document after each pause in typing.
+- `applyWorkspaceEdit` refuses an edit that would overwrite without `supportsOverwrite` or lose unsaved work, and a failure halfway does not roll back. See [workspace edits](/editor-react/workspace-edits).
+- Files over 20,000 lines get no code vision rows.
 
 The package is FSL-1.1-MIT.

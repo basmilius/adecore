@@ -62,11 +62,12 @@
         },
         {
             title: 'Platform',
-            summary: 'The Electron main process, a background service and a database client.',
+            summary: 'The Electron main process, a background service, a database client and the helpers they share.',
             packages: [
                 {name: 'Shell', link: '/shell/', blurb: 'Menus, updates and windows'},
                 {name: 'Service', link: '/service/', blurb: 'A launchd job or systemd service'},
-                {name: 'Database', link: '/database/', blurb: 'Browse and query SQLite and MySQL'}
+                {name: 'Database', link: '/database/', blurb: 'Browse and query SQLite and MySQL'},
+                {name: 'Utils', link: '/utils/', blurb: 'Deadlines, atomic writes and path checks'}
             ]
         },
         {

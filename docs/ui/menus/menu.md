@@ -30,7 +30,7 @@ import { Menu } from '@adecore/ui';
 
 A menu opens under its trigger, start-aligned, 6 pixels away and at least 200 pixels wide. A submenu lines its first row up with the row that opened it. `Menu.Popup` takes Base UI's placement props (`side`, `align`, `sideOffset`, `alignOffset`, `collisionPadding`, `collisionBoundary`, `collisionAvoidance`, `anchor`, `sticky`, `positionMethod`). A long menu scrolls.
 
-Doubled separators, and separators at the top or bottom, are hidden, so conditional rows never leave a stray line.
+The menu hides doubled separators, and separators at the top or bottom, so conditional rows never leave a stray line.
 
 ## Checks and labels
 

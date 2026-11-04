@@ -29,7 +29,7 @@ Each node loads when opened. A failed node shows the error with Try again.
 
 After a [schema change](/database/api/client#schema-changes), such as an apply in the [designer](/database/views/table-designer) or a `DROP` in a [console](/database/views/query-console), open lists reload. A connection with a changed config reloads from scratch.
 
-System schemas, such as `information_schema` and `mysql`, are hidden unless `showSystemSchemas` is set. The filter field narrows loaded tables only. With `storage` on the provider the explorer remembers open nodes per connection.
+The explorer hides system schemas, such as `information_schema` and `mysql`, unless `showSystemSchemas` is set. The filter field narrows loaded tables only. With `storage` on the provider the explorer remembers open nodes per connection.
 
 ## Selecting and opening
 
@@ -83,7 +83,7 @@ The tree takes one tab stop. The arrow keys move, Right and Left expand and coll
 | Table or view    | Open data, Open structure, Edit table, New console here, Copy name, Copy DDL, Rename…, Truncate…, Drop… |
 | Column           | Open, Copy name                                                                                         |
 
-- Without `onAction` on the provider, the items that ask the app are hidden: open, console, New table, Edit table and Edit connection.
+- Without `onAction` on the provider, the explorer hides the items that ask the app: open, console, New table, Edit table and Edit connection.
 - A read only connection hides New table, Edit table, Rename, Truncate and Drop. A view has no Edit table, Rename or Truncate.
 - New console here starts with a `SELECT` of the table, in its schema.
 - Disconnect closes the connection's sessions and collapses it until reopened.

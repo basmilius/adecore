@@ -51,7 +51,7 @@ export function Workspace() {
 | `ReadImage`                        | Nothing under a tool that read an image            | A component that draws the image at `path`.                                                            |
 | `MarkdownImage`                    | An image in a reply loads its target as written    | A component that draws the image at `path`, a file a reply names, absolute or under the chat's cwd.    |
 | `ModelView`                        | A model shows as a row with its name and caption   | A component that draws the 3D model of a [Model](/intelligent-ui/components/content#model) block from `UiModelViewProps`. |
-| `intelligentUi`                    | Choices stay closed, live values and links stay as first read | `sendChoice`, `query`, `link`, `openLink`, `openUrl` and `subscribe` for [Intelligent UI](/intelligent-ui/guide/getting-started#draw-the-blocks) blocks. |
+| `intelligentUi`                    | Choices stay closed, live values and links stay as first read | `sendChoice`, `query`, `link`, `openLink`, `openUrl` and `subscribe` for [Intelligent UI](/intelligent-ui/getting-started#draw-the-blocks) blocks. |
 | `fileLinks`                        | Paths in a reply stay text                         | `target(text, cwd, scopeId)` finds a `FileRef`; `open(cwd, ref, scopeId)` opens it.                   |
 | `code`                             | Light, `github-light` and `github-dark`            | `useMode()` for light or dark, `useThemes()` for the Shiki themes, `custom` for your own themes. Optional `syntaxWorker()`, `highlighter()` and `editor()`, see [Diff syntax worker](#diff-syntax-worker). |
 | `useStreaming()`                   | `words`                                            | How a reply appears while it streams: `words`, `blocks` or `whole`.                                    |
@@ -98,6 +98,16 @@ export function Workspace() {
 
 A default leaves a part out; it is not a policy. A view's `disabled` stops nothing, so the host checks every request itself.
 
+Some fields take a type of their own:
+
+- `useTimelineFind` gets `TimelineFindOptions`: the chat, the frame, the thread and its scroller.
+- `dictation` holds a `Textarea` with `TextareaProps` (the props of a `textarea` plus a `buttonClassName`) and a composer control with `ComposerDictationProps`: the editor, the row it sits in and whether it is disabled.
+- `useChatPlace` returns a `ChatPlace`, `{ title, go() }`.
+- `tasks` returns a `SubagentTask` per row: its status, when it started and settled, and `paused` while it waits out a limit.
+- `useThreadCards` returns `ThreadCard`s, and `useReplyAuthor` a `ReplyAuthor`.
+- `accents` lists `AccentChoice`s, `{ id, color }`.
+- `ComposerHeaderSlot` gets `ComposerHeaderSlotProps`, and `SubagentSlot` gets `SubagentSlotProps`.
+
 ## Actions
 
 The views run every action on a chat through a `ChatActions`, from stop and compact to approvals and goals. Without the optional `goal`, the goal row offers no buttons. Without the optional `toolOutput`, a truncated tool output shows only its beginning. With `actions: null`, each action is the request of the same name on the scope's transport (`transportActions(transport)`). `useChatActions()` and `actionsOf(scope, host)` return the set in use.
@@ -123,7 +133,7 @@ const CHAT_HOST: Partial<ChatHost> = { actions };
 
 ## Slots and cards
 
-`renderShellCodeBlock` puts a small control of your own beside Copy on every top-level `sh`, `bash` or `zsh` fence in the chat's replies. It is not called for a person's messages, thinking, tool output, reports, nested fences or a subagent's conversation. It gets a `ShellCodeBlockContext` with `scopeId`, `chatId`, `itemId`, `language`, `code` (the fence body exactly as written) and `complete`. `complete` turns true once the fence is closed and the reply stopped streaming. Check the command again in the host before it runs.
+`renderShellCodeBlock` puts a small control of your own beside Copy on every top-level `sh`, `bash` or `zsh` fence in the chat's replies. The views never call it for a person's messages, thinking, tool output, reports, nested fences or a subagent's conversation. It gets a `ShellCodeBlockContext` with `scopeId`, `chatId`, `itemId`, `language`, `code` (the fence body exactly as written) and `complete`. `complete` turns true once the fence is closed and the reply stopped streaming. Check the command again in the host before it runs.
 
 ```tsx
 const CHAT_HOST: Partial<ChatHost> = {
@@ -163,7 +173,7 @@ const CHAT_HOST: Partial<ChatHost> = { useComposerSendActions: () => REPEAT };
 
 ## Visuals
 
-A thread draws the pages an agent published only when `visuals` is set. A `VisualHost` is `{ frameUrl, openLink(url), actions? }`:
+A thread draws the pages an agent published only when the host sets `visuals`. A `VisualHost` is `{ frameUrl, openLink(url), actions? }`:
 
 - `frameUrl` is where you serve the sandbox host page, [`VISUAL_HOST_PAGE`](/agent-contracts/visuals#serving-a-page) from `@adecore/agent-contracts/visual`.
 - `openLink(url)` opens an http or https link from a visual outside the app.

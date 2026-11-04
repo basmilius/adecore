@@ -1,6 +1,6 @@
 # Intelligent UI renderers
 
-An agent can answer with a block of components: a summary, a table, a checklist, choices. [`@adecore/intelligent-ui`](/intelligent-ui/) compiles and evaluates the block; the renderers here draw it. The [language](/intelligent-ui/language/syntax), the [components](/intelligent-ui/components/status) and the [host integration](/intelligent-ui/guide/getting-started) have their own pages.
+An agent can answer with a block of components: a summary, a table, a checklist, choices. [`@adecore/intelligent-ui`](/intelligent-ui/) compiles and evaluates the block; the renderers here draw it. The [language](/intelligent-ui/language/syntax), the [components](/intelligent-ui/components/status) and the [host integration](/intelligent-ui/getting-started) have their own pages.
 
 <Demo src="agents/intelligent-ui" />
 
@@ -24,7 +24,7 @@ import { UiReply } from '@adecore/agents-react/chat/ui';
 
 ## What the host supplies
 
-A renderer never sends a message, reads a path or opens an address itself. Everything a block does outside itself goes through `ChatHost.intelligentUi`. Leave a callback out and that part stays quiet.
+A renderer never sends a message, reads a path or opens an address itself. Everything a block does outside itself goes through `ChatHost.intelligentUi`. Leave a callback out and that part does nothing.
 
 | Callback | Without it |
 | --- | --- |
@@ -44,7 +44,7 @@ A `Map` reads its tiles from `ChatHost.maps.useSource(scopeId)`, which returns a
 | `{ state: 'tiles' }` | `styleUrl(theme)` returns the style document for `light` or `dark`. `transformRequest(url)` may add a ticket to a request's address or `headers`; return any other origin's `url` untouched, so the ticket stays with your service. `labelField(language)` names the feature property with labels in that language. `attribution` is drawn under the map. |
 | `{ state: 'off' }` | `reason` is `disabled`, `signed-out` or `unavailable`, shown under the map. |
 
-Without `maps`, or when tiles fail or the page is offline, a map draws a built-in world outline and says why. The list of places is always drawn, for screen readers too.
+Without `maps`, or when tiles fail or the page is offline, a map draws a built-in world outline and says why. The block always draws the list of places, for screen readers too.
 
 MapLibre GL JS (`maplibre-gl` 6, BSD-3-Clause) draws the map in a lazy chunk of about 300 kB gzipped plus a worker. Each map holds a WebGL context, so at most `MAX_LIVE_MAPS` draw at once; another waits behind a Show map button.
 
@@ -56,7 +56,7 @@ const workerUrl = new URL('maplibre-gl/dist/maplibre-gl-worker.mjs', import.meta
 
 A checkout linked through the `source` condition needs no `workerUrl`. A Content Security Policy needs `worker-src` for the page's origin (`blob:` for a worker from another origin), `img-src` and `connect-src` for the tile service, and `data:` images. It needs no `'unsafe-eval'`.
 
-Markers are numbered like the list, and clicking one picks its place. The map ignores the wheel and one finger until Ctrl or Command is held or two fingers are used. The tokens `--map-land` and `--map-water` paint the outline, `--map-marker` and `--map-marker-text` the numbers; see [Places](/intelligent-ui/components/places).
+Markers are numbered like the list, and clicking one picks its place. The map ignores the wheel and one finger until a person holds Ctrl or Command or uses two fingers. The tokens `--map-land` and `--map-water` paint the outline, `--map-marker` and `--map-marker-text` the numbers; see [Places](/intelligent-ui/components/places).
 
 A visible block refreshes its live data on an interval and shortly after an input changes. Choices stay closed until the reading matches the inputs on screen. [Live queries](/intelligent-ui/host/queries) and [links](/intelligent-ui/host/links) cover the backend side.
 
@@ -88,7 +88,17 @@ const element = renderer === null ? null : createElement(renderer, { node, conte
 
 A renderer gets `UiRendererProps`: the evaluated `UiViewNode`, its rendered `children` and the block's `UiRenderContext`. The context has the block's `phase` (`streaming` or `final`), its `answer`, and the host callbacks as `link`, `openLink`, `openUrl` and `onChoose`. An input changes state only through `node.bindings.value.onValueChange`, a Button only through `node.onAction()`.
 
-`UiBlockFrame` is the card around a block, with a footer for live status, the answer and compiler notes. A part this version cannot draw shows as its Markdown. The [reference](/agents-react/reference#intelligent-ui) lists every module and its exports.
+A renderer is a `UiRenderer` for the props of its component. In the context, `link` answers a `UiLink` (a `chip` it can open or `plain` text, with a label), a Place's point is a `UiPlacePoint` in decimal degrees, and `answer` is a `UiAnswer`: the choice and whether it is `sending`, `sent` or `queued`. A live value is a `UiLiveValue`, with the previous reading and whether it changed or went stale.
+
+`UiBlockFrame` is the card around a block, with a footer for live status, the answer and compiler notes. A part this version cannot draw shows as its Markdown. Its props are `UiBlockFrameProps`. The footer on its own takes `UiBlockFooterProps`: the live status as a `UiLiveStatus` (fresh, reading, failed or refused, what it reads and when), the answer, and the notes as `UiBlockFix` records, `{ code, message }`.
+
+A few helpers draw the data of a block for a renderer of your own:
+
+- `uiChartData(data, kind)` returns the series a chart can draw as `UiChartData`: the labels, a `UiChartSeries` per numeric key (the first six), and the axis range. It returns `null` without rows or series. `UiChartValues` is the labels and series alone.
+- `uiTableColumns(node)` returns the `UiTableColumn`s a table can draw, each with its key, title, unit and `UiColumnKind`.
+- `uiNodeLabel(node)` returns a node's text on one line, for a control or a screen reader that needs a string.
+
+The [reference](/agents-react/reference) lists every export.
 
 ## Words and accessibility
 

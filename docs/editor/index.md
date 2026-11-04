@@ -1,9 +1,9 @@
-# @adecore/editor
+# Editor
 
-A code editor for the DOM. It draws a [`DocumentModel`](/editor-core/), renders only the rows in view, and takes keys, mouse, clipboard and input methods through one hidden textarea. It knows no language server. The host hands it markers, hints, colors and rows, and [`@adecore/editor-react`](/editor-react/) does that for an LSP language service.
+`@adecore/editor` is a code editor for the DOM. It draws a [`DocumentModel`](/editor-core/), renders only the rows in view, and takes keys, mouse, touch, clipboard and input methods through one hidden textarea. It knows no language server. The host hands it problem markers, hints, colors and rows. [`@adecore/editor-react`](/editor-react/) does that for a language service.
 
 ```ts
-import { createSmartEditorEngine } from '@adecore/editor';
+import { createSmartEditorEngine, shikiTokenizers } from '@adecore/editor';
 
 const engine = createSmartEditorEngine({ tokenizer: shikiTokenizers(getHighlighter) });
 const editor = engine.mount(element, { text, language: 'typescript', theme: 'github-light' });
@@ -13,63 +13,45 @@ const editor = engine.mount(element, { text, language: 'typescript', theme: 'git
 
 The demos color TypeScript with a small tokenizer instead of Shiki; see [Theme and syntax](/editor/theme).
 
-## What is in it
+## What it does
 
-- [Getting started](/editor/getting-started): install, styles, mounting, engine options and teardown.
-- [Options and keymaps](/editor/options): every mount option with its setter, the smart keys and the key table.
-- [Text and events](/editor/editing): positions, replacing text, undo steps, selections, change events and tracked ranges.
-- [Decorations](/editor/decorations): problem markers, inlay hints, highlights, semantic colors, change marks and gutter buttons.
-- [Rows and widgets](/editor/rows): host DOM between lines, virtual code, line highlights, line actions and code vision.
-- [Agents](/editor/agents): attribution bars, agent carets and ghost text.
-- [Find and folding](/editor/find-folding): the find matcher, persistent folds and sticky scroll.
-- [Theme and syntax](/editor/theme): CSS tokens, Shiki and a tokenizer of your own.
-- [Testing](/editor/testing): a real editor on a page without a browser, and a fake one.
+- Edits with the commands of the model: multiple carets, smart Enter, bracket pairing, moving statements, column selection.
+- Maps every key through one table with a chord per platform, which the app can override and print in its menus.
+- Colors code with Shiki or a tokenizer of the app's own, and layers a language server's semantic colors over it.
+- Draws what the host knows: problems, inlay hints, change marks, gutter buttons, line highlights, code vision and agent carets.
+- Puts the host's own DOM between lines, after a line or in place of lines, and keeps it there while the text changes.
+- Finds and replaces, with regular expressions in a worker, and folds by brackets, indentation and a language server's ranges.
+- Scales to large files: it draws only the rows in view and colors only the lines near them.
 
-## Entry points
+## What it leaves to the app
 
-| Import                       | What it holds                                                                                                                               |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@adecore/editor`            | `createSmartEditorEngine`, the `Editor` contract and its types, `DEFAULT_SMART_KEYS`, `AGENT_COLORS`, `shikiTokenizers`, `shikiScopeColors` |
-| `@adecore/editor/editor.css` | The styles of the editor                                                                                                                    |
-| `@adecore/editor/shiki`      | The Shiki adapters plus `loadGrammar` and `documentLanguageOf`                                                                              |
-| `@adecore/editor/keymap`     | `KEYMAP`, `KEYMAP_IDS`, `resolveKeymap`, `chordOf`, `parseChord`                                                                            |
-| `@adecore/editor/fake`       | `FakeEditor` and `FakeEditorEngine`, for tests of host code                                                                                 |
-| `@adecore/editor/testing`    | `mountEditor` and the helpers behind it, on a LinkeDOM page                                                                                 |
+The editor holds text, not files. Reading, saving, drafts and save permissions stay with the host, and Mod+S only calls the `onSave` listeners. It draws no find bar, context menu, hover card or suggestion list; the app or [`@adecore/editor-react`](/editor-react/) draws those over the positions the editor reports. Which agent wrote a line, which lines Git marks as changed and when to accept a suggestion are the app's to decide.
 
-## Accessibility
+## Where to next
 
-Assistive technology reads the hidden textarea, and the keyboard types into it. It holds the text around the caret, mirrors the selection and describes the caret's line and column. On top of that:
-
-- `aria-label` comes from the `label` option, and `aria-multiline` is set.
-- `setInputPopup({ controls, activeDescendant })` points the textarea at a list beside the text, such as suggestions. It sets `aria-expanded="true"`, `aria-autocomplete="list"`, `aria-controls` and `aria-activedescendant`, and focus stays in the text. `null` removes all four. The role stays `textbox`, which does not allow `aria-expanded`, so a checker may flag it.
-- `announce(message)` speaks a sentence through a hidden polite live region. It draws nothing. A sentence repeated is heard twice.
-- `setLineLabels(labels)` gives a zero-based line a hidden sentence in its gutter, such as `Added, new line 12`. A labeled line hides its drawn number and sign from assistive technology, so the sentence must include the number.
-- The gutter fold controls are buttons with `aria-expanded` and names like `Fold lines 3 to 9`. `messages.fold` and `messages.unfold` take `{start}` and `{end}` placeholders, and `setMessages` changes them later. The controls are outside the tab order (`tabindex="-1"`). Keyboard users fold through the [fold commands](/editor/find-folding#folding).
-
-No screen reader has tested any of this. The attributes are checked in LinkeDOM tests only.
-
-## Touch
-
-Touch works without setup:
-
-- Dragging scrolls natively (`touch-action: pan-x pan-y pinch-zoom`), with pinch zoom but no double-tap zoom. A drag never selects.
-- A tap places the caret and opens the on-screen keyboard. A tap on a line number selects the line.
-- A double tap selects the word. A half-second hold selects the word under the finger and then fires `onContextMenu`.
-- The textarea asks for plain text: no capitalization, correction or spell checking, `inputmode="text"` and `enterkeyhint="enter"`.
-- When the on-screen keyboard resizes the visual viewport, the caret scrolls back into view. This needs `window.visualViewport`.
-
-A pen behaves like a mouse. There are no selection handles. Touch was tested with synthesized events in LinkeDOM only, never on a real device.
+- [Getting started](/editor/getting-started) installs the package, loads the styles and mounts a first editor.
+- [Options and keymaps](/editor/options) covers every mount option with its setter, the smart keys and the key table.
+- [Text and events](/editor/editing) covers positions, edits, saving, change events, selections, the clipboard and tracked ranges.
+- [Decorations](/editor/decorations) covers problems, inlay hints, highlights, semantic colors, change marks and gutter buttons.
+- [Rows and widgets](/editor/rows) covers host DOM between lines, virtual code, line highlights, line actions and code vision.
+- [Agents](/editor/agents) covers attribution bars, agent carets and ghost text.
+- [Find](/editor/find) covers the find matcher and the search worker.
+- [Folding and structure](/editor/folding) covers kept folds, sticky scroll and moving through a file's blocks.
+- [Theme and syntax](/editor/theme) covers the CSS tokens, Shiki and a tokenizer of your own.
+- [Accessibility and touch](/editor/accessibility) covers what a screen reader hears and what a finger does.
+- [Testing](/editor/testing) covers a real editor on a page without a browser, and a fake one.
+- [Reference](/editor/reference) lists every export and what changed for an older `Editor` or key table.
 
 ## Limits
 
-- No bidirectional layout. Right-to-left text is drawn left to right with `unicode-bidi: bidi-override`, so letters stay in the columns the caret uses.
-- Bidirectional control characters (U+202A to U+202E, U+2066 to U+2069, U+200E, U+200F and U+061C) are drawn as a boxed three-column label such as `RLO`. The box is visual only and never enters a line's text, since an override could make code read differently from what it does. The caret steps over it as one character, and the document, copy and cut keep the character. Inlay hints, ghost text and input method composition show `[RLO]`. The labels cannot be turned off.
-- [Accessibility](#accessibility) is untested with any screen reader (NVDA, JAWS, VoiceOver, Orca).
-- A line longer than 20,000 characters is not colored.
+- No bidirectional layout. The editor draws right-to-left text left to right with `unicode-bidi: bidi-override`, so letters stay in the columns the caret uses.
+- The editor draws bidirectional control characters (U+202A to U+202E, U+2066 to U+2069, U+200E, U+200F and U+061C) as a boxed three-column label such as `RLO`. The box is visual only and never enters a line's text, since an override could make code read differently from what it does. The caret steps over it as one character, and the document, copy and cut keep the character. Inlay hints, ghost text and input method composition show `[RLO]`. The labels cannot be turned off.
+- [Accessibility](/editor/accessibility) is untested with any screen reader (NVDA, JAWS, VoiceOver, Orca).
+- The editor does not color a line longer than 20,000 characters.
 - Every edit rebuilds the row list, linear in the line count.
 - Documents over 2 million characters skip folding ranges and occurrence marks.
-- Regular expression search runs only in the search worker, with a deadline. Without a worker it reports unavailable. Literal search runs on the page and caps at 10,000 matches. Folding and selection expansion scan the whole document on the page. See [find and folding](/editor/find-folding#search-worker).
+- Regular expression search runs only in the search worker, with a deadline. Without a worker it reports unavailable. Literal search runs on the page and caps at 10,000 matches. Folding and selection expansion scan the whole document on the page. See [the search worker](/editor/find#search-worker).
 - Wrapped lines break at spaces, or inside a word that does not fit, and continue at the line's indentation plus two columns.
-- Documentation comments are plain text unless the host renders them with [`setReplacements`](/editor/rows#replacing-lines), as [`@adecore/editor-react`](/editor-react/rendered-documentation) does. Find marks and selections inside a replaced row are not drawn.
+- Documentation comments are plain text unless the host renders them with [`setReplacements`](/editor/rows#replacing-lines), as [`@adecore/editor-react`](/editor-react/rendered-documentation) does. The editor draws no find marks or selections inside a replaced row.
 
 The package is FSL-1.1-MIT.

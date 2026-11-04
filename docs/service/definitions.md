@@ -23,7 +23,7 @@ Every field but `user` and `scriptDirectory` is required, even on platforms that
 | `user` | `string`, optional | The account a scheduled task starts for at logon, as `DOMAIN\name`. Only the task reads it, and requires it. |
 | `scriptDirectory` | `string`, optional | The folder of the script a scheduled task runs. Only the task reads it, and requires it. |
 
-The systemd unit is named by the manager's `unitName`, not by the spec.
+The manager's `unitName` names the systemd unit, not the spec.
 
 ## What the definitions hold
 

@@ -15,15 +15,15 @@ const theme = createTheme({
     }
 });
 
-// The app's own handler, behind its check of the sender.
-onFromApp('window:theme', (_event, state: ThemeState) => theme.apply(state));
+// `ipc` is the app's createAppIpc, which checks the sender first.
+ipc.on('window:theme', (_event, state: ThemeState) => theme.apply(state));
 
 const window = new BrowserWindow({ ...bounds, ...theme.windowOptions(), show: false });
 ```
 
-`windowOptions()` returns a new window's chrome and background. On macOS that is the inset traffic lights (`trafficLights`, 17 by 17 by default). Elsewhere it is a hidden title bar with the `overlay` controls drawn over the page, or no controls without `overlay`. A new window opens in the current theme, or dark with `background` before any page reported one.
+`windowOptions()` returns a new window's chrome and background. On macOS that is the inset traffic lights (`trafficLights`, 17 by 17 by default). Elsewhere it is a hidden title bar with the `overlay` controls drawn over the page, or no controls without `overlay`. With `nativeFrame`, a window off macOS keeps the system's own title bar and menu bar, and the overlay colors are never applied. A new window opens in the current theme, or dark with `background` before any page reported one.
 
-`overlay` holds one color pair per theme. A page whose background changes within a theme, such as a palette picker, can report its control colors in `ThemeState.overlay`. Those win over the theme's pair on every window until a state without them arrives. Only `color` and `symbolColor` are read. macOS ignores them.
+`overlay` holds one color pair per theme. A page whose background changes within a theme, such as a palette picker, can report its control colors in `ThemeState.overlay`. Those win over the theme's pair on every window until a state without them arrives. The shell reads only `color` and `symbolColor`. macOS ignores them.
 
 ```ts
 // In the page, on every change of the theme or the palette.
@@ -37,4 +37,4 @@ desktop.setTheme({
 
 `nativeTheme.themeSource` is `system` only while the app follows the system. Otherwise it is the app's choice, so a page inside a `<webview>` follows the app too.
 
-`current()` returns the last `ThemeState` applied, or `null` before the first. `Theme`, `ThemeOptions` and `TitleBarOverlay` are exported types.
+`current()` returns the last `ThemeState` applied, or `null` before the first. `Theme`, `ThemeOptions` and `TitleBarOverlay` are exported types; the [reference](/shell/reference#themeoptions) lists the options.

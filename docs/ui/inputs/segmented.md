@@ -20,7 +20,7 @@ With `iconOnly` each option is a square with its icon, and the label becomes its
 
 ## A disabled option
 
-An option with `disabled: true` is dimmed and skipped by the keyboard and the tab stop.
+An option with `disabled: true` dims, and the keyboard and the tab stop skip it.
 
 <Demo src="inputs/segmented-disabled" />
 

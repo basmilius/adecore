@@ -1,6 +1,6 @@
 # Application menu
 
-The page knows what has focus, so it builds the menu. It sends a `MenuSpec`, a tree of `MenuNode`s, over IPC whenever focus changes. The shell draws it natively and sends a picked command back by id. Every label comes from the page, so the menu speaks the interface's language.
+The page knows what has focus, so it builds the menu. It sends a `MenuSpec`, a tree of `MenuNode`s, over IPC whenever focus changes. The shell draws it natively and sends a picked command back by id. Every label comes from the page, so the menu is in the language of the interface.
 
 ## The shape
 
@@ -50,8 +50,8 @@ const runCommand = createMenuCommands({ pageKeys, window: () => BrowserWindow.ge
 
 window.webContents.on('before-input-event', (_event, input) => pageKeys.saw(input));
 
-// The app's own handler, behind its check of the sender.
-onFromApp('menu:set', (_event, spec: MenuSpec<ShellAction>) => {
+// `ipc` is the app's createAppIpc, which checks the sender first.
+ipc.on('menu:set', (_event, spec: MenuSpec<ShellAction>) => {
     const template = menuTemplateOf(spec, {
         run: runCommand,
         shellItem: (action, label) =>
@@ -64,13 +64,37 @@ onFromApp('menu:set', (_event, spec: MenuSpec<ShellAction>) => {
 });
 ```
 
-Off macOS an accelerator is shown but never registered, so keys such as Ctrl+W reach the page.
+Off macOS the menu shows an accelerator but never registers it, so keys such as Ctrl+W reach the page.
+
+`devToolsAccelerator()` returns the developer tools shortcut of the platform: Alt+Command+I on macOS, Ctrl+Shift+I elsewhere. The shell draws its own item rather than the `toggleDevTools` role, because that role opens the tools of whichever page has the keyboard, which may be a guest page.
+
+## Running a command in the page
+
+`createMenuCommands` returns the `run` function for `menuTemplateOf`. A picked command reaches the page of `window()` as `menu:run` with its id, and the preload hands it on:
+
+```ts
+// Preload
+contextBridge.exposeInMainWorld('desktop', {
+    onMenuCommand: ipcSubscriber(ipcRenderer)<[id: string]>('menu:run')
+});
+
+// Page
+useEffect(() => desktop.onMenuCommand((id) => commands.run(id)), []);
+```
+
+Only a minimized window is shown first, since showing a window also activates the app.
 
 ## A key the page already had
 
 On macOS the menu fires its accelerator even when the page handled the key. `createMenuCommands` drops an accelerator-fired command when `createPageKeys` saw a Cmd or Ctrl key in the page within the last second. A mouse pick always runs.
 
-`keyBypassesPage` covers an embedded page that never passes keys on, such as a `<webview>`. While it has the keyboard, the menu answers every key. A command reaches the page as `menu:run` with its id. Only a minimized window is shown first.
+Feed the page keys every key of every app window. `saw` takes a `PageKey`, `{ type, meta, control }`, which the input of `before-input-event` already is:
+
+```ts
+window.webContents.on('before-input-event', (_event, input) => pageKeys.saw(input));
+```
+
+`keyBypassesPage` covers an embedded page that never passes keys on, such as a `<webview>`. While it returns true, the menu answers every key.
 
 ## The menu before the page's
 
@@ -94,4 +118,4 @@ Menu.setApplicationMenu(
 
 `appItems` go at the top of the app menu on macOS. `quitItems` go right above Quit, which sits in the File menu off macOS. `fileItems` get their own File menu on macOS and lead the File menu elsewhere. On macOS this menu is the only way to open a window after the last one closes. An item whose accelerator the page also answers can call `pageKeys.take()` to drop a key the page already had, as `createMenuCommands` does.
 
-`MenuTemplateOptions`, `MenuCommandOptions`, `MenuWindow` (the part of a window a command reaches), `StaticMenuOptions`, `PageKey` and `PageKeys` are exported types.
+`MenuTemplateOptions`, `MenuCommandOptions`, `MenuWindow` (the part of a window a command reaches), `StaticMenuOptions`, `PageKey` and `PageKeys` are exported types. The [reference](/shell/reference#menu-options) lists their fields.
