@@ -67,7 +67,6 @@ The root exports everything below. Each group also has its own subpath for bundl
 | `@adecore/agent-contracts/visual`            | A chat's visuals, the bridge to their page, its theme and its bootstrap. See [Visuals](/agent-contracts/visuals). |
 | `@adecore/agent-contracts/ids`               | `SessionIdSchema` and `SessionId`.                                                                |
 | `@adecore/agent-contracts/text`              | `clipText`, `appendToolOutput` and `TOOL_OUTPUT_TAIL`.                                            |
-| `@adecore/agent-contracts/record`            | `isRecord`, which tells a plain object from an array or `null`.                                   |
 
 The [source](https://github.com/basmilius/adecore/tree/main/packages/agent-contracts/src) documents every field.
 

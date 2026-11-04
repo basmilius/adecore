@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { EventEmitter } from 'node:events';
 import { Readable, Writable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
-import { isRecord, type ModelSelection, type RuntimeMode } from '@adecore/agent-contracts';
+import type { ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { asError } from '@adecore/utils/errors';
+import { isRecord } from '@adecore/utils/record';
 import type {
     CanUseTool,
     EffortLevel,

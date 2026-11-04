@@ -18,7 +18,6 @@ const ENTRIES: Record<string, string> = {
     './port': 'port.ts',
     './protocol': 'protocol.ts',
     './provider-accounts': 'provider-accounts.ts',
-    './record': 'record.ts',
     './task': 'task.ts',
     './text': 'text.ts',
     './usage': 'usage.ts',

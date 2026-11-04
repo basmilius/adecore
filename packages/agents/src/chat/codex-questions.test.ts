@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { codexProvider } from '../providers/codex-provider.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';

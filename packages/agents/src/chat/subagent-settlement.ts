@@ -1,5 +1,5 @@
 import { open, stat } from 'node:fs/promises';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 
 // The end of a transcript is all the question needs; a final line longer than this reads as undecided.
 const TAIL_BYTES = 1024 * 1024;

@@ -1,7 +1,8 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { link, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { isRecord, attachmentImageMime, type ChatAttachment, type ChatAttachmentUpload } from '@adecore/agent-contracts';
+import { attachmentImageMime, type ChatAttachment, type ChatAttachmentUpload } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 
 // The extension the file gets on disk when its name does not carry a usable one.
 const EXTENSIONS: Record<string, string> = {

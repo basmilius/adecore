@@ -1,5 +1,6 @@
 import { join } from 'node:path';
-import { clipText, isRecord } from '@adecore/agent-contracts';
+import { clipText } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { isForkOrSubagent } from '../usage/readers/codex.ts';
 import { claudeProjectSlug, spokenText } from './claude-transcript.ts';
 

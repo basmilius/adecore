@@ -1,5 +1,5 @@
+import { isRecord } from '@adecore/utils/record';
 import { z } from 'zod';
-import { isRecord } from './record.ts';
 import { visualViewportScript } from './visual-viewport.ts';
 
 /*

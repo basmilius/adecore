@@ -12,14 +12,10 @@ Files, processes, watching, serialization and errors, shared by the other entrie
 
 | Module | Exports |
 | --- | --- |
-| [`async`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/async.ts) | `wait`, `withTimeout`, `cancellableTimeout`, `unrefTimeout`, `Timer` |
 | [`coded-error`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/coded-error.ts) | `CodedError` |
-| [`error-text`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/error-text.ts) | `describeError`, `setErrorStacks`, `errorText` |
-| [`fs`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/fs.ts) | `tempNameFor`, `writeAtomic`, `replaceSync`, `writeAtomicSync`, `hasErrorCode`, `isNotFound`, `fileExists`, `entryExists`, `WriteAtomicOptions` |
+| [`error-text`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/error-text.ts) | `setErrorStacks`, `errorText` |
 | [`record-directory`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/record-directory.ts) | `RecordDirectory`, `RecordDirectoryOptions` |
 | [`run-process`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/run-process.ts) | `runProcess`, `ProcessResult`, `RunProcessOptions` |
-| [`serializer`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/serializer.ts) | `Serializer`, `KeyedSerializer` |
-| [`single-flight`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/single-flight.ts) | `SingleFlight` |
 | [`title-file`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/title-file.ts) | `cleanTitle`, `readLines` |
 | [`watch-seam`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/watch-seam.ts) | `DirectoryWatcher`, `WatchSeams`, `supportsRecursive`, `SYSTEM_WATCH`, `Settled`, `settled`, `PerClientWatches`, `WatchDirectory`, `Schedule` |
 

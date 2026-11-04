@@ -8,7 +8,7 @@ import type {
     ChatWorkflowAgent,
     ChatWorkflowPhase
 } from '@adecore/agent-contracts';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { num, str } from '../fields.ts';
 import { claudeRuntimeMode } from '../providers/claude.ts';
 import { readClaudeEvent } from '../usage/limits/normalize.ts';

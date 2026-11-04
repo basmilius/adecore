@@ -8,8 +8,8 @@ import type {
     ChatToolProgress,
     ChatTurnLimit
 } from '@adecore/agent-contracts';
-import { isRecord } from '@adecore/agent-contracts';
 import { clipText } from '@adecore/agent-contracts/text';
+import { isRecord } from '@adecore/utils/record';
 import { str } from '../fields.ts';
 import type { BackendEvent } from './backend.ts';
 import { estimateContextBreakdown } from './context-breakdown.ts';

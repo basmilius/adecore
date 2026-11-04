@@ -1,5 +1,5 @@
 import { stat } from 'node:fs/promises';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { cleanTitle, readLines } from '../title-file.ts';
 import { usageRoots } from '../usage/roots.ts';
 import { findClaudeSession } from './claude-transcript.ts';

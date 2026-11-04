@@ -48,45 +48,16 @@ A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` 
 
 ## File helpers
 
-```ts
-import { mkdir, readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { writeAtomic, Serializer } from '@adecore/agents';
-
-export async function writeCounter(dataDir: string): Promise<number> {
-    await mkdir(dataDir, { recursive: true });
-    const path = join(dataDir, 'counter.json');
-    await writeAtomic(path, JSON.stringify({ count: 0 }));
-    const writes = new Serializer();
-
-    const increment = (): Promise<void> =>
-        writes.run(async () => {
-            const current = JSON.parse(await readFile(path, 'utf8')) as { count: number };
-            await writeAtomic(path, JSON.stringify({ count: current.count + 1 }), 0o600, { durable: true });
-        });
-
-    await Promise.all([increment(), increment()]);
-    await writes.idle();
-
-    return (JSON.parse(await readFile(path, 'utf8')) as { count: number }).count;
-}
-```
-
-The count ends at 2. `Serializer.run` runs work one at a time, also after a failure, and each caller gets its own result or error. `idle()` waits for the queue without rethrowing. `KeyedSerializer` does the same per key.
-
-`writeAtomic(target, content, mode = 0o600, { durable? })` writes a temporary file beside the target and renames it over. `durable` also syncs the file and its folder (not on Windows). Create the folder first. `writeAtomicSync` and `replaceSync` are the synchronous forms, without `durable`. `fileExists` returns `false` on any error, so use `isNotFound` when other errors should surface. `fileExists` follows links. `entryExists` does not, so it also counts a dangling link, as a free-name check needs.
+Atomic writes, serializers and the error checks the stores use come from [`@adecore/utils`](/utils/).
 
 `RecordDirectory<T>` is a folder of JSON records, validated by a schema on load and written one at a time per id. A record that does not parse stays on disk. `keep` can rewrite or drop records on load. `write` and `remove` replace the file operations in tests.
 
 ## Other helpers
 
 - `runProcess(command, options)` runs a short command in its own process group and returns its output and `exitCode` (`null` after a signal). A nonzero exit is a result, not an error. `timeoutMs` rejects and kills the group. Output past 16 MB does the same, so use it for commands that print little.
-- `SingleFlight<T>.run(key, work)` runs `work` once per key at a time, and concurrent callers share the outcome. `get` and `has` tell whether a key runs.
-- `cancellableTimeout(ms, run)` and `unrefTimeout(ms, run)` return a cancel function. The second does not hold the process open. `hasErrorCode(error, ...codes)` checks a caught error for system codes.
-- `withTimeout(promise, ms, message)` rejects at a deadline without stopping the work. `wait(ms, signal?)` resolves early on abort.
 - `WatchSeams` is swappable file watching. `SYSTEM_WATCH` uses `fs.watch`, recursive where the platform supports it (`supportsRecursive`). `settled(seams, ms, run)` runs once after a burst of changes. `PerClientWatches` keeps a watch per client and path.
 - `cleanTitle` and `readLines` read titles from a transcript. `readLines` stops at the last whole line.
-- `CodedError` is an error with a `code`. `errorText` and `describeError` format an error for a log. `setErrorStacks` turns stack traces on or off for the package.
+- `CodedError` is an error with a `code`. `errorText` formats an error for a log, with its stack once `setErrorStacks` turned stacks on for the package.
 
 ## Generated image attachments
 

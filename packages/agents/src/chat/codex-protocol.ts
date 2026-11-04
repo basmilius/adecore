@@ -1,5 +1,5 @@
 import type { ChatFileChange, ChatGoal, ChatGoalStatus, ChatQuestion, ChatTurnLimit, UsageWindow } from '@adecore/agent-contracts';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { num, str } from '../fields.ts';
 import { codexRuntimeMode } from '../providers/codex.ts';
 import { cleanTitle } from '../title-file.ts';

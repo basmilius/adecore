@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { accessSync, constants } from 'node:fs';
-import { isRecord, attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill } from '@adecore/agent-contracts';
+import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { errorText } from '../error-text.ts';
 import { codexServiceTier, codexThreadOptions } from '../providers/codex.ts';
 import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';

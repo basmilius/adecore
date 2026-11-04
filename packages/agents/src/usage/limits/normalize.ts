@@ -1,5 +1,5 @@
 import type { UsageLimitsProvider, UsageProvider, UsageWindow } from '@adecore/agent-contracts';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 
 /* Everything a full read of a provider says about its plan, ready to be published as it is. */
 export interface ProviderReading {

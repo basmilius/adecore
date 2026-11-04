@@ -233,7 +233,6 @@ exports[`the public API . exports these names 1`] = `
   "holdsConversation",
   "injectVisualBootstrap",
   "isKnownAgentKind",
-  "isRecord",
   "notResumedNote",
   "orderedAccountIds",
   "outlineItems",
@@ -842,12 +841,6 @@ exports[`the public API ./provider-accounts exports these names 1`] = `
   "type ProviderAccounts",
   "type ProviderAccountsReorderPayload",
   "type ProviderAccountsSavePayload",
-]
-`;
-
-exports[`the public API ./record exports these names 1`] = `
-[
-  "isRecord",
 ]
 `;
 

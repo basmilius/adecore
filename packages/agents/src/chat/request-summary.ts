@@ -1,11 +1,5 @@
-import {
-    isRecord,
-    CHAT_REQUEST_LIMITS,
-    type ChatApprovalItem,
-    type ChatQuestionItem,
-    type ChatRequestApproval,
-    type ChatRequestSummary
-} from '@adecore/agent-contracts';
+import { CHAT_REQUEST_LIMITS, type ChatApprovalItem, type ChatQuestionItem, type ChatRequestApproval, type ChatRequestSummary } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { str } from '../fields.ts';
 
 // The keys a tool's input names its subject under, in the order a person would look for one.

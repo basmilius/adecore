@@ -1,4 +1,5 @@
-import { isRecord, type AgentKind, type ChatFileChange, type ChatQuestion, type ChatTurnLimit, type RuntimeMode } from '@adecore/agent-contracts';
+import type { AgentKind, ChatFileChange, ChatQuestion, ChatTurnLimit, RuntimeMode } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { z } from 'zod';
 import { filledStr } from '../fields.ts';
 import { MODE_ORDER } from '../modes.ts';

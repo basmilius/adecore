@@ -1,5 +1,5 @@
 import type { ChatItem } from '@adecore/agent-contracts';
-import { isRecord } from '@adecore/agent-contracts';
+import { isRecord } from '@adecore/utils/record';
 import { errorText } from '../error-text.ts';
 import type { SpawnChatProcess } from './chat-process.ts';
 import { CodexProtocol } from './codex-protocol.ts';
