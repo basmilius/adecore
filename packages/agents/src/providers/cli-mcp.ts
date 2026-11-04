@@ -29,6 +29,11 @@ function claudeMcpArgs(server: CliMcpServer): string[] {
  * Claude Code's allow rule does (measured on Codex 0.164). A JSON string is a valid TOML basic string.
  */
 function codexMcpArgs(server: CliMcpServer): string[] {
+    // The name is a segment of a dotted override path, so a dot or a quote in it would name another key.
+    if (!/^[A-Za-z0-9_-]+$/.test(server.name)) {
+        throw new Error(`An MCP server name for Codex must be a bare TOML key (letters, digits, "_" and "-"): ${JSON.stringify(server.name)}`);
+    }
+
     const key = `mcp_servers.${server.name}`;
 
     return [

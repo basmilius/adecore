@@ -28,6 +28,12 @@ describe('an MCP server on a CLI command line', () => {
         ]);
     });
 
+    test('Codex refuses a name that is not a bare key of its config path', () => {
+        expect(() => cliMcpArgs('codex', { ...SERVER, name: 'my.server' })).toThrow('bare TOML key');
+        expect(() => cliMcpArgs('codex', { ...SERVER, name: 'own"' })).toThrow('bare TOML key');
+        expect(() => cliMcpArgs('codex', { ...SERVER, name: 'my-server_2' })).not.toThrow();
+    });
+
     test('Copilot gets a literal URL, the header from the variable, and every tool', () => {
         expect(jsonAfter('--additional-mcp-config', cliMcpArgs('copilot', SERVER))).toEqual({
             mcpServers: { own: { type: 'http', url: SERVER.url, headers: { Authorization: 'Bearer ${OWN_TOKEN}' }, tools: ['*'] } }

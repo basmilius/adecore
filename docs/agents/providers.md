@@ -206,7 +206,7 @@ const server: CliMcpServer = {
 const args = [...cliMcpArgs('claude', server), ...cliMcpAllowArgs('claude', server.name)];
 ```
 
-The CLI reads the bearer token from `tokenVariable` in its own environment, so set that variable on the process and keep the token off the line. `cliMcpHeaders(tokenVariable)` is the `Authorization` header that Claude Code and Copilot fill in that way, for a `ChatMcpServer` of a Claude chat.
+The CLI reads the bearer token from `tokenVariable` in its own environment, so set that variable on the process and keep the token off the line. For Codex the name becomes a key of its config, so it may hold only letters, digits, `_` and `-`; another name throws. `cliMcpHeaders(tokenVariable)` is the `Authorization` header that Claude Code and Copilot fill in that way, for a `ChatMcpServer` of a Claude chat.
 
 `cliMcpAllowArgs(kind, name)` runs every tool of the server without asking, in every mode: `--allowedTools=mcp__<name>` for Claude Code and `--allow-tool=<name>` for Copilot. Codex gets them allowed in its `cliMcpArgs` already. Allow a server only when it checks each call itself.
 
