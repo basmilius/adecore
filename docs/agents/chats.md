@@ -48,6 +48,8 @@ For a question the CLI never asked, such as a card a context command waits on, c
 
 `chat.subagent` reads a delegated agent's conversation from the CLI's transcript, a page at a time. With `watch: true` it sends `chat.subagentChanged` as it grows. `chat.stopSubagent` stops a subagent a task opened, and its parent and siblings go on. It fails with `subagent-stale` during a turn of another process. Otherwise it only marks the row stopped. `chat.stopTask` stops one background shell or monitor, where the CLI supports it.
 
+A subagent row with `origin: HOST_TASK_ORIGIN` and a `childId` reads that child's chat instead of a CLI transcript. Stored children load on demand. Watches report changes against the parent row and end when the client disconnects, releases the watch or the parent is removed. `subagentItems` reads the full child conversation. Pass `stopNode(nodeId, reason)` as the third argument of `stopSubagent` to stop host-managed work; the host decides how a node stops. A task whose child has no stored chat remains a host operation.
+
 ## Goals
 
 `/goal <objective>` sets a goal and `/goal` alone shows its state. `/goal pause`, `/goal resume` and `/goal clear` act on it. The goal is `info.goal`. Claude Code pursues it within one turn. Codex opens further turns itself until the goal is met. Stopping a Codex turn pauses its goal first.

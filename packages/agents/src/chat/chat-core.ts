@@ -257,6 +257,8 @@ export class ChatCore {
     private readonly listChanges = new Map<string, number>();
     private readonly coalescers = new Map<string, DeltaCoalescer>();
     private readonly subagents: SubagentReader;
+    // Clients following the conversation of a node a task opened, per row of the chat that gave it.
+    private readonly childHolds = new Map<string, { parentId: string; toolUseId: string; childId: string; clients: Set<string> }>();
     /* Where Claude Code keeps the projects of its default account on this machine; empty when it has none. */
     readonly claudeProjectsDir: string;
     readonly composerPreferences = new ComposerPreferences();
@@ -853,6 +855,64 @@ export class ChatCore {
         }
 
         this.subagents.releaseClient(clientId);
+
+        for (const [key, hold] of this.childHolds) {
+            hold.clients.delete(clientId);
+            if (hold.clients.size === 0) {
+                this.childHolds.delete(key);
+            }
+        }
+    }
+
+    /* The node a row of this chat stands for when a task opened it, or null for a subagent of the CLI's own. */
+    private taskChildOf(chatId: string, toolUseId: string): string | null {
+        const row = this.get(chatId)?.thread.find('subagent', (item) => item.toolUseId === toolUseId);
+        return row?.origin === HOST_TASK_ORIGIN && row.childId !== undefined ? row.childId : null;
+    }
+
+    private async childChat(childId: string): Promise<ChatSession> {
+        await this.loaded(childId);
+
+        if (!this.get(childId)) {
+            if (!(await this.hasStored(childId))) {
+                throw new ChatError('chat-unsupported', 'This task runs in a terminal or has not started; its node shows what it does');
+            }
+
+            await this.create({ chatId: childId });
+        }
+
+        return this.require(childId);
+    }
+
+    /*
+     * A row a task opened reads the child's own thread, a page at a time like the chat's history, and
+     * holding it tells the client whenever an item of that thread lands; a delta alone does not.
+     */
+    private async childConversation(clientId: string, payload: ChatSubagentPayload, childId: string): Promise<ChatSubagentResult> {
+        const key = `${payload.chatId}\n${payload.toolUseId}`;
+        if (payload.watch === false) {
+            const hold = this.childHolds.get(key);
+            hold?.clients.delete(clientId);
+            if (hold?.clients.size === 0) {
+                this.childHolds.delete(key);
+            }
+        }
+        const child = await this.childChat(childId);
+        const page = this.history(childId, payload.cursor, payload.limit ?? 60);
+        if (payload.watch === true) {
+            const hold = this.childHolds.get(key) ?? { parentId: payload.chatId, toolUseId: payload.toolUseId, childId, clients: new Set<string>() };
+            hold.clients.add(clientId);
+            this.childHolds.set(key, hold);
+        }
+        return {
+            items: page.items,
+            history: page.history,
+            pending: child.thread.pending(),
+            // The closed set a result carries; the child's thread is that CLI's conversation.
+            source: child.info.provider === 'codex' ? 'codex-thread' : 'claude-transcript',
+            context: { provider: child.info.provider, cwd: child.info.cwd, chatId: childId },
+            live: child.info.activeTurnId !== null
+        };
     }
 
     /*
@@ -861,6 +921,12 @@ export class ChatCore {
      * something that was found.
      */
     async subagent(clientId: string, payload: ChatSubagentPayload): Promise<ChatSubagentResult> {
+        const childId = this.taskChildOf(payload.chatId, payload.toolUseId);
+
+        if (childId !== null) {
+            return this.childConversation(clientId, payload, childId);
+        }
+
         if (payload.watch === false) {
             this.subagents.release(clientId, payload.chatId, payload.toolUseId);
         }
@@ -876,11 +942,11 @@ export class ChatCore {
     }
 
     /*
-     * Stops one running sub-agent of the CLI's own. The process that started it ends it with `stop_task`
+     * Stops a running subagent, using `stopNode` for a host task. The CLI that started its own subagent ends it with `stop_task`
      * and the parent keeps working. Without such a process the row is only marked, and only while no
      * turn runs: stopping that turn is the composer's Stop.
      */
-    async stopSubagent(chatId: string, toolUseId: string): Promise<void> {
+    async stopSubagent(chatId: string, toolUseId: string, stopNode?: (nodeId: string, reason: string) => Promise<void>): Promise<void> {
         await this.loaded(chatId);
         const session = this.require(chatId);
         const row = session.thread.find('subagent', (item) => item.toolUseId === toolUseId);
@@ -894,7 +960,13 @@ export class ChatCore {
         }
 
         if (row.origin === HOST_TASK_ORIGIN) {
-            throw new ChatError('chat-unsupported', 'This row stands for work the host runs; stop it there');
+            if (row.childId === undefined || !stopNode) {
+                throw new ChatError('chat-unsupported', 'This task cannot be stopped from here; stop its node instead');
+            }
+
+            await stopNode(row.childId, 'a person stopped it');
+
+            return;
         }
 
         session.stopSubagent(toolUseId);
@@ -911,8 +983,14 @@ export class ChatCore {
         await this.require(chatId).goal(action);
     }
 
-    /* The whole conversation of a subagent of the CLI's own, for an agent that reads it as text. */
+    /* The whole conversation of a host child or CLI subagent, for an agent that reads it as text. */
     async subagentItems(chatId: string, toolUseId: string): Promise<ChatItem[]> {
+        const childId = this.taskChildOf(chatId, toolUseId);
+
+        if (childId !== null) {
+            return (await this.childChat(childId)).thread.list();
+        }
+
         return this.subagents.readAll(chatId, toolUseId);
     }
 
@@ -1357,6 +1435,13 @@ export class ChatCore {
         this.unloadedInfo.delete(chatId);
         const snapshot = session.thread.snapshot();
         this.hooks.forgotten?.(chatId);
+
+        for (const [key, hold] of this.childHolds) {
+            if (hold.parentId === chatId) {
+                this.childHolds.delete(key);
+            }
+        }
+
         await writing;
         await ended;
 
@@ -1776,6 +1861,16 @@ export class ChatCore {
         }
 
         this.hooks.broadcasted?.(chatId, event);
+
+        if (event.type !== 'delta') {
+            for (const hold of this.childHolds.values()) {
+                if (hold.childId === chatId) {
+                    for (const clientId of hold.clients) {
+                        this.sendTo(clientId, { event: 'chat.subagentChanged', payload: { chatId: hold.parentId, toolUseId: hold.toolUseId } });
+                    }
+                }
+            }
+        }
 
         for (const clientId of this.attached.get(chatId) ?? []) {
             this.sinks.to(clientId, { event: 'chat.event', payload });
