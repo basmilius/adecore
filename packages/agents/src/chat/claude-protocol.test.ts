@@ -1,10 +1,13 @@
 import { describe, expect, jest, test } from 'bun:test';
+import type { ChatSubagentItem } from '@adecore/agent-contracts';
+import type { BackendEvent } from './backend.ts';
 import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from './claude-protocol.ts';
 import autoFallbackCapture from './fixtures/claude-2.1.285-auto-fallback.json';
 import nativeChildrenCapture from './fixtures/claude-2.1.285-native-children.json';
 import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';
 import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
 import goalCapture from './fixtures/claude-2.1.296-goal.json';
+import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -117,23 +120,7 @@ describe('ClaudeProtocol', () => {
 
     test('live native children retain nine identities through nesting and SendMessage reuse', () => {
         const protocol = new ClaudeProtocol();
-
-        const thread = new ChatThread({
-            chatId: 'native-fixture',
-            provider: 'claude',
-            cwd: '/tmp',
-            agentSessionId: null,
-            model: null,
-            selection: { model: 'claude-haiku-4-5', options: {} },
-            runtimeMode: 'supervised',
-            running: true,
-            status: 'idle',
-            activeTurnId: null,
-            slashCommands: [],
-            usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
-            createdAt: 1
-        });
-
+        const thread = fixtureThread('native-fixture');
         const projector = new ThreadProjector(thread, { providerName: 'Claude' });
         const events = nativeChildrenCapture.frames.flatMap((frame) => protocol.handle(frame));
 
@@ -517,6 +504,36 @@ describe('ClaudeProtocol', () => {
                 outputFile: '/tmp/tasks/a8157591dfd0590ba.output'
             }
         ]);
+    });
+
+    test('a live subagent that stops while its own background work runs stays running until its last run ends', () => {
+        const protocol = new ClaudeProtocol();
+        const thread = fixtureThread('interim-fixture');
+        const projector = new ThreadProjector(thread, { providerName: 'Claude' });
+        const frames = interimCapture.frames as ReadonlyArray<Record<string, unknown>>;
+        // Claude Code 2.1.318 names a stop only through the subagent's own last line, never as an interim one.
+        const isStop = (frame: Record<string, unknown>, summary: string): boolean => frame.subtype === 'task_notification' && frame.summary === summary;
+        const firstStop = frames.findIndex((frame) => isStop(frame, 'INTERIM-WAITING'));
+        const events: BackendEvent[] = [];
+
+        const replay = (from: number, to: number): void => {
+            for (const frame of frames.slice(from, to)) {
+                for (const event of protocol.handle(frame)) {
+                    events.push(event);
+                    projector.project(1, event);
+                }
+            }
+        };
+
+        const subagent = (): ChatSubagentItem | undefined => thread.list().find((item): item is ChatSubagentItem => item.kind === 'subagent');
+
+        replay(0, firstStop + 1);
+        expect(subagent()?.status).toBe('running');
+
+        replay(firstStop + 1, frames.length);
+        const settled = events.filter((event) => event.type === 'task.done' && event.taskId === subagent()?.native?.agentId);
+        expect(settled).toEqual([expect.objectContaining({ summary: 'INTERIM-FINISHED', ok: true })]);
+        expect(subagent()?.status).toBe('done');
     });
 
     test('a task notification carries what the background task came to', () => {
@@ -1289,3 +1306,21 @@ describe('goals', () => {
         expect(claudeGoalCheck('Stop hook feedback:\n[other]: nope', { objective: 'ship it', status: 'active' })).toBeUndefined();
     });
 });
+
+function fixtureThread(chatId: string): ChatThread {
+    return new ChatThread({
+        chatId,
+        provider: 'claude',
+        cwd: '/tmp',
+        agentSessionId: null,
+        model: null,
+        selection: { model: 'claude-haiku-4-5', options: {} },
+        runtimeMode: 'supervised',
+        running: true,
+        status: 'idle',
+        activeTurnId: null,
+        slashCommands: [],
+        usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
+        createdAt: 1
+    });
+}

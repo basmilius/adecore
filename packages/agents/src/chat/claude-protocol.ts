@@ -42,9 +42,9 @@ function contextTokens(usage: unknown): number {
 }
 
 /*
- * Claude Code 2.1.312 says `completed` for a subagent that stopped to wait on its own background work, and
- * notifies the same task again when it reports. No field tells them apart: `handback` is also absent from a
- * subagent that does not report through `SubagentHandback`, and `background_tasks_changed` drops the agent too.
+ * Claude Code says `completed` for a subagent that stopped to wait on its own background work, and notifies
+ * the same task again, under a new run, when it resumes and stops again. No field of the notification tells
+ * the two apart; a task the subagent started that still runs does. Before 2.1.318 the summary said it too.
  */
 const INTERIM_TASK_SUMMARY = 'This agent has not reported yet';
 
@@ -252,6 +252,10 @@ export class ClaudeProtocol {
     private readonly backgroundTasks = new Set<string>();
     // Workflows still running, by task id, to the Workflow call that launched each.
     private readonly workflows = new Map<string, string>();
+    // Tasks that run now as `background_tasks_changed` last listed them, the subagent that started each, and the run each subagent is on.
+    private readonly liveTasks = new Set<string>();
+    private readonly taskParents = new Map<string, string>();
+    private readonly agentRuns = new Map<string, string>();
     // The main-chain response whose cache lifetime the thread has, and the lifetime of the cache last written.
     private cacheMessageId: string | null = null;
     private cacheTtlMs: number | null;
@@ -475,6 +479,8 @@ export class ClaudeProtocol {
         } else if (frame.subtype === 'status' && typeof frame.permissionMode === 'string') {
             const effectiveRuntimeMode = claudeRuntimeMode(frame.permissionMode);
             events.push({ type: 'permissions', permissionMode: frame.permissionMode, ...(effectiveRuntimeMode === undefined ? {} : { effectiveRuntimeMode }) });
+        } else if (frame.subtype === 'background_tasks_changed') {
+            this.handleBackgroundTasks(frame);
         } else if (frame.subtype === 'task_started') {
             this.handleTaskStarted(frame, events);
         } else if (frame.subtype === 'task_updated') {
@@ -520,7 +526,11 @@ export class ClaudeProtocol {
             const ref = str(frame.tool_use_id);
             const taskId = str(frame.task_id);
 
-            if (str(frame.status) === 'completed' && str(frame.summary)?.startsWith(INTERIM_TASK_SUMMARY)) {
+            if (taskId) {
+                this.liveTasks.delete(taskId);
+            }
+
+            if (str(frame.status) === 'completed' && (str(frame.summary)?.startsWith(INTERIM_TASK_SUMMARY) || (taskId !== null && this.hasLiveChild(taskId)))) {
                 // `task_updated` already took it off the list of running agents.
                 if (taskId) {
                     this.backgroundAgents.add(taskId);
@@ -564,11 +574,25 @@ export class ClaudeProtocol {
     private handleTaskStarted(frame: Frame, events: BackendEvent[]): void {
         const ref = str(frame.tool_use_id);
 
+        // A task in the foreground ends before the agent that waits on it can stop.
+        if (frame.is_backgrounded !== false) {
+            this.noteTask(frame);
+        }
+
         if (frame.task_type === 'local_agent') {
             const agentTask = str(frame.task_id);
+            const run = str(frame.run_id);
 
             if (agentTask && frame.is_backgrounded === true) {
                 this.backgroundAgents.add(agentTask);
+            }
+
+            // A subagent that resumes after a stop keeps its call and its task id; only its run is new.
+            const previousRun = agentTask === null ? undefined : this.agentRuns.get(agentTask);
+            const resumed = previousRun !== undefined && run !== null && run !== previousRun;
+
+            if (agentTask && run) {
+                this.agentRuns.set(agentTask, run);
             }
 
             if (ref) {
@@ -580,7 +604,8 @@ export class ClaudeProtocol {
                     subagentType: str(frame.subagent_type),
                     prompt: str(frame.prompt),
                     background: frame.is_backgrounded === true,
-                    ...(typeof frame.spawn_depth === 'number' ? { depth: frame.spawn_depth } : {})
+                    ...(typeof frame.spawn_depth === 'number' ? { depth: frame.spawn_depth } : {}),
+                    ...(resumed ? { resumed: true } : {})
                 });
             }
 
@@ -628,11 +653,47 @@ export class ClaudeProtocol {
         const status = str(patch.status);
 
         if (status !== null && ENDED_TASK_STATUSES.has(status)) {
+            this.liveTasks.delete(taskId);
             this.foregroundShells.delete(taskId);
             this.backgroundAgents.delete(taskId);
             this.endBackground(taskId, events);
             this.endWorkflow(taskId, null, status === 'completed', events);
         }
+    }
+
+    /* The whole set of tasks that run now, which replaces the one before it. */
+    private handleBackgroundTasks(frame: Frame): void {
+        if (!Array.isArray(frame.tasks)) {
+            return;
+        }
+
+        this.liveTasks.clear();
+
+        for (const task of frame.tasks) {
+            if (isRecord(task)) {
+                this.noteTask(task);
+            }
+        }
+    }
+
+    /* A watcher that is no activity may run as long as the session does, so it never keeps a subagent from settling. */
+    private noteTask(task: Record<string, unknown>): void {
+        const taskId = str(task.task_id);
+
+        if (!taskId || task.ambient === true) {
+            return;
+        }
+
+        this.liveTasks.add(taskId);
+        const parent = str(task.parent_task_id);
+
+        if (parent) {
+            this.taskParents.set(taskId, parent);
+        }
+    }
+
+    private hasLiveChild(taskId: string): boolean {
+        return [...this.liveTasks].some((live) => this.taskParents.get(live) === taskId);
     }
 
     private startBackground(taskId: string, ref: string | null, monitor: boolean, description: string | null, events: BackendEvent[]): void {

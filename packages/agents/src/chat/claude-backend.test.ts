@@ -11,6 +11,7 @@ import nativeChildrenCapture from './fixtures/claude-2.1.285-native-children.jso
 import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';
 import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
 import goalCapture from './fixtures/claude-2.1.296-goal.json';
+import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
 
 const launch: BackendLaunch = {
     command: ['claude'],
@@ -240,7 +241,8 @@ describe('a captured run', () => {
         'claude-2.1.285-native-children': nativeChildrenCapture,
         'claude-2.1.285-resume-direct-compact': compactCapture,
         'claude-2.1.285-resume-task-notification': resumedTaskCapture,
-        'claude-2.1.296-goal': goalCapture
+        'claude-2.1.296-goal': goalCapture,
+        'claude-2.1.318-interim-subagent': interimCapture
     };
 
     for (const [name, capture] of Object.entries(captures)) {
