@@ -1048,10 +1048,10 @@ export function Timeline({
                     </ContextMenu.Root>
                     {/*
                      * Over the thread rather than in its scroller, so the thread bounces at its end and the
-                     * composer stays put. Its own stacking layer keeps the composer under the strip and the overlay.
+                     * composer stays put. It lies above a sub-agent's overlay, which leaves the composer's height free for it.
                      */}
                     <div
-                        className="isolate shrink-0"
+                        className="z-10 shrink-0"
                         style={
                             welcome
                                 ? { position: 'relative' }
