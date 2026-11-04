@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
+import { constants } from 'node:os';
 import { Readable } from 'node:stream';
 import { clipText } from '@adecore/agent-contracts';
 import { cancellableTimeout } from '@adecore/utils/async';
@@ -19,7 +20,11 @@ export interface ApiCommandDependencies {
 function commandProcess(child: ChildProcess, killGroup: () => void): ApiCommandProcess {
     const exited = new Promise<number>((resolve, reject) => {
         child.once('error', reject);
-        child.once('exit', (code) => resolve(code ?? 1));
+        child.once('exit', (code, signal) => {
+            const signalNumber = signal === null ? undefined : constants.signals[signal];
+
+            resolve(code ?? (signalNumber === undefined ? 1 : 128 + signalNumber));
+        });
     });
 
     // Both pipes exist, since every spawn here pipes stdout and stderr; the cast reads Node's web stream as the global one.

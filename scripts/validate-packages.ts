@@ -18,7 +18,9 @@ assert.equal(service.definitionRunsProgram(service.launchAgentPlist(spec), spec.
     '@adecore/agents': `const { runProcess } = await import('@adecore/agents');
 const child = await runProcess([process.execPath, '-e', 'process.stdout.write("packed backend")']);
 assert.equal(child.exitCode, 0); assert.equal(child.stdout, 'packed backend');
-const { AgentHost } = await import('@adecore/agents/host'); assert.equal(typeof AgentHost.open, 'function');`,
+const { AgentHost } = await import('@adecore/agents/host'); assert.equal(typeof AgentHost.open, 'function');
+const { renderTranscript } = await import('@adecore/agents/context');
+assert.equal(renderTranscript([{ id: 'message', kind: 'user', createdAt: 1, turnId: null, text: 'Packed transcript' }]), '## User\\n\\nPacked transcript');`,
     '@adecore/agent-contracts': "await import('@adecore/agent-contracts');",
     '@adecore/merge': `const packedMerge = await import('@adecore/merge');
 const changes = packedMerge.diffLines(['before'], ['after']);

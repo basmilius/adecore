@@ -59,6 +59,13 @@ describe.skipIf(process.platform === 'win32')('Api local command real process', 
         expect(JSON.parse(result.output).output).toContain(cwd.replace(/^\/var\//, '/private/var/'));
     });
 
+    test('keeps the conventional exit code of a command terminated by a signal', async () => {
+        const result = await executeApiCommand(cwd, 'kill -TERM $$');
+
+        expect(result.failed).toBe(true);
+        expect(JSON.parse(result.output)).toMatchObject({ exitCode: 143, timedOut: false });
+    });
+
     test('abort ends the shell and its waiting descendant', async () => {
         const controller = new AbortController();
         const pending = executeApiCommand(cwd, 'sleep 60 & printf "%s" "$!" > child.pid; wait', controller.signal);
