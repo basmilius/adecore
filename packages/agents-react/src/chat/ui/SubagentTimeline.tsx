@@ -156,7 +156,8 @@ export function SubagentTimeline({
                 <FileLinkContext.Provider value={state.context?.cwd ?? cwd}>
                     <ReplyContext.Provider value={state.context ?? { provider: state.source === 'codex-thread' ? 'codex' : 'claude' }}>
                         <ScrollArea
-                            axis="both"
+                            // Like the main thread: wide code and diffs scroll in their own box.
+                            axis="y"
                             viewportRef={scrollRef}
                             data-file-cwd={state.context?.cwd ?? cwd ?? ''}
                             data-file-scope-id={scope.id}

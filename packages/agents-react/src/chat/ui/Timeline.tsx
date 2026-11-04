@@ -951,7 +951,8 @@ export function Timeline({
                 <div className={clsx('relative flex min-h-0 grow flex-col', welcome && 'justify-center')}>
                     <ContextMenu.Root>
                         <ScrollArea
-                            axis="both"
+                            // Only down: wide content such as code and diffs scrolls in its own box, so a thread never moves sideways.
+                            axis="y"
                             viewportRef={scrollRef}
                             className={clsx(!welcome && 'grow')}
                             viewportClassName="chat-scroll"
