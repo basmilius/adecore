@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { z } from 'zod';
@@ -67,4 +67,25 @@ test('prune drops what the host picks and keeps the rest', async () => {
     expect(await store.take('chat-a')).toBeNull();
     expect(await store.take('chat-b')).toEqual({ prompt: 'b' });
     expect(await store.take('chat-c')).toEqual({ prompt: 'c' });
+});
+
+test('a file that is not a prompt is ignored rather than thrown over', async () => {
+    const store = new PendingPromptStore({ dir });
+    await store.put('p1', 'chat-a', 'a');
+    await Bun.write(join(store.dir, 'junk.json'), '{ not json');
+    await Bun.write(join(store.dir, 'other.json'), JSON.stringify({ nodeId: 'x' }));
+
+    const after = new PendingPromptStore({ dir });
+    await after.load();
+
+    expect(await after.take('chat-a')).toEqual({ prompt: 'a' });
+    expect(await after.take('x')).toBeNull();
+});
+
+test('an id with a slash in it stays inside the folder', async () => {
+    const store = new PendingPromptStore({ dir });
+    await store.put('p1', '../escape/id', 'a');
+
+    expect(await readdir(store.dir)).toEqual(['..%2Fescape%2Fid.json']);
+    expect(await store.take('../escape/id')).toEqual({ prompt: 'a' });
 });
