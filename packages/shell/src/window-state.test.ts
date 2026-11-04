@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from 'bun:test';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { Rectangle } from 'electron';
@@ -219,5 +219,19 @@ describe('fileStorage', () => {
         storage.write('two');
         expect(storage.read()).toBe('two');
         expect(readFileSync(join(folder, 'window-state.json'), 'utf8')).toBe('two');
+    });
+
+    test('clears the temp files a killed write left beside its file, and only those', () => {
+        writeFileSync(join(folder, 'left.json'), '{}');
+        writeFileSync(join(folder, 'left.json.123-0b7c1e2a-5d4f-4c8e-9a1b-2c3d4e5f6a7b.tmp'), '{');
+        writeFileSync(join(folder, 'other.json.123-0b7c1e2a-5d4f-4c8e-9a1b-2c3d4e5f6a7b.tmp'), '{');
+        const storage = fileStorage(join(folder, 'left.json'));
+
+        expect(
+            readdirSync(folder)
+                .filter((entry) => entry.startsWith('left.json') || entry.startsWith('other.json'))
+                .sort()
+        ).toEqual(['left.json', 'other.json.123-0b7c1e2a-5d4f-4c8e-9a1b-2c3d4e5f6a7b.tmp']);
+        expect(storage.read()).toBe('{}');
     });
 });

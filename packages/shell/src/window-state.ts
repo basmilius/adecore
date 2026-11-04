@@ -1,4 +1,5 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, rmSync } from 'node:fs';
+import { basename, dirname, join } from 'node:path';
 import { writeAtomicSync } from '@adecore/utils/fs';
 import type { BrowserWindow, Rectangle } from 'electron';
 
@@ -70,18 +71,38 @@ export interface WindowStateStorage {
     write(text: string): void;
 }
 
-/* A JSON file, written through a file beside it so a crash halfway leaves the last whole one. */
-export const fileStorage = (path: string): WindowStateStorage => ({
-    read: () => {
-        try {
-            return readFileSync(path, 'utf8');
-        } catch {
-            return null;
+/* Every write takes a temp name of its own, so one a hard kill left behind is never overwritten; the storage clears them before its first write. */
+const removeLeftoverTemps = (path: string): void => {
+    const name = basename(path);
+    const folder = dirname(path);
+
+    try {
+        for (const entry of readdirSync(folder)) {
+            if (entry.startsWith(`${name}.`) && entry.endsWith('.tmp')) {
+                rmSync(join(folder, entry), { force: true });
+            }
         }
-    },
-    // The write runs in a timer of the main process, which has no promise to wait on.
-    write: (text) => writeAtomicSync(path, text, 0o666)
-});
+    } catch {
+        // A folder that is not there yet holds nothing to clear.
+    }
+};
+
+/* A JSON file, written through a file beside it so a crash halfway leaves the last whole one. */
+export const fileStorage = (path: string): WindowStateStorage => {
+    removeLeftoverTemps(path);
+
+    return {
+        read: () => {
+            try {
+                return readFileSync(path, 'utf8');
+            } catch {
+                return null;
+            }
+        },
+        // The write runs in a timer of the main process, which has no promise to wait on.
+        write: (text) => writeAtomicSync(path, text, 0o666)
+    };
+};
 
 export interface WindowStateOptions {
     storage: WindowStateStorage;
