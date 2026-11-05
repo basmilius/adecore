@@ -8,7 +8,7 @@ import { ScrollArea } from '@adecore/ui';
 
 <Demo src="layout/scroll-area" />
 
-The element that scrolls is a native scroller with its own bar hidden. Wheel, keyboard, `scrollIntoView`, focus and a virtualizer work on it as on any scrolling element.
+The element that scrolls is a native scroller with its own bar hidden. Wheel, keyboard, `scrollIntoView`, focus and a virtualizer work on it as on any scrolling element. It scrolls only along an axis whose content overflows, and clips otherwise, so an area with room to spare costs the browser no scrolling layer and a wheel over it moves the scroller around it.
 
 `className` sizes the outer box, which holds the bars. Give it a height, a `max-h-*` or a place in a flex column. Padding and the layout of the content go in `viewportClassName`. Every other prop lands on the viewport, so `role`, `tabIndex`, `onScroll` and `aria-*` belong to the element that scrolls.
 

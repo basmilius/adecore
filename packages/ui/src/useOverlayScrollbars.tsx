@@ -14,10 +14,22 @@ export const SCROLLBAR_LINGER_MS = 600;
 /* The theme hides the native bar of a scroller that carries this attribute. */
 const OVERLAY_ATTRIBUTE = 'data-overlay-scrollbars';
 
+/*
+ * Set on the scroller for each axis of a bar that has something to scroll. A `ScrollArea` scrolls
+ * only along those: Chromium composites every box that can scroll, so a canvas full of idle areas
+ * would cost a layer each on every frame.
+ */
+const OVERFLOW_X_ATTRIBUTE = 'data-overflow-x';
+const OVERFLOW_Y_ATTRIBUTE = 'data-overflow-y';
+
 interface Bar {
     readonly element: HTMLElement;
     readonly thumb: HTMLElement;
     readonly vertical: boolean;
+}
+
+function overflowAttributeOf(bar: Bar): string {
+    return bar.vertical ? OVERFLOW_Y_ATTRIBUTE : OVERFLOW_X_ATTRIBUTE;
 }
 
 /*
@@ -68,6 +80,7 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             bars.forEach((bar, index) => {
                 bar.element.toggleAttribute('data-overflow', overflowing[index]);
                 bar.element.toggleAttribute('data-corner', corner);
+                viewport.toggleAttribute(overflowAttributeOf(bar), overflowing[index]);
             });
 
             bars.forEach((bar, index) => {
@@ -211,12 +224,6 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
         const sizes = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(layout);
         sizes?.observe(viewport);
 
-        const observeContent = (): void => {
-            for (const child of viewport.children) {
-                sizes?.observe(child);
-            }
-        };
-
         // A row added to the content changes what scrolls without resizing the rows already observed.
         const content =
             typeof MutationObserver === 'undefined'
@@ -225,6 +232,17 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
                       observeContent();
                       layout();
                   });
+
+        // Text right in the scroller, as in a `<pre>`, grows without resizing anything an observer sees.
+        const observeContent = (): void => {
+            for (const child of viewport.childNodes) {
+                if (child instanceof Element) {
+                    sizes?.observe(child);
+                } else if (child.nodeType === Node.TEXT_NODE) {
+                    content?.observe(child, { characterData: true });
+                }
+            }
+        };
 
         content?.observe(viewport, { childList: true });
         observeContent();
@@ -241,6 +259,8 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
             content?.disconnect();
             window.clearTimeout(lingerTimer);
             viewport.removeAttribute(OVERLAY_ATTRIBUTE);
+            viewport.removeAttribute(OVERFLOW_X_ATTRIBUTE);
+            viewport.removeAttribute(OVERFLOW_Y_ATTRIBUTE);
             viewport.removeAttribute('data-scrollbar-dragging');
             viewport.removeEventListener('scroll', onScroll);
         };

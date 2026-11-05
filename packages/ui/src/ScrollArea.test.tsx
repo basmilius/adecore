@@ -119,6 +119,40 @@ describe.skipIf(typeof document === 'undefined')('a scroll area in a window', ()
         expect(vertical.hasAttribute('data-corner')).toBe(false);
     });
 
+    test('scrolls only along an axis whose content overflows', async () => {
+        const { viewport } = await mount('both', { clientWidth: 200, clientHeight: 400, scrollWidth: 200, scrollHeight: 1600 });
+        expect(viewport.hasAttribute('data-overflow-y')).toBe(true);
+        expect(viewport.hasAttribute('data-overflow-x')).toBe(false);
+    });
+
+    test('starts scrolling once the text in it grows past its box, and stops once it fits again', async () => {
+        const { viewport } = await mount('y', { clientWidth: 200, clientHeight: 400, scrollWidth: 200, scrollHeight: 400 });
+        const text = viewport.firstChild as Text;
+        expect(viewport.hasAttribute('data-overflow-y')).toBe(false);
+
+        sized(viewport, { scrollHeight: 1600 });
+        await act(async () => {
+            text.data = 'content that no longer fits';
+        });
+        expect(viewport.hasAttribute('data-overflow-y')).toBe(true);
+
+        sized(viewport, { scrollHeight: 400 });
+        await act(async () => {
+            text.data = 'content';
+        });
+        expect(viewport.hasAttribute('data-overflow-y')).toBe(false);
+    });
+
+    test('starts scrolling once a row added to it overflows', async () => {
+        const { viewport } = await mount('y', { clientWidth: 200, clientHeight: 400, scrollWidth: 200, scrollHeight: 400 });
+
+        sized(viewport, { scrollHeight: 1600 });
+        await act(async () => {
+            viewport.append(document.createElement('div'));
+        });
+        expect(viewport.hasAttribute('data-overflow-y')).toBe(true);
+    });
+
     test('leaves the corner free when both bars show', async () => {
         const { vertical, horizontal } = await mount('both', { clientWidth: 200, clientHeight: 400, scrollWidth: 800, scrollHeight: 1600 });
         expect(vertical.hasAttribute('data-corner')).toBe(true);

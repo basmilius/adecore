@@ -30,6 +30,6 @@ return (
 );
 ```
 
-The scroller keeps scrolling natively. The hook hides its own bar while it is attached and gives it back on `null`. It follows the scroller's size and its content's with a `ResizeObserver`.
+The scroller keeps scrolling natively. The hook hides its own bar while it is attached and gives it back on `null`. It follows the scroller's size and its content's with a `ResizeObserver`, and sets `data-overflow-x` and `data-overflow-y` on the scroller while that axis has something to scroll.
 
 `axis` is `'y'`, `'x'` or `'both'`, and `'y'` by default. `OverlayScrollbarsOptions` is an exported type.

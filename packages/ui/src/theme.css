@@ -1103,12 +1103,14 @@
     [data-overlay-scrollbars][data-scrollbar-dragging], .ade-scrollbar { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
     .ade-scroll-area { position: relative; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
     /* Its own stacking layer, so a sticky header with a z-index inside never covers the bars. */
+    /* It scrolls only along an axis whose bar has something to scroll (`useOverlayScrollbars`): Chromium composites every box
+       that can scroll, so a canvas of idle areas would cost a layer each on every frame. Hidden, it still scrolls from code. */
     /* `contain` lets the box bounce at its own end; the page's `overscroll-behavior: none` would take the bounce of a scroll chained up to it.
        Only on the axes it scrolls: Chromium stops a chain at `contain` even on an axis that cannot scroll, so a wheel down over a
        table that scrolls sideways would never reach the thread around it. */
-    .ade-scroll-viewport { flex: 1 1 auto; min-height: 0; overflow: auto; isolation: isolate; overscroll-behavior: contain; }
-    .ade-scroll-viewport[data-axis="y"] { overflow-x: hidden; overscroll-behavior-x: auto; }
-    .ade-scroll-viewport[data-axis="x"] { overflow-y: hidden; overscroll-behavior-y: auto; }
+    .ade-scroll-viewport { flex: 1 1 auto; min-height: 0; overflow: hidden; isolation: isolate; }
+    .ade-scroll-viewport[data-overflow-y] { overflow-y: auto; overscroll-behavior-y: contain; }
+    .ade-scroll-viewport[data-overflow-x] { overflow-x: auto; overscroll-behavior-x: contain; }
     .ade-scrollbar {
         --scrollbar-size: 12px;
         position: absolute;
