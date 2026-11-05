@@ -5,11 +5,12 @@ import { eachDrawnNode } from './inputs.ts';
 import { uiValidatedState } from './query.ts';
 import { evaluateUiBlock } from './runtime.ts';
 
+// Open objects: native clients validate a chat whole, so a closed target would fail them on any new optional field.
 export const UiLinkTargetSchema = z.discriminatedUnion('type', [
-    z.object({ type: z.literal('File'), path: z.string().min(1).max(4096), line: z.number().int().positive().optional() }).strict(),
-    z.object({ type: z.literal('Diff'), path: z.string().min(1).max(4096) }).strict(),
-    z.object({ type: z.literal('Commit'), sha: z.string().regex(/^[a-f\d]{7,64}$/i) }).strict(),
-    z.object({ type: z.literal('Node'), id: z.string().min(1).max(256) }).strict()
+    z.object({ type: z.literal('File'), path: z.string().min(1).max(4096), line: z.number().int().positive().optional() }),
+    z.object({ type: z.literal('Diff'), path: z.string().min(1).max(4096) }),
+    z.object({ type: z.literal('Commit'), sha: z.string().regex(/^[a-f\d]{7,64}$/i) }),
+    z.object({ type: z.literal('Node'), id: z.string().min(1).max(256) })
 ]);
 export type UiLinkTarget = z.infer<typeof UiLinkTargetSchema>;
 

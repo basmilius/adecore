@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
+import { z } from 'zod';
 import { compileUiBlock } from './compiler.ts';
-import { uiLinkTargets } from './links.ts';
+import { UiLinkResolutionSchema, uiLinkTargets } from './links.ts';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.
 beforeEach(() => setSystemTime(Date.now()));
@@ -16,6 +17,14 @@ test('link targets come only from visible complete supported nodes', () => {
         { type: 'File', path: 'a.md', line: 3 },
         { type: 'Node', id: 'node-1' }
     ]);
+});
+
+test('a resolution keeps no closed object, so a reader that validates its JSON Schema takes a later optional field', () => {
+    const schema = JSON.stringify(z.toJSONSchema(UiLinkResolutionSchema, { io: 'input' }));
+    const later = { state: 'chip', target: { type: 'File', path: 'a.md', column: 4 } };
+
+    expect(schema).not.toContain('"additionalProperties":false');
+    expect(UiLinkResolutionSchema.safeParse(later).success).toBe(true);
 });
 
 test('local input can choose a target only through a validated binding', () => {
