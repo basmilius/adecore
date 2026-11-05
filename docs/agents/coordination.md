@@ -46,7 +46,7 @@ A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes t
 
 `stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
-A kind of work is an `OutboxWorkShape`, a schema whose `kind` is a literal, so the kinds of one outbox form a discriminated union. `OutboxEntryOf` gives the entry type of a work: the work plus the `OutboxEntryFields` the store adds. `OutboxHandlers` maps every kind to its handler, which resolves to an `OutboxOutcome`, nothing or `'wait'`. The worker reads time from an `OutboxClock`, `systemClock` by default. `OutboxStoreOptions` and `OutboxWorkerOptions` list the options of store and worker.
+A kind of work is an `OutboxWorkShape`, a schema whose `kind` is a literal, so the kinds of one outbox form a discriminated union. `OutboxEntryOf` gives the entry type of a work: the work plus the `OutboxEntryFields` the store adds. `OutboxHandlers` maps every kind to its handler, which resolves to an `OutboxOutcome`, nothing or `'wait'`. The worker reads time from a `Clock`, `systemClock` by default; a chat session takes the same clock. `OutboxStoreOptions` and `OutboxWorkerOptions` list the options of store and worker.
 
 ### Resuming a turn after a restart
 

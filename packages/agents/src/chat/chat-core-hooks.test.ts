@@ -3,11 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import type { BackendLaunch } from '../backends/backend.ts';
 import type { AgentEvent } from '../events.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { AttachmentStore } from './attachment-store.ts';
-import type { BackendLaunch } from './backend.ts';
 import { ChatCore, type ChatCoreHooks } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
 

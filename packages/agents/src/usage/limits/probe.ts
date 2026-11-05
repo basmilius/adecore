@@ -1,9 +1,9 @@
 import type { UsageLimitsProvider } from '@adecore/agent-contracts';
 import { withTimeout } from '@adecore/utils/async';
-import { spawnChatProcess, type ChatProcess, type SpawnChatProcess } from '../../chat/chat-process.ts';
-import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
+import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../backends/codex-transport.ts';
+import { readClaudeUsage, readCodexLimits, type ProviderReading } from '../../backends/limits.ts';
+import { spawnChatProcess, type ChatProcess, type SpawnChatProcess } from '../../chat-process.ts';
 import { errorText } from '../../error-text.ts';
-import { readClaudeUsage, readCodexLimits, type ProviderReading } from './normalize.ts';
 
 /* A CLI that has not answered by now is not going to; the next pass tries again. */
 const PROBE_TIMEOUT_MS = 20_000;

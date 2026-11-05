@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 import { isRecord } from '@adecore/utils/record';
+import { CodexBackend } from '../backends/codex-backend.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
 import { info, flush } from './chat-session.fixture.test.ts';
 import { ChatSession } from './chat-session.ts';
-import { CodexBackend } from './codex-backend.ts';
 
 test.each(['answer', 'stop'] as const)('an asynchronous Codex question survives the turn until a person chooses to %s', async (action) => {
     const requests: Array<{ method?: string; params?: Record<string, unknown> }> = [];

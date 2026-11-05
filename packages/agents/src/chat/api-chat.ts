@@ -5,6 +5,7 @@ import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic } from '@adecore/utils/fs';
 import { isRecord } from '@adecore/utils/record';
 import type { z } from 'zod';
+import type { ApprovalDecision, BackendHost, BackendLaunch } from '../backends/backend.ts';
 import { errorText } from '../error-text.ts';
 import {
     API_TOOL_NAMES,
@@ -17,7 +18,6 @@ import {
     type ApiToolDefinition,
     type ExecuteApiTool
 } from './api-tools.ts';
-import type { ApprovalDecision, BackendHost, BackendLaunch } from './backend.ts';
 
 /**
  * A run of tool rounds is cut at a number the model cannot argue with, since a loop that never ends spends

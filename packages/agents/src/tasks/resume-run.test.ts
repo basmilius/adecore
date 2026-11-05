@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { notResumedNote } from '@adecore/agent-contracts';
-import type { AnyOutboxEntry } from '../tasks/task-work.ts';
 import { oweResume, resumeRunHandler, resumeRunParked, type ResumeRunEntry, type ResumeRunWork } from './resume-run.ts';
+import type { AnyOutboxEntry } from './task-work.ts';
 
 const RUN = { chatId: 'chat-1', turnId: 'turn-1', attempt: 2 };
 

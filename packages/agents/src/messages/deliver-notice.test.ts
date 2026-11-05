@@ -4,16 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatNoteMessage, ChatTurnItem } from '@adecore/agent-contracts';
 import type { ChatSession } from '../chat/chat-session.ts';
-import {
-    chatNoticeTargets,
-    deliverToChat,
-    MAX_MESSAGE_HOPS,
-    showNotices,
-    steerNotices,
-    turnHop,
-    type ChatNoticeTargets,
-    type NoticeChat
-} from './deliver-notice.ts';
+import { turnHop } from '../chat/turn-hop.ts';
+import { chatNoticeTargets, deliverToChat, MAX_MESSAGE_HOPS, showNotices, steerNotices, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
 import { MAX_NOTICES, NoticeStore, type Notice } from './notice-store.ts';
 
 let dataDir: string;

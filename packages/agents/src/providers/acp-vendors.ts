@@ -1,9 +1,9 @@
 import { join } from 'node:path';
 import { ModelOptionDescriptorSchema } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import type { AcpClientInfo } from '../chat/acp-backend.ts';
-import type { AcpModeMap } from '../chat/acp-protocol.ts';
-import type { BackendLaunch } from '../chat/backend.ts';
+import type { AcpClientInfo } from '../backends/acp-backend.ts';
+import type { AcpModeMap } from '../backends/acp-protocol.ts';
+import type { BackendLaunch } from '../backends/backend.ts';
 import { runProcess } from '../run-process.ts';
 import type { AccountReading } from './accounts/status.ts';
 import type { AcpCatalogStore } from './acp-agent-state.ts';

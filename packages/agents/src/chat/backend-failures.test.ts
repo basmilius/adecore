@@ -1,14 +1,14 @@
 import { afterEach, expect, jest, test } from 'bun:test';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
+import { CodexBackend } from '../backends/codex-backend.ts';
+import { CodexTransport } from '../backends/codex-transport.ts';
+import { MAX_LINE_LENGTH, type ChatProcess, type ChatSpawnOptions } from '../chat-process.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
 import { inProcess, type FakeIo, type FakeCli } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
-import type { BackendEvent, BackendLaunch } from './backend.ts';
-import { MAX_LINE_LENGTH, type ChatProcess, type ChatSpawnOptions } from './chat-process.ts';
 import { info } from './chat-session.fixture.test.ts';
 import { ChatSession } from './chat-session.ts';
-import { CodexBackend } from './codex-backend.ts';
-import { CodexTransport } from './codex-transport.ts';
 
 // The in-process transport only reads memory streams; one event-loop turn drains their readers.
 async function flush(): Promise<void> {

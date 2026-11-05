@@ -1,5 +1,5 @@
+import { ChatChild, MAX_LINE_LENGTH, readStreamLines, type SpawnChatProcess } from '../chat-process.ts';
 import { errorText } from '../error-text.ts';
-import { ChatChild, MAX_LINE_LENGTH, readStreamLines, type SpawnChatProcess } from './chat-process.ts';
 
 export type JsonRpcFrame = Record<string, unknown>;
 

@@ -10,8 +10,8 @@ import type {
 } from '@adecore/agent-contracts';
 import { clipText } from '@adecore/agent-contracts/text';
 import { isRecord } from '@adecore/utils/record';
+import type { BackendEvent } from '../backends/backend.ts';
 import { str } from '../fields.ts';
-import type { BackendEvent } from './backend.ts';
 import { estimateContextBreakdown } from './context-breakdown.ts';
 import type { ChatThread } from './thread.ts';
 

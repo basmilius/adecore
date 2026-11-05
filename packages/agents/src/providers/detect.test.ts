@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatSpawnOptions, SpawnChatProcess } from '../chat/chat-process.ts';
+import type { ChatSpawnOptions, SpawnChatProcess } from '../chat-process.ts';
 import { detectCli } from './detect.ts';
 
 function answering(output: string, seen: ChatSpawnOptions[]): SpawnChatProcess {

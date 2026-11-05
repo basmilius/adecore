@@ -1,7 +1,7 @@
-import { CodexBackend, type CodexBackendOptions } from '../chat/codex-backend.ts';
+import { CodexBackend, type CodexBackendOptions } from '../backends/codex-backend.ts';
+import { CODEX_CAPABILITIES, CODEX_CHAT_ARGS, CODEX_RESUME_COMMAND } from '../backends/codex.ts';
 import { ModelCatalog } from './catalog.ts';
 import codexManifest from './codex-models.json' with { type: 'json' };
-import { CODEX_CAPABILITIES, CODEX_CHAT_ARGS, CODEX_RESUME_COMMAND } from './codex.ts';
 import { detectCli } from './detect.ts';
 import type { ChatProvider } from './provider.ts';
 

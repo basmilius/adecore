@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import type { BackendEvent } from '../backends/backend.ts';
+import { parseGoalCommand } from '../backends/codex-backend.ts';
+import { codexGoal, CodexProtocol, unwrapCommand } from '../backends/codex-protocol.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
-import type { BackendEvent } from './backend.ts';
-import { parseGoalCommand } from './codex-backend.ts';
-import { codexGoal, CodexProtocol, unwrapCommand } from './codex-protocol.ts';
 import nativeApprovalCapture from './fixtures/codex-0.159.2-native-approval.json';
 import nativeFileApprovalCapture from './fixtures/codex-0.159.2-native-file-approval.json';
 import nativeInteractedCapture from './fixtures/codex-0.159.2-native-interacted.json';

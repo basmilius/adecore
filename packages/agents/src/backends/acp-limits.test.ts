@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import type { AgentKind, RuntimeMode } from '@adecore/agent-contracts';
+import antigravityQuota from '../chat/fixtures/antigravity-1.4.1-quota.json';
+import grokLimits from '../chat/fixtures/grok-1.0.62-limits.json';
 import { fakeAcpCapture, type AcpCapture } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { createAcpBackend } from './acp-backend.ts';
 import { AcpProtocol, acpStopWords, quotaResetOf } from './acp-protocol.ts';
 import type { BackendEvent } from './backend.ts';
-import antigravityQuota from './fixtures/antigravity-1.4.1-quota.json';
-import grokLimits from './fixtures/grok-1.0.62-limits.json';
 
 const NOW = Date.UTC(2026, 9, 21, 12, 0, 0);
 const HOUR = 3_600_000;

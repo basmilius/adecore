@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
+import type { ChatProcess, ChatSpawnOptions } from '../chat-process.ts';
+import autoFallbackCapture from '../chat/fixtures/claude-2.1.285-auto-fallback.json';
+import nativeChildrenCapture from '../chat/fixtures/claude-2.1.285-native-children.json';
+import compactCapture from '../chat/fixtures/claude-2.1.285-resume-direct-compact.json';
+import resumedTaskCapture from '../chat/fixtures/claude-2.1.285-resume-task-notification.json';
+import goalCapture from '../chat/fixtures/claude-2.1.296-goal.json';
+import interimCapture from '../chat/fixtures/claude-2.1.318-interim-subagent.json';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { fakeClaude } from '../testing/fake-claude.ts';
 import { inProcess, type FakeCli, type FakeIo, type InProcessCli } from '../testing/fake-cli.ts';
 import type { BackendEvent, BackendLaunch, TurnInput } from './backend.ts';
-import type { ChatProcess, ChatSpawnOptions } from './chat-process.ts';
 import { ClaudeBackend, type ClaudeBackendOptions } from './claude-backend.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
-import autoFallbackCapture from './fixtures/claude-2.1.285-auto-fallback.json';
-import nativeChildrenCapture from './fixtures/claude-2.1.285-native-children.json';
-import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';
-import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
-import goalCapture from './fixtures/claude-2.1.296-goal.json';
-import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
 
 const launch: BackendLaunch = {
     command: ['claude'],

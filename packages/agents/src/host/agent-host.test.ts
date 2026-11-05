@@ -13,8 +13,8 @@ import {
     type ReplyError,
     type ReplyOk
 } from '@adecore/agent-contracts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { ChatCore } from '../chat/chat-core.ts';
-import type { SpawnChatProcess } from '../chat/chat-process.ts';
 import { ChatStore } from '../chat/chat-store.ts';
 import { fakeClaude } from '../testing/fake-claude.ts';
 import { inProcess, type InProcessCli } from '../testing/fake-cli.ts';

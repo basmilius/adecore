@@ -1,12 +1,12 @@
 import type { ChatFileChange, ChatGoal, ChatGoalStatus, ChatQuestion, ChatTurnLimit, UsageWindow } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 import { num, str } from '../fields.ts';
-import { codexRuntimeMode } from '../providers/codex.ts';
 import { cleanTitle } from '../title-file.ts';
-import { readCodexLimits } from '../usage/limits/normalize.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
 import type { CodexFrame } from './codex-transport.ts';
+import { codexRuntimeMode } from './codex.ts';
 import { generatedImage } from './generated-image.ts';
+import { readCodexLimits } from './limits.ts';
 
 type CodexRpcId = number | string;
 

@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from 'bun:test';
 import type { ChatSubagentItem } from '@adecore/agent-contracts';
-import type { BackendEvent } from './backend.ts';
-import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from './claude-protocol.ts';
+import type { BackendEvent } from '../backends/backend.ts';
+import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from '../backends/claude-protocol.ts';
 import autoFallbackCapture from './fixtures/claude-2.1.285-auto-fallback.json';
 import nativeChildrenCapture from './fixtures/claude-2.1.285-native-children.json';
 import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';

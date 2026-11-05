@@ -1,9 +1,9 @@
 import type { ChatBackgroundTask, ChatItem, ChatTurnItem, Task, TaskResult } from '@adecore/agent-contracts';
 import { abortedByMachine, clipText } from '@adecore/agent-contracts';
 import { BACKGROUND_COMMAND_LIMIT_MS, commandLabel, isBackgroundWork, runningInBackground, runsInBackground } from '../chat/background-work.ts';
-import { readableAssistantText } from '../chat/readable-text.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';
+import { readableAssistantText } from '../readable-text.ts';
 import type { TaskStore } from './task-store.ts';
 
 export interface TaskCoordinatorDeps {

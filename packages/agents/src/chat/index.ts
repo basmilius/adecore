@@ -1,5 +1,5 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
-export { type AcpAgentSpec, type AcpClientInfo, type AcpUsageReport, createAcpBackend } from './acp-backend.ts';
+export { type AcpAgentSpec, type AcpClientInfo, type AcpUsageReport, createAcpBackend } from '../backends/acp-backend.ts';
 
 export type {
     AcpAgentInfo,
@@ -13,12 +13,12 @@ export type {
     AcpChoice,
     AcpThoughtLevel,
     AcpTurnUsage
-} from './acp-protocol.ts';
+} from '../backends/acp-protocol.ts';
 
 export type { ApiHostTools, ApiToolOutcome, ToolRounds } from './api-chat.ts';
 export type { ApiToolDefinition } from './api-tools.ts';
 export { AttachmentStore } from './attachment-store.ts';
-export type { BackendChange, BackendLaunch, ChatMcpServer, TurnInput, ApprovalDecision, BackendEvent, BackendHost, ChatBackend } from './backend.ts';
+export type { BackendChange, BackendLaunch, ChatMcpServer, TurnInput, ApprovalDecision, BackendEvent, BackendHost, ChatBackend } from '../backends/backend.ts';
 export { runningInBackground, type BackgroundWork } from './background-work.ts';
 export { BookmarkStore, type BookmarkListener } from './bookmark-store.ts';
 export { createChatCompletionsBackend, type ChatCompletionsSpec, type ChatCompletionsUsage, type ChatCompletionsWords } from './chat-completions-backend.ts';
@@ -35,7 +35,7 @@ export {
     ChatChild,
     type ChatProcess,
     type ChatChildOptions
-} from './chat-process.ts';
+} from '../chat-process.ts';
 
 export {
     type PromptNotes,
@@ -51,17 +51,17 @@ export {
 
 export { type ChatRecordExtras, type ChatRecord, ChatStore, type ChatSeq, type ChatStoreOptions } from './chat-store.ts';
 export { suggestChatTitle, type ChatTitleInput } from './chat-title.ts';
-export type { ClaudeApiKeyOptions, ClaudeBackendOptions } from './claude-backend.ts';
+export type { ClaudeApiKeyOptions, ClaudeBackendOptions } from '../backends/claude-backend.ts';
 export { ClaudeTitleReader } from './claude-title.ts';
 export { claudeProjectSlug, findClaudeSession } from './claude-transcript.ts';
-export type { CodexBackendOptions } from './codex-backend.ts';
+export type { CodexBackendOptions } from '../backends/codex-backend.ts';
 export { forkThreadOnce, type ThreadItemsParams, type CodexProcessSpec, type ThreadForkParams } from './codex-thread.ts';
-export type { CodexClientInfo } from './codex-transport.ts';
+export type { CodexClientInfo } from '../backends/codex-transport.ts';
 export type { ComposerPreference } from './composer-preferences.ts';
 export { type ChatErrorCode, ChatError } from './errors.ts';
 export { type SessionFs, type ExternalSession, listClaudeSessions, listCodexSessions, nodeSessionFs } from './external-sessions.ts';
 export { limitedTurn, limitResumeAt } from './limit-resume.ts';
-export { readableAssistantText } from './readable-text.ts';
+export { readableAssistantText } from '../readable-text.ts';
 export type { SubagentChat, SubagentReaderOptions } from './subagent-reader.ts';
 export type { SubagentSettlement } from './subagent-settlement.ts';
 export { searchThreadItems, type ThreadHit, type ThreadSearchOptions } from './thread-search.ts';

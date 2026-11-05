@@ -1,20 +1,9 @@
+import { systemClock, type Clock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
 import type { OutboxEntryOf, OutboxStore, OutboxWorkShape } from './outbox.ts';
 
 /* How long a failed entry waits before each next attempt; one more failure than there are delays parks it. */
 export const RETRY_DELAYS_MS: readonly number[] = [1_000, 5_000, 30_000];
-
-export interface OutboxClock {
-    now(): number;
-    setTimeout(run: () => void, ms: number): unknown;
-    clearTimeout(handle: unknown): void;
-}
-
-export const systemClock: OutboxClock = {
-    now: () => Date.now(),
-    setTimeout: (run, ms) => setTimeout(run, ms),
-    clearTimeout: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>)
-};
 
 /*
  * `wait` keeps the entry without counting an attempt. The work cannot happen yet (a chat is still in
@@ -29,7 +18,7 @@ export type OutboxHandlers<Work extends OutboxWorkShape> = {
 export interface OutboxWorkerOptions<Work extends OutboxWorkShape> {
     store: OutboxStore<Work>;
     handlers: OutboxHandlers<Work>;
-    clock?: OutboxClock;
+    clock?: Clock;
     /* An entry that failed every attempt and is given up on (and logged); the work it stood for is not done. */
     onParked?: (entry: OutboxEntryOf<Work>, error: unknown) => void;
 }
@@ -42,7 +31,7 @@ export interface OutboxWorkerOptions<Work extends OutboxWorkShape> {
 export class OutboxWorker<Work extends OutboxWorkShape> {
     private readonly store: OutboxStore<Work>;
     private readonly handlers: OutboxHandlers<Work>;
-    private readonly clock: OutboxClock;
+    private readonly clock: Clock;
     private readonly onParked: (entry: OutboxEntryOf<Work>, error: unknown) => void;
     private readonly running = new Set<string>();
     // Entries that said `wait`, until their target is woken; in memory only, so a restart looks again.

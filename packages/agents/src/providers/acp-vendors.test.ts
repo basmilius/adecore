@@ -2,7 +2,7 @@ import { afterEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { BackendEvent, BackendLaunch } from '../chat/backend.ts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageService } from '../usage/usage-service.ts';

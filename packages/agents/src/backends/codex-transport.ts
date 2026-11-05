@@ -1,4 +1,4 @@
-import type { SpawnChatProcess } from './chat-process.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { JsonRpcTransport, type JsonRpcFrame } from './json-rpc-transport.ts';
 
 export type CodexFrame = JsonRpcFrame;

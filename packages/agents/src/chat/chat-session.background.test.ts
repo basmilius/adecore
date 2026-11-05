@@ -1,7 +1,7 @@
 import { describe, expect, spyOn, test } from 'bun:test';
 import type { ChatInfo } from '@adecore/agent-contracts';
+import type { BackendEvent } from '../backends/backend.ts';
 import { ManualClock } from '../testing/manual-clock.ts';
-import type { BackendEvent } from './backend.ts';
 import { flush, info, rig } from './chat-session.fixture.test.ts';
 import { ChatSession } from './chat-session.ts';
 

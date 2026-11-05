@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import type { ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { z } from 'zod';
+import type { ApprovalDecision, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { ApiTools, CONTINUE_MESSAGE, INTERRUPTED, apiInstructions, endTurn, readThread, writeThread, type ApiHostTools, type ToolRounds } from './api-chat.ts';
 import { apiEffectiveMode, executeApiTool, type ExecuteApiTool } from './api-tools.ts';
-import type { ApprovalDecision, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { readChatCompletionsStream, type ChatCompletionsAnswer, type ChatCompletionsTokens } from './chat-completions-stream.ts';
 
 const MessageSchema = z.object({

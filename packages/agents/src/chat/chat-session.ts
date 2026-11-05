@@ -24,22 +24,22 @@ import type {
 import { ENDED_NOTE_PREFIX, HOST_TASK_ORIGIN, notResumedNote } from '@adecore/agent-contracts';
 import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure } from '@adecore/intelligent-ui';
 import { asError } from '@adecore/utils/errors';
+import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
+import type { LimitsUpdate } from '../backends/limits.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
+import { systemClock, type Clock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
-import { turnHop } from '../messages/deliver-notice.ts';
-import { systemClock, type OutboxClock } from '../outbox/outbox-worker.ts';
 import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
+import { readableAssistantText } from '../readable-text.ts';
 import { cleanTitle } from '../title-file.ts';
-import type { LimitsUpdate } from '../usage/limits/normalize.ts';
-import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { commandLabel, isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
-import type { SpawnChatProcess } from './chat-process.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import { ChatError } from './errors.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
-import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
+import { turnHop } from './turn-hop.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
 
 /* What a host keeps of a chat's turns in git (or anything like it), so a turn can show what it changed. */
@@ -85,7 +85,7 @@ export type ChatReferences = (attached: {
 
 export interface ChatSessionOptions {
     info: ChatInfo;
-    clock?: OutboxClock;
+    clock?: Clock;
     items?: ChatItem[];
     // Said once, in front of the next real prompt, and kept in the record until then (a fork's note for its agent).
     preambles?: string[];
@@ -254,9 +254,11 @@ export class ChatSession {
     private readonly steering = new Set<string>();
     private readonly capturedUiAccess: Map<string, unknown>;
     private readonly uiReplies: UiReplies;
+    private readonly clock: Clock;
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
+        this.clock = options.clock ?? systemClock;
         this.pendingPreambles = options.preambles ?? [];
         this.capturedUiAccess = new Map(Object.entries(options.uiAccess ?? {}));
         this.thread = new ChatThread(options.info, options.items);
@@ -265,7 +267,7 @@ export class ChatSession {
         this.uiReplies = new UiReplies({
             thread: this.thread,
             fenceLanguage: options.uiFenceLanguage ?? UI_FENCE_LANGUAGE,
-            clock: options.clock ?? systemClock,
+            clock: this.clock,
             ...(options.ui ? { host: options.ui } : {}),
             emit: (event) => options.emit(event),
             repair: (note, audience) => {
@@ -660,7 +662,7 @@ export class ChatSession {
         this.steering.add(message.id);
         const steer = this.steer(message, text, extras, backend.steerTurn.bind(backend), turnId, queued);
         // Claude takes a steer only between tool calls, so a long command would outlast the client's request.
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
         let timer: unknown = null;
 
         const waited = new Promise<null>((resolve) => {
@@ -2223,7 +2225,7 @@ export class ChatSession {
 
     private watchStart(turnId: string): { turnId: string; warning: unknown } {
         this.clearStartWarning();
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
 
         const pending = {
             turnId,
@@ -2255,7 +2257,7 @@ export class ChatSession {
             return;
         }
 
-        (this.options.clock ?? systemClock).clearTimeout(this.pendingStart.warning);
+        this.clock.clearTimeout(this.pendingStart.warning);
         this.pendingStart = null;
     }
 
@@ -2399,7 +2401,7 @@ export class ChatSession {
             runtimeMode: info.runtimeMode,
             resume: info.agentSessionId,
             generation,
-            now: () => this.options.limitResume?.now() ?? (this.options.clock ?? systemClock).now(),
+            now: () => this.options.limitResume?.now() ?? this.clock.now(),
             saveGeneratedImage: this.options.saveGeneratedImage,
             instructions: this.options.instructions?.() ?? null,
             resumeNote: this.options.resumeNote?.() ?? null,
@@ -2663,7 +2665,7 @@ export class ChatSession {
     }
 
     private clearWorkflowWarnings(): void {
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
 
         for (const timer of this.workflowWarnings.values()) {
             clock.clearTimeout(timer);
@@ -2698,7 +2700,7 @@ export class ChatSession {
     }
 
     private watchWorkflow(item: ChatToolItem, progress: boolean): void {
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
         const existing = this.workflowWarnings.get(item.id);
 
         if (item.state !== 'running' || progress) {

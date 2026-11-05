@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
-import { spawnTarget } from '../windows-command.ts';
+import { spawnTarget } from './windows-command.ts';
 
 /*
  * The part of a child process a chat backend talks to: lines in over stdin, lines out over stdout,

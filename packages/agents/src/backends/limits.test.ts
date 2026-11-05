@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { fraction, kindOfDuration, mergeWindows, readClaudeEvent, readClaudeUsage, readCodexLimits } from './normalize.ts';
+import { fraction, kindOfDuration, mergeWindows, readClaudeEvent, readClaudeUsage, readCodexLimits } from './limits.ts';
 
 const claudeAnswer = {
     session: { total_cost_usd: 1.5 },

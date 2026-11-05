@@ -12,8 +12,8 @@ import type {
     ModelSelection,
     RuntimeMode
 } from '@adecore/agent-contracts';
-import type { LimitsUpdate } from '../usage/limits/normalize.ts';
-import type { SpawnChatProcess } from './chat-process.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
+import type { LimitsUpdate } from './limits.ts';
 
 /*
  * The seam between one chat and one CLI. A backend owns a process and the protocol it speaks; it

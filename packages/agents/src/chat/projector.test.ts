@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { AGENT_EVENT_SCHEMAS, TOOL_OUTPUT_TAIL, type ChatEvent, type ChatInfo } from '@adecore/agent-contracts';
-import type { BackendEvent } from './backend.ts';
+import type { BackendEvent } from '../backends/backend.ts';
 import { ThreadProjector, stripAgentFooter, summaryLine } from './projector.ts';
 import { ChatThread } from './thread.ts';
 

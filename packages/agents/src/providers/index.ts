@@ -38,7 +38,7 @@ export { type CliMcpServer, cliMcpHeaders, cliMcpArgs, cliMcpAllowArgs } from '.
 export { createClaudeProvider } from './claude-provider.ts';
 export { createCodexProvider } from './codex-provider.ts';
 export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome, installCodexRules, type CodexRulesResult } from './codex-rules.ts';
-export { codexThreadOptions, codexServiceTier } from './codex.ts';
+export { codexThreadOptions, codexServiceTier } from '../backends/codex.ts';
 export { type CliDetection, detectCli } from './detect.ts';
 export type { ChatProvider, ClaudeCodeRuntime, ProviderHome } from './provider.ts';
 export { nanoGptVendorOf } from './nanogpt-vendor.ts';

@@ -1,6 +1,6 @@
-import { ClaudeBackend, type ClaudeBackendOptions } from '../chat/claude-backend.ts';
+import { ClaudeBackend, type ClaudeBackendOptions } from '../backends/claude-backend.ts';
+import { CLAUDE_CAPABILITIES, CLAUDE_RESUME_COMMAND } from '../backends/claude.ts';
 import { ModelCatalog } from './catalog.ts';
-import { CLAUDE_CAPABILITIES, CLAUDE_RESUME_COMMAND } from './claude.ts';
 import { detectCli } from './detect.ts';
 import type { ChatProvider } from './provider.ts';
 

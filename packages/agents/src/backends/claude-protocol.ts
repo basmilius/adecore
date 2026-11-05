@@ -10,9 +10,9 @@ import type {
 } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 import { num, str } from '../fields.ts';
-import { claudeRuntimeMode } from '../providers/claude.ts';
-import { readClaudeEvent } from '../usage/limits/normalize.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
+import { claudeRuntimeMode } from './claude.ts';
+import { readClaudeEvent } from './limits.ts';
 
 type Frame = Record<string, unknown>;
 

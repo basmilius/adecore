@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { KILL_GRACE_MS, killProcessTree } from './chat/chat-process.ts';
+import { KILL_GRACE_MS, killProcessTree } from './chat-process.ts';
 import { spawnTarget } from './windows-command.ts';
 
 export interface ProcessResult {

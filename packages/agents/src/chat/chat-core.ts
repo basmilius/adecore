@@ -30,6 +30,9 @@ import {
     type ModelSelection,
     type RuntimeMode
 } from '@adecore/agent-contracts';
+import type { CodexClientInfo } from '../backends/codex-transport.ts';
+import type { LimitsUpdate } from '../backends/limits.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { ClientSinks } from '../client-sinks.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
@@ -38,14 +41,13 @@ import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
 import { AccountError, definedEnv, isDefaultAccountOf, launchEnv, storedAccount, type AccountLaunches } from '../providers/accounts/launch.ts';
 import { runsClaudeCode } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
+import { readableAssistantText } from '../readable-text.ts';
 import { SkillIndex } from '../skills.ts';
-import type { LimitsUpdate } from '../usage/limits/normalize.ts';
 import { usageRoots } from '../usage/roots.ts';
 import type { AttachmentStore } from './attachment-store.ts';
 import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
 import type { BookmarkStore } from './bookmark-store.ts';
 import { ChatLog, COMPACT_ABOVE_BYTES } from './chat-log.ts';
-import type { SpawnChatProcess } from './chat-process.ts';
 import {
     ChatSession,
     type ChatReferences,
@@ -60,11 +62,9 @@ import {
 import type { ChatRecord, ChatRecordExtras, ChatStore } from './chat-store.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import type { CodexProcessSpec } from './codex-thread.ts';
-import type { CodexClientInfo } from './codex-transport.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
 import { ChatError } from './errors.ts';
-import { readableAssistantText } from './readable-text.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
 import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import type { VisualInput, VisualStore } from './visual-store.ts';

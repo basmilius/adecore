@@ -2,8 +2,8 @@ import { notResumedNote } from '@adecore/agent-contracts';
 import { z } from 'zod';
 import type { InterruptedRun } from '../chat/chat-core.ts';
 import { errorText } from '../error-text.ts';
-import type { AnyOutboxEntry } from '../tasks/task-work.ts';
-import type { OutboxEntryOf } from './outbox.ts';
+import type { OutboxEntryOf } from '../outbox/outbox.ts';
+import type { AnyOutboxEntry } from './task-work.ts';
 
 export const ResumeRunWorkSchema = z.object({
     kind: z.literal('resume-run'),

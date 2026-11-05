@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { SUGGESTED_TITLE_LIMIT } from '@adecore/agent-contracts';
-import { ModelCatalog } from '../providers/catalog.ts';
 import {
     AcpProtocol,
     acpStopWords,
@@ -14,8 +13,9 @@ import {
     toolRow,
     unifiedDiff,
     type AcpModeMap
-} from './acp-protocol.ts';
-import type { BackendEvent } from './backend.ts';
+} from '../backends/acp-protocol.ts';
+import type { BackendEvent } from '../backends/backend.ts';
+import { ModelCatalog } from '../providers/catalog.ts';
 import turnCapture from './fixtures/acp-v1-turn.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';

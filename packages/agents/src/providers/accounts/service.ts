@@ -15,7 +15,7 @@ import {
     type ProviderInfo
 } from '@adecore/agent-contracts';
 import { Serializer } from '@adecore/utils/async';
-import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
+import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../backends/codex-transport.ts';
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';

@@ -1,5 +1,5 @@
 import type { AgentKind, ProviderCapabilities, ProviderInstall } from '@adecore/agent-contracts';
-import type { BackendHost, BackendLaunch, ChatBackend } from '../chat/backend.ts';
+import type { BackendHost, BackendLaunch, ChatBackend } from '../backends/backend.ts';
 import type { AccountReading } from './accounts/status.ts';
 import type { ModelCatalog } from './catalog.ts';
 import type { CliDetection } from './detect.ts';

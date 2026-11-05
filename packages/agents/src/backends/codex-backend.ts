@@ -3,10 +3,10 @@ import { accessSync, constants } from 'node:fs';
 import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 import { errorText } from '../error-text.ts';
-import { codexServiceTier, codexThreadOptions } from '../providers/codex.ts';
 import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { codexGoal, CodexProtocol } from './codex-protocol.ts';
 import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
+import { codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
 
 function textInput(text: string) {

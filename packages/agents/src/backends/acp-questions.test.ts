@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import type { RuntimeMode } from '@adecore/agent-contracts';
+import antigravityQuestion from '../chat/fixtures/antigravity-1.4.1-question.json';
+import grokQuestion from '../chat/fixtures/grok-1.0.62-question.json';
 import { fakeAcpCapture, type AcpCapture } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { createAcpBackend } from './acp-backend.ts';
 import type { BackendEvent, ChatBackend } from './backend.ts';
-import antigravityQuestion from './fixtures/antigravity-1.4.1-question.json';
-import grokQuestion from './fixtures/grok-1.0.62-question.json';
 
 type QuestionEvent = Extract<BackendEvent, { type: 'question.requested' }>;
 

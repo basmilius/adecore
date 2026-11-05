@@ -1,6 +1,6 @@
 import type { AgentKind, ProviderCapabilities, ProviderInstall } from '@adecore/agent-contracts';
-import { createAcpBackend, type AcpAgentSpec, type AcpUsageReport } from '../chat/acp-backend.ts';
-import type { AcpSessionInfo } from '../chat/acp-protocol.ts';
+import { createAcpBackend, type AcpAgentSpec, type AcpUsageReport } from '../backends/acp-backend.ts';
+import type { AcpSessionInfo } from '../backends/acp-protocol.ts';
 import { askAcpAccount } from './accounts/acp-account.ts';
 import { AcpAgentState, type AcpCatalogStore } from './acp-agent-state.ts';
 import { writeAcpUsage } from './acp-usage-log.ts';

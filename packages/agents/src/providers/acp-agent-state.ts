@@ -1,6 +1,6 @@
 import { ModelOptionDescriptorSchema, type ModelOptionDescriptor, type ProviderCapabilities } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import type { AcpSessionInfo } from '../chat/acp-protocol.ts';
+import type { AcpSessionInfo } from '../backends/acp-protocol.ts';
 import type { ModelCatalog } from './catalog.ts';
 
 /* Where a provider keeps what its agent reported, so a host that starts again offers it before the agent runs. The value is the provider's own. */

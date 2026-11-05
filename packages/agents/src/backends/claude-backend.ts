@@ -18,11 +18,11 @@ import type {
     SpawnedProcess,
     SpawnOptions
 } from '@anthropic-ai/claude-agent-sdk';
+import { ChatChild } from '../chat-process.ts';
 import { errorText } from '../error-text.ts';
-import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from '../providers/claude.ts';
 import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
-import { ChatChild } from './chat-process.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
+import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from './claude.ts';
 import { buildUserMessage } from './input.ts';
 
 // How long the messages of a CLI that exited may still take through the SDK.

@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { BackendEvent, BackendLaunch } from '../chat/backend.ts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { fakeAcp, fakeAcpWith } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageScanner } from '../usage/scanner.ts';

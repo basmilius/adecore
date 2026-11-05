@@ -1,8 +1,8 @@
 import { appendFileSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import type { AcpUsageReport } from '../chat/acp-backend.ts';
+import type { AcpUsageReport } from '../backends/acp-backend.ts';
 import { errorText } from '../error-text.ts';
-import { hostUsageLine } from '../usage/readers/host-log.ts';
+import { hostUsageLine } from '../host-usage-line.ts';
 
 /*
  * Appends one turn to the session's own file in the folder, so a scan that hashes what it already read

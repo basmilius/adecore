@@ -1,11 +1,11 @@
 import { expect, test } from 'bun:test';
 import type { ChatAttachment } from '@adecore/agent-contracts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
+import { CodexBackend } from '../backends/codex-backend.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
-import type { BackendEvent, BackendLaunch } from './backend.ts';
 import { flush } from './chat-session.fixture.test.ts';
-import { CodexBackend } from './codex-backend.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 

@@ -229,7 +229,7 @@ Measured on Claude Code 2.1.300 and Codex 0.162.1. A provider of your own sets `
 
 ## A provider of your own
 
-A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts (a `ProviderHome`: the variable the CLI reads its folder from and the folder it uses without it), `detect`, the first-prompt and one-shot arguments, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports `BackendEvent`s through `host.onEvent`. See [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) for the interface (exported from `@adecore/agents/chat`) and the built-ins as examples.
+A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts (a `ProviderHome`: the variable the CLI reads its folder from and the folder it uses without it), `detect`, the first-prompt and one-shot arguments, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports `BackendEvent`s through `host.onEvent`. See [`backends/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/backends/backend.ts) for the interface (exported from `@adecore/agents/chat`) and the built-ins as examples.
 
 The optional `ChatBackend.steerTurn(input)` adds user input to the running turn without interrupting it. Resolve `true` only once the CLI accepted it, `false` only when no turn is active, and reject when the outcome is unknown.
 

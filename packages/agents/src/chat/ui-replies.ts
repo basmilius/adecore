@@ -3,7 +3,7 @@ import { GeneratedImageInputSchema, type ChatAssistantItem, type ChatEvent, type
 import { uiHasFence, uiMayReferenceHost, type UiDiagnostic } from '@adecore/intelligent-ui';
 import type { UiCompileOptions } from '@adecore/intelligent-ui/compiler';
 import { UiStream, type UiStreamPreview } from '@adecore/intelligent-ui/stream';
-import type { OutboxClock } from '../outbox/outbox-worker.ts';
+import type { Clock } from '../clock.ts';
 import type { ChatThread } from './thread.ts';
 
 // Longer than any fence line or the name of a tag a scan looks for, so a match never falls between two deltas.
@@ -18,7 +18,7 @@ export interface UiReplyHost {
 export interface UiRepliesOptions {
     thread: ChatThread;
     fenceLanguage: string;
-    clock: OutboxClock;
+    clock: Clock;
     host?: UiReplyHost;
     emit(event: ChatEvent): void;
     /*

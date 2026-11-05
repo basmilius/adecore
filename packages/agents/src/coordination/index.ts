@@ -1,15 +1,8 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
+export { type Clock, systemClock } from '../clock.ts';
 export { type OutboxEntryOf, OutboxStore, type OutboxWorkShape, type OutboxEntryFields, type OutboxStoreOptions } from '../outbox/outbox.ts';
 
-export {
-    RETRY_DELAYS_MS,
-    type OutboxClock,
-    systemClock,
-    type OutboxOutcome,
-    type OutboxHandlers,
-    OutboxWorker,
-    type OutboxWorkerOptions
-} from '../outbox/outbox-worker.ts';
+export { RETRY_DELAYS_MS, type OutboxOutcome, type OutboxHandlers, OutboxWorker, type OutboxWorkerOptions } from '../outbox/outbox-worker.ts';
 
 export {
     ResumeRunWorkSchema,
@@ -20,7 +13,7 @@ export {
     oweResume,
     resumeRunHandler,
     resumeRunParked
-} from '../outbox/resume-run.ts';
+} from '../tasks/resume-run.ts';
 
 export {
     PendingPromptStore,

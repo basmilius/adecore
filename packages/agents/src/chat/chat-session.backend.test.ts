@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { abortedByEnd, abortedByMachine, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
+import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
+import { ClaudeProtocol } from '../backends/claude-protocol.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
 import { codexProvider } from '../providers/codex-provider.ts';
-import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
-import { ClaudeProtocol } from './claude-protocol.ts';
 
 // `reconfigure` is what the backend answers a change it is asked to take in place; absent, it has no such call. `outdated` likewise.
 function replacementRig(

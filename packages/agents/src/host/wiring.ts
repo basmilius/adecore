@@ -1,13 +1,13 @@
 import type { AgentKind, UsageProvider } from '@adecore/agent-contracts';
+import type { ClaudeBackendOptions } from '../backends/claude-backend.ts';
+import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../backends/codex-transport.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { AttachmentStore } from '../chat/attachment-store.ts';
 import { BookmarkStore } from '../chat/bookmark-store.ts';
 import { ChatCore, type ChatCoreOptions } from '../chat/chat-core.ts';
-import type { SpawnChatProcess } from '../chat/chat-process.ts';
 import { ChatStore } from '../chat/chat-store.ts';
 import { suggestChatTitle } from '../chat/chat-title.ts';
-import type { ClaudeBackendOptions } from '../chat/claude-backend.ts';
 import { ClaudeTitleReader } from '../chat/claude-title.ts';
-import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../chat/codex-transport.ts';
 import { VisualStore } from '../chat/visual-store.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';

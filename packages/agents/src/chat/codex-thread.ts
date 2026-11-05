@@ -1,9 +1,9 @@
 import type { ChatItem } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
+import { CodexProtocol } from '../backends/codex-protocol.ts';
+import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../backends/codex-transport.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { errorText } from '../error-text.ts';
-import type { SpawnChatProcess } from './chat-process.ts';
-import { CodexProtocol } from './codex-protocol.ts';
-import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from './codex-transport.ts';
 import { ChatError } from './errors.ts';
 import { readingThread, settledReading } from './subagent-projection.ts';
 

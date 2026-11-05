@@ -1,6 +1,6 @@
 import type { ChatInfo } from '@adecore/agent-contracts';
+import type { BackendEvent, BackendHost, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { claudeProvider } from '../providers/claude-provider.ts';
-import type { BackendEvent, BackendHost, ChatBackend, TurnInput } from './backend.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
 
 function info(): ChatInfo {
