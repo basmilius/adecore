@@ -116,6 +116,8 @@ export class EditorLanguage implements LanguageContext {
         this.document = project.acquire(uri, languageId, editor, { serve: this.served });
         this.timers = timers;
         this.onDispose(editor.onKeyDown((event) => this.keys.dispatch(event)));
+        // A feature declares the siblings it drives as its `peers` and reads them when it acts; only a constructor that
+        // subscribes to one (code actions to diagnostics, templates to completion) needs that sibling built above it.
         this.pick = new PickFeature(this, timers);
         this.diagnostics = new DiagnosticsFeature(this, this);
         this.hover = new HoverFeature(this, this, timers);
