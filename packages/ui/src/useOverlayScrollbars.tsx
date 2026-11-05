@@ -234,11 +234,12 @@ export function useOverlayScrollbars(viewport: HTMLElement | null, { axis = 'y' 
                   });
 
         // Text right in the scroller, as in a `<pre>`, grows without resizing anything an observer sees.
+        // The node's own constants, not the `Element` or `Node` globals: a document from a test's own window has none.
         const observeContent = (): void => {
             for (const child of viewport.childNodes) {
-                if (child instanceof Element) {
-                    sizes?.observe(child);
-                } else if (child.nodeType === Node.TEXT_NODE) {
+                if (child.nodeType === child.ELEMENT_NODE) {
+                    sizes?.observe(child as Element);
+                } else if (child.nodeType === child.TEXT_NODE) {
                     content?.observe(child, { characterData: true });
                 }
             }
