@@ -733,14 +733,10 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         const closing = finalAssistant ? work.indexOf(finalAssistant) : work.length;
         const before = work.slice(0, closing);
 
-        // Images remain a turn's visible result, and a workflow or a background subagent may still be running after its turn ends.
+        // Images and subagents remain a turn's visible result, and a workflow may still be running after its turn ends.
         // A compaction is never folded away, so a turn that only compacted shows its divider and no fold.
         const standing = before.filter(
-            (row) =>
-                isImageRow(row) ||
-                row.kind === 'compaction' ||
-                (row.kind === 'workflow' && row.tool.state === 'running') ||
-                (row.kind === 'subagent' && row.item.status === 'running')
+            (row) => isImageRow(row) || row.kind === 'compaction' || row.kind === 'subagent' || (row.kind === 'workflow' && row.tool.state === 'running')
         );
 
         const folded = before.length - standing.length;

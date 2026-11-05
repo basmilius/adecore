@@ -519,7 +519,7 @@ describe('deriveTimelineRows', () => {
         expect(unfolded.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'work-group', 'workflow', 'work-group', 'assistant']);
     });
 
-    test('a background subagent stays out of the fold of its settled turn until it ends', () => {
+    test('a subagent stays out of the fold of its settled turn, also once it ends', () => {
         const subagent = (status: ChatSubagentItem['status']): ChatSubagentItem => ({
             id: 'sa1',
             kind: 'subagent',
@@ -548,14 +548,14 @@ describe('deriveTimelineRows', () => {
             { id: 'a1', kind: 'assistant', createdAt: 5000, turnId: 't1', text: 'It runs in the background.', streaming: false }
         ];
 
-        expect(deriveTimelineRows(items('running'), options).map((row) => [row.kind, row.id])).toEqual([
-            ['user', 'u1'],
-            ['turn-fold', 'fold-t1'],
-            ['subagent', 'sa1'],
-            ['assistant', 'a1']
-        ]);
-
-        expect(deriveTimelineRows(items('done'), options).map((row) => row.kind)).toEqual(['user', 'turn-fold', 'assistant']);
+        for (const status of ['running', 'done', 'failed'] as const) {
+            expect(deriveTimelineRows(items(status), options).map((row) => [row.kind, row.id])).toEqual([
+                ['user', 'u1'],
+                ['turn-fold', 'fold-t1'],
+                ['subagent', 'sa1'],
+                ['assistant', 'a1']
+            ]);
+        }
     });
 });
 
