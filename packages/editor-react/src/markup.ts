@@ -1,12 +1,13 @@
 import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange, EditorTrackedRange } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
 import { abbreviationBefore, expandAbbreviation } from './emmet.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import { isVoidElement, markupPlaceAt, markupSyntaxOf, tagPairAt, type MarkupSyntax } from './markup-context.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { indentSnippet } from './snippet-indent.ts';
 import { positionInInsertion } from './snippet-session.ts';
+import type { SnippetFeature } from './snippet-session.ts';
 import { parseSnippet } from './snippet.ts';
 
 /* Each is on unless false. */
@@ -33,6 +34,11 @@ interface Link {
 const NAME = /^[\w:.-]*$/;
 const NAME_BEFORE = /<\/?[\w:.-]*$/;
 
+/* The sibling features MarkupFeature drives, which the editor language hands over. */
+export interface MarkupPeers {
+    readonly snippets: Pick<SnippetFeature, 'applyEdits' | 'begin' | 'beginInstances' | 'isActive' | 'token'>;
+}
+
 /*
  * Writing HTML, XML, the template of a Vue file and the markup of PHP: Emmet abbreviations, end tags that
  * write themselves and tag names that change in pairs. The edits it adds join the undo step of the key that
@@ -40,7 +46,8 @@ const NAME_BEFORE = /<\/?[\w:.-]*$/;
  * than one caret.
  */
 export class MarkupFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: MarkupPeers;
     private readonly syntax: MarkupSyntax | null;
     private settings: Required<MarkupSettings> = { emmet: true, closeTags: true, linkedTags: true };
     private link: Link | null = null;
@@ -49,8 +56,9 @@ export class MarkupFeature {
     private revision = 0;
     private mirroring = false;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: MarkupPeers) {
         this.language = language;
+        this.peers = peers;
         this.syntax = markupSyntaxOf(language.languageId);
         if (this.syntax === null) {
             return;
@@ -211,7 +219,8 @@ export class MarkupFeature {
     }
 
     private insert(range: EditorRange, snippet: string, line: string): boolean {
-        const { editor, snippets } = this.language;
+        const { editor } = this.language;
+        const { snippets } = this.peers;
         const parsed = indentSnippet(parseSnippet(snippet), line);
         if (parsed.limited === true) {
             return false;
@@ -229,7 +238,8 @@ export class MarkupFeature {
 
     /* Through the snippet session while one runs, so an edit inside its field keeps it going. */
     private apply(changes: readonly EditorContentChange[], options?: EditorApplyEditsOptions): boolean {
-        const { editor, snippets } = this.language;
+        const { editor } = this.language;
+        const { snippets } = this.peers;
         return snippets.isActive ? snippets.applyEdits(changes, snippets.token, [], options) : editor.applyEdits(changes, options);
     }
 

@@ -3,7 +3,8 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mountEditor } from '@adecore/editor/testing';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { BUILT_IN_POSTFIX_TEMPLATES, checkTemplate, TemplateRegistry, type LiveTemplate, type PostfixTemplate, type TemplateSettings } from './templates.ts';
+import { type LiveTemplate, type PostfixTemplate } from './template-types.ts';
+import { BUILT_IN_POSTFIX_TEMPLATES, checkTemplate, TemplateRegistry, type TemplateSettings } from './templates.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 async function settle(): Promise<void> {

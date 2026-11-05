@@ -1,5 +1,5 @@
 import { applyTextEdits, type CodeAction, type Command, type Diagnostic, type Range, type WorkspaceEdit } from '@adecore/lsp';
-import { comparePositions } from './diagnostics-model.ts';
+import { comparePositions } from './positions.ts';
 import { uniqueBy } from './unique.ts';
 import { resourceOperationsOf, textEntriesOf } from './workspace-edit.ts';
 

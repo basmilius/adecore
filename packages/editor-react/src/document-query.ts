@@ -1,4 +1,4 @@
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 import type { Timers } from './timers.ts';
 
 /*
@@ -7,7 +7,7 @@ import type { Timers } from './timers.ts';
  * text that is gone; an answer for an older text is dropped.
  */
 export class DocumentQuery<Value> {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private readonly delay: number;
     private readonly ask: (signal: AbortSignal) => Promise<Value | null>;
@@ -17,7 +17,7 @@ export class DocumentQuery<Value> {
     private generation = 0;
 
     constructor(
-        language: EditorLanguage,
+        language: LanguageContext,
         timers: Timers,
         delay: number,
         ask: (signal: AbortSignal) => Promise<Value | null>,

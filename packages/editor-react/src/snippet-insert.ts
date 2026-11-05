@@ -1,12 +1,12 @@
 import type { Editor, EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
 import { fileUriToPath } from '@adecore/lsp';
-import { comparePositions, shiftPosition } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
+import { comparePositions, shiftPosition } from './positions.ts';
 import { wordRangeAt } from './rename-model.ts';
 import { jobTable } from './snippet-field-transforms.ts';
 import { indentSnippet } from './snippet-indent.ts';
-import { positionInInsertion } from './snippet-session.ts';
+import { positionInInsertion, type SnippetFeature } from './snippet-session.ts';
 import { SnippetTransformError } from './snippet-transform-client.ts';
 import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK } from './snippet-transform-protocol.ts';
 import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
@@ -17,6 +17,9 @@ import { compileSnippet, tabOrder, type ParsedSnippet, type SnippetTemplate } fr
 const MAX_CHARACTERS = 2_000_000;
 const MAX_RANGES = 1_000;
 const TOAST_ID = 'language-completion';
+
+/* What inserting a snippet asks of the session it starts or joins. */
+export type InsertingSnippets = Pick<SnippetFeature, 'applyEdits' | 'beginInstances' | 'isActive' | 'token' | 'transformVariables'>;
 
 export interface SnippetPlacement {
     readonly range: EditorRange;
@@ -77,12 +80,13 @@ function sizeOf(parsed: ParsedSnippet): number {
  * to the text before the placement, and a running session takes the insertion as a nested one. False when nothing was inserted.
  */
 export async function insertSnippet(
-    language: EditorLanguage,
+    language: LanguageContext,
+    snippets: InsertingSnippets,
     source: string,
     placements: readonly SnippetPlacement[],
     extra?: (name: string) => string | undefined
 ): Promise<boolean> {
-    const { editor, project, uri, snippets } = language;
+    const { editor, project, uri } = language;
 
     if (placements.length === 0 || editor.isReadOnly?.() === true) {
         return false;
@@ -140,7 +144,7 @@ export async function insertSnippet(
             }
         }
 
-        await transformVariables(language, template, drafts, current);
+        await transformVariables(language, snippets, template, drafts, current);
 
         if (!current()) {
             return false;
@@ -165,7 +169,7 @@ export async function insertSnippet(
         }
 
         off();
-        place(language, drafts, starts, continuing && snippets.isActive && snippets.token === token);
+        place(language, snippets, drafts, starts, continuing && snippets.isActive && snippets.token === token);
         editor.focus();
 
         return true;
@@ -195,8 +199,14 @@ export async function insertSnippet(
 }
 
 /* Runs the transforms of variables through the worker, once for all placements, and renders them again with the answers. */
-async function transformVariables(language: EditorLanguage, template: SnippetTemplate, drafts: Draft[], current: () => boolean): Promise<void> {
-    const { editor, project, snippets } = language;
+async function transformVariables(
+    language: LanguageContext,
+    snippets: InsertingSnippets,
+    template: SnippetTemplate,
+    drafts: Draft[],
+    current: () => boolean
+): Promise<void> {
+    const { editor, project } = language;
     const { jobs, slotOf } = jobTable();
     const slots = drafts.map((draft) =>
         (draft.raw.transforms ?? []).map((range) => slotOf({ ...range.transform, value: draft.raw.text.slice(range.start, range.end) }))
@@ -235,8 +245,8 @@ async function transformVariables(language: EditorLanguage, template: SnippetTem
 }
 
 /* Starts the session on the tab stops, or puts the caret after the primary insertion when there are none. */
-function place(language: EditorLanguage, drafts: readonly Draft[], starts: readonly EditorPosition[], nested: boolean): void {
-    const { editor, snippets } = language;
+function place(language: LanguageContext, snippets: InsertingSnippets, drafts: readonly Draft[], starts: readonly EditorPosition[], nested: boolean): void {
+    const { editor } = language;
     const primary = drafts.at(-1)!.parsed;
 
     if (primary.stops.length > 0) {

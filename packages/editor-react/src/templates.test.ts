@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { familiesOf, templateApplies } from './template-context.ts';
-import { BUILT_IN_LIVE_TEMPLATES, TemplateRegistry, checkTemplate, type LiveTemplate, type PostfixTemplate } from './templates.ts';
+import { type LiveTemplate, type PostfixTemplate } from './template-types.ts';
+import { BUILT_IN_LIVE_TEMPLATES, TemplateRegistry, checkTemplate } from './templates.ts';
 
 const log: LiveTemplate = { id: 'own.log', key: 'lg', body: 'console.log($0);', languages: ['javascript'] };
 const postfix: PostfixTemplate = { id: 'own.if', key: 'if', body: 'if ($EXPR) {\n\t$0\n}', languages: ['javascript'], expression: 'statement' };

@@ -1,7 +1,8 @@
 import type { EditorPosition } from '@adecore/editor';
 import { isIdentifierCharacter } from './completion-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { DocumentLinksFeature } from './document-links.ts';
 import { locationsOf } from './hover-content.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import { wordRangeAt } from './rename-model.ts';
 
@@ -32,13 +33,19 @@ export function followModKey(apple: boolean, onHeld: (held: boolean) => void): (
     };
 }
 
+/* The sibling features DefinitionLinkFeature drives, which the editor language hands over. */
+export interface DefinitionLinkPeers {
+    readonly links: Pick<DocumentLinksFeature, 'rangeAt'>;
+}
+
 /*
  * The name under the pointer drawn as a link while Cmd (Ctrl elsewhere) is held and a server knows where it
  * is defined, which is what a Mod+click on it follows. A document link under the pointer goes first. The
  * editor only says where the pointer is, so the key comes from the window.
  */
 export class DefinitionLinkFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: DefinitionLinkPeers;
     private held = false;
     private pointer: EditorPosition | null = null;
     private shownKey = '';
@@ -46,8 +53,9 @@ export class DefinitionLinkFeature {
     private request = 0;
     private lookup: AbortController | null = null;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: DefinitionLinkPeers) {
         this.language = language;
+        this.peers = peers;
         const { editor } = language;
 
         const offs = [
@@ -90,7 +98,7 @@ export class DefinitionLinkFeature {
     private update(): void {
         const { pointer } = this;
 
-        const link = pointer === null ? null : this.language.links.rangeAt(pointer);
+        const link = pointer === null ? null : this.peers.links.rangeAt(pointer);
         if (this.held && link !== null) {
             const key = `link:${link.start.line}:${link.start.character}`;
             if (key !== this.shownKey) {

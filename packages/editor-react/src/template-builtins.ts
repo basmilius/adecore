@@ -1,4 +1,4 @@
-import type { LiveTemplate, PostfixTemplate, TemplateLanguage } from './templates.ts';
+import type { LiveTemplate, PostfixTemplate, TemplateLanguage } from './template-types.ts';
 
 /* A body of lines; a leading tab is one indentation unit. */
 function body(...lines: string[]): string {

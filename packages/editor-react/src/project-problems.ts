@@ -1,6 +1,7 @@
 import type { Diagnostic, LanguageService } from '@adecore/lsp';
-import { comparePositions, problemCountsOf, severityOf } from './diagnostics-model.ts';
-import type { ProblemCounts } from './diagnostics.ts';
+import { problemCountsOf, severityOf } from './diagnostics-model.ts';
+import type { ProblemCounts } from './diagnostics-model.ts';
+import { comparePositions } from './positions.ts';
 
 /* One problem of a file and the server that reported it. */
 export interface ProblemRow {

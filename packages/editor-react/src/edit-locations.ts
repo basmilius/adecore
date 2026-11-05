@@ -1,4 +1,5 @@
 import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
+import { comparePositions, endOfInsertion } from './positions.ts';
 
 /* Where an edit left the carets of one file, the primary last. */
 export interface EditPlace {
@@ -18,33 +19,19 @@ function isSame(left: EditPlace, right: EditPlace | null): boolean {
     );
 }
 
-function before(left: EditorPosition, right: EditorPosition): boolean {
-    return left.line < right.line || (left.line === right.line && left.character < right.character);
-}
-
-/* Where the text of a change ends, in the text after the change. */
-function endOf(change: EditorContentChange): EditorPosition {
-    const lines = change.text.split('\n');
-    const { start } = change.range;
-
-    return lines.length === 1
-        ? { line: start.line, character: start.character + change.text.length }
-        : { line: start.line + lines.length - 1, character: lines[lines.length - 1]!.length };
-}
-
 /* A position after a change: untouched in front of it, at the start when the change replaced the text around it, moved along behind it. */
 function follow(position: EditorPosition, change: EditorContentChange): EditorPosition {
     const { start, end } = change.range;
 
-    if (!before(start, position)) {
+    if (comparePositions(start, position) >= 0) {
         return position;
     }
 
-    if (before(position, end)) {
+    if (comparePositions(position, end) < 0) {
         return start;
     }
 
-    const landed = endOf(change);
+    const landed = endOfInsertion(start, change.text);
 
     return position.line === end.line
         ? { line: landed.line, character: landed.character + position.character - end.character }

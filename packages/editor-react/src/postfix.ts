@@ -2,14 +2,16 @@ import type { EditorPosition, EditorPostfixOperand, EditorRange } from '@adecore
 import type { CompletionItem } from '@adecore/lsp';
 import { isIdentifierCharacter } from './completion-model.ts';
 import type { LocalCompletionItem } from './completion.ts';
-import { comparePositions } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { CompletionFeature } from './completion.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
+import type { PickFeature } from './pick.ts';
 import type { PickRow } from './popups.ts';
-import { bodyWithIndentUnit, dedentLines, indentUnitOf, insertSnippet } from './snippet-insert.ts';
+import { comparePositions } from './positions.ts';
+import { bodyWithIndentUnit, dedentLines, indentUnitOf, insertSnippet, type InsertingSnippets } from './snippet-insert.ts';
 import { compileSnippet } from './snippet.ts';
 import { SNIPPET_KIND, sortAfterServer, templateContextAt } from './template-context.ts';
-import type { PostfixTemplate } from './templates.ts';
+import type { PostfixTemplate } from './template-types.ts';
 
 const MAX_ROW_LENGTH = 80;
 
@@ -44,15 +46,24 @@ function rowLabel(text: string): string {
     return line.length > MAX_ROW_LENGTH ? `${line.slice(0, MAX_ROW_LENGTH - 1)}…` : line;
 }
 
+/* The sibling features PostfixFeature drives, which the editor language hands over. */
+export interface PostfixPeers {
+    readonly completion: Pick<CompletionFeature, 'close' | 'showItems'>;
+    readonly pick: Pick<PickFeature, 'open'>;
+    readonly snippets: InsertingSnippets;
+}
+
 /*
  * Postfix completion: a dot and a key after an expression, and Tab or an accepted row wraps the expression in a
  * template. The registry holds the templates and `TemplatesFeature` decides whether Tab is ours or a live template's.
  */
 export class PostfixFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: PostfixPeers;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: PostfixPeers) {
         this.language = language;
+        this.peers = peers;
     }
 
     /* The key before the caret that a template of the registry applies to; null where Tab has no postfix template to expand. */
@@ -157,7 +168,7 @@ export class PostfixFeature {
 
         const start = { line: candidates.dot.line, character: candidates.dot.character + 1 };
 
-        this.language.completion.showItems(
+        this.peers.completion.showItems(
             candidates.templates.map((template) => this.row(template, candidates, { start, end: caret }, template.id)),
             start
         );
@@ -175,7 +186,8 @@ export class PostfixFeature {
             return;
         }
 
-        const { editor, completion, pick, project } = this.language;
+        const { editor, project } = this.language;
+        const { completion, pick } = this.peers;
         const rows = operands.map((operand, index): PickRow => ({ id: String(index), label: rowLabel(editor.textInRange(operand.range)), detail: '' }));
 
         completion.close();
@@ -195,6 +207,7 @@ export class PostfixFeature {
 
         return insertSnippet(
             this.language,
+            this.peers.snippets,
             bodyWithIndentUnit(template.body, indentUnitOf(editor)),
             [{ range: { start: operand.range.start, end: caret } }],
             (name) => (name === 'EXPR' ? expression : undefined)

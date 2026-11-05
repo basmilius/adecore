@@ -1,6 +1,8 @@
 import type { EditorPosition } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
+import { fileUriToPath, type Location } from '@adecore/lsp';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import { basenameOf } from './paths.ts';
 import type { PickGroup, PickPreview } from './popups.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -41,7 +43,7 @@ export interface PickSpec {
  * Escape, typing, a click elsewhere or a change of the text close it.
  */
 export class PickFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private spec: PickSpec | null = null;
 
@@ -64,7 +66,7 @@ export class PickFeature {
 
     private attempting = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
@@ -107,6 +109,13 @@ export class PickFeature {
         this.active = spec.active !== undefined && ids.includes(spec.active) ? spec.active : ids[0]!;
         this.publish(null);
         this.schedulePreview();
+    }
+
+    /* Lists the places of a result under a position to choose from; choosing one goes there. */
+    locations(places: readonly Location[], anchor: EditorPosition, title: string): void {
+        const rows = places.map((place, index) => ({ id: String(index), ...locationRow(place, this.language.project.pathOfLocation(place.uri)) }));
+
+        this.open({ anchor, title, groups: [{ title: null, rows }], accept: (id) => this.language.goTo(places[Number(id)]!) });
     }
 
     close(): void {
@@ -439,4 +448,13 @@ export class PickFeature {
             }
         });
     }
+}
+
+/* How a place reads in a list: the file and the line, with the folder it is in. */
+export function locationRow(location: Location, stored: string | null): { label: string; detail: string; path: true } {
+    const path = stored ?? fileUriToPath(location.uri) ?? location.uri;
+    const name = basenameOf(path);
+    const folder = path.slice(0, Math.max(0, path.length - name.length)).replace(/\/$/, '');
+
+    return { label: `${name}:${location.range.start.line + 1}`, detail: folder, path: true };
 }

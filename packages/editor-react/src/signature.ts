@@ -1,7 +1,7 @@
 import type { EditorPosition, EditorTextChange } from '@adecore/editor';
 import type { SignatureHelp, SignatureHelpContext } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { signatureViewOf } from './signature-model.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -15,7 +15,7 @@ const PAUSE_MS = 60;
  * so the active parameter follows; the server answering nothing is the caret leaving the call.
  */
 export class SignatureFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private timer: unknown;
     private request = 0;
@@ -23,7 +23,7 @@ export class SignatureFeature {
     private help: SignatureHelp | null = null;
     private anchor: EditorPosition | null = null;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;

@@ -1,8 +1,8 @@
 import type { EditorPosition, EditorRange } from '@adecore/editor';
 import type { DocumentLink } from '@adecore/lsp';
-import { comparePositions } from './diagnostics-model.ts';
 import { DocumentQuery } from './document-query.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
+import { comparePositions } from './positions.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/documentLink';
@@ -36,11 +36,11 @@ function opensInEditor(target: string): boolean {
  * A link without a target asks the server for it first.
  */
 export class DocumentLinksFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private links: readonly DocumentLink[] = [];
     private readonly query: DocumentQuery<DocumentLink[]>;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.query = new DocumentQuery(
             language,
@@ -113,7 +113,7 @@ export class DocumentLinksFeature {
 }
 
 /* Opens a file or a document of a server in the editor, and a web address through the host. */
-export function openTarget(language: EditorLanguage, target: string, selection?: EditorRange): void {
+export function openTarget(language: LanguageContext, target: string, selection?: EditorRange): void {
     if (!opensInEditor(target)) {
         const { host } = language.project;
         if (host.openExternal !== undefined) {

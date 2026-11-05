@@ -17,18 +17,21 @@ import {
     type Insertion,
     type Ranked
 } from './completion-model.ts';
-import { comparePositions, sameRange, shiftPosition } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { shikiLanguageOf } from './language-ids.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
+import type { PickFeature } from './pick.ts';
 import type { CompletionRow, CompletionView } from './popups.ts';
+import { comparePositions, sameRange, shiftPosition } from './positions.ts';
 import { isEmptyRange } from './proposal-model.ts';
 import { RecentChoices, recentChoicesOf } from './recent-choices.ts';
 import { wordRangeAt } from './rename-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
+import type { SignatureFeature } from './signature.ts';
 import { jobTable } from './snippet-field-transforms.ts';
+import type { SnippetFeature } from './snippet-session.ts';
 import { SnippetTransformError } from './snippet-transform-client.ts';
 import { MAX_TRANSFORM_JOBS, MAX_TRANSFORM_WORK } from './snippet-transform-protocol.ts';
 import { SnippetTransformQueueError } from './snippet-transform-queue.ts';
@@ -115,13 +118,24 @@ export interface CompletionSource {
     items(request: CompletionRequest): readonly LocalCompletionItem[];
 }
 
+/* The sibling features CompletionFeature drives, which the editor language hands over. */
+export interface CompletionPeers {
+    readonly pick: Pick<PickFeature, 'close'>;
+    readonly snippets: Pick<
+        SnippetFeature,
+        'applyEdits' | 'beginInstances' | 'end' | 'hasPendingTransforms' | 'isActive' | 'settleTransforms' | 'token' | 'transformVariables'
+    >;
+    readonly signature: Pick<SignatureFeature, 'trigger'>;
+}
+
 /*
  * The suggestions that open while a word is typed. A single typed identifier character or a trigger
  * character of the server asks for the list; every character after that only filters the list that
  * is already there, unless the server called it incomplete. Enter inserts, Tab replaces, Escape closes.
  */
 export class CompletionFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: CompletionPeers;
     private readonly timers: Timers;
     private pool: readonly CompletionItem[] = [];
     private incomplete = false;
@@ -161,8 +175,9 @@ export class CompletionFeature {
     /* Whether the list holds the rows `showItems` gave it and no request refreshes it. */
     private shown = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: CompletionPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
@@ -195,7 +210,7 @@ export class CompletionFeature {
 
     /* Asks for suggestions at the caret now, as Ctrl+Space does. */
     invoke(): void {
-        this.language.pick.close();
+        this.peers.pick.close();
         this.explicit = true;
         this.beginRequest({ triggerKind: 1 }, 0);
     }
@@ -211,7 +226,7 @@ export class CompletionFeature {
 
     /** Opens the list with only these rows, the typed prefix starting at `start`, as Insert Live Template does. */
     showItems(items: readonly LocalCompletionItem[], start: EditorPosition): void {
-        this.language.pick.close();
+        this.peers.pick.close();
         this.close();
         this.shown = true;
         this.locals = new Map(items.map((local) => [local.item, local]));
@@ -264,7 +279,8 @@ export class CompletionFeature {
             return;
         }
 
-        const { editor, project, uri, snippets } = this.language;
+        const { editor, project, uri } = this.language;
+        const { snippets } = this.peers;
         const acceptSequence = ++this.acceptSequence;
         this.accepting?.abort();
         const accepting = new AbortController();
@@ -504,7 +520,7 @@ export class CompletionFeature {
             const landed = editor.getSelections();
 
             if (commit === undefined) {
-                this.language.snippets.beginInstances(
+                this.peers.snippets.beginInstances(
                     [...mirrored, primary].map((insertion, index) => {
                         const rendered = insertion === primary ? main : instances.get(insertion)!;
 
@@ -587,7 +603,8 @@ export class CompletionFeature {
 
     /* Parameter info for a call that was opened (or that the server asks for), then the item's own command. */
     private afterInsert(item: CompletionItem, commit: string | undefined, lineBefore: string): void {
-        const { editor, uri, signature } = this.language;
+        const { editor, uri } = this.language;
+        const { signature } = this.peers;
         const { start } = editor.getSelection();
         const insideCall = start.character > 0 && editor.textInRange({ start: { line: start.line, character: start.character - 1 }, end: start }) === '(';
 

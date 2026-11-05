@@ -4,7 +4,8 @@ import { mountEditor } from '@adecore/editor/testing';
 import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification } from './host-types.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { TemplateRegistry, type LiveTemplate } from './templates.ts';
+import { type LiveTemplate } from './template-types.ts';
+import { TemplateRegistry } from './templates.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 async function settle(): Promise<void> {

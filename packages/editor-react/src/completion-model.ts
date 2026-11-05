@@ -1,12 +1,19 @@
 import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
 import { applyCompletionDefaults, type CompletionItem, type CompletionResult, type MarkupContent } from '@adecore/lsp';
 import { labelCollator } from '@adecore/ui/format';
-import { comparePositions, sameRange } from './diagnostics-model.ts';
 import { escapeMarkdown, isEmptyHover, splitSignatures, type HoverText } from './hover-content.ts';
-import type { CompletionDocs } from './popups.ts';
+import { comparePositions, sameRange } from './positions.ts';
 import { indentSnippet } from './snippet-indent.ts';
 import type { SnippetTransformJob } from './snippet-transform-protocol.ts';
 import { compileSnippet, parseSnippet, tabOrder, type SnippetField, type SnippetStop, type SnippetTemplate, type SnippetVariableResolver } from './snippet.ts';
+
+/* What is said about the active suggestion beside the list. */
+export interface CompletionDocs {
+    /* Where it comes from, such as `use Raxos\\Orm\\Property` or `Auto import from './lib.ts'`; one line, empty when the server says nothing. */
+    readonly source: string;
+    /* The signature, prose and tags the same way a hover has them. */
+    readonly text: HoverText;
+}
 
 const IDENTIFIER_CHARACTER = /[\p{L}\p{N}\p{M}_$]/u;
 

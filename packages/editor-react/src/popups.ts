@@ -4,6 +4,7 @@ import { createStore, type StoreApi } from 'zustand';
 import type { CallDirection, CallRow } from './call-hierarchy-model.ts';
 import type { ActionEntry } from './code-actions-model.ts';
 import type { CodeAuthorship } from './code-authors.ts';
+import type { CompletionDocs } from './completion-model.ts';
 import type { Problem } from './diagnostics-model.ts';
 import type { HoverText } from './hover-content.ts';
 import type { PeekFile, PeekSnippet } from './peek-model.ts';
@@ -44,14 +45,6 @@ export interface CompletionRow {
     /* UTF-16 offsets of the characters of the label that match what was typed. */
     readonly matches: readonly number[];
     readonly deprecated: boolean;
-}
-
-/* What is said about the active suggestion beside the list. */
-export interface CompletionDocs {
-    /* Where it comes from, such as `use Raxos\\Orm\\Property` or `Auto import from './lib.ts'`; one line, empty when the server says nothing. */
-    readonly source: string;
-    /* The signature, prose and tags the same way a hover has them. */
-    readonly text: HoverText;
 }
 
 export interface CompletionView {

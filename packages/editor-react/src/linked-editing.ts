@@ -1,6 +1,6 @@
 import type { EditorTextChange } from '@adecore/editor';
 import type { LinkedEditingRanges } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/linkedEditingRange';
@@ -37,7 +37,7 @@ export function wordPatternOf(ranges: LinkedEditingRanges): RegExp | null {
  * than one caret.
  */
 export class LinkedEditingFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private session: Session | null = null;
     private timer: unknown = null;
@@ -46,7 +46,7 @@ export class LinkedEditingFeature {
     private mirroring = false;
     private enabled = true;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;

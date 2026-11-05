@@ -19,7 +19,7 @@ afterEach(() => {
 
 function snippet(source: string) {
     const mounted = mountEditor({ text: '' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet(source);
     mounted.editor.applyEdits([{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, text: parsed.text }]);
@@ -239,7 +239,7 @@ test('native textarea replacement also commits all mirrors', () => {
 
 test('a caret outside the insertion ends the session after text ranges have settled', async () => {
     const mounted = mountEditor({ text: 'prefix foo suffix' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet('${1:foo}');
     feature.begin({ line: 0, character: 7 }, parsed.text, tabOrder(parsed), parsed.fields);
@@ -290,7 +290,7 @@ test('replacing a parent keeps independent occurrences of a nested field', () =>
 
 test('Tab after replacing a parent in touching instances follows the primary instance', () => {
     const mounted = mountEditor({ text: '' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet('${1:new ${2:Foo}()}');
     mounted.editor.setText(parsed.text + parsed.text);
@@ -957,7 +957,7 @@ test('a touching parent does not consume the next occurrences indentation', asyn
 
 test('snippet tracking metadata stays out of the public editor selections', () => {
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'foo foo z', theme: 'light' });
-    const feature = new SnippetFeature({ editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature({ editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
     cleanup.push(() => editor.dispose());
     const parsed = parseSnippet('${1:foo} ${1/(.*)/$1/} ${2:z}$0');
     feature.begin({ line: 0, character: 0 }, parsed.text, tabOrder(parsed), parsed.fields);

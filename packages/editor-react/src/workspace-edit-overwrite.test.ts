@@ -2,7 +2,8 @@ import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
 import { mountEditor } from '@adecore/editor/testing';
 import type { WorkspaceEdit } from '@adecore/lsp';
-import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
+import { type ProjectFiles } from './host-types.ts';
+import { applyWorkspaceEdit } from './workspace-edit.ts';
 
 const openUri = 'file:///work/app/src/open.ts';
 const closedUri = 'file:///work/app/src/closed.ts';

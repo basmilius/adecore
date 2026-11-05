@@ -1,9 +1,10 @@
 import { findDocComments, type DocComment, type EditorPosition, type EditorRange, type EditorReplacement, type EditorTrackedRange } from '@adecore/editor';
-import { comparePositions } from './diagnostics-model.ts';
 import { parseDocComment, type ParsedDocComment } from './doc-comment-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
+import type { NavigationFeature } from './navigation.ts';
+import { comparePositions } from './positions.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -74,6 +75,11 @@ function samePlace(range: EditorRange | null, position: EditorPosition): boolean
     return range !== null && comparePositions(range.start, position) === 0;
 }
 
+/* The sibling features RenderedDocsFeature drives, which the editor language hands over. */
+export interface RenderedDocsPeers {
+    readonly navigation: Pick<NavigationFeature, 'goToName'>;
+}
+
 /*
  * Documentation comments drawn as formatted text in place of their lines, the way the Reader mode of the
  * documentation does, and the button in the gutter that switches one between that and its source. The
@@ -81,7 +87,8 @@ function samePlace(range: EditorRange | null, position: EditorPosition): boolean
  * it can be edited, and shown formatted again when the caret leaves it.
  */
 export class RenderedDocsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: RenderedDocsPeers;
     private readonly timers: Timers;
     private settings: RenderedDocsSettings = { renderDocComments: false };
     private enabled = true;
@@ -108,8 +115,9 @@ export class RenderedDocsFeature {
 
     private disposed = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: RenderedDocsPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
@@ -263,7 +271,7 @@ export class RenderedDocsFeature {
     follow(name: string, comment: DocComment): void {
         const member = name.split(/::|[#.\\]/).filter((part) => part !== '');
         const target = (member.at(-1) ?? name).replace(/\(\)$/, '');
-        void this.language.navigation.goToName(target, startOf(comment), null);
+        void this.peers.navigation.goToName(target, startOf(comment), null);
     }
 
     /* By place in the document, so a row keeps its element when an edit above it moves its lines. */

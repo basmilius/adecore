@@ -1,8 +1,8 @@
 import type { EditorRange } from '@adecore/editor';
 import { StaleResultError, type Location, type PrepareRenameResult, type WorkspaceEdit } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import type { RenameView } from './popups.ts';
 import { occurrencesOf, renameKindOf, renamePreviewOf, renameTargetOf, wordRangeAt, type RenameTarget } from './rename-model.ts';
@@ -33,10 +33,10 @@ interface Session {
  * Edits to other files land as unsaved drafts (`applyWorkspaceEdit`), so nothing is written to disk here.
  */
 export class RenameFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private session: Session | null = null;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext) {
         this.language = language;
         const { editor } = language;
 

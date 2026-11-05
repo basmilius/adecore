@@ -2,16 +2,19 @@ import type { EditorPosition, EditorRange } from '@adecore/editor';
 import type { CompletionItem } from '@adecore/lsp';
 import { identifierPrefix, isIdentifierCharacter } from './completion-model.ts';
 import type { LocalCompletionItem } from './completion.ts';
-import { comparePositions } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { CompletionFeature } from './completion.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { textBeforeOf } from './line-text.ts';
+import type { MarkupFeature } from './markup.ts';
+import type { PickFeature } from './pick.ts';
+import { comparePositions } from './positions.ts';
 import { PostfixFeature } from './postfix.ts';
 import { isShortcut } from './shortcut-keys.ts';
-import { bodyWithIndentUnit, dedentLines, indentUnitOf, insertSnippet, type SnippetPlacement } from './snippet-insert.ts';
+import { bodyWithIndentUnit, dedentLines, indentUnitOf, insertSnippet, type InsertingSnippets, type SnippetPlacement } from './snippet-insert.ts';
 import { escapeSnippetText } from './snippet.ts';
 import { SNIPPET_KIND, sortAfterServer, templateApplies, templateContextAt, type TemplateContext } from './template-context.ts';
-import type { LiveTemplate } from './templates.ts';
+import type { LiveTemplate } from './template-types.ts';
 
 const TOAST_ID = 'language-templates';
 const IDENTIFIER_START = /[\p{L}_$]/u;
@@ -49,6 +52,14 @@ function prefixLength(key: string, before: string): number {
     return 0;
 }
 
+/* The sibling features TemplatesFeature drives, which the editor language hands over. */
+export interface TemplatesPeers {
+    readonly completion: Pick<CompletionFeature, 'addSource' | 'close' | 'showItems'>;
+    readonly markup: Pick<MarkupFeature, 'abbreviationAt'>;
+    readonly pick: Pick<PickFeature, 'open'>;
+    readonly snippets: InsertingSnippets;
+}
+
 /*
  * Live templates: a key typed before the caret and Tab expands a snippet, Insert Live Template lists the ones that
  * apply, and Save as Live Template hands a selection to the host. The templates come from the registry of the
@@ -56,12 +67,14 @@ function prefixLength(key: string, before: string): number {
  * wins over it, as in IntelliJ.
  */
 export class TemplatesFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: TemplatesPeers;
     private readonly postfix: PostfixFeature;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: TemplatesPeers) {
         this.language = language;
-        this.postfix = new PostfixFeature(language);
+        this.peers = peers;
+        this.postfix = new PostfixFeature(language, peers);
 
         language.onDispose(
             language.onKey((event) => {
@@ -85,7 +98,7 @@ export class TemplatesFeature {
             }, KEY_PRIORITY.templates)
         );
 
-        language.onDispose(language.completion.addSource({ items: (request) => [...this.rows(request.position), ...this.postfix.rows(request.position)] }));
+        language.onDispose(peers.completion.addSource({ items: (request) => [...this.rows(request.position), ...this.postfix.rows(request.position)] }));
     }
 
     /*
@@ -93,7 +106,8 @@ export class TemplatesFeature {
      * nothing to expand, and where the key is an Emmet abbreviation, which the markup feature expands on the same Tab.
      */
     expand(): boolean {
-        const { editor, completion } = this.language;
+        const { editor } = this.language;
+        const { completion } = this.peers;
         const selections = editor.getSelections();
 
         if (editor.isReadOnly?.() === true || selections.some((selection) => comparePositions(selection.start, selection.end) !== 0)) {
@@ -131,7 +145,8 @@ export class TemplatesFeature {
 
     /* Lists the templates that apply, only the ones whose key or description fits the word before the caret when some do. */
     insert(): void {
-        const { editor, completion, project } = this.language;
+        const { editor, project } = this.language;
+        const { completion } = this.peers;
 
         if (editor.isReadOnly?.() === true) {
             return;
@@ -200,7 +215,7 @@ export class TemplatesFeature {
 
     /* The keys that compete with a live template for Tab: an Emmet abbreviation, then a postfix key. */
     private customKey(): CustomKey | null {
-        const abbreviation = this.language.markup.abbreviationAt();
+        const abbreviation = this.peers.markup.abbreviationAt();
 
         return abbreviation === null ? this.postfix.key() : { start: abbreviation, expand: null };
     }
@@ -262,7 +277,7 @@ export class TemplatesFeature {
     }
 
     private run(template: LiveTemplate, placements: readonly SnippetPlacement[]): Promise<boolean> {
-        return insertSnippet(this.language, bodyWithIndentUnit(template.body, indentUnitOf(this.language.editor)), placements);
+        return insertSnippet(this.language, this.peers.snippets, bodyWithIndentUnit(template.body, indentUnitOf(this.language.editor)), placements);
     }
 
     /* The rows for the word before the caret, each a template whose key starts with it. */

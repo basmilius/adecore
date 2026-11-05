@@ -1,7 +1,7 @@
 import { StaleResultError, type Location } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { basenameOf } from './paths.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { entriesOf, workspaceEntriesOf, type SymbolEntry, type WorkspaceEntry } from './symbol-picker-model.ts';
@@ -14,9 +14,9 @@ const TOAST_ID = 'language-symbols';
  * its own input, so the editor only has to open it.
  */
 export class SymbolPickerFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext) {
         this.language = language;
 
         const off = language.onKey((event) => {

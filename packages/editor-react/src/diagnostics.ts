@@ -1,24 +1,14 @@
 import type { EditorContentChange, EditorPosition, EditorReveal } from '@adecore/editor';
 import type { Diagnostic } from '@adecore/lsp';
-import {
-    comparePositions,
-    markerOf,
-    neighborProblem,
-    problemCountsOf,
-    problemsAt,
-    sameRange,
-    severityOf,
-    shiftRange,
-    type Problem
-} from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { markerOf, neighborProblem, problemCountsOf, problemsAt, severityOf, type Problem, type ProblemCounts } from './diagnostics-model.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import { comparePositions, sameRange, shiftRange } from './positions.ts';
 import { isShortcut } from './shortcut-keys.ts';
 
-export interface ProblemCounts {
-    readonly error: number;
-    readonly warning: number;
-    readonly info: number;
+/* The sibling features DiagnosticsFeature drives, which the editor language hands over. */
+export interface DiagnosticsPeers {
+    readonly hover: { showProblemsAt(position: EditorPosition): boolean };
 }
 
 /*
@@ -27,13 +17,15 @@ export interface ProblemCounts {
  * before the server reports again, so what is under a squiggle is still what it was about.
  */
 export class DiagnosticsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: DiagnosticsPeers;
     private readonly reports = new Map<string, readonly Diagnostic[]>();
     private readonly listeners = new Set<() => void>();
     private list: readonly Problem[] = [];
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: DiagnosticsPeers) {
         this.language = language;
+        this.peers = peers;
         const { editor, project, uri } = language;
 
         const reports = project.service.onDiagnostics((report) => {
@@ -119,7 +111,7 @@ export class DiagnosticsFeature {
         const { editor, project } = this.language;
         editor.setCaret(problem.diagnostic.range.start, reveal);
         editor.focus();
-        this.language.hover.showProblemsAt(editor.getCaret());
+        this.peers.hover.showProblemsAt(editor.getCaret());
         const severity = project.i18n.t(`editor:language.announce.severity.${severityOf(problem.diagnostic)}`);
         editor.announce(project.i18n.t('editor:language.announce.problem', { severity, message: problem.diagnostic.message }));
     }

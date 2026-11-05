@@ -1,5 +1,4 @@
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
-import type { ProjectLanguage } from './project-language.ts';
 import { createSnippetTransformClient, SnippetTransformError, type SnippetTransformClient } from './snippet-transform-client.ts';
 import { validateSnippetTransformJobs } from './snippet-transform-format.ts';
 import { MAX_TRANSFORM_WORK, type SnippetTransformJob } from './snippet-transform-protocol.ts';
@@ -37,9 +36,12 @@ export class SnippetTransforms {
     private active: Job | null = null;
     private idle: unknown;
     private disposed = false;
+    private readonly onDispose: (() => void) | undefined;
 
-    constructor(factory: () => WorkerRequestPort, timers: Timers = realTimers) {
+    /* `onDispose` runs when the queue ends, whether its owner called for it or the last lease let go. */
+    constructor(factory: () => WorkerRequestPort, timers: Timers = realTimers, onDispose?: () => void) {
         this.timers = timers;
+        this.onDispose = onDispose;
 
         this.client = createSnippetTransformClient({
             workerFactory: factory,
@@ -199,54 +201,6 @@ export class SnippetTransforms {
         this.pending.forEach((job) => job.reject(error));
         this.pending = [];
         this.client.dispose();
+        this.onDispose?.();
     }
-}
-
-interface Entry {
-    readonly queue: SnippetTransforms;
-    references: number;
-}
-
-const projects = new WeakMap<ProjectLanguage, Entry>();
-
-export function acquireSnippetTransforms(project: ProjectLanguage, timers: Timers): SnippetTransformLease | null {
-    const factory = project.host.snippetTransformWorker;
-
-    if (factory === undefined) {
-        return null;
-    }
-
-    let entry = projects.get(project);
-
-    if (entry === undefined) {
-        entry = { queue: new SnippetTransforms(factory, timers), references: 0 };
-        projects.set(project, entry);
-    }
-
-    const held = entry,
-        lease = held.queue.acquire();
-
-    held.references++;
-    let disposed = false;
-
-    return {
-        request: (jobs, options) => lease.request(jobs, options),
-        dispose: () => {
-            if (disposed) {
-                return;
-            }
-
-            disposed = true;
-            lease.dispose();
-
-            if (--held.references === 0 && projects.get(project) === held) {
-                projects.delete(project);
-            }
-        }
-    };
-}
-
-export function disposeSnippetTransforms(project: ProjectLanguage): void {
-    projects.get(project)?.queue.dispose();
-    projects.delete(project);
 }

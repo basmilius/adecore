@@ -12,12 +12,17 @@ import {
     type ActionEntry,
     type ActionGroup
 } from './code-actions-model.ts';
-import { comparePositions, type Problem } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { CompletionFeature } from './completion.ts';
+import { type Problem } from './diagnostics-model.ts';
+import type { DiagnosticsFeature } from './diagnostics.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import type { PickFeature } from './pick.ts';
 import type { PickGroup, PickPreview } from './popups.ts';
+import { comparePositions } from './positions.ts';
 import { Refresher } from './refresher.ts';
+import type { RenameFeature } from './rename.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -60,13 +65,22 @@ interface AskOptions {
     readonly groups?: readonly ActionGroup[];
 }
 
+/* The sibling features CodeActionsFeature drives, which the editor language hands over. */
+export interface CodeActionsPeers {
+    readonly diagnostics: Pick<DiagnosticsFeature, 'at' | 'onChange' | 'problems'>;
+    readonly completion: Pick<CompletionFeature, 'close'>;
+    readonly pick: Pick<PickFeature, 'open'>;
+    readonly rename: Pick<RenameFeature, 'start'>;
+}
+
 /*
  * What the servers offer at the caret or the selection: the gutter's lightbulb, the list under the caret
  * with a preview of each change, a problem's Quick fix, organize imports and format. An action is resolved
  * before it is applied, since a server fills in its edit only when asked for it.
  */
 export class CodeActionsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: CodeActionsPeers;
     private readonly refresher: Refresher;
 
     /* While a list is being asked for, the lightbulb waits: both are the same request and the newer one would cancel the older. */
@@ -74,8 +88,9 @@ export class CodeActionsFeature {
 
     private readonly resolved = new Map<ActionEntry, CodeAction>();
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: CodeActionsPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         const { editor } = language;
         this.refresher = new Refresher((signal) => this.hint(signal), PAUSE_MS, timers);
 
@@ -107,7 +122,7 @@ export class CodeActionsFeature {
 
                 return false;
             }, KEY_PRIORITY.codeActions),
-            language.diagnostics.onChange(() => this.refresher.later()),
+            peers.diagnostics.onChange(() => this.refresher.later()),
             providers
         ];
 
@@ -265,9 +280,9 @@ export class CodeActionsFeature {
             return rows.length === 0 ? [] : [{ title: this.say(`groups.${group}`), rows }];
         });
 
-        this.language.completion.close();
+        this.peers.completion.close();
 
-        this.language.pick.open({
+        this.peers.pick.open({
             anchor: options.anchor,
             groups,
             accept: (id) => {
@@ -284,7 +299,8 @@ export class CodeActionsFeature {
 
     /* Asks the servers; null when they could not answer, with the reason said aloud for a request a person made. */
     private async request(range: EditorRange, triggerKind: number, options: RequestOptions = {}): Promise<ActionEntry[] | null> {
-        const { uri, diagnostics } = this.language;
+        const { uri } = this.language;
+        const { diagnostics } = this.peers;
         const { only, signal, order } = options;
 
         try {
@@ -325,7 +341,7 @@ export class CodeActionsFeature {
             return entries;
         }
 
-        const all = this.language.diagnostics.problems.map((problem) => problem.diagnostic);
+        const all = this.peers.diagnostics.problems.map((problem) => problem.diagnostic);
 
         if (diagnosticsAt(all, range).length > 0) {
             return entries;
@@ -480,7 +496,7 @@ export class CodeActionsFeature {
 
         if (target?.position !== undefined && target.textDocument?.uri === this.language.uri) {
             this.language.editor.setCaret(target.position);
-            await this.language.rename.start();
+            await this.peers.rename.start();
         }
     }
 

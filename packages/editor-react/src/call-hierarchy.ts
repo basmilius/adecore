@@ -15,9 +15,9 @@ import {
     type CallNode,
     type CallRow
 } from './call-hierarchy-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { snippetOf } from './peek-model.ts';
 import { PEEK_HEIGHT } from './peek.ts';
 import { isShortcut } from './shortcut-keys.ts';
@@ -32,6 +32,11 @@ export const CALL_HIERARCHY_HEIGHT = PEEK_HEIGHT + 2;
 
 const OWNER = 'call-hierarchy';
 
+/* The sibling features CallHierarchyFeature drives, which the editor language hands over. */
+export interface CallHierarchyPeers {
+    readonly peek: { close(): void };
+}
+
 /*
  * The callers of the symbol at the caret, or the symbols it calls, as a tree between the lines of the file
  * under the line the caret is on, with the code around the call that is active. A node asks the server for its
@@ -40,7 +45,8 @@ const OWNER = 'call-hierarchy';
  * shortcut that opened the tree switches between callers and callees. Typing closes it.
  */
 export class CallHierarchyFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: CallHierarchyPeers;
     private readonly timers: Timers;
     private nodes = new Map<string, CallNode>();
     private roots: string[] = [];
@@ -55,8 +61,9 @@ export class CallHierarchyFeature {
     private previewEpoch = 0;
     private texts = new Map<string, string>();
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: CallHierarchyPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
@@ -156,7 +163,7 @@ export class CallHierarchyFeature {
             return;
         }
 
-        this.language.peek.close();
+        this.peers.peek.close();
         this.prepared = items;
         this.position = position;
         this.direction = direction;

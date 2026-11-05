@@ -1,10 +1,11 @@
 import type { EditorHover, EditorPosition, EditorRange } from '@adecore/editor';
-import { rangeHolds, type Problem } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { type Problem } from './diagnostics-model.ts';
 import { hoverTextOf, isEmptyHover, locationsOf, type HoverText } from './hover-content.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import type { HoverInfo } from './popups.ts';
+import { rangeHolds } from './positions.ts';
 import { wordRangeAt } from './rename-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -23,13 +24,20 @@ export interface HoverSettings {
     readonly referenceCount?: boolean;
 }
 
+/* The sibling features HoverFeature drives, which the editor language hands over. */
+export interface HoverPeers {
+    readonly diagnostics: { at(position: EditorPosition): Problem[] };
+    readonly inlayHints: { showTooltipAt(position: EditorPosition): Promise<boolean> };
+}
+
 /*
  * The card under a character the pointer rests on: the problems there, and what the language servers
  * say about the symbol. It opens after the pointer has stayed a moment, stays while the pointer is on
  * the word or on the card itself, and goes when the text, the scroll or the focus moves.
  */
 export class HoverFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: HoverPeers;
     private readonly timers: Timers;
 
     /* The counts asked for since the text last changed, by the symbol's position, so moving back to a name does not ask again. */
@@ -52,8 +60,9 @@ export class HoverFeature {
     /* The card is being read: an explanation runs in it or is shown, so the pointer going elsewhere neither closes nor replaces it. */
     private held = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: HoverPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
@@ -134,7 +143,7 @@ export class HoverFeature {
 
     /* The problems at a position as a card, at once; what the servers say about the symbol is left for the pointer and Quick Info. */
     showProblemsAt(position: EditorPosition): boolean {
-        const problems = this.language.diagnostics.at(position);
+        const problems = this.peers.diagnostics.at(position);
 
         if (problems.length === 0) {
             return false;
@@ -268,7 +277,7 @@ export class HoverFeature {
     }
 
     private async show(position: EditorPosition, request: number, pinned: boolean): Promise<void> {
-        const problems = this.language.diagnostics.at(position);
+        const problems = this.peers.diagnostics.at(position);
         this.lookup?.abort();
         const controller = new AbortController();
         this.lookup = controller;
@@ -281,7 +290,7 @@ export class HoverFeature {
         if (problems.length === 0 && info === null) {
             this.hide();
 
-            if (pinned && (await this.language.inlayHints.showTooltipAt(position))) {
+            if (pinned && (await this.peers.inlayHints.showTooltipAt(position))) {
                 this.pinned = true;
 
                 return;

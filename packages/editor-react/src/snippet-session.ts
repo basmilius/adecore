@@ -1,13 +1,14 @@
 import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
-import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { textBeforeOf } from './line-text.ts';
+import type { PickFeature } from './pick.ts';
+import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './positions.ts';
 import { SnippetFieldTransforms, type FieldTransformTarget } from './snippet-field-transforms.ts';
 import { compareSnippetOrder, snippetOrderOf } from './snippet-range-order.ts';
 import { SnippetTransformError } from './snippet-transform-client.ts';
 import { MAX_TRANSFORM_CHARACTERS, type SnippetTransformJob } from './snippet-transform-protocol.ts';
-import { acquireSnippetTransforms, type SnippetTransformLease } from './snippet-transform-queue.ts';
+import type { SnippetTransformLease } from './snippet-transform-queue.ts';
 import type { SnippetField, SnippetStop, SnippetTransform } from './snippet.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -83,7 +84,12 @@ export interface SnippetInsertion {
     readonly fields?: readonly SnippetField[];
 }
 
-type SnippetHost = Pick<EditorLanguage, 'editor' | 'onDispose'> & Partial<Pick<EditorLanguage, 'popups' | 'pick' | 'project' | 'onKey'>>;
+type SnippetHost = Pick<LanguageContext, 'editor' | 'onDispose'> & Partial<Pick<LanguageContext, 'popups' | 'project' | 'onKey'>>;
+
+/* The choice list, when the editor has one. */
+export interface SnippetPeers {
+    readonly pick?: Pick<PickFeature, 'close' | 'open'>;
+}
 
 const MAX_FRAMES = 8;
 const MAX_RANGES = 1000;
@@ -185,6 +191,7 @@ function activeOwners(active: readonly SessionRange[], changes: readonly EditorC
 
 export class SnippetFeature {
     private readonly language: SnippetHost;
+    private readonly peers: SnippetPeers;
     private frames: Frame[] = [];
     private placed: SessionRange[] = [];
     private visiting = false;
@@ -202,9 +209,10 @@ export class SnippetFeature {
         map: <Range extends EditorRange>(range: Range, parent?: (target: FieldTransformTarget) => boolean) => Range;
     } | null = null;
 
-    constructor(language: SnippetHost, timers: Timers = realTimers) {
+    constructor(language: SnippetHost, peers: SnippetPeers, timers: Timers = realTimers) {
         this.language = language;
-        this.transforms = language.project === undefined ? null : acquireSnippetTransforms(language.project, timers);
+        this.peers = peers;
+        this.transforms = language.project === undefined ? null : language.project.acquireSnippetTransforms(timers);
         const { editor } = language;
         this.fieldTransforms = new SnippetFieldTransforms(editor, this.transforms, (targets, values) => this.applyFieldTransforms(targets, values));
 
@@ -417,7 +425,7 @@ export class SnippetFeature {
         const view = this.language.popups?.getState().pick;
 
         if (this.choicePrefix !== null && view?.groups.some((group) => group.rows.some((row) => row.id.startsWith(this.choicePrefix!)))) {
-            this.language.pick?.close();
+            this.peers.pick?.close();
         }
 
         this.choicePrefix = null;
@@ -503,7 +511,7 @@ export class SnippetFeature {
     private openChoices(frame: Frame, activeChoice?: number): void {
         const field = this.fieldOf(frame);
 
-        if (field?.choices === undefined || field.choices.length === 0 || this.language.pick === undefined) {
+        if (field?.choices === undefined || field.choices.length === 0 || this.peers.pick === undefined) {
             return;
         }
 
@@ -511,7 +519,7 @@ export class SnippetFeature {
         const prefix = `snippet-${token}-`;
         this.choicePrefix = prefix;
 
-        this.language.pick.open({
+        this.peers.pick.open({
             anchor: field.ranges[field.primary]!.start,
             title: this.language.project?.i18n.t('editor:language.snippet.choices'),
             active: prefix + (activeChoice ?? Math.max(0, field.choices.indexOf(this.language.editor.textInRange(field.ranges[field.primary]!)))),

@@ -1,7 +1,8 @@
 import type { EditorTextChange } from '@adecore/editor';
 import type { TextEdit } from '@adecore/lsp';
-import { comparePositions } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
+import { comparePositions } from './positions.ts';
+import type { SnippetFeature } from './snippet-session.ts';
 
 const METHOD = 'textDocument/onTypeFormatting';
 
@@ -18,6 +19,11 @@ function overlaps(edits: readonly TextEdit[]): boolean {
     return ordered.some((edit, index) => index > 0 && comparePositions(ordered[index - 1]!.range.end, edit.range.start) > 0);
 }
 
+/* The sibling features FormatOnTypeFeature drives, which the editor language hands over. */
+export interface FormatOnTypePeers {
+    readonly snippets: Pick<SnippetFeature, 'applyEdits' | 'isActive' | 'token'>;
+}
+
 /*
  * Formatting while typing: after one of the server's trigger characters is typed, the server is asked what
  * to change around the caret, and its edits join the undo step of the typed character.
@@ -28,7 +34,8 @@ function overlaps(edits: readonly TextEdit[]): boolean {
  * An answer is applied only while the text and the caret are what it was asked about. Off until `configure(true)`.
  */
 export class FormatOnTypeFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: FormatOnTypePeers;
     private enabled = false;
 
     /* Raised by every change of the text, so an answer for an older text is told from the one for the text that is. */
@@ -36,8 +43,9 @@ export class FormatOnTypeFeature {
 
     private controller = new AbortController();
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: FormatOnTypePeers) {
         this.language = language;
+        this.peers = peers;
         const off = language.editor.onTextChange((change) => this.typed(change));
 
         language.onDispose(() => {
@@ -82,7 +90,8 @@ export class FormatOnTypeFeature {
             return;
         }
 
-        const { editor, snippets } = this.language;
+        const { editor } = this.language;
+        const { snippets } = this.peers;
         const { text } = change.changes[0]!;
         const typed = LINE_BREAK.test(text) ? '\n' : Array.from(text).length === 1 ? text : (DEDENTED.exec(text)?.[1] ?? null);
 

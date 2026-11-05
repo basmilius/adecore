@@ -1,6 +1,6 @@
 import type { EditorPosition } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
-import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './templates.ts';
+import type { LanguageContext } from './language-context.ts';
+import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './template-types.ts';
 
 /* The completion item kind of a snippet. */
 export const SNIPPET_KIND = 15;
@@ -53,7 +53,7 @@ export interface TemplateContext {
 }
 
 /* The families and the place at a position; an editor that cannot tell has the language of the document, in code. */
-export function templateContextAt(language: EditorLanguage, position: EditorPosition): TemplateContext {
+export function templateContextAt(language: LanguageContext, position: EditorPosition): TemplateContext {
     const place = language.editor.placeAt?.(position);
 
     return place === undefined ? { families: familiesOf(language.languageId), place: 'code' } : { families: familiesOf(place.language), place: place.kind };

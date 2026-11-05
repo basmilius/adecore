@@ -14,14 +14,15 @@ import {
 import i18next, { type i18n } from 'i18next';
 import { ClipboardHistory } from './clipboard-history.ts';
 import { EditLocations } from './edit-locations.ts';
-import type { LanguageHost } from './host-types.ts';
+import type { LanguageHost, ProjectFiles } from './host-types.ts';
 import { NavigationHistory, type Place } from './navigation-history.ts';
 import { PANEL_BODY_HEIGHT } from './panel-size.ts';
 import { relativeTo } from './paths.ts';
 import { ProjectProblems, serviceProblems } from './project-problems.ts';
-import { disposeSnippetTransforms } from './snippet-transform-queue.ts';
+import { SnippetTransforms, type SnippetTransformLease } from './snippet-transform-queue.ts';
 import { TemplateRegistry } from './templates.ts';
-import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
+import { realTimers, type Timers } from './timers.ts';
+import { applyWorkspaceEdit } from './workspace-edit.ts';
 
 export interface LanguageDocumentHandle {
     readonly uri: string;
@@ -132,6 +133,7 @@ export class ProjectLanguage {
     readonly templates: TemplateRegistry;
     private readonly holders = new Map<string, Holder>();
     private readonly files: ProjectFiles | null;
+    private snippetQueue: SnippetTransforms | null = null;
 
     /* The body height of the peek and call hierarchy panels, shared by the editors of the project. */
     panelBodyHeight: number;
@@ -323,6 +325,27 @@ export class ProjectLanguage {
         return pending.position;
     }
 
+    /* A lease on the project's one snippet transform queue, which runs one job at a time for every editor; null when the host brought no worker. The queue keeps the clock of the first editor that asked. */
+    acquireSnippetTransforms(timers: Timers = realTimers): SnippetTransformLease | null {
+        const factory = this.host.snippetTransformWorker;
+
+        if (factory === undefined) {
+            return null;
+        }
+
+        if (this.snippetQueue === null) {
+            const queue = new SnippetTransforms(factory, timers, () => {
+                if (this.snippetQueue === queue) {
+                    this.snippetQueue = null;
+                }
+            });
+
+            this.snippetQueue = queue;
+        }
+
+        return this.snippetQueue.acquire();
+    }
+
     /* Whether the editor is the first to hold the document, the one whose changes stand for the document's. */
     holdsFirst(uri: string, editor: Editor): boolean {
         return this.holders.get(uri)?.editors[0] === editor;
@@ -423,7 +446,7 @@ export class ProjectLanguage {
         for (const subscription of this.subscriptions) {
             subscription.dispose();
         }
-        disposeSnippetTransforms(this);
+        this.snippetQueue?.dispose();
 
         for (const [uri, holder] of this.holders) {
             if (holder.sync === null) {

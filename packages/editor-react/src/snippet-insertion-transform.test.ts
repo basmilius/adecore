@@ -321,9 +321,8 @@ test('a worker crash after ready refuses insertion and reports failure', async (
 });
 
 test('a full project queue reports busy separately from completion size', async () => {
-    const { acquireSnippetTransforms } = await import('./snippet-transform-queue.ts');
     const mounted = await mount('${TM_FILENAME/(.*)/$1/}$1');
-    const lease = acquireSnippetTransforms(mounted.project, mounted.timers)!;
+    const lease = mounted.project.acquireSnippetTransforms(mounted.timers)!;
     const job = [{ value: 'a', pattern: '(.*)', flags: '', format: [{ kind: 'capture' as const, index: 1 }] }];
     const pending = [lease.request(job, { kind: 'exit' }).catch((error) => error)];
     await settle();

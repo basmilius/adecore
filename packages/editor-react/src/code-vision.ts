@@ -1,10 +1,10 @@
-import type { EditorCodeVision, EditorCodeVisionEntry, EditorRect } from '@adecore/editor';
+import type { EditorCodeVision, EditorCodeVisionEntry, EditorPosition, EditorRect } from '@adecore/editor';
 import type { DocumentSymbolResult, Location } from '@adecore/lsp';
 import { splitLines } from '@adecore/merge';
 import { type CodeAuthorship, authorsText, authorshipOf, mapBlame } from './code-authors.ts';
 import { type CodeVisionDeclaration, declarationsOf, usagesText } from './code-vision-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
+import type { LanguageContext } from './language-context.ts';
 import { realTimers, type Timers } from './timers.ts';
 import { placeKey } from './unique.ts';
 
@@ -34,6 +34,13 @@ export type BlameSource =
     | { readonly kind: 'pending' }
     | { readonly kind: 'ready'; readonly blame: GitBlameResult; readonly base: string; openCommit?(hash: string): void };
 
+/* What the code vision feature takes from its sibling features, which the editor language hands over. */
+export interface CodeVisionPeers {
+    /* Told whenever the document symbols are read; returns the way to stop listening. */
+    onSymbols(listener: (result: DocumentSymbolResult) => void): () => void;
+    readonly peek: { open(position: EditorPosition): Promise<void> };
+}
+
 /*
  * The rows above declarations: how often each is used and who wrote it. A row holds its height from the
  * first answer on, empty until its entries are in, so the text never moves when they arrive. Counts are
@@ -41,7 +48,8 @@ export type BlameSource =
  * stays on its row until the new one is in.
  */
 export class CodeVisionFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: CodeVisionPeers;
     private readonly timers: Timers;
     private settings: CodeVisionSettings = { usages: false, authors: false };
     private declarations: CodeVisionDeclaration[] = [];
@@ -70,13 +78,14 @@ export class CodeVisionFeature {
     private publishing = false;
     private disposed = false;
 
-    constructor(language: EditorLanguage, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: CodeVisionPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
         const offs = [
-            onSymbols((result) => this.read(result)),
+            peers.onSymbols((result) => this.read(result)),
             editor.onTextChange(() => {
                 this.edited = true;
                 this.closeAuthors();
@@ -243,7 +252,7 @@ export class CodeVisionFeature {
                 entries.push({
                     id: 'usages',
                     text: usagesText(known.count, this.language.project.i18n),
-                    activate: () => void this.language.peek.open(declaration.position)
+                    activate: () => void this.peers.peek.open(declaration.position)
                 });
             }
 

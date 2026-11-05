@@ -1,7 +1,8 @@
 import type { EditorContentChange, EditorInlayClick, EditorInlayHint } from '@adecore/editor';
 import type { Color, ColorInformation, ColorPresentation, TextEdit } from '@adecore/lsp';
 import { DocumentQuery } from './document-query.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
+import type { PickFeature } from './pick.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/documentColor';
@@ -38,19 +39,26 @@ export function presentationEdits(presentation: ColorPresentation, information: 
     return [presentation.textEdit ?? { range: information.range, newText: presentation.label }, ...(presentation.additionalTextEdits ?? [])];
 }
 
+/* The sibling features DocumentColorsFeature drives, which the editor language hands over. */
+export interface DocumentColorsPeers {
+    readonly pick: Pick<PickFeature, 'open'>;
+}
+
 /*
  * The colors a server finds in the text, such as `#ff0000` in a stylesheet, each with a swatch before it. A press on
  * a swatch lists the ways the server writes that color, so `rgb()` can become `#hex`, and offers a color of the
  * platform's picker, which keeps the way the color was written when the server offers it.
  */
 export class DocumentColorsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: DocumentColorsPeers;
     private colors: readonly ColorInformation[] = [];
     private readonly query: DocumentQuery<ColorInformation[]>;
     private enabled = true;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: DocumentColorsPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.query = new DocumentQuery(
             language,
             timers,
@@ -136,7 +144,8 @@ export class DocumentColorsFeature {
         if (!this.colors.includes(information)) {
             return;
         }
-        const { pick, project } = this.language;
+        const { project } = this.language;
+        const { pick } = this.peers;
         const rows = presentations.map((presentation, index) => ({ id: String(index), label: presentation.label, detail: '' }));
         pick.open({
             anchor: information.range.start,

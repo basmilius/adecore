@@ -4,10 +4,10 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { ErrorCodes, LspError, type CodeAction, type Diagnostic } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification } from './host-types.ts';
+import type { ProjectFiles } from './host-types.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { keyOf, settle } from './test-support.ts';
 import { FakeLanguageService, ManualTimers, type LanguageCall } from './testing.ts';
-import type { ProjectFiles } from './workspace-edit.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const at = (line: number, character: number) => ({ line, character });

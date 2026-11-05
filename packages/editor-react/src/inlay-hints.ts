@@ -1,12 +1,12 @@
 import type { Editor, EditorInlayClick, EditorInlayHint, EditorPosition, EditorRange } from '@adecore/editor';
 import type { Command, InlayHint, InlayHintLabelPart, Location, MarkupContent, TextEdit } from '@adecore/lsp';
 import { followModKey } from './definition-link.ts';
-import { comparePositions } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { hoverTextOf, isEmptyHover, type HoverText } from './hover-content.ts';
 import { SHOW_DELAY_MS } from './hover.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
+import { comparePositions } from './positions.ts';
 import { Refresher } from './refresher.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -148,6 +148,11 @@ interface Entry {
     answered: boolean;
 }
 
+/* The sibling features InlayHintsFeature drives, which the editor language hands over. */
+export interface InlayHintsPeers {
+    readonly hover: { hide(): void; release(): void; showText(position: EditorPosition, text: HoverText): void };
+}
+
 /*
  * Types and parameter names the servers infer, asked for the lines in view and a margin around them. The
  * last ones stay until the answer comes, so nothing blinks while typing.
@@ -158,7 +163,8 @@ interface Entry {
  * shows the tooltip of a hint that sits there.
  */
 export class InlayHintsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: InlayHintsPeers;
     private readonly timers: Timers;
     private readonly refresher: Refresher;
 
@@ -185,8 +191,9 @@ export class InlayHintsFeature {
     /* Counts what the pointer does, so a tooltip that was waited for is dropped once the pointer has moved on. */
     private request = 0;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: InlayHintsPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor, project, uri } = language;
 
@@ -297,7 +304,7 @@ export class InlayHintsFeature {
 
         if (target === null) {
             if (this.cardOpen()) {
-                this.language.hover.release();
+                this.peers.hover.release();
             }
 
             return;
@@ -319,7 +326,7 @@ export class InlayHintsFeature {
         this.updateLink();
 
         if (this.cardOpen()) {
-            this.language.hover.hide();
+            this.peers.hover.hide();
         }
     }
 
@@ -349,13 +356,13 @@ export class InlayHintsFeature {
 
         if (text === null) {
             if (this.cardOpen()) {
-                this.language.hover.hide();
+                this.peers.hover.hide();
             }
 
             return false;
         }
 
-        this.language.hover.showText(entry.hint.position, text);
+        this.peers.hover.showText(entry.hint.position, text);
 
         return true;
     }

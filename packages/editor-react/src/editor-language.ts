@@ -18,11 +18,12 @@ import { HoverFeature } from './hover.ts';
 import { InlayHintsFeature } from './inlay-hints.ts';
 import { InlineCompletionFeature } from './inline-completion.ts';
 import { KeyDispatcher } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { LinkedEditingFeature } from './linked-editing.ts';
 import { TemplatesFeature } from './live-templates.ts';
 import { MarkupFeature } from './markup.ts';
 import type { Place } from './navigation-history.ts';
-import { NavigationFeature, locationRow } from './navigation.ts';
+import { NavigationFeature } from './navigation.ts';
 import { PasteHistoryFeature } from './paste-history.ts';
 import { PeekFeature } from './peek.ts';
 import { PickFeature } from './pick.ts';
@@ -55,7 +56,7 @@ export interface EditorLanguageOptions {
  * The one place that connects an editor to the language servers: it opens the file's document for
  * the editor and lets go of it again. Every language feature of the editor hangs off this object.
  */
-export class EditorLanguage {
+export class EditorLanguage implements LanguageContext {
     readonly editor: Editor;
     readonly apple: boolean;
     readonly keymap: Keymap;
@@ -116,37 +117,41 @@ export class EditorLanguage {
         this.timers = timers;
         this.onDispose(editor.onKeyDown((event) => this.keys.dispatch(event)));
         this.pick = new PickFeature(this, timers);
-        this.diagnostics = new DiagnosticsFeature(this);
-        this.hover = new HoverFeature(this, timers);
-        this.completion = new CompletionFeature(this, timers);
-        this.snippets = new SnippetFeature(this, timers);
-        this.markup = new MarkupFeature(this);
-        this.templates = new TemplatesFeature(this);
-        this.surround = new SurroundFeature(this);
+        this.diagnostics = new DiagnosticsFeature(this, this);
+        this.hover = new HoverFeature(this, this, timers);
+        this.completion = new CompletionFeature(this, this, timers);
+        this.snippets = new SnippetFeature(this, this, timers);
+        this.markup = new MarkupFeature(this, this);
+        this.templates = new TemplatesFeature(this, this);
+        this.surround = new SurroundFeature(this, this);
         this.signature = new SignatureFeature(this, timers);
         this.highlights = new HighlightsFeature(this, timers);
         this.symbols = new SymbolsFeature(this, timers);
         new SelectionRangesFeature(this);
         new SemanticTokensFeature(this, timers, options.semanticTokens);
-        this.inlayHints = new InlayHintsFeature(this, timers);
-        this.codeActions = new CodeActionsFeature(this, timers);
+        this.inlayHints = new InlayHintsFeature(this, this, timers);
+        this.codeActions = new CodeActionsFeature(this, this, timers);
         this.rename = new RenameFeature(this);
         // Before navigation, whose Mod+click goes to a definition: a link under the pointer goes first.
         this.links = new DocumentLinksFeature(this, timers);
-        this.colors = new DocumentColorsFeature(this, timers);
+        this.colors = new DocumentColorsFeature(this, this, timers);
         this.linkedEditing = new LinkedEditingFeature(this, timers);
         this.inlineCompletion = new InlineCompletionFeature(this, timers);
-        this.navigation = new NavigationFeature(this);
-        this.peek = new PeekFeature(this, timers);
-        this.callHierarchy = new CallHierarchyFeature(this, timers);
+        this.navigation = new NavigationFeature(this, this);
+        this.peek = new PeekFeature(this, this, timers);
+        this.callHierarchy = new CallHierarchyFeature(this, this, timers);
         this.symbolPicker = new SymbolPickerFeature(this);
-        this.contextMenu = new ContextMenuFeature(this);
-        this.history = new HistoryFeature(this);
-        this.definitionLink = new DefinitionLinkFeature(this);
-        this.codeVision = new CodeVisionFeature(this, (listener) => this.symbols.onResult(listener), timers);
-        this.formatOnType = new FormatOnTypeFeature(this);
-        this.renderedDocs = new RenderedDocsFeature(this, timers);
-        this.pasteHistory = new PasteHistoryFeature(this);
+        this.contextMenu = new ContextMenuFeature(this, this);
+        this.history = new HistoryFeature(this, this);
+        this.definitionLink = new DefinitionLinkFeature(this, this);
+        this.codeVision = new CodeVisionFeature(
+            this,
+            { onSymbols: (listener) => this.symbols.onResult(listener), peek: { open: (position) => this.peek.open(position) } },
+            timers
+        );
+        this.formatOnType = new FormatOnTypeFeature(this, this);
+        this.renderedDocs = new RenderedDocsFeature(this, this, timers);
+        this.pasteHistory = new PasteHistoryFeature(this, this);
         new FoldingFeature(this, (listener) => this.symbols.onResult(listener), timers);
 
         const copies = editor.onCopy?.((copy) => project.clipboard.add(copy.text, { wholeLines: copy.wholeLines }));
@@ -198,12 +203,6 @@ export class EditorLanguage {
         } else {
             this.project.openPlace(place);
         }
-    }
-
-    /* Lists places under a position to choose from; choosing one goes there. */
-    locations(places: readonly Location[], anchor: EditorPosition, title: string): void {
-        const rows = places.map((place, index) => ({ id: String(index), ...locationRow(place, this.project.pathOfLocation(place.uri)) }));
-        this.pick.open({ anchor, title, groups: [{ title: null, rows }], accept: (id) => this.goTo(places[Number(id)]!) });
     }
 
     /*

@@ -53,7 +53,7 @@ function mount(source: string) {
     });
 
     const offs: (() => void)[] = [];
-    const feature = new SnippetFeature({ editor: mounted.editor, project, onDispose: (off) => offs.push(off) }, timers);
+    const feature = new SnippetFeature({ editor: mounted.editor, project, onDispose: (off) => offs.push(off) }, {}, timers);
     const parsed = parseSnippet(source);
     mounted.editor.setText(parsed.text);
     feature.begin({ line: 0, character: 0 }, parsed.text, tabOrder(parsed), parsed.fields);

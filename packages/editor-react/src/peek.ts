@@ -1,8 +1,8 @@
 import type { EditorPosition } from '@adecore/editor';
 import { StaleResultError, type Location, type Range } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { uniquePlaces } from './navigation.ts';
 import { PEEK_READ_FILES, definitionSnippetOf, peekFilesOf, snippetOf, type PeekFile } from './peek-model.ts';
 import type { PeekView } from './popups.ts';
@@ -22,13 +22,19 @@ const KINDS = {
     definitions: { method: 'textDocument/definition', unavailable: 'unavailableDefinition', none: 'noDefinition' }
 } as const;
 
+/* The sibling features PeekFeature drives, which the editor language hands over. */
+export interface PeekPeers {
+    readonly callHierarchy: { close(): void };
+}
+
 /*
  * The references of the name at the caret, between the lines of the file under the line it is on. The
  * editor keeps the keyboard: arrows pick a reference, Enter goes to it and Escape closes the peek; typing
  * closes it too. A click on a place shows its code and a second one goes there.
  */
 export class PeekFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: PeekPeers;
     private readonly timers: Timers;
     private kind: PeekKind = 'references';
 
@@ -41,8 +47,9 @@ export class PeekFeature {
     private line = 0;
     private token = 0;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: PeekPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
@@ -145,7 +152,7 @@ export class PeekFeature {
                 : (files.flatMap((file) => file.places).find((place) => !(place.location.uri === uri && place.line === position.line)) ?? files[0]!.places[0]!);
 
         this.line = position.line;
-        this.language.callHierarchy.close();
+        this.peers.callHierarchy.close();
         this.language.popups.setState({ peek: { kind, container: null, files, active: first.id, collapsed: [], count: unique.length, preview: null } });
         this.select(first.id);
         // The editor draws a row once per id, so a peek opened over another needs an id of its own to get a container.

@@ -1,8 +1,8 @@
 import type { EditorPosition, EditorTextChange } from '@adecore/editor';
 import type { InlineCompletionItem, InlineCompletionResult, Range } from '@adecore/lsp';
-import { comparePositions } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import { comparePositions } from './positions.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { parseSnippet } from './snippet.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -53,7 +53,7 @@ export function suggestionOf(item: InlineCompletionItem, caret: EditorPosition, 
  * suggestions of its own in the same place.
  */
 export class InlineCompletionFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private enabled = false;
     private suggestions: InlineSuggestion[] = [];
@@ -63,7 +63,7 @@ export class InlineCompletionFeature {
     private revision = 0;
     private accepting = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
