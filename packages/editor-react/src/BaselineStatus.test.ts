@@ -12,7 +12,7 @@ describe('the Baseline status in a hover', () => {
 
         expect(markup).toContain('Widely available across major browsers (Baseline since 2015)');
         expect(markup).toContain('<svg');
-        expect(markup).toContain('text-status-idle');
+        expect(markup).toContain('text-positive');
         expect(markup).not.toContain('<img');
     });
 

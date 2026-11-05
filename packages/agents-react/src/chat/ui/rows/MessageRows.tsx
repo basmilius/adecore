@@ -17,17 +17,17 @@ import clsx from 'clsx';
 import {
     Bot,
     Brain,
-    Check,
     ChevronDown,
     CircleAlert,
+    CircleCheck,
+    CircleX,
     File,
     Info,
     MessageCircleQuestionMark,
     Reply,
     Send,
     SquareTerminal,
-    TriangleAlert,
-    X
+    TriangleAlert
 } from 'lucide-react';
 import { useContext, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -742,10 +742,10 @@ export function SelectionSwitchRow({ chatId, from, to }: { chatId: string; from:
 }
 
 const DECISION_ICON: Record<Exclude<ChatApprovalItem['decision'], 'pending'>, ReactNode> = {
-    allow: <Icon icon={Check} size={12} />,
-    'allow-always': <Icon icon={Check} size={12} />,
-    deny: <Icon icon={X} size={12} />,
-    cancelled: <Icon icon={X} size={12} />
+    allow: <Icon icon={CircleCheck} size={12} className="text-positive" />,
+    'allow-always': <Icon icon={CircleCheck} size={12} className="text-positive" />,
+    deny: <Icon icon={CircleX} size={12} />,
+    cancelled: <Icon icon={CircleX} size={12} />
 };
 
 /* The outcome of a permission request, one quiet line; the request itself lived on the composer. */

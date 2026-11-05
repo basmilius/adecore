@@ -3,7 +3,7 @@ import { CircleCheck, Sparkles, TriangleAlert } from 'lucide-react';
 import type { Baseline, BaselineLevel } from './hover-content.ts';
 
 const BASELINE_MARKS: Record<BaselineLevel, { icon: typeof CircleCheck; color: string }> = {
-    widely: { icon: CircleCheck, color: 'text-status-idle' },
+    widely: { icon: CircleCheck, color: 'text-positive' },
     newly: { icon: Sparkles, color: 'text-status-running' },
     limited: { icon: TriangleAlert, color: 'text-status-needs-you' }
 };

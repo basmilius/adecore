@@ -16,7 +16,7 @@ import {
 import { formatNumber } from '@adecore/ui/format';
 import clsx from 'clsx';
 import type { TFunction } from 'i18next';
-import { ArrowDownWideNarrow, ArrowUpRight, Check, CircleAlert, CopyPlus, Download, Filter, FilterX, RefreshCw, Trash2, Undo2 } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpRight, CircleAlert, CircleCheck, CopyPlus, Download, Filter, FilterX, RefreshCw, Trash2, Undo2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNotice, useDatabaseStorage } from '../client-context.ts';
@@ -876,8 +876,8 @@ function TransferBanner({ notice, onCancel, onDismiss }: TransferBannerProps) {
 
     return (
         <Banner
-            icon={notice.kind === 'failed' ? CircleAlert : notice.kind === 'exporting' ? Download : Check}
-            tone={notice.kind === 'failed' ? 'error' : 'neutral'}
+            icon={notice.kind === 'failed' ? CircleAlert : notice.kind === 'exporting' ? Download : CircleCheck}
+            tone={notice.kind === 'failed' ? 'error' : notice.kind === 'exporting' ? 'neutral' : 'positive'}
             message={transferText(notice, t)}
             className="shrink-0 pt-2"
         >

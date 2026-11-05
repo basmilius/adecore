@@ -1,7 +1,7 @@
 import { Icon, IconButton, Input, ScrollArea, isApplePlatform, isModHeld } from '@adecore/ui';
 import { formatMoment, formatNumber } from '@adecore/ui/format';
 import clsx from 'clsx';
-import { Check, CircleAlert, Search, Trash2 } from 'lucide-react';
+import { CircleAlert, CircleCheck, Search, Trash2 } from 'lucide-react';
 import { useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { searchHistory, type HistoryEntry } from './history.ts';
@@ -51,7 +51,11 @@ export function HistoryPanel({ entries, onPick, onClear, className, ref }: Histo
                                 >
                                     <span className="truncate font-mono text-xs text-text">{entry.sql.replace(/\s+/g, ' ')}</span>
                                     <span className="flex items-center gap-1.5 text-xs text-text-muted tabular-nums">
-                                        <Icon icon={entry.ok ? Check : CircleAlert} size={12} className={entry.ok ? 'text-positive' : 'text-status-error'} />
+                                        <Icon
+                                            icon={entry.ok ? CircleCheck : CircleAlert}
+                                            size={12}
+                                            className={entry.ok ? 'text-positive' : 'text-status-error'}
+                                        />
                                         {formatMoment(entry.at)}
                                         {entry.rows !== null && t('console.history.rows', { count: entry.rows, formatted: formatNumber(entry.rows) })}
                                     </span>

@@ -19,7 +19,7 @@ const ICON = {
 
 const TONE = {
     progress: 'text-text-muted',
-    success: 'text-status-idle',
+    success: 'text-positive',
     error: 'text-status-error',
     deleted: 'text-text-muted'
 } as const;

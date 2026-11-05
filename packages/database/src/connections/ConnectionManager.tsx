@@ -139,7 +139,7 @@ export function ConnectionManager({ value, onValueChange, selected, onSelectedCh
                 {shown !== null && (
                     <Banner
                         icon={'info' in shown ? CircleCheck : CircleAlert}
-                        tone={'info' in shown ? 'neutral' : 'error'}
+                        tone={'info' in shown ? 'positive' : 'error'}
                         className="sticky top-0 z-10"
                         message={
                             'info' in shown

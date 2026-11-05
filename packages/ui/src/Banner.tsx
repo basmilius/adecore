@@ -4,12 +4,13 @@ import type { ReactNode, Ref } from 'react';
 import { Icon } from './Icon.tsx';
 import { Surface } from './Surface.tsx';
 
-/* The mark in front of the line: a decision to make, a failure to read, or something that happened. */
-export type BannerTone = 'attention' | 'error' | 'neutral';
+/* The mark in front of the line: a decision to make, a failure to read, something that succeeded, or something that happened. */
+export type BannerTone = 'attention' | 'error' | 'positive' | 'neutral';
 
 const TONE: Record<BannerTone, string> = {
     attention: 'text-status-needs-you',
     error: 'text-status-error',
+    positive: 'text-positive',
     neutral: 'text-text-muted'
 };
 

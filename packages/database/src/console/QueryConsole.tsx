@@ -1,7 +1,7 @@
 import { Banner, Button, ColumnResizeHandle, Icon, IconButton, messageOf, PromptDialog, Spinner, Tabs, Tooltip, useColumnResize } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import clsx from 'clsx';
-import { Check, CircleAlert, History, Play, Square, X } from 'lucide-react';
+import { CircleAlert, CircleCheck, History, Play, Square, X } from 'lucide-react';
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DatabaseNotice } from '../actions.ts';
@@ -498,8 +498,8 @@ export function QueryConsole({
             </div>
             {session !== null && notice !== null && (
                 <Banner
-                    icon={notice.tone === 'error' ? CircleAlert : Check}
-                    tone={notice.tone === 'error' ? 'error' : 'neutral'}
+                    icon={notice.tone === 'error' ? CircleAlert : CircleCheck}
+                    tone={notice.tone === 'error' ? 'error' : 'positive'}
                     message={notice.description ?? notice.title}
                     className="shrink-0 pb-2"
                 >

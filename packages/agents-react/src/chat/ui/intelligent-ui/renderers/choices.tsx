@@ -1,7 +1,7 @@
 import { uiChoiceLabel, type UiProps } from '@adecore/intelligent-ui';
 import { DisabledReason, formatShortcut, Icon, KEY_SHORTCUTS, Spinner, Tooltip } from '@adecore/ui';
 import clsx from 'clsx';
-import { Check } from 'lucide-react';
+import { CircleCheck } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../../../host';
@@ -98,8 +98,9 @@ export function ChoiceRenderer({ node, children, context }: UiRendererProps<UiPr
             )}
             {chosen && (
                 <span className={clsx('flex shrink-0 items-center gap-1 text-2xs', strong ? 'text-accent-text' : 'text-accent')}>
-                    {slow ? <Spinner size={12} /> : <Icon icon={Check} size={12} />}
-                    {answer.state === 'queued' ? t('blocks.choice.queued') : t('blocks.choice.sent')}
+                    {slow ? <Spinner size={12} /> : <Icon icon={CircleCheck} size={12} className={clsx(!strong && 'text-positive')} />}
+                    {/* The mark says it was sent; the word stays for a screen reader. */}
+                    {answer.state === 'queued' ? t('blocks.choice.queued') : <span className="sr-only">{t('blocks.choice.sent')}</span>}
                 </span>
             )}
         </button>
