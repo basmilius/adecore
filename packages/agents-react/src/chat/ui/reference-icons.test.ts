@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { MessageSquare } from 'lucide-react';
 import { isValidElement } from 'react';
-import type { ReferenceIconProps } from '../../host';
+import type { ReferenceIconProps } from '../../host/host';
 import { referenceGlyph } from './reference-icons';
 
 function HostIcon(_props: ReferenceIconProps) {

@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ProviderInfo, ProviderPlatform } from '@adecore/agent-contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost } from '../host';
+import { ChatHostProvider, type ChatHost } from '../host/host';
 import { ChatScopeContext, type ChatScope } from '../scope';
 import { installPlatforms, installStepStates, type ProviderInstallStep } from './install-steps';
 import { InstallPage } from './InstallPage';

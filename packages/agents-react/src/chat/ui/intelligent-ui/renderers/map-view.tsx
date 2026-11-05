@@ -4,8 +4,8 @@ import { Maximize, Minus, Plus } from 'lucide-react';
 import { Map as MapLibreMap, Marker, setWorkerUrl } from 'maplibre-gl';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type UiMapSource } from '../../../../host';
-import { useHostCodeMode } from '../../../../host-hooks';
+import { useChatHost, type UiMapSource } from '../../../../host/host';
+import { useHostCodeMode } from '../../../../host/host-hooks';
 import { watchTheme } from '../../theme-watch';
 import { baseMapStyle, boundsOf, localizedTextField, mapFitOptions, spreadOverlaps, type MapColors, type MapPoint } from './map-style';
 

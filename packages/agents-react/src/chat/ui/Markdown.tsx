@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
-import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } from '../../host';
+import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } from '../../host/host';
 import type { ReferenceToken } from '../mentions';
 import { MENTION_TONE, SKILL_TONE, TOKEN_ICON } from './chips';
 import { CodeStreamingContext } from './code-streaming';

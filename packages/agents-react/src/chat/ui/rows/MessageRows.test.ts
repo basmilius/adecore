@@ -5,7 +5,7 @@ import { createInstance } from 'i18next';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
-import { ChatHostProvider, type ChatHost, type CommandLookSent } from '../../../host';
+import { ChatHostProvider, type ChatHost, type CommandLookSent } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProvidersStore } from '../../../state/providers';

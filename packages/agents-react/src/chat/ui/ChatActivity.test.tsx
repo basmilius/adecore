@@ -3,7 +3,7 @@ import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../host';
+import { ChatHostProvider, type ChatHost } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { ChatActivity } from './ChatActivity';

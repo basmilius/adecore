@@ -1,7 +1,7 @@
 import type { ChatInfo, ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
 import { useEffect, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostReferables } from '../../../host-hooks';
+import { useHostReferables } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import type { ComposerInputHandle } from '../ComposerInput';
 import type { ComposerDraft } from './use-composer-draft';

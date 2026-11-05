@@ -3,7 +3,7 @@ import type { ChatApprovalItem } from '@adecore/agent-contracts';
 import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { PROMPT_SAMPLES } from '../../testing/prompts';
+import { PROMPT_SAMPLES } from '../../../testing/prompts';
 import { ApprovalActions } from '../ui/PromptActions';
 import { focusPromptHeading, focusPromptStart } from './focus';
 import { approvalButtons } from './subjects';

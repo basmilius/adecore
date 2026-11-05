@@ -1,6 +1,6 @@
 import { useWorkerPool } from '@pierre/diffs/react';
 import type { ReactNode } from 'react';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import DiffPool from '../DiffPool';
 
 export function LegacyDiffPool({ children }: { children: ReactNode }) {

@@ -1,5 +1,5 @@
 import i18next from 'i18next';
-import { useChatHost, type ChatActions, type ChatHost } from '../host';
+import { useChatHost, type ChatActions, type ChatHost } from '../host/host';
 import { useChatScope, type ChatScope } from '../scope';
 import { ChatTransportError, type ChatTransport } from '../transport';
 

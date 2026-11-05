@@ -1,8 +1,8 @@
 import { ErrorBoundary } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
-import type { ThreadCard } from '../../../host';
+import type { ThreadCard } from '../../../host/host';
+import type { TimelineRow } from '../../../host/timeline-row';
 import { isImageGeneration } from '../../logic/generated-image';
-import type { TimelineRow } from '../../logic/timeline';
 import type { SubagentStep } from '../../subagent-view';
 import { ForksRow } from './ForksRow';
 import { GeneratedImageRow } from './GeneratedImageRow';

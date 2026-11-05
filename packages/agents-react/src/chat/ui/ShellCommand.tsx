@@ -1,7 +1,7 @@
 import { Tooltip } from '@adecore/ui';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { BundledLanguage } from 'shiki';
-import { useChatHost, type CommandName } from '../../host';
+import { useChatHost, type CommandName } from '../../host/host';
 import { EMBEDDED_CODE_LIMIT, SHELL_LANGUAGE, embeddedCode, type EmbeddedCode } from '../logic/embedded-code';
 import type { CodeToken } from './code-lines';
 import { useCodeTheme } from './code-theme';

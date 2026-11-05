@@ -1,17 +1,6 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
-export {
-    type ChatState,
-    type ChatsById,
-    type ChatStatuses,
-    type ChatSink,
-    waitingRequestsOf,
-    applyEvent,
-    useChats,
-    chatSink,
-    useChatRow,
-    type ChatHistoryPage,
-    type ChatPage
-} from './chats';
+export { type ChatState, type ChatsById, type ChatStatuses, waitingRequestsOf, applyEvent, useChats, chatSink, useChatRow } from './chats';
+export type { ChatHistoryPage, ChatPage, ChatSink } from '../chat-sink';
 
 export {
     useProviderAccountsStore,

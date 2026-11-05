@@ -1,6 +1,6 @@
 import { registerCustomTheme, type ThemesType } from '@pierre/diffs';
-import { useChatHost, type ChatHost } from '../../host';
-import { useHostCodeThemes } from '../../host-hooks';
+import { useChatHost, type ChatHost } from '../../host/host';
+import { useHostCodeThemes } from '../../host/host-hooks';
 
 // The library's registry is global and refuses a name twice, so what is registered is kept by name.
 const registered = new Set<string>();

@@ -20,9 +20,9 @@
             "default": "./dist/chat/ui/index.js"
         },
         "./prompts": {
-            "source": "./src/prompts/index.ts",
-            "types": "./dist/prompts/index.d.ts",
-            "default": "./dist/prompts/index.js"
+            "source": "./src/chat/prompts/index.ts",
+            "types": "./dist/chat/prompts/index.d.ts",
+            "default": "./dist/chat/prompts/index.js"
         },
         "./providers": {
             "source": "./src/providers/index.ts",

@@ -1,5 +1,6 @@
-import type { ChatSendExtras } from '../../chat-client';
-import { referenceTokens, type Referables } from '../../chat-references';
+import type { ChatSendExtras } from '../../../chat-client';
+import { type Referables } from '../../../host/references';
+import { referenceTokens } from '../../chat-references';
 import { presentMentions, presentReferences, presentSkills } from '../../mentions';
 import type { PromptDraft } from './use-prompt-menus';
 

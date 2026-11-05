@@ -1,9 +1,11 @@
 import { UsageRateSchema, type UsageLimitsSnapshot, type UsageRate, type UsageSummaryPayload, type UsageSummaryResult } from '@adecore/agent-contracts';
 import { localTimeZone } from '@adecore/ui/format';
-import { persistedJson } from '../chat/persisted-json';
+import { persistedJson } from '../persisted-json';
 import { useChatScope } from '../scope';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore, onChatStorageConfiguration } from '../storage';
-import type { UsageCurrency } from '../usage/format';
+
+/* Dollars are what a price table is in; euros are what the page can be set to. */
+export type UsageCurrency = 'USD' | 'EUR';
 
 export type UsagePeriod = 'today' | '7d' | '30d' | '90d';
 export type UsageMetric = 'cost' | 'tokens';

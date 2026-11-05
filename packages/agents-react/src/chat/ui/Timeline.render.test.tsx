@@ -3,7 +3,7 @@ import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act, Profiler } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host';
+import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { jumpToTimelineItem } from '../timeline-scroll';

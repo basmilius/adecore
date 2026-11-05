@@ -1,6 +1,7 @@
 import { useRef, useState, type MouseEvent } from 'react';
-import { errorMessage } from '../../transport';
-import { emptyPromptDraft, type PromptDraft } from './prompts';
+import { type PromptDraft } from '../../../host/prompts';
+import { errorMessage } from '../../../transport';
+import { emptyPromptDraft } from './prompts';
 
 interface PromptSessionOptions<T> {
     prompts: readonly T[];

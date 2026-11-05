@@ -4,9 +4,10 @@ import clsx from 'clsx';
 import { Circle, CircleCheck, Square } from 'lucide-react';
 import { useEffect, useRef, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../../host/host';
+import { type PromptAnswer } from '../../../host/prompts';
 import { answerFieldKey, choiceKey, stepIndex } from '../logic/keys';
-import { pickPromptChoice, type PromptAnswer } from '../logic/prompts';
+import { pickPromptChoice } from '../logic/prompts';
 
 /* One question of a request: its choices, "Something else…", or a written answer when it offers no choices. */
 export function QuestionBody({

@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { Info, Lock, Radio, TriangleAlert } from 'lucide-react';
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { uiBlockHead, uiReasonText } from './node-text';
 import { UiHeadContext, type UiLiveStatus } from './render-context';
 import { useLater } from './use-later';

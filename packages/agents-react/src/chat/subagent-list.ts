@@ -2,7 +2,7 @@ import { activeSubagents, type ChatInfo, type ChatItem, type ChatSubagentItem } 
 import { formatMoment, formatElapsedShort, formatTokens } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
-import type { SubagentTask } from '../host';
+import type { SubagentTask } from '../host/host';
 
 export function subagentTitle(item: ChatSubagentItem): string {
     return item.description || item.summary || item.subagentType || i18next.t('agent-chat:rows.subagent.label');

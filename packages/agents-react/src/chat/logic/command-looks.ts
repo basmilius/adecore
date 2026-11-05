@@ -1,5 +1,6 @@
 import type { ChatToolItem } from '@adecore/agent-contracts';
-import type { CommandLook, CommandLookMatch, CommandLookSent, ToolLook } from '../../host';
+import type { CommandLook, CommandLookMatch, CommandLookSent, ToolLook } from '../../host/host';
+import type { Look } from '../../host/timeline-row';
 import { EMBEDDED_CODE_LIMIT, shellCommands, type EmbeddedCode, type ShellSimpleCommand, type ShellWord } from './embedded-code';
 import { matchToolLook } from './tool-looks';
 import { shellCommand } from './tools';
@@ -18,9 +19,6 @@ export interface CommandLookWord {
     /* The option right before it, whose value it may be; null when it follows none. */
     readonly option: string | null;
 }
-
-/* A look of the host's own: a program in a shell call, or an MCP server. */
-export type Look = CommandLook | ToolLook;
 
 /* A call read as a look's tool, as its row draws it, whether a shell line or an MCP call. */
 export interface LookRun {

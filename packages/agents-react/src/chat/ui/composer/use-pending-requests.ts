@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { PromptSubject } from '../../../prompts/logic/subjects';
+import type { PromptSubject } from '../../../host/prompts';
 import { useChatScope } from '../../../scope';
 import { ChatPromptFeed } from '../../pending-prompts';
 

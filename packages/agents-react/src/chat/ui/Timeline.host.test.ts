@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { act, createElement, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost, type TimelineFind } from '../../host';
+import { ChatHostProvider, type ChatHost, type TimelineFind } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { Timeline } from './Timeline';
 

@@ -1,6 +1,6 @@
 import type { ChatVisual } from '@adecore/agent-contracts';
-import type { ThreadCard } from '../../host';
-import type { TimelineRow } from './timeline';
+import type { ThreadCard } from '../../host/host';
+import type { TimelineRow } from '../../host/timeline-row';
 
 /* A row that belongs to a moment rather than to an item of the thread: an app's card, or a visual an agent published. */
 export interface TimedRow {

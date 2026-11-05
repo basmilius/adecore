@@ -4,7 +4,7 @@ import { diffDocument, patchOf, type DiffDocument } from '@adecore/merge';
 import { getFiletypeFromFileName } from '@pierre/diffs';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostCodeMode, useHostCodeThemes } from '../../../host-hooks';
+import { useHostCodeMode, useHostCodeThemes } from '../../../host/host-hooks';
 import { diffTexts, type FileChange } from '../../logic/tools';
 import { useDiffSourceTokens } from '../use-diff-source-tokens';
 import { diffSourceBudget } from './diff-source-budget';

@@ -3,12 +3,12 @@ import { Button, ScrollArea, TextMenu } from '@adecore/ui';
 import clsx from 'clsx';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { approvalChanges, fileChanges } from '../../chat/logic/tools';
-import { ApprovalReview } from '../../chat/ui/diff/ApprovalReview';
-import { reviewEntries } from '../../chat/ui/diff/review-plan';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../../host/host';
+import type { PromptDraft } from '../../../host/prompts';
+import { approvalChanges, fileChanges } from '../../logic/tools';
+import { ApprovalReview } from '../../ui/diff/ApprovalReview';
+import { reviewEntries } from '../../ui/diff/review-plan';
 import { isPrimaryKey } from '../logic/keys';
-import type { PromptDraft } from '../logic/prompts';
 
 /* A command in the sunken box a person reads before allowing it, with the folder it runs in when that is known. */
 export function CommandBox({ command, cwd }: { command: string; cwd?: string }) {

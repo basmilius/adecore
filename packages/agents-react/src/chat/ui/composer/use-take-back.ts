@@ -1,7 +1,7 @@
 import type { ChatAttachmentUpload, ChatQueuedMessage } from '@adecore/agent-contracts';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { errorCode, errorMessage } from '../../../transport';
 import { useChatActions } from '../../actions';

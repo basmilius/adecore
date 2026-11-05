@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
 import { compileUi } from '@adecore/intelligent-ui';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatHost } from '../../../host/host';
 import { UiReply } from './UiReply';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.

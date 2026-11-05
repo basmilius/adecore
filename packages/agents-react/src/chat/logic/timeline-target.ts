@@ -1,7 +1,7 @@
 import type { ChatItem, ChatUiChoiceOrigin } from '@adecore/agent-contracts';
 import { selectionWithin } from '@adecore/ui';
-import type { FileRef } from '../../host';
-import type { TimelineRow } from './timeline';
+import type { FileRef } from '../../host/host';
+import type { TimelineRow } from '../../host/timeline-row';
 
 /* What the right-click landed on, read once when the menu opens. */
 export interface TimelineTarget {

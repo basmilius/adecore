@@ -3,11 +3,11 @@ import type { ChatApprovalItem, ChatInfo, ChatToolItem } from '@adecore/agent-co
 import { createPage } from '@adecore/editor/testing';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider } from '../../../host';
-import { emptyPromptDraft } from '../../../prompts/logic/prompts';
-import { ApprovalBody } from '../../../prompts/ui/ApprovalBody';
+import { ChatHostProvider } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
+import { emptyPromptDraft } from '../../prompts/logic/prompts';
+import { ApprovalBody } from '../../prompts/ui/ApprovalBody';
 import { WorkLiveRow } from './WorkRows';
 
 const scope = {

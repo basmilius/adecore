@@ -1,6 +1,7 @@
 import clsx from 'clsx';
 import type { CSSProperties } from 'react';
-import { isBlock, type TimelineRow } from '../../logic/timeline';
+import { type TimelineRow } from '../../../host/timeline-row';
+import { isBlock } from '../../logic/timeline';
 
 /* Below this distance from the bottom a thread follows what the agent writes; above it the reader scrolled back on purpose. */
 export const FOLLOW_THRESHOLD_PX = 40;

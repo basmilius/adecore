@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostComposerPlaceholder } from '../../../host-hooks';
+import { useHostComposerPlaceholder } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 
 /* The empty box names its sigils as key caps, so they read as keys to press rather than as punctuation. */

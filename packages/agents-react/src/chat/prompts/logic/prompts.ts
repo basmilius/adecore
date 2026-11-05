@@ -1,27 +1,6 @@
-import type { ChatApprovalItem, ChatQuestionItem, ChatQuestion } from '@adecore/agent-contracts';
-import { toggleChoice } from '../../chat/logic/answers';
-
-export type PendingPrompt = ChatApprovalItem | ChatQuestionItem;
-
-export type PromptAction =
-    | { kind: 'approve'; decision: 'allow' | 'allow-always' | 'deny'; message?: string }
-    | { kind: 'answer'; answers: Record<string, string> }
-    | { kind: 'dismiss' }
-    // A terminal's permission request, answered with one of the choices the host offered.
-    | { kind: 'choose'; choiceId: string };
-
-export interface PromptAnswer {
-    choices: string[];
-    text: string;
-    custom: boolean;
-}
-
-export interface PromptDraft {
-    index: number;
-    answers: Record<string, PromptAnswer>;
-    reason: string;
-    showReason: boolean;
-}
+import type { ChatQuestion, ChatQuestionItem } from '@adecore/agent-contracts';
+import type { PendingPrompt, PromptAnswer, PromptDraft } from '../../../host/prompts';
+import { toggleChoice } from '../../logic/answers';
 
 export function emptyPromptDraft(): PromptDraft {
     return { index: 0, answers: {}, reason: '', showReason: false };

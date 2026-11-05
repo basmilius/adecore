@@ -4,9 +4,9 @@
  * hooks are called through these wrappers only. `ChatHostProvider` pins its host, so they never change.
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
-import type { AccountRule } from './agents/accounts';
-import { referablesOfChats, type Referables } from './chat/chat-references';
+import type { AccountRule } from './host';
 import { useChatHost, type ChatHost, type CommandLook, type ComposerSendAction } from './host';
+import { referablesOfChats, type Referables } from './references';
 
 export function useHostCodeMode(): 'light' | 'dark' {
     return useChatHost().code.useMode();

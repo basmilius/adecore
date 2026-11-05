@@ -2,7 +2,7 @@ import { IconButton, ScrollArea } from '@adecore/ui';
 import { Code, Workflow } from 'lucide-react';
 import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostCodeMode } from '../../host-hooks';
+import { useHostCodeMode } from '../../host/host-hooks';
 import { CodeStreamingContext } from './code-streaming';
 import { CodeBlock } from './CodeBlock';
 import { DIAGRAM_TOKENS, GROUND_TOKEN, renderOptions, svgDataUrl, themedSvg, type DiagramFont } from './mermaid';

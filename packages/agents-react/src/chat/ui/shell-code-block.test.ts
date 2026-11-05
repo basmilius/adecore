@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { ChatAssistantItem } from '@adecore/agent-contracts';
 import { createElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost, type ShellCodeBlockContext } from '../../host';
+import { ChatHostProvider, type ChatHost, type ShellCodeBlockContext } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { AnsiOutput } from './AnsiOutput';
 import { Markdown, MessageMarkdown, ReplyMarkdown } from './Markdown';

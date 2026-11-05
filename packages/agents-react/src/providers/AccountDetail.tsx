@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
 import { accountName, FOLDER_VARIABLES, type AccountEntry, type AccountLogin } from '../agents/accounts';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { useChatScope } from '../scope';
 import { removeAccount, saveAccount } from './account-actions';
 import { AccountColors } from './AccountColors';

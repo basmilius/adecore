@@ -1,9 +1,9 @@
 import { shortcut } from '@adecore/ui';
 import { isRecord } from '@adecore/utils/record';
+import { persistedJson } from '../persisted-json';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore } from '../storage';
 import { uploadBytes } from './attachments';
 import { isEmptyDraft, type ChatDraft } from './drafts';
-import { persistedJson } from './persisted-json';
 import { withQuote } from './quote';
 
 /* Puts the draft away, or takes the last one back on an empty box. */

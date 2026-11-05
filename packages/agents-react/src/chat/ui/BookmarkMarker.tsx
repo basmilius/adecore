@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { Bookmark, Pencil, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { nameBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';
 import { bookmarkLabel } from '../logic/bookmarks';

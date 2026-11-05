@@ -1,7 +1,7 @@
 import type { ChatAttachmentUpload } from '@adecore/agent-contracts';
+import { persistedJson } from '../persisted-json';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore } from '../storage';
 import { checkAttachmentLimits, uploadBytes } from './attachments';
-import { persistedJson } from './persisted-json';
 
 const storageKey = (): string => chatStorageKey('drafts');
 

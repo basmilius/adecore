@@ -1,6 +1,6 @@
 import { ScrollArea } from '@adecore/ui';
 import { MultiFileDiff } from '@pierre/diffs/react';
-import { useHostCodeMode } from '../../../host-hooks';
+import { useHostCodeMode } from '../../../host/host-hooks';
 import { diffTexts, type FileChange } from '../../logic/tools';
 import { useDiffTheme } from '../diff-theme';
 import { LegacyDiffPool } from './LegacyDiffPool';

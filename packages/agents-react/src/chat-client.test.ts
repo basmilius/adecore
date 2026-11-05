@@ -10,9 +10,10 @@ import type {
     ChatVisual,
     ProviderInfo
 } from '@adecore/agent-contracts';
-import { chatSink, useChats, type ChatPage, type ChatSink } from '../state/chats';
-import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from '../transport';
 import { ChatClient } from './chat-client';
+import type { ChatPage, ChatSink } from './chat-sink';
+import { chatSink, useChats } from './state/chats';
+import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from './transport';
 
 type Call = { type: AgentRequestType; payload: unknown };
 

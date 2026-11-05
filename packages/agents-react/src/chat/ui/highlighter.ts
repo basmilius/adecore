@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 import type { BundledLanguage, BundledTheme, Highlighter, ThemeRegistration } from 'shiki';
-import { useChatHost, type ChatHost } from '../../host';
+import { useChatHost, type ChatHost } from '../../host/host';
 import { TokenCache, type CodeToken, type Tokenize } from './code-lines';
 import { shikiThemeOf } from './code-theme';
 

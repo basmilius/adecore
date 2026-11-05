@@ -4,7 +4,7 @@ import { ChartNoAxesColumn, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { useChatScope } from '../scope';
 import { useProvidersStore } from '../state/providers';
 import { askedKey, summaryPayload, USAGE_PERIODS, useUsage, useUsageStore, type UsageMetric, type UsagePeriod } from '../state/usage';

@@ -4,7 +4,7 @@ import { SettingsRow, SettingsSection } from '@adecore/ui/settings';
 import { Lock, LockOpen, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { useChatScope } from '../scope';
 import { saveAccount } from './account-actions';
 import { draftsOf, emptyDraft, variablesChanged, variablesOf, variablesProblem, type VariableDraft } from './variables';

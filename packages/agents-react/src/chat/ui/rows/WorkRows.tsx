@@ -6,15 +6,16 @@ import i18next from 'i18next';
 import { ChevronRight, FileDiff, X } from 'lucide-react';
 import { Fragment, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type CommandLook, type ToolLook } from '../../../host';
-import { useCommandNames } from '../../../host-hooks';
+import { useChatHost, type CommandLook, type ToolLook } from '../../../host/host';
+import { useCommandNames } from '../../../host/host-hooks';
+import { type Look } from '../../../host/timeline-row';
+import type { BaseMoved } from '../../../host/timeline-row';
 import { lazyNamed } from '../../../lazy';
 import { ChatScopeContext, useChatScope } from '../../../scope';
 import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
 import { useChatActions } from '../../actions';
 import { formatBytes } from '../../attachments';
-import { lookKey, lookRunOf, type Look, type LookRun } from '../../logic/command-looks';
-import type { BaseMoved } from '../../logic/timeline';
+import { lookKey, lookRunOf, type LookRun } from '../../logic/command-looks';
 import {
     exitCodeOf,
     fileChanges,

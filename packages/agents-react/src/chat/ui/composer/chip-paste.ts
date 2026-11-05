@@ -1,5 +1,5 @@
 import type { EditorView } from '@codemirror/view';
-import type { Referable } from '../../chat-references';
+import type { Referable } from '../../../host/references';
 import type { ChatDraft } from '../../drafts';
 import {
     chipRanges,

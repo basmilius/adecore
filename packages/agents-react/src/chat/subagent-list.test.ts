@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatInfo, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment, formatTokens } from '@adecore/ui/format';
-import type { SubagentTask } from '../host';
+import type { SubagentTask } from '../host/host';
 import {
     badgeCountOf,
     composerStopLabel,

@@ -34,7 +34,7 @@
     },
     {
       // The one module that calls the hooks a host hands in, which its provider pins.
-      "files": ["packages/agents-react/src/host-hooks.ts"],
+      "files": ["packages/agents-react/src/host/host-hooks.ts"],
       "rules": {
         "react/hooks": "off"
       }

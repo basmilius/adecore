@@ -2,8 +2,8 @@ import { Segmented, Button, Icon } from '@adecore/ui';
 import { SettingsRow, SettingsSection } from '@adecore/ui/settings';
 import { ChartNoAxesColumn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useUsage, useUsageStore } from '../state/usage';
-import { formatRateDate, type UsageCurrency } from './format';
+import { useUsage, useUsageStore, type UsageCurrency } from '../state/usage';
+import { formatRateDate } from './format';
 
 const CURRENCIES: readonly UsageCurrency[] = ['USD', 'EUR'];
 

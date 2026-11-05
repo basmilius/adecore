@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatAssistantItem, ChatToolItem, ChatUserItem } from '@adecore/agent-contracts';
-import type { TimelineRow } from './timeline';
+import type { TimelineRow } from '../../host/timeline-row';
 import { markdownOf, messageTextOf, stripMarkdown } from './timeline-copy';
 
 const user: ChatUserItem = { id: 'u1', kind: 'user', createdAt: 0, turnId: null, text: 'Fix the build' };

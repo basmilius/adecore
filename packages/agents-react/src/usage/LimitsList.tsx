@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { limitsAccountId } from '../agents/account-limits';
 import { accountColor } from '../agents/accounts';
 import { ProviderLogo } from '../agents/ProviderLogo';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { ChartLogo } from './ChartLogo';
 import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
 import {

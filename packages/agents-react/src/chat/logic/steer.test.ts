@@ -1,6 +1,6 @@
 import { expect, test } from 'bun:test';
 import type { ProviderCapabilities } from '@adecore/agent-contracts';
-import { canSteer } from './provider-abilities';
+import { canSteer } from './steer';
 
 test('only a provider that reports steer takes a message into a running turn', () => {
     expect(canSteer({ steer: true } as ProviderCapabilities)).toBe(true);

@@ -3,8 +3,8 @@ import { Facet, StateField, type EditorState, type Extension, type Range } from 
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { createElement, Fragment, type ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { ReferenceIconProps } from '../../../host';
-import type { ReferableKind, ReferenceStep } from '../../chat-references';
+import type { ReferenceIconProps } from '../../../host/host';
+import type { ReferableKind, ReferenceStep } from '../../../host/references';
 import { chipRanges, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
 import { referenceGlyph } from '../reference-icons';

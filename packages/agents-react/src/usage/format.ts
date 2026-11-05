@@ -1,10 +1,8 @@
 import type { UsageProvider, UsageRate } from '@adecore/agent-contracts';
 import { formatDay, formatHour, formatWeekdayDay, formatMoney, formatNumber, formatTokens } from '@adecore/ui/format';
+import type { UsageCurrency } from '../state/usage';
 
 export { formatClock } from '@adecore/ui/format';
-
-/* Dollars are what a price table is in; euros are what the page can be set to. */
-export type UsageCurrency = 'USD' | 'EUR';
 
 /* Read in the region of the machine looking at it: `$5,480.96` in the US, `$ 5.480,96` in the Netherlands. */
 export function formatCount(value: number): string {

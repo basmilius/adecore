@@ -3,7 +3,7 @@ import { createPage } from '@adecore/editor/testing';
 import { renderAsync } from 'pele/lazy';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../host';
+import { ChatHostProvider, type ChatHost } from '../../host/host';
 import type { Highlighter } from './highlighter';
 import { MermaidBlock } from './MermaidBlock';
 

@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { CircleCheck } from 'lucide-react';
 import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../../host';
+import { useChatHost } from '../../../../host/host';
 import type { UiRendererProps } from '../render-context';
 import { UiFallbackPart } from '../UiFallbackPart';
 import { useLater } from '../use-later';

@@ -1,4 +1,4 @@
-import { chatStorageAdapter, hydrateChatStorage } from '../storage';
+import { chatStorageAdapter, hydrateChatStorage } from './storage';
 
 export interface PersistedJson<T> {
     read(): T;

@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { CircleOff } from 'lucide-react';
 import { useContext, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { REFERENCE_GONE_TONE, REFERENCE_TONE, TOKEN_ICON, TOKEN_ICON_BOX, TOKEN_IN_MESSAGE } from './chips';
 import { referenceGlyph } from './reference-icons';
 import { ReferenceLookupContext } from './reference-lookup';

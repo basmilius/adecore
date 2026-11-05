@@ -27,7 +27,7 @@ import { canContinueOn } from '../../agents/accounts';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { modelName, shortModelName } from '../../agents/model-name';
 import { localizedOption } from '../../agents/option-words';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useUsageLimits } from '../../usage/limits';
 import type { AccountChoice } from '../account-choice';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';

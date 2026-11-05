@@ -1,5 +1,5 @@
 import type { ChatBookmark, ChatItem } from '@adecore/agent-contracts';
-import type { TimelineRow } from './timeline';
+import type { TimelineRow } from '../../host/timeline-row';
 
 /* What a list calls a bookmark: its name, else the start of the message. */
 export function bookmarkLabel(bookmark: ChatBookmark): string {

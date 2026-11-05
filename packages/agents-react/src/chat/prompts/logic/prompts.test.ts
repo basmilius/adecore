@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { ChatItemSchema } from '@adecore/agent-contracts';
-import { PROMPT_SAMPLES } from '../../testing/prompts';
+import { PROMPT_SAMPLES } from '../../../testing/prompts';
 import { answerValue, emptyPromptDraft, nextPrompt, pickPromptChoice, promptAnswers, questionAnswer } from './prompts';
 
 describe('prompt presentation', () => {

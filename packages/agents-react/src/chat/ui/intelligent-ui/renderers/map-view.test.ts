@@ -1,7 +1,7 @@
 import { afterEach, beforeAll, beforeEach, expect, mock, test } from 'bun:test';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type UiMapSource } from '../../../../host';
+import { ChatHostProvider, type UiMapSource } from '../../../../host/host';
 import type { MapViewProps, MapViewStatus } from './map-view';
 
 type Handler = (event?: unknown) => void;

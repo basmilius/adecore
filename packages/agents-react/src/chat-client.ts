@@ -11,9 +11,9 @@ import type {
     ProviderInfo,
     RuntimeMode
 } from '@adecore/agent-contracts';
-import { MountedRegistry, type MountedEntry } from '../mounted-registry';
-import type { ChatSink } from '../state/chats';
-import { errorCode, isConnectionError, type ChatTransport, type ChatTransportStatus } from '../transport';
+import type { ChatSink } from './chat-sink';
+import { MountedRegistry, type MountedEntry } from './mounted-registry';
+import { errorCode, isConnectionError, type ChatTransport, type ChatTransportStatus } from './transport';
 
 interface ChatOpenOptions {
     /* Which agent CLI answers; a chat that exists on the host keeps its own. */

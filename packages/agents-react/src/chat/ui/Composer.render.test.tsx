@@ -16,6 +16,7 @@ import { Menu } from '@adecore/ui';
 import { EditorView } from '@codemirror/view';
 import { act, Children, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ChatSendExtras } from '../../chat-client';
 import {
     ChatHostProvider,
     type ChatActions,
@@ -24,15 +25,14 @@ import {
     type ComposerHeaderSlotProps,
     type ComposerSendAction,
     type ComposerSendDraft
-} from '../../host';
+} from '../../host/host';
+import type { Referables } from '../../host/references';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { useProviderAccountsStore } from '../../state/provider-accounts';
 import { useProvidersStore } from '../../state/providers';
 import { useUsageStore } from '../../state/usage';
 import { ChatTransportError } from '../../transport';
-import type { ChatSendExtras } from '../chat-client';
-import type { Referables } from '../chat-references';
 import { stepEffortFromComposer } from '../composer-effort';
 import { EMPTY_DRAFT, readDraft, writeDraft } from '../drafts';
 import { readChatPreferences, rememberChatPreferences } from '../preferences';

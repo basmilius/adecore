@@ -1,6 +1,6 @@
 import { LazyBoundary } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { lazyNamed } from '../../lazy';
 import type { FileChange } from '../logic/tools';
 import { diffSourceBudget, legacyDiffBudget } from './diff/diff-source-budget';

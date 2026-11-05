@@ -1,7 +1,7 @@
 import type { AgentKind, ProviderAccount, ProviderAccountMap } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import { accountFor, readChatPreferences, rememberChatAccount } from '../chat/preferences';
-import type { ChatHost } from '../host';
+import type { ChatHost } from '../host/host';
 import type { ChatScope } from '../scope';
 import { providerAccountsOf, useProviderAccountsStore } from '../state/provider-accounts';
 import { errorMessage, type ChatTransport } from '../transport';

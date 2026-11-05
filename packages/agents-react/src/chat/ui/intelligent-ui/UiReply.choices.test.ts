@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, setSystemTime, test } from 'bun:test';
 import { compileUi, resolveUiChoice } from '@adecore/intelligent-ui';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatHost } from '../../../host/host';
 import { UiReply } from './UiReply';
 import { useTruncated } from './use-truncated';
 

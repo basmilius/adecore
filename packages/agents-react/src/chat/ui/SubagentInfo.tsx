@@ -2,7 +2,7 @@ import { useNow } from '@adecore/ui';
 import { Fragment } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useModelName } from '../../agents/model-name';
-import { useHostTask } from '../../host-hooks';
+import { useHostTask } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import { entryTimeOf, statusWordOf, subagentFacts, taskIdOf } from '../subagent-list';

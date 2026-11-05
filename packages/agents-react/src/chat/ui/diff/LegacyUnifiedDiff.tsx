@@ -2,7 +2,7 @@ import type { ChatFileChange } from '@adecore/agent-contracts';
 import { ScrollArea } from '@adecore/ui';
 import { FileDiff, PatchDiff } from '@pierre/diffs/react';
 import clsx from 'clsx';
-import { useHostCodeMode } from '../../../host-hooks';
+import { useHostCodeMode } from '../../../host/host-hooks';
 import { useDiffTheme } from '../diff-theme';
 import { fullFileDiff } from '../full-diff';
 import type { UnifiedDiffProps } from './diff-props';

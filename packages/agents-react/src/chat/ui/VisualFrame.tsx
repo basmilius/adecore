@@ -3,7 +3,7 @@ import { Spinner, useMeasuredWidth } from '@adecore/ui';
 import clsx from 'clsx';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { imageDocumentForDisplay } from '../image-display';
 import { DEFAULT_HEIGHT_PX, initialVisualContentHeight, rememberVisualHeight } from '../logic/visual-height';

@@ -6,7 +6,7 @@ import { CircleHelp, Folder, Info } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useModelName } from '../agents/model-name';
-import { useHostProjectLook } from '../host-hooks';
+import { useHostProjectLook } from '../host/host-hooks';
 import { useChatScope } from '../scope';
 import type { UsageMetric } from '../state/usage';
 import { ChartLogo } from './ChartLogo';

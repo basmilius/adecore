@@ -33,18 +33,26 @@ import {
     type RefObject
 } from 'react';
 import type { Highlighter, ThemeRegistration } from 'shiki';
-import type { AccountRule } from './agents/accounts';
-import type { ReferableKind, Referables } from './chat/chat-references';
-import type { TimelineRow } from './chat/logic/timeline';
-import type { FindReveal } from './chat/ui/find-reveal';
-import type { PromptAction } from './prompts/logic/prompts';
-import type { HostPrompt, PromptViewProps } from './prompts/logic/subjects';
-import { PlainTextarea } from './ui/PlainTextarea';
+import { PlainTextarea } from './PlainTextarea';
+import type { HostPrompt, PromptAction, PromptViewProps } from './prompts';
+import type { ReferableKind, Referables } from './references';
+import type { TimelineRow } from './timeline-row';
 
 /* A color an account may wear, by the name the host stores it under. */
 export interface AccentChoice {
     id: string;
     color: string;
+}
+
+/* What a project says about the accounts of each CLI: the one its new chats start on, and those it never offers. */
+export type AccountRule = Partial<Record<string, { default?: string; off?: readonly string[] }>>;
+
+/* The line that always shows, the text of a message, or what shows only once a row is opened. */
+export type ChatFindField = 'summary' | 'text' | 'output';
+
+export interface FindReveal {
+    itemId: string;
+    field: ChatFindField;
 }
 
 export interface ChatToast {

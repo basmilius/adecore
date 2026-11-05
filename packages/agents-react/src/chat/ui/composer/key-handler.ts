@@ -2,7 +2,7 @@ import { isModHeld, matchesShortcut } from '@adecore/ui';
 import { indentLess, indentMore, insertNewline } from '@codemirror/commands';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorView } from '@codemirror/view';
-import type { ChatHost } from '../../../host';
+import type { ChatHost } from '../../../host/host';
 import type { ComposerSend } from '../../composer-send';
 import type { ChatSendKey } from '../../send-key';
 import { STASH_SHORTCUT } from '../../stash';

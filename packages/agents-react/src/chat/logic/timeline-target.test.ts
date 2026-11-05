@@ -3,11 +3,11 @@ import { compileUi } from '@adecore/intelligent-ui';
 import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost, type FileRef } from '../../host';
+import { ChatHostProvider, type ChatHost, type FileRef } from '../../host/host';
+import type { TimelineRow } from '../../host/timeline-row';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { FileLinkContext, useOpenFileLink } from '../ui/file-links';
 import { Markdown, MessageMarkdown } from '../ui/Markdown';
-import type { TimelineRow } from './timeline';
 import { readTimelineTarget, revealUiReplyBlock, uiReplyJump, withCurrentText } from './timeline-target';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.

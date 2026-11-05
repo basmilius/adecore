@@ -3,10 +3,10 @@ import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../host';
+import { ChatHostProvider, type ChatHost } from '../../host/host';
+import type { Referables } from '../../host/references';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
-import type { Referables } from '../chat-references';
 import { AssistantRow } from './rows/MessageRows';
 
 const scope = {

@@ -1,17 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatApprovalItem, ChatQuestionItem } from '@adecore/agent-contracts';
-import type { ChatHost } from '../../host';
-import { PROMPT_SAMPLES } from '../../testing/prompts';
-import {
-    answerPrompt,
-    approvalButtons,
-    isBlockingSubject,
-    promptCreatedAt,
-    promptIdOf,
-    type ChatPromptClients,
-    type HostPrompt,
-    type PromptSubject
-} from './subjects';
+import type { ChatHost } from '../../../host/host';
+import { type HostPrompt, type PromptSubject } from '../../../host/prompts';
+import { PROMPT_SAMPLES } from '../../../testing/prompts';
+import { answerPrompt, approvalButtons, isBlockingSubject, promptCreatedAt, promptIdOf, type ChatPromptClients } from './subjects';
 
 function sampleOf(label: string) {
     return PROMPT_SAMPLES.find((sample) => sample.label === label)!.items[0]!;

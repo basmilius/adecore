@@ -7,7 +7,7 @@ import {
     type DiffSyntaxTokens
 } from '@adecore/editor/shiki-worker';
 import type { Highlighter, ThemeRegistration } from 'shiki';
-import type { ChatHost } from '../../../host';
+import type { ChatHost } from '../../../host/host';
 
 interface Pending {
     promise: Promise<DiffSyntaxTokens | null>;

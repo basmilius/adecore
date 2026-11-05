@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost } from '../../host';
+import { ChatHostProvider, type ChatHost } from '../../host/host';
 import { FileLinkContext } from './file-links';
 import { ReplyMarkdown } from './Markdown';
 

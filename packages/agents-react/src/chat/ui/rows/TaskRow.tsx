@@ -6,7 +6,7 @@ import { Bot, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AgentIcon } from '../../../agents/AgentIcon';
 import { modelName, shortModelName } from '../../../agents/model-name';
-import type { SubagentTask } from '../../../host';
+import type { SubagentTask } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProviders } from '../../../state/providers';

@@ -4,7 +4,7 @@ import { createPage } from '@adecore/editor/testing';
 import { formatClock } from '@adecore/ui/format';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider } from '../../../host';
+import { ChatHostProvider } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { TaskRow } from './TaskRow';
 

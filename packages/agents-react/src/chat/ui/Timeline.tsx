@@ -19,8 +19,16 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { useModelName } from '../../agents/model-name';
-import { useChatHost, type TimelineFindOptions } from '../../host';
-import { useHostContextSources, useHostHidesFolder, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
+import { useChatHost, type TimelineFindOptions } from '../../host/host';
+import {
+    useHostContextSources,
+    useHostHidesFolder,
+    useHostHidesToolCalls,
+    useHostThreadCards,
+    useHostTimelineFind,
+    useHostWelcome
+} from '../../host/host-hooks';
+import { type TimelineRow } from '../../host/timeline-row';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
 import { useForkedTurns } from '../forks';
@@ -40,7 +48,7 @@ import {
     EARLIER_ROW
 } from '../logic/scrubber';
 import { timedRowsOf, withTimedRows } from '../logic/thread-cards';
-import { deriveTimelineRows, findSubagentBranch, type TimelineRow } from '../logic/timeline';
+import { deriveTimelineRows, findSubagentBranch } from '../logic/timeline';
 import {
     EMPTY_TARGET,
     readTimelineTarget,

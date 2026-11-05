@@ -1,6 +1,6 @@
 import type { ChatItem } from '@adecore/agent-contracts';
-import { useChatHost } from '../../host';
-import { useHostReferables } from '../../host-hooks';
+import { useChatHost } from '../../host/host';
+import { useHostReferables } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import type { ReferenceLookup } from './reference-lookup';

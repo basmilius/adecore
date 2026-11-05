@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ProviderAccounts, ProviderAccountStatus } from '@adecore/agent-contracts';
-import type { ChatHost } from '../host';
+import type { ChatHost } from '../host/host';
 import {
     accountLoginOf,
     accountName,

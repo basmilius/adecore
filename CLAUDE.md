@@ -80,7 +80,7 @@ Bun workspaces: a package per folder in `packages/`, each published from its fol
 - The React Compiler runs over every component and hook of `ui`, `terminal`, `charts`, `agents-react` and `editor-react`, in the build and in `bun run test` (`scripts/test-preload.ts`), so a test sees what `dist` ships. An app that reads `src` compiles it itself (`docs/guide`).
 - No hand-written `useMemo`, `useCallback` or `memo` where the compiler covers it. Keep one where an effect lists the value (the lint asks for it), for a store or holder that must not be made twice, in a function the compiler leaves out, and `memo` on a component an uncompiled parent draws (the thread rows under `Timeline`).
 - What a render reads must be an input of it: props, state, context or a `useSyncExternalStore` snapshot. An object that changes in place draws its old value once compiled; give it a snapshot getter (`RowHost.getContainers`). Where that is not small, start the function with `'use no memo'` and a comment why.
-- Call the hooks a chat host hands in through `agents-react/src/host-hooks.ts` only; the compiler leaves out a component that calls them directly.
+- Call the hooks a chat host hands in through `agents-react/src/host/host-hooks.ts` only; the compiler leaves out a component that calls them directly.
 - The build prints how many functions the compiler left as written. `bun run lint` checks the Rules of React with the compiler's own rules (`.oxlintrc.json`).
 
 ## Design rules

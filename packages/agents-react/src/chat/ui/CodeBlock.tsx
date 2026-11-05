@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Check, Copy } from 'lucide-react';
 import { Fragment, memo, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { IncrementalLines, type CodeToken } from './code-lines';
 import { CodeStreamingContext } from './code-streaming';
 import { useCodeTheme } from './code-theme';

@@ -35,7 +35,7 @@ export {
     type ChatToast,
     type TextareaProps,
     type ResourceUrl
-} from './host';
+} from './host/host';
 
 export { type ChatScope, ChatScopeContext, useChatScope } from './scope';
 

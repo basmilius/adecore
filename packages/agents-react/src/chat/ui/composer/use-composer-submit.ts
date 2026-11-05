@@ -1,9 +1,9 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
+import type { ChatSendExtras } from '../../../chat-client';
+import { useChatHost } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { checkAttachmentLimits, uploadBytes } from '../../attachments';
-import type { ChatSendExtras } from '../../chat-client';
 import { registerComposerSender, type ComposerSend } from '../../composer-send';
 import { isEmptyDraft } from '../../drafts';
 import type { PromptGuard } from '../../guards';

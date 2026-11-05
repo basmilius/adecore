@@ -3,7 +3,7 @@ import { compileUiBlock } from '@adecore/intelligent-ui';
 import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { z } from 'zod';
-import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatHost } from '../../../host/host';
 import { UiReply } from './UiReply';
 
 test.skipIf(typeof document === 'undefined')('changing a query input closes its choice until matching data is read', async () => {

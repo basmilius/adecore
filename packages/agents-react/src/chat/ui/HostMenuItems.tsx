@@ -1,5 +1,5 @@
 import { Icon, Menu } from '@adecore/ui';
-import type { HostMenuAction } from '../../host';
+import type { HostMenuAction } from '../../host/host';
 
 /* The items a host adds to a menu of the chat's, in the order it gave them. */
 export function HostMenuItems({ actions }: { actions: readonly HostMenuAction[] }) {

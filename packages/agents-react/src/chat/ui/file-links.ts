@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { useChatHost, type FileRef } from '../../host';
+import { useChatHost, type FileRef } from '../../host/host';
 import { ChatScopeContext } from '../../scope';
 
 /*

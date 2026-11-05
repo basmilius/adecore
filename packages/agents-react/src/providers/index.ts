@@ -6,7 +6,6 @@ export { ModelOptionControl } from '../agents/ModelOptionControl';
 export { ProviderLogo } from '../agents/ProviderLogo';
 export {
     type AccountEntry,
-    type AccountRule,
     accountsOfKind,
     ACCOUNT_TONE_CLASSES,
     accountStatusLine,
@@ -15,6 +14,7 @@ export {
     topAccountEntry,
     type AccountTone
 } from '../agents/accounts';
+export { type AccountRule } from '../host/host';
 export { modelName, useModelName, shortModelName } from '../agents/model-name';
 export { carryOptions } from '../agents/model-options';
 export { type ModelRequirement } from '../agents/model-requirement';

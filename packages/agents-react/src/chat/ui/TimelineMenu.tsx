@@ -2,7 +2,7 @@ import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selec
 import { BookmarkPlus, BookmarkX, Braces, Copy, Eye, FileText, GitFork, MessageSquare, MoveHorizontal, Pencil, Scan } from 'lucide-react';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import { placeBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';

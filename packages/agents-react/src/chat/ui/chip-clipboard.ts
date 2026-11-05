@@ -1,7 +1,7 @@
 import type { ChatAssistantItem, ChatUserItem } from '@adecore/agent-contracts';
 import { copyText } from '@adecore/ui';
+import type { TimelineRow } from '../../host/timeline-row';
 import { referenceTokens } from '../chat-references';
-import type { TimelineRow } from '../logic/timeline';
 import {
     clipboardChipsOf,
     hasClipboardChips,

@@ -1,6 +1,6 @@
 import type { ChatToolItem } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
-import type { ToolLook, ToolLookMatch } from '../../host';
+import type { ToolLook, ToolLookMatch } from '../../host/host';
 import type { CommandLookWord, LookRun } from './command-looks';
 
 // A value keeps this many characters of what it says.

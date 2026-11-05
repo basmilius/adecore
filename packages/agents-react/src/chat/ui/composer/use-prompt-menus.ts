@@ -3,10 +3,11 @@ import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import { useEffect, useId, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
-import { useHostExpandingCommands } from '../../../host-hooks';
+import { useChatHost } from '../../../host/host';
+import { useHostExpandingCommands } from '../../../host/host-hooks';
+import { type Referable, type Referables } from '../../../host/references';
 import { useChatScope } from '../../../scope';
-import { referenceSuggestions, referenceTokens, type Referable, type Referables } from '../../chat-references';
+import { referenceSuggestions, referenceTokens } from '../../chat-references';
 import type { ChatDraft } from '../../drafts';
 import { usableSlashCommands } from '../../guards';
 import {

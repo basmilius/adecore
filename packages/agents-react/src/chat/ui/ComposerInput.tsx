@@ -2,7 +2,7 @@ import { useOverlayScrollbars } from '@adecore/ui';
 import { Compartment, EditorState, Prec, Transaction, type Extension } from '@codemirror/state';
 import { EditorView, placeholder as placeholderText } from '@codemirror/view';
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { composerEditorExtensions, externalChange } from './composer/editor';
 import { insertAtSelection } from './composer/insert';
 

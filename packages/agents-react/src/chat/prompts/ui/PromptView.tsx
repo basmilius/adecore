@@ -1,9 +1,11 @@
 import { Pill } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
-import { toolSummary } from '../../chat/logic/tools';
-import { useChatHost } from '../../host';
-import { answerValue, promptAnswers, questionAnswer, type PromptDraft } from '../logic/prompts';
-import { approvalButtons, type PromptViewProps } from '../logic/subjects';
+import { useChatHost } from '../../../host/host';
+import { type PromptDraft } from '../../../host/prompts';
+import { type PromptViewProps } from '../../../host/prompts';
+import { toolSummary } from '../../logic/tools';
+import { answerValue, promptAnswers, questionAnswer } from '../logic/prompts';
+import { approvalButtons } from '../logic/subjects';
 import { ApprovalBody } from './ApprovalBody';
 import { ApprovalActions, QuestionActions } from './PromptActions';
 import { PromptCard } from './PromptCard';

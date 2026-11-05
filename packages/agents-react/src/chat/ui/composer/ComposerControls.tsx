@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { ArrowUp, ChevronDown, Play, Plus, Square } from 'lucide-react';
 import { useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type ComposerSendAction, type ComposerSendDraft } from '../../../host';
+import { useChatHost, type ComposerSendAction, type ComposerSendDraft } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { useProviders } from '../../../state/providers';
 import { useAccountChoice } from '../../account-choice';

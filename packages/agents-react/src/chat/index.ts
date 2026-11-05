@@ -1,8 +1,8 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
 export { type AccountChoice, useAccountChoice, type NewAccountChoice, useNewAccountChoice } from './account-choice';
 export { transportActions, actionsOf, useChatActions } from './actions';
-export { type ChatSendExtras, ChatClient } from './chat-client';
-export type { ProjectChat, Referable, ReferableKind, Referables } from './chat-references';
+export { type ChatSendExtras, ChatClient } from '../chat-client';
+export type { ProjectChat, Referable, ReferableKind, Referables } from '../host/references';
 export { REFERENCE_ICONS } from './ui/reference-icons';
 export { sendFromComposer, type ComposerSend } from './composer-send';
 export { stepEffortFromComposer } from './composer-effort';
@@ -26,14 +26,16 @@ export {
     type ForkWorktreeChoice
 } from './logic/fork';
 
-export { matchCommandLook, lookRunOf, sentMessageOf, type Look, type LookRun, type CommandLookRun, type CommandLookWord } from './logic/command-looks';
+export { matchCommandLook, lookRunOf, sentMessageOf, type LookRun, type CommandLookRun, type CommandLookWord } from './logic/command-looks';
+export { type Look } from '../host/timeline-row';
 export { mcpCallOf, matchToolLook, type McpCall, type ToolLookRun } from './logic/tool-looks';
 export { handbackReportOf } from './logic/handback';
 export { limitView, type LimitView } from './logic/limit';
 export type { TickKind, ScrubberTick } from './logic/scrubber';
 export { type TimedRow, withTimedRows, timedRowsOf } from './logic/thread-cards';
 export { EMPTY_TARGET, readTimelineTarget, type TimelineTarget } from './logic/timeline-target';
-export { type TimelineRow, summarizeGroup, deriveTimelineRows, type SubagentBranch, type BaseMoved } from './logic/timeline';
+export { summarizeGroup, deriveTimelineRows } from './logic/timeline';
+export { type TimelineRow, type SubagentBranch, type BaseMoved } from '../host/timeline-row';
 export { toolSummary, type FileChange } from './logic/tools';
 
 export {

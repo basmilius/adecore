@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatItem, ChatSubagentItem, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import { notResumedNote } from '@adecore/agent-contracts';
-import type { CommandLook, ToolLook } from '../../host';
+import type { CommandLook, ToolLook } from '../../host/host';
 import { agentTurnLabel, deriveTimelineRows, findSubagentBranch, isBlock, summarizeGroup, summarizeTurn, turnLabel } from './timeline';
 
 function tool(id: string, name: string, input: unknown, state: ChatToolItem['state'] = 'done', turnId = 't1'): ChatToolItem {

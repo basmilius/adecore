@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { ChevronLeft, ChevronRight, ImageOff, Minus, Plus, RotateCcw } from 'lucide-react';
 import { createContext, useContext, useId, useLayoutEffect, useRef, useState, useSyncExternalStore, type KeyboardEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ResourceUrl } from '../../host';
+import type { ResourceUrl } from '../../host/host';
 import { BUTTON_STEP, clamped, MAX_SCALE, MIN_SCALE, START, stepped, wheeled, zoomed, type Bounds, type Point, type View } from '../logic/lightbox';
 import { DisplayImage } from './DisplayImage';
 
