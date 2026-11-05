@@ -1,4 +1,13 @@
-import type { KeyChord } from './types.ts';
+/* A shortcut: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` and `meta` the physical keys. */
+export interface KeyChord {
+    readonly mod: boolean;
+    readonly ctrl: boolean;
+    readonly meta: boolean;
+    readonly alt: boolean;
+    readonly shift: boolean;
+    /* An uppercase letter, a digit, a punctuation mark or a named key such as `ArrowLeft`. */
+    readonly key: string;
+}
 
 export interface TakenKey {
     /* The chord the platform binds on the platform this entry is for. */

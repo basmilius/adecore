@@ -1,7 +1,7 @@
 import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import type { UiBlock, UiNode } from './compiler.ts';
 import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
-import type { UiViewNode } from './runtime.ts';
+import type { UiViewNode } from './model.ts';
 
 export function uiCompiledNodes(nodes: readonly UiNode[], into = new Map<string, UiNode>()): Map<string, UiNode> {
     for (const node of nodes) {

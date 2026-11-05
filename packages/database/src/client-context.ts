@@ -1,7 +1,7 @@
 import { createContext, use } from 'react';
 import type { DatabaseAction, DatabaseFiles, DatabaseNotice, DatabaseStorage } from './actions.ts';
 import type { DatabaseClient } from './client/types.ts';
-import type { NumberNotation } from './grid/display.ts';
+import type { NumberNotation } from './number-notation.ts';
 
 export interface DatabaseContextValue {
     readonly client: DatabaseClient;

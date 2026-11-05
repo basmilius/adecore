@@ -2,6 +2,7 @@ import type { CommandOptions, EditorCommand, Selection, TextEdit } from '@adecor
 import { columnSelections, sameCell } from './column-selection.ts';
 import { replacementEdits } from './input.ts';
 import type { Keymap } from './keymap-table.ts';
+import type { KeyChord } from './keymap-table.ts';
 import { chordMatches, type KeyAction, keyAction, type MoveKey } from './keymap.ts';
 import { emit, subscribe } from './listeners.ts';
 import { DoubleModifierGesture } from './modifier-gesture.ts';
@@ -20,8 +21,7 @@ import type {
     EditorPosition,
     EditorRunCommand,
     EditorSelectionRanges,
-    EditorViewCommand,
-    KeyChord
+    EditorViewCommand
 } from './types.ts';
 import type { EditorView } from './view.ts';
 import { WheelZoom } from './zoom.ts';

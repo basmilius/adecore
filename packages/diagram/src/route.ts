@@ -1,5 +1,4 @@
-import { intersects } from '@adecore/drawing';
-import type { Point, Rect } from './layout.ts';
+import { intersects, type Point, type Rect } from '@adecore/drawing';
 
 const TRACK_GAP = 12;
 /* Space between the lane of labels and the first track. */

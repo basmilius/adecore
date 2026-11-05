@@ -1,9 +1,9 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
+import type { FoldingRange } from './fold-types.ts';
 import { isBraced } from './lexical.ts';
 import { indentText, isBlank, whitespaceOf } from './line-text.ts';
 import { mapOffset } from './offsets.ts';
 import { DECLARATION, declarationBody, METHOD, NOT_METHODS, indentWidth, statementAt, visualWidth } from './statements.ts';
-import type { FoldingRange } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
 
 export interface MoveStatementOptions {

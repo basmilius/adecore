@@ -1,8 +1,8 @@
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { BackendHost } from '../packages/agents/src/backends/backend';
 import { AttachmentStore } from '../packages/agents/src/chat/attachment-store';
-import type { BackendHost } from '../packages/agents/src/chat/backend';
 import { ChatCore } from '../packages/agents/src/chat/chat-core';
 import { parseLog } from '../packages/agents/src/chat/chat-log';
 import { ChatStore } from '../packages/agents/src/chat/chat-store';

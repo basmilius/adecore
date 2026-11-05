@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import { DocumentModel } from '@adecore/editor-core';
 import { BIDI_CONTROLS, BIDI_COLUMNS } from './bidi.ts';
-import { EditorLayout, scanLine, type LayoutMetrics } from './layout.ts';
+import { EditorLayout, scanLine } from './layout.ts';
+import { type LayoutMetrics } from './line-geometry.ts';
 import { mountEditor } from './testing.ts';
 import { mount } from './view.fixture.test.ts';
 

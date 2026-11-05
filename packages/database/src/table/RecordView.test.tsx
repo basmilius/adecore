@@ -7,9 +7,9 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DatabaseClient } from '../client/types.ts';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
-import { EnumPicker } from './EnumPicker.tsx';
+import { EnumPicker } from '../grid/EnumPicker.tsx';
+import type { GridColumn, GridRow } from '../grid/types.ts';
 import { RecordView } from './RecordView.tsx';
-import type { GridColumn, GridRow } from './types.ts';
 
 const i18n = i18next.createInstance();
 

@@ -20,15 +20,16 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type Ref } fr
 import { useTranslation } from 'react-i18next';
 import { useNumberNotation } from '../client-context.ts';
 import { CODE_TEXT } from '../code-text.ts';
+import { columnNotation, cellView, copyTextOf, isPreview, numeralText } from '../grid/display.ts';
+import { draftOf, parseDraft } from '../grid/edit-value.ts';
+import { parseEnumType } from '../grid/enum-type.ts';
+import { EnumPicker } from '../grid/EnumPicker.tsx';
+import { wholeValueOf } from '../grid/focused-value.ts';
+import type { FocusedCell, GridColumn, GridRow } from '../grid/types.ts';
+import type { NumberNotation } from '../number-notation.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
 import { isNumericKind } from '../sql.ts';
 import { ValueEditor } from '../value/ValueEditor.tsx';
-import { columnNotation, cellView, copyTextOf, isPreview, numeralText, type NumberNotation } from './display.ts';
-import { draftOf, parseDraft } from './edit-value.ts';
-import { parseEnumType } from './enum-type.ts';
-import { EnumPicker } from './EnumPicker.tsx';
-import { wholeValueOf } from './focused-value.ts';
-import type { FocusedCell, GridColumn, GridRow } from './types.ts';
 
 export interface RecordViewProps {
     columns: readonly GridColumn[];

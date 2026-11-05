@@ -7,8 +7,8 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DatabaseClient } from '../client/types.ts';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
+import type { NumberNotation } from '../number-notation.ts';
 import { DataGrid } from './DataGrid.tsx';
-import type { NumberNotation } from './display.ts';
 import type { GridColumn, GridRow } from './types.ts';
 
 const i18n = i18next.createInstance();

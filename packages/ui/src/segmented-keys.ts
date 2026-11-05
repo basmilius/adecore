@@ -1,8 +1,17 @@
-import type { SegmentedOption } from './Segmented.tsx';
+import type { LucideIcon } from 'lucide-react';
 
 const STEPS: Readonly<Record<string, number>> = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 };
 
 // The index of the one tab stop: the picked option, or the first that can be picked when that one is missing or disabled.
+export interface SegmentedOption<T extends string> {
+    id: T;
+    label: string;
+    icon?: LucideIcon;
+
+    /* Takes the option out of the tab order and the arrow keys; the rest of the group stays usable. */
+    disabled?: boolean;
+}
+
 export function segmentedStop<T extends string>(options: readonly SegmentedOption<T>[], value: T): number {
     const picked = options.findIndex((option) => option.id === value);
 

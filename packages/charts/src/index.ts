@@ -18,7 +18,8 @@ export type {
 } from './overlays.tsx';
 export type { ChartRootProps } from './Root.tsx';
 export type { ChartEndLabelsProps, ChartFrontierProps, ChartPointSeries } from './scatter.tsx';
-export { SeriesLegend, type SeriesLegendGroup, type SeriesLegendItem, type SeriesLegendProps } from './SeriesLegend.tsx';
+export { SeriesLegend, type SeriesLegendGroup, type SeriesLegendProps } from './SeriesLegend.tsx';
+export type { SeriesLegendItem } from './legend.ts';
 export type { ChartAreaProps, ChartBarProps, ChartBarTone, ChartBarsProps, ChartLineProps, ChartPointProps } from './series.tsx';
 export { Sparkline, type SparklineProps } from './Sparkline.tsx';
 export type { TimelineAxisProps, TimelineLegendProps, TimelineMomentProps, TimelineRootProps, TimelineRowState, TimelineRowsProps } from './timeline.tsx';

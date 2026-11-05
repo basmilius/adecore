@@ -1,6 +1,7 @@
 import type { EditorCommand } from '@adecore/editor-core';
 import { chordOf, KEYMAP, KEYMAP_IDS, type Keymap, type KeymapId, parseChord, typesInsteadOfChord } from './keymap-table.ts';
-import type { EditorViewCommand, KeyChord } from './types.ts';
+import type { KeyChord } from './keymap-table.ts';
+import type { EditorViewCommand } from './types.ts';
 
 export interface KeyLike {
     key: string;

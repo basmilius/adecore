@@ -10,6 +10,7 @@ import type { EditPlan, EditSource } from './edit-source.ts';
 import { planEnter } from './enter.ts';
 import type { EnterOptions, EnterPlan } from './enter.ts';
 import { applyFoldHints, markFileHeader } from './fold-roles.ts';
+import type { FoldingRange } from './fold-types.ts';
 import { planHippie, type HippieCycle, type HippieOptions } from './hippie.ts';
 import { isPlainText, vueRegionAt } from './languages.ts';
 import { lexicalFolds } from './lexical-folds.ts';
@@ -27,7 +28,7 @@ import { findMatches, findMatchFrom, replacementText, splitsSurrogate } from './
 import type { FindMatch, FindNextOptions, FindOptions } from './search.ts';
 import { planMoveStatement, statementMoveMode } from './statement-move.ts';
 import { dedupeFoldingRanges, deriveFoldingRanges, indentationColumn, scanStructure, tabWidth } from './structure.ts';
-import type { FoldingOptions, FoldingRange, StructureRange } from './structure.ts';
+import type { FoldingOptions, StructureRange } from './structure.ts';
 import { surroundShape, type SurroundShape } from './surround-shape.ts';
 import { placeAt, type TextPlace } from './text-places.ts';
 import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
@@ -39,13 +40,14 @@ import type {
     EditOptions,
     EditorCommand,
     EditorSnapshot,
+    OffsetRange,
     Position,
     Selection,
     TextEdit
 } from './types.ts';
 import { TypingContexts } from './typing-context.ts';
-import type { TypingContext } from './typing-context.ts';
 import { isQuote, replacesComparison, surround, swapQuotes, templateLiteralEdits, templateString } from './typing-handlers.ts';
+import type { TypingContext } from './typing-state.ts';
 import { unwrapTargets, type UnwrapTarget } from './unwrap.ts';
 import { ModifiedStretches, planWhitespaceCleanup, type WhitespaceCleanupOptions } from './whitespace-cleanup.ts';
 import { isHumpBoundary, isWordBoundary } from './words.ts';
@@ -55,11 +57,6 @@ export type { DocumentLine, FindMatch, FindNextOptions, FindOptions, FoldingOpti
 const LINE_ORDERS: Partial<Record<EditorCommand, LineOrder>> = { sortLines: 'sort', reverseLines: 'reverse', uniqueLines: 'unique' };
 /* Where trailing whitespace is part of a string's value, which a cleanup must not change. */
 const STRING_MODES = new Set<TypingContext['mode']>(['quote', 'template', 'heredoc']);
-
-export interface OffsetRange {
-    readonly from: number;
-    readonly to: number;
-}
 
 export interface DocumentEditOptions extends EditOptions {
     /* Positions in the resulting text, committed with the edit and its undo state. */

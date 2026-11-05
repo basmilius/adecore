@@ -1,4 +1,4 @@
-import type { LayoutMetrics, LineGeometry } from './layout.ts';
+import type { LayoutMetrics, LineGeometry } from './line-geometry.ts';
 
 export function uniformGeometry(
     line: { start: number; end: number; text: string; next?: number },

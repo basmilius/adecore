@@ -4,7 +4,8 @@ import type { UiBlock } from './compiler.ts';
 import { copyUiValue, evaluateUiExpression, sameUiValue, type UiValue } from './expression.ts';
 import { uiNodeFallback } from './fallback.ts';
 import { uiVisibleInputs } from './inputs.ts';
-import { evaluateUiBlock, uiInputValues, UiState, type UiViewNode } from './runtime.ts';
+import { type UiViewNode } from './model.ts';
+import { evaluateUiBlock, uiInputValues, UiState } from './runtime.ts';
 
 export function uiValidatedState(
     block: UiBlock,

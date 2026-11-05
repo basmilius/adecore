@@ -1,9 +1,14 @@
-import type { FoldingRange } from './structure.ts';
+import type { FoldingRange } from './fold-types.ts';
 
 /* Offsets are UTF-16 code units from the start of the document. */
 export interface Selection {
     anchor: number;
     head: number;
+}
+
+export interface OffsetRange {
+    readonly from: number;
+    readonly to: number;
 }
 
 /* A replacement of `[from, to)`. A batch of edits is simultaneous, in the coordinates of the document before it. */

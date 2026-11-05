@@ -7,13 +7,13 @@ import {
     type EditorLayout,
     type LayoutRect,
     type LayoutRow,
-    type LineGeometry,
     scanLine,
     subRowBand,
     type SubRowBand,
     type VerticalWindow,
     type TextRow
 } from './layout.ts';
+import { type LineGeometry } from './line-geometry.ts';
 import type { EditorChangeKind, EditorGutterIcon, LineToken } from './types.ts';
 
 const ITALIC = 1;

@@ -1,7 +1,8 @@
 import { expect, test } from 'bun:test';
 import { DocumentModel } from '@adecore/editor-core';
 import { offsetOfStop, rowOfStop, stopAtOffset, stopCount, xOfStop } from './geometry-stops.ts';
-import { EditorLayout, scanLine, scanDenseLine, type LayoutMetrics, type TextRow } from './layout.ts';
+import { EditorLayout, scanLine, scanDenseLine, type TextRow } from './layout.ts';
+import { type LayoutMetrics } from './line-geometry.ts';
 
 function metrics(charWidth: number): LayoutMetrics {
     return { charWidth, lineHeight: 20, tabSize: 4, measureText: (text) => text.length * charWidth, measureInlay: (text) => text.length * charWidth };

@@ -1,4 +1,5 @@
 import { formatBytes, formatNumeral } from '@adecore/ui/format';
+import type { NumberNotation } from '../number-notation.ts';
 import type { Cell, EditValue, ValueKind } from '../protocol/index.ts';
 import { isNumericKind } from '../sql.ts';
 import type { GridColumn } from './types.ts';
@@ -15,9 +16,6 @@ export interface CellView {
     /* Faint text after the value, such as the size of a binary value. */
     readonly suffix?: string;
 }
-
-/* How a numeric cell is drawn: as the server wrote it, or in the notation of the person's region. */
-export type NumberNotation = 'database' | 'region';
 
 /* A cell never draws more than this, however long the text, so the DOM stays small. The cell is one line anyway. */
 export const DISPLAY_LIMIT = 200;

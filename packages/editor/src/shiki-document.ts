@@ -1,5 +1,5 @@
 import type { GrammarState, Highlighter, ShikiTransformer, ThemedToken } from 'shiki';
-import { documentLanguageOf, loadGrammar } from './shiki.ts';
+import { documentLanguageOf, loadGrammar } from './shiki-grammar.ts';
 
 export interface ShikiDocumentTokenOptions {
     readonly reset?: ReadonlySet<number>;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { DocumentModel } from './document.ts';
-import type { FoldHints } from './structure.ts';
+import type { FoldHints } from './fold-types.ts';
 
 function roles(text: string, language: string, hints?: FoldHints) {
     return new DocumentModel(text)

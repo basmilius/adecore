@@ -35,7 +35,7 @@ export { DatabaseProvider, type DatabaseProviderProps } from './DatabaseProvider
 export { useDatabaseClient } from './client-context.ts';
 export { DataGrid, type DataGridProps } from './grid/DataGrid.tsx';
 export type { GridLayout } from './grid/column-layout.ts';
-export type { NumberNotation } from './grid/display.ts';
+export type { NumberNotation } from './number-notation.ts';
 export type { GridSort } from './grid/sort.ts';
 export type { FocusedCell, GridColumn, GridMenuContext, GridRow, GridRowState } from './grid/types.ts';
 export { QueryConsole, type QueryConsoleProps } from './console/QueryConsole.tsx';

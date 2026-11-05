@@ -1,5 +1,6 @@
 export { DocumentModel } from './document.ts';
-export type { DocumentEditOptions, DocumentLine, OffsetRange, ReplaceAllOptions, ReplaceOptions, TypeTextOptions } from './document.ts';
+export type { DocumentEditOptions, DocumentLine, ReplaceAllOptions, ReplaceOptions, TypeTextOptions } from './document.ts';
+export type { OffsetRange } from './types.ts';
 export { scanBrackets, type BracketIndex, type BracketMatch } from './brackets.ts';
 export { findMatches, iterateMatches, findMatchFrom, replacementText, type FindMatch, type FindNextOptions, type FindOptions } from './search.ts';
 export { indentationColumn } from './structure.ts';
@@ -8,7 +9,8 @@ export { findDocComments, MAX_DOC_COMMENTS, type DocComment } from './doc-commen
 export { DEFAULT_TODO_WORDS, findTodos, type TodoMatch, type TodoOptions } from './todo.ts';
 export { detectIndentation, type DetectedIndentation } from './line-order.ts';
 export type { TrailingWhitespace, WhitespaceCleanupOptions } from './whitespace-cleanup.ts';
-export type { FoldHints, FoldRangeHint, FoldRole, FoldSymbolHint, FoldingOptions, FoldingRange } from './structure.ts';
+export type { FoldingOptions } from './structure.ts';
+export type { FoldHints, FoldRangeHint, FoldRole, FoldSymbolHint, FoldingRange } from './fold-types.ts';
 
 export type {
     ChangeSource,

@@ -1,8 +1,9 @@
 import type { UiLimits } from './budget.ts';
 import type { UiBlock } from './compiler.ts';
 import { eachDrawnNode } from './inputs.ts';
+import { type UiViewNode } from './model.ts';
 import { uiValidatedState } from './query.ts';
-import { evaluateUiBlock, type UiViewNode } from './runtime.ts';
+import { evaluateUiBlock } from './runtime.ts';
 
 /* A place the agent named by an address, with the name it gave it, for a host to look up. */
 export interface UiPlaceQuery {

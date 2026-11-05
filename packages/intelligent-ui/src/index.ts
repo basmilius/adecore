@@ -25,22 +25,11 @@ export {
     uiMayReferenceHost,
     type UiCompilerOptions,
     type UiCompileUpdate,
-    type UiBlock,
-    type UiCompileOptions,
-    type UiNode,
-    type UiQuery
+    type UiCompileOptions
 } from './compiler.ts';
-export {
-    evaluateUiBlock,
-    UiState,
-    uiInputValues,
-    resolveUiChoice,
-    uiChoiceLabel,
-    type UiChoiceSelection,
-    type UiBinding,
-    type UiEvaluation,
-    type UiViewNode
-} from './runtime.ts';
+export { type UiBlock, type UiNode, type UiQuery } from './compiler.ts';
+export { evaluateUiBlock, UiState, uiInputValues, resolveUiChoice, uiChoiceLabel, type UiChoiceSelection } from './runtime.ts';
+export { type UiBinding, type UiEvaluation, type UiViewNode } from './model.ts';
 export { uiValidatedState, uiQueryArguments, uiQueryFallback } from './query.ts';
 export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
 export { uiCompactCatalog, uiSessionNote, uiGroupReference, uiReferenceText, uiFallbackText, type UiTextOptions } from './text.ts';

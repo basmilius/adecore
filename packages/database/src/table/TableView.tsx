@@ -23,7 +23,6 @@ import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNoti
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
 import { aggregateBlock, blockSize, type RangeBlock } from '../grid/aggregates.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
-import { RecordView } from '../grid/RecordView.tsx';
 import type { GridSort } from '../grid/sort.ts';
 import type { ColumnRequest, FocusedCell, FocusRequest, GridMenuContext } from '../grid/types.ts';
 import { ValueDock } from '../grid/ValueDock.tsx';
@@ -68,6 +67,7 @@ import {
     type PendingChanges,
     type RowSelectionRefs
 } from './pending.ts';
+import { RecordView } from './RecordView.tsx';
 import { foreignKeyOf, referenceOf, type Reference } from './references.ts';
 import { TableStatusBar } from './TableStatusBar.tsx';
 import { TableToolbar } from './TableToolbar.tsx';

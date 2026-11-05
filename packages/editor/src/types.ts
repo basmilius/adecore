@@ -1,6 +1,5 @@
 import type { EditorCommand, FoldRole, TextPlaceKind, UnwrapKind, WhitespaceCleanupOptions } from '@adecore/editor-core';
-import type { Keymap } from './keymap-table.ts';
-import type { EditorSearchClientOptions } from './search-client.ts';
+import type { KeyChord, Keymap } from './keymap-table.ts';
 
 export type { EditorCommand, FoldRole };
 
@@ -611,6 +610,9 @@ export interface EditorIndentation {
     readonly insertSpaces: boolean;
 }
 
+/* Starts the worker a find runs on, which only has to take and answer messages. */
+export type EditorSearchWorkerFactory = () => Pick<Worker, 'addEventListener' | 'removeEventListener' | 'postMessage' | 'terminate'>;
+
 /* What a find bar asks the editor; the editor's own matcher reads it. */
 export interface EditorFindQuery {
     readonly text: string;
@@ -903,17 +905,6 @@ export interface EditorEngine {
     mount(element: HTMLElement, options: EditorOptions): Editor;
 }
 
-/* A shortcut: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` and `meta` the physical keys. */
-export interface KeyChord {
-    readonly mod: boolean;
-    readonly ctrl: boolean;
-    readonly meta: boolean;
-    readonly alt: boolean;
-    readonly shift: boolean;
-    /* An uppercase letter, a digit, a punctuation mark or a named key such as `ArrowLeft`. */
-    readonly key: string;
-}
-
 /* One stretch of a colored line. The tokens of a line add up to its length. */
 export interface LineToken {
     readonly length: number;
@@ -953,7 +944,7 @@ export type TokenizerSource = (language: string | undefined, theme: EditorTheme,
 
 export interface SmartEditorEngineOptions {
     /* One lazy search worker per mounted editor; regex search is unavailable without it. */
-    readonly searchWorker?: EditorSearchClientOptions['workerFactory'];
+    readonly searchWorker?: EditorSearchWorkerFactory;
     readonly keymap?: Keymap;
     readonly tokenizer: TokenizerSource;
     /* Without it semantic tokens are ignored and the grammar's colors stand. */

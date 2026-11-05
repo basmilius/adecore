@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 
 export interface SelectItem<T extends string> {
     value: T;
@@ -15,6 +15,33 @@ export interface SelectItem<T extends string> {
 export interface SelectGroup<T extends string> {
     label: string;
     items: SelectItem<T>[];
+}
+
+export interface SelectProps<T extends string> {
+    value: T | null;
+    onValueChange(value: T): void;
+    items: SelectItem<T>[] | SelectGroup<T>[];
+
+    /* The accessible name of the trigger; the row above it usually carries the visible one. */
+    label: string;
+
+    /* What the trigger shows while nothing is picked. */
+    placeholder?: string;
+
+    size?: 'sm' | 'md';
+    variant?: 'outlined' | 'ghost';
+    disabled?: boolean;
+    align?: 'start' | 'end';
+    truncateValue?: boolean;
+
+    /* A search field above the options: `true` always, a number once the list has at least that many options. */
+    searchable?: boolean | number;
+
+    /* What the search field says while it is empty, and its accessible name. */
+    searchPlaceholder?: string;
+
+    className?: string;
+    ref?: Ref<HTMLButtonElement>;
 }
 
 export const isGroup = <T extends string>(entry: SelectItem<T> | SelectGroup<T>): entry is SelectGroup<T> => Array.isArray((entry as SelectGroup<T>).items);

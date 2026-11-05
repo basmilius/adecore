@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import type { DatabaseNotice } from '../actions.ts';
 import { assignRef } from '../assign-ref.ts';
 import { useNumberNotation } from '../client-context.ts';
+import { type NumberNotation } from '../number-notation.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import { useDatabaseResources } from '../use-database-resources.ts';
@@ -33,7 +34,7 @@ import { NO_COLUMN_SELECTION, selectColumn, shownSelection, type ColumnSelection
 import { displayOrder, hideColumn, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
 import { COPY_FORMATS, formatCopy, type CopyFormat } from './copy-formats.ts';
 import { CopyAsMenu } from './CopyAsMenu.tsx';
-import { columnNotation, cellView, copyTextOf, isPreview, type CellView, type NumberNotation, type Shown } from './display.ts';
+import { columnNotation, cellView, copyTextOf, isPreview, type CellView, type Shown } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';
 import { GridHeaderCell, type HeaderActions } from './GridHeaderCell.tsx';

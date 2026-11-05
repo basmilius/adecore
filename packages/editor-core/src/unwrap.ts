@@ -1,10 +1,10 @@
-import type { OffsetRange } from './document.ts';
 import type { EditSource } from './edit-source.ts';
 import { isPhp, isScript, isWordCharacter } from './lexical.ts';
 import { whitespaceOf } from './line-text.ts';
 import { enclosingBraces } from './statements.ts';
 import { placeAt } from './text-places.ts';
 import { skipTriviaBack } from './trivia.ts';
+import type { OffsetRange } from './types.ts';
 import type { TextEdit } from './types.ts';
 
 export type UnwrapKind = 'if' | 'else' | 'removeElse' | 'for' | 'while' | 'do' | 'try' | 'removeCatch' | 'removeFinally' | 'braces';

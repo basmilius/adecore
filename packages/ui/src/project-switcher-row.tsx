@@ -1,10 +1,29 @@
 import clsx from 'clsx';
 import { MoreHorizontal } from 'lucide-react';
-import type { MouseEvent } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import * as Menu from './menu/index.parts.ts';
-import type { ProjectSwitcherItem } from './ProjectSwitcher.tsx';
 import { Tooltip } from './Tooltip.tsx';
+
+export interface ProjectSwitcherItem {
+    id: string;
+    name: string;
+    icon?: ReactNode;
+
+    /* The folder or other details, shown in a tooltip so the row stays on one line. */
+    description?: ReactNode;
+
+    /* At the end of the row. */
+    hint?: ReactNode;
+
+    disabled?: boolean;
+
+    /* A person can still pick a stale or disconnected project, to try to open it. */
+    muted?: boolean;
+
+    /* For the submenu beside this project's row. */
+    actions?: ReactNode;
+}
 
 export function ProjectSwitcherRow<Item extends ProjectSwitcherItem>({
     project,

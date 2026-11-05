@@ -1,6 +1,7 @@
 import { describe, expect, test, spyOn } from 'bun:test';
 import { DocumentModel } from '@adecore/editor-core';
-import { EditorLayout, type LayoutConfig, type LayoutMetrics, type TextRow, scanLine, wrapIndent, wrapStops } from './layout.ts';
+import { EditorLayout, type LayoutConfig, type TextRow, scanLine, wrapIndent, wrapStops } from './layout.ts';
+import { type LayoutMetrics } from './line-geometry.ts';
 
 /* Every character is 10px wide, a line 20px tall, so the numbers in an assertion can be read off the text. */
 const METRICS: LayoutMetrics = {

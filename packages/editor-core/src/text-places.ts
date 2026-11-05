@@ -1,7 +1,7 @@
 import { editRegions } from './edit-regions.ts';
 import type { EditSource } from './edit-source.ts';
 import { vueRegionAt } from './languages.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export type TextPlaceKind = 'code' | 'comment' | 'string';
 

@@ -19,7 +19,6 @@ import {
     type BlockWidget,
     EditorLayout,
     type FoldState,
-    type Inlay,
     type LayoutRect,
     type LayoutRow,
     RIGHT_PADDING,
@@ -27,6 +26,7 @@ import {
     subRowBand,
     type VerticalWindow
 } from './layout.ts';
+import { type Inlay } from './line-geometry.ts';
 import { emit, subscribe } from './listeners.ts';
 import { createMetrics, type EditorFont, readEditorFont } from './metrics.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';

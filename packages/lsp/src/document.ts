@@ -1,4 +1,4 @@
-import { ErrorCodes, LspError, StaleResultError } from './connection.ts';
+import { ErrorCodes, LspError, StaleResultError, type JsonRpcConnection } from './connection.ts';
 import { minimalChange } from './edits.ts';
 import type {
     CallHierarchyIncomingCall,
@@ -36,21 +36,33 @@ import type {
     Position,
     PrepareRenameResult,
     Range,
+    RequestOptions,
     SelectionRange,
     SemanticTokens,
     SemanticTokensDelta,
     SignatureHelp,
     SignatureHelpContext,
     TextDocumentSaveReason,
+    TextDocumentSyncOptions,
     TextEdit,
     TypeHierarchyItem,
     WorkspaceEdit
 } from './protocol.ts';
-import type { LspSession } from './session.ts';
 import { TextMirror } from './text-mirror.ts';
 
 /* The delay of the VS Code language client for servers with full sync. */
 const FULL_SYNC_DELAY_MS = 200;
+
+/* What a document asks of the session it is open in. */
+export interface DocumentSession {
+    readonly connection: JsonRpcConnection;
+    readonly options: { readonly fullSyncDelayMs?: number };
+    readonly syncOptions: TextDocumentSyncOptions;
+    supports(method: string, document?: Pick<DocumentItem, 'uri' | 'languageId'>): boolean;
+    request<T = unknown>(method: string, params?: unknown, options?: RequestOptions): Promise<T>;
+    notify(method: string, params?: unknown): Promise<void>;
+    forgetDocument(document: LspDocument): void;
+}
 
 /*
  * One open text document in one session. It owns the version, which every change raises by one. It
@@ -58,7 +70,7 @@ const FULL_SYNC_DELAY_MS = 200;
  * reaches the caller.
  */
 export class LspDocument {
-    readonly session: LspSession;
+    readonly session: DocumentSession;
     readonly uri: string;
     readonly languageId: string;
     readonly ready: Promise<void>;
@@ -72,7 +84,7 @@ export class LspDocument {
     private readonly latest = new Map<string, AbortController>();
     private readonly resultVersions = new WeakMap<object, number>();
 
-    constructor(session: LspSession, item: DocumentItem) {
+    constructor(session: DocumentSession, item: DocumentItem) {
         // A uri that does not parse is the caller's bug, and fails here instead of inside a server.
         new URL(item.uri);
         this.session = session;

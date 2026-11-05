@@ -6,7 +6,7 @@ import { isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { markupGuard } from './markup-regions.ts';
 import { mapOffset } from './offsets.ts';
 import type { Selection, TextEdit } from './types.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export interface LineCommandOptions {
     language: string;

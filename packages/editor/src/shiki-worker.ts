@@ -1,6 +1,6 @@
 import type { Highlighter, ThemeRegistration, ThemedToken } from 'shiki';
 import { shikiDocumentTokens } from './shiki-document.ts';
-import { documentLanguageOf } from './shiki.ts';
+import { documentLanguageOf } from './shiki-grammar.ts';
 import type { LineToken } from './types.ts';
 
 export interface DiffSyntaxDocument {

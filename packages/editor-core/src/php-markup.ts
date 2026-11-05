@@ -1,4 +1,4 @@
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 const TAG = /<(\/?)([a-z][\w:-]*)(?=[\s/>]|$)/iy;
 const PHP = /<\?(?:php\b|=)/y;

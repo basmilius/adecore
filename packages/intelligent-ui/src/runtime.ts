@@ -1,37 +1,14 @@
 import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import { UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
-import { type UiBlock, type UiNode } from './compiler.ts';
+import type { UiBlock, UiNode } from './compiler.ts';
 import { unreadableEventTime } from './event-warning.ts';
 import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { uiCompiledNodes, uiVisibleInputs } from './inputs.ts';
-import { uiDiagnostic, type UiDiagnostic } from './syntax.ts';
+import type { UiBinding, UiEvaluation, UiViewNode } from './model.ts';
+import { uiDiagnostic } from './syntax.ts';
 
-export interface UiBinding<Value> {
-    value: Value;
-    onValueChange(value: Value): void;
-}
-
-export interface UiViewNode<Props = Record<string, unknown>> {
-    id: string;
-    sourceId?: string;
-    type: string;
-    props: Props;
-    bindings: Readonly<Record<string, UiBinding<unknown>>>;
-    children: UiViewNode[];
-    complete: boolean;
-    fallback: string;
-    error?: string;
-    // How many children a container left out because it holds at most so many of its kind; absent when it left none out.
-    omitted?: number;
-    // Runs the node's state action; present only on a component that has one.
-    onAction?(): void;
-}
-
-export interface UiEvaluation {
-    nodes: UiViewNode[];
-    diagnostics: UiDiagnostic[];
-}
+export type { UiBinding, UiEvaluation, UiViewNode } from './model.ts';
 
 export class UiState {
     private id = '';

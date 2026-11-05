@@ -1,7 +1,7 @@
+import type { FoldHints, FoldRangeHint, FoldRole, FoldingRange } from './fold-types.ts';
 import { isImportLine, rangeOf } from './lexical-folds.ts';
 import { isBlank, textStart } from './line-text.ts';
 import type { DocumentLine } from './rope.ts';
-import type { FoldHints, FoldRangeHint, FoldRole, FoldingRange } from './structure.ts';
 
 const SCRIPT_LANGUAGES = /^(typescript|javascript|typescriptreact|javascriptreact|tsx|jsx|ts|js|mjs|cjs|mts|cts)$/i;
 /* How far back from a bracket the text before it is read. */

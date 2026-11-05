@@ -3,7 +3,7 @@ import { isPhp, isScript, isWordCharacter } from './lexical.ts';
 import { atStatementStart } from './surround-shape.ts';
 import { placeAt } from './text-places.ts';
 import { skipTriviaBack } from './trivia.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export interface PostfixOperand {
     /* The expression is `[from, dot)`, trailing whitespace left out. */

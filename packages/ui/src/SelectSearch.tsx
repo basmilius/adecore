@@ -7,8 +7,7 @@ import { Icon } from './Icon.tsx';
 import { MENU_LABEL } from './menu/parts.tsx';
 import { renderPositioner } from './popup-layer.ts';
 import { RowContent } from './select-row.tsx';
-import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem } from './select-shared.ts';
-import type { SelectProps } from './Select.tsx';
+import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem, type SelectProps } from './select-shared.ts';
 import { useOverlayScrollbars } from './useOverlayScrollbars.tsx';
 
 /* The `Select` with a search field on top of its options, for lists too long to scan. A combobox of Base UI brings the filtering and the keyboard. */
