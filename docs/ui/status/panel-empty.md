@@ -17,6 +17,8 @@ By default it grows into the rest of a flex column (`fill="grow"`). In a card wi
 | `children` | `ReactNode` | | Required. |
 | `header` | `ReactNode` | | |
 | `icon` | `LucideIcon` | | |
+| `scene` | `ReactNode` | | A drawing in place of the icon, usually a compact [`EmptyScene`](/ui/status/empty-scene). |
+| `title` | `ReactNode` | | |
 | `busy` | `boolean` | `false` | A `Spinner` in place of the icon. |
 | `action` | `ReactNode` | | |
 | `sunken` | `boolean` | `false` | |

@@ -11,6 +11,9 @@ export interface EmptyStateProps {
     /* A Lucide icon, or a mark of another kind that takes a `size`. */
     icon?: LucideIcon | ReactElement<{ size?: number }>;
 
+    /* A drawing in place of the icon, usually an `EmptyScene`, for a place a person may not know yet. */
+    scene?: ReactNode;
+
     /* A `Spinner` in place of the icon. */
     busy?: boolean;
 
@@ -27,10 +30,11 @@ export interface EmptyStateProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-export function EmptyState({ icon, busy = false, title, children, action, className, ref }: EmptyStateProps) {
+export function EmptyState({ icon, scene, busy = false, title, children, action, className, ref }: EmptyStateProps) {
     return (
         <div ref={ref} className={clsx('flex flex-col items-center justify-center gap-2 px-6 py-8 text-center', className)}>
-            {(busy || icon) && (
+            {scene && !busy && <div className="mb-2">{scene}</div>}
+            {(busy || (icon && !scene)) && (
                 <span className="text-text-faint">
                     {busy ? (
                         <Spinner size={ICON_SIZE} />
@@ -41,7 +45,7 @@ export function EmptyState({ icon, busy = false, title, children, action, classN
                     )}
                 </span>
             )}
-            {title && <p className="text-sm font-medium text-text">{title}</p>}
+            {title && <p className={clsx('text-text', scene ? 'text-base font-semibold' : 'text-sm font-medium')}>{title}</p>}
             <p className="max-w-[280px] text-xs leading-snug text-text-muted">{children}</p>
             {/* The button is an answer to the sentence, not a third line of it. */}
             {action && <div className="mt-2">{action}</div>}

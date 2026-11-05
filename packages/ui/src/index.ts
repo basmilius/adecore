@@ -48,6 +48,7 @@ export { ColorWheelPicker, type ColorWheelPickerProps } from './ColorWheelPicker
 export { ColumnResizeHandle, type ColumnResizeHandleProps } from './ColumnResizeHandle.tsx';
 export { DisabledReason, type DisabledReasonProps } from './DisabledReason.tsx';
 export { DockShell, type DockShellProps } from './DockShell.tsx';
+export { EmptyScene, type EmptySceneProps } from './EmptyScene.tsx';
 export { EmptyState, type EmptyStateProps } from './EmptyState.tsx';
 export { ErrorBoundary, type ErrorBoundaryProps } from './ErrorBoundary.tsx';
 export { Field, FieldHint, FormError, type FieldHintProps, type FieldProps, type FormErrorProps } from './Field.tsx';

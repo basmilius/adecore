@@ -9,6 +9,11 @@ export interface PanelEmptyProps {
 
     icon?: LucideIcon;
 
+    /* A drawing in place of the icon, usually a compact `EmptyScene`. */
+    scene?: ReactNode;
+
+    title?: ReactNode;
+
     /* A `Spinner` in place of the icon. */
     busy?: boolean;
 
@@ -25,11 +30,11 @@ export interface PanelEmptyProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-export function PanelEmpty({ header, icon, busy = false, action, sunken = false, fill = 'grow', children, className, ref }: PanelEmptyProps) {
+export function PanelEmpty({ header, icon, scene, title, busy = false, action, sunken = false, fill = 'grow', children, className, ref }: PanelEmptyProps) {
     return (
         <div ref={ref} className={clsx('grid min-h-0 place-items-center', fill === 'full' ? 'h-full' : 'grow', sunken && 'bg-surface-sunken', className)}>
             {header}
-            <EmptyState icon={icon} busy={busy} action={action}>
+            <EmptyState icon={icon} scene={scene} title={title} busy={busy} action={action}>
                 {children}
             </EmptyState>
         </div>
