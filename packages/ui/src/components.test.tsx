@@ -8,7 +8,7 @@ import { ButtonGroup } from './ButtonGroup.tsx';
 import { ColorSwatch } from './ColorSwatch.tsx';
 import { EmptyState } from './EmptyState.tsx';
 import { Field, FormError } from './Field.tsx';
-import { formatLocale, setFormatSource, type FormatSource } from './format/locale.ts';
+import { setFormatSource, type FormatSource } from './format/locale.ts';
 import { IconButton } from './IconButton.tsx';
 import { Input, TextArea } from './Input.tsx';
 import { Kbd } from './Kbd.tsx';
@@ -464,9 +464,10 @@ describe('tabs', () => {
     const strip = (count: number): string => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
+        setFormatSource(source);
 
         return renderToStaticMarkup(
-            <UIProvider i18n={i18n} formatSource={source}>
+            <UIProvider i18n={i18n}>
                 <Tabs.Root value="links">
                     <Tabs.List aria-label="Views">
                         <Tabs.Tab value="preview">Preview</Tabs.Tab>
@@ -546,12 +547,9 @@ describe('a stepper', () => {
     const renderStepper = (node: ReactNode): string => {
         const source = fakeFormatSource();
         source.set({ region: 'nl-NL' });
+        setFormatSource(source);
 
-        return renderToStaticMarkup(
-            <UIProvider i18n={i18n} formatSource={source}>
-                {node}
-            </UIProvider>
-        );
+        return renderToStaticMarkup(<UIProvider i18n={i18n}>{node}</UIProvider>);
     };
 
     test('writes its value with the places of its step, the way the region does', () => {
@@ -584,26 +582,6 @@ describe('the provider', () => {
 
         expect(fresh.hasResourceBundle('en', 'ui')).toBe(true);
         expect(markup).toContain('aria-label="Rand: kleiner"');
-    });
-
-    test('hands the formatters their source before the children format anything', () => {
-        const source = fakeFormatSource();
-        source.set({ region: 'nl-NL' });
-        let seen = '';
-
-        const Probe = () => {
-            seen = formatLocale();
-
-            return null;
-        };
-
-        renderToStaticMarkup(
-            <UIProvider i18n={i18n} formatSource={source}>
-                <Probe />
-            </UIProvider>
-        );
-
-        expect(seen).toBe('nl-NL');
     });
 });
 

@@ -8,7 +8,7 @@
 bun add @adecore/charts @adecore/ui i18next react-i18next
 ```
 
-`d3-scale` and `d3-shape` come with the package. Set up [`@adecore/ui`](/ui/guide/getting-started) first. The charts draw on its theme and write their numbers and dates with its formatters, so they follow the format source `UIProvider` hands over.
+`d3-scale` and `d3-shape` come with the package. Set up [`@adecore/ui`](/ui/guide/getting-started) first. The charts draw on its theme and write their numbers and dates with its formatters, so they follow the format source the app hands over with `setFormatSource`.
 
 ## Load the styles
 

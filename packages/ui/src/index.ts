@@ -105,7 +105,7 @@ export { LazyBoundary } from './LazyBoundary.tsx';
 export type { LazyBoundaryProps } from './LazyBoundary.tsx';
 export { UI_NAMESPACE, UI_RESOURCES } from './locales.ts';
 export { matchScore } from './match.ts';
-export { isApplePlatform } from './platform.ts';
+export { isApplePlatform, setApplePlatform, type ApplePlatformSource } from './platform.ts';
 export { prefetcher, type Loader, type WhenIdle } from './prefetch.ts';
 export { tintStyle } from './tint.ts';
 export { selectAllWithin, selectionWithin } from './selection.ts';

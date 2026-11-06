@@ -32,7 +32,7 @@ test('a count is grouped the way the region groups one', () => {
 });
 ```
 
-`set({ language?, region? })` changes either setting. It notifies no subscriber, so a drawn component keeps its text until it renders again. `setFormatSource` returns the source it replaced. To draw a component with the fake, pass it to `UIProvider` as `formatSource`.
+`set({ language?, region? })` changes either setting. It notifies no subscriber, so a drawn component keeps its text until it renders again. `setFormatSource` returns the source it replaced, and it is the only way the formatters get theirs: a component draws with the fake once you have handed it over.
 
 `FakeFormatSource` is an exported type, a `FormatSource` with `set`.
 
@@ -79,7 +79,7 @@ const i18n = i18next.createInstance();
 await i18n.init({ lng: 'en', resources: {} });
 
 const markup = renderToStaticMarkup(
-    <UIProvider i18n={i18n} formatSource={fakeFormatSource()}>
+    <UIProvider i18n={i18n}>
         <Stepper label="Size" value={3} onValueChange={() => {}} min={1} max={5} step={1} />
     </UIProvider>
 );

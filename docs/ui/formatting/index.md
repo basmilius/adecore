@@ -14,7 +14,7 @@ Two separate settings shape a value. The language writes the words: the month, t
 
 ## The source
 
-The formatters read both settings through a `FormatSource` your app hands over once, before the first render. Pass it to `UIProvider` as `formatSource`, or call `setFormatSource` yourself.
+The formatters read both settings through a `FormatSource` your app hands over once, before the first render. Call `setFormatSource` with it; `UIProvider` takes no source, since the formatters also run outside React.
 
 ```ts
 interface FormatSource {
