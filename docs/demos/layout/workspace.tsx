@@ -22,7 +22,7 @@ function initialLayout(): SplitLayout {
 
     const second = updateSplitLayout(first, {
         type: 'split',
-        paneId: 'documents',
+        targetId: 'documents',
         side: 'right',
         newPane: { type: 'pane', id: 'preview', views: ['Preview'], active: 'Preview' },
         splitId: 'columns'
@@ -30,7 +30,7 @@ function initialLayout(): SplitLayout {
 
     return updateSplitLayout(second, {
         type: 'split',
-        paneId: 'preview',
+        targetId: 'preview',
         side: 'bottom',
         newPane: { type: 'pane', id: 'output', views: ['Output'], active: 'Output' },
         splitId: 'rows'
@@ -64,7 +64,7 @@ export default function WorkspaceDemo() {
         setValue((current) =>
             updateSplitLayout(current, {
                 type: 'split',
-                paneId: current.focused,
+                targetId: current.focused,
                 side,
                 newPane: { type: 'pane', id: `draft-${serial}`, views: [name], active: name },
                 splitId: `split-${serial}`

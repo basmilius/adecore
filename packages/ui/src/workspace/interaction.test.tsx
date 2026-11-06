@@ -178,7 +178,7 @@ describe.skipIf(typeof document === 'undefined')('workspace interaction', () => 
             ['a', 'b', 'row'],
             ['b', 'c', 'nested']
         ] as const) {
-            initial = updateSplitLayout(initial, { type: 'split', paneId: source, side, splitId, newPane: { type: 'pane', id, views: [id], active: id } });
+            initial = updateSplitLayout(initial, { type: 'split', targetId: source, side, splitId, newPane: { type: 'pane', id, views: [id], active: id } });
         }
 
         await mount(<Harness initial={initial} />);
@@ -218,7 +218,7 @@ describe.skipIf(typeof document === 'undefined')('workspace interaction', () => 
         ] as const) {
             initial = updateSplitLayout(initial, {
                 type: 'split',
-                paneId: source,
+                targetId: source,
                 side: direction,
                 splitId,
                 newPane: { type: 'pane', id, views: [id], active: id }

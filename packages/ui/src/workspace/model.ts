@@ -31,7 +31,8 @@ export type SplitCommand =
     | { type: 'close'; viewId: string }
     | { type: 'closePane'; paneId: string }
     | { type: 'insert'; paneId: string; viewId: string; index?: number }
-    | { type: 'split'; paneId: string; side: SplitSide; newPane: SplitPane; splitId: string }
+    | { type: 'replace'; viewId: string; replacement: string }
+    | { type: 'split'; targetId: string; side: SplitSide; newPane: SplitPane; splitId: string }
     | { type: 'move'; sourceId: string; targetId: string; viewId?: string; side?: SplitSide; index?: number; newPaneId?: string; splitId?: string }
     | { type: 'swap'; sourceId: string; targetId: string; viewId?: string }
     | { type: 'resize'; splitId: string; sizes: number[] }
@@ -131,7 +132,24 @@ function replace(node: SplitNode, id: string, transform: (node: SplitNode) => Sp
         return children[0] ?? null;
     }
 
-    return { ...node, children, sizes: shares(sizes, children.length) };
+    return { ...node, children, sizes: children.length === node.children.length ? sizes : shares(sizes, children.length) };
+}
+
+/* The pane that stands nearest once `id` is gone: the sibling after it, else the one before it. */
+function neighborOf(node: SplitNode, id: string): SplitPane | undefined {
+    if (node.type === 'pane') {
+        return undefined;
+    }
+
+    const index = node.children.findIndex((child) => child.id === id);
+
+    if (index === -1) {
+        return node.children.map((child) => neighborOf(child, id)).find((pane) => pane !== undefined);
+    }
+
+    const sibling = node.children[index + 1] ?? node.children[index - 1];
+
+    return sibling && splitPanes(sibling)[0];
 }
 
 function finish(layout: SplitLayout, root: SplitNode | null, focus = layout.focused): SplitLayout {
@@ -156,7 +174,14 @@ function without(pane: SplitPane, views: string[]): SplitPane {
     };
 }
 
-function beside(target: SplitPane, pane: SplitPane, side: SplitSide, id: string): SplitBranch {
+/* A closed pane hands the focus to its neighbor, so a person stays where they were working. */
+function withoutPane(layout: SplitLayout, paneId: string): SplitLayout {
+    const root = replace(layout.root, paneId, () => null);
+
+    return finish(layout, root, layout.focused === paneId ? neighborOf(layout.root, paneId)?.id : layout.focused);
+}
+
+function beside(target: SplitNode, pane: SplitPane, side: SplitSide, id: string): SplitBranch {
     return {
         type: 'split',
         id,
@@ -207,8 +232,10 @@ function equalizeAxis(root: SplitNode, axis: SplitAxis, length: number, gap: num
 
 type CommandOf<Type extends SplitCommand['type']> = Extract<SplitCommand, { type: Type }>;
 
-function addPane(layout: SplitLayout, panes: SplitPane[], pane: SplitPane | undefined, command: CommandOf<'split'>): SplitLayout {
-    if (!pane || findSplitNode(layout.root, command.newPane.id) || findSplitNode(layout.root, command.splitId) || command.newPane.id === command.splitId) {
+function addPane(layout: SplitLayout, panes: SplitPane[], command: CommandOf<'split'>): SplitLayout {
+    const target = findSplitNode(layout.root, command.targetId);
+
+    if (!target || findSplitNode(layout.root, command.newPane.id) || findSplitNode(layout.root, command.splitId) || command.newPane.id === command.splitId) {
         return layout;
     }
 
@@ -225,7 +252,7 @@ function addPane(layout: SplitLayout, panes: SplitPane[], pane: SplitPane | unde
 
     return finish(
         { ...layout, maximized: null },
-        replace(layout.root, pane.id, () => beside(pane, added, command.side, command.splitId)),
+        replace(layout.root, target.id, () => beside(target, added, command.side, command.splitId)),
         added.id
     );
 }
@@ -283,9 +310,9 @@ function swapPanes(layout: SplitLayout, panes: SplitPane[], command: CommandOf<'
 
 function moveViews(layout: SplitLayout, panes: SplitPane[], command: CommandOf<'move'>): SplitLayout {
     const source = panes.find((item) => item.id === command.sourceId);
-    const target = panes.find((item) => item.id === command.targetId);
+    const target = findSplitNode(layout.root, command.targetId);
 
-    if (!source || !target || (command.viewId !== undefined && !source.views.includes(command.viewId))) {
+    if (!source || !target || (command.viewId !== undefined && !source.views.includes(command.viewId)) || (target.type === 'split' && !command.side)) {
         return layout;
     }
 
@@ -320,13 +347,20 @@ function moveViews(layout: SplitLayout, panes: SplitPane[], command: CommandOf<'
         return layout;
     }
 
-    const next = replace(root, target.id, (node) => {
-        if (node.type !== 'pane') {
-            return node;
-        }
+    // A branch left with one child collapsed, and that child is what the drop now lands beside.
+    const anchor = findSplitNode(root, target.id) ?? (target.type === 'split' ? target.children.find((child) => child.id !== source.id) : undefined);
 
+    if (!anchor) {
+        return layout;
+    }
+
+    const next = replace(root, anchor.id, (node) => {
         if (added && command.side && command.splitId) {
             return beside(node, added, command.side, command.splitId);
+        }
+
+        if (node.type !== 'pane' || target.type !== 'pane') {
+            return node;
         }
 
         const gap = Math.max(0, Math.min(target.views.length, command.index ?? target.views.length));
@@ -400,18 +434,32 @@ export function updateSplitLayout(layout: SplitLayout, command: SplitCommand): S
 
             const next = without(source, [command.viewId]);
 
+            if (!next.views.length && panes.length > 1) {
+                return withoutPane(layout, source.id);
+            }
+
             return finish(
                 layout,
-                replace(layout.root, source.id, () => (next.views.length || panes.length === 1 ? next : null))
+                replace(layout.root, source.id, () => next)
             );
         }
         case 'closePane':
-            return pane
-                ? finish(
-                      layout,
-                      replace(layout.root, pane.id, () => null)
-                  )
-                : layout;
+            return pane ? withoutPane(layout, pane.id) : layout;
+        case 'replace': {
+            const source = panes.find((item) => item.views.includes(command.viewId));
+
+            if (!source || panes.some((item) => item.views.includes(command.replacement))) {
+                return layout;
+            }
+
+            const views = source.views.map((view) => (view === command.viewId ? command.replacement : view));
+            const active = source.active === command.viewId ? command.replacement : source.active;
+
+            return finish(
+                layout,
+                replace(layout.root, source.id, () => ({ ...source, views, active }))
+            );
+        }
         case 'insert': {
             if (!pane) {
                 return layout;
@@ -433,7 +481,7 @@ export function updateSplitLayout(layout: SplitLayout, command: SplitCommand): S
             );
         }
         case 'split':
-            return addPane(layout, panes, pane, command);
+            return addPane(layout, panes, command);
         case 'swap':
             return swapPanes(layout, panes, command);
         case 'move':
