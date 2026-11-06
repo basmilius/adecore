@@ -5,8 +5,7 @@ import { resolveKeymap } from '@adecore/editor/keymap';
 import type { Diagnostic } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf } from './testing.ts';
 
 const uri = 'file:///work/src/a.ts';
 const at = (line: number, character: number) => ({ line, character });

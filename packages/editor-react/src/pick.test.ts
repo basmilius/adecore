@@ -5,8 +5,7 @@ import { EditorLanguage } from './editor-language.ts';
 import type { PickSpec } from './pick.ts';
 import type { PickPreview } from './popups.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const anchor = { line: 1, character: 2 };

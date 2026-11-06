@@ -4,8 +4,7 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import type { SignatureInformation } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 

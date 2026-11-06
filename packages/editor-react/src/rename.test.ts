@@ -4,8 +4,7 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification, LanguageHost, RenameSuggestionsRequest } from './host-types.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService } from './testing.ts';
+import { FakeLanguageService, keyOf, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const otherUri = 'file:///work/app/src/b.ts';

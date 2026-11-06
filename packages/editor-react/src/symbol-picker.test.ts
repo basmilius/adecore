@@ -5,8 +5,7 @@ import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification } from './host-types.ts';
 import type { Place } from './navigation-history.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const bus = 'file:///work/app/src/bus.ts';

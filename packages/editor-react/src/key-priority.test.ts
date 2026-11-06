@@ -4,8 +4,7 @@ import { FakeEditorEngine, type FakeEditor } from '@adecore/editor/fake';
 import { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY, KeyDispatcher } from './key-priority.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf } from './testing.ts';
 import type { Timers } from './timers.ts';
 
 const uri = 'file:///work/src/a.ts';

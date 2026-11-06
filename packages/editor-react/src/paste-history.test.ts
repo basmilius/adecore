@@ -4,8 +4,7 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { ClipboardHistory } from './clipboard-history.ts';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf } from './testing.ts';
 
 const uri = 'file:///work/a.txt';
 

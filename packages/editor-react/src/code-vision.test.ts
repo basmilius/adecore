@@ -4,8 +4,7 @@ import { type FakeEditor, FakeEditorEngine } from '@adecore/editor/fake';
 import type { BlameSource } from './code-vision.ts';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers, type LanguageCall } from './testing.ts';
+import { FakeLanguageService, ManualTimers, settle, type LanguageCall } from './testing.ts';
 
 const uri = 'file:///work/src/a.ts';
 const at = (line: number, character = 0) => ({ line, character });

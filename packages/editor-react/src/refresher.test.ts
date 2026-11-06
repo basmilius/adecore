@@ -5,8 +5,7 @@ import { ErrorCodes, LspError, StaleResultError } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { Refresher } from './refresher.ts';
-import { settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, settle } from './testing.ts';
 
 const uri = 'file:///work/src/a.ts';
 
