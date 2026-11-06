@@ -1,6 +1,7 @@
 import { createContext, useContext } from 'react';
 import type { BandLayout } from './band.ts';
 import type { AxisWidths } from './group-axes.ts';
+import type { ChartPlane } from './plane.ts';
 import type { ContinuousXScale, Stacked, YAxisScale } from './scale.ts';
 import type { BandEntry, ChartStore, MarkerEntry, SeriesEntry } from './store.ts';
 import type { ChartNote, ChartRect, ChartX, ChartXScale } from './types.ts';
@@ -29,6 +30,8 @@ export interface ChartContextValue {
      * `x`, so `centerOf` and `bucketAt` measure down and `pixelOfY` across.
      */
     readonly horizontal: boolean;
+    /* What the orientation changes for the parts that draw lines, labels and annotations; `horizontal` stays for the ones that lay out bars and axes. */
+    readonly plane: ChartPlane;
     /* The room right of the plot of a horizontal chart that its value labels take. */
     readonly valueRoom: number;
     readonly height: number;

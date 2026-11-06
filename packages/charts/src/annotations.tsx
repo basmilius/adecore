@@ -5,6 +5,7 @@ import { xOf } from './access.ts';
 import { colorOf } from './color.ts';
 import { useChartContext } from './context.ts';
 import { keyIndexOf } from './cursor.ts';
+import { crisp } from './plane.ts';
 import { useRegistration } from './register.ts';
 import type { ChartColor, ChartXInput } from './types.ts';
 
@@ -44,11 +45,6 @@ export interface ChartRuleProps {
 
 const MIN_BAND = 4;
 
-/* Room a label needs above its line before it moves under it instead. */
-const RULE_LABEL = 18;
-/* Between the line and the label it carries, above it or below it. */
-const RULE_GAP = 7;
-
 /*
  * A line at a value across the plot, such as a reference to compare against, drawn above the series: horizontal over
  * columns, vertical through the rows of a horizontal chart.
@@ -64,41 +60,17 @@ export function ChartRule({ value, label, tone = 'muted', dashed = false, classN
         return null;
     }
 
-    if (chart.horizontal) {
-        const left = Math.round(pixel) + 0.5;
-        // Above the plot, on the side of the line that has the room, so it never covers the bars of the first row.
-        const toward = pixel > (chart.plot.left + chart.plot.right) / 2 ? 'end' : 'start';
-
-        return createPortal(
-            <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color: colorOf(tone)! }} aria-hidden>
-                <line x1={left} x2={left} y1={chart.plot.top} y2={chart.plot.bottom} stroke="currentColor" strokeDasharray={dashed ? '4 4' : undefined} />
-                <text
-                    x={Math.round(pixel) + (toward === 'end' ? 4 : -4)}
-                    y={chart.plot.top - RULE_GAP}
-                    textAnchor={toward}
-                    strokeWidth={4}
-                    paintOrder="stroke"
-                    className="fill-text text-xs font-medium tabular-nums"
-                    style={{ stroke: chart.halo }}
-                >
-                    {`${label} · ${chart.formatY(value)}`}
-                </text>
-            </g>,
-            target
-        );
-    }
-
-    const top = Math.round(pixel) + 0.5;
-    const below = top - RULE_LABEL < 0;
+    const line = chart.plane.valueLine(chart.plot, crisp(pixel));
+    const written = chart.plane.ruleLabel(chart.plot, pixel);
 
     return createPortal(
         <g ref={ref} className={clsx('pointer-events-none', className)} style={{ color: colorOf(tone)! }} aria-hidden>
-            <line x1={chart.plot.left} x2={chart.plot.right} y1={top} y2={top} stroke="currentColor" strokeDasharray={dashed ? '4 4' : undefined} />
+            <line x1={line.x1} x2={line.x2} y1={line.y1} y2={line.y2} stroke="currentColor" strokeDasharray={dashed ? '4 4' : undefined} />
             <text
-                x={Math.round(chart.plot.right)}
-                y={Math.round(pixel) + (below ? RULE_GAP : -RULE_GAP)}
-                dy={below ? '0.8em' : undefined}
-                textAnchor="end"
+                x={written.x}
+                y={written.y}
+                dy={written.dy}
+                textAnchor={written.anchor}
                 strokeWidth={4}
                 paintOrder="stroke"
                 className="fill-text text-xs font-medium tabular-nums"
@@ -121,7 +93,7 @@ export function ChartMarker({ at, label, detail, tone = 'muted', className, ref 
     const pixel = chart.pixelOfX(x);
 
     // A moment outside the axis, such as a deploy before the first bucket, has no place on the plot.
-    if (chart.horizontal || pixel === null || pixel < chart.plot.left || pixel > chart.plot.right) {
+    if (!chart.plane.draws('marker') || pixel === null || pixel < chart.plot.left || pixel > chart.plot.right) {
         return null;
     }
 
@@ -161,7 +133,7 @@ export function ChartBand({ from, to, label, detail, tone = 'muted', className, 
         }
     }
 
-    if (chart.horizontal || left === null || right === null || right <= left) {
+    if (!chart.plane.draws('band') || left === null || right === null || right <= left) {
         return null;
     }
 

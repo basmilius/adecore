@@ -3,7 +3,8 @@ import clsx from 'clsx';
 import { useEffect, useId, useRef, useState, useSyncExternalStore, type ReactNode, type Ref } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { useChartContext } from './context.ts';
+import { useChartContext, type ChartContextValue } from './context.ts';
+import { crisp } from './plane.ts';
 import { useBeforePaint } from './register.ts';
 import { decimalsOf, tickCount } from './scale.ts';
 import { formatTime, timeLabelOf } from './time-format.ts';
@@ -103,9 +104,6 @@ const textWidth = (node: SVGTextElement): number =>
 
 const widestIn = (group: SVGGElement | null): number => Math.max(0, ...[...(group?.querySelectorAll('text') ?? [])].map(textWidth));
 
-/* A line sits on the middle of a pixel, so one pixel wide stays one pixel wide. */
-const crisp = (pixel: number): number => Math.round(pixel) + 0.5;
-
 /*
  * The labels, from left to right, with every one left out that comes nearer to the one before it than `spacing`.
  * A label on an end of the axis wins over its neighbor, so both ends stay named.
@@ -129,94 +127,53 @@ const apart = <Label extends { readonly x: number; readonly end?: boolean }>(lab
 /* Gridlines on the ticks, a heavier one on the ground. */
 export function ChartGrid({ axis = 'y', dashed = false, lines = 'all', className, ref }: ChartGridProps) {
     const chart = useChartContext('Chart.Grid');
-    const { plot, y, continuous, band } = chart;
+    const { plot, y, plane } = chart;
     const ground = y.domain[0] <= 0 && y.domain[1] >= 0 ? 0 : y.domain[0];
-
-    if (chart.horizontal) {
-        // The values run across, so the lines on their ticks stand upright and the lines between rows lie down.
-        const ticks = lines === 'ground' ? [ground] : axis === 'x' ? [] : y.ticks;
-        const rows = lines === 'ground' || axis === 'y' ? [] : chart.xs.map((_, index) => chart.centerOf(index));
-
-        return (
-            <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
-                {ticks.map((tick) => {
-                    const pixel = y.at(tick);
-
-                    return pixel === null ? null : (
-                        <line
-                            key={tick}
-                            x1={crisp(pixel)}
-                            x2={crisp(pixel)}
-                            y1={plot.top}
-                            y2={plot.bottom}
-                            strokeDasharray={dashed && tick !== ground ? DASH : undefined}
-                            className={dashed ? 'stroke-border' : tick === ground ? 'stroke-border-strong' : 'stroke-border-soft'}
-                        />
-                    );
-                })}
-                {rows.map((pixel) => (
-                    <line
-                        key={pixel}
-                        x1={plot.left}
-                        x2={plot.right}
-                        y1={crisp(pixel)}
-                        y2={crisp(pixel)}
-                        strokeDasharray={dashed ? DASH : undefined}
-                        className={dashed ? 'stroke-border' : 'stroke-border-soft'}
-                    />
-                ))}
-            </g>
-        );
-    }
-
-    if (lines === 'ground') {
-        const pixel = y.at(ground);
-
-        return pixel === null ? null : (
-            <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
-                <line x1={plot.left} x2={plot.right} y1={crisp(pixel)} y2={crisp(pixel)} className={dashed ? 'stroke-border' : 'stroke-border-strong'} />
-            </g>
-        );
-    }
-
-    const columns =
-        continuous !== null
-            ? continuous.ticks(tickCount(plot.width, X_TICK_SPACING)).map((tick) => continuous.at(tick))
-            : chart.xs.map((_, index) => chart.centerOf(index));
+    const ticks = lines === 'ground' ? [ground] : axis === 'x' ? [] : y.ticks;
+    const between = lines === 'ground' || axis === 'y' ? [] : betweenOf(chart);
 
     return (
         <g ref={ref} className={clsx('pointer-events-none', className)} aria-hidden>
-            {axis !== 'x' &&
-                y.ticks.map((tick) => {
-                    const pixel = y.at(tick);
+            {ticks.map((tick) => {
+                const pixel = y.at(tick);
+                const line = pixel === null ? null : plane.valueLine(plot, crisp(pixel));
 
-                    return pixel === null ? null : (
-                        <line
-                            key={tick}
-                            x1={plot.left}
-                            x2={plot.right}
-                            y1={crisp(pixel)}
-                            y2={crisp(pixel)}
-                            strokeDasharray={dashed && tick !== ground ? DASH : undefined}
-                            className={dashed ? 'stroke-border' : tick === ground ? 'stroke-border-strong' : 'stroke-border-soft'}
-                        />
-                    );
-                })}
-            {axis !== 'y' &&
-                (band === null || chart.xs.length > 0) &&
-                columns.map((pixel) => (
+                return line === null ? null : (
+                    <line
+                        key={tick}
+                        x1={line.x1}
+                        x2={line.x2}
+                        y1={line.y1}
+                        y2={line.y2}
+                        strokeDasharray={dashed && tick !== ground ? DASH : undefined}
+                        className={dashed ? 'stroke-border' : tick === ground ? 'stroke-border-strong' : 'stroke-border-soft'}
+                    />
+                );
+            })}
+            {between.map((pixel) => {
+                const line = plane.bucketLine(plot, crisp(pixel));
+
+                return (
                     <line
                         key={pixel}
-                        x1={crisp(pixel)}
-                        x2={crisp(pixel)}
-                        y1={plot.top}
-                        y2={plot.bottom}
+                        x1={line.x1}
+                        x2={line.x2}
+                        y1={line.y1}
+                        y2={line.y2}
                         strokeDasharray={dashed ? DASH : undefined}
                         className={dashed ? 'stroke-border' : 'stroke-border-soft'}
                     />
-                ))}
+                );
+            })}
         </g>
     );
+}
+
+/* Where the lines between the buckets stand: on the ticks of a continuous axis, else through the middle of every bucket. */
+function betweenOf({ continuous, plot, xs, centerOf }: ChartContextValue): number[] {
+    return continuous !== null
+        ? continuous.ticks(tickCount(plot.width, X_TICK_SPACING)).map((tick) => continuous.at(tick))
+        : xs.map((_, index) => centerOf(index));
 }
 
 /*
@@ -611,7 +568,7 @@ export function ChartGroupAxis<Row>({ children, className, ref }: ChartGroupAxis
     const target = chart.elements.groups;
 
     // The groups of a horizontal chart read from the gaps between their rows and from the tooltip.
-    if (target === null || chart.band === null || chart.horizontal) {
+    if (target === null || chart.band === null || !chart.plane.draws('groups')) {
         return null;
     }
 
