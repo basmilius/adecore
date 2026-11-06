@@ -149,7 +149,7 @@ describe('TableStatusBar selection', () => {
 
         const renderIn = (numberNotation: 'database' | 'region'): string =>
             renderToStaticMarkup(
-                <UIProvider i18n={i18n} formatSource={source}>
+                <UIProvider i18n={i18n}>
                     <DatabaseProvider client={{} as DatabaseClient} numberNotation={numberNotation}>
                         {statusBar(0, 3, false, null, { columns: ['price'], aggregates: exact })}
                     </DatabaseProvider>

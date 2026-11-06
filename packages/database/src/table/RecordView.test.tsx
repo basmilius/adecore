@@ -69,7 +69,7 @@ describe('RecordView', () => {
 
         try {
             const markup = renderToStaticMarkup(
-                <UIProvider i18n={i18n} formatSource={source}>
+                <UIProvider i18n={i18n}>
                     <DatabaseProvider client={{} as DatabaseClient} numberNotation="region">
                         {view(0, {
                             columns: [

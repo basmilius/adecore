@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { helperPath } from './helper-path.ts';
+import { helperFileName, helperPath } from './helper-path.ts';
 
 /* This test runs from the `src` of a checkout, so its helper folder is the one `helperPath()` falls back to. */
 const CHECKOUT = fileURLToPath(new URL('../../helper/', import.meta.url));
@@ -11,6 +11,14 @@ const present = (path: string): boolean => !path.startsWith(CHECKOUT);
 
 const find = (platform: string, arch: string, resolve: ((specifier: string) => string) | undefined, exists: (path: string) => boolean): string | null =>
     helperPath({ platform, arch, env: {}, resolve, exists });
+
+describe('helperFileName', () => {
+    test('is the binary of the platform', () => {
+        expect(helperFileName('win32')).toBe('adecore-database.exe');
+        expect(helperFileName('darwin')).toBe('adecore-database');
+        expect(helperFileName('linux')).toBe('adecore-database');
+    });
+});
 
 describe('helperPath', () => {
     test('returns the binary next to the package of the platform and architecture', () => {

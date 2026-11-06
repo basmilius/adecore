@@ -3,7 +3,7 @@
 The host runs in the app's backend, under Bun or Node, between the app's channel and the helper. It is the boundary a page cannot bypass, and it imports nothing from React.
 
 ```ts
-import { createDatabaseHost, helperPath, parseRequest, spawnHelper } from '@adecore/database/host';
+import { createDatabaseHost, helperFileName, helperPath, parseRequest, spawnHelper } from '@adecore/database/host';
 import type { DatabaseHost, DatabaseHostOptions, HelperPathOptions, HelperProcess, ParsedRequest, SpawnHelperOptions } from '@adecore/database/host';
 ```
 
@@ -100,7 +100,7 @@ Finds the helper for this machine, or returns `null`. It looks in this order:
 2. The installed platform package (`@adecore/database-<platform>-<arch>`), with `app.asar` mapped to `app.asar.unpacked`; see [Getting started](/database/guide/getting-started#package-the-helper).
 3. The release build in a linked checkout (`helper/target/release/adecore-database`), when the package runs from its `src`.
 
-For a binary packaged elsewhere, pass its path to `spawnHelper`.
+For a binary packaged elsewhere, pass its path to `spawnHelper`. `helperFileName(platform)` is the file name to give it there: `adecore-database`, with `.exe` on `win32`.
 
 `HelperPathOptions` is for tests:
 

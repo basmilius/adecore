@@ -15,6 +15,9 @@ export interface HelperPathOptions {
     readonly exists?: (path: string) => boolean;
 }
 
+/* The file name of the helper binary, which an app that packages it beside its own binary has to use as well. */
+export const helperFileName = (platform: string = process.platform): string => (platform === 'win32' ? 'adecore-database.exe' : 'adecore-database');
+
 /*
  * Finds the helper for this machine, or null when there is none. In order: the path in `ADECORE_DATABASE_HELPER`;
  * the prebuilt binary npm installed in the `@adecore/database-<platform>-<arch>` package, absent on an
@@ -39,7 +42,7 @@ export const helperPath = ({
         return override;
     }
 
-    const binary = platform === 'win32' ? 'adecore-database.exe' : 'adecore-database';
+    const binary = helperFileName(platform);
 
     return packagedHelper(platform, arch, binary, resolve, exists) ?? checkoutHelper(binary, exists);
 };
