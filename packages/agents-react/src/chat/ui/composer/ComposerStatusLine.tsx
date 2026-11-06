@@ -67,11 +67,12 @@ export function ComposerStatusLine({ items }: { items: readonly ComposerStatusIt
     const end = items.filter((item) => item.side === 'end');
 
     return (
-        // Lined up with the text in the box: its padding, and the card's border.
+        // Lined up with the text in the box: its padding, and the card's border. It reaches into the strip under
+        // the card, so it stands as far from the bottom as a popup of its items stands above it.
         <div
             role="group"
             aria-label={t('composer.status.label')}
-            className="pointer-events-auto relative isolate flex min-w-0 items-center gap-3 pt-1.5 pr-5 pl-[calc(--spacing(5)+1px)] @max-md/composer-area:pl-[calc(--spacing(3.5)+1px)]"
+            className="pointer-events-auto relative isolate -mb-1 flex min-w-0 items-center gap-3 pt-1.5 pr-5 pl-[calc(--spacing(5)+1px)] @max-md/composer-area:pl-[calc(--spacing(3.5)+1px)]"
         >
             {/* The thread scrolls on under the card, so it fades out under the card's lower edge and is gone by the line, across the strip the card sits in. */}
             <span
