@@ -42,7 +42,7 @@ export async function runOutboxExample(dataDir: string): Promise<string[]> {
 }
 ```
 
-A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes to `onParked`, where you record the failure. A handler that returns `'wait'` keeps its entry, without using an attempt, until `wake(target)`. A handler can run twice after a crash, so make it idempotent by keying its writes on the entry's id.
+A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes to `onParked`, where you record the failure; `retries` sets how many retries a kind gets (zero gives up at its first failure). Handlers can come later than the worker: `worker.handle(kind, handler)` adds one, `worker.onParked(listener)` another listener, and `kinds` makes `start()` throw while a kind has none. A handler that returns `'wait'` keeps its entry, without using an attempt, until `wake(target)`. A handler can run twice after a crash, so make it idempotent by keying its writes on the entry's id.
 
 `stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
