@@ -23,7 +23,7 @@ A visual belongs to its chat. Deleting or clearing the chat removes it, a person
 | `size`      | Bytes of the stored page.                                                                                       |
 | `turnId`    | The turn that published it, when one was running.                                                               |
 
-`VISUAL_LIMITS` holds what a host accepts at publish (title length, height range, page size, measured heights). The schema checks shapes only, so a host may widen a limit. `VISUAL_MEASURE_WIDTHS` are the frame widths a host may measure a page at.
+`VISUAL_LIMITS` holds what a host accepts at publish (title length, height range, page size, measured heights). The schema checks shapes only, so a host may widen a limit. `VISUAL_MEASURE_WIDTHS` are the frame widths a host may measure a page at. `REPLY_COLUMN_WIDTH` (768) is the widest a chat's reply column runs by default, which is the width a host can preview a page at when it is given none.
 
 `visualFrameHeight(visual, width)` returns a frame height for that width from the measurements, capped at `maxHeight`, or `undefined` without heights. A frame then follows the size the page reports.
 

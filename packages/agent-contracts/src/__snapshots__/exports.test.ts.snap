@@ -165,6 +165,7 @@ exports[`the public API . exports these names 1`] = `
   "ProviderListResultSchema",
   "ProviderPlatformSchema",
   "ProviderSignInSchema",
+  "REPLY_COLUMN_WIDTH",
   "ReplyErrorSchema",
   "ReplyOkSchema",
   "ReplySchema",
@@ -926,6 +927,7 @@ exports[`the public API ./visual exports these names 1`] = `
 [
   "ChatVisualSchema",
   "ChatVisualsSchema",
+  "REPLY_COLUMN_WIDTH",
   "VISUAL_BRIDGE_METHODS",
   "VISUAL_DARK_THEME",
   "VISUAL_HOST_PAGE",

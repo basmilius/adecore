@@ -419,6 +419,7 @@ export {
 export {
     VISUAL_LIMITS,
     VISUAL_MEASURE_WIDTHS,
+    REPLY_COLUMN_WIDTH,
     VisualHeightSchema,
     type VisualHeight,
     VisualLayoutSchema,
