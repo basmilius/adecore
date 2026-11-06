@@ -315,3 +315,18 @@
 .composer-input .cm-content .cm-line.cm-md-fence { padding: 0 8px; background: var(--surface-sunken); font-family: var(--font-mono); font-size: var(--text-code); }
 .composer-input .cm-content .cm-line.cm-md-fence-start { padding-top: 4px; border-top-left-radius: 6px; border-top-right-radius: 6px; }
 .composer-input .cm-content .cm-line.cm-md-fence-end { padding-bottom: 4px; border-bottom-left-radius: 6px; border-bottom-right-radius: 6px; }
+
+/* The empty thread's scene: a question that goes out, and the model typing before its answer stands. */
+@keyframes chat-scene-send { 0%, 3% { transform: translateY(16px); opacity: 0; } 12%, 100% { transform: none; opacity: 1; } }
+@keyframes chat-scene-typing { 0%, 18% { opacity: 0; } 20%, 32% { opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes chat-scene-bounce { 0%, 60%, 100% { transform: translateY(0); } 30% { transform: translateY(-3px); } }
+.chat-scene-send { transform-box: view-box; }
+.chat-scene-typing { opacity: 0; }
+.chat-scene-bounce { transform-box: fill-box; }
+@media (prefers-reduced-motion: no-preference) {
+    .chat-scene-send { animation: chat-scene-send 8s var(--scene-arrive) infinite; }
+    .chat-scene-typing { animation: chat-scene-typing 8s infinite; }
+    .chat-scene-bounce { animation: chat-scene-bounce 0.9s ease-in-out infinite; }
+    .chat-scene-bounce:nth-child(2) { animation-delay: 0.15s; }
+    .chat-scene-bounce:nth-child(3) { animation-delay: 0.3s; }
+}

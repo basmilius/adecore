@@ -8,7 +8,7 @@ import { EmptyState } from '@adecore/ui';
 
 <Demo src="display/empty-state" />
 
-The sentence says what is missing and what puts something there. A `title` is for an outcome, such as a search with no results. The icon is a Lucide icon or another mark that takes a `size`, drawn at 20 pixels. `busy` draws a [`Spinner`](/ui/status/spinner) in its place.
+The sentence says what is missing and what puts something there. A `title` is for an outcome, such as a search with no results. The icon is a Lucide icon or another mark that takes a `size`, drawn at 20 pixels. `busy` draws a [`Spinner`](/ui/status/spinner) in its place. For a place a person may not know yet, `scene` takes a drawing, usually an [`EmptyScene`](/ui/status/empty-scene), in place of the icon, and the title grows with it.
 
 ## Props
 
@@ -16,6 +16,7 @@ The sentence says what is missing and what puts something there. A `title` is fo
 | --- | --- | --- | --- |
 | `children` | `ReactNode` | | Required. One sentence. |
 | `icon` | `LucideIcon \| ReactElement<{ size?: number }>` | | |
+| `scene` | `ReactNode` | | A drawing in place of the icon. |
 | `busy` | `boolean` | `false` | A `Spinner` in place of the icon, for a state that is still loading. |
 | `title` | `ReactNode` | | |
 | `action` | `ReactNode` | | One button. |

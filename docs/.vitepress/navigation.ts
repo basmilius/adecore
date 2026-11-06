@@ -166,6 +166,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     ]),
     group('Status', [
         ['Banner', '/ui/status/banner'],
+        ['EmptyScene', '/ui/status/empty-scene'],
         ['EmptyState', '/ui/status/empty-state'],
         ['ErrorBoundary', '/ui/status/error-boundary'],
         ['Meter', '/ui/status/meter'],

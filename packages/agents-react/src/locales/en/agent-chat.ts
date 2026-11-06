@@ -254,10 +254,10 @@ export default {
             night: 'Still up?'
         },
         empty: {
-            ready: '{{model}} is ready.',
+            ready: '{{model}} is ready',
+            task: 'Ask a question or give it a task.',
             ask: 'Ask anything.',
-            canRead: 'It can read',
-            worksIn: 'It works in'
+            canRead: 'It can read'
         },
         loading: 'Loading conversation',
         loadingEarlier: 'Loading earlier messages',

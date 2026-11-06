@@ -770,14 +770,14 @@ for (const welcomes of [false, true]) {
 
                 expect(missing).toBe(0);
                 expect(page.host.querySelector('[role="status"]')?.textContent).toContain('Loading conversation');
-                expect(page.host.textContent).not.toContain('is ready.');
+                expect(page.host.textContent).not.toContain('is ready');
                 await act(async () => useChats.getState().apply(KEY, { type: 'item', item: threadOf()[0]! }));
                 expect(page.host.querySelector('[role="status"]')).not.toBeNull();
                 expect(page.host.querySelector('[data-item-id]')).toBeNull();
                 expect(missing).toBe(0);
                 await act(async () => useChats.getState().reset(KEY, infoOf(null), []));
                 expect(page.host.querySelector('[role="status"]')).toBeNull();
-                expect(page.host.textContent).toContain('is ready.');
+                expect(page.host.textContent).toContain('is ready');
                 expect(missing).toBe(1);
                 expect(page.host.querySelector('[data-composer]')).toBe(composer);
             },
@@ -793,7 +793,7 @@ test('a genuinely new chat keeps its greeting and composer before its empty hist
         async ({ page }) => {
             expect(page.host.querySelector('[role="status"]')).toBeNull();
             expect(page.host.querySelector('[data-composer]')).not.toBeNull();
-            expect(page.host.textContent).not.toContain('is ready.');
+            expect(page.host.textContent).not.toContain('is ready');
         },
         { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatInfo, host: { useWelcome: () => true } }
     );

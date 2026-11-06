@@ -17,17 +17,9 @@ import {
     type ReactNode
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AgentIcon } from '../../agents/AgentIcon';
 import { useModelName } from '../../agents/model-name';
 import { useChatHost, type TimelineFindOptions } from '../../host/host';
-import {
-    useHostContextSources,
-    useHostHidesFolder,
-    useHostHidesToolCalls,
-    useHostThreadCards,
-    useHostTimelineFind,
-    useHostWelcome
-} from '../../host/host-hooks';
+import { useHostContextSources, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host/host-hooks';
 import { type TimelineRow } from '../../host/timeline-row';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
@@ -75,6 +67,7 @@ import {
     type TurnTarget
 } from '../timeline-scroll';
 import { BookmarkMarker } from './BookmarkMarker';
+import { ChatEmptyScene } from './ChatEmptyScene';
 import { FileLinkContext } from './file-links';
 import { FindRevealContext } from './find-reveal';
 import { MessageActions } from './MessageActions';
@@ -131,35 +124,29 @@ function scrollsWithin(target: Element, boundary: Element, deltaX: number, delta
     return false;
 }
 
-/*
- * A thread before its first message: which model answers, what the lines into this node let it read,
- * and the folder it works in, so a first question can lean on all three.
- */
+/* A thread before its first message: which model answers, and what the lines into this node let it read. */
 function EmptyThread({ chatId }: { chatId: string }) {
     const { renderEmptyThread } = useChatHost();
     const { t } = useTranslation('agent-chat');
     const info = useChatRow(chatId, (row) => row?.info ?? null);
     const model = useModelName(info?.provider, info?.selection.model ?? '');
     const sources = useHostContextSources(chatId);
-    const hidesFolder = useHostHidesFolder(chatId);
 
     return (
         <div className="flex grow items-center justify-center">
             <div className="flex max-w-sm flex-col items-center gap-3 px-6 py-8 text-center">
-                <EmptyState icon={info ? <AgentIcon kind={info.provider} /> : undefined} className="p-0">
-                    {info ? t('timeline.empty.ready', { model }) : t('timeline.empty.ask')}
+                <EmptyState
+                    scene={info ? <ChatEmptyScene provider={info.provider} /> : undefined}
+                    title={info ? t('timeline.empty.ready', { model }) : undefined}
+                    className="p-0"
+                >
+                    {info ? t('timeline.empty.task') : t('timeline.empty.ask')}
                 </EmptyState>
                 {renderEmptyThread?.(chatId)}
                 {sources.length > 0 && (
                     <div className="flex max-w-full flex-col items-center gap-1">
                         <SectionLabel>{t('timeline.empty.canRead')}</SectionLabel>
                         <span className="max-w-full text-xs text-text-muted">{sources.map((source) => source.title).join(', ')}</span>
-                    </div>
-                )}
-                {info?.cwd && !hidesFolder && (
-                    <div className="flex max-w-full flex-col items-center gap-1">
-                        <SectionLabel>{t('timeline.empty.worksIn')}</SectionLabel>
-                        <span className="max-w-full font-mono text-xs break-all text-text-muted">{info.cwd}</span>
                     </div>
                 )}
             </div>

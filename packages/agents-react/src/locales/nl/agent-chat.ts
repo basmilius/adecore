@@ -254,10 +254,10 @@ export default {
             night: 'Nog wakker?'
         },
         empty: {
-            ready: '{{model}} staat klaar.',
+            ready: '{{model}} staat klaar',
+            task: 'Stel een vraag of geef een opdracht.',
             ask: 'Vraag maar raak.',
-            canRead: 'Kan lezen',
-            worksIn: 'Werkt in'
+            canRead: 'Kan lezen'
         },
         loading: 'Gesprek laden',
         loadingEarlier: 'Eerdere berichten laden',

@@ -29,17 +29,26 @@ function CardBody({ folded, onFoldedChange }: { folded: ReadonlySet<string>; onF
  */
 export function UsageLimitsCard({
     side = 'top',
+    open = false,
     children
 }: {
     /* Where the card opens: above a button in a footer, or `left` beside one in a column at the window's right edge. */
     side?: 'top' | 'left';
+    /* Holds the card open beside the hover, such as while the app's own key is down. */
+    open?: boolean;
     children: ReactElement<Record<string, unknown>>;
 }) {
+    const [hovered, setHovered] = useState(false);
     const [opened, setOpened] = useState(false);
     const [folded, setFolded] = useState<ReadonlySet<string>>(new Set());
+    const shown = hovered || open;
+
+    if (shown && !opened) {
+        setOpened(true);
+    }
 
     return (
-        <PreviewCard.Root onOpenChange={(open) => open && setOpened(true)}>
+        <PreviewCard.Root open={shown} onOpenChange={setHovered}>
             <PreviewCard.Trigger render={children} delay={500} />
             <PreviewCard.Popup side={side} align="end" className="w-85 p-2">
                 {opened && <CardBody folded={folded} onFoldedChange={setFolded} />}
