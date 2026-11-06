@@ -130,6 +130,13 @@
         "url": "https://github.com/basmilius/adecore/issues"
     },
     "homepage": "https://adecore.dev/agents-react/",
+    "adecore": {
+        "dedupe": [
+            "@codemirror/*",
+            "@lezer/*",
+            "shiki"
+        ]
+    },
     "files": [
         "dist",
         "src",

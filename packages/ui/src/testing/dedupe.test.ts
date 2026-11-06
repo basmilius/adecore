@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { cpSync, mkdirSync, mkdtempSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 
@@ -84,9 +84,12 @@ describe('the dedupe preload', () => {
 describe('the dedupe preload over every package of the checkout', () => {
     let fixture: string;
 
-    const fakePackage = (folder: string, name: string, body: string, exports: Record<string, string> = { '.': './index.js' }): void => {
+    const fakePackage = (folder: string, name: string, body: string, exports: Record<string, string> = { '.': './index.js' }, dedupe?: string[]): void => {
         mkdirSync(folder, { recursive: true });
-        writeFileSync(join(folder, 'package.json'), JSON.stringify({ name, type: 'module', exports }));
+        writeFileSync(
+            join(folder, 'package.json'),
+            JSON.stringify({ name, type: 'module', exports, ...(dedupe === undefined ? {} : { adecore: { dedupe } }) })
+        );
         writeFileSync(join(folder, 'index.js'), body);
     };
 
@@ -109,7 +112,7 @@ describe('the dedupe preload over every package of the checkout', () => {
         writeFileSync(join(folder, 'copies.test.ts'), ["import { test } from 'bun:test';", ...body].join('\n'));
     };
 
-    /* What a run prints, with the preload or without it, and with what the app adds to the list. */
+    /* What a run prints, with the preload or without it, and with a list in the manifest of the app, which the preload ignores. */
     const run = (folder: string, preload: boolean, dedupe?: string[]): string => {
         const manifest = {
             name: 'app',
@@ -133,7 +136,9 @@ describe('the dedupe preload over every package of the checkout', () => {
         writeFileSync(join(checkout, 'package.json'), JSON.stringify({ name: 'checkout', private: true, workspaces: ['packages/*'] }));
         fakeLibrary(join(checkout, 'packages', 'ui'));
         const chat = join(checkout, 'packages', 'chat');
-        fakePackage(chat, '@adecore/chat', "export { copy as state } from '@codemirror/state';\nexport { copy as store } from '@acme/store';\n");
+        fakePackage(chat, '@adecore/chat', "export { copy as state } from '@codemirror/state';\nexport { copy as store } from '@acme/store';\n", undefined, [
+            '@codemirror/*'
+        ]);
         copyOfName(chat, '@codemirror/state', 'checkout');
         copyOfName(chat, '@acme/store', 'checkout');
 
@@ -168,12 +173,19 @@ describe('the dedupe preload over every package of the checkout', () => {
         expect(run(join(fixture, 'linked'), true)).toContain('app=app checkout=app');
     });
 
-    test('a name the app adds in its package.json joins the list', () => {
+    test('a name a package of the checkout declares in its package.json joins the list, and one the app declares does not', () => {
+        const chat = join(fixture, 'checkout', 'packages', 'chat');
+        const manifest = readFileSync(join(chat, 'package.json'), 'utf8');
+
         expect(run(join(fixture, 'linked'), true)).toContain('store=checkout');
-        expect(run(join(fixture, 'linked'), true, ['@acme/*'])).toContain('store=app');
+        expect(run(join(fixture, 'linked'), true, ['@acme/*'])).toContain('store=checkout');
+
+        writeFileSync(join(chat, 'package.json'), JSON.stringify({ ...JSON.parse(manifest), adecore: { dedupe: ['@codemirror/*', '@acme/*'] } }));
+        expect(run(join(fixture, 'linked'), true)).toContain('store=app');
+        writeFileSync(join(chat, 'package.json'), manifest);
     });
 
     test('a library installed from the registry keeps the copy it holds', () => {
-        expect(run(join(fixture, 'installed'), true, ['@acme/*'])).toContain('library=nested');
+        expect(run(join(fixture, 'installed'), true)).toContain('library=nested');
     });
 });

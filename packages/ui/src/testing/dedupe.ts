@@ -8,10 +8,11 @@ import { dirname, join, sep } from 'node:path';
  * never sees a package import, so each file of these packages in the checkout loads as a stand-in for
  * the app's copy.
  *
- * CodeMirror and Lezer reject an extension, a facet or a node prop made by another copy, and the chat
- * views take both from the app; shiki is in the list for the highlighter an app hands them.
+ * These are the ones the components of this package need. Another package of the checkout names the
+ * copies it needs the app to share, such as the extension-making ones of CodeMirror, in the `adecore.dedupe`
+ * field of its own `package.json`: a list of names, where `@scope/*` stands for every package of a scope.
  */
-const SHARED = ['react', 'react-dom', 'i18next', 'react-i18next', '@base-ui/react', '@codemirror/*', '@lezer/*', 'shiki'];
+const SHARED = ['react', 'react-dom', 'i18next', 'react-i18next', '@base-ui/react'];
 
 const NAME = '@adecore/ui';
 
@@ -116,7 +117,7 @@ const findCopies = (): Copy[] => {
 
     const folders = appFolders();
 
-    const added = folders.flatMap((folder) => {
+    const added = checkout.flatMap((folder) => {
         const names = manifestOf(folder)?.adecore?.dedupe;
 
         return Array.isArray(names) ? names.filter((name): name is string => typeof name === 'string') : [];

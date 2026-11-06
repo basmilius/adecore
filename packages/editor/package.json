@@ -64,6 +64,11 @@
         "@types/node": "^26.6.6",
         "typescript": "^7.0.2"
     },
+    "adecore": {
+        "dedupe": [
+            "shiki"
+        ]
+    },
     "license": "FSL-1.1-MIT",
     "author": "Bas Milius",
     "repository": {

@@ -48,17 +48,16 @@ preload = ["@adecore/ui/testing/dedupe", "./test-preload.ts"]
 It swaps the checkout's copy of these packages for the app's:
 
 - `react`, `react-dom`, `i18next`, `react-i18next` and `@base-ui/react`.
-- `@codemirror/*` and `@lezer/*`, which reject extensions made by a second copy.
-- `shiki`, for a highlighter the app hands to the chat views.
+- What a package of the checkout names in the `adecore.dedupe` field of its own `package.json`. The agent views name `@codemirror/*` and `@lezer/*`, which reject extensions made by a second copy, and `shiki`, for a highlighter the app hands them. The editor names `shiki`.
 
 It covers every package of the checkout's repository. It leaves alone a package the app has no copy of. With the library from the registry the preload does nothing.
 
-An app adds names in its own `package.json`, in the folder `bun test` runs in or a workspace that depends on the library. `@scope/*` stands for every package of a scope:
+A package of the library that takes a shared instance from the app lists it in its `package.json`. `@scope/*` stands for every package of a scope:
 
 ```json
 {
     "adecore": {
-        "dedupe": ["@xterm/*", "yjs"]
+        "dedupe": ["@codemirror/*", "shiki"]
     }
 }
 ```
