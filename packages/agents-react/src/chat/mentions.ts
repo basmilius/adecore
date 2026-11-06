@@ -176,13 +176,13 @@ export function findSkillQuery(text: string, caret: number): MentionQuery | null
 }
 
 /*
- * The `#word` the caret sits in. It opens only once a letter follows the sigil, so a `# ` heading,
- * `#123` and a bare `#` stay text. A name with a space is found by its first word.
+ * The `#word` the caret sits in, open from the bare sigil on. The name has to start with a letter, so
+ * a `# ` heading and `#123` close it again and stay text. A name with a space is found by its first word.
  */
 export function findReferenceQuery(text: string, caret: number): MentionQuery | null {
     const found = findQuery(text, caret, '#');
 
-    return found === null || !/^\p{L}/u.test(found.query) ? null : found;
+    return found === null || (found.query !== '' && !/^\p{L}/u.test(found.query)) ? null : found;
 }
 
 /* Replaces the `<sigil>query` under the caret with the chosen token and a space, and says where the caret goes. */

@@ -22,3 +22,15 @@ export function insertAtSelection(state: EditorState, text: string): Transaction
 
     return { changes: { from, to, insert }, selection: { anchor: from + insert.length }, scrollIntoView: true, userEvent: 'input' };
 }
+
+/* A sigil typed at the caret, so the picker it opens reads what follows it: a word after it is pushed a space away. */
+export function insertSigil(state: EditorState, sigil: string): TransactionSpec {
+    const { from, to } = state.selection.main;
+    const before = state.doc.sliceString(Math.max(0, from - 1), from);
+    const after = state.doc.sliceString(to, to + 1);
+    const lead = before !== '' && !isSpace(before) ? ' ' : '';
+    const trail = after !== '' && !isSpace(after) ? ' ' : '';
+    const caret = from + lead.length + sigil.length;
+
+    return { changes: { from, to, insert: `${lead}${sigil}${trail}` }, selection: { anchor: caret }, scrollIntoView: true, userEvent: 'input' };
+}

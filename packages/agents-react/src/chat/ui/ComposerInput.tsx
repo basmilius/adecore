@@ -4,7 +4,7 @@ import { EditorView, placeholder as placeholderText } from '@codemirror/view';
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { useChatHost } from '../../host';
 import { composerEditorExtensions, externalChange } from './composer/editor';
-import { insertAtSelection } from './composer/insert';
+import { insertAtSelection, insertSigil } from './composer/insert';
 
 export interface ComposerInputHandle {
     focus(): void;
@@ -12,6 +12,8 @@ export interface ComposerInputHandle {
     setCaret(pos: number): void;
     /* Types text in over the selection (`insertAtSelection`) and gives the editor the focus. */
     insert(text: string): void;
+    /* Types a sigil at the caret (`insertSigil`), which opens its picker, and gives the editor the focus. */
+    insertSigil(sigil: string): void;
 }
 
 export interface InputSelection {
@@ -218,6 +220,16 @@ export function ComposerInput({
 
                 view.dispatch(insertAtSelection(view.state, text));
                 view.focus();
+            },
+            insertSigil: (sigil: string) => {
+                const view = viewRef.current;
+
+                if (!view) {
+                    return;
+                }
+
+                view.focus();
+                view.dispatch(insertSigil(view.state, sigil));
             }
         }),
         []

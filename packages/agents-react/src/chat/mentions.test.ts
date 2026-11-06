@@ -65,9 +65,14 @@ describe('findReferenceQuery', () => {
         expect(findReferenceQuery('#Ébauche', 8)).toEqual({ start: 0, query: 'Ébauche' });
     });
 
-    test('leaves a heading, a number, a bare # and a color as no query of its own', () => {
+    test('opens on a bare #, before anything is typed after it', () => {
+        expect(findReferenceQuery('#', 1)).toEqual({ start: 0, query: '' });
+        expect(findReferenceQuery('see #', 5)).toEqual({ start: 4, query: '' });
+    });
+
+    test('leaves a heading, a number and a color as no query of its own', () => {
         expect(findReferenceQuery('# Title', 7)).toBeNull();
-        expect(findReferenceQuery('#', 1)).toBeNull();
+        expect(findReferenceQuery('# ', 2)).toBeNull();
         expect(findReferenceQuery('issue #123', 10)).toBeNull();
         expect(findReferenceQuery('a#b', 3)).toBeNull();
     });

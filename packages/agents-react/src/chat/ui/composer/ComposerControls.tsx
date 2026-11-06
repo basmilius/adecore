@@ -1,18 +1,18 @@
 import { holdsConversation, type ChatInfo } from '@adecore/agent-contracts';
 import { Button, ErrorBoundary, Icon, Menu, Tooltip, type Shortcut } from '@adecore/ui';
 import clsx from 'clsx';
-import { ArrowUp, ChevronDown, Play, Plus, Square } from 'lucide-react';
+import { ArrowUp, ChevronDown, Play, Square } from 'lucide-react';
 import { useRef, useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChatHost, type ComposerSendAction, type ComposerSendDraft } from '../../../host';
 import { useChatScope } from '../../../scope';
 import { useProviders } from '../../../state/providers';
-import { useAccountChoice } from '../../account-choice';
+import { useAccountChoice, useAccountColorId } from '../../account-choice';
 import type { StashedPrompt } from '../../stash';
 import { composerStopLabel } from '../../subagent-list';
 import { HostMenuItems } from '../HostMenuItems';
-import { StashPicker } from '../Pickers';
 import { RunSettings } from '../RunSettings';
+import { ComposerPlusMenu, type PlusMenuSigils } from './ComposerPlusMenu';
 import type { ChatControls } from './use-chat-controls';
 
 interface SendProps {
@@ -94,26 +94,34 @@ interface ComposerControlsProps {
     providerFixed: boolean;
     writable: boolean;
     attachable: boolean;
+    emptyDraft: boolean;
+    sigils: PlusMenuSigils;
     controls: ChatControls;
     send: SendProps;
     dictationToolbar: Ref<HTMLDivElement>;
     onFiles(files: File[]): void;
     onRestore(prompt: StashedPrompt): void;
+    onStash(): void;
+    onSigil(sigil: string): void;
     insert(text: string): void;
 }
 
-/* The row under the box: attach, the chat's settings, the stash, the app's own control, and stop and send. */
+/* The row under the box: the + with attach, the stash and the sigils, the chat's settings, the app's own control, and stop and send. */
 export function ComposerControls({
     chatId,
     info,
     providerFixed,
     writable,
     attachable,
+    emptyDraft,
+    sigils,
     controls,
     send,
     dictationToolbar,
     onFiles,
     onRestore,
+    onStash,
+    onSigil,
     insert
 }: ComposerControlsProps) {
     const { t } = useTranslation('agent-chat');
@@ -121,6 +129,7 @@ export function ComposerControls({
     const Slot = useChatHost().ComposerSlot;
     const providers = useProviders((row) => row.providers);
     const accountChoice = useAccountChoice(info.provider, info.account, chatId);
+    const accountColorId = useAccountColorId(info.provider, info.account);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const busy = info.activeTurnId !== null;
     const model = providers.find((entry) => entry.kind === info.provider)?.models.find((entry) => entry.slug === info.selection.model);
@@ -136,18 +145,16 @@ export function ComposerControls({
     return (
         // The composer's controls are round, from attach to send, so they keep their own shape instead of `.icon-btn`'s.
         <div className="flex items-center gap-2 pt-3 pr-3.5 pb-3.5 pl-5 @max-md/composer:gap-1.5 @max-md/composer:p-3 @max-md/composer:pt-2.5">
-            {attachable && (
-                <Tooltip label={t('composer.attach')} name>
-                    <button
-                        type="button"
-                        className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-border text-text-muted hover:bg-surface-hover-edged hover:text-text disabled:opacity-50"
-                        disabled={!writable}
-                        onClick={() => fileInputRef.current?.click()}
-                    >
-                        <Icon icon={Plus} size={16} />
-                    </button>
-                </Tooltip>
-            )}
+            <ComposerPlusMenu
+                writable={writable}
+                attachable={attachable}
+                emptyDraft={emptyDraft}
+                sigils={sigils}
+                onAttach={() => fileInputRef.current?.click()}
+                onRestore={onRestore}
+                onStash={onStash}
+                onSigil={onSigil}
+            />
             <input
                 ref={fileInputRef}
                 type="file"
@@ -176,8 +183,8 @@ export function ComposerControls({
                 compactDisabled={busy || !writable}
                 onCompact={controls.compact}
                 account={accountChoice === null ? null : { choice: accountChoice, started, onPick: controls.chooseAccount }}
+                {...(accountColorId === undefined ? {} : { accountColorId })}
             />
-            <StashPicker onRestore={onRestore} />
             {Slot !== null && (
                 <ErrorBoundary label={t('composer.slotFailed')} resetKeys={[chatId]} compact className="relative rounded-lg">
                     <Slot scopeId={scope.id} chatId={chatId} disabled={!writable} insert={insert} />

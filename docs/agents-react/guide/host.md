@@ -88,6 +88,7 @@ export function Workspace() {
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
 | `ComposerHeaderSlot`               | Nothing                                            | A bar of your own at the top of the composer's card, above the text.                                   |
 | `useComposerSendActions(scopeId, chatId)` | Send alone                                  | Actions of your own behind a chevron on the send button. See [Slots and cards](#slots-and-cards).      |
+| `useComposerStatus(scopeId, chatId)` | No line                                         | Items of your own on a line under the composer's card, such as a branch. See [Slots and cards](#slots-and-cards). |
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
 | `useReplyAuthor(scopeId, chatId)`  | The agent is named for screen readers only         | A header over each reply: `{ name, mark? }`.                                                           |
@@ -169,6 +170,21 @@ import type { ChatHost, ComposerSendAction } from '@adecore/agents-react';
 const REPEAT: readonly ComposerSendAction[] = [{ id: 'repeat', label: 'Repeat…', icon: Repeat, run: (draft) => openRoutineDialog(draft.chatId, draft.text) }];
 
 const CHAT_HOST: Partial<ChatHost> = { useComposerSendActions: () => REPEAT };
+```
+
+`useComposerStatus` returns `ComposerStatusItem`s (`{ id, icon, label, tooltip?, side?, details? }`) for a line under the composer's card, lined up with the text in the box. Without items there is no line. An item with `side: 'end'` stands at the right. An item with `details` is a button that opens a popover with one row per `ComposerStatusDetail` (`{ icon, label, detail?, hint?, mono?, muted? }`).
+
+```tsx
+import { GitBranch } from 'lucide-react';
+import type { ChatHost, ComposerStatusItem } from '@adecore/agents-react';
+
+function useBranchStatus(scopeId: string, chatId: string): readonly ComposerStatusItem[] {
+    const branch = useBranchOf(scopeId, chatId);
+
+    return branch === null ? [] : [{ id: 'branch', icon: GitBranch, label: branch, details: [{ icon: GitBranch, label: branch, mono: true }] }];
+}
+
+const CHAT_HOST: Partial<ChatHost> = { useComposerStatus: useBranchStatus };
 ```
 
 ## Visuals

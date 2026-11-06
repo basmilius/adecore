@@ -14,7 +14,8 @@ import type {
 import { createPage } from '@adecore/editor/testing';
 import { Menu } from '@adecore/ui';
 import { EditorView } from '@codemirror/view';
-import { act, Children, type ReactElement, type ReactNode } from 'react';
+import { GitBranch, Server } from 'lucide-react';
+import { act, Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
     ChatHostProvider,
@@ -23,7 +24,8 @@ import {
     type ChatToast,
     type ComposerHeaderSlotProps,
     type ComposerSendAction,
-    type ComposerSendDraft
+    type ComposerSendDraft,
+    type ComposerStatusItem
 } from '../../host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
@@ -938,6 +940,96 @@ describe('the stash', () => {
     });
 });
 
+describe('the + menu', () => {
+    async function plusRows(composer: Mounted): Promise<HTMLElement[]> {
+        const popup = composer.propsOf('ComposerPlusMenu', 'MenuPopup') as { children: ReactNode };
+        const drawn = await composer.draw(<Menu.Root>{popup.children}</Menu.Root>);
+
+        return [...drawn.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+    }
+
+    const labels = (rows: HTMLElement[]): string[] => rows.map((row) => row.textContent?.trim() ?? '');
+
+    test('offers only the sigils this chat answers, and without a stashed prompt only the stash item, off for an empty draft', async () => {
+        const composer = await mount({ capabilities: { mentions: false } });
+        const rows = await plusRows(composer);
+        expect(labels(rows)).toEqual(['Attach files…', 'Stash this prompt⌘S', 'Commands/']);
+        expect(rows[1]!.getAttribute('aria-disabled')).toBe('true');
+        expect(rows[2]!.getAttribute('aria-disabled')).toBeNull();
+    });
+
+    test('with stashed prompts, stashing moves into their submenu', async () => {
+        useStash.getState();
+        useStash.setState({ prompts: [{ id: 'stash-1', text: 'Later', mentions: [], skills: [], chats: [], attachments: [], createdAt: 1, references: [] }] });
+        cleanups.push(() => useStash.setState({ prompts: [] }));
+        const composer = await mount({ capabilities: { mentions: false } });
+        // linkedom draws no submenu outside an open menu, so the test reads what the submenu was given.
+        const popup = composer.propsOf('ComposerPlusMenu', 'MenuPopup') as { children: ReactNode };
+
+        const find = (node: ReactNode, name: string): ReactElement<Record<string, unknown>> | null => {
+            for (const child of Children.toArray(node)) {
+                if (!isValidElement<Record<string, unknown>>(child)) {
+                    continue;
+                }
+
+                if (typeof child.type === 'function' && child.type.name === name) {
+                    return child;
+                }
+
+                const found = find(child.props.children as ReactNode, name);
+
+                if (found !== null) {
+                    return found;
+                }
+            }
+
+            return null;
+        };
+
+        const submenu = find(popup.children, 'StashedPrompts')!;
+        const stashItem = submenu.props.children as ReactElement<{ children: ReactNode }>;
+        expect(submenu.props.prompts).toHaveLength(1);
+        expect(Children.toArray(stashItem.props.children)).toContain('Stash this prompt');
+    });
+
+    test('a picked sigil goes in at the caret, where its picker reads on', async () => {
+        const composer = await mount({ host: { searchFiles: async () => [] } });
+        await composer.type('Look');
+        const rows = await plusRows(composer);
+        expect(labels(rows)).toContain('Mention a file@');
+        expect(rows.find((row) => row.textContent?.startsWith('Commands'))?.getAttribute('aria-disabled')).toBe('true');
+        await composer.click(rows.find((row) => row.textContent?.startsWith('Mention a file'))!);
+        expect(composer.text()).toBe('Look @');
+    });
+
+    test('stashing from the menu puts the draft away and clears the box', async () => {
+        useStash.getState();
+        cleanups.push(() => useStash.setState({ prompts: [] }));
+        const composer = await mount();
+        await composer.type('Keep this');
+        const rows = await plusRows(composer);
+        await composer.click(rows.find((row) => row.textContent?.startsWith('Stash this prompt'))!);
+        expect(useStash.getState().prompts.map((prompt) => prompt.text)).toEqual(['Keep this']);
+        expect(composer.text()).toBe('');
+    });
+});
+
+describe('the status line', () => {
+    const where = (composer: Mounted): HTMLElement | null => composer.page.host.querySelector('[aria-label="Where this chat works"]');
+
+    test("draws the host's items under the card, and nothing without them", async () => {
+        const items: ComposerStatusItem[] = [
+            { id: 'branch', icon: GitBranch, label: 'feat/composer', details: [{ icon: GitBranch, label: 'feat/composer', mono: true }] },
+            { id: 'machine', icon: Server, label: 'Mac mini', side: 'end' }
+        ];
+
+        const composer = await mount({ host: { useComposerStatus: () => items } });
+        expect(where(composer)?.textContent).toBe('feat/composerMac mini');
+        expect((await mount()).page.host.querySelector('[aria-label="Where this chat works"]')).toBeNull();
+        expect(where(await mount({ host: { useComposerStatus: () => [] } }))).toBeNull();
+    });
+});
+
 describe('continuing after a stop', () => {
     const stopped = [
         { id: 'turn-1', kind: 'turn', createdAt: 10, turnId: 'turn-1', state: 'aborted', endedAt: 20, costUsd: 0 },
@@ -1289,7 +1381,8 @@ describe('the surface around the text', () => {
         await composer.caret(2);
         const focus = watchFocus(composer);
         const send = composer.byLabel('Send')!;
-        const picker = composer.page.host.querySelector('[aria-haspopup="menu"]')!;
+        // The run settings, the menu trigger that holds words rather than one icon like the +.
+        const picker = [...composer.page.host.querySelectorAll('[aria-haspopup="menu"]')].find((trigger) => trigger.querySelector('span') !== null)!;
         expect((await press(composer, send)).defaultPrevented).toBe(false);
         expect((await press(composer, picker.querySelector('span')!)).defaultPrevented).toBe(false);
         expect(focus.count).toBe(0);
@@ -1448,6 +1541,33 @@ describe('stepping the reasoning effort', () => {
 
     test('a chat with no composer on screen is not reached', () => {
         expect(stepEffortFromComposer(`${SCOPE_ID}/elsewhere`, 'up')).toBe(false);
+    });
+});
+
+describe('the run settings pill', () => {
+    test('names the model whole with its reasoning and other knobs after it, then the context and the mode', async () => {
+        const model: ModelInfo = {
+            ...MODEL,
+            name: 'Opus 5.5',
+            options: [
+                { id: 'fast', type: 'boolean', label: 'Fast', defaultValue: true },
+                { id: 'effort', type: 'select', label: 'Reasoning', defaultChoice: 'high', choices: [{ id: 'high', label: 'High' }] }
+            ]
+        } as ModelInfo;
+
+        const composer = await mount({ model });
+        const pill = [...composer.page.host.querySelectorAll('[aria-haspopup="menu"]')].find((trigger) => trigger.textContent?.includes('Opus'))!;
+        expect(pill.textContent).toBe('Opus 5.5HighFast·200K·Ask');
+    });
+
+    test("the CLI's only account tints the mark in its own color, and one without a color leaves it as it is", async () => {
+        const host = { accents: { all: [{ id: 'teal', color: '#14b8a6' }], featured: [], label: (id: string) => id, current: () => '' } } as Partial<ChatHost>;
+        const markOf = (composer: Mounted): HTMLElement | null => composer.page.host.querySelector('[aria-haspopup="menu"] span[style]');
+
+        const tinted = await mount({ host, accounts: { accounts: { claude: { kind: 'claude', color: 'teal' } }, statuses: [] } as ProviderAccounts });
+        expect(markOf(tinted)?.getAttribute('style')).toContain('#14b8a6');
+        const plain = await mount({ host, accounts: { accounts: { claude: { kind: 'claude' } }, statuses: [] } as ProviderAccounts });
+        expect(markOf(plain)).toBeNull();
     });
 });
 

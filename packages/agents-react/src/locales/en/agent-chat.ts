@@ -420,7 +420,18 @@ export default {
             goToSource: 'Go to reply'
         },
         removeAttachment: 'Remove {{name}}',
-        attach: 'Attach files',
+        plus: {
+            label: 'Add to the message',
+            attach: 'Attach files…',
+            stash: 'Stash this prompt',
+            mention: 'Mention a file',
+            reference: 'Reference a view or node',
+            skill: 'Use a skill',
+            commands: 'Commands'
+        },
+        status: {
+            label: 'Where this chat works'
+        },
         tooLong: 'characters, too long to send',
         stop: 'Stop. Shift-click stops sub-agents too',
         queueButton: 'Queue',
@@ -479,8 +490,7 @@ export default {
         noAnswer: 'The machine did not answer',
         stopFailed: 'Could not stop sub-agent',
         info: {
-            label: 'About this sub-agent',
-            tokens: '{{tokens}} tokens'
+            label: 'About this sub-agent'
         }
     },
     modes: {

@@ -222,6 +222,33 @@ export interface ComposerSendAction {
     run(draft: ComposerSendDraft): void;
 }
 
+/* A row in the popover a status item opens. */
+export interface ComposerStatusDetail {
+    icon: LucideIcon;
+    label: string;
+    /* A second line under the label, such as a path. */
+    detail?: string;
+    /* A word at the end of the row, such as what the label is. */
+    hint?: string;
+    /* Sets the label in the code font, for a name such as a branch. */
+    mono?: boolean;
+    /* Draws the row faint, for one that is listed but asks for no attention. */
+    muted?: boolean;
+}
+
+/* One item in the line under the composer's card, such as the branch a chat works on. */
+export interface ComposerStatusItem {
+    /* Unique among the items of one composer. */
+    id: string;
+    icon: LucideIcon;
+    label: string;
+    tooltip?: string;
+    /* Where on the line it stands; left out, at the start. */
+    side?: 'start' | 'end';
+    /* Rows a click on the item opens; left out, the item is no button. */
+    details?: readonly ComposerStatusDetail[];
+}
+
 /* What an app's own chips for a chat's sub-agents get, in place of the one flyout over the composer. */
 export interface SubagentSlotProps {
     chatId: string;
@@ -622,6 +649,8 @@ export interface ChatHost {
     ComposerHeaderSlot?: ComponentType<ComposerHeaderSlotProps> | null;
     /* Actions of the app's own behind a chevron on the send button, in the order given; left out, or none, Send stands alone. */
     useComposerSendActions?(scopeId: string, chatId: string): readonly ComposerSendAction[];
+    /* Items of the app's own on a line under the composer's card, such as where the chat works; left out, or none, draws no line. */
+    useComposerStatus?(scopeId: string, chatId: string): readonly ComposerStatusItem[];
     /* The app's own chips for a chat's sub-agents over the composer; null draws the one flyout. */
     SubagentSlot: ComponentType<SubagentSlotProps> | null;
     /* Cards of the app's own in a thread, in any order. Hand back the same array while none changed, or the thread lays out its rows again on every render. */

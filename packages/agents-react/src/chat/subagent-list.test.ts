@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatInfo, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
-import { formatMoment, formatTokens } from '@adecore/ui/format';
+import { formatMoment } from '@adecore/ui/format';
 import type { SubagentTask } from '../host';
 import {
     badgeCountOf,
@@ -11,7 +11,6 @@ import {
     progressOf,
     statusWordOf,
     stopOf,
-    subagentFacts,
     subagentTitle,
     summaryWordOf,
     taskIdOf,
@@ -198,15 +197,6 @@ describe("the composer's Stop", () => {
         expect(composerStopOf(false)).toBe('turn');
         expect(composerStopOf(true)).toBe('turn-and-subagents');
         expect(composerStopLabel()).toBe('Stop. Shift-click stops sub-agents too');
-    });
-});
-
-describe('the bar over a conversation', () => {
-    test('names the model, the kind of agent, where it runs and what it spent, and leaves out what it does not know', () => {
-        const row = subagent('a', { subagentType: 'Explore', background: true, usage: { totalTokens: 12_300, toolUses: 8, durationMs: 5_000 } });
-        expect(subagentFacts(row, 'Haiku 4.5')).toEqual(['Haiku 4.5', 'Explore', 'background', `${formatTokens(12_300)} tokens`, '8 tool calls']);
-        expect(subagentFacts(subagent('b'), null)).toEqual([]);
-        expect(subagentFacts(subagent('c', { usage: { totalTokens: 0, toolUses: 1, durationMs: 0 } }), '')).toEqual(['1 tool call']);
     });
 });
 

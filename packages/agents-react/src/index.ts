@@ -13,6 +13,8 @@ export {
     type ReferenceIconProps,
     type ComposerSendAction,
     type ComposerSendDraft,
+    type ComposerStatusDetail,
+    type ComposerStatusItem,
     type SubagentSlotProps,
     type ThreadCard,
     type VisualHost,
