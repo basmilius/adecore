@@ -18,6 +18,8 @@ Prices come from LiteLLM's price table at `LITELLM_URL`, or from the bundled sna
 
 `UsageMonitor` periodically reads each plan's remaining share from the CLIs and merges what running turns report. It answers `usage.limits` and sends `usage.limitsChanged`. A full read of a plan is a `ProviderReading`: the plan, its windows and the session cost. What a running turn reports in passing is a `LimitsUpdate`, a few windows of one CLI and account, which the core hands to `applyLive`.
 
+The default account of every CLI is read every five minutes. Another account is read once after `start()`, and after that only while a chat or terminal used it in the last day, since every read starts its CLI. With `file`, the monitor keeps the last numbers of every account there and shows them after a restart until its own read replaces them. `limitsFileIn(dataDir)` is the path `wireAgents` uses. `stop()` resolves once the last numbers are written.
+
 For a provider with no CLI to ask, such as a subscription API the host calls with its own key, the host answers through `plans` with a `ProbeResult`, using `fraction` for each window's share. A plan function gets the `LimitAccount` it reads.
 
 ## Transcripts of other providers
@@ -33,11 +35,15 @@ A root is a `UsageRootPath`: a `provider`, a `path`, optionally the `accounts` w
 `AgentHost` and `wireAgents` build both services from the accounts. A host with its own wiring builds them the same way:
 
 ```ts
-import { chatSessionAccounts, limitAccountsOf, UsageMonitor, UsageService, usageAccountsOf, usageRootsOf } from '@adecore/agents/usage';
+import { chatSessionAccounts, limitAccountsOf, limitsFileIn, UsageMonitor, UsageService, usageAccountsOf, usageRootsOf } from '@adecore/agents/usage';
 
 const nameOf = (kind: string): string => providers.get(kind).name;
 
-const limits = new UsageMonitor({ providers, accounts: limitAccountsOf(accounts, nameOf, env) });
+const limits = new UsageMonitor({
+    providers,
+    accounts: limitAccountsOf(accounts, nameOf, env),
+    file: limitsFileIn(dataDir)
+});
 accounts.listen(() => limits.accountsChanged());
 
 const usage = new UsageService({

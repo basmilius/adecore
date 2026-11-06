@@ -1,4 +1,7 @@
 import { describe, expect, test } from 'bun:test';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { UsageProvider } from '@adecore/agent-contracts';
 import { ProviderRegistry } from '../../providers/registry.ts';
 import { UsageMonitor, type LimitAccount, type LimitAccounts } from './monitor.ts';
@@ -184,11 +187,12 @@ describe('the usage monitor', () => {
 
         const probed: string[] = [];
 
-        const monitorOf = (list: LimitAccount[]): UsageMonitor =>
+        const monitorOf = (list: LimitAccount[], file?: string): UsageMonitor =>
             new UsageMonitor({
                 providers: registry(['claude']),
                 accounts: accounts(list),
                 now: () => now,
+                ...(file === undefined ? {} : { file }),
                 probe: (_kind, _command, env) => {
                     probed.push(env.ACCOUNT!);
 
@@ -196,30 +200,80 @@ describe('the usage monitor', () => {
                 }
             });
 
-        test('lists the default account of a CLI first, and reads another only while it was used in the last day or when asked', async () => {
+        test('lists the default account of a CLI first, reads every account once, and another after that only while it was used in the last day or when asked', async () => {
             probed.length = 0;
             used.clear();
             const monitor = monitorOf(claudeAccounts);
             await monitor.refresh(false);
-            expect(probed).toEqual(['claude']);
+            expect(probed).toEqual(['claude', 'claude_work']);
             expect(monitor.snapshot().providers.map((provider) => [provider.kind, provider.account?.id, provider.checkedAt > 0])).toEqual([
                 ['claude', 'claude', true],
-                ['claude', 'claude_work', false]
+                ['claude', 'claude_work', true]
             ]);
+
+            now += 6 * 60_000;
+            await monitor.refresh(false);
+            expect(probed.slice(2)).toEqual(['claude']);
 
             used.set('claude_work', now - 2 * HOUR);
             now += 6 * 60_000;
             await monitor.refresh(false);
-            expect(probed).toEqual(['claude', 'claude', 'claude_work']);
+            expect(probed.slice(3)).toEqual(['claude', 'claude_work']);
             expect(monitor.snapshot().providers[1]).toMatchObject({ account: { id: 'claude_work', label: 'Work', color: 'blue' }, windows: [{ used: 0.7 }] });
 
             used.set('claude_work', now - 25 * HOUR);
             now += 6 * 60_000;
             await monitor.refresh(false);
-            expect(probed.slice(3)).toEqual(['claude']);
+            expect(probed.slice(5)).toEqual(['claude']);
             await monitor.refresh(true);
-            expect(probed.slice(4)).toEqual(['claude', 'claude_work']);
+            expect(probed.slice(6)).toEqual(['claude', 'claude_work']);
             monitor.stop();
+        });
+
+        test('a restarted host shows the numbers the last one kept until its own read', async () => {
+            const home = await mkdtemp(join(tmpdir(), 'adecore-limits-'));
+            const file = join(home, 'usage', 'limits.json');
+
+            try {
+                const before = monitorOf(claudeAccounts, file);
+                await before.refresh(true);
+                await before.stop();
+
+                const after = new UsageMonitor({
+                    providers: registry(['claude']),
+                    accounts: accounts(claudeAccounts),
+                    now: () => now,
+                    file,
+                    probe: () => Promise.resolve(reading(0.3))
+                });
+
+                await after.restore();
+                expect(after.snapshot().providers.map((provider) => [provider.account?.id, provider.windows[0]?.used])).toEqual([
+                    ['claude', 0.1],
+                    ['claude_work', 0.7]
+                ]);
+
+                await after.refresh(true);
+                expect(after.snapshot().providers.map((provider) => provider.windows[0]?.used)).toEqual([0.3, 0.3]);
+                await after.stop();
+            } finally {
+                await rm(home, { recursive: true, force: true });
+            }
+        });
+
+        test('a kept file that will not parse restores nothing', async () => {
+            const home = await mkdtemp(join(tmpdir(), 'adecore-limits-'));
+            const file = join(home, 'limits.json');
+
+            try {
+                await writeFile(file, '{"version":1,"accounts":');
+                const monitor = monitorOf(claudeAccounts, file);
+                await monitor.restore();
+                expect(monitor.snapshot().providers.every((provider) => provider.checkedAt === 0)).toBe(true);
+                await monitor.stop();
+            } finally {
+                await rm(home, { recursive: true, force: true });
+            }
         });
 
         test('a turn moves the bar of the account it ran under', async () => {

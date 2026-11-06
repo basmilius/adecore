@@ -414,6 +414,7 @@ exports[`the public API ./usage exports these names 1`] = `
   "fraction",
   "hostUsageLine",
   "limitAccountsOf",
+  "limitsFileIn",
   "type HostUsageEntry",
   "type KnownProject",
   "type LimitAccount",
