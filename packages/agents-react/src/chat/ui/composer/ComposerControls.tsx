@@ -144,7 +144,8 @@ export function ComposerControls({
 
     return (
         // The composer's controls are round, from attach to send, so they keep their own shape instead of `.icon-btn`'s.
-        <div className="flex items-center gap-2 pt-3 pr-3.5 pb-3.5 pl-5 @max-md/composer:gap-1.5 @max-md/composer:p-3 @max-md/composer:pt-2.5">
+        // The + stands as far from the card's left edge as send does from its right and bottom ones.
+        <div className="flex items-center gap-2 pt-3 pr-3.5 pb-3.5 pl-3.5 @max-md/composer:gap-1.5 @max-md/composer:p-3 @max-md/composer:pt-2.5">
             <ComposerPlusMenu
                 writable={writable}
                 attachable={attachable}
