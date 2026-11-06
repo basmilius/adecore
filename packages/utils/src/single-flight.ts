@@ -14,6 +14,20 @@ export class SingleFlight<T> {
         return this.flights.has(key);
     }
 
+    /* The keys with a run in flight. */
+    keys(): IterableIterator<string> {
+        return this.flights.keys();
+    }
+
+    /* Lets the next caller of `key` start a run of its own. The run in flight carries on for the callers that hold it. */
+    forget(key: string): void {
+        this.flights.delete(key);
+    }
+
+    clear(): void {
+        this.flights.clear();
+    }
+
     run(key: string, work: () => Promise<T>): Promise<T> {
         const running = this.flights.get(key);
 

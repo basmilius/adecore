@@ -24,6 +24,14 @@ export function tempNameFor(target: string): string {
     return `${target}.${process.pid}-${randomUUID()}.tmp`;
 }
 
+// Before 0.53.3 the part after the process id was a counter, not a UUID, and files of those writes can still lie around.
+const TEMP_NAME = /\.\d+-[0-9a-f-]+\.tmp$/;
+
+/* Whether a file name is one `tempNameFor` gave, for a sweep of the writes a crash left behind. */
+export function isTempName(name: string): boolean {
+    return TEMP_NAME.test(name);
+}
+
 export interface WriteAtomicOptions {
     /* Flushed to the disk before and after the rename, for a file whose loss costs a person their work. */
     durable?: boolean;

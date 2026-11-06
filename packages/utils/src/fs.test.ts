@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from 'bun:test';
 import * as crypto from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { entryExists, fileExists, isBusyRename, removeFile, replaceSync, tempNameFor, writeAtomic, writeAtomicSync } from './fs.ts';
+import { basename, join } from 'node:path';
+import { entryExists, fileExists, isBusyRename, isTempName, removeFile, replaceSync, tempNameFor, writeAtomic, writeAtomicSync } from './fs.ts';
 
 let dir: string;
 
@@ -13,6 +13,16 @@ beforeEach(async () => {
 
 afterEach(async () => {
     await rm(dir, { recursive: true, force: true });
+});
+
+describe('isTempName', () => {
+    test('knows the name of a write, the name of one from before the UUID, and nothing else', () => {
+        expect(isTempName(basename(tempNameFor(join(dir, 'chat.json'))))).toBe(true);
+        expect(isTempName('chat.json.9173-2.tmp')).toBe(true);
+        expect(isTempName('chat.json')).toBe(false);
+        expect(isTempName('notes.tmp')).toBe(false);
+        expect(isTempName('chat.json.9173-2.tmp.bak')).toBe(false);
+    });
 });
 
 describe('writeAtomic', () => {

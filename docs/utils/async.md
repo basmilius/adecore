@@ -80,4 +80,4 @@ export function loadProject(path: string): Promise<Project> {
 }
 ```
 
-`get(key)` returns the run in flight, and `has(key)` says whether there is one.
+`get(key)` returns the run in flight, `has(key)` says whether there is one and `keys()` lists the keys that have one. `forget(key)` and `clear()` let the next caller start a run of its own, while the run in flight carries on for the callers that hold it.
