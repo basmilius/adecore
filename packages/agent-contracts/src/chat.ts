@@ -584,6 +584,18 @@ export type ChatSubagentUsage = z.infer<typeof ChatSubagentUsageSchema>;
 // The `origin` of a subagent row a host opened with a task of its own rather than the CLI with its tool; a legacy spelling that stored threads carry.
 export const HOST_TASK_ORIGIN = 'ruimte';
 
+const TASK_ROW_PREFIX = 'task-';
+
+/* The id of the subagent row a host writes for a task of its own, which is also the row's `toolUseId`. */
+export function taskRowId(taskId: string): string {
+    return `${TASK_ROW_PREFIX}${taskId}`;
+}
+
+/* The id of the task a subagent row stands for; null for a row the CLI opened with its own tool. */
+export function taskIdOfRow(row: { id: string; origin?: string }): string | null {
+    return row.origin === HOST_TASK_ORIGIN && row.id.startsWith(TASK_ROW_PREFIX) ? row.id.slice(TASK_ROW_PREFIX.length) || null : null;
+}
+
 /*
  * One agent the agent delegated to, foreground or background. Its own work stays in the thread as
  * ordinary items that carry `parentToolUseId`, so streaming keeps working; the timeline gathers

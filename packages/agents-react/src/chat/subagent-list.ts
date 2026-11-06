@@ -1,4 +1,4 @@
-import { activeSubagents, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { activeSubagents, HOST_TASK_ORIGIN, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment, formatElapsedShort, formatTokens } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
@@ -19,11 +19,6 @@ export function subagentFacts(item: ChatSubagentItem, modelName: string | null):
             : null,
         item.usage !== null && item.usage.toolUses > 0 ? i18next.t('agent-chat:group.toolCalls', { count: item.usage.toolUses }) : null
     ].filter((fact): fact is string => fact !== null && fact !== '');
-}
-
-/* The task a row stands for, whose id the host wrote into the row's own. */
-export function taskIdOf(item: ChatSubagentItem): string | null {
-    return item.origin === 'ruimte' && item.id.startsWith('task-') ? item.id.slice(5) : null;
 }
 
 /* A cancelled task is a failed row on the wire and a paused one a running row, and only the task itself still says which it is. */
@@ -124,7 +119,7 @@ export function stopOf(item: ChatSubagentItem, turnRunning: boolean): SubagentSt
         return null;
     }
 
-    if (item.origin === 'ruimte') {
+    if (item.origin === HOST_TASK_ORIGIN) {
         return item.childId === undefined ? null : 'task';
     }
 

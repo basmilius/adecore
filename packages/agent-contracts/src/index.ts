@@ -114,6 +114,8 @@ export {
     ChatSubagentUsageSchema,
     type ChatSubagentUsage,
     HOST_TASK_ORIGIN,
+    taskRowId,
+    taskIdOfRow,
     ChatSubagentItemSchema,
     ChatApprovalDecisionSchema,
     type ChatApprovalDecision,

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import { taskIdOfRow, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment, formatTokens } from '@adecore/ui/format';
 import type { SubagentTask } from '../host/host';
 import {
@@ -14,7 +14,6 @@ import {
     subagentFacts,
     subagentTitle,
     summaryWordOf,
-    taskIdOf,
     taskRowStateOf
 } from './subagent-list';
 
@@ -80,7 +79,7 @@ describe('subagent list', () => {
         const second = subagent('task-b', { origin: 'ruimte', childId: 'node-1', background: true, startedAt: 6 });
         const tasks: Record<string, SubagentTask> = { a: task('done'), b: task('open') };
 
-        const words = (items: readonly ChatSubagentItem[]) => items.map((item) => statusWordOf(item, tasks[taskIdOf(item) ?? ''] ?? null));
+        const words = (items: readonly ChatSubagentItem[]) => items.map((item) => statusWordOf(item, tasks[taskIdOfRow(item) ?? ''] ?? null));
 
         const structure: Record<string, ChatItem> = { u1: message('u1'), u2: { ...message('u2'), createdAt: 5 }, 'task-a': first, 'task-b': second };
 
@@ -110,8 +109,6 @@ describe('subagent list', () => {
 
     test('a cancelled task says so, where the row itself only knows it failed', () => {
         const row = subagent('task-t1', { origin: 'ruimte', childId: 'child', status: 'failed' });
-        expect(taskIdOf(row)).toBe('t1');
-        expect(taskIdOf(subagent('a'))).toBeNull();
         expect(statusWordOf(row, task('cancelled'))).toBe('cancelled');
         expect(statusWordOf(row, task('failed'))).toBe('failed');
         expect(statusWordOf(row, null)).toBe('failed');

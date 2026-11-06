@@ -1,4 +1,4 @@
-import type { ChatBackgroundTask, ChatSubagentItem } from '@adecore/agent-contracts';
+import { taskIdOfRow, type ChatBackgroundTask, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
 import { formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -13,7 +13,7 @@ import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
 import { useChatActions } from '../actions';
 import { backgroundCounts } from '../activity';
-import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskIdOf, taskRowStateOf } from '../subagent-list';
+import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
 import { flyoutWorkflows, workflowPillOf, type WorkflowCall, type WorkflowWord } from '../workflow-list';
@@ -46,14 +46,14 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
 
     const progress = progressOf(
         subagents.map((item, index) => {
-            const taskId = taskIdOf(item);
+            const taskId = taskIdOfRow(item);
 
             return taskRowStateOf(item, taskId === null ? null : (tasks?.[taskId] ?? null), children[index]);
         })
     );
 
     const words = subagents.map((item) => {
-        const taskId = taskIdOf(item);
+        const taskId = taskIdOfRow(item);
 
         return statusWordOf(item, taskId === null ? null : (tasks?.[taskId] ?? null));
     });
@@ -228,7 +228,7 @@ function SubagentEntry({ chatId, item, now }: { chatId: string; item: ChatSubage
     const { t } = useTranslation('agent-chat');
     const { id, keyOf } = useChatScope();
     const refused = useSubagentSupport((s) => s.unsupported[id] === true);
-    const task = useHostTask(id, taskIdOf(item));
+    const task = useHostTask(id, taskIdOfRow(item));
     const { show } = useSubagentTrail(chatId);
     const child = useChats((s) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info));
     const word = statusWordOf(item, task);
