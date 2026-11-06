@@ -1,5 +1,7 @@
 # Projects and documents
 
+The first argument may also be a `LanguageServiceFactory`, a function that gets the project and returns the service. It runs once in the constructor. A service that needs the text of the editor that holds a document, or a way to apply the edit a server asks for, takes them from `project.openTextOf(uri)` and `project.applyWorkspaceEdit(edit)` instead of tracking editors itself. `project.onDispose(callback)` runs a callback when the project is disposed.
+
 `new ProjectLanguage(service, host?)` holds the language service of one project and everything its editors share: the open documents, the [navigation history](/editor-react/navigation#history), the [problems](/editor-react/problems#in-the-project) and the clipboard history. Create one per project and dispose it after its editors.
 
 ```ts
@@ -18,7 +20,7 @@ project.dispose();
 
 ## LanguageHost
 
-The `host` is what the app allows the features to do. Every field is optional.
+The `host` is what the app allows the features to do. Every field is optional. `LanguageHost` is the parts below put together, each declared beside the feature that reads it: `NavigationHost`, `PanelsHost`, `ProblemsHost`, `TemplatesHost`, `ClipboardHost`, `SnippetsHost`, `MessagesHost` and `RenameHost`. An app that implements one concern can type its part alone.
 
 | Field                                                              | What the app does                                                                                                                                                                                                         |
 | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -32,7 +34,7 @@ The `host` is what the app allows the features to do. Every field is optional.
 | `onServerMessage(message)`                                         | A `ServerMessage` to show a person (`kind: 'show'`) or log (`'log'`); dropped without it                                                                                                                                  |
 | `pathOfUri(uri)`                                                   | The path to show for a URI, or `null`; without it, `file:` URIs under `folder` are made relative                                                                                                                          |
 | `serverNames(uri)`                                                 | The names of the servers of a document, for the cards                                                                                                                                                                     |
-| `problemSource`                                                    | Where [`project.problems`](/editor-react/problems#in-the-project) reads its reports; the service's diagnostics without one                                                                                                |
+| `problemSource`, `pullWorkspaceProblems(uri, options)` | Where [`project.problems`](/editor-react/problems#in-the-project) reads its reports (the service's diagnostics without one), and how a check of the whole project is asked (the service's workspace diagnostics without it) |
 | `notify(notification)`                                             | Shows a short message, an `EditorNotification` with an `id`, a `kind` of `success` or `error` and a `title`, such as a toast                                                                                              |
 | `clipboard`                                                        | The [`ClipboardHistory`](#clipboard-history) that Paste from History lists; a new one per project without it                                                                                                              |
 | `templates`, `saveAsLiveTemplate(draft)`, `openTemplateSettings()` | The [`TemplateRegistry`](/editor-react/templates#the-registry) (built-in templates only without it), the call Save as Live Template makes with a `LiveTemplateDraft`, and the call that opens the host's template settings |

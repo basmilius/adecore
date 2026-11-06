@@ -46,7 +46,7 @@ export class SymbolPickerFeature {
 
         try {
             const entries = entriesOf(await this.language.service.documentSymbols(uri));
-            popups.setState({ symbols: { file: basenameOf(this.language.uri), entries } });
+            popups.slot('symbols').set({ file: basenameOf(this.language.uri), entries });
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.language.project.host.notify?.({
@@ -59,8 +59,8 @@ export class SymbolPickerFeature {
     }
 
     close(): void {
-        if (this.language.popups.getState().symbols !== null) {
-            this.language.popups.setState({ symbols: null });
+        if (this.language.popups.slot('symbols').get() !== null) {
+            this.language.popups.slot('symbols').set(null);
             this.language.editor.focus();
         }
     }

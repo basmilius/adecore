@@ -1,6 +1,5 @@
 import type { EditorPosition, EditorRange, EditorRect } from '@adecore/editor';
 import type { Location } from '@adecore/lsp';
-import { createStore, type StoreApi } from 'zustand';
 import type { CallDirection, CallRow } from './call-hierarchy-model.ts';
 import type { ActionEntry } from './code-actions-model.ts';
 import type { CodeAuthorship } from './code-authors.ts';
@@ -203,34 +202,64 @@ export interface WrapView {
     readonly error: string | null;
 }
 
-export interface PopupState {
-    readonly hover: HoverView | null;
-    readonly completion: CompletionView | null;
-    readonly signature: SignatureView | null;
-    readonly pick: PickView | null;
-    readonly rename: RenameView | null;
-    readonly peek: PeekView | null;
-    readonly callHierarchy: CallHierarchyView | null;
-    readonly symbols: SymbolsView | null;
-    readonly menu: MenuView | null;
-    readonly authors: AuthorsView | null;
-    readonly wrap: WrapView | null;
+/*
+ * The cards the features of one editor can have open, by the name of the slot each sits in. A feature
+ * opens and closes its own slot and reads a sibling's with `peers`; an app that adds a card of its own
+ * adds a name with `declare module '@adecore/editor-react' { interface PopupViews { ... } }`.
+ */
+export interface PopupViews {
+    hover: HoverView;
+    completion: CompletionView;
+    signature: SignatureView;
+    pick: PickView;
+    rename: RenameView;
+    peek: PeekView;
+    callHierarchy: CallHierarchyView;
+    symbols: SymbolsView;
+    menu: MenuView;
+    authors: AuthorsView;
+    wrap: WrapView;
 }
 
-export type PopupStore = StoreApi<PopupState>;
+/* One card's state with a snapshot of its own, so a card draws again only for a change of its own view. */
+export class PopupSlot<View> {
+    private view: View | null = null;
+    private readonly listeners = new Set<() => void>();
 
-export function createPopupStore(): PopupStore {
-    return createStore<PopupState>(() => ({
-        hover: null,
-        completion: null,
-        signature: null,
-        pick: null,
-        rename: null,
-        peek: null,
-        callHierarchy: null,
-        symbols: null,
-        menu: null,
-        authors: null,
-        wrap: null
-    }));
+    get(): View | null {
+        return this.view;
+    }
+
+    subscribe(listener: () => void): () => void {
+        this.listeners.add(listener);
+
+        return () => this.listeners.delete(listener);
+    }
+
+    set(view: View | null): void {
+        if (Object.is(view, this.view)) {
+            return;
+        }
+
+        this.view = view;
+
+        for (const listener of [...this.listeners]) {
+            listener();
+        }
+    }
+}
+
+export class Popups {
+    private readonly slots = new Map<keyof PopupViews, PopupSlot<unknown>>();
+
+    slot<Name extends keyof PopupViews>(name: Name): PopupSlot<PopupViews[Name]> {
+        let slot = this.slots.get(name);
+
+        if (slot === undefined) {
+            slot = new PopupSlot<unknown>();
+            this.slots.set(name, slot);
+        }
+
+        return slot as PopupSlot<PopupViews[Name]>;
+    }
 }

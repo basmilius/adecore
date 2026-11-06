@@ -24,6 +24,15 @@ import { TemplateRegistry } from './templates.ts';
 import { realTimers, type Timers } from './timers.ts';
 import { applyWorkspaceEdit } from './workspace-edit.ts';
 
+/*
+ * Builds the service of a project that needs what the project knows: the text of the editor that holds a
+ * document, and the way an edit a server asks for is applied. Called once by the constructor; both are
+ * methods of the project, so the service may keep them and call them later.
+ */
+export type LanguageServiceFactory<Service extends LanguageService = LanguageService> = (
+    project: Pick<ProjectLanguage, 'openTextOf' | 'applyWorkspaceEdit'>
+) => Service;
+
 export interface LanguageDocumentHandle {
     readonly uri: string;
     readonly service: LanguageService;
@@ -121,8 +130,8 @@ function filesOf(targets: readonly FileOperationTarget[]): Array<{ uri: string; 
  * A shared language service and document ownership for the editors of a project. Two editors on the same
  * file hold one document, and only the first one sends changes, since both would report the same edit.
  */
-export class ProjectLanguage {
-    readonly service: LanguageService;
+export class ProjectLanguage<Service extends LanguageService = LanguageService> {
+    readonly service: Service;
     readonly host: LanguageHost;
     readonly i18n: i18n;
     readonly folder: string;
@@ -143,23 +152,34 @@ export class ProjectLanguage {
     private lastPlace: Place | null = null;
     private disposed = false;
     private readonly subscriptions: readonly Disposable[];
+    private readonly disposers: Array<() => void> = [];
     /* The result id the server gave each document in its last workspace report, which the next asks with. */
     private readonly workspaceResults = new Map<string, string>();
 
-    constructor(service: LanguageService, host: LanguageHost = {}) {
-        this.service = service;
+    constructor(service: Service | LanguageServiceFactory<Service>, host: LanguageHost = {}) {
         this.host = host;
         this.i18n = host.i18n ?? i18next;
         this.folder = host.folder ?? '';
         this.files = host.files ?? null;
+        this.service = typeof service === 'function' ? service(this) : service;
         this.edits = new EditLocations(host.editHistoryLimit);
         this.clipboard = host.clipboard ?? new ClipboardHistory();
         this.templates = host.templates ?? new TemplateRegistry();
         this.panelBodyHeight = host.panelBodyHeight ?? PANEL_BODY_HEIGHT;
-        this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(service, (uri) => this.pathOfLocation(uri) ?? uri));
-        const shows = service.onShowDocument?.((params) => this.showDocument(params));
-        const messages = host.onServerMessage === undefined ? undefined : service.onServerMessage?.((message) => host.onServerMessage!(message));
+        this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(this.service, (uri) => this.pathOfLocation(uri) ?? uri));
+        const shows = this.service.onShowDocument?.((params) => this.showDocument(params));
+        const messages = host.onServerMessage === undefined ? undefined : this.service.onServerMessage?.((message) => host.onServerMessage!(message));
         this.subscriptions = [shows, messages].flatMap((subscription) => (subscription === undefined ? [] : [subscription]));
+    }
+
+    /* Runs `dispose` when the project is disposed, after the editors' documents are closed. */
+    onDispose(dispose: () => void): void {
+        this.disposers.push(dispose);
+    }
+
+    /* The text of the editor that holds a document first, or undefined when no editor holds it. */
+    openTextOf(uri: string): string | undefined {
+        return this.holders.get(uri)?.editors[0]?.getText();
     }
 
     /* Open panels of other editors of the project follow a resize. */
@@ -232,7 +252,7 @@ export class ProjectLanguage {
      * text file. A document of a scheme a server owns, such as a decompiled class, is read from that server.
      */
     async readText(uri: string): Promise<string | null> {
-        const open = this.holders.get(uri)?.editors[0]?.getText();
+        const open = this.openTextOf(uri);
 
         if (open !== undefined) {
             return open;
@@ -251,6 +271,10 @@ export class ProjectLanguage {
      * offers workspace diagnostics. A file the server reports as unchanged keeps what it had. False when no server offers them.
      */
     async pullWorkspaceProblems(uri: string, options: { readonly signal?: AbortSignal } = {}): Promise<boolean> {
+        if (this.host.pullWorkspaceProblems !== undefined) {
+            return this.host.pullWorkspaceProblems(uri, options);
+        }
+
         const { service } = this;
         if (service.workspaceDiagnostics === undefined || !service.supports('workspace/diagnostic', uri)) {
             return false;
@@ -463,5 +487,9 @@ export class ProjectLanguage {
 
         this.holders.clear();
         this.problems.dispose();
+
+        for (const dispose of this.disposers.splice(0).reverse()) {
+            dispose();
+        }
     }
 }

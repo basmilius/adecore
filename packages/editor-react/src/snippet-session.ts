@@ -422,7 +422,7 @@ export class SnippetFeature {
     }
 
     private closeChoices(): void {
-        const view = this.language.popups?.getState().pick;
+        const view = this.language.popups?.slot('pick').get();
 
         if (this.choicePrefix !== null && view?.groups.some((group) => group.rows.some((row) => row.id.startsWith(this.choicePrefix!)))) {
             this.peers.pick?.close();
@@ -579,11 +579,11 @@ export class SnippetFeature {
         }
 
         if (event.key === 'Escape') {
-            const popups = this.language.popups?.getState();
+            const popups = this.language.popups;
 
             if (
                 popups !== undefined &&
-                [popups.completion, popups.signature, popups.hover, popups.pick, popups.peek, popups.callHierarchy].some((popup) => popup !== null)
+                (['completion', 'signature', 'hover', 'pick', 'peek', 'callHierarchy'] as const).some((name) => popups.slot(name).get() !== null)
             ) {
                 return false;
             }
@@ -754,7 +754,7 @@ export class SnippetFeature {
         }
 
         const frame = this.frames.at(-1);
-        const pick = this.language.popups?.getState().pick;
+        const pick = this.language.popups?.slot('pick').get();
 
         const activeChoice =
             this.choicePrefix !== null && pick?.active.startsWith(this.choicePrefix) ? Number(pick.active.slice(this.choicePrefix.length)) : undefined;
@@ -851,7 +851,7 @@ export class SnippetFeature {
         }
 
         // The generic picker closes on any text edit, including an exit elsewhere in the snippet.
-        if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups?.getState().pick === null) {
+        if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups?.slot('pick').get() === null) {
             this.openChoices(frame, activeChoice);
         }
     }

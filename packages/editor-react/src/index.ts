@@ -3,11 +3,19 @@ export { KEY_PRIORITY } from './key-priority.ts';
 export { realTimers, type Timers } from './timers.ts';
 export { type SemanticTokensOptions } from './semantic-tokens.ts';
 export { ProjectLanguage, type FileOperationTarget } from './project-language.ts';
-export type { AcquireOptions, LanguageDocumentHandle } from './project-language.ts';
+export type { NavigationHost } from './navigation-history.ts';
+export type { PanelsHost } from './panel-size.ts';
+export type { ProblemsHost } from './project-problems.ts';
+export type { TemplatesHost } from './templates.ts';
+export type { ClipboardHost } from './clipboard-history.ts';
+export type { AcquireOptions, LanguageDocumentHandle, LanguageServiceFactory } from './project-language.ts';
 
 export type {
     SnippetVariableContext,
     LanguageHost,
+    SnippetsHost,
+    MessagesHost,
+    RenameHost,
     DiskText,
     GitBlameCommit,
     GitBlameResult,
@@ -26,7 +34,13 @@ export { type RenderedDocsFeature } from './rendered-docs.ts';
 export { type DocumentLinksFeature } from './document-links.ts';
 export { type DocumentColorsFeature } from './document-colors.ts';
 export { type LinkedEditingFeature } from './linked-editing.ts';
-export { type InlineCompletionFeature, type InlineSuggestion } from './inline-completion.ts';
+export {
+    firstWord,
+    type InlineCompletionFeature,
+    type InlineSuggestion,
+    type InlineSuggestionRequest,
+    type InlineSuggestionSource
+} from './inline-completion.ts';
 export type { RenderedDocEntry, RenderedDocsSettings } from './rendered-docs.ts';
 export type { DocTagEntry, DocTagSection, ParsedDocComment } from './doc-comment-model.ts';
 export { EditorRenderingProvider } from './rendering.tsx';
@@ -44,9 +58,8 @@ export type { ProblemCounts } from './diagnostics-model.ts';
 export type { BlameSource, CodeVisionSettings } from './code-vision.ts';
 export type { HoverSettings } from './hover.ts';
 
+export { Popups, PopupSlot, type PopupViews } from './popups.ts';
 export type {
-    PopupState,
-    PopupStore,
     HoverInfo,
     HoverView,
     CompletionView,

@@ -82,7 +82,7 @@ export class PeekFeature {
     }
 
     get isOpen(): boolean {
-        return this.language.popups.getState().peek !== null;
+        return this.language.popups.slot('peek').get() !== null;
     }
 
     async open(position: EditorPosition = this.language.editor.getCaret(), kind: PeekKind = 'references'): Promise<void> {
@@ -153,7 +153,7 @@ export class PeekFeature {
 
         this.line = position.line;
         this.peers.callHierarchy.close();
-        this.language.popups.setState({ peek: { kind, container: null, files, active: first.id, collapsed: [], count: unique.length, preview: null } });
+        this.language.popups.slot('peek').set({ kind, container: null, files, active: first.id, collapsed: [], count: unique.length, preview: null });
         this.select(first.id);
         // The editor draws a row once per id, so a peek opened over another needs an id of its own to get a container.
         editor.setWidgets([{ id: `peek-${token}`, line: this.line, height: PEEK_HEIGHT, render: (container) => this.mounted(container) }]);
@@ -183,18 +183,18 @@ export class PeekFeature {
     close(): void {
         this.token++;
 
-        if (this.language.popups.getState().peek === null) {
+        if (this.language.popups.slot('peek').get() === null) {
             return;
         }
 
-        this.language.popups.setState({ peek: null });
+        this.language.popups.slot('peek').set(null);
         this.language.editor.setWidgets([]);
         this.language.editor.focus();
     }
 
     /* Shows the code around a place. */
     select(id: string): void {
-        const view = this.language.popups.getState().peek;
+        const view = this.language.popups.slot('peek').get();
         const location = this.places.get(id);
 
         if (view === null || location === undefined) {
@@ -211,16 +211,16 @@ export class PeekFeature {
                   ? definitionSnippetOf(text, line, this.targets.get(placeKey(location)) ?? null, location.range)
                   : snippetOf(text, line, location.range);
 
-        this.language.popups.setState({ peek: { ...view, active: id, preview: snippet === null ? null : { ...snippet, uri: location.uri } } });
+        this.language.popups.slot('peek').set({ ...view, active: id, preview: snippet === null ? null : { ...snippet, uri: location.uri } });
     }
 
     /* Folds the places of a file away from the list, or brings them back. */
     toggleFile(uri: string): void {
-        const view = this.language.popups.getState().peek;
+        const view = this.language.popups.slot('peek').get();
 
         if (view !== null) {
             const collapsed = view.collapsed.includes(uri) ? view.collapsed.filter((other) => other !== uri) : [...view.collapsed, uri];
-            this.language.popups.setState({ peek: { ...view, collapsed } });
+            this.language.popups.slot('peek').set({ ...view, collapsed });
         }
     }
 
@@ -235,16 +235,16 @@ export class PeekFeature {
     }
 
     private mounted(container: HTMLElement): void {
-        const view = this.language.popups.getState().peek;
+        const view = this.language.popups.slot('peek').get();
 
         if (view !== null && view.container !== container) {
-            this.language.popups.setState({ peek: { ...view, container } });
+            this.language.popups.slot('peek').set({ ...view, container });
             revealRow(this.timers, container);
         }
     }
 
     private key(event: KeyboardEvent): boolean {
-        const view = this.language.popups.getState().peek;
+        const view = this.language.popups.slot('peek').get();
 
         if (view === null || event.metaKey || event.ctrlKey || event.altKey) {
             return false;

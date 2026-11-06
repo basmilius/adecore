@@ -233,7 +233,7 @@ describe('usages', () => {
         editor.codeVision[0]!.entries[0]!.activate({ left: 0, top: 0, right: 10, bottom: 10 });
         await settle();
 
-        expect(language.popups.getState().peek).toMatchObject({ kind: 'references', count: 2 });
+        expect(language.popups.slot('peek').get()).toMatchObject({ kind: 'references', count: 2 });
     });
 
     test('draw nothing for a file past the line limit', async () => {
@@ -372,7 +372,7 @@ describe('authors', () => {
         await settle();
         const anchor = { left: 4, top: 8, right: 40, bottom: 28 };
         editor.codeVision[0]!.entries[0]!.activate(anchor);
-        const view = language.popups.getState().authors!;
+        const view = language.popups.slot('authors').get()!;
 
         expect(view).toMatchObject({ anchor, name: 'alpha' });
         expect(view.authorship.authors).toEqual([{ name: 'Bob', email: 'bob@example.com', lines: 1 }]);
@@ -383,7 +383,7 @@ describe('authors', () => {
 
         language.codeVision.closeAuthors();
 
-        expect(language.popups.getState().authors).toBeNull();
+        expect(language.popups.slot('authors').get()).toBeNull();
     });
 
     test('close the card when the text is edited', async () => {
@@ -393,11 +393,11 @@ describe('authors', () => {
         await settle();
         editor.codeVision[0]!.entries[0]!.activate({ left: 0, top: 0, right: 1, bottom: 1 });
 
-        expect(language.popups.getState().authors).not.toBeNull();
+        expect(language.popups.slot('authors').get()).not.toBeNull();
 
         editor.type('x');
 
-        expect(language.popups.getState().authors).toBeNull();
+        expect(language.popups.slot('authors').get()).toBeNull();
     });
 
     test('give the editor its focus back when the card is closed from the keyboard', async () => {
@@ -409,7 +409,7 @@ describe('authors', () => {
         editor.focused = false;
         language.codeVision.closeAuthors(true);
 
-        expect(language.popups.getState().authors).toBeNull();
+        expect(language.popups.slot('authors').get()).toBeNull();
         expect(editor.focused).toBe(true);
     });
 });

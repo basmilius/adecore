@@ -332,7 +332,7 @@ export class InlayHintsFeature {
 
     /* Whether the card up is a tooltip, which is the only kind that has no footer. */
     private cardOpen(): boolean {
-        return this.language.popups.getState().hover?.info?.plain === true;
+        return this.language.popups.slot('hover').get()?.info?.plain === true;
     }
 
     /* The card for a hint or part, once the server has said what it can. Says whether it opened. */

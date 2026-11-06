@@ -55,7 +55,7 @@ async function setup(
         timers,
         language,
         contexts,
-        view: () => language.popups.getState().signature,
+        view: () => language.popups.slot('signature').get(),
         setActive: (next: number) => {
             active = next;
         }

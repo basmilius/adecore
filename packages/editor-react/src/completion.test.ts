@@ -124,7 +124,7 @@ test('only a resolve the server calls stale asks for the list again, and every r
 
     expect(resolves).toHaveLength(2);
     expect(resolves.every((call) => call.options.signal instanceof AbortSignal)).toBe(true);
-    expect(JSON.stringify(language.popups.getState().completion?.docs)).toContain('Prints the value.');
+    expect(JSON.stringify(language.popups.slot('completion').get()?.docs)).toContain('Prints the value.');
 
     dispose();
 });
@@ -171,7 +171,12 @@ test('the rows of a source show in a document no server answers for, and accepti
     await settle();
 
     expect(language.completion.isOpen).toBe(true);
-    expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['log', 'logger']);
+    expect(
+        language.popups
+            .slot('completion')
+            .get()
+            ?.rows.map((row) => row.label)
+    ).toEqual(['log', 'logger']);
 
     await language.completion.accept(false, 1);
 
@@ -198,7 +203,12 @@ test('the rows of a source merge with the rows of the server and sort after rows
     timers.advance(80);
     await settle();
 
-    expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['logging', 'lookups', 'loggers']);
+    expect(
+        language.popups
+            .slot('completion')
+            .get()
+            ?.rows.map((row) => row.label)
+    ).toEqual(['logging', 'lookups', 'loggers']);
 
     dispose();
 });
@@ -250,7 +260,12 @@ test('a request the server fails still leaves the rows of a source', async () =>
     timers.advance(80);
     await settle();
 
-    expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['logger']);
+    expect(
+        language.popups
+            .slot('completion')
+            .get()
+            ?.rows.map((row) => row.label)
+    ).toEqual(['logger']);
 
     dispose();
 });
@@ -287,16 +302,31 @@ test('showItems opens the list with only the given rows, which narrow as a perso
     const row = (label: string) => local(label, accepted, { textEdit: { range: { start: at, end: at }, newText: label } });
     language.completion.showItems([row('foo'), row('bar'), row('food')], at);
 
-    expect(language.popups.getState().completion?.rows.map((entry) => entry.label)).toEqual(['bar', 'foo', 'food']);
+    expect(
+        language.popups
+            .slot('completion')
+            .get()
+            ?.rows.map((entry) => entry.label)
+    ).toEqual(['bar', 'foo', 'food']);
 
     editor.type('x f');
 
-    expect(language.popups.getState().completion?.rows.map((entry) => entry.label)).toEqual(['foo', 'food']);
+    expect(
+        language.popups
+            .slot('completion')
+            .get()
+            ?.rows.map((entry) => entry.label)
+    ).toEqual(['foo', 'food']);
 
     editor.type('x fo');
     editor.type('x foo');
 
-    expect(language.popups.getState().completion?.rows.map((entry) => entry.label)).toEqual(['foo', 'food']);
+    expect(
+        language.popups
+            .slot('completion')
+            .get()
+            ?.rows.map((entry) => entry.label)
+    ).toEqual(['foo', 'food']);
     expect(service.calls.filter((call) => call.method === 'textDocument/completion')).toEqual([]);
 
     await language.completion.accept(false);

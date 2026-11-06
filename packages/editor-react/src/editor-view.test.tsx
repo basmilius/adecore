@@ -120,7 +120,7 @@ test('the view hands its language to the rows the app adds to the context menu',
 
         expect(asked).toHaveLength(0);
 
-        await act(async () => attached!.popups.setState({ menu: { x: 10, y: 20, refactors: [] } }));
+        await act(async () => attached!.popups.slot('menu').set({ x: 10, y: 20, refactors: [] }));
 
         expect(asked.length).toBeGreaterThan(0);
         expect(asked.every((language) => language === attached)).toBe(true);

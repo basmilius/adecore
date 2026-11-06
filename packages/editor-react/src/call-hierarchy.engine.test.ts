@@ -48,7 +48,7 @@ async function setup(incoming: (name: string) => CallHierarchyIncomingCall[], re
     await language.callHierarchy.open();
     await settle();
 
-    return { ...mounted, language, view: () => language.popups.getState().callHierarchy! };
+    return { ...mounted, language, view: () => language.popups.slot('callHierarchy').get()! };
 }
 
 function callers(count: number, from = uri): CallHierarchyIncomingCall[] {
@@ -126,7 +126,8 @@ describe('call hierarchy in the real editor', () => {
 
     test('gives the first Escape to the tree before a card', async () => {
         const { press, language } = await setup(() => callers(1));
-        language.popups.setState({ hover: {} as HoverView, signature: {} as SignatureView });
+        language.popups.slot('hover').set({} as HoverView);
+        language.popups.slot('signature').set({} as SignatureView);
         press('Escape');
 
         expect(language.callHierarchy.isOpen).toBe(false);

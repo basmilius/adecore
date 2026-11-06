@@ -30,7 +30,7 @@ async function hoverFor(referenceCount: boolean | undefined) {
     timers.advance(500);
     await settle();
     const references = service.calls.filter((call) => call.method === 'textDocument/references').length;
-    const shown = language.popups.getState().hover?.info?.references ?? null;
+    const shown = language.popups.slot('hover').get()?.info?.references ?? null;
     language.dispose();
     project.dispose();
 
@@ -78,11 +78,11 @@ describe('hover card', () => {
         editor.hover({ line: 0, character: 10 });
         timers.advance(200);
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
 
         timers.advance(150);
         await settle();
-        const shown = language.popups.getState().hover;
+        const shown = language.popups.slot('hover').get();
 
         expect(shown?.problems).toHaveLength(1);
         expect(shown?.anchor).toEqual({ line: 0, character: 8 });
@@ -90,7 +90,7 @@ describe('hover card', () => {
         editor.hover({ line: 0, character: 12 });
         timers.advance(1000);
 
-        expect(language.popups.getState().hover).toBe(shown);
+        expect(language.popups.slot('hover').get()).toBe(shown);
     });
 
     test('shows nothing where there is no problem and no server to ask', async () => {
@@ -99,7 +99,7 @@ describe('hover card', () => {
         timers.advance(400);
         await settle();
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
     });
 
     test('goes a moment after the pointer leaves, unless the pointer is in the card', async () => {
@@ -112,12 +112,12 @@ describe('hover card', () => {
         hover.holdCard(true);
         timers.advance(1000);
 
-        expect(language.popups.getState().hover).not.toBeNull();
+        expect(language.popups.slot('hover').get()).not.toBeNull();
 
         hover.holdCard(false);
         timers.advance(300);
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
     });
 
     test('goes when the text is edited, the editor scrolls, or Escape is pressed', async () => {
@@ -129,24 +129,24 @@ describe('hover card', () => {
             timers.advance(300);
             await settle();
 
-            expect(language.popups.getState().hover).not.toBeNull();
+            expect(language.popups.slot('hover').get()).not.toBeNull();
         };
 
         await show();
         editor.scroll();
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
 
         await show();
 
         expect(editor.press({ key: 'Escape' })).toBe(true);
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
         expect(editor.press({ key: 'Escape' })).toBe(false);
 
         await show();
         editor.type('let a = salaryFit(1);\nlet b = 3;');
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
     });
 });
 
@@ -201,7 +201,7 @@ describe('the reference count', () => {
         await rest(11);
 
         expect(asked()).toBe(1);
-        expect(language.popups.getState().hover?.info?.references).toBe(1);
+        expect(language.popups.slot('hover').get()?.info?.references).toBe(1);
 
         editor.type('let a = salaryFit(1);\nlet b = 3;');
         await rest(10);
@@ -223,25 +223,25 @@ describe('quick info', () => {
 
         await settle();
 
-        expect(language.popups.getState().hover?.problems).toHaveLength(1);
-        expect(language.popups.getState().hover?.info?.text.signatures[0]?.code).toBe('function salaryFit(): number');
+        expect(language.popups.slot('hover').get()?.problems).toHaveLength(1);
+        expect(language.popups.slot('hover').get()?.info?.text.signatures[0]?.code).toBe('function salaryFit(): number');
 
         editor.scroll();
 
-        expect(language.popups.getState().hover).not.toBeNull();
+        expect(language.popups.slot('hover').get()).not.toBeNull();
 
         editor.press({ key: 'Escape' });
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
 
         editor.press(keyOf(language.shortcuts.quickInfo));
         await settle();
 
-        expect(language.popups.getState().hover).not.toBeNull();
+        expect(language.popups.slot('hover').get()).not.toBeNull();
 
         editor.moveCaret({ line: 1, character: 0 });
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
     });
 
     test('tells the host when there is nothing to say at the caret', async () => {
@@ -253,7 +253,7 @@ describe('quick info', () => {
         editor.press(keyOf(language.shortcuts.quickInfo));
         await settle();
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
         expect(notifications.map((notification) => notification.id)).toEqual(['language-hover']);
     });
 });
@@ -272,7 +272,7 @@ describe('hover information', () => {
         editor.hover({ line: 0, character: 10 });
         timers.advance(300);
         await settle();
-        const shown = language.popups.getState().hover;
+        const shown = language.popups.slot('hover').get();
         const asked = service.calls.map((call) => call.method).filter((method) => method === 'textDocument/hover' || method === 'textDocument/definition');
 
         expect(asked.sort()).toEqual(['textDocument/definition', 'textDocument/hover']);
@@ -297,12 +297,12 @@ describe('hover information', () => {
         timers.advance(300);
         await settle();
 
-        expect(language.popups.getState().hover?.info).toMatchObject({ word: 'salaryFit', references: null });
+        expect(language.popups.slot('hover').get()?.info).toMatchObject({ word: 'salaryFit', references: null });
 
         timers.advance(500);
         await settle();
 
-        expect(language.popups.getState().hover?.info).toMatchObject({ word: 'salaryFit', references: 2 });
-        expect(language.popups.getState().hover?.position).toEqual({ line: 0, character: 10 });
+        expect(language.popups.slot('hover').get()?.info).toMatchObject({ word: 'salaryFit', references: 2 });
+        expect(language.popups.slot('hover').get()?.position).toEqual({ line: 0, character: 10 });
     });
 });

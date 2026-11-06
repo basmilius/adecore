@@ -298,20 +298,18 @@ export class CodeVisionFeature {
         const source = this.blame;
         const openCommit = source?.kind === 'ready' ? source.openCommit : undefined;
 
-        this.language.popups.setState({
-            authors: {
-                anchor,
-                name: declaration.name,
-                authorship,
-                openCommit: openCommit === undefined || authorship.latest === null ? null : () => openCommit(authorship.latest!.hash)
-            }
+        this.language.popups.slot('authors').set({
+            anchor,
+            name: declaration.name,
+            authorship,
+            openCommit: openCommit === undefined || authorship.latest === null ? null : () => openCommit(authorship.latest!.hash)
         });
     }
 
     /* Closes the card of the authors; `restoreFocus` is for a close that came from the keyboard, which gives the editor its keys back. */
     closeAuthors(restoreFocus = false): void {
-        if (this.language.popups.getState().authors !== null) {
-            this.language.popups.setState({ authors: null });
+        if (this.language.popups.slot('authors').get() !== null) {
+            this.language.popups.slot('authors').set(null);
 
             if (restoreFocus) {
                 this.language.editor.focus();

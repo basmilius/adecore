@@ -175,15 +175,15 @@ describe('problem navigation', () => {
         report([{ range: range(2, 0, 5), message: 'second', severity: 2 }]);
         editor.press(keyOf(language.shortcuts.nextProblem));
 
-        expect(language.popups.getState().hover?.problems[0]?.diagnostic.message).toBe('second');
+        expect(language.popups.slot('hover').get()?.problems[0]?.diagnostic.message).toBe('second');
 
         editor.scroll();
 
-        expect(language.popups.getState().hover).not.toBeNull();
+        expect(language.popups.slot('hover').get()).not.toBeNull();
 
         editor.moveCaret(at(0, 0));
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
     });
 
     test('follows the keymap of the host, and leaves the bare key of a shortcut with a modifier alone', async () => {

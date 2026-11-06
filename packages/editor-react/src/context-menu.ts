@@ -39,8 +39,8 @@ export class ContextMenuFeature {
     close(): void {
         this.request++;
 
-        if (this.language.popups.getState().menu !== null) {
-            this.language.popups.setState({ menu: null });
+        if (this.language.popups.slot('menu').get() !== null) {
+            this.language.popups.slot('menu').set(null);
         }
     }
 
@@ -65,13 +65,13 @@ export class ContextMenuFeature {
         const request = ++this.request;
         const { popups } = this.language;
         const { codeActions } = this.peers;
-        popups.setState({ menu: { x, y, refactors: [] } });
+        popups.slot('menu').set({ x, y, refactors: [] });
 
         void codeActions.list(['refactor']).then((entries) => {
-            const shown = popups.getState().menu;
+            const shown = popups.slot('menu').get();
 
             if (request === this.request && shown !== null && entries !== null) {
-                popups.setState({ menu: { ...shown, refactors: entries } });
+                popups.slot('menu').set({ ...shown, refactors: entries });
             }
         });
     }

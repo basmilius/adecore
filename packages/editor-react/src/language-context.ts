@@ -2,7 +2,7 @@ import type { Editor, EditorKeyHandler, EditorPosition } from '@adecore/editor';
 import type { Keymap } from '@adecore/editor/keymap';
 import type { LanguageService, Location, TextDocumentSaveReason } from '@adecore/lsp';
 import type { Place } from './navigation-history.ts';
-import type { PopupStore } from './popups.ts';
+import type { Popups } from './popups.ts';
 import type { LanguageDocumentHandle, ProjectLanguage } from './project-language.ts';
 import type { shortcutsOf } from './shortcut-keys.ts';
 
@@ -25,7 +25,7 @@ export interface LanguageContext {
     readonly served: boolean;
 
     /* What the features of this editor have open over it: the hover card, the suggestions, the signature. */
-    readonly popups: PopupStore;
+    readonly popups: Popups;
     readonly uri: string;
 
     /* The service this document is asked through: the project's, or one that answers nothing when no server serves it. */
@@ -49,6 +49,9 @@ export interface LanguageContext {
 
     /* Lets `handler` see the editor's keys before every handler of a lower `priority`, the first to take a key winning. */
     onKey(handler: EditorKeyHandler, priority?: number): () => void;
+
+    /* Like `onKey`, for a feature that needs a server behind the document: the editor of a document no server serves never gives it a key. */
+    onServedKey(handler: EditorKeyHandler, priority?: number): () => void;
 
     /* Lets the servers in before the host writes the file. */
     prepareSave(reason?: TextDocumentSaveReason): Promise<void>;

@@ -3,10 +3,11 @@ import type { Keymap } from '@adecore/editor/keymap';
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import type { ServerMessage } from '@adecore/lsp';
 import type { i18n } from 'i18next';
-import type { ClipboardHistory } from './clipboard-history.ts';
-import type { Place } from './navigation-history.ts';
-import type { ProblemSource } from './project-problems.ts';
-import type { LiveTemplateDraft, TemplateRegistry } from './templates.ts';
+import type { ClipboardHost } from './clipboard-history.ts';
+import type { NavigationHost } from './navigation-history.ts';
+import type { PanelsHost } from './panel-size.ts';
+import type { ProblemsHost } from './project-problems.ts';
+import type { TemplatesHost } from './templates.ts';
 
 export interface DiskText {
     text: string;
@@ -88,39 +89,28 @@ export interface SnippetVariableContext {
     readonly path?: string;
 }
 
-export interface LanguageHost {
+/* What the editors of a project ask of the app that hosts them, in the part each feature reads. */
+export interface SnippetsHost {
     readonly snippetTransformWorker?: () => WorkerRequestPort;
+    /* Synchronous overrides; undefined delegates to built-ins or an editable unknown-variable placeholder. */
+    resolveSnippetVariable?(name: string, context: SnippetVariableContext): string | undefined;
+}
+
+export interface MessagesHost {
+    notify?(notification: EditorNotification): void;
+    /* A message of a server for a person, or a line for its log; without it the messages are not shown. */
+    onServerMessage?(message: ServerMessage): void;
+}
+
+export interface RenameHost {
+    suggestNames?(request: RenameSuggestionsRequest, signal: AbortSignal): Promise<readonly string[]>;
+}
+
+export interface LanguageHost extends SnippetsHost, MessagesHost, RenameHost, NavigationHost, PanelsHost, ProblemsHost, TemplatesHost, ClipboardHost {
     /* The instance the app hands `UIProvider`, which the features read their words from too; the default instance without one. */
     readonly i18n?: i18n;
     readonly folder?: string;
     readonly files?: ProjectFiles;
     readonly apple?: boolean;
     readonly keymap?: Keymap;
-    /* What Paste from History lists. A new `ClipboardHistory` that lives as long as the project without one; pass one to choose its size or to keep its entries. */
-    readonly clipboard?: ClipboardHistory;
-    /* What templates the editors of the project know. A registry of the built-in ones that lives as long as the project without one. */
-    readonly templates?: TemplateRegistry;
-    /* Save as Live Template: the host opens its own form with this draft. Without it the command does nothing. */
-    saveAsLiveTemplate?(draft: LiveTemplateDraft): void;
-    /* The last row of the template lists, "Configure live templates…"; the row is left out without it. */
-    openTemplateSettings?(): void;
-    /* How many places Last Edit Location and Next Edit Location remember; 150 without one. */
-    readonly editHistoryLimit?: number;
-    /* The height in pixels of the list-and-preview area of the peek and the call hierarchy, so a person's drag outlives the panel; 180 without one. */
-    readonly panelBodyHeight?: number;
-    /* A person finished resizing a peek or call hierarchy panel; the height is already within what the editor allows. */
-    onPanelResize?(height: number): void;
-    /* Where `project.problems` reads its reports, such as a machine that also reports files no editor here holds; the service's diagnostics without one. */
-    readonly problemSource?: ProblemSource;
-    openPlace?(place: Place): void;
-    /* Opens a web address outside the editor, from a link in the text or a server; a new browser window without it. */
-    openExternal?(url: string): void;
-    pathOfUri?(uri: string): string | null;
-    serverNames?(uri: string): readonly string[];
-    notify?(notification: EditorNotification): void;
-    /* A message of a server for a person, or a line for its log; without it the messages are not shown. */
-    onServerMessage?(message: ServerMessage): void;
-    /* Synchronous overrides; undefined delegates to built-ins or an editable unknown-variable placeholder. */
-    resolveSnippetVariable?(name: string, context: SnippetVariableContext): string | undefined;
-    suggestNames?(request: RenameSuggestionsRequest, signal: AbortSignal): Promise<readonly string[]>;
 }

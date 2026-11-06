@@ -136,7 +136,7 @@ export class MarkupFeature {
         }
         this.cancelWrap();
         this.wrapping = editor.trackRange(range);
-        popups.setState({ wrap: { anchor: range.start, error: null } });
+        popups.slot('wrap').set({ anchor: range.start, error: null });
         return true;
     }
 
@@ -151,7 +151,7 @@ export class MarkupFeature {
         }
         const expanded = expandAbbreviation(abbreviation.trim(), { syntax, indent: this.indent(), wrap: this.wrapLines(range) });
         if (expanded === null) {
-            popups.setState({ wrap: { anchor: range.start, error: project.i18n.t('editor:language.markup.invalid') } });
+            popups.slot('wrap').set({ anchor: range.start, error: project.i18n.t('editor:language.markup.invalid') });
             return false;
         }
         this.cancelWrap();
@@ -163,8 +163,8 @@ export class MarkupFeature {
     cancelWrap(): void {
         this.wrapping?.dispose();
         this.wrapping = null;
-        if (this.language.popups.getState().wrap !== null) {
-            this.language.popups.setState({ wrap: null });
+        if (this.language.popups.slot('wrap').get() !== null) {
+            this.language.popups.slot('wrap').set(null);
         }
     }
 

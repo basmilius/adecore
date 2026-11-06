@@ -80,7 +80,11 @@ async function setup(marked: string, options: Options = {}) {
     mounted.editor.setSelections(ranges);
     await settle();
 
-    const rows = () => language.popups.getState().pick?.groups.flatMap((group) => group.rows) ?? [];
+    const rows = () =>
+        language.popups
+            .slot('pick')
+            .get()
+            ?.groups.flatMap((group) => group.rows) ?? [];
     const labels = () => rows().map((row) => `${row.mnemonic ?? ''} ${row.label}`.trim());
 
     const choose = async (id: string): Promise<void> => {
@@ -124,7 +128,7 @@ describe('Surround With', () => {
 
         expect(labels().slice(0, 4)).toEqual(['1 if', '2 if / else', '3 while', '4 do / while']);
         expect(labels().slice(8, 14)).toEqual(['9 { }', '0 function', 'A region...endregion comments', 'B <editor-fold...> comments']);
-        expect(language.popups.getState().pick?.title).toBe('Surround with');
+        expect(language.popups.slot('pick').get()?.title).toBe('Surround with');
 
         expect(press('2')).toBe(true);
         await settle();
@@ -185,7 +189,7 @@ describe('Surround With', () => {
         timers.advance(120);
         await settle();
 
-        expect(language.popups.getState().pick?.preview).toEqual({
+        expect(language.popups.slot('pick').get()?.preview).toEqual({
             removed: ['    foo();'],
             added: ['    if () {', '        foo();', '    }'],
             note: null
@@ -280,7 +284,7 @@ describe('Surround with Live Template', () => {
 
         expect(labels()).toEqual(['E Emmet', 'T T', 'W wrap', 'Configure live templates…']);
         expect(rows().find((row) => row.id === 'template:own.wrap')?.detail).toBe('Bold');
-        expect(language.popups.getState().pick?.title).toBe('Select template');
+        expect(language.popups.slot('pick').get()?.title).toBe('Select template');
     });
 
     test('puts the live templates in a group of their own below the constructs in Surround With', async () => {
@@ -288,7 +292,12 @@ describe('Surround with Live Template', () => {
 
         language.surround.open();
 
-        expect(language.popups.getState().pick?.groups.map((group) => group.title)).toEqual([null, 'Live templates']);
+        expect(
+            language.popups
+                .slot('pick')
+                .get()
+                ?.groups.map((group) => group.title)
+        ).toEqual([null, 'Live templates']);
     });
 
     test('wraps with the T template, its tag mirrored', async () => {
@@ -319,7 +328,7 @@ describe('Surround with Live Template', () => {
         language.surround.openTemplates();
         await choose('emmet');
 
-        expect(language.popups.getState().wrap).not.toBeNull();
+        expect(language.popups.slot('wrap').get()).not.toBeNull();
     });
 
     test('says so where no template applies', async () => {

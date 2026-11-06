@@ -1,3 +1,8 @@
+export interface ClipboardHost {
+    /* What Paste from History lists. A new `ClipboardHistory` that lives as long as the project without one; pass one to choose its size or to keep its entries. */
+    readonly clipboard?: ClipboardHistory;
+}
+
 /* One copy or cut, as the editors of a project made it. */
 export interface ClipboardEntry {
     readonly text: string;

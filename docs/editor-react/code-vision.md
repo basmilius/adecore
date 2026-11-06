@@ -21,6 +21,6 @@ language.codeVision.setBlame({ kind: 'ready', blame, base: textOnDisk, openCommi
 
 `setBlame` takes a `BlameSource`. A `GitBlameResult` has the `commits`, each a `GitBlameCommit` (`hash`, `shortHash`, `author`, `email`, `at` in milliseconds, `summary`), and `lines`, the commit index of each line of `base`. `omitted: 'untracked'` or `'too-large'` says why there is no blame. Lines typed since count as uncommitted. `setBlame(null)` removes the authors.
 
-The card lists the declaration's authors by lines written, the uncommitted lines and the latest commit, with a button to it when `openCommit` is set. A host with its own card reads the `authors` field, an `AuthorsView`, of `language.popups`.
+The card lists the declaration's authors by lines written, the uncommitted lines and the latest commit, with a button to it when `openCommit` is set. A host with its own card reads the `authors` slot, an `AuthorsView`, of `language.popups`.
 
 Files over 20,000 lines or 3,000 declarations get no rows.

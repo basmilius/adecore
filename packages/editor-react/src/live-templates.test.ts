@@ -231,7 +231,12 @@ describe('Tab', () => {
 
         expect(press('Tab')).toBe(true);
         expect(language.completion.isOpen).toBe(true);
-        expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['lg', 'lg']);
+        expect(
+            language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label)
+        ).toEqual(['lg', 'lg']);
 
         await language.completion.accept(false, 1);
         await settle();
@@ -285,7 +290,12 @@ describe('completion rows', () => {
 
         await other.typeKeys('t');
 
-        expect(other.language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['todo']);
+        expect(
+            other.language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label)
+        ).toEqual(['todo']);
 
         await other.language.completion.accept(false);
         await settle();
@@ -308,7 +318,12 @@ describe('Insert Live Template', () => {
         const { press, language } = await setup('|', { builtins: false, live: [template('bb'), template('aa'), template('cc', { languages: ['php'] })] });
 
         expect(press('j', INSERT_CHORD)).toBe(true);
-        expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['aa', 'bb']);
+        expect(
+            language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label)
+        ).toEqual(['aa', 'bb']);
     });
 
     test('narrows the list to the templates that fit the word', async () => {
@@ -316,7 +331,12 @@ describe('Insert Live Template', () => {
 
         press('j', INSERT_CHORD);
 
-        expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['itar', 'iter', 'itin', 'ritar']);
+        expect(
+            language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label)
+        ).toEqual(['itar', 'iter', 'itin', 'ritar']);
     });
 
     test('includes a template whose description holds the word', async () => {
@@ -324,7 +344,12 @@ describe('Insert Live Template', () => {
 
         press('j', INSERT_CHORD);
 
-        expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['ritar']);
+        expect(
+            language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label)
+        ).toEqual(['ritar']);
     });
 
     test('tells the person when nothing applies', async () => {

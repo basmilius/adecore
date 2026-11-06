@@ -96,7 +96,7 @@ export class HoverFeature {
                     return true;
                 }
 
-                if (event.key === 'Escape' && this.language.popups.getState().hover !== null && this.language.popups.getState().callHierarchy === null) {
+                if (event.key === 'Escape' && this.language.popups.slot('hover').get() !== null && this.language.popups.slot('callHierarchy').get() === null) {
                     this.hide();
 
                     return true;
@@ -191,8 +191,8 @@ export class HoverFeature {
         this.timers.clear(this.countTimer);
         this.inCard = false;
 
-        if (this.language.popups.getState().hover !== null) {
-            this.language.popups.setState({ hover: null });
+        if (this.language.popups.slot('hover').get() !== null) {
+            this.language.popups.slot('hover').set(null);
         }
     }
 
@@ -210,7 +210,7 @@ export class HoverFeature {
             return;
         }
 
-        const shown = this.language.popups.getState().hover;
+        const shown = this.language.popups.slot('hover').get();
 
         if (shown !== null && rangeHolds(shown.subject, hover.position)) {
             this.timers.clear(this.hideTimer);
@@ -226,7 +226,7 @@ export class HoverFeature {
     private scheduleHide(): void {
         this.timers.clear(this.hideTimer);
 
-        if (this.language.popups.getState().hover === null || this.inCard || this.held) {
+        if (this.language.popups.slot('hover').get() === null || this.inCard || this.held) {
             return;
         }
 
@@ -315,14 +315,12 @@ export class HoverFeature {
         const subject = range ?? { start: position, end: position };
         this.timers.clear(this.hideTimer);
 
-        this.language.popups.setState({
-            hover: {
-                anchor: subject.start.line === position.line ? subject.start : position,
-                position,
-                subject,
-                problems,
-                info
-            }
+        this.language.popups.slot('hover').set({
+            anchor: subject.start.line === position.line ? subject.start : position,
+            position,
+            subject,
+            problems,
+            info
         });
     }
 
@@ -360,10 +358,10 @@ export class HoverFeature {
     }
 
     private showCount(count: number, request: number): void {
-        const shown = this.language.popups.getState().hover;
+        const shown = this.language.popups.slot('hover').get();
 
         if (request === this.request && shown?.info != null) {
-            this.language.popups.setState({ hover: { ...shown, info: { ...shown.info, references: count } } });
+            this.language.popups.slot('hover').set({ ...shown, info: { ...shown.info, references: count } });
         }
     }
 

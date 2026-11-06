@@ -90,7 +90,7 @@ describe('rename', () => {
         expect(editor.press(keyOf(language.shortcuts.rename))).toBe(true);
 
         await settle();
-        const view = language.popups.getState().rename!;
+        const view = language.popups.slot('rename').get()!;
 
         expect(view).toMatchObject({ phase: 'input', original: 'weights', placeholder: 'weights', range: range(0, 6, 13) });
         expect(view.occurrences).toEqual({ count: 3, files: 2 });
@@ -105,7 +105,7 @@ describe('rename', () => {
 
         expect(renames()[0]?.params).toMatchObject({ newName: 'scores', position: at(0, 6) });
         expect(editor.getText()).toBe('const scores = {};\nuse(scores);');
-        expect(language.popups.getState().rename).toBeNull();
+        expect(language.popups.slot('rename').get()).toBeNull();
         expect(editor.highlights).toEqual([]);
     });
 
@@ -114,7 +114,7 @@ describe('rename', () => {
         editor.moveCaret(at(0, 8));
         await language.rename.start();
         await language.rename.submit('scores', true);
-        const view = language.popups.getState().rename!;
+        const view = language.popups.slot('rename').get()!;
 
         expect(view.phase).toBe('preview');
         expect(view.files).toEqual([
@@ -139,7 +139,7 @@ describe('rename', () => {
         await language.rename.start();
         language.rename.cancel();
 
-        expect(language.popups.getState().rename).toBeNull();
+        expect(language.popups.slot('rename').get()).toBeNull();
 
         await language.rename.start();
         await language.rename.submit('weights', false);
@@ -155,7 +155,7 @@ describe('rename', () => {
         editor.moveCaret(at(1, 6));
         await language.rename.start();
 
-        expect(language.popups.getState().rename).toMatchObject({ original: 'weights', range: range(1, 4, 11) });
+        expect(language.popups.slot('rename').get()).toMatchObject({ original: 'weights', range: range(1, 4, 11) });
     });
 
     test('says so when there is nothing to rename here', async () => {
@@ -171,7 +171,7 @@ describe('rename', () => {
         await language.rename.start();
         await language.rename.submit('scores', false);
 
-        expect(language.popups.getState().rename).toMatchObject({
+        expect(language.popups.slot('rename').get()).toMatchObject({
             phase: 'input',
             busy: false,
             error: 'Could not rename: New name refused'
@@ -181,7 +181,7 @@ describe('rename', () => {
 
         language.rename.edited();
 
-        expect(language.popups.getState().rename?.error).toBeNull();
+        expect(language.popups.slot('rename').get()?.error).toBeNull();
     });
 
     test('says so when no server renames in the file', async () => {
@@ -260,15 +260,15 @@ describe('rename suggestions', () => {
         asked[0]!.answer(['matchedSkills', 'matches', 'foundSkills']);
         await settle();
 
-        expect(language.popups.getState().rename!.suggestions).toEqual(['matchedSkills', 'matches', 'foundSkills']);
-        expect(language.popups.getState().rename!.name).toBe('hits');
+        expect(language.popups.slot('rename').get()!.suggestions).toEqual(['matchedSkills', 'matches', 'foundSkills']);
+        expect(language.popups.slot('rename').get()!.name).toBe('hits');
         expect(renames()).toHaveLength(0);
     });
 
     test('offers none when the host has no suggester', async () => {
         const { language } = await setup();
 
-        expect(language.popups.getState().rename).toMatchObject({ phase: 'input', suggestions: [] });
+        expect(language.popups.slot('rename').get()).toMatchObject({ phase: 'input', suggestions: [] });
     });
 
     test('drops the answer of a rename that was closed, and aborts the request', async () => {
@@ -281,7 +281,7 @@ describe('rename suggestions', () => {
         asked[0]!.answer(['matches']);
         await settle();
 
-        expect(language.popups.getState().rename).toBeNull();
+        expect(language.popups.slot('rename').get()).toBeNull();
     });
 
     test('a suggester that fails leaves the input as it is', async () => {
@@ -290,6 +290,6 @@ describe('rename suggestions', () => {
         asked[0]!.fail(new Error('The model is busy'));
         await settle();
 
-        expect(language.popups.getState().rename).toMatchObject({ suggestions: [], phase: 'input', error: null });
+        expect(language.popups.slot('rename').get()).toMatchObject({ suggestions: [], phase: 'input', error: null });
     });
 });

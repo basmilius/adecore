@@ -155,11 +155,11 @@ describe('the keys of an editor language', () => {
                 .sort((left, right) => right[1] - left[1])
                 .map(([name]) => name)
         ).toEqual([
+            'suggestionAccept',
             'pick',
             'diagnostics',
             'hover',
             'completion',
-            'inlineAccept',
             'snippets',
             'templates',
             'markup',

@@ -27,7 +27,7 @@ import { NavigationFeature } from './navigation.ts';
 import { PasteHistoryFeature } from './paste-history.ts';
 import { PeekFeature } from './peek.ts';
 import { PickFeature } from './pick.ts';
-import { createPopupStore } from './popups.ts';
+import { Popups } from './popups.ts';
 import type { LanguageDocumentHandle, ProjectLanguage } from './project-language.ts';
 import { RenameFeature } from './rename.ts';
 import { RenderedDocsFeature } from './rendered-docs.ts';
@@ -45,18 +45,24 @@ import { realTimers, type Timers } from './timers.ts';
 const SAVE_PARTICIPANT_MS = 1_000;
 
 /* What an app tunes about the features of one editor. */
-export interface EditorLanguageOptions {
+export interface EditorLanguageOptions<App extends object = {}> {
     /* Where a document counts as large for semantic tokens. */
     semanticTokens?: SemanticTokensOptions;
     /* False for a document no server serves: it counts as open in the project and the features stay inert. True by default. */
     serve?: boolean;
+    /*
+     * The app's own features for this editor, built once the shared ones are, so it may use every one of them. They
+     * come back as `language.app`, which is not set yet while this runs. An app that drives the editor's keys does so
+     * through `onKey` and `onServedKey`, and one that suggests code adds a source to `inlineCompletion`.
+     */
+    features?(language: EditorLanguage): App;
 }
 
 /*
  * The one place that connects an editor to the language servers: it opens the file's document for
  * the editor and lets go of it again. Every language feature of the editor hangs off this object.
  */
-export class EditorLanguage implements LanguageContext {
+export class EditorLanguage<App extends object = {}> implements LanguageContext {
     readonly editor: Editor;
     readonly apple: boolean;
     readonly keymap: Keymap;
@@ -69,7 +75,7 @@ export class EditorLanguage implements LanguageContext {
     readonly served: boolean;
 
     /* What the features of this editor have open over it: the hover card, the suggestions, the signature. */
-    readonly popups = createPopupStore();
+    readonly popups = new Popups();
 
     readonly diagnostics: DiagnosticsFeature;
     readonly hover: HoverFeature;
@@ -100,12 +106,22 @@ export class EditorLanguage implements LanguageContext {
     readonly colors: DocumentColorsFeature;
     readonly linkedEditing: LinkedEditingFeature;
     readonly inlineCompletion: InlineCompletionFeature;
+
+    /* What the `features` option of the app built. */
+    readonly app: App;
     private readonly disposers: Array<() => void> = [];
     private readonly keys = new KeyDispatcher();
     private readonly timers: Timers;
     private disposed = false;
 
-    constructor(project: ProjectLanguage, editor: Editor, uri: string, languageId: string, timers: Timers = realTimers, options: EditorLanguageOptions = {}) {
+    constructor(
+        project: ProjectLanguage,
+        editor: Editor,
+        uri: string,
+        languageId: string,
+        timers: Timers = realTimers,
+        options: EditorLanguageOptions<App> = {}
+    ) {
         this.editor = editor;
         this.apple = project.host.apple ?? false;
         this.keymap = project.host.keymap ?? KEYMAP;
@@ -155,6 +171,8 @@ export class EditorLanguage implements LanguageContext {
         this.renderedDocs = new RenderedDocsFeature(this, this, timers);
         this.pasteHistory = new PasteHistoryFeature(this, this);
         new FoldingFeature(this, (listener) => this.symbols.onResult(listener), timers);
+        // Without `features` the app has nothing to hold, and `App` is the empty object it defaults to.
+        this.app = options.features?.(this) ?? ({} as App);
 
         const copies = editor.onCopy?.((copy) => project.clipboard.add(copy.text, { wholeLines: copy.wholeLines }));
 
@@ -242,6 +260,11 @@ export class EditorLanguage implements LanguageContext {
      */
     onKey(handler: EditorKeyHandler, priority = 0): () => void {
         return this.keys.add(handler, priority);
+    }
+
+    /* Like `onKey`, for a feature that needs a server behind the document: the editor of a document no server serves never gives it a key. */
+    onServedKey(handler: EditorKeyHandler, priority = 0): () => void {
+        return this.onKey((event) => this.served && handler(event), priority);
     }
 
     /*

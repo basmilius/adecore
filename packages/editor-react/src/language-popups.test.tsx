@@ -43,12 +43,12 @@ test('the hover card carries the sections of the app at its foot, and the layer 
         expect(page.document.querySelector('[data-testid="footer"]')).toBeNull();
 
         const view: HoverView = { anchor: at(0, 6), position: at(0, 8), subject: { start: at(0, 6), end: at(0, 11) }, problems: [], info: null };
-        await act(async () => language.popups.setState({ hover: view }));
+        await act(async () => language.popups.slot('hover').set(view));
 
         expect(page.document.querySelector('[data-testid="footer"]')?.textContent).toBe('Explain');
         expect(footers.at(-1)).toEqual({ view, label: 'named' });
 
-        await act(async () => language.popups.setState({ hover: null }));
+        await act(async () => language.popups.slot('hover').set(null));
 
         expect(page.document.querySelector('[data-testid="footer"]')).toBeNull();
 
@@ -72,19 +72,17 @@ test('the rename field leaves the character after the name uncovered', async () 
         const range = { start: at(0, 16), end: at(0, 24) };
 
         await act(async () =>
-            language.popups.setState({
-                rename: {
-                    phase: 'input',
-                    range,
-                    original: 'greetAll',
-                    placeholder: 'greetAll',
-                    occurrences: null,
-                    busy: false,
-                    error: null,
-                    name: 'greetAll',
-                    files: [],
-                    suggestions: []
-                }
+            language.popups.slot('rename').set({
+                phase: 'input',
+                range,
+                original: 'greetAll',
+                placeholder: 'greetAll',
+                occurrences: null,
+                busy: false,
+                error: null,
+                name: 'greetAll',
+                files: [],
+                suggestions: []
             })
         );
 

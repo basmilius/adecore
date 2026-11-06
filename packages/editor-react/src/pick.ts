@@ -127,7 +127,7 @@ export class PickFeature {
         this.timers.clear(this.previewTimer);
         this.controller?.abort();
         this.controller = null;
-        this.language.popups.setState({ pick: null });
+        this.language.popups.slot('pick').set(null);
     }
 
     /* Moves the active row; with `extend`, in a list of several choices, the rows between where the move began and the new row are chosen. */
@@ -436,16 +436,14 @@ export class PickFeature {
         const refusal = this.refusals.get(this.active);
         const shown = refusal === undefined ? preview : { removed: [], added: [], note: null, refusal };
 
-        this.language.popups.setState({
-            pick: {
-                anchor: spec.anchor,
-                groups: this.visibleGroups(),
-                active: this.active,
-                preview: shown,
-                title: spec.title ?? null,
-                query: spec.filter === true ? this.query : null,
-                chosen: this.chosen
-            }
+        this.language.popups.slot('pick').set({
+            anchor: spec.anchor,
+            groups: this.visibleGroups(),
+            active: this.active,
+            preview: shown,
+            title: spec.title ?? null,
+            query: spec.filter === true ? this.query : null,
+            chosen: this.chosen
         });
     }
 }

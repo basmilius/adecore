@@ -11,6 +11,15 @@ const LANGUAGES: readonly string[] = ['javascript', 'typescript', 'php', 'css', 
 const PLACES: readonly string[] = ['code', 'comment', 'string'];
 
 /* Each is on unless false. */
+export interface TemplatesHost {
+    /* What templates the editors of the project know. A registry of the built-in ones that lives as long as the project without one. */
+    readonly templates?: TemplateRegistry;
+    /* Save as Live Template: the host opens its own form with this draft. Without it the command does nothing. */
+    saveAsLiveTemplate?(draft: LiveTemplateDraft): void;
+    /* The last row of the template lists, "Configure live templates…"; the row is left out without it. */
+    openTemplateSettings?(): void;
+}
+
 export interface TemplateSettings {
     /* Live templates are rows of the suggestion list. */
     readonly liveInCompletion?: boolean;

@@ -122,7 +122,7 @@ describe('recent locations', () => {
         expect(editor.press(keyOf(language.shortcuts.recentLocations))).toBe(true);
 
         await settle();
-        const view = language.popups.getState().pick!;
+        const view = language.popups.slot('pick').get()!;
 
         expect(view.title).toBe('Recent locations');
         expect(view.groups[0]!.rows.map((row) => row.label)).toEqual(['a.ts:2', 'a.ts:1']);

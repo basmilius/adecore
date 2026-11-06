@@ -205,7 +205,7 @@ export class CompletionFeature {
     }
 
     get isOpen(): boolean {
-        return this.language.popups.getState().completion !== null;
+        return this.language.popups.slot('completion').get() !== null;
     }
 
     /* Asks for suggestions at the caret now, as Ctrl+Space does. */
@@ -669,8 +669,8 @@ export class CompletionFeature {
         this.locals = new Map();
         this.shown = false;
 
-        if (this.language.popups.getState().completion !== null) {
-            this.language.popups.setState({ completion: null });
+        if (this.language.popups.slot('completion').get() !== null) {
+            this.language.popups.slot('completion').set(null);
         }
     }
 
@@ -1032,6 +1032,6 @@ export class CompletionFeature {
             highlightLanguage
         };
 
-        this.language.popups.setState({ completion: view });
+        this.language.popups.slot('completion').set(view);
     }
 }

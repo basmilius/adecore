@@ -6,6 +6,17 @@ export interface Place {
     readonly position: EditorPosition;
 }
 
+/* What the host does with places, documents and addresses. */
+export interface NavigationHost {
+    /* How many places Last Edit Location and Next Edit Location remember; 150 without one. */
+    readonly editHistoryLimit?: number;
+    openPlace?(place: Place): void;
+    /* Opens a web address outside the editor, from a link in the text or a server; a new browser window without it. */
+    openExternal?(url: string): void;
+    pathOfUri?(uri: string): string | null;
+    serverNames?(uri: string): readonly string[];
+}
+
 const LIMIT = 100;
 
 /* Two places on one line of one file are one place: a jump lands wherever, and walking back should not stop twice on the same line. */

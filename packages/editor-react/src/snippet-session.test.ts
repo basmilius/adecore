@@ -322,13 +322,11 @@ test('Escape closes the signature card before ending a snippet', async () => {
     await new Promise<void>((resolve) => setImmediate(resolve));
     await language.completion.accept(false);
 
-    language.popups.setState({
-        signature: { anchor: { line: 0, character: 4 }, model: signatureViewOf({ signatures: [{ label: 'f(x)' }] })! }
-    });
+    language.popups.slot('signature').set({ anchor: { line: 0, character: 4 }, model: signatureViewOf({ signatures: [{ label: 'f(x)' }] })! });
 
     press('Escape');
 
-    expect(language.popups.getState().signature).toBeNull();
+    expect(language.popups.slot('signature').get()).toBeNull();
     expect(language.snippets.isActive).toBe(true);
 
     press('Escape');
@@ -494,13 +492,18 @@ async function completeWithin(mounted: Awaited<ReturnType<typeof languageSnippet
 test('choosing a value edits all mirrors and retains the active field', async () => {
     const { editor, language, press } = await languageSnippet('${1|a,b,c|} $1 ${2:end}$0');
 
-    expect(language.popups.getState().pick?.groups[0]?.rows.map((row) => row.label)).toEqual(['a', 'b', 'c']);
+    expect(
+        language.popups
+            .slot('pick')
+            .get()
+            ?.groups[0]?.rows.map((row) => row.label)
+    ).toEqual(['a', 'b', 'c']);
 
     press('ArrowDown');
     press('Enter');
 
     expect(editor.getText()).toBe('b b end');
-    expect(language.popups.getState().pick).toBeNull();
+    expect(language.popups.slot('pick').get()).toBeNull();
     expect(language.snippets.isActive).toBe(true);
     expect(editor.getSelections().map((range) => editor.textInRange(range))).toEqual(['b', 'b']);
 
@@ -518,14 +521,14 @@ test('choice Tab advances, Escape dismisses before ending, and typing closes the
     const first = await languageSnippet('${1|a,b|} $1 ${2:end}$0');
     first.press('Tab');
 
-    expect(first.language.popups.getState().pick).toBeNull();
+    expect(first.language.popups.slot('pick').get()).toBeNull();
     expect(first.editor.textInRange(first.editor.getSelection())).toBe('end');
 
     const second = await languageSnippet('${1|a,b|} $1');
     second.press('Escape');
 
     expect(second.language.snippets.isActive).toBe(true);
-    expect(second.language.popups.getState().pick).toBeNull();
+    expect(second.language.popups.slot('pick').get()).toBeNull();
 
     second.press('Escape');
 
@@ -535,14 +538,14 @@ test('choice Tab advances, Escape dismisses before ending, and typing closes the
     const third = await languageSnippet('${1|a,b|} $1');
     third.type('typed');
 
-    expect(third.language.popups.getState().pick).toBeNull();
+    expect(third.language.popups.slot('pick').get()).toBeNull();
     expect(third.editor.getText()).toBe('typed typed');
     expect(third.language.snippets.isActive).toBe(true);
 });
 
 test('a choice applies to every original caret instance', async () => {
     const { editor, language } = await languageSnippet('${1|a,b|} $1 $0', 2);
-    const id = language.popups.getState().pick!.groups[0]!.rows[1]!.id;
+    const id = language.popups.slot('pick').get()!.groups[0]!.rows[1]!.id;
     language.pick.choose(id);
 
     expect(editor.getText()).toBe('b b \nb b ');

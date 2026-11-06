@@ -393,16 +393,16 @@ test('a detached field transform keeps the next fields visible choice picker ope
     mounted.press('Tab');
     await settle();
 
-    expect(language.popups.getState().pick?.groups[0]?.rows).toHaveLength(3);
+    expect(language.popups.slot('pick').get()?.groups[0]?.rows).toHaveLength(3);
 
     mounted.press('ArrowDown');
-    const activeChoice = language.popups.getState().pick?.active;
+    const activeChoice = language.popups.slot('pick').get()?.active;
     port.answer(['BAR']);
     await settle();
 
     expect(mounted.editor.getText()).toBe('File = bar; BAR; name; name');
-    expect(language.popups.getState().pick?.active).toBe(activeChoice);
-    expect(language.popups.getState().pick?.groups[0]?.rows).toHaveLength(3);
+    expect(language.popups.slot('pick').get()?.active).toBe(activeChoice);
+    expect(language.popups.slot('pick').get()?.groups[0]?.rows).toHaveLength(3);
 });
 
 test('an adjacent primary field does not grow into its transformed mirror', async () => {

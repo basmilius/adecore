@@ -25,7 +25,7 @@ function setup(text = 'ab\ncd', options: { readOnly?: boolean; clipboard?: Clipb
     const language = new EditorLanguage(project, editor, uri, 'plaintext', timers, { serve: false });
     open.push(project, language);
 
-    const view = () => language.popups.getState().pick!;
+    const view = () => language.popups.slot('pick').get()!;
     const labels = () => view().groups[0]!.rows.map((row) => row.label);
     const press = (key: string, modifiers: { shiftKey?: boolean } = {}) => editor.press({ key, ...modifiers });
 
