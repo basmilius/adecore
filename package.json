@@ -13,6 +13,7 @@
     "lint": "oxlint --deny-warnings && bun scripts/check-design-conventions.ts",
     "check": "bun run typecheck && bun run lint",
     "test": "bun test --parallel=4 --no-isolate",
+    "test:dom": "bun test scripts/dom.test.ts",
     "test:perf": "bun --config=perf.bunfig.toml test .perf.test.ts",
     "test:helper": "bun --config=helper.bunfig.toml test ./packages/database/src/helper.integration.test.ts",
     "format": "oxfmt --write \"packages/*/{src,scripts,examples,fixtures}/**/*.{ts,tsx,mjs}\" \"docs/**/*.{ts,tsx}\" \"scripts/**/*.{ts,mjs}\"",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
+    "@happy-dom/global-registrator": "^21.0.4",
     "@babel/plugin-transform-react-jsx": "^7.29.7",
     "@types/babel__core": "^7.20.5",
     "@types/bun": "^1.4.4",
