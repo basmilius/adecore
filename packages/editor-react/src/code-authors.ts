@@ -1,4 +1,4 @@
-import { diffLines, splitLines } from '@adecore/merge';
+import { lineMap, splitLines } from '@adecore/merge';
 import { formatNumber } from '@adecore/ui/format';
 import type { i18n } from 'i18next';
 import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
@@ -19,22 +19,12 @@ export function mapBlame(blame: GitBlameResult, base: string, current: readonly 
     }
 
     const mapped = new Int32Array(current.length).fill(UNCOMMITTED);
-    let basePosition = 0;
-    let position = 0;
 
-    const carry = (until: number): void => {
-        for (; position < until; position++, basePosition++) {
-            mapped[position] = blame.lines[basePosition]!;
+    for (const [index, place] of lineMap(baseLines, current).entries()) {
+        if (place >= 0) {
+            mapped[place] = blame.lines[index]!;
         }
-    };
-
-    for (const change of diffLines(baseLines, current)) {
-        carry(change.otherStart);
-        position = change.otherEnd;
-        basePosition = change.baseEnd;
     }
-
-    carry(current.length);
 
     return mapped;
 }
