@@ -11,7 +11,7 @@ export { EMPTY_DRAFT, useDrafts, readDraft, writeDraft, offerDraft, type ChatDra
 export { stripAnsi } from './logic/ansi';
 
 export {
-    FORKABLE_PROVIDERS,
+    canForkWith,
     forkRefusal,
     summaryRefusal,
     lastSettledTurn,

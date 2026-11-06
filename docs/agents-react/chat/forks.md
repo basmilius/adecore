@@ -8,7 +8,7 @@ import { forkPayload, forkPointLabel, forkPointOf, forkRefusal, lastSettledTurn 
 
 ## Whether a fork can start
 
-`forkRefusal(info, turn)` says why a chat cannot be forked after this turn right now, or returns `null` when it can. A fork needs a turn of a CLI in `FORKABLE_PROVIDERS` (`claude` and `codex`, whose CLIs keep the conversation), a session the CLI named, and no turn running, since a growing transcript cannot be copied.
+`forkRefusal(info, turn, host)` says why a chat cannot be forked after this turn right now, or returns `null` when it can. `host` is the row of `useProviders` (or `providersOf(scopeId)`). A fork needs a turn of a CLI whose provider reports the `fork` capability (`canForkWith(provider)`; Claude Code and Codex, whose CLIs keep the conversation), a session the CLI named, and no turn running, since a growing transcript cannot be copied. Until the host answered `provider.list`, the CLI is not what refuses.
 
 `summaryRefusal({ busy, originalPresent })` says why a fork cannot write a summary back to its original right now: the original is gone, or a turn runs.
 

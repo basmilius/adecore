@@ -1,9 +1,17 @@
-import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, ModelSelection } from '@adecore/agent-contracts';
+import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, ModelSelection, ProviderInfo } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import type { TimelineRow } from '../../host/timeline-row';
 
-/* The providers whose chat a machine can fork, and go on with in a fork, are the ones with a conversation the CLI keeps. */
-export const FORKABLE_PROVIDERS: ReadonlySet<string> = new Set(['claude', 'codex']);
+/* What a host answered about its CLIs, and whether it answered yet. */
+interface HostProviders {
+    readonly providers: readonly ProviderInfo[];
+    readonly loaded: boolean;
+}
+
+/* Whether a CLI keeps a conversation the host can fork, and go on with in a fork: its `fork` capability. */
+export function canForkWith(provider: Pick<ProviderInfo, 'capabilities'>): boolean {
+    return provider.capabilities.fork !== undefined;
+}
 
 /* Where a fork goes on after, as the dialog words it. */
 export interface ForkPoint {
@@ -27,14 +35,17 @@ function turnsOf(items: Record<string, ChatItem>, order: readonly string[]): Cha
 
 /*
  * Why a chat cannot be forked after this turn right now, or null when it can. A turn still running,
- * or any turn in the chat, is a transcript that grows while it would be copied.
+ * or any turn in the chat, is a transcript that grows while it would be copied. Before the host answered
+ * which CLIs it offers nothing is refused for the CLI's sake; the host refuses a CLI that cannot itself.
  */
-export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined): string | null {
+export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined, host: HostProviders): string | null {
     if (info === null || turn?.kind !== 'turn') {
         return i18next.t('agent-chat:fork.refusal.notInConversation');
     }
 
-    if (!FORKABLE_PROVIDERS.has(info.provider)) {
+    const provider = host.providers.find((entry) => entry.kind === info.provider);
+
+    if (host.loaded && (provider === undefined || !canForkWith(provider))) {
         return i18next.t('agent-chat:fork.refusal.cliCannotFork');
     }
 

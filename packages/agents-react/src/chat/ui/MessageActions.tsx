@@ -8,6 +8,7 @@ import { useChatHost } from '../../host/host';
 import type { TimelineRow } from '../../host/timeline-row';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
+import { useProviders } from '../../state/providers';
 import { placeBookmark } from '../bookmarks';
 import { forkRefusal } from '../logic/fork';
 import { markdownOf, messageTextOf } from '../logic/timeline-copy';
@@ -45,7 +46,8 @@ export function MessageActions({ chatId, row }: { chatId: string; row: MessageRo
     });
 
     const bookmarked = bookmarks?.some((candidate) => candidate.itemId === row.id) === true;
-    const canFork = turnId !== null && forkRefusal(info, turn) === null;
+    const providers = useProviders((host) => host);
+    const canFork = turnId !== null && forkRefusal(info, turn, providers) === null;
     const [copied, setCopied] = useState(false);
     const lookup = useReferenceLookup(chatId);
 

@@ -31,6 +31,7 @@ import {
 import { type TimelineRow } from '../../host/timeline-row';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
+import { providersOf } from '../../state/providers';
 import { useForkedTurns } from '../forks';
 import { bookmarkRows } from '../logic/bookmarks';
 import { forkRefusal } from '../logic/fork';
@@ -887,11 +888,11 @@ export function Timeline({
 
                 const row = useChats.getState().byKey[keyOf(chatId)];
 
-                return forkRefusal(row?.info ?? null, row?.structure[turnId]) === null;
+                return forkRefusal(row?.info ?? null, row?.structure[turnId], providersOf(scopeId)) === null;
             },
             fork: (turnId) => fork?.(chatId, turnId)
         }),
-        [keyOf, chatId, fork]
+        [keyOf, scopeId, chatId, fork]
     );
 
     const stepRef = useRef<(direction: -1 | 1) => boolean>(() => false);

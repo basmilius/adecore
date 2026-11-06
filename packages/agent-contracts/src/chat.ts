@@ -321,6 +321,37 @@ export function holdsConversation(info: Pick<ChatInfo, 'agentSessionId' | 'activ
     return info.agentSessionId !== null || info.activeTurnId !== null;
 }
 
+/*
+ * What a chat is doing, which every "is it busy" question answers from:
+ * - `waiting`: a person is asked (`needs-you`).
+ * - `working`: a turn is open and nobody is asked.
+ * - `delegating`: no turn, but a subagent or workflow of the CLI still works.
+ * - `background`: only commands the CLI started in the background run.
+ * - `holding`: nothing runs, yet the chat is not at rest: a request is open, a goal is active or messages are queued.
+ * - `settled`: none of the above.
+ */
+export type ChatActivity = 'waiting' | 'working' | 'delegating' | 'background' | 'holding' | 'settled';
+
+export function chatActivity(info: Pick<ChatInfo, 'status' | 'activeTurnId' | 'delegating' | 'background' | 'requests' | 'goal' | 'queue'>): ChatActivity {
+    if (info.status === 'needs-you') {
+        return 'waiting';
+    }
+
+    if (info.status === 'running' || info.activeTurnId !== null) {
+        return 'working';
+    }
+
+    if (info.delegating === true) {
+        return 'delegating';
+    }
+
+    if ((info.background ?? []).length > 0) {
+        return 'background';
+    }
+
+    return (info.requests ?? []).length > 0 || info.goal?.status === 'active' || (info.queue ?? []).length > 0 ? 'holding' : 'settled';
+}
+
 // Where a skill was found: the person's own folder, the chat's folder, or a plugin.
 export const ChatSkillSourceSchema = z.enum(['user', 'project', 'plugin']);
 export type ChatSkillSource = z.infer<typeof ChatSkillSourceSchema>;
