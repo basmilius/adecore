@@ -1,6 +1,5 @@
-import { LazyBoundary } from '@adecore/ui';
+import { LazyBoundary, lazyNamed } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
-import { lazyNamed } from '../../../lazy';
 import type { ReviewEntry } from './review-plan';
 
 const EditDiff = lazyNamed(() => import('../EditDiff'), 'default');

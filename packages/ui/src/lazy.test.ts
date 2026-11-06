@@ -83,6 +83,39 @@ describe('a failed open', () => {
     });
 });
 
+describe('prefetch: false', () => {
+    test('keeps a fallback module out of the prefetcher and still opens it on first render', async () => {
+        const register = spyOn(prefetcher, 'register');
+        let opens = 0;
+        let opened!: () => void;
+
+        const ready = new Promise<void>((resolve) => {
+            opened = resolve;
+        });
+
+        const Surface = lazyNamed(
+            async () => {
+                opens++;
+                opened();
+
+                return { Surface: () => createElement('p', null, 'Fallback') };
+            },
+            'Surface',
+            { prefetch: false }
+        );
+
+        expect(register).not.toHaveBeenCalled();
+        register.mockRestore();
+        expect(opens).toBe(0);
+        renderToStaticMarkup(createElement(Suspense, { fallback: null }, createElement(Surface)));
+        await ready;
+        await Promise.resolve();
+
+        expect(opens).toBe(1);
+        expect(renderToStaticMarkup(createElement(Surface))).toBe('<p>Fallback</p>');
+    });
+});
+
 describe('preload', () => {
     test('has the module before the first render, which then draws without its fallback', async () => {
         const Surface = lazyNamed(async () => ({ Surface: () => createElement('p', null, 'here') }), 'Surface');

@@ -194,7 +194,7 @@ The frame reads a page's bytes through `attachments.read`; a stored page is an a
 
 ## Lazy modules
 
-The diff views and a few heavy parts load on first use. `setLazyPrefetch(register)` hands every such loader, past and future, to a prefetcher of yours. `onLazyOpenError(listener)` reports a loader that fails during a render and returns an unsubscribe function. `lazyNamed(load, name, options?)` is `React.lazy` for a named export; `{ prefetch: false }` keeps it away from the prefetcher.
+The diff views and a few heavy parts load on first use through `lazyNamed` of `@adecore/ui`, so they register with its `prefetcher` and report a failed open to its `onLazyOpenError`. The app wires those two once, for its own surfaces and the chat's alike. [Lazy loading](/ui/utilities/lazy-loading) covers both.
 
 ## Diff syntax worker
 

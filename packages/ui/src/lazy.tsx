@@ -64,13 +64,18 @@ async function open<Component>(loaded: LoadedComponent<Component>): Promise<{ de
 /* A lazy component, with `preload` to have its module before the first render, so that render never suspends. */
 export type LazyComponent<Props> = ComponentType<Props> & { readonly preload: () => Promise<void> };
 
-/* Registers with `prefetcher`, like `lazyDialog`, so `prefetcher.prefetchEverything()` loads it ahead of its first opening. */
+/* Registers with `prefetcher`, like `lazyDialog`, so `prefetcher.prefetchEverything()` loads it ahead of its first opening. `prefetch: false` keeps a fallback module out of it. */
 export function lazyNamed<Module extends Record<Name, ComponentType<any>>, Name extends keyof Module>(
     load: () => Promise<Module>,
-    name: Name
+    name: Name,
+    options?: { readonly prefetch?: boolean }
 ): LazyComponent<ComponentProps<Module[Name]>> {
     const loaded = new LoadedComponent(async () => (await load())[name]);
-    prefetcher.register(() => loaded.load());
+
+    if (options?.prefetch !== false) {
+        prefetcher.register(() => loaded.load());
+    }
+
     const Lazy = lazy(() => open(loaded));
 
     // Once `loaded` has it, `Lazy` never committed anything, so switching over remounts nothing.

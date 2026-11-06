@@ -1,5 +1,5 @@
 import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
-import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, useTickingText } from '@adecore/ui';
+import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, lazyNamed, useTickingText } from '@adecore/ui';
 import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
 import i18next from 'i18next';
@@ -10,7 +10,6 @@ import { useChatHost, type CommandLook, type ToolLook } from '../../../host/host
 import { useCommandNames } from '../../../host/host-hooks';
 import { type Look } from '../../../host/timeline-row';
 import type { BaseMoved } from '../../../host/timeline-row';
-import { lazyNamed } from '../../../lazy';
 import { ChatScopeContext, useChatScope } from '../../../scope';
 import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
 import { useChatActions } from '../../actions';
