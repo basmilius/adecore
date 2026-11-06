@@ -1,6 +1,6 @@
 import type { AgentKind } from '@adecore/agent-contracts';
 import type { ModelCatalog } from './catalog.ts';
-import type { ChatProvider } from './provider.ts';
+import type { ChatProvider, LaunchDecorator } from './provider.ts';
 
 /** What the provider reads of the service that holds the key and the models. */
 export interface ApiChatService {
@@ -18,16 +18,20 @@ export interface ApiChatProviderOptions {
 
     readonly service: ApiChatService;
     readonly createBackend: ChatProvider['createBackend'];
+
+    /** The host's additions to every launch, such as its MCP server. */
+    readonly launch?: LaunchDecorator;
 }
 
 /**
  * A provider with no CLI: the host talks to the API itself, so the provider is there once a key is saved
  * and the API listed the models it offers. It runs only as a chat.
  */
-export function createApiChatProvider({ kind, name, version, service, createBackend }: ApiChatProviderOptions): ChatProvider {
+export function createApiChatProvider({ kind, name, version, service, createBackend, launch }: ApiChatProviderOptions): ChatProvider {
     return {
         kind,
         name,
+        ...(launch === undefined ? {} : { launch }),
         command: [kind],
         resumeCommand: '',
         catalog: service.catalog,

@@ -2,9 +2,10 @@ import { expect, test } from 'bun:test';
 import type { ChatAttachment } from '@adecore/agent-contracts';
 import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { CodexBackend } from '../backends/codex-backend.ts';
-import { codexProvider } from '../providers/codex-provider.ts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
+import { codexProvider } from '../testing/providers.ts';
 import { flush } from './chat-session.fixture.test.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
@@ -38,7 +39,7 @@ async function rig() {
         spawn: fake.spawn
     };
 
-    const backend = new CodexBackend(launch, { onEvent: (event) => events.push(event) });
+    const backend = new CodexBackend(launch, { onEvent: (event) => events.push(event) }, { client: DEFAULT_CODEX_CLIENT });
     await backend.start();
     requests.length = 0;
     events.length = 0;

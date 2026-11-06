@@ -75,6 +75,9 @@ export interface AcpAgentSpec {
     // A permission request the host answers itself, in any runtime mode: true allows it once without asking the
     // person, for a call the host already guards. A throw counts as false.
     autoAllow?(request: AcpPermissionRequest): boolean;
+    // The arguments that make the agent run every tool of one MCP server without asking, for an agent whose permission
+    // requests name no server; put on its line for each server of the launch that allows its tools.
+    allowToolsArgs?(serverName: string): string[];
 }
 
 /* One turn's usage, with the session, folder and model it ran in. */
@@ -95,13 +98,19 @@ function nameOf(client: AcpClientInfo): string {
     return client.title ?? client.name;
 }
 
-/* A server as ACP's `McpServerHttp` or `McpServerSse` names it in a session request. */
-function acpMcpServer(server: ChatMcpServer): Record<string, unknown> {
+/*
+ * A server as ACP's `McpServerHttp` or `McpServerSse` names it in a session request. An agent expands no variable
+ * there, so the token of a server that names one travels in its header, over the agent's stdio and never on its line.
+ */
+function acpMcpServer(server: ChatMcpServer, env: Readonly<Record<string, string>>): Record<string, unknown> {
+    const token = server.tokenVariable === undefined ? undefined : env[server.tokenVariable];
+    const headers = { ...(token === undefined ? {} : { Authorization: `Bearer ${token}` }), ...server.headers };
+
     return {
         type: server.transport ?? 'http',
         name: server.name,
         url: server.url,
-        headers: Object.entries(server.headers ?? {}).map(([name, value]) => ({ name, value }))
+        headers: Object.entries(headers).map(([name, value]) => ({ name, value }))
     };
 }
 
@@ -175,8 +184,12 @@ export class AcpBackend implements ChatBackend {
             throw new Error(`MCP servers ${clash.map((name) => `"${name}"`).join(' and ')} cannot both go along: a tool name could belong to either`);
         }
 
+        const allowArgs = (this.launch.mcpServers ?? [])
+            .filter((server) => server.allowTools === true)
+            .flatMap((server) => this.spec.allowToolsArgs?.(server.name) ?? []);
+
         const transport = new JsonRpcTransport({
-            command: this.launch.command,
+            command: [...this.launch.command, ...allowArgs],
             cwd: this.launch.cwd,
             env: { ...this.launch.env, ...this.spec.env },
             ...(this.launch.spawn ? { spawn: this.launch.spawn } : {}),
@@ -244,7 +257,7 @@ export class AcpBackend implements ChatBackend {
 
         return {
             cwd: this.launch.cwd,
-            mcpServers: this.mcpServers.map(acpMcpServer),
+            mcpServers: this.mcpServers.map((server) => acpMcpServer(server, this.launch.env)),
             ...(folders.length > 0 && this.capabilities?.additionalDirectories ? { additionalDirectories: folders } : {})
         };
     }

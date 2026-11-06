@@ -5,8 +5,8 @@ import { join } from 'node:path';
 import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import type { BackendLaunch } from '../backends/backend.ts';
 import type { AgentEvent } from '../events.ts';
-import { claudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore, type ChatCoreHooks } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
@@ -298,18 +298,18 @@ describe('the hooks that stand in for a subclass', () => {
         expect(deleted).toEqual(['fork']);
     });
 
-    test('codexSideCommand is the command of the app-server opened beside a chat, apart from the one a chat runs on', () => {
+    test('the app-server opened beside a chat runs the plain command of its provider, without what a launch adds', () => {
+        const decorated = { ...codexProvider, launch: (launch: BackendLaunch) => ({ ...launch, command: [...launch.command, '--with-host'] }) };
+
         const chats = new ChatCore({
-            providers,
+            providers: new ProviderRegistry({ providers: [decorated] }),
             store,
             attachments: new AttachmentStore(home),
-            env: { HOME: home, PATH: '/bin' },
-            codexCommand: ['codex', '--with-host'],
-            codexSideCommand: ['codex']
+            env: { HOME: home, PATH: '/bin' }
         });
         core = chats;
 
-        expect(chats.codexProcess({ cwd: home, account: undefined }).command).toEqual(['codex']);
+        expect(chats.threadProcess({ cwd: home, account: undefined, provider: 'codex' }).command).toEqual(codexProvider.command);
     });
 });
 

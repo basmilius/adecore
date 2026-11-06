@@ -1,9 +1,9 @@
 import type { UsageLimitsProvider } from '@adecore/agent-contracts';
 import { withTimeout } from '@adecore/utils/async';
-import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../backends/codex-transport.ts';
-import { readClaudeUsage, readCodexLimits, type ProviderReading } from '../../backends/limits.ts';
-import { spawnChatProcess, type ChatProcess, type SpawnChatProcess } from '../../chat-process.ts';
-import { errorText } from '../../error-text.ts';
+import { spawnChatProcess, type ChatProcess, type SpawnChatProcess } from '../chat-process.ts';
+import { errorText } from '../error-text.ts';
+import { CodexTransport, type CodexClientInfo } from './codex-transport.ts';
+import { readClaudeUsage, readCodexLimits, type ProviderReading } from './limits.ts';
 
 /* A CLI that has not answered by now is not going to; the next pass tries again. */
 const PROBE_TIMEOUT_MS = 20_000;
@@ -103,11 +103,7 @@ export async function probeClaude(command: readonly string[], env: Record<string
 }
 
 /* The same question to Codex: the app-server answers it over JSON-RPC right after the handshake. */
-export async function probeCodex(
-    command: readonly string[],
-    env: Record<string, string>,
-    client: CodexClientInfo = DEFAULT_CODEX_CLIENT
-): Promise<ProbeResult> {
+export async function probeCodex(command: readonly string[], env: Record<string, string>, client: CodexClientInfo): Promise<ProbeResult> {
     let transport: CodexTransport | null = null;
 
     try {

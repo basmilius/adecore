@@ -30,8 +30,9 @@ import {
     type ModelSelection,
     type RuntimeMode
 } from '@adecore/agent-contracts';
-import type { CodexClientInfo } from '../backends/codex-transport.ts';
 import type { LimitsUpdate } from '../backends/limits.ts';
+import type { ThreadProcess } from '../backends/threads.ts';
+import { ChatError } from '../chat-error.ts';
 import type { SpawnChatProcess } from '../chat-process.ts';
 import { ClientSinks } from '../client-sinks.ts';
 import { errorText } from '../error-text.ts';
@@ -43,7 +44,7 @@ import { runsClaudeCode } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { readableAssistantText } from '../readable-text.ts';
 import { SkillIndex } from '../skills.ts';
-import { usageRoots } from '../usage/roots.ts';
+import { defaultClaudeProjectsDir } from '../usage/roots.ts';
 import type { AttachmentStore } from './attachment-store.ts';
 import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
 import type { BookmarkStore } from './bookmark-store.ts';
@@ -61,10 +62,8 @@ import {
 } from './chat-session.ts';
 import type { ChatRecord, ChatRecordExtras, ChatStore } from './chat-store.ts';
 import type { ChatTitleInput } from './chat-title.ts';
-import type { CodexProcessSpec } from './codex-thread.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
-import { ChatError } from './errors.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
 import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import type { VisualInput, VisualStore } from './visual-store.ts';
@@ -193,14 +192,7 @@ export interface ChatCoreOptions {
     env?: Record<string, string | undefined>;
     // What the agent is told once, at the start of every process, when the host has one note for every chat.
     instructions?: string;
-    // The CLIs to run, when they are not the ones the providers name.
-    command?: string[];
-    codexCommand?: string[];
-    // The command of the app-server opened beside a chat to read or fork one of its threads, when it differs from the one a chat runs on.
-    codexSideCommand?: string[];
     spawn?: SpawnChatProcess;
-    // How the host names itself to an app-server it opens for a question about a thread.
-    codexClient?: CodexClientInfo;
     skills?: SkillIndex;
     attachments: AttachmentStore;
     bookmarks?: BookmarkStore;
@@ -208,12 +200,12 @@ export interface ChatCoreOptions {
     visuals?: VisualStore;
     // What a running turn says about the plan its CLI runs on; the usage monitor takes it from here.
     onLimits?: (update: LimitsUpdate) => void;
-    // Where Claude Code's own name for a session is read, in the projects folder of the chat's account; the other CLIs write none down.
+    // Where Claude Code's own name for a session is read, in the projects folder of the chat's account; for a provider that runs Claude Code.
     claudeTitles?: { forSession(agentSessionId: string, projectsDir: string, cwd: string): Promise<string | null> };
-    // A name for a Codex chat, asked of a one-shot CLI: its app-server names no thread on its own.
+    // A name for a chat, asked of a one-shot CLI, for a provider whose CLI names no thread on its own (`titleFromOneShot`).
     nameChat?: (provider: AgentKind, input: ChatTitleInput) => Promise<string | null>;
     // Where a subagent's whole conversation is read and how its growth is noticed.
-    subagents?: Partial<Pick<SubagentReaderOptions, 'claudeProjectsDir' | 'seams' | 'now' | 'listOnce'>>;
+    subagents?: Partial<Pick<SubagentReaderOptions, 'claudeProjectsDir' | 'seams' | 'now'>>;
     /*
      * Asked when a chat is loaded with a turn that could be resumed: true once the resume is owed,
      * and the turn stays running. False, or without it, the turn ends aborted with a note that says why.
@@ -275,10 +267,7 @@ export class ChatCore {
     private readonly instructions: string | null;
     private readonly skillIndex: SkillIndex;
     private readonly onLimits: ((update: LimitsUpdate) => void) | null;
-    private readonly commands: Partial<Record<AgentKind, string[]>>;
-    private readonly codexSideCommand: string[] | null;
     private readonly spawn: SpawnChatProcess | null;
-    private readonly codexClient: CodexClientInfo | null;
     // What `chat.status` last said about each chat, so the broadcast is one per change and not one per info event.
     private readonly announced = new Map<string, string>();
     private readonly logs = new Map<string, ChatLog>();
@@ -321,14 +310,7 @@ export class ChatCore {
         this.unloadAfterMs = options.store && options.unloadAfterMs !== undefined ? options.unloadAfterMs : null;
         this.hooks = options.hooks ?? {};
 
-        this.commands = {
-            ...(options.command ? { claude: options.command } : {}),
-            ...(options.codexCommand ? { codex: options.codexCommand } : {})
-        };
-
-        this.codexSideCommand = options.codexSideCommand ?? null;
         this.spawn = options.spawn ?? null;
-        this.codexClient = options.codexClient ?? null;
         this.env = definedEnv(options.env ?? process.env);
 
         // Only whoever reads the thread has anything to point a bookmark at or to place a visual in, so the lists go where the thread goes.
@@ -348,14 +330,13 @@ export class ChatCore {
             }
         });
 
-        this.claudeProjectsDir =
-            options.subagents?.claudeProjectsDir ?? usageRoots(options.env ?? process.env).find((root) => root.provider === 'claude')?.path ?? '';
+        this.claudeProjectsDir = options.subagents?.claudeProjectsDir ?? defaultClaudeProjectsDir(options.env ?? process.env);
 
         this.subagents = new SubagentReader({
             ...options.subagents,
             claudeProjectsDir: this.claudeProjectsDir,
             claudeProjectsDirOf: (info) => this.claudeProjectsDirOf(info),
-            runsClaudeCode: (info) => runsClaudeCode(this.providers.get(info.provider)),
+            sourceOf: (info) => this.providers.get(info.provider).subagentSource,
             chatInfo: async (chatId) => (await this.readChat(chatId))?.info ?? null,
             chat: (chatId) => {
                 const session = this.chats.get(chatId);
@@ -370,18 +351,24 @@ export class ChatCore {
                       }
                     : null;
             },
-            codexProcess: (info) => this.codexProcess(info),
+            threadsOf: (info) => {
+                const threads = this.providers.get(info.provider).threads;
+
+                return threads === undefined ? undefined : { threads, process: this.threadProcess(info) };
+            },
             notify: (clientId, event) => this.sinks.to(clientId, { event: 'chat.subagentChanged', payload: event })
         });
     }
 
-    /* How an app-server is started for a question about a thread of this chat, under its account, apart from any chat's own process. */
-    codexProcess(info: Pick<ChatInfo, 'cwd' | 'account'>): CodexProcessSpec {
+    /*
+     * How an app-server is started for a question about a thread of this chat, under its account, apart from any chat's
+     * own process. It runs the provider's plain command, without the additions a launch gets.
+     */
+    threadProcess(info: Pick<ChatInfo, 'cwd' | 'account' | 'provider'>): ThreadProcess {
         return {
-            command: this.codexSideCommand ?? this.commands.codex ?? this.providers.get('codex').command,
+            command: this.providers.get(info.provider).command,
             cwd: info.cwd,
-            env: definedEnv(launchEnv(this.accounts, 'codex', info.account, this.env)),
-            ...(this.codexClient ? { client: this.codexClient } : {}),
+            env: definedEnv(launchEnv(this.accounts, info.provider, info.account, this.env)),
             ...(this.spawn ? { spawn: this.spawn } : {})
         };
     }
@@ -401,11 +388,11 @@ export class ChatCore {
             return join(runtime.configDir, 'projects');
         }
 
-        if (isDefaultAccountOf('claude', info.account)) {
+        if (isDefaultAccountOf(info.provider, info.account)) {
             return this.claudeProjectsDir;
         }
 
-        const folder = this.accounts?.transcriptFolder('claude', info.account) ?? null;
+        const folder = this.accounts?.transcriptFolder(info.provider, info.account) ?? null;
 
         return folder === null ? '' : join(folder, 'projects');
     }
@@ -510,7 +497,12 @@ export class ChatCore {
         }
 
         // A thread on disk keeps its provider; the selection it stored only makes sense in that catalog.
-        const kind = stored?.info.provider ?? payload.provider ?? 'claude';
+        const kind = stored?.info.provider ?? payload.provider ?? this.providers.kinds()[0];
+
+        if (kind === undefined) {
+            throw new ChatError('chat-unsupported', 'This host offers no agent CLI');
+        }
+
         const provider = this.providers.get(kind);
         const catalog = provider.catalog;
         const selection = catalog.normalize(stored?.info.selection ?? this.hooks.openingSelection?.(payload.chatId, kind) ?? payload.selection);
@@ -568,7 +560,6 @@ export class ChatCore {
             preambles: stored?.preambles ?? [],
             uiAccess: stored?.uiAccess ?? {},
             provider,
-            command: this.commands[kind] ?? provider.command,
             ...(this.spawn ? { spawn: this.spawn } : {}),
             env: (chatAccount) => {
                 const env = definedEnv(launchEnv(this.accounts, kind, chatAccount, base));
@@ -593,7 +584,7 @@ export class ChatCore {
             ...(runsClaudeCode(provider) && claudeTitles
                 ? { readTitle: (agentSessionId: string) => claudeTitles.forSession(agentSessionId, this.claudeProjectsDirOf(session.info), session.info.cwd) }
                 : {}),
-            ...(kind === 'codex' && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
+            ...(provider.titleFromOneShot === true && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
             ...(runsClaudeCode(provider) ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
             ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
         });
@@ -919,7 +910,7 @@ export class ChatCore {
             history: page.history,
             pending: child.thread.pending(),
             // The closed set a result carries; the child's thread is that CLI's conversation.
-            source: child.info.provider === 'codex' ? 'codex-thread' : 'claude-transcript',
+            source: this.providers.get(child.info.provider).subagentSource ?? 'claude-transcript',
             context: { provider: child.info.provider, cwd: child.info.cwd, chatId: childId },
             live: child.info.activeTurnId !== null
         };

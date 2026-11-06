@@ -6,7 +6,7 @@ import { AcpAgentState, type AcpCatalogStore } from './acp-agent-state.ts';
 import { writeAcpUsage } from './acp-usage-log.ts';
 import type { ModelCatalog } from './catalog.ts';
 import { detectCli, type CliDetection } from './detect.ts';
-import type { ChatProvider, ProviderHome } from './provider.ts';
+import type { ChatProvider, LaunchDecorator, ProviderHome, ProviderTerminal } from './provider.ts';
 
 /*
  * What every ACP agent can do through this backend, before what it shows of itself. A file change comes as the text
@@ -44,8 +44,14 @@ export interface AcpProviderSpec extends AcpAgentSpec {
     home?: ProviderHome;
     install?: ProviderInstall;
     ignoresProjectConfig?: boolean;
+    // The CLI a terminal and a single prompt start, where `command` is a chat server of its own.
+    executable?: string;
+    terminal?: ProviderTerminal;
+    // The host's additions to every launch, such as its MCP server.
+    launch?: LaunchDecorator;
     oneShotArgs?(prompt: string): string[];
     oneShotStdinArgs?: readonly string[];
+    leanOneShotArgs?(args: readonly string[], model: string): string[];
     // Absent leaves the agent to chats only.
     firstPromptArgs?(prompt: string): string[];
     // Absent asks the executable for `--version`.
@@ -104,8 +110,12 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
         ...(spec.ignoresProjectConfig === undefined ? {} : { ignoresProjectConfig: spec.ignoresProjectConfig }),
         ...(spec.home ? { home: spec.home } : {}),
         ...(spec.install ? { install: spec.install } : {}),
+        ...(spec.executable === undefined ? {} : { executable: spec.executable }),
+        ...(spec.terminal === undefined ? {} : { terminal: spec.terminal }),
+        ...(spec.launch === undefined ? {} : { launch: spec.launch }),
         ...(spec.oneShotArgs ? { oneShotArgs: spec.oneShotArgs } : {}),
         ...(spec.oneShotStdinArgs ? { oneShotStdinArgs: spec.oneShotStdinArgs } : {}),
+        ...(spec.leanOneShotArgs ? { leanOneShotArgs: spec.leanOneShotArgs } : {}),
         ...(spec.enabled ? { enabled: spec.enabled } : {}),
         firstPromptArgs:
             spec.firstPromptArgs ??

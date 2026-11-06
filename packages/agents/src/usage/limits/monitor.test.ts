@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 import type { UsageProvider } from '@adecore/agent-contracts';
+import type { ProbeResult } from '../../backends/limits-probe.ts';
 import { ProviderRegistry } from '../../providers/registry.ts';
 import { UsageMonitor, type LimitAccount, type LimitAccounts } from './monitor.ts';
-import type { ProbeResult } from './probe.ts';
 
 function registry(installed: readonly UsageProvider[]): ProviderRegistry {
     return new ProviderRegistry({ detect: (command) => Promise.resolve({ installed: installed.includes(command as UsageProvider), version: '1.0.0' }) });

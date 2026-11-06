@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
-import { KNOWN_AGENT_KINDS } from '@adecore/agent-contracts';
-import { providerFor } from '../registry.ts';
+import { providerFor } from '../../testing/providers.ts';
 import { accountEnv, accountFolder, accountProblem, canContinue, readAccount, withDefaults, type AccountProviders } from './accounts.ts';
 
 // Windows reads the home from USERPROFILE and joins with backslashes.
@@ -17,7 +16,8 @@ const env = {
     CODEX_API_KEY: 'ck'
 };
 
-const providerOf: AccountProviders = { kinds: KNOWN_AGENT_KINDS, get: providerFor };
+const KINDS = ['claude', 'codex', 'gemini', 'copilot', 'apple'];
+const providerOf: AccountProviders = { kinds: KINDS, get: providerFor };
 const claude = providerFor('claude');
 const codex = providerFor('codex');
 
@@ -55,27 +55,27 @@ describe('accountFolder', () => {
 
 describe('accountProblem', () => {
     test('accepts a default account and a second one with a folder', () => {
-        expect(accountProblem('claude', { kind: 'claude', label: 'Work' }, claude, env)).toBeNull();
-        expect(accountProblem('claude_personal', { kind: 'claude', home: '~/.claude_personal' }, claude, env)).toBeNull();
+        expect(accountProblem('claude', { kind: 'claude', label: 'Work' }, claude, env, KINDS)).toBeNull();
+        expect(accountProblem('claude_personal', { kind: 'claude', home: '~/.claude_personal' }, claude, env, KINDS)).toBeNull();
     });
 
     test('refuses what cannot mean anything', () => {
-        expect(accountProblem('claude', { kind: 'claude', home: '~/.other' }, claude, env)).not.toBeNull();
-        expect(accountProblem('codex', { kind: 'claude', home: '~/.x' }, claude, env)).not.toBeNull();
-        expect(accountProblem('claude_personal', { kind: 'claude' }, claude, env)).not.toBeNull();
-        expect(accountProblem('claude_personal', { kind: 'claude', home: 'relative/folder' }, claude, env)).not.toBeNull();
-        expect(accountProblem('claude_personal', { kind: 'claude', home: '~/.a', shadowHome: '~/.b' }, claude, env)).not.toBeNull();
-        expect(accountProblem('codex_personal', { kind: 'codex', home: '~/.codex', shadowHome: join(HOME, '.codex') }, codex, env)).not.toBeNull();
+        expect(accountProblem('claude', { kind: 'claude', home: '~/.other' }, claude, env, KINDS)).not.toBeNull();
+        expect(accountProblem('codex', { kind: 'claude', home: '~/.x' }, claude, env, KINDS)).not.toBeNull();
+        expect(accountProblem('claude_personal', { kind: 'claude' }, claude, env, KINDS)).not.toBeNull();
+        expect(accountProblem('claude_personal', { kind: 'claude', home: 'relative/folder' }, claude, env, KINDS)).not.toBeNull();
+        expect(accountProblem('claude_personal', { kind: 'claude', home: '~/.a', shadowHome: '~/.b' }, claude, env, KINDS)).not.toBeNull();
+        expect(accountProblem('codex_personal', { kind: 'codex', home: '~/.codex', shadowHome: join(HOME, '.codex') }, codex, env, KINDS)).not.toBeNull();
     });
 
     test('lets a CLI without a folder variable keep a second account, which is then only unavailable', () => {
-        expect(accountProblem('gemini_work', { kind: 'gemini' }, providerFor('gemini'), env)).toBeNull();
+        expect(accountProblem('gemini_work', { kind: 'gemini' }, providerFor('gemini'), env, KINDS)).toBeNull();
     });
 });
 
 describe('withDefaults', () => {
     test('always holds a default account per CLI, first and in catalog order', () => {
-        const accounts = withDefaults({ claude_personal: { kind: 'claude', home: '~/.cp' }, codex: { kind: 'codex', label: 'Work' } }, KNOWN_AGENT_KINDS);
+        const accounts = withDefaults({ claude_personal: { kind: 'claude', home: '~/.cp' }, codex: { kind: 'codex', label: 'Work' } }, KINDS);
         expect(Object.keys(accounts)).toEqual(['claude', 'codex', 'gemini', 'copilot', 'apple', 'claude_personal']);
         expect(accounts.codex).toEqual({ kind: 'codex', label: 'Work' });
     });

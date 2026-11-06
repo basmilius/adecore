@@ -5,7 +5,7 @@ import { KeyedSerializer } from '@adecore/utils/async';
 import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic } from '@adecore/utils/fs';
 import { z } from 'zod';
-import { ChatError } from './errors.ts';
+import { ChatError } from '../chat-error.ts';
 
 const SUFFIX = '.bookmarks.json';
 

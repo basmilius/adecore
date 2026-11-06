@@ -4,8 +4,9 @@ import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill
 import { isRecord } from '@adecore/utils/record';
 import { errorText } from '../error-text.ts';
 import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
+import { codexMcpArgs } from './cli-mcp.ts';
 import { codexGoal, CodexProtocol } from './codex-protocol.ts';
-import { CodexTransport, DEFAULT_CODEX_CLIENT, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
+import { CodexTransport, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
 import { codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
 
@@ -71,7 +72,24 @@ function goalLine(goal: ChatGoal): string {
 }
 
 export interface CodexBackendOptions {
-    client?: CodexClientInfo;
+    // How the host names itself in `initialize`.
+    client: CodexClientInfo;
+}
+
+/* The arguments that load the launch's MCP servers into an app-server, which reads them from its command line and the token from its environment. */
+function mcpArgsOf(launch: BackendLaunch): { args: string[]; skipped: string[] } {
+    const args: string[] = [];
+    const skipped: string[] = [];
+
+    for (const server of launch.mcpServers ?? []) {
+        if (server.tokenVariable === undefined) {
+            skipped.push(server.name);
+        } else {
+            args.push(...codexMcpArgs({ name: server.name, url: server.url, tokenVariable: server.tokenVariable }, server.allowTools === true));
+        }
+    }
+
+    return { args, skipped };
 }
 
 /*
@@ -101,10 +119,10 @@ export class CodexBackend implements ChatBackend {
     // The thread's goal as Codex last reported it, which a stop pauses first so Codex opens no turn after it.
     private goalNow: ChatGoal | null = null;
 
-    constructor(launch: BackendLaunch, host: BackendHost, options: CodexBackendOptions = {}) {
+    constructor(launch: BackendLaunch, host: BackendHost, options: CodexBackendOptions) {
         this.launch = launch;
         this.host = host;
-        this.client = options.client ?? DEFAULT_CODEX_CLIENT;
+        this.client = options.client;
         this.protocol = new CodexProtocol(launch.generation);
         this.threadId = launch.resume ?? '';
     }
@@ -122,8 +140,10 @@ export class CodexBackend implements ChatBackend {
             return;
         }
 
+        const mcp = mcpArgsOf(this.launch);
+
         const transport = new CodexTransport({
-            command: this.launch.command,
+            command: [...this.launch.command, ...mcp.args],
             cwd: this.launch.cwd,
             env: this.launch.env,
             ...(this.launch.spawn ? { spawn: this.launch.spawn } : {}),
@@ -133,6 +153,14 @@ export class CodexBackend implements ChatBackend {
         });
 
         this.transport = transport;
+
+        for (const name of mcp.skipped) {
+            this.emit({
+                type: 'note',
+                level: 'warning',
+                text: `The MCP server "${name}" needs a token variable to go to Codex, so this chat starts without it.`
+            });
+        }
 
         try {
             await this.handshake(transport);

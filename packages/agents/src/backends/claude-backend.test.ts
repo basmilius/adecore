@@ -6,9 +6,9 @@ import compactCapture from '../chat/fixtures/claude-2.1.285-resume-direct-compac
 import resumedTaskCapture from '../chat/fixtures/claude-2.1.285-resume-task-notification.json';
 import goalCapture from '../chat/fixtures/claude-2.1.296-goal.json';
 import interimCapture from '../chat/fixtures/claude-2.1.318-interim-subagent.json';
-import { claudeProvider } from '../providers/claude-provider.ts';
 import { fakeClaude } from '../testing/fake-claude.ts';
 import { inProcess, type FakeCli, type FakeIo, type InProcessCli } from '../testing/fake-cli.ts';
+import { claudeProvider } from '../testing/providers.ts';
 import type { BackendEvent, BackendLaunch, TurnInput } from './backend.ts';
 import { ClaudeBackend, type ClaudeBackendOptions } from './claude-backend.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';

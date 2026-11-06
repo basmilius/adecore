@@ -1,7 +1,7 @@
 import type { AGENT_REQUEST_SCHEMAS, AgentRequestType } from '@adecore/agent-contracts';
 import type { z } from 'zod';
+import { ChatError } from '../chat-error.ts';
 import type { ChatCore } from '../chat/chat-core.ts';
-import { ChatError } from '../chat/errors.ts';
 import type { ProviderAccountsService } from '../providers/accounts/service.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import type { UsageMonitor } from '../usage/limits/monitor.ts';

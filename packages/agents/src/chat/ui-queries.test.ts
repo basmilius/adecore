@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, jest, setSystemTime, test } fr
 import type { ChatAssistantItem, ChatEvent, ChatInfo, ChatUiPlaceReading } from '@adecore/agent-contracts';
 import { compileUiBlock, evaluateUiBlock, resolveUiChoice, uiQueryArguments } from '@adecore/intelligent-ui';
 import { z } from 'zod';
-import { claudeProvider } from '../providers/claude-provider.ts';
+import { claudeProvider } from '../testing/providers.ts';
 import { ChatSession } from './chat-session.ts';
 import { ChatUiQueries, ChatUiRefusal, type ChatUiHost } from './ui-queries.ts';
 
@@ -83,7 +83,6 @@ function rig() {
         items: [item],
         uiAccess: { reply: { readable: true } },
         provider: claudeProvider,
-        command: ['unused'],
         env: () => ({}),
         emit: (event) => {
             events.push(event);
@@ -365,7 +364,6 @@ test('a choice from options a query read is refreshed and sent against the readi
         items: [{ ...r.item, ui: [block] }],
         uiAccess: { reply: { readable: true } },
         provider: claudeProvider,
-        command: ['unused'],
         env: () => ({}),
         emit: () => {},
         persist: () => {},

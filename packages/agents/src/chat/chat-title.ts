@@ -1,4 +1,5 @@
 import type { AgentKind } from '@adecore/agent-contracts';
+import { cliExecutable } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { runProcess } from '../run-process.ts';
 import { cleanTitle } from '../title-file.ts';
@@ -86,7 +87,7 @@ export async function suggestChatTitle(
     }
 
     try {
-        const result = await runProcess([provider.command[0]!, ...args], { cwd: input.cwd, timeoutMs: TIMEOUT_MS, ...(env === undefined ? {} : { env }) });
+        const result = await runProcess([cliExecutable(provider), ...args], { cwd: input.cwd, timeoutMs: TIMEOUT_MS, ...(env === undefined ? {} : { env }) });
 
         return result.exitCode === 0 ? parseTitle(result.stdout) : null;
     } catch {

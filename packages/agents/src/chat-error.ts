@@ -1,4 +1,4 @@
-import { CodedError } from '../coded-error.ts';
+import { CodedError } from './coded-error.ts';
 
 export type ChatErrorCode =
     | 'refused-query'

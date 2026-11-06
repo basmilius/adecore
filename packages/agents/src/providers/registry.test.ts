@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { claudeProvider } from './claude-provider.ts';
+import { claudeProvider } from '../testing/providers.ts';
 import type { ChatProvider } from './provider.ts';
 import { ProviderRegistry, unofferedProvider } from './registry.ts';
 

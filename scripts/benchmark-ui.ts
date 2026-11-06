@@ -6,8 +6,8 @@ import { AttachmentStore } from '../packages/agents/src/chat/attachment-store';
 import { ChatCore } from '../packages/agents/src/chat/chat-core';
 import { parseLog } from '../packages/agents/src/chat/chat-log';
 import { ChatStore } from '../packages/agents/src/chat/chat-store';
-import { claudeProvider } from '../packages/agents/src/providers/claude-provider';
 import { ProviderRegistry } from '../packages/agents/src/providers/registry';
+import { claudeProvider } from '../packages/agents/src/testing/providers';
 import { UiCompiler } from '../packages/intelligent-ui/src/compiler';
 
 function distribution(values: number[]) {

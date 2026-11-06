@@ -8,7 +8,7 @@ import { CHAT_PAYLOAD_INLINE_BYTES, ChatCheckpointDiffSchema, type ChatCheckpoin
 import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic, writeAtomicSync } from '@adecore/utils/fs';
 import { isHighSurrogate } from '@adecore/utils/text';
-import { ChatError } from './errors.ts';
+import { ChatError } from '../chat-error.ts';
 
 /* How much of a value stored apart the item keeps: what a timeline shows before anyone asks for the rest. */
 export const PAYLOAD_PREVIEW_BYTES = 2 * 1024;

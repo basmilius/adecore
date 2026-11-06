@@ -31,16 +31,24 @@ export { chooseAccount, type AccountChoiceInput, type AccountUnusable, type Chos
 export { AccountError, type AccountLaunches, storedAccount, launchEnv } from './accounts/launch.ts';
 export { ProviderAccountsService, type ProviderAccountsOptions } from './accounts/service.ts';
 export type { ShadowHomeReport } from './accounts/shadow-home.ts';
-export type { AccountReading, AskAccount } from './accounts/status.ts';
+export type { AccountReading } from './accounts/status.ts';
 export { type AccountsHost, variablesProblem, keychainService, type SecretStore, type ReservedVariables } from './accounts/variables.ts';
 export { ModelCatalog, type ModelCatalogInput } from './catalog.ts';
-export { type CliMcpServer, cliMcpHeaders, cliMcpArgs, cliMcpAllowArgs } from './cli-mcp.ts';
-export { createClaudeProvider } from './claude-provider.ts';
-export { createCodexProvider } from './codex-provider.ts';
+export { type CliMcpServer, cliMcpHeaders } from '../backends/cli-mcp.ts';
+export { createClaudeProvider, type ClaudeProviderOptions } from './claude-provider.ts';
+export { createCodexProvider, type CodexProviderOptions } from './codex-provider.ts';
 export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome, installCodexRules, type CodexRulesResult } from './codex-rules.ts';
 export { codexThreadOptions, codexServiceTier } from '../backends/codex.ts';
 export { type CliDetection, detectCli } from './detect.ts';
-export type { ChatProvider, ClaudeCodeRuntime, ProviderHome } from './provider.ts';
+export {
+    type ChatProvider,
+    type ClaudeCodeRuntime,
+    type LaunchDecorator,
+    type ProviderHome,
+    type ProviderTerminal,
+    type SubagentSource,
+    cliExecutable
+} from './provider.ts';
 export { nanoGptVendorOf } from './nanogpt-vendor.ts';
 export { isOnlyCommands } from './shell-commands.ts';
 export { ProviderRegistry, type ProviderRegistryOptions } from './registry.ts';

@@ -1,5 +1,7 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
 export { type AcpAgentSpec, type AcpClientInfo, type AcpUsageReport, createAcpBackend } from '../backends/acp-backend.ts';
+// What a chat is doing, for every host question about it being busy; the predicate lives in the contracts so a client reads it too.
+export { chatActivity, type ChatActivity } from '@adecore/agent-contracts';
 
 export type {
     AcpAgentInfo,
@@ -55,10 +57,10 @@ export type { ClaudeApiKeyOptions, ClaudeBackendOptions } from '../backends/clau
 export { ClaudeTitleReader } from './claude-title.ts';
 export { claudeProjectSlug, findClaudeSession } from './claude-transcript.ts';
 export type { CodexBackendOptions } from '../backends/codex-backend.ts';
-export { forkThreadOnce, type ThreadItemsParams, type CodexProcessSpec, type ThreadForkParams } from './codex-thread.ts';
+export type { ProviderThreads, ThreadItemsParams, ThreadProcess, ThreadForkParams } from '../backends/threads.ts';
 export type { CodexClientInfo } from '../backends/codex-transport.ts';
 export type { ComposerPreference } from './composer-preferences.ts';
-export { type ChatErrorCode, ChatError } from './errors.ts';
+export { type ChatErrorCode, ChatError } from '../chat-error.ts';
 export { type SessionFs, type ExternalSession, listClaudeSessions, listCodexSessions, nodeSessionFs } from './external-sessions.ts';
 export { limitedTurn, limitResumeAt } from './limit-resume.ts';
 export { readableAssistantText } from '../readable-text.ts';

@@ -2,8 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { abortedByEnd, abortedByMachine, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { ClaudeProtocol } from '../backends/claude-protocol.ts';
-import { claudeProvider } from '../providers/claude-provider.ts';
-import { codexProvider } from '../providers/codex-provider.ts';
+import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
 
@@ -28,7 +27,6 @@ function replacementRig(
 
     const session = new ChatSession({
         info: { ...info(), provider: provider.kind, selection: provider.catalog.normalize(undefined) },
-        command: ['unused'],
         env: (account) => ({ PROBE_ACCOUNT: account ?? 'default' }),
         emit: () => undefined,
         persist: () => undefined,
@@ -997,7 +995,6 @@ describe('a message sent while a settings change waits', () => {
                     };
                 }
             },
-            command: ['unused'],
             env: () => ({}),
             emit: () => undefined,
             persist: () => undefined,
@@ -1077,7 +1074,6 @@ describe('ids across a restart of the host', () => {
                     };
                 }
             },
-            command: ['unused'],
             env: () => ({}),
             emit: () => undefined,
             persist: () => undefined,

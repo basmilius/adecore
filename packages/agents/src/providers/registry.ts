@@ -1,9 +1,10 @@
 import type { AgentKind, ProviderCapabilities, ProviderInfo } from '@adecore/agent-contracts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { ModelCatalog } from './catalog.ts';
-import { claudeProvider } from './claude-provider.ts';
-import { codexProvider } from './codex-provider.ts';
+import { createClaudeProvider } from './claude-provider.ts';
+import { createCodexProvider } from './codex-provider.ts';
 import type { CliDetection } from './detect.ts';
-import type { ChatProvider } from './provider.ts';
+import { cliExecutable, type ChatProvider } from './provider.ts';
 
 // How long a "is it installed" answer stays good; an install mid-session shows up on the next check.
 const DETECTION_TTL_MS = 60_000;
@@ -47,18 +48,14 @@ export function unofferedProvider(kind: AgentKind): ChatProvider {
     };
 }
 
-const BUILT_IN_PROVIDERS: readonly ChatProvider[] = [claudeProvider, codexProvider];
-
-/* The provider of a kind, for the places that have no registry at hand. */
-export function providerFor(kind: AgentKind): ChatProvider {
-    return BUILT_IN_PROVIDERS.find((provider) => provider.kind === kind) ?? unofferedProvider(kind);
+/* The chat CLIs this package ships, for a registry made without a list of its own. */
+function shippedProviders(): ChatProvider[] {
+    return [createClaudeProvider(), createCodexProvider({ client: DEFAULT_CODEX_CLIENT })];
 }
 
 export interface ProviderRegistryOptions {
     // The CLIs a host offers, in the order every menu lists them; absent, the chat CLIs this package ships.
     providers?: ChatProvider[];
-    // The executables to probe, when they are not the ones the providers name.
-    commands?: Partial<Record<AgentKind, string>>;
     detect?: (command: string) => Promise<CliDetection>;
     env?: Record<string, string | undefined>;
 }
@@ -66,7 +63,6 @@ export interface ProviderRegistryOptions {
 /* What a host knows about each agent CLI: whether it is there, what it offers and what it can do. */
 export class ProviderRegistry {
     private readonly providers: ChatProvider[];
-    private readonly commands: Partial<Record<AgentKind, string>>;
     private readonly detect: ((command: string) => Promise<CliDetection>) | null;
     private readonly env: Record<string, string | undefined>;
     private readonly cache = new Map<AgentKind, { at: number; detection: CliDetection }>();
@@ -75,8 +71,7 @@ export class ProviderRegistry {
     private readonly stops = new Map<ChatProvider, () => void>();
 
     constructor(options: ProviderRegistryOptions = {}) {
-        this.providers = [...(options.providers ?? BUILT_IN_PROVIDERS)];
-        this.commands = options.commands ?? {};
+        this.providers = [...(options.providers ?? shippedProviders())];
         this.detect = options.detect ?? null;
         this.env = options.env ?? process.env;
     }
@@ -233,7 +228,7 @@ export class ProviderRegistry {
             return cached.detection;
         }
 
-        const command = this.commands[provider.kind] ?? provider.command[0]!;
+        const command = cliExecutable(provider);
         const detection = this.detect ? await this.detect(command) : await provider.detect(command, this.env);
 
         // Turned off while the probe ran.

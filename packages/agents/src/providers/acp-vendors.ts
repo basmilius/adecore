@@ -3,7 +3,7 @@ import { ModelOptionDescriptorSchema } from '@adecore/agent-contracts';
 import { z } from 'zod';
 import type { AcpClientInfo } from '../backends/acp-backend.ts';
 import type { AcpModeMap } from '../backends/acp-protocol.ts';
-import type { BackendLaunch } from '../backends/backend.ts';
+import { copilotMcpAllowArgs, copilotMcpArgs } from '../backends/cli-mcp.ts';
 import { runProcess } from '../run-process.ts';
 import type { AccountReading } from './accounts/status.ts';
 import type { AcpCatalogStore } from './acp-agent-state.ts';
@@ -13,21 +13,19 @@ import { ModelCatalog } from './catalog.ts';
 import copilotModels from './copilot-models.json' with { type: 'json' };
 import { detectCli } from './detect.ts';
 import grokModels from './grok-models.json' with { type: 'json' };
-import type { ChatProvider, ProviderHome } from './provider.ts';
+import type { ChatProvider, LaunchDecorator, ProviderHome } from './provider.ts';
 
 /* What a host decides for every vendor ACP agent it starts. */
 export interface AcpVendorOptions {
     // How the host names itself in `initialize`; absent sends the backend's default.
     readonly client?: AcpClientInfo;
-    // Applied to every launch before its backend starts, such as adding the host's own MCP servers.
-    readonly launch?: (launch: BackendLaunch) => BackendLaunch;
+    // The host's additions to every launch, such as its own MCP server.
+    readonly launch?: LaunchDecorator;
     // Keeps the models the agent reported across a restart of the host.
     readonly catalogStore?: AcpCatalogStore;
 }
 
 export interface CopilotProviderOptions extends AcpVendorOptions {
-    // Put on Copilot's line after its ACP arguments, such as `--allow-tool=<server>` for the host's MCP server.
-    readonly args?: readonly string[];
     // The folder every turn's usage is logged to (`copilotUsageDirectory`); absent logs nothing.
     readonly usageLog?: string;
 }
@@ -92,15 +90,12 @@ function probeWithoutUpdate(command: string, env: Record<string, string | undefi
     return detectCli(command, env, undefined, ['--no-auto-update']);
 }
 
-function hostSpec(options: AcpVendorOptions): Pick<AcpProviderSpec, 'client' | 'catalogStore'> {
+function hostSpec(options: AcpVendorOptions): Pick<AcpProviderSpec, 'client' | 'catalogStore' | 'launch'> {
     return {
         ...(options.client === undefined ? {} : { client: options.client }),
-        ...(options.catalogStore === undefined ? {} : { catalogStore: options.catalogStore })
+        ...(options.catalogStore === undefined ? {} : { catalogStore: options.catalogStore }),
+        ...(options.launch === undefined ? {} : { launch: options.launch })
     };
-}
-
-function launching(options: AcpVendorOptions): (launch: BackendLaunch) => BackendLaunch {
-    return options.launch ?? ((launch) => launch);
 }
 
 const GROK_SPEC: VendorSpec = {
@@ -128,11 +123,21 @@ const GROK_SPEC: VendorSpec = {
             { kind: 'env', variable: 'XAI_API_KEY' }
         ]
     },
+    // Grok's own `--permission-mode` values (xai-org/grok-build); `bypassPermissions` is its always-approve.
+    terminal: {
+        modeArgs: {
+            supervised: ['--permission-mode', 'default'],
+            'auto-accept-edits': ['--permission-mode', 'acceptEdits'],
+            auto: ['--permission-mode', 'auto'],
+            'full-access': ['--permission-mode', 'bypassPermissions']
+        }
+    },
     detect: probeWithoutUpdate,
     // An ACP probe leaves a session folder in the account's home every time, so `grok models` answers instead (`askGrokModels`).
     accountProbe: false,
     // Headless Grok refuses every call that would ask, so the default mode keeps a title or a message from writing anything.
     oneShotArgs: (prompt) => ['--no-auto-update', '-p', prompt, '--output-format', 'plain', '--permission-mode', 'default', '--disallowed-tools', 'Agent'],
+    leanOneShotArgs: (args, model) => [...args, '--model', model, '--tools', '', '--max-turns', '1', '--reasoning-effort', 'low'],
     firstPromptArgs: (prompt) => [prompt]
 };
 
@@ -278,7 +283,6 @@ function copyCapabilities(target: ChatProvider, source: ChatProvider): void {
  */
 export function createGrokProvider(options: AcpVendorOptions = {}): ChatProvider {
     const catalog = shippedAgentCatalog('grok');
-    const launch = launching(options);
     const listeners = new Set<() => void>();
     const byLogin = new Map<string, ChatProvider>();
 
@@ -331,7 +335,7 @@ export function createGrokProvider(options: AcpVendorOptions = {}): ChatProvider
 
             return { signedIn: listed.signedIn, email: null, plan: null, organization: null };
         },
-        createBackend: (backendLaunch, host) => forLogin(grokAuthMethod(backendLaunch.env)).createBackend(launch(backendLaunch), host)
+        createBackend: (backendLaunch, host) => forLogin(grokAuthMethod(backendLaunch.env)).createBackend(backendLaunch, host)
     };
 }
 
@@ -357,6 +361,10 @@ const COPILOT_SPEC: VendorSpec = {
             { kind: 'env', variable: 'COPILOT_GITHUB_TOKEN' }
         ]
     },
+    terminal: { mcpArgs: copilotMcpArgs, mcpAllowArgs: copilotMcpAllowArgs },
+    // Its permission requests name no server, so only an `--allow-tool=<server>` on its line runs a server's tools
+    // without asking (measured on Copilot CLI 1.0.104).
+    allowToolsArgs: copilotMcpAllowArgs,
     // `-s` prints only the answer; without shell and file writes it can only read. A prompt piped in runs the same way.
     oneShotArgs: (prompt) => ['--no-auto-update', '-p', prompt, ...COPILOT_ONE_SHOT],
     oneShotStdinArgs: ['--no-auto-update', ...COPILOT_ONE_SHOT],
@@ -369,22 +377,13 @@ export function copilotUsageDirectory(home: string): string {
     return join(home, 'usage', 'copilot');
 }
 
-/*
- * Copilot loads an MCP server from its session request, but its permission requests name no server, so only an
- * `--allow-tool=<server>` in `args` runs the server's tools without asking (measured on Copilot CLI 1.0.104).
- */
 export function createCopilotProvider(options: CopilotProviderOptions = {}): ChatProvider {
-    const launch = launching(options);
-
-    const provider = createAcpProvider({
+    return createAcpProvider({
         ...COPILOT_SPEC,
-        args: [...(COPILOT_SPEC.args ?? []), ...(options.args ?? [])],
         catalog: shippedAgentCatalog('copilot'),
         ...hostSpec(options),
         ...(options.usageLog === undefined ? {} : { usageLog: options.usageLog })
     });
-
-    return { ...provider, createBackend: (backendLaunch, host) => provider.createBackend(launch(backendLaunch), host) };
 }
 
 // Google's CLI, which a terminal starts and a single prompt goes to; the chat runs on a server of its own.
@@ -408,8 +407,19 @@ const ANTIGRAVITY_HOME: ProviderHome = { env: 'GEMINI_HOME', fallback: '.gemini'
 const ANTIGRAVITY_SPEC: VendorSpec = {
     kind: 'antigravity',
     name: 'Antigravity',
-    // Only stands in until the server is installed; a terminal starts `agy` itself.
+    // Only stands in until the server is installed; a terminal and a single prompt start `agy` itself.
     command: ANTIGRAVITY_CLI,
+    executable: ANTIGRAVITY_CLI,
+    // Antigravity CLI 1.4 has no `--mode` for `auto`, so it shares the narrower accept-edits; plan mode widens nothing.
+    terminal: {
+        modeArgs: {
+            supervised: [],
+            'auto-accept-edits': ['--mode=accept-edits'],
+            auto: ['--mode=accept-edits'],
+            'full-access': ['--dangerously-skip-permissions']
+        }
+    },
+    oneShotArgs: antigravityOneShotArgs,
     model: agentModel,
     modes: ANTIGRAVITY_MODES,
     // The server runs the browser sign-in itself, on a callback server of its own.
@@ -448,7 +458,6 @@ export function antigravityOneShotArgs(prompt: string): string[] {
  */
 export function createAntigravityProvider(options: AntigravityProviderOptions = {}): ChatProvider {
     const server = options.server ?? null;
-    const launch = launching(options);
     const base = createAcpProvider({ ...ANTIGRAVITY_SPEC, catalog: shippedAgentCatalog('antigravity'), ...hostSpec(options) });
 
     return {
@@ -465,7 +474,7 @@ export function createAntigravityProvider(options: AntigravityProviderOptions = 
                 throw new Error('Install the Antigravity server first.');
             }
 
-            return base.createBackend(launch(backendLaunch), host);
+            return base.createBackend(backendLaunch, host);
         }
     };
 }

@@ -29,6 +29,9 @@ export interface ChatMcpServer {
     transport?: 'http' | 'sse';
     // Sent with every request to the server, such as a bearer token.
     headers?: Readonly<Record<string, string>>;
+    // The environment variable of the CLI's process that holds the server's bearer token, which the backend hands over in
+    // the form its CLI reads: a header the CLI fills in, an argument naming the variable, or the value itself.
+    tokenVariable?: string;
     // True runs every tool of the server without asking, in any runtime mode, for a server that checks each call itself.
     allowTools?: boolean;
 }
@@ -66,8 +69,8 @@ export interface BackendLaunch {
     folders?: readonly string[];
     // False keeps the CLI from loading configuration out of `cwd` (settings, hooks, MCP servers); absent loads it.
     projectConfig?: boolean;
-    // MCP servers the session loads. Only the ACP backend takes them, in its session requests; a CLI that reads
-    // its servers from its command line gets them there from the host.
+    // MCP servers the session loads, each in the form its backend's CLI takes them: a session request, an SDK option
+    // or arguments on the command line.
     mcpServers?: readonly ChatMcpServer[];
     spawn?: SpawnChatProcess;
     saveGeneratedImage?(ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment>;

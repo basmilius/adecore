@@ -1,6 +1,6 @@
 # Accounts
 
-An account is one config folder of a CLI plus the environment variables a person set for it. The person signs in with the CLI itself, and the host only asks the CLI who is signed in. Each offered CLI has a default account that uses the CLI's own folder, with the CLI's kind as id. The offered kinds come from the registry's `kinds()`, or from `KNOWN_AGENT_KINDS` when it returns none. The host keeps accounts of other kinds but never checks them.
+An account is one config folder of a CLI plus the environment variables a person set for it. The person signs in with the CLI itself, and the host only asks the CLI who is signed in. Each offered CLI has a default account that uses the CLI's own folder, with the CLI's kind as id. The offered kinds come from the registry's `kinds()`. The host keeps accounts of other kinds but never checks them.
 
 `ProviderAccountsService` keeps a host's accounts. `AgentHost` exposes one as `host.accounts`. It answers the `accounts.*` requests, checks sign-ins periodically, and polls the CLI for a while after `accounts.watchLogin`. Accounts live in `providers.json` without secrets.
 
@@ -10,16 +10,16 @@ A person orders the accounts of each CLI with `accounts.reorder`, which writes `
 
 A CLI keeps accounts when its provider has a `home`: the folder variable, the default folder, the variables that sign it in by themselves, and the `loginCommand` a person types in a terminal. A CLI that signs in from its first chat, such as an ACP agent, leaves `loginCommand` out. Its kind appears in `chatLogins` instead of `loginCommands`, and its accounts count as `ready` without a check.
 
-A provider with its own `askAccount(command, env)` answers for itself, as every ACP provider does (see [ACP agents](./acp#accounts)). The others go through the service's `ask`, which by default knows Claude Code (`claude auth status --json`) and Codex (`account/read`). A host's own `ask` must answer for every kind. A kind in `loginCommands` that nothing can ask is also listed in `silentLogins`, so a login window should not promise to close by itself.
+A provider reads who is signed in with its own `askAccount(command, env)`: Claude Code through `claude auth status --json`, Codex through `account/read`, every ACP provider over ACP (see [ACP agents](./acp#accounts)). A kind in `loginCommands` whose provider has no `askAccount` is also listed in `silentLogins`, so a login window should not promise to close by itself. A provider whose `home.shadow` is true makes an account a shadow home over the CLI's own folder, as Codex does. A provider's `prepareHome(folder)` puts what the host needs in an account's folder, such as Codex's rules.
 
 `accounts.create` makes a folder for the new account under the data folder. For Codex it is a shadow home with its own `auth.json` and links to the shared home's sessions, skills and rules, so accounts continue each other's threads. A file already in the way is reported as not shared. This needs Codex to keep its login in a file, not the keychain.
 
 ## The types behind it
 
-- `ProviderAccountsOptions` are the options of the service: the data folder, the `AccountsHost`, the providers, the environment, an `ask` for CLIs without a reader of their own, and the `secrets`.
+- `ProviderAccountsOptions` are the options of the service: the data folder, the `AccountsHost`, the providers, the environment and the `secrets`.
 - `chooseAccount` takes an `AccountChoiceInput` (the kind, the accounts, the named and preferred account, and those turned off) and returns a `ChosenAccount`. A passed-over account carries an `AccountUnusable` reason, such as `signed out` or `at its usage limit`.
 - `AccountLaunches` is how a terminal or a chat starts a CLI under an account: its environment, its transcript folder and its config folder. `launchEnv(accounts, kind, account, baseEnv)` returns the environment of a launch; without accounts wired only the default account starts. `storedAccount(kind, account)` is the id a record keeps: none for the default account, so nothing changes on disk for a host without accounts.
-- An `AskAccount` asks a CLI who is signed in and answers an `AccountReading`: `signedIn`, `email`, `plan` and `organization`. `AcpAccountProbe` holds what `askAcpAccount` needs to ask an ACP agent.
+- `askAccount` asks a CLI who is signed in and answers an `AccountReading`: `signedIn`, `email`, `plan` and `organization`. `AcpAccountProbe` holds what `askAcpAccount` needs to ask an ACP agent.
 - Making a Codex account reports a `ShadowHomeReport`: what it linked, what was in the way and stayed unshared, and whether the login itself would be shared.
 
 ## Secrets

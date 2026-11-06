@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { codexProvider } from '../providers/codex-provider.ts';
 import type { ChatProvider } from '../providers/provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { codexProvider } from '../testing/providers.ts';
 import { suggestChatTitle } from './chat-title.ts';
 
 function scripted(script: string): ChatProvider {

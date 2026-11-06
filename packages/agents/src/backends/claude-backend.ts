@@ -23,6 +23,7 @@ import { errorText } from '../error-text.ts';
 import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from './claude.ts';
+import { cliMcpHeaders } from './cli-mcp.ts';
 import { buildUserMessage } from './input.ts';
 
 // How long the messages of a CLI that exited may still take through the SDK.
@@ -159,7 +160,8 @@ function definedEnv(env: SpawnOptions['env']): Record<string, string> {
 
 // The headers go into `--mcp-config` as written, so a `${VAR}` in them is expanded by the CLI and never lands on a command line.
 function mcpConfig(server: ChatMcpServer): McpServerConfig {
-    const headers = server.headers ? { headers: { ...server.headers } } : {};
+    const written = server.headers ?? (server.tokenVariable === undefined ? undefined : cliMcpHeaders(server.tokenVariable));
+    const headers = written ? { headers: { ...written } } : {};
 
     return server.transport === 'sse' ? { type: 'sse', url: server.url, ...headers } : { type: 'http', url: server.url, ...headers };
 }

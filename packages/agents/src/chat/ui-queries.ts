@@ -17,8 +17,8 @@ import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adeco
 import { uiPlaceQueries, type UiPlaceQuery } from '@adecore/intelligent-ui/places';
 import { uiQueryArguments, uiQueryFallback } from '@adecore/intelligent-ui/query';
 import type { z } from 'zod';
+import { ChatError } from '../chat-error.ts';
 import type { ChatSession } from './chat-session.ts';
-import { ChatError } from './errors.ts';
 
 export interface ChatUiSource {
     args: z.ZodType;

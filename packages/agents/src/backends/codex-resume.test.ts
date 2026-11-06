@@ -1,9 +1,10 @@
 import { expect, test } from 'bun:test';
-import { codexProvider } from '../providers/codex-provider.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
+import { codexProvider } from '../testing/providers.ts';
 import type { BackendLaunch } from './backend.ts';
 import { CodexBackend } from './codex-backend.ts';
+import { DEFAULT_CODEX_CLIENT } from './codex-transport.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 
@@ -49,7 +50,7 @@ async function resumeAndSend(overrides: Partial<BackendLaunch>, options: FakeCod
         };
     });
 
-    const backend = new CodexBackend({ ...launch, ...overrides, spawn: fake.spawn }, { onEvent: () => undefined });
+    const backend = new CodexBackend({ ...launch, ...overrides, spawn: fake.spawn }, { onEvent: () => undefined }, { client: DEFAULT_CODEX_CLIENT });
     await backend.start();
     backend.sendTurn({ text: 'hello', preamble: null, attachments: [], mentions: [], skills: [] });
     await sent;

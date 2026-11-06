@@ -26,6 +26,7 @@ import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure } from '@adecore/intellig
 import { asError } from '@adecore/utils/errors';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import type { LimitsUpdate } from '../backends/limits.ts';
+import { ChatError } from '../chat-error.ts';
 import type { SpawnChatProcess } from '../chat-process.ts';
 import { systemClock, type Clock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
@@ -34,7 +35,6 @@ import { readableAssistantText } from '../readable-text.ts';
 import { cleanTitle } from '../title-file.ts';
 import { commandLabel, isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
 import type { ChatTitleInput } from './chat-title.ts';
-import { ChatError } from './errors.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
@@ -92,7 +92,6 @@ export interface ChatSessionOptions {
     // The access a UI host captured per reply, from the record; never on the wire.
     uiAccess?: Readonly<Record<string, unknown>>;
     provider: ChatProvider;
-    command: string[];
     /* The environment of the CLI under the chat's account, asked at every start; throws for an account that cannot start. */
     env(account: string | undefined): Record<string, string>;
     spawn?: SpawnChatProcess;
@@ -2392,8 +2391,8 @@ export class ChatSession {
         this.launchedFolders = folders;
         this.launchedProjectConfig = projectConfig;
 
-        const launch: BackendLaunch = {
-            command: this.options.command,
+        const plain: BackendLaunch = {
+            command: this.options.provider.command,
             cwd: info.cwd,
             env,
             selection: info.selection,
@@ -2416,6 +2415,8 @@ export class ChatSession {
         const made: { backend: ChatBackend | null } = { backend: null };
 
         try {
+            const launch = this.options.provider.launch?.(plain) ?? plain;
+
             made.backend = this.options.provider.createBackend(launch, {
                 onEvent: (event) => {
                     if (made.backend === this.backend) {

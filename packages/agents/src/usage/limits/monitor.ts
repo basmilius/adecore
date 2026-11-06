@@ -1,12 +1,11 @@
 import { USAGE_PROVIDERS, type UsageLimitsProvider, type UsageLimitsSnapshot, type UsageProvider } from '@adecore/agent-contracts';
-import type { CodexClientInfo } from '../../backends/codex-transport.ts';
+import type { ProbeResult } from '../../backends/limits-probe.ts';
 import { mergeWindows, type LimitsUpdate } from '../../backends/limits.ts';
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';
 import { definedEnv } from '../../providers/accounts/launch.ts';
 import type { ProviderRegistry } from '../../providers/registry.ts';
-import { probeClaude, probeCodex, type ProbeResult } from './probe.ts';
 
 /* Often enough that a bar is never far behind, rarely enough that two CLIs are not started all day. */
 const PROBE_INTERVAL_MS = 5 * 60_000;
@@ -15,8 +14,6 @@ const MAX_BACKOFF_MS = 60 * 60_000;
 const RECENT_USE_MS = 24 * 60 * 60_000;
 
 const PROVIDERS: readonly UsageProvider[] = USAGE_PROVIDERS;
-/* The CLIs the probes know how to ask; any other provider has a plan only through the host's `plans`. */
-const PROBED: readonly UsageProvider[] = ['claude', 'codex'];
 
 export type ProbeEnv = Record<string, string>;
 
@@ -62,6 +59,7 @@ export interface UsageMonitorOptions {
     providers: ProviderRegistry;
     /* The accounts to read; absent reads the default account of every CLI and names none. */
     accounts?: LimitAccounts;
+    /* How to ask a CLI what is left of its plan, in place of the `probeLimits` of its provider; a provider without one has a plan only through `plans`. */
     probe?: (kind: UsageProvider, command: readonly string[], env: ProbeEnv) => Promise<ProbeResult>;
     /*
      * A plan the host reads itself, for a provider whose CLI cannot be asked (a subscription API the host calls,
@@ -70,8 +68,6 @@ export interface UsageMonitorOptions {
      */
     plans?: Partial<Record<UsageProvider, (account: LimitAccount) => Promise<ProbeResult>>>;
     now?: () => number;
-    // How the host names itself to the app-server a probe opens.
-    client?: CodexClientInfo;
 }
 
 /*
@@ -84,7 +80,7 @@ export interface UsageMonitorOptions {
 export class UsageMonitor {
     private readonly registry: ProviderRegistry;
     private readonly accounts: LimitAccounts | null;
-    private readonly probe: NonNullable<UsageMonitorOptions['probe']>;
+    private readonly probe: UsageMonitorOptions['probe'];
     private readonly plans: NonNullable<UsageMonitorOptions['plans']>;
     private readonly now: () => number;
     private readonly sinks = new ClientSinks<AgentEvent>();
@@ -97,7 +93,7 @@ export class UsageMonitor {
         this.registry = options.providers;
         this.accounts = options.accounts ?? null;
         this.plans = options.plans ?? {};
-        this.probe = options.probe ?? ((kind, command, env) => (kind === 'claude' ? probeClaude(command, env) : probeCodex(command, env, options.client)));
+        this.probe = options.probe;
         this.now = options.now ?? Date.now;
 
         for (const kind of PROVIDERS) {
@@ -176,7 +172,7 @@ export class UsageMonitor {
         const accounts = this.accounts?.list() ?? PROVIDERS.map((kind) => ({ id: kind, kind, label: kind, isDefault: true }));
 
         return PROVIDERS.flatMap((kind) => {
-            if (!PROBED.includes(kind) && this.plans[kind] === undefined) {
+            if (!this.canProbe(kind) && this.plans[kind] === undefined) {
                 return [];
             }
 
@@ -282,7 +278,21 @@ export class UsageMonitor {
             return { unavailable: { reason: 'failed', message: errorText(e) } };
         }
 
-        return this.probe(account.kind, this.registry.get(account.kind).command, env);
+        const provider = this.registry.get(account.kind);
+
+        if (this.probe !== undefined) {
+            return this.probe(account.kind, provider.command, env);
+        }
+
+        if (provider.probeLimits === undefined) {
+            return { unavailable: { reason: 'failed', message: `${provider.name} cannot say what is left of its plan` } };
+        }
+
+        return provider.probeLimits(provider.command, env);
+    }
+
+    private canProbe(kind: UsageProvider): boolean {
+        return this.registry.get(kind).probeLimits !== undefined;
     }
 
     private emit(): void {

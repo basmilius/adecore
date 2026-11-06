@@ -25,7 +25,23 @@ The two differ. Claude Code reports a file change as before and after text and c
 | `add(provider)`, `remove(kind)` | Offers or replaces a provider after start, or stops offering one |
 | `onChange(listener)` | Calls the listener with the kind of every provider added, removed, or whose models or capabilities changed (`ChatProvider.onChange`). Returns an unsubscribe function. |
 
-`AgentHost` and `wireAgents` always use the two built-ins, made by `createClaudeProvider` and `createCodexProvider`. A host with other providers builds the registry, `ChatCore` and services itself. The registry's options are `ProviderRegistryOptions`, with the providers, the environment and a `detect`.
+`AgentHost` and `wireAgents` always use the two built-ins, made by `createClaudeProvider` and `createCodexProvider`. A host with other providers builds the registry, `ChatCore` and services itself. The registry's options are `ProviderRegistryOptions`, with the providers, the environment and a `detect`. The registry finds a CLI by `cliExecutable(provider)`: the provider's `executable`, else the first word of its `command`.
+
+## What a provider describes
+
+Everything one CLI does differently sits on its `ChatProvider`, so no other code asks for a kind by name:
+
+| Field | What it says |
+| --- | --- |
+| `command`, `executable` | What a chat starts, and the CLI itself where the chat runs on a server of its own (Antigravity's `agy`). A test points `createClaudeProvider({ command })` (`ClaudeProviderOptions`) and `createCodexProvider({ client, command })` (`CodexProviderOptions`) at a fake. |
+| `launch` | A `LaunchDecorator`: the host's additions to every launch, applied once where a backend is made: its MCP server, extra arguments. Each backend hands an MCP server to its CLI in the form the CLI reads. A server with a `tokenVariable` becomes a header with `${VAR}` for Claude Code, `-c` arguments for Codex and an inline header for an ACP agent. |
+| `home`, `prepareHome` | The config folder variable, how an account signs in, whether an account is a shadow home, and what the host puts in an account's folder. |
+| `askAccount`, `probeLimits` | Who is signed in, and what is left of the plan. |
+| `claudeCode`, `subagentSource`, `titleFromOneShot`, `threads` | Whether the chats run Claude Code, where a subagent's conversation is read from (a `SubagentSource`: `claude-transcript` or `codex-thread`), whether the host asks a one-shot CLI for a name, and the thread calls of an app-server (`ProviderThreads`: `listItems` and `fork`, each asked of a `ThreadProcess` the host starts). |
+| `terminal` | A `ProviderTerminal`: how a terminal starts the CLI: flags per runtime mode, the model flag, how an MCP server is loaded from the line, a note for a fresh start, and `prepare` for flags only a newer version takes. |
+| `oneShotArgs`, `oneShotStdinArgs`, `leanOneShotArgs` | A single prompt, and the same run made short and cheap for a model asked for an answer alone. |
+
+`createCodexProvider` requires the `client` that names the host to every app-server it opens: the chat's, the account check, the plan probe and the thread calls. It is given once, there; `wireAgents` is the one place that falls back to "Agents".
 
 A provider finds its CLI with `detectCli(command, env?, spawn?, flags?)`, which asks for the version and returns a `CliDetection`, `{ installed, version }`. A missing binary is "not installed", never an error.
 
@@ -123,7 +139,6 @@ const registry = new ProviderRegistry({
         createCopilotProvider({
             client,
             launch: withOwnServer,
-            args: ['--allow-tool=example'],
             usageLog: copilotUsageDirectory(dataDir)
         }),
         createAntigravityProvider({
@@ -137,7 +152,7 @@ const registry = new ProviderRegistry({
 
 Every factory takes `AcpVendorOptions`. `client` is how your host names itself in `initialize`. `launch` runs on every launch before its backend starts, for example to add your MCP servers to `mcpServers`. `catalogStore` keeps the models an agent reported across a restart.
 
-`CopilotProviderOptions` adds two fields. `args` goes on Copilot's line after its ACP arguments. Copilot's permission requests name no MCP server, so a server's tools run without asking only with `--allow-tool=<server>` there (measured on Copilot CLI 1.0.104). `usageLog` is the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
+`CopilotProviderOptions` adds `usageLog`, the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
 
 Antigravity's chat runs on a server installed apart from the `agy` CLI. `AntigravityProviderOptions.server` is an `AcpServerLaunch`: its `launch()` returns the server's command, or `null` while none is installed. Without an installed server the provider offers no chat and refuses to start one, but still runs as a terminal. An absent or `null` server keeps the chat capability, for a host that only reads what the CLI can do. `ANTIGRAVITY_CLI` is the executable a terminal starts, and `antigravityOneShotArgs(prompt)` gives the arguments for a single prompt to it.
 

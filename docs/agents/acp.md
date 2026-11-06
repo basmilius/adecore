@@ -37,6 +37,8 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `onUsage(report)` | The tokens of every turn that reports them (`AcpUsageReport`), with session, folder and model. |
 | `usageLog` | A folder to log those turns to. See [Usage](#usage). |
 | `autoAllow(request)` | Answers a permission request without asking, in any runtime mode. See [Calls the host guards](#calls-the-host-guards). |
+| `allowToolsArgs(serverName)` | The arguments put on the agent's line for each server that allows its tools, for an agent whose permission requests name no server (Copilot's `--allow-tool=<server>`). |
+| `executable`, `terminal`, `launch`, `leanOneShotArgs` | What the provider says of its terminal, the host's launch additions and its short one-shot run. See [Providers](./providers#what-a-provider-describes). |
 | `accountProbe` | `false` drops `askAccount`, so the host's own reader checks accounts. |
 | `adoptModels` | `false` keeps `catalog` instead of adopting the models a session reports. |
 | `catalogStore` | Persists what the agent reported, so a restarted host offers it at once (`AcpCatalogStore`). See [Models](#models). |
@@ -52,7 +54,7 @@ A host that builds its `ChatProvider` by hand uses `createAcpBackend(spec)` as i
 
 `start` runs `initialize` and opens the session before the first turn. The backend accepts only protocol version 1. The client advertises no file system or terminal, so the agent uses its own tools.
 
-Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it.
+Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` or a `tokenVariable` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it. An agent expands no variable in a session request, so a `tokenVariable` becomes an `Authorization: Bearer` header holding the value of that variable in the launch's environment.
 
 A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The backend drops the history a load replays, since the thread already holds it. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
 

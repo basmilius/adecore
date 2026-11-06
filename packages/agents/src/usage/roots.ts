@@ -23,12 +23,17 @@ const TRANSCRIPTS: Partial<Record<UsageProvider, string>> & Record<'claude' | 'c
     grok: 'sessions'
 };
 
+/* Where Claude Code keeps the projects of its default account, found through the variable it reads itself. */
+export function defaultClaudeProjectsDir(env: Record<string, string | undefined> = process.env): string {
+    return join(env.CLAUDE_CONFIG_DIR ?? join(homeFolder(env), '.claude'), TRANSCRIPTS.claude);
+}
+
 /* The transcripts of the default accounts, found through the variables the CLIs themselves read. */
 export function usageRoots(env: Record<string, string | undefined> = process.env): UsageRootPath[] {
     const home = homeFolder(env);
 
     return [
-        { provider: 'claude', path: join(env.CLAUDE_CONFIG_DIR ?? join(home, '.claude'), TRANSCRIPTS.claude) },
+        { provider: 'claude', path: defaultClaudeProjectsDir(env) },
         { provider: 'codex', path: join(env.CODEX_HOME ?? join(home, '.codex'), TRANSCRIPTS.codex) },
         { provider: 'grok', path: join(env.GROK_HOME ?? join(home, '.grok'), TRANSCRIPTS.grok) }
     ];

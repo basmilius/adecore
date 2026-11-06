@@ -83,7 +83,7 @@ function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {
         });
     };
 
-    return { backend, events, sent, next, methods: () => sent.flatMap((frame) => (frame.method ? [frame.method] : [])) };
+    return { backend, events, sent, started: fake.started, next, methods: () => sent.flatMap((frame) => (frame.method ? [frame.method] : [])) };
 }
 
 function sessionOf(events: BackendEvent[]): string {
@@ -246,6 +246,23 @@ test('every session request names the MCP servers over a transport the agent tak
     expect(resumed.sent.find((frame) => frame.method === 'session/load')?.params?.mcpServers).toHaveLength(2);
     expect(resumed.events.some((event) => event.type === 'note')).toBe(false);
     await resumed.backend.dispose();
+});
+
+test('a server that names a token variable carries the value of that variable in its header', async () => {
+    const servers: BackendLaunch['mcpServers'] = [{ name: 'own', url: 'http://127.0.0.1:4210/mcp', tokenVariable: 'OWN_TOKEN', allowTools: true }];
+    const fake = run({ mcp: { http: true } }, { env: { OWN_TOKEN: 'secret' }, mcpServers: servers });
+    await fake.backend.start();
+    expect(fake.sent.find((frame) => frame.method === 'session/new')?.params?.mcpServers).toEqual([
+        { type: 'http', name: 'own', url: 'http://127.0.0.1:4210/mcp', headers: [{ name: 'Authorization', value: 'Bearer secret' }] }
+    ]);
+    await fake.backend.dispose();
+});
+
+test('an agent that needs a flag to run the tools of a server gets it on its line for each server that allows its tools', async () => {
+    const fake = run({ mcp: { http: true } }, { mcpServers: RUIMTE_LIKE }, { ...SPEC, allowToolsArgs: (name) => [`--allow-tool=${name}`] });
+    await fake.backend.start();
+    expect(fake.started[0]?.argv).toEqual(['--allow-tool=own']);
+    await fake.backend.dispose();
 });
 
 test('an agent without HTTP gets no servers and still starts', async () => {
