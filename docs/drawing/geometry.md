@@ -1,6 +1,6 @@
 # Geometry
 
-Everything here works in world units, the coordinates the elements are stored in. A `Point` is `{ x, y }` and a `Rect` is `{ x, y, w, h }`. The app converts pointer pixels through its zoom and pan; no function reads the DOM.
+Everything here works in world units, the coordinates the elements are stored in. A `Point` is `{ x, y }` and a `Rect` is `{ x, y, w, h }`, both from [`@adecore/utils/geometry`](/utils/geometry), which also holds the math on them. The app converts pointer pixels through its zoom and pan; no function reads the DOM.
 
 <Demo src="canvas/drawing-hit-test" />
 
@@ -10,21 +10,18 @@ The demo asks `elementAt` what is under the pointer and draws its `boundsOf` wit
 
 - `boundsOf(element)` is the stored box of one element. `boundsOfElements(elements)` is the box around all of them, or `null` for none.
 - `toSvg` and `elementsIn` use the stored box turned by the element's angle.
-- `unionOf(rects)` is the box around any rects, or `null` for an empty list.
-- `centerOf(rect)` is its middle. `roundPoint(point)` rounds to whole units.
-- `rectFromPoints(from, to)` is the box of a drag in either direction, always with a positive size.
-- `intersects(a, b)` is true when two boxes overlap. Touching is not overlapping.
 
 No box includes the wobble, stroke width, arrow heads or text that runs past a note. Add room for those when you fit a view to its content.
 
 ## Rotation
 
-`angle` turns an element around the center of its box, in radians. `rotatePoint(point, around, angle)` turns a point. Turn it by minus the element's angle around `centerOf(boundsOf(element))` to get it in the element's own frame.
+`angle` turns an element around the center of its box, in radians. `rotatePoint(point, around, angle)` from `@adecore/utils/geometry` turns a point. Turn it by minus the element's angle around `centerOf(boundsOf(element))` to get it in the element's own frame.
 
 ## Hit tests
 
 ```ts
-import { elementAt, elementsIn, rectFromPoints } from '@adecore/drawing';
+import { elementAt, elementsIn } from '@adecore/drawing';
+import { rectFromPoints } from '@adecore/utils/geometry';
 
 const hit = elementAt(elements, pointer, 6 / zoom);
 const picked = elementsIn(elements, rectFromPoints(dragStart, pointer));

@@ -45,6 +45,7 @@
         "typescript": "^7.0.2"
     },
     "dependencies": {
+        "@adecore/utils": "workspace:*",
         "perfect-freehand": "^1.2.3",
         "roughjs": "^4.6.6",
         "zod": "^4.6.7"

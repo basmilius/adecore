@@ -1,4 +1,5 @@
-import { drawnBoundsOfElements, type Rect } from './geometry.ts';
+import type { Rect } from '@adecore/utils/geometry';
+import { drawnBoundsOfElements } from './geometry.ts';
 import { pathsOfElement, type ElementPath } from './paths.ts';
 import type { DrawingColor, DrawingElement, DrawingFont } from './protocol.ts';
 import { DEFAULT_FONT_STACKS, LINE_HEIGHT, approximateMeasure, fontOf, linesOf, writingFrameOf, type MeasureLine, type WrittenElement } from './text.ts';

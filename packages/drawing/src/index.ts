@@ -1,22 +1,4 @@
-export {
-    type Point,
-    type Rect,
-    RESIZE_HANDLES,
-    type ResizeHandle,
-    boundsOf,
-    centerOf,
-    roundPoint,
-    rotatePoint,
-    unionOf,
-    boundsOfElements,
-    intersects,
-    rectFromPoints,
-    elementAt,
-    elementsIn,
-    handlePoint,
-    resizeRect,
-    scaleElement
-} from './geometry.ts';
+export { RESIZE_HANDLES, type ResizeHandle, boundsOf, boundsOfElements, elementAt, elementsIn, handlePoint, resizeRect, scaleElement } from './geometry.ts';
 export {
     DRAWING_EDIT_LIMITS,
     NewDrawingElementSchema,

@@ -1,7 +1,7 @@
 {
     "name": "@adecore/utils",
     "version": "0.0.0",
-    "description": "Small helpers without dependencies: atomic file writes, path containment, async ordering and error reading.",
+    "description": "Small helpers without dependencies: atomic file writes, path containment, async ordering, error reading and point and box math.",
     "license": "FSL-1.1-MIT",
     "author": "Bas Milius",
     "repository": {
@@ -35,6 +35,11 @@
             "source": "./src/fs.ts",
             "types": "./dist/fs.d.ts",
             "default": "./dist/fs.js"
+        },
+        "./geometry": {
+            "source": "./src/geometry.ts",
+            "types": "./dist/geometry.d.ts",
+            "default": "./dist/geometry.js"
         },
         "./path": {
             "source": "./src/path.ts",

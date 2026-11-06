@@ -1,17 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import {
-    arrowHead,
-    boundsOfElements,
-    drawnBoundsOf,
-    drawnBoundsOfElements,
-    elementAt,
-    elementsIn,
-    hitsElement,
-    rectFromPoints,
-    resizeRect,
-    rotatePoint,
-    scaleElement
-} from './geometry.ts';
+import { arrowHead, boundsOfElements, drawnBoundsOf, drawnBoundsOfElements, elementAt, elementsIn, hitsElement, resizeRect, scaleElement } from './geometry.ts';
 import type { DrawingElement } from './protocol.ts';
 
 const base = { stroke: 'ink', strokeWidth: 2, seed: 1 } as const;
@@ -86,10 +74,6 @@ describe('hit tests', () => {
 });
 
 describe('boxes', () => {
-    test('a drag in any direction makes a box with positive sides', () => {
-        expect(rectFromPoints({ x: 100, y: 80 }, { x: 20, y: 20 })).toEqual({ x: 20, y: 20, w: 80, h: 60 });
-    });
-
     test('the bounds of a drawing hold everything in it', () => {
         expect(boundsOfElements([rect('a'), rect('b', 200, 100)])).toEqual({ x: 0, y: 0, w: 300, h: 160 });
         expect(boundsOfElements([])).toBeNull();
@@ -157,12 +141,6 @@ describe('boxes', () => {
 });
 
 describe('turning and arrows', () => {
-    test('a point turns around the center it is given', () => {
-        const turned = rotatePoint({ x: 10, y: 0 }, { x: 0, y: 0 }, Math.PI / 2);
-        expect(turned.x).toBeCloseTo(0, 5);
-        expect(turned.y).toBeCloseTo(10, 5);
-    });
-
     test('an arrow head is two lines back from the tip', () => {
         const head = arrowHead({ x: 100, y: 0 }, { x: 0, y: 0 }, 10);
         expect(head).toHaveLength(2);

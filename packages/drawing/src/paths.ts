@@ -1,9 +1,10 @@
+import type { Point } from '@adecore/utils/geometry';
 import { getStroke } from 'perfect-freehand';
 // Rough's unbundled modules use extensionless imports; its package entry also runs in Node.
 import rough from 'roughjs';
 import type { Options } from 'roughjs/bin/core.js';
 import type { RoughGenerator } from 'roughjs/bin/generator.js';
-import { arrowHead, arrowHeadSize, isFilled, type Point } from './geometry.ts';
+import { arrowHead, arrowHeadSize, isFilled } from './geometry.ts';
 import type { DrawingElement } from './protocol.ts';
 import { NOTE_RADIUS } from './text.ts';
 

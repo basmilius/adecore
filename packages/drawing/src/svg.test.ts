@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { rotatePoint } from './geometry.ts';
+import { rotatePoint } from '@adecore/utils/geometry';
 import { pathsOfElement } from './paths.ts';
 import type { DrawingColor, DrawingElement } from './protocol.ts';
 import { readingOrder } from './reading-order.ts';

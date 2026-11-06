@@ -267,6 +267,7 @@ const utils: DefaultTheme.SidebarItem[] = [
     group('Page or Node', [
         ['Async', '/utils/async'],
         ['Errors', '/utils/errors'],
+        ['Geometry', '/utils/geometry'],
         ['Records', '/utils/record'],
         ['Text', '/utils/text']
     ]),

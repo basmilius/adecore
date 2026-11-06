@@ -1,4 +1,5 @@
-import { absolutePoints, boundsOf, centerOf, hitsElement, type Point } from './geometry.ts';
+import { centerOf, type Point } from '@adecore/utils/geometry';
+import { absolutePoints, boundsOf, hitsElement } from './geometry.ts';
 import type { DrawingElement } from './protocol.ts';
 
 /* Two texts within this many units of each other are on the same line and read left to right. */
