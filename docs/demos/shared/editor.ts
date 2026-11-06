@@ -1,6 +1,6 @@
 import { createSmartEditorEngine, type Editor, type EditorOptions, type LineToken, type TokenizedLine, type TokenizerSource } from '@adecore/editor';
 import { ProjectLanguage, type EditorLanguage, type ProjectFiles } from '@adecore/editor-react';
-import editorWords from '@adecore/editor-react/locales/en.json';
+import editorWords from '@adecore/editor-react/locales/en';
 import { FakeLanguageService } from '@adecore/editor-react/testing';
 import i18next from 'i18next';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';

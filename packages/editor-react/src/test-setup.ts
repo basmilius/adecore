@@ -1,6 +1,6 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import editor from './locales/en.json';
+import editor from './locales/en.ts';
 
 if (!i18next.isInitialized) {
     await i18next

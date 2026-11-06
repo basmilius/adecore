@@ -40,8 +40,8 @@ The words live in the `editor` namespace, in English and Dutch. Add them before 
 
 ```ts
 import i18next from 'i18next';
-import en from '@adecore/editor-react/locales/en.json';
-import nl from '@adecore/editor-react/locales/nl.json';
+import en from '@adecore/editor-react/locales/en';
+import nl from '@adecore/editor-react/locales/nl';
 
 i18next.addResourceBundle('en', 'editor', en);
 i18next.addResourceBundle('nl', 'editor', nl);
