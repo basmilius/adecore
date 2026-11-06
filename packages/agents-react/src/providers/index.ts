@@ -4,6 +4,7 @@ export { AgentIcon } from '../agents/AgentIcon';
 export { AgentModelLabel } from '../agents/AgentModelLabel';
 export { ModelOptionControl } from '../agents/ModelOptionControl';
 export { ProviderLogo } from '../agents/ProviderLogo';
+export { hasProviderLogo } from '../agents/provider-paths';
 export {
     type AccountEntry,
     accountsOfKind,

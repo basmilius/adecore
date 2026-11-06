@@ -87,13 +87,13 @@ resumeCommandFor('example-cli {flags} --resume {id}', "it's-1", ['--read-only'])
 // example-cli --read-only --resume 'it'\''s-1'
 ```
 
-`pickerGroupsOf(providers)` splits anything with a `kind` and `name` into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with separators between nonempty groups. `FRONTIER_PROVIDER_KINDS` holds the frontier kinds and `API_PROVIDER_KINDS` the providers billed per key. Every other kind goes in `others`. `providerGroupOf(kind)` returns one kind's `ProviderPickerGroup`, for drawing separators in an ordered list.
+`pickerGroupsOf(providers)` splits anything with a `kind` and `name` into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with separators between nonempty groups. `FRONTIER_PROVIDER_KINDS` holds the frontier kinds and `API_PROVIDER_KINDS` the providers billed per key. Every other kind goes in `others`. `providerGroupOf(kind)` returns one kind's `ProviderPickerGroup`, for drawing separators in an ordered list. `inPickerOrder(providers)` returns that list in one array, and `separatesGroups(previous, kind)` says whether a separator goes between two neighbors of it, which is where one group ends.
 
 ```ts
-import { pickerGroupsOf } from '@adecore/agent-contracts/model';
+import { inPickerOrder, separatesGroups } from '@adecore/agent-contracts/model';
 
-const { frontier, others, api } = pickerGroupsOf(providers);
-const ordered = [...frontier, ...others, ...api];
+const ordered = inPickerOrder(providers);
+const rows = ordered.map((provider, i) => ({ provider, separated: separatesGroups(ordered[i - 1]?.kind, provider.kind) }));
 ```
 
 ## Runtime modes

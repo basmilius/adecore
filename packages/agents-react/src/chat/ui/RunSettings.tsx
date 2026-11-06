@@ -1,4 +1,14 @@
-import type { AgentKind, ChatUsage, ModelInfo, ModelOptionDescriptor, ModelSelection, ProviderInfo, RuntimeMode } from '@adecore/agent-contracts';
+import {
+    inPickerOrder,
+    separatesGroups,
+    type AgentKind,
+    type ChatUsage,
+    type ModelInfo,
+    type ModelOptionDescriptor,
+    type ModelSelection,
+    type ProviderInfo,
+    type RuntimeMode
+} from '@adecore/agent-contracts';
 import { Icon, Menu, Tooltip, useNow } from '@adecore/ui';
 import { formatPercent, formatTokens } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -31,7 +41,7 @@ import { useChatHost } from '../../host/host';
 import { useUsageLimits } from '../../usage/limits';
 import type { AccountChoice } from '../account-choice';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
-import { favoritesFirst, inPickerOrder, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
+import { favoritesFirst, searchModels, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { RUNTIME_MODES } from '../runtime-modes';
 import { ModelMarks } from './ModelMarks';

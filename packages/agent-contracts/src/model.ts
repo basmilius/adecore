@@ -214,6 +214,18 @@ export function pickerGroupsOf<T extends { kind: AgentKind; name: string }>(prov
     return { frontier: inGroup('frontier'), others: inGroup('others'), api: inGroup('api') };
 }
 
+/* The providers in the order a picker lists them: the frontier labs, the rest, then the API providers, each by name. */
+export function inPickerOrder<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): T[] {
+    const groups = pickerGroupsOf(providers);
+
+    return [...groups.frontier, ...groups.others, ...groups.api];
+}
+
+/* Whether a separator goes between two providers next to each other in that order: where one group ends. */
+export function separatesGroups(previous: AgentKind | undefined, kind: AgentKind): boolean {
+    return previous !== undefined && providerGroupOf(previous) !== providerGroupOf(kind);
+}
+
 export const ProviderListResultSchema = z.object({
     providers: z.array(ProviderInfoSchema)
 });

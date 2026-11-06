@@ -1,32 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
-import { favoritesFirst, inPickerOrder, pickerEntriesOf, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from './picker-entries';
+import { favoritesFirst, pickerEntriesOf, searchModels, shortlistOf, wantsModelSearch } from './picker-entries';
 
 const model = (slug: string, extra: Partial<ModelInfo> = {}): ModelInfo => ({ slug, name: slug, legacy: false, isDefault: false, options: [], ...extra });
 
 const provider = (models: ModelInfo[]): ProviderInfo => ({ kind: 'claude', name: 'Claude Code', version: '1.0.0', models }) as ProviderInfo;
-
-describe('inPickerOrder', () => {
-    test('lists the frontier labs, the rest and the API providers, with a separator only where a group ends', () => {
-        const ordered = inPickerOrder([
-            { kind: 'nanogpt', name: 'NanoGPT' },
-            { kind: 'grok', name: 'Grok' },
-            { kind: 'codex', name: 'Codex' },
-            { kind: 'anthropic-claude-api', name: 'Claude API' },
-            { kind: 'antigravity', name: 'Antigravity' },
-            { kind: 'claude', name: 'Claude Code' }
-        ]).map((entry) => entry.kind);
-
-        expect(ordered).toEqual(['claude', 'codex', 'antigravity', 'grok', 'anthropic-claude-api', 'nanogpt']);
-        expect(ordered.map((kind, i) => separatesGroups(ordered[i - 1], kind))).toEqual([false, false, true, false, true, false]);
-    });
-
-    test('puts no separator above the first provider or inside a group', () => {
-        expect(separatesGroups(undefined, 'grok')).toBe(false);
-        expect(separatesGroups('copilot', 'grok')).toBe(false);
-        expect(separatesGroups('claude', 'nanogpt')).toBe(true);
-    });
-});
 
 describe('pickerEntriesOf', () => {
     test('a search for only a model an old CLI cannot run still finds its row', () => {

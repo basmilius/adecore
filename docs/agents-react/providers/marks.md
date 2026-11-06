@@ -14,6 +14,8 @@ The marks of the agent CLIs and the dot of an account's color.
 
 `size` is in pixels, 14 by default.
 
+`hasProviderLogo(kind)` says whether `ProviderLogo` draws a kind (`claude`, `codex` or `anthropic-claude-api`), and narrows it to a `UsageProvider`. It takes `null` and `undefined` as no. Draw `ProviderLogo` for those and `AgentIcon` for every other kind.
+
 ## A mark for a kind the host adds
 
 A kind of your own, such as one run through [`createAcpProvider`](/agents/acp), gets its mark in the `agentMarks` member of the host, which a `ChatHostProvider` hands to every view under it. Every view that draws an agent's mark uses it.

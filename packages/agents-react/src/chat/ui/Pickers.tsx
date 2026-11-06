@@ -1,4 +1,4 @@
-import type { AgentKind, ModelSelection, ProviderInfo, UsageProvider } from '@adecore/agent-contracts';
+import { inPickerOrder, separatesGroups, type AgentKind, type ModelSelection, type ProviderInfo, type UsageProvider } from '@adecore/agent-contracts';
 import { Button, Icon, IconButton, Menu, Popover, ScrollArea, Tooltip } from '@adecore/ui';
 import { Bookmark, ChevronDown, ChevronRight, Search, Star, Trash2 } from 'lucide-react';
 import { useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
@@ -11,7 +11,7 @@ import { useChatHost } from '../../host/host';
 import { useHostMachineLabel } from '../../host/host-hooks';
 import { ChatScopeContext } from '../../scope';
 import { useReportedModels } from '../../state/chats';
-import { inPickerOrder, pickerEntriesOf, separatesGroups, type PickerEntry } from '../logic/picker-entries';
+import { pickerEntriesOf, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { forgetStashed, STASH_SHORTCUT, useStash, type StashedPrompt } from '../stash';
 import { ModelMarks } from './ModelMarks';

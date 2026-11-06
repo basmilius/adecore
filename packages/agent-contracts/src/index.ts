@@ -321,6 +321,8 @@ export {
     type ProviderPickerGroups,
     providerGroupOf,
     pickerGroupsOf,
+    inPickerOrder,
+    separatesGroups,
     ProviderListResultSchema,
     type ProviderListResult,
     resumeCommandFor

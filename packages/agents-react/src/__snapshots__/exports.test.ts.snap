@@ -380,6 +380,7 @@ exports[`the public API ./providers exports these names 1`] = `
   "accountsOfKind",
   "canContinueOn",
   "carryOptions",
+  "hasProviderLogo",
   "modelName",
   "projectDefault",
   "shortModelName",

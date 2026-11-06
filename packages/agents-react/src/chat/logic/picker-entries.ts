@@ -1,17 +1,5 @@
-import { pickerGroupsOf, providerGroupOf, type AgentKind, type ModelInfo, type ProviderInfo } from '@adecore/agent-contracts';
+import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
 import { nameCollator } from '@adecore/ui/format';
-
-/* The providers in the order a picker lists them: the frontier labs, the rest, then the API providers, each by name. */
-export function inPickerOrder<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): T[] {
-    const groups = pickerGroupsOf(providers);
-
-    return [...groups.frontier, ...groups.others, ...groups.api];
-}
-
-/* Whether a separator goes between two providers next to each other in that order: where one group ends. */
-export function separatesGroups(previous: AgentKind | undefined, kind: AgentKind): boolean {
-    return previous !== undefined && providerGroupOf(previous) !== providerGroupOf(kind);
-}
 
 /*
  * A provider with more live models than this keeps the list short: the model that is picked and the default,
