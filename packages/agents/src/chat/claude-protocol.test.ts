@@ -530,10 +530,80 @@ describe('ClaudeProtocol', () => {
         replay(0, firstStop + 1);
         expect(subagent()?.status).toBe('running');
 
-        replay(firstStop + 1, frames.length);
+        // Its last task ending settles it for a moment; the run the CLI wakes it for takes it up again.
+        const lastRun = frames.findLastIndex((frame) => frame.subtype === 'task_started' && frame.task_type === 'local_agent');
+        replay(firstStop + 1, lastRun + 1);
+        expect(subagent()?.status).toBe('running');
+
+        replay(lastRun + 1, frames.length);
         const settled = events.filter((event) => event.type === 'task.done' && event.taskId === subagent()?.native?.agentId);
-        expect(settled).toEqual([expect.objectContaining({ summary: 'INTERIM-FINISHED', ok: true })]);
+        expect(settled.at(-1)).toEqual(expect.objectContaining({ summary: 'INTERIM-FINISHED', ok: true }));
         expect(subagent()?.status).toBe('done');
+        expect(subagent()?.summary).toBe('INTERIM-FINISHED');
+    });
+
+    test('a subagent that stopped with work of its own running settles once that work ends without waking it', () => {
+        const protocol = new ClaudeProtocol();
+        const child = { task_id: 'bchild', parent_task_id: 'aagent', task_type: 'local_bash' };
+        const interim = {
+            type: 'system',
+            subtype: 'task_notification',
+            task_id: 'aagent',
+            tool_use_id: 'toolu_agent',
+            status: 'completed',
+            output_file: '/tmp/tasks/aagent.output',
+            summary: 'Agent "Review" is waiting on its own background work',
+            usage: { total_tokens: 900, tool_uses: 4, duration_ms: 12000 }
+        };
+        const settled: BackendEvent = {
+            type: 'task.done',
+            ref: 'toolu_agent',
+            taskId: 'aagent',
+            summary: 'Agent "Review" is waiting on its own background work',
+            ok: true,
+            usage: { totalTokens: 900, toolUses: 4, durationMs: 12000 },
+            outputFile: '/tmp/tasks/aagent.output'
+        };
+
+        protocol.handle({
+            type: 'system',
+            subtype: 'task_started',
+            task_id: 'aagent',
+            tool_use_id: 'toolu_agent',
+            task_type: 'local_agent',
+            is_backgrounded: true,
+            run_id: 'run-1'
+        });
+        protocol.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'aagent', task_type: 'local_agent' }, child] });
+        protocol.handle({ type: 'system', subtype: 'task_updated', task_id: 'aagent', patch: { status: 'completed' } });
+        expect(protocol.handle(interim).map((event) => event.type)).toEqual(['task.progress']);
+        protocol.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [child] });
+
+        // The child's own notification goes to the main agent, so the subagent never runs again.
+        expect(protocol.handle({ type: 'system', subtype: 'task_updated', task_id: 'bchild', patch: { status: 'completed' } })).toContainEqual(settled);
+        expect(protocol.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [] })).toEqual([]);
+
+        // A list that drops the child without a word about it settles the same way.
+        const listed = new ClaudeProtocol();
+        listed.handle({
+            type: 'system',
+            subtype: 'task_started',
+            task_id: 'aagent',
+            tool_use_id: 'toolu_agent',
+            task_type: 'local_agent',
+            is_backgrounded: true,
+            run_id: 'run-1'
+        });
+        listed.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [{ task_id: 'aagent', task_type: 'local_agent' }, child] });
+        listed.handle(interim);
+        expect(listed.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [] })).toEqual([settled]);
+
+        // An end the CLI reports for the waiting subagent itself settles it with that outcome.
+        const killed = new ClaudeProtocol();
+        killed.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [child] });
+        killed.handle(interim);
+        expect(killed.handle({ type: 'system', subtype: 'task_updated', task_id: 'aagent', patch: { status: 'killed' } })).toEqual([{ ...settled, ok: false }]);
+        expect(killed.handle({ type: 'system', subtype: 'task_updated', task_id: 'bchild', patch: { status: 'killed' } })).toEqual([]);
     });
 
     test('a task notification carries what the background task came to', () => {
