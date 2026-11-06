@@ -120,7 +120,6 @@ function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
                                 >
                                     <NamedMark menus={menus} pick={match} />
                                     <span className="truncate text-text">{match.model.name}</span>
-                                    <span className="truncate font-mono text-text-faint">{match.id}</span>
                                     <ModelMarks model={match.model} />
                                 </MenuOption>
                             ))}
