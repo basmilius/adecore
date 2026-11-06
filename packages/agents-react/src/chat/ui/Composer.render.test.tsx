@@ -1545,10 +1545,10 @@ describe('stepping the reasoning effort', () => {
 });
 
 describe('the run settings pill', () => {
-    test('names the model whole with its reasoning and other knobs after it, then the context and the mode', async () => {
+    test("names the model with its version but without Claude's name, its reasoning and other knobs after it, then the context and the mode", async () => {
         const model: ModelInfo = {
             ...MODEL,
-            name: 'Opus 5.5',
+            name: 'Claude Opus 5.5',
             options: [
                 { id: 'fast', type: 'boolean', label: 'Fast', defaultValue: true },
                 { id: 'effort', type: 'select', label: 'Reasoning', defaultChoice: 'high', choices: [{ id: 'high', label: 'High' }] }

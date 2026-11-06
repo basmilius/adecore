@@ -163,6 +163,8 @@ export function RunSettings({
     const searchRef = useRef<HTMLInputElement>(null);
     const owner = providers.find((entry) => entry.kind === provider);
     const current = modelName(selection.model, owner?.models);
+    // Claude's mark already says whose model it is, so the pill drops the maker's name in front of it.
+    const pillName = provider === 'claude' || provider === 'anthropic-claude-api' ? current.replace(/^Claude /, '') : current;
     const options = orderOptions((model?.options ?? []).map(localizedOption));
 
     const summary = options.flatMap((option) => {
@@ -373,7 +375,7 @@ export function RunSettings({
                     {/* The composer's width decides how much is said: the window's size and the mode's name give way first, never the model's version. */}
                     <span className="flex min-w-0 items-center gap-2 overflow-hidden @max-xl/composer:gap-1.5">
                         <span className="flex min-w-0 items-center gap-1.5">
-                            <span className="truncate font-medium text-text">{current}</span>
+                            <span className="truncate font-medium text-text">{pillName}</span>
                             {words.map((entry) => (
                                 <span key={entry.id} className={clsx('shrink-0', entry.id !== EFFORT_OPTION && '@max-xl/composer:hidden')}>
                                     {entry.label}
