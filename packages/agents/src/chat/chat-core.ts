@@ -117,6 +117,10 @@ const DEFAULT_RESUME_WORDS: ResumeWords = {
 export interface ChatCoreHooks {
     /* Throws for a folder this chat may not start in; asked every time a chat is loaded, from disk too. */
     admit?(chatId: string, cwd: string): Promise<void>;
+    /* Throws for a client that may not read this chat's UI blocks, asked before a link or a query is resolved. */
+    admitUi?(chatId: string, clientId: string): Promise<void>;
+    /* The start of a chat as the host wants it, when it planned one before the client asked; the core reads what this returns. */
+    opening?(payload: ChatCreatePayload): ChatCreatePayload;
     /* The model a new chat starts on when the host already knows; the explicit one still wins. */
     openingSelection?(chatId: string, kind: AgentKind): ModelSelection | undefined;
     /*
@@ -162,6 +166,8 @@ export interface ChatCoreHooks {
     cleared?(chatId: string): Promise<void>;
     /* The chat left memory for good, before its files go. */
     forgotten?(chatId: string): void;
+    /* A record nobody had loaded was deleted; what the host keeps of it goes along. */
+    deleted?(chatId: string): Promise<void>;
     /* The chat was removed; what the host keeps of it goes along. */
     removed?(chatId: string, chat: { info: ChatInfo; items: ChatItem[] }): Promise<void>;
     /* An event of a chat went out, after the observers and before the clients reading its thread. */
@@ -190,6 +196,8 @@ export interface ChatCoreOptions {
     // The CLIs to run, when they are not the ones the providers name.
     command?: string[];
     codexCommand?: string[];
+    // The command of the app-server opened beside a chat to read or fork one of its threads, when it differs from the one a chat runs on.
+    codexSideCommand?: string[];
     spawn?: SpawnChatProcess;
     // How the host names itself to an app-server it opens for a question about a thread.
     codexClient?: CodexClientInfo;
@@ -234,13 +242,12 @@ export interface ChatCoreOptions {
 /*
  * The chats of one host: a `ChatSession` per chat, its record and its log, and the clients that read
  * them. Everything here holds for any host. What a host adds (notes for the agent, rows of its own,
- * what a clear or a removal takes along) it adds through `ChatCoreOptions.hooks`. A subclass may add
- * methods of its own over the public ones; the state behind them stays here.
+ * what a clear or a removal takes along) it adds through `ChatCoreOptions.hooks`. A host holds a core and
+ * calls its public methods; the state behind them stays here.
  */
 export class ChatCore {
-    // The stores the host handed in, which a subclass reads to copy a chat's bookmarks or visuals.
-    protected readonly bookmarks: BookmarkStore | null;
-    protected readonly visuals: VisualStore | null;
+    private readonly bookmarks: BookmarkStore | null;
+    private readonly visuals: VisualStore | null;
     private readonly providers: ProviderRegistry;
     private readonly store: ChatStore | null;
     private readonly accounts: AccountLaunches | null;
@@ -269,6 +276,7 @@ export class ChatCore {
     private readonly skillIndex: SkillIndex;
     private readonly onLimits: ((update: LimitsUpdate) => void) | null;
     private readonly commands: Partial<Record<AgentKind, string[]>>;
+    private readonly codexSideCommand: string[] | null;
     private readonly spawn: SpawnChatProcess | null;
     private readonly codexClient: CodexClientInfo | null;
     // What `chat.status` last said about each chat, so the broadcast is one per change and not one per info event.
@@ -318,6 +326,7 @@ export class ChatCore {
             ...(options.codexCommand ? { codex: options.codexCommand } : {})
         };
 
+        this.codexSideCommand = options.codexSideCommand ?? null;
         this.spawn = options.spawn ?? null;
         this.codexClient = options.codexClient ?? null;
         this.env = definedEnv(options.env ?? process.env);
@@ -369,7 +378,7 @@ export class ChatCore {
     /* How an app-server is started for a question about a thread of this chat, under its account, apart from any chat's own process. */
     codexProcess(info: Pick<ChatInfo, 'cwd' | 'account'>): CodexProcessSpec {
         return {
-            command: this.commands.codex ?? this.providers.get('codex').command,
+            command: this.codexSideCommand ?? this.commands.codex ?? this.providers.get('codex').command,
             cwd: info.cwd,
             env: definedEnv(launchEnv(this.accounts, 'codex', info.account, this.env)),
             ...(this.codexClient ? { client: this.codexClient } : {}),
@@ -472,7 +481,8 @@ export class ChatCore {
     }
 
     /* Registers a chat; nothing is spawned until the first message. An existing chat answers its current info. */
-    create(payload: ChatCreatePayload): Promise<ChatInfo> {
+    create(requested: ChatCreatePayload): Promise<ChatInfo> {
+        const payload = this.hooks.opening?.(requested) ?? requested;
         // A create in flight has the chat in the map before its first prompt is sent, so a second caller waits for all of it.
         const inFlight = this.creating.get(payload.chatId);
 
@@ -646,7 +656,7 @@ export class ChatCore {
      * Any account of the chat's CLI before its first turn. After it only one that reads the same
      * transcripts, since the CLI would not find the conversation in another folder.
      */
-    protected switchAccount(session: ChatSession, requested: string): void {
+    switchAccount(session: ChatSession, requested: string): void {
         const { provider: kind, account: from } = session.info;
         const to = storedAccount(kind, requested);
 
@@ -1062,6 +1072,7 @@ export class ChatCore {
             this.bookmarks?.removeChat(chatId),
             this.visuals?.removeChat(chatId)
         ]);
+        await this.hooks.deleted?.(chatId);
 
         return true;
     }
@@ -1140,6 +1151,8 @@ export class ChatCore {
     }
 
     async linkUi(payload: ChatUiLinkPayload, clientId: string) {
+        await this.hooks.admitUi?.(payload.chatId, clientId);
+
         if (!this.attached.get(payload.chatId)?.has(clientId) || !this.uiQueries) {
             throw new ChatError('refused-query', 'Attach to the chat before resolving its UI links.');
         }
@@ -1148,6 +1161,8 @@ export class ChatCore {
     }
 
     async queryUi(payload: ChatUiQueryPayload, clientId: string) {
+        await this.hooks.admitUi?.(payload.chatId, clientId);
+
         if (!this.attached.get(payload.chatId)?.has(clientId)) {
             throw new ChatError('refused-query', 'Attach to the chat before reading its UI queries.');
         }
@@ -1198,6 +1213,32 @@ export class ChatCore {
         }
 
         return this.visuals?.attachment(chatId, id) ?? null;
+    }
+
+    /*
+     * The file behind an attachment id, also of a chat nobody loaded since the host started: a visual's page is known
+     * to the store only once it read that chat's list.
+     */
+    async findAttachment(chatId: string, id: string): Promise<ChatAttachment | null> {
+        const found = this.attachment(chatId, id);
+
+        if (found !== null || !this.visuals) {
+            return found;
+        }
+
+        await this.visuals.list(chatId).catch(() => []);
+
+        return this.visuals.attachment(chatId, id);
+    }
+
+    /* Gives a fork the bookmarks on the messages `keep` picks. */
+    async copyBookmarks(fromChatId: string, toChatId: string, keep: (itemId: string) => boolean): Promise<void> {
+        await this.bookmarks?.copyChat(fromChatId, toChatId, keep);
+    }
+
+    /* Gives a fork the visuals `keep` picks, each with a page of its own. */
+    async copyVisuals(fromChatId: string, toChatId: string, keep: (visual: ChatVisual) => boolean): Promise<void> {
+        await this.visuals?.copyChat(fromChatId, toChatId, keep);
     }
 
     unqueue(chatId: string, messageId: string): ChatQueuedMessage {
@@ -1731,11 +1772,11 @@ export class ChatCore {
     }
 
     /* Waits for a create of this chat that is under way, whatever came of it. */
-    protected async loaded(chatId: string): Promise<void> {
+    async loaded(chatId: string): Promise<void> {
         await this.creating.get(chatId)?.catch(() => undefined);
     }
 
-    protected require(chatId: string): ChatSession {
+    require(chatId: string): ChatSession {
         const session = this.chats.get(chatId);
 
         if (!session) {

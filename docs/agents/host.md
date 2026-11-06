@@ -86,6 +86,8 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | Hook                                                           | What the host adds                                                                        |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `admit(chatId, cwd)`                                           | Throws for a folder the chat may not work in.                                             |
+| `admitUi(chatId, clientId)`                                    | Throws for a client that may not have this chat's UI blocks resolved, before a link or a query is read. |
+| `opening(payload)`                                             | The start of a chat as the host planned it before the client asked; the core reads what it returns. |
 | `runtimeModeFor(chatId, mode)`                                 | Narrows the mode a chat runs in, whatever its record or its client says.                  |
 | `openingSelection(chatId, kind)`                               | The model a new chat starts on.                                                           |
 | `openingAccount(chatId, kind, named)`                          | The account a new chat starts on, given the one its start named; throw an `AccountError` to refuse it. Undefined leaves it to the order of the accounts. |
@@ -96,12 +98,12 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `promptNotesFor`, `referencesFor`                              | Notes in front of the next prompt, and how chats a message points at are named to the agent. |
 | `hiddenFor(chatId)`                                            | Leaves the chat out of every list.                                                         |
 | `opened`, `recordExtras`                                       | What the host lays down in a loaded chat, and keeps in its record beside the thread.     |
-| `clearing`, `cleared`, `forgotten`, `removed`, `broadcasted`   | What goes along with a clear or a removal, and a look at every event.                     |
+| `clearing`, `cleared`, `forgotten`, `deleted`, `removed`, `broadcasted` | What goes along with a clear, with the record of a chat nobody loaded (`deleted`) or a removal, and a look at every event. |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |
 
 No hook knows the client. Checking who asks belongs on the wire.
 
-A subclass of `ChatCore` can add host methods and pass its hooks to `super` as arrow functions over its members. Threads, clients and writes stay private. A subclass uses the public methods:
+A host holds a `ChatCore` and gives it its hooks; it does not subclass it. What the host adds beside the core is its own object over `core`, and the state of threads, clients and writes stays private. `ChatCoreOptions.codexSideCommand` is the command of the app-server opened beside a chat to read or fork a thread, for a host whose chats run Codex with more on its command line. The host calls the public methods:
 
 | Method                                          | What a host does with it                                                                    |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -111,6 +113,10 @@ A subclass of `ChatCore` can add host methods and pass its hooks to `super` as a
 | `writeRecord(chatId, info, items, preambles?)`  | Writes the whole record of a chat nobody loaded, such as a fork, with its files copied over. |
 | `deleteRecord(chatId)`                          | Removes what a chat nobody loaded keeps on disk; false for a loaded one, which `kill` removes. |
 | `sendTo(clientId, event)`                       | Sends one client an event of the host's own.                                                |
+| `loaded(chatId)`, `require(chatId)`             | Waits for a create under way, and returns the loaded chat or throws `chat-not-found`.       |
+| `switchAccount(session, account)`               | Moves a chat to another account, under the rules of an account switch.                      |
+| `findAttachment(chatId, id)`                    | The file behind an attachment id, also of a chat nobody loaded: its thread, its queue or a visual's page. |
+| `copyBookmarks(from, to, keep)`, `copyVisuals(from, to, keep)` | Give a fork the bookmarks and visuals `keep` picks.                         |
 
 `ChatCoreOptions` also takes `checkpoints`, `skills`, `onInterruptedRun` and `limitResume`. `checkpoints` is a `TurnCheckpoints` with `take`, `diff` and `settle` for a tree per turn. Its optional `head` records the commit at turn start and end, so a card can show that the branch moved. Without `checkpoints` a turn has none. The package runs no git itself.
 

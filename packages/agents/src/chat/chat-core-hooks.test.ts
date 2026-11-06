@@ -265,6 +265,54 @@ describe('the hooks of ChatCore', () => {
     });
 });
 
+describe('the hooks that stand in for a subclass', () => {
+    test('opening hands the core the start the host planned, and the explicit payload is only a request', async () => {
+        const chats = open({ opening: (payload) => ({ ...payload, cwd: home, runtimeMode: 'supervised' }) });
+
+        expect(await chats.create({ chatId: 'planned', cwd: '/somewhere/else' })).toMatchObject({ cwd: home, runtimeMode: 'supervised' });
+    });
+
+    test('admitUi lets the host refuse a client before a link or a query is resolved', async () => {
+        const asked: string[] = [];
+        const chats = open({
+            admitUi: async (chatId, clientId) => {
+                asked.push(`${chatId}:${clientId}`);
+                throw new Error('not here');
+            }
+        });
+        await chats.create({ chatId: 'chat-1', cwd: home });
+
+        await expect(chats.linkUi({ chatId: 'chat-1' } as never, 'client-1')).rejects.toThrow('not here');
+        await expect(chats.queryUi({ chatId: 'chat-1' } as never, 'client-1')).rejects.toThrow('not here');
+        expect(asked).toEqual(['chat-1:client-1', 'chat-1:client-1']);
+    });
+
+    test('deleted runs once a record nobody loaded is gone, and not for a loaded chat', async () => {
+        const deleted: string[] = [];
+        const chats = open({ deleted: async (chatId) => void deleted.push(chatId) });
+        await chats.writeRecord('fork', storedInfo('fork'), [said('copied')]);
+        await chats.create({ chatId: 'loaded', cwd: home });
+
+        expect(await chats.deleteRecord('loaded')).toBe(false);
+        expect(await chats.deleteRecord('fork')).toBe(true);
+        expect(deleted).toEqual(['fork']);
+    });
+
+    test('codexSideCommand is the command of the app-server opened beside a chat, apart from the one a chat runs on', () => {
+        const chats = new ChatCore({
+            providers,
+            store,
+            attachments: new AttachmentStore(home),
+            env: { HOME: home, PATH: '/bin' },
+            codexCommand: ['codex', '--with-host'],
+            codexSideCommand: ['codex']
+        });
+        core = chats;
+
+        expect(chats.codexProcess({ cwd: home, account: undefined }).command).toEqual(['codex']);
+    });
+});
+
 describe('a record nobody loaded', () => {
     test('is written whole and taken back, and a loaded chat is left alone', async () => {
         const chats = open();
