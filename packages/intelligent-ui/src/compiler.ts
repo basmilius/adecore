@@ -6,19 +6,17 @@ import { unreadableEventTime } from './event-warning.ts';
 import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
 import { aliasedProp } from './prop-alias.ts';
+import type { UiBlock, UiNode, UiQuery } from './protocol.ts';
 import { rethrowBudget } from './rethrow.ts';
-import { parseUiSyntax, uiDiagnostic, type UiDiagnostic, type UiSyntaxNode } from './syntax.ts';
+import { parseUiSyntax, uiDiagnostic, type UiSyntaxNode } from './syntax.ts';
 
 // The info string a fence carries when the host names none of its own.
 export const UI_FENCE_LANGUAGE = 'ui';
 
 export const UI_REPLY_LIMITS = { blocks: 16, characters: 262144, nodes: 2048, milliseconds: 0 } as const;
 
-// What a host reads for one block: its queries, its link targets, the places it looks up and how often a visible block reads again.
-export const UI_HOST_LIMITS = { queries: 8, links: 64, places: 50, refreshMilliseconds: 10_000 } as const;
-
-/* A Place that names an address, whose tag may hold quoted text with a `>` before it. */
-const ADDRESSED_PLACE = /<Place\b(?:[^>"']|"[^"]*"|'[^']*')*?\baddress\s*=/;
+// What a host reads for one block: its queries, its link targets and how often a visible block reads again.
+export const UI_HOST_LIMITS = { queries: 8, links: 64, refreshMilliseconds: 10_000 } as const;
 
 let linkTag: RegExp | undefined;
 
@@ -35,7 +33,7 @@ export function uiMayReferenceHost(text: string): boolean {
             .join('|')})\\b`
     );
 
-    return linkTag.test(text) || ADDRESSED_PLACE.test(text);
+    return linkTag.test(text);
 }
 
 /* The children of a Map as its fallback numbers them: each Place that drew, also inside a Show or an Each, in order, and anything else as it is. */
@@ -56,39 +54,7 @@ function numberedPlaces(children: readonly UiNode[]): string {
     return visit(children);
 }
 
-export interface UiNode {
-    id: string;
-    type: string;
-    props: Record<string, UiValue>;
-    expressions: Record<string, UiExpression>;
-    bindings: Record<string, string>;
-    children: UiNode[];
-    complete: boolean;
-    fallback: string;
-    error?: string;
-    start: number;
-    end: number;
-}
-
-export interface UiQuery {
-    source: string;
-    args: Record<string, UiValue>;
-    expression?: UiExpression;
-}
-
-export interface UiBlock {
-    id: string;
-    catalogVersion: number;
-    revision?: string;
-    start: number;
-    end: number;
-    complete: boolean;
-    defaults: Record<string, UiValue>;
-    queries: Record<string, UiQuery>;
-    nodes: UiNode[];
-    diagnostics: UiDiagnostic[];
-    fallback: string;
-}
+export type { UiBlock, UiNode, UiQuery };
 
 export interface UiCompileOptions {
     id: string;

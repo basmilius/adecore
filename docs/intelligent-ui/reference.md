@@ -14,7 +14,8 @@ Every name each entry point exports, types included, read from its source. Anyth
 | `resolveUiChoice`, `uiChoiceLabel`, `uiInputValues`, `uiValidatedState` | [Choices](/intelligent-ui/host/choices) |
 | `parseUiEventTime` | [Status](/intelligent-ui/components/status#timeline-and-event) |
 | `uiLinkTargets` and the link schemas | [Links](/intelligent-ui/host/links) |
-| `uiPlaceQueries` | [Live queries](/intelligent-ui/host/queries#places) |
+| `UiBlockSchema`, `UiNodeSchema` and the types inferred from them | [Getting started](/intelligent-ui/getting-started#the-wire) |
+| `uiGroupDescription` and the `places` option | [Compilation and streaming](/intelligent-ui/host/compilation#the-catalog-in-code) |
 
 ## `@adecore/intelligent-ui`
 
@@ -70,15 +71,9 @@ Link targets and the host's resolution.
 
 <ExportTable entry="@adecore/intelligent-ui/links" />
 
-## `@adecore/intelligent-ui/places`
-
-The places a block names, for the host to look up.
-
-<ExportTable entry="@adecore/intelligent-ui/places" />
-
 ## `@adecore/intelligent-ui/protocol`
 
-Zod schemas of compiled blocks on the wire.
+Zod schemas of compiled blocks on the wire, and the `UiBlock`, `UiNode`, `UiQuery` and `UiDiagnostic` types inferred from them.
 
 <ExportTable entry="@adecore/intelligent-ui/protocol" />
 

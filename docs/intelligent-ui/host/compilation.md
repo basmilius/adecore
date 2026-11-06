@@ -106,7 +106,7 @@ Every node and block carries a text fallback that clients show and other agents 
 
 ## The catalog in code
 
-`UI_CATALOG` holds every component: its `group`, `description` and zod `schema`, with `parent`, `children`, `binding` or `action` where it has one. A `parent` is one name or a list. `UI_GROUPS` holds each group's description and rules, and `UiGroupName` is the union of its keys. `UiComponentName` is the union of the catalog's keys and `UiProps<Name>` the props a schema accepts. `isUiComponent(name)` checks a name. `UiToneSchema` validates a `UiTone`. `UI_CATALOG_VERSION` changes on incompatible changes; a block of another version draws as its fallback.
+`UI_CATALOG` holds every component: its `group`, `description` and zod `schema`, with `parent`, `children`, `binding`, `action` or `example` (a block that compiles) where it has one. `lookup` on an entry gives what it says to a host that looks addresses up. A `parent` is one name or a list. `UI_GROUPS` holds each group's description and rules (the places group also holds `placing`, one sentence per `places` option below), and `UiGroupName` is the union of its keys. `UiComponentName` is the union of the catalog's keys and `UiProps<Name>` the props a schema accepts. `isUiComponent(name)` checks a name. `UiToneSchema` validates a `UiTone`. `UI_CATALOG_VERSION` changes on incompatible changes; a block of another version draws as its fallback.
 
 Text for an agent or a tool comes from the same schemas:
 
@@ -114,11 +114,14 @@ Text for an agent or a tool comes from the same schemas:
 | ------------------- | ------------------------------------------------------------------ |
 | `uiSessionNote(options?)`   | The short instructions for every session                   |
 | `uiReferenceText(options?)` | The full reference: syntax, example, groups, rules, components |
-| `uiGroupReference(group)`   | One group of that reference: description, rules, components with props |
-| `uiCompactCatalog()`        | `Name: prop,prop?` for every component, on one line        |
-| `uiCatalogText()`           | `Name(props): description`, one line per component         |
+| `uiGroupReference(group, places?)` | One group of that reference: description, rules, components with props |
+| `uiGroupDescription(group, places?)` | The same as a `UiGroupDescription`: `description`, `rules` and a `UiComponentReference` (`name`, `description`, `props`, `example?`) per component, for a host that words its own lines |
+| `uiCompactCatalog(places?)` | `Name: prop,prop?` for every component, on one line        |
+| `uiCatalogText(places?)`    | `Name(props): description`, one line per component         |
 
 `uiSessionNote` and `uiReferenceText` take `UiTextOptions` with the compiler's `fenceLanguage`. The note also takes `catalog` (`'props'` by default, or `'names'`) and `detailHint`; see [tell the agent](/intelligent-ui/getting-started#tell-the-agent).
+
+`places` (`UiPlaces`) says what the host does with a `Place`: `'coordinates'` (the default) tells the agent to give `lat` and `lon` and leaves `address` out of the props, `'addresses'` allows an address the host looks up. Only the host knows whether it can, so the catalog states the rule once, from this option.
 
 ## The syntax tree
 

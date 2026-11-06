@@ -27,13 +27,22 @@ export {
     type UiCompileUpdate,
     type UiCompileOptions
 } from './compiler.ts';
-export { type UiBlock, type UiNode, type UiQuery } from './compiler.ts';
 export { evaluateUiBlock, UiState, uiInputValues, resolveUiChoice, uiChoiceLabel, type UiChoiceSelection } from './runtime.ts';
 export { type UiBinding, type UiEvaluation, type UiViewNode } from './model.ts';
 export { uiValidatedState, uiQueryArguments, uiQueryFallback } from './query.ts';
-export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
-export { uiCompactCatalog, uiSessionNote, uiGroupReference, uiReferenceText, uiFallbackText, type UiTextOptions } from './text.ts';
+export { UiNodeSchema, UiDiagnosticSchema, UiQuerySchema, UiBlockSchema, UiBlocksSchema, type UiBlock, type UiNode, type UiQuery } from './protocol.ts';
+export {
+    uiCompactCatalog,
+    uiSessionNote,
+    uiGroupDescription,
+    uiGroupReference,
+    uiReferenceText,
+    uiFallbackText,
+    type UiComponentReference,
+    type UiGroupDescription,
+    type UiTextOptions
+} from './text.ts';
+export { type UiPlaces } from './prop-list.ts';
 export { UI_STREAM_INTERVAL_MS, UiStream, type UiStreamClock, type UiStreamOptions, type UiStreamPreview } from './stream.ts';
 
-export { uiPlaceQueries, type UiPlaceQuery } from './places.ts';
 export { UiLinkTargetSchema, UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget, type UiLinkResolution } from './links.ts';

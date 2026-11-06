@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { uiPropList } from './prop-list.ts';
+import { uiDescription, uiPropList, type UiPlaces } from './prop-list.ts';
 
 export const UI_CATALOG_VERSION = 1;
 export const UiToneSchema = z.enum(['neutral', 'info', 'success', 'warning', 'danger']);
@@ -23,7 +23,11 @@ export const UI_GROUPS = {
     },
     places: {
         description: 'Show places on a map the host draws.',
-        rules: 'Give lat and lon in decimal degrees, or an address the host looks up. Never a tile or map URL. The host chooses the map.'
+        rules: 'Never a tile or map URL. The host chooses the map.',
+        placing: {
+            coordinates: 'Give lat and lon in decimal degrees for every Place.',
+            addresses: 'Give lat and lon in decimal degrees, or an address the host looks up.'
+        }
     },
     links: { description: 'Refer to a host-owned resource.', rules: 'The host checks every target. No arbitrary navigation or file reads.' },
     inputs: {
@@ -75,7 +79,13 @@ export const UI_CATALOG = {
         schema: z.strictObject({ label: text, value: number, previous: number.optional(), unit: text.optional(), tone }),
         parent: 'Stats'
     },
-    EntityList: { group: 'data', description: 'Labeled facts about an entity.', schema: empty, children: ['Entry'] },
+    EntityList: {
+        group: 'data',
+        description: 'Labeled facts about an entity.',
+        schema: empty,
+        children: ['Entry'],
+        example: '<EntityList><Entry label="ci">21 min 38 sec</Entry><Entry label="far-future-clock">16 min 46 sec</Entry></EntityList>'
+    },
     Entry: { group: 'data', description: 'One labeled fact.', schema: z.strictObject({ label: text }), parent: 'EntityList', text: 'value' },
     Table: { group: 'data', description: 'Rows with named columns.', schema: z.strictObject({ rows }), children: ['Column'] },
     Column: {
@@ -136,8 +146,13 @@ export const UI_CATALOG = {
     },
     Place: {
         group: 'places',
-        description:
-            'One place by lat and lon, or by an address the host looks up; with both, the point the host finds for the address wins and lat and lon stand when it finds none. Children are the name.',
+        description: 'One place by lat and lon. Children are the name.',
+        lookup: {
+            prop: 'address',
+            description:
+                'One place by lat and lon, or by an address the host looks up; with both, the point the host finds for the address wins and lat and lon stand when it finds none. Children are the name.',
+            needs: 'lat lon|address'
+        },
         schema: z
             .strictObject({
                 lat: number.min(-90).max(90).optional(),
@@ -151,7 +166,7 @@ export const UI_CATALOG = {
                 'Give lat with lon, or an address.'
             ),
         parent: 'Map',
-        needs: 'lat lon|address',
+        needs: 'lat lon',
         text: 'name'
     },
     Sources: { group: 'content', description: 'Numbered sources without preloading.', schema: empty, children: ['Source'] },
@@ -243,8 +258,8 @@ export function isUiComponent(name: string): name is UiComponentName {
     return Object.hasOwn(UI_CATALOG, name);
 }
 
-export function uiCatalogText(): string {
+export function uiCatalogText(places: UiPlaces = 'coordinates'): string {
     return Object.entries(UI_CATALOG)
-        .map(([name, entry]) => `${name}(${uiPropList(entry).join(', ')}): ${entry.description}`)
+        .map(([name, entry]) => `${name}(${uiPropList(entry, places).join(', ')}): ${uiDescription(entry, places)}`)
         .join('\n');
 }

@@ -1,6 +1,6 @@
 # Places
 
-Show places on a map the host draws. Give a place as `lat` and `lon` in decimal degrees, or as an address the host looks up. A block cannot name tiles, a map URL, a style or a vendor.
+Show places on a map the host draws. Give a place as `lat` and `lon` in decimal degrees. A host that looks addresses up (see [Looking up an address](#looking-up-an-address)) also accepts an address. A block cannot name tiles, a map URL, a style or a vendor.
 
 <Demo src="intelligent-ui/places" />
 
@@ -32,15 +32,17 @@ One place. It stands only inside `Map`, and its children are the name.
 | --------- | ------ | -------- | --------------------------------------------------------------------- |
 | `lat`     | number | With `lon` | From -90 to 90                                                      |
 | `lon`     | number | With `lat` | From -180 to 180                                                    |
-| `address` | string | Or `lat` and `lon` | At most 512 characters; looked up by the host |
+| `address` | string | Or `lat` and `lon` | At most 512 characters; read only by a host that looks addresses up |
 | `detail`  | string | No       | A line under the name                                                 |
 | `value`   | scalar | No       | What picking the place sets on the bound `Map`                        |
 
-A `Place` with only one of `lat` and `lon`, or with neither coordinates nor an address, fails alone and draws as its text. With both, the host's lookup wins; `lat` and `lon` stand until it answers or when it finds nothing.
+A `Place` with only one of `lat` and `lon`, or with neither coordinates nor an address, fails alone and draws as its text. With both, the host's lookup wins when it has one; `lat` and `lon` stand until it answers or when it finds nothing.
 
 ## Looking up an address
 
-A renderer does not look anything up. `UiRenderContext.place(nodeId, address)` returns the host's point for that address: `undefined` until the block is frozen, and `null` for an address without a point. A reading applies only to the address it was made for. The list says `Looking up` for `undefined` and `Not on the map` for `null`, without a marker. [Live queries](/intelligent-ui/host/queries#places) covers how the host freezes the points.
+Neither this package nor `@adecore/agents` looks anything up. The instructions for the agent ask for coordinates unless the host says it can do more: pass `places: 'addresses'` to `uiSessionNote`, `uiReferenceText`, `uiGroupReference` or `uiGroupDescription` and they allow an address again (see [the catalog in code](/intelligent-ui/host/compilation#the-catalog-in-code)).
+
+A renderer shows what the host hands it. `UiRenderContext.place(nodeId, address)` returns the host's point for that address: `undefined` while there is none, and `null` for an address without a point. A reading applies only to the address it was made for. The list says `Looking up` for `undefined` and `Not on the map` for `null`, without a marker. A host that has points for addresses writes them into `uiQueries.blocks[id].places` (`ChatUiPlaceReading` in `@adecore/agent-contracts`).
 
 ## What the host draws
 
