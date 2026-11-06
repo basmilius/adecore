@@ -98,6 +98,7 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `promptNotesFor`, `referencesFor`                              | Notes in front of the next prompt, and how chats a message points at are named to the agent. |
 | `hiddenFor(chatId)`                                            | Leaves the chat out of every list.                                                         |
 | `opened`, `recordExtras`                                       | What the host lays down in a loaded chat, and keeps in its record beside the thread.     |
+| `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. |
 | `clearing`, `cleared`, `forgotten`, `deleted`, `removed`, `broadcasted` | What goes along with a clear, with the record of a chat nobody loaded (`deleted`) or a removal, and a look at every event. |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |
 
@@ -116,9 +117,11 @@ A host holds a `ChatCore` and gives it its hooks; it does not subclass it. What 
 | `loaded(chatId)`, `require(chatId)`             | Waits for a create under way, and returns the loaded chat or throws `chat-not-found`.       |
 | `switchAccount(session, account)`               | Moves a chat to another account, under the rules of an account switch.                      |
 | `findAttachment(chatId, id)`                    | The file behind an attachment id, also of a chat nobody loaded: its thread, its queue or a visual's page. |
-| `copyBookmarks(from, to, keep)`, `copyVisuals(from, to, keep)` | Give a fork the bookmarks and visuals `keep` picks.                         |
+| `copySidecars(from, to, kept)`                  | Gives a fork what every [sidecar](/agents/chats#sidecars) keeps of the original; `kept` says which messages and visuals went along. |
+| `syncTaskRow(task)`                             | Writes the [row](/agents/chats#task-rows) of a task into the chat that gave it, when that chat is loaded. |
+| `uiFence`                                       | The fence name the core compiles replies under, for the note that teaches an agent the UI language. |
 
-`ChatCoreOptions` also takes `checkpoints`, `skills`, `onInterruptedRun` and `limitResume`. `checkpoints` is a `TurnCheckpoints` with `take`, `diff` and `settle` for a tree per turn. Its optional `head` records the commit at turn start and end, so a card can show that the branch moved. Without `checkpoints` a turn has none. The package runs no git itself.
+`ChatCoreOptions` also takes `checkpoints`, `skills`, `onInterruptedRun`, `limitResume`, `sidecars` and `taskRemovedReason`. `checkpoints` is a `TurnCheckpoints` with `take`, `diff` and `settle` for a tree per turn. Its optional `head` records the commit at turn start and end, so a card can show that the branch moved. Without `checkpoints` a turn has none. The package runs no git itself.
 
 ## Electron
 

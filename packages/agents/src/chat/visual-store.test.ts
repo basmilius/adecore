@@ -241,9 +241,8 @@ describe('VisualStore', () => {
         expect(told.at(-1)).toEqual({ chatId: 'chat-1', visuals: [] });
     });
 
-    test('a visuals file beside the records is no chat', async () => {
-        await store.publish('chat-1', { title: 'A', html: PAGE });
+    test('names its file so the chats folder can tell it from a record', () => {
         expect(isVisualFileName(visualFileName('chat-1'))).toBe(true);
-        expect(await new ChatStore(home).list()).toEqual([]);
+        expect(isVisualFileName('chat-1.json')).toBe(false);
     });
 });

@@ -28,7 +28,7 @@ The CLIs remove old transcripts, but what a transcript counted stays in `usage/h
 - A crash between the two writes never counts anything twice.
 - A `usage/index.json` from an earlier version migrates on first load. An unreadable one becomes `index.json.unreadable`.
 
-An id becomes a file name with `encodeURIComponent`. A host's extras sit at the top level of a chat's record, next to `info` and `items`, which they cannot replace. `ChatStoreOptions.isSidecar` keeps your own JSON files in `chats/` out of the chat list.
+An id becomes a file name with `encodeURIComponent`. A host's extras sit at the top level of a chat's record, next to `info` and `items`, which they cannot replace. Files you keep per chat beside the record, such as plans, sit in `chats/` under names that also end in `.json`. Register them as a [`ChatSidecar`](/agents/chats#sidecars) and the core keeps them out of the chat list (`ChatStore.keepApart`), removes them with the chat and copies them into a fork.
 
 A record this version cannot read stays untouched and fails with `chat-unreadable`. Creating the chat again does not overwrite it. A log can rebuild a missing record when it holds a start. `ChatStore.settled` reads only the chats' infos, for `recoverInterrupted`.
 
@@ -46,7 +46,7 @@ A tool's `output` or a turn's `checkpointDiff` past `CHAT_PAYLOAD_INLINE_BYTES` 
 
 `ChatCore` batches writes. `save` and `persisted(chatId)` wait for one. `after(since)` returns the events after a sequence number while the log holds them all. Otherwise a client gets a full snapshot. `host.close()` writes every record, even mid-turn, and ends the CLIs even when a write fails. `persistAllSync` is for an exit that cannot wait.
 
-A line of the log is a `ChatLogLine`, `{ seq, at, event }`. Once the log passes `COMPACT_ABOVE_BYTES`, the next write of the record folds it in. `ChatStore` reads a `ChatRecord`: the thread as the host last wrote it, the snapshot with the log played over it. `ChatRecordExtras` is what a host keeps beside the thread, which never reaches the wire, and `ChatSeq` where a snapshot stands in the chat's stream.
+A line of the log is a `ChatLogLine`, `{ seq, at, event }`. Once the log passes `COMPACT_ABOVE_BYTES`, the next write of the record folds it in. `ChatStore` (made with `ChatStoreOptions`, whose `attachments` is where it moves inline attachments to) reads a `ChatRecord`: the thread as the host last wrote it, the snapshot with the log played over it. `ChatRecordExtras` is what a host keeps beside the thread, which never reaches the wire, and `ChatSeq` where a snapshot stands in the chat's stream.
 
 `BookmarkStore` keeps the bookmarks of every chat, one file per chat, and tells a `BookmarkListener` every new list. `VisualStore` keeps the visuals, with `VisualStoreOptions`; it tells a `VisualListener` of changes and takes a `VisualInput`, the page as the agent wrote it. `visualFileName(chatId)` is the name of a chat's visuals file.
 

@@ -51,6 +51,7 @@ export {
     type ResumeDecision
 } from './chat-session.ts';
 
+export type { ChatSidecar, ForkKept } from './chat-sidecar.ts';
 export { type ChatRecordExtras, type ChatRecord, ChatStore, type ChatSeq, type ChatStoreOptions } from './chat-store.ts';
 export { suggestChatTitle, type ChatTitleInput } from './chat-title.ts';
 export type { ClaudeApiKeyOptions, ClaudeBackendOptions } from '../backends/claude-backend.ts';

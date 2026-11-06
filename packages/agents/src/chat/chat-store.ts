@@ -7,11 +7,9 @@ import { writeAtomic, writeAtomicSync } from '@adecore/utils/fs';
 import { z } from 'zod';
 import { recordFileName } from '../record-directory.ts';
 import { migrateInlineAttachments, type AttachmentStore } from './attachment-store.ts';
-import { isBookmarkFileName } from './bookmark-store.ts';
 import { parseLog, type ChatLogLine } from './chat-log.ts';
 import { compactItems, PayloadStore, type PayloadSources } from './payload-store.ts';
 import { ChatThread } from './thread.ts';
-import { isVisualFileName } from './visual-store.ts';
 
 // zod strips what it does not know inside the info and the items, so a file written by an older build
 // (with `interactionMode`, say) still parses and loses only the dropped field. A record without `seq`
@@ -99,8 +97,6 @@ function liftUiAccess(record: unknown): unknown {
 
 export interface ChatStoreOptions {
     attachments?: AttachmentStore | null;
-    // Files a host keeps beside a record under names that also end in .json (a chat's plans), which are no chats.
-    isSidecar?(name: string): boolean;
 }
 
 /*
@@ -112,7 +108,7 @@ export interface ChatStoreOptions {
 export class ChatStore {
     readonly dir: string;
     private readonly attachments: AttachmentStore | null;
-    private readonly isSidecar: (name: string) => boolean;
+    private readonly apart: ((name: string) => boolean)[] = [];
     private readonly payloads: PayloadStore;
     // The payloads the record this process wrote last refers to, which is what a prune keeps.
     private readonly referenced = new Map<string, Set<string>>();
@@ -120,8 +116,12 @@ export class ChatStore {
     constructor(home: string, options: ChatStoreOptions = {}) {
         this.dir = join(home, 'chats');
         this.attachments = options.attachments ?? null;
-        this.isSidecar = options.isSidecar ?? (() => false);
         this.payloads = new PayloadStore(this.dir);
+    }
+
+    /* Keeps the files of a sidecar, which sit beside the records under names that also end in .json, out of `list`. `ChatCore` does this for its sidecars. */
+    keepApart(owns: (name: string) => boolean): void {
+        this.apart.push(owns);
     }
 
     logPath(chatId: string): string {
@@ -143,10 +143,7 @@ export class ChatStore {
         }
 
         const ids = names
-            // A chat's bookmarks and visuals, and whatever a host keeps per chat, sit beside its record under names that also end in .json.
-            .filter(
-                (name) => (name.endsWith('.json') && !isBookmarkFileName(name) && !isVisualFileName(name) && !this.isSidecar(name)) || name.endsWith('.log')
-            )
+            .filter((name) => (name.endsWith('.json') && !this.apart.some((owns) => owns(name))) || name.endsWith('.log'))
             .map((name) => decodeURIComponent(name.replace(/\.(json|log)$/, '')));
 
         return [...new Set(ids)];

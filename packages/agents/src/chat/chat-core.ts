@@ -28,8 +28,10 @@ import {
     type ChatTurnItem,
     type ChatVisual,
     type ModelSelection,
-    type RuntimeMode
+    type RuntimeMode,
+    type Task
 } from '@adecore/agent-contracts';
+import { UI_FENCE_LANGUAGE } from '@adecore/intelligent-ui';
 import type { LimitsUpdate } from '../backends/limits.ts';
 import type { ThreadProcess } from '../backends/threads.ts';
 import { ChatError } from '../chat-error.ts';
@@ -60,11 +62,13 @@ import {
     type ResumeWords,
     type TurnCheckpoints
 } from './chat-session.ts';
+import { bookmarkSidecar, visualSidecar, type ChatSidecar, type ForkKept } from './chat-sidecar.ts';
 import type { ChatRecord, ChatRecordExtras, ChatStore } from './chat-store.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
+import { clearedTaskIdsOf, clearedTasksExtras, DEFAULT_TASK_REMOVED_REASON, taskRowItems } from './task-rows.ts';
 import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
 import type { VisualInput, VisualStore } from './visual-store.ts';
 
@@ -159,6 +163,11 @@ export interface ChatCoreHooks {
     opened?(session: ChatSession, stored: ChatRecord | null): Promise<void>;
     /* What the host keeps in the chat's record beside the thread. */
     recordExtras?(chatId: string): ChatRecordExtras;
+    /*
+     * The tasks a chat gave. The core lays a row for each in the thread when the chat opens, even when a crash
+     * lost the write of one, and a clear hides the rows of these tasks for good; see `syncTaskRow`.
+     */
+    taskRows?(chatId: string): readonly Task[];
     /* A clear is about to start; it waits for this. */
     clearing?(chatId: string): Promise<void>;
     /* The chat was cleared; what runs before the first await is in the record written right after. */
@@ -181,7 +190,7 @@ export interface ChatCoreHooks {
 
 export interface ChatCoreOptions {
     intelligentUi?: ChatUiHost;
-    // The info string that marks a UI fence in a reply, for a host that keeps a name of its own.
+    // The info string that marks a UI fence in a reply, for a host that keeps a name of its own. The core compiles replies under it; the host reads it back as `uiFence` to write `uiSessionNote` with the same name.
     uiFenceLanguage?: string;
     providers: ProviderRegistry;
     // Where the threads are kept; without it a chat lives as long as the process.
@@ -198,6 +207,10 @@ export interface ChatCoreOptions {
     bookmarks?: BookmarkStore;
     // Pages agents publish in a chat; their files go in the same attachment folders.
     visuals?: VisualStore;
+    // What the host keeps per chat beside the bookmarks and visuals, which the core keeps with them: out of the chat list, removed with the chat, copied into a fork.
+    sidecars?: readonly ChatSidecar[];
+    // Why a cancelled task's note says it was cancelled when the task has no result of its own.
+    taskRemovedReason?: string;
     // What a running turn says about the plan its CLI runs on; the usage monitor takes it from here.
     onLimits?: (update: LimitsUpdate) => void;
     // Where Claude Code's own name for a session is read, in the projects folder of the chat's account; for a provider that runs Claude Code.
@@ -262,7 +275,12 @@ export class ChatCore {
     readonly claudeProjectsDir: string;
     readonly composerPreferences = new ComposerPreferences();
     private readonly uiQueries: ChatUiQueries | null;
-    private readonly uiFenceLanguage: string | undefined;
+    /* The info string of the UI fences the core compiles replies under, which `uiSessionNote` must be written with. */
+    readonly uiFence: string;
+    private readonly sidecars: readonly ChatSidecar[];
+    private readonly taskRemovedReason: string;
+    // The tasks whose rows a clear hid, per chat; the record keeps them as extras.
+    private readonly clearedTasks = new Map<string, Set<string>>();
     private readonly checkpoints: TurnCheckpoints | null;
     private readonly instructions: string | null;
     private readonly skillIndex: SkillIndex;
@@ -292,11 +310,22 @@ export class ChatCore {
 
     constructor(options: ChatCoreOptions) {
         this.uiQueries = options.intelligentUi ? new ChatUiQueries(options.intelligentUi) : null;
-        this.uiFenceLanguage = options.uiFenceLanguage;
+        this.uiFence = options.uiFenceLanguage || UI_FENCE_LANGUAGE;
+        this.taskRemovedReason = options.taskRemovedReason ?? DEFAULT_TASK_REMOVED_REASON;
         this.providers = options.providers;
         this.store = options.store ?? null;
         this.bookmarks = options.bookmarks ?? null;
         this.visuals = options.visuals ?? null;
+        this.sidecars = [
+            ...(options.bookmarks ? [bookmarkSidecar(options.bookmarks)] : []),
+            ...(options.visuals ? [visualSidecar(options.visuals)] : []),
+            ...(options.sidecars ?? [])
+        ];
+
+        for (const sidecar of this.sidecars) {
+            this.store?.keepApart((name) => sidecar.owns?.(name) === true);
+        }
+
         this.accounts = options.accounts ?? null;
         this.attachments = options.attachments;
         this.checkpoints = options.checkpoints ?? null;
@@ -554,7 +583,7 @@ export class ChatCore {
 
         const session = new ChatSession({
             info,
-            ...(this.uiFenceLanguage ? { uiFenceLanguage: this.uiFenceLanguage } : {}),
+            uiFenceLanguage: this.uiFence,
             ...(this.uiQueries ? { ui: { schemas: this.uiQueries.schemas, observe: (item, final) => this.uiQueries!.observe(session, item, final) } } : {}),
             items: stored?.items ?? [],
             preambles: stored?.preambles ?? [],
@@ -596,6 +625,12 @@ export class ChatCore {
             session.settleStored(selection, resume);
             session.settleOwedResume();
             await session.settleOrphanedSubagents();
+        }
+
+        this.clearedTasks.set(session.id, new Set(clearedTaskIdsOf(stored?.extras ?? {})));
+
+        for (const task of this.hooks.taskRows?.(session.id) ?? []) {
+            this.upsertTaskRow(session, task);
         }
 
         await this.hooks.opened?.(session, stored ?? null);
@@ -1047,8 +1082,8 @@ export class ChatCore {
     }
 
     /*
-     * Removes what a chat nobody loaded keeps on disk: its record and log, attachments, bookmarks and
-     * visuals. False, with nothing removed, for a chat that is loaded or loading; `kill` removes that one.
+     * Removes what a chat nobody loaded keeps on disk: its record and log, attachments and sidecars.
+     * False, with nothing removed, for a chat that is loaded or loading; `kill` removes that one.
      */
     async deleteRecord(chatId: string): Promise<boolean> {
         if (this.chats.has(chatId) || this.creating.has(chatId)) {
@@ -1057,12 +1092,7 @@ export class ChatCore {
 
         this.unloadedInfo.delete(chatId);
 
-        await Promise.all([
-            this.store?.delete(chatId),
-            this.attachments.removeAll(chatId),
-            this.bookmarks?.removeChat(chatId),
-            this.visuals?.removeChat(chatId)
-        ]);
+        await Promise.all([this.store?.delete(chatId), this.attachments.removeAll(chatId), this.removeSidecars(chatId)]);
         await this.hooks.deleted?.(chatId);
 
         return true;
@@ -1222,14 +1252,37 @@ export class ChatCore {
         return this.visuals.attachment(chatId, id);
     }
 
-    /* Gives a fork the bookmarks on the messages `keep` picks. */
-    async copyBookmarks(fromChatId: string, toChatId: string, keep: (itemId: string) => boolean): Promise<void> {
-        await this.bookmarks?.copyChat(fromChatId, toChatId, keep);
+    /* Gives a fork what every sidecar keeps of the original, one after the other; `deleteRecord` takes it back. */
+    async copySidecars(fromChatId: string, toChatId: string, kept: ForkKept): Promise<void> {
+        for (const sidecar of this.sidecars) {
+            await sidecar.copyChat?.(fromChatId, toChatId, kept);
+        }
     }
 
-    /* Gives a fork the visuals `keep` picks, each with a page of its own. */
-    async copyVisuals(fromChatId: string, toChatId: string, keep: (visual: ChatVisual) => boolean): Promise<void> {
-        await this.visuals?.copyChat(fromChatId, toChatId, keep);
+    private removeSidecars(chatId: string): Promise<unknown> {
+        return Promise.all(this.sidecars.map((sidecar) => sidecar.removeChat?.(chatId)));
+    }
+
+    /* Writes the row of a task into the chat that gave it, when that chat is loaded; opening a chat lays every row down anyway. */
+    syncTaskRow(task: Task): void {
+        const session = this.chats.get(task.parentId);
+
+        if (session) {
+            this.upsertTaskRow(session, task);
+        }
+    }
+
+    private upsertTaskRow(session: ChatSession, task: Task): void {
+        if (this.clearedTasks.get(session.id)?.has(task.id)) {
+            return;
+        }
+
+        session.upsertItems(taskRowItems(session, task, this.taskRemovedReason));
+    }
+
+    /* What the record keeps beside the thread: the host's extras and the tasks whose rows a clear hid. */
+    private extrasOf(chatId: string): ChatRecordExtras {
+        return { ...this.hooks.recordExtras?.(chatId), ...clearedTasksExtras(this.clearedTasks.get(chatId)) };
     }
 
     unqueue(chatId: string, messageId: string): ChatQueuedMessage {
@@ -1280,7 +1333,7 @@ export class ChatCore {
         session.compact();
     }
 
-    /* Empties the thread and drops the CLI's session and the chat's bookmarks and visuals; `force` stops a turn that is in the way. */
+    /* Empties the thread and drops the CLI's session and the chat's sidecars; `force` stops a turn that is in the way. The rows of the tasks the chat gave stay hidden for good. */
     async clear(chatId: string, force = false): Promise<void> {
         const session = this.require(chatId);
         this.refuseWhileRelocating(chatId);
@@ -1291,19 +1344,20 @@ export class ChatCore {
 
         await this.hooks.clearing?.(chatId);
         const ended = session.clear(force);
+        const hidden = this.clearedTasks.get(chatId) ?? new Set<string>();
+
+        for (const task of this.hooks.taskRows?.(chatId) ?? []) {
+            hidden.add(task.id);
+        }
+
+        this.clearedTasks.set(chatId, hidden);
         // Before the record is written, so what it takes along from the record is gone from the write as well.
         const cleared = this.hooks.cleared?.(chatId);
         // A debounced write still waiting holds the old thread and must not land after the empty one.
         this.cancelWaiting(chatId);
 
         // Folded right away: every line before the reset describes a thread that is gone.
-        await Promise.all([
-            this.persistNow(chatId, true),
-            ended.then(() => this.attachments.removeAll(chatId)),
-            this.bookmarks?.removeChat(chatId),
-            this.visuals?.removeChat(chatId),
-            cleared
-        ]);
+        await Promise.all([this.persistNow(chatId, true), ended.then(() => this.attachments.removeAll(chatId)), this.removeSidecars(chatId), cleared]);
     }
 
     /* Stops the running turn; with `subagents` also marks the CLI's own subagents stopped, which that turn no longer waits on. */
@@ -1449,7 +1503,7 @@ export class ChatCore {
         }
     }
 
-    /* Removes a chat: its CLI, its record, its log, its attachments, its bookmarks and its visuals. */
+    /* Removes a chat: its CLI, its record, its log, its attachments and its sidecars. */
     async kill(chatId: string): Promise<void> {
         await this.loaded(chatId);
         const moving = this.relocations.get(chatId);
@@ -1467,6 +1521,7 @@ export class ChatCore {
         this.unloadedInfo.delete(chatId);
         const snapshot = session.thread.snapshot();
         this.hooks.forgotten?.(chatId);
+        this.clearedTasks.delete(chatId);
 
         for (const [key, hold] of this.childHolds) {
             if (hold.parentId === chatId) {
@@ -1480,8 +1535,7 @@ export class ChatCore {
         await Promise.all([
             this.store?.delete(chatId),
             this.attachments.removeAll(chatId),
-            this.bookmarks?.removeChat(chatId),
-            this.visuals?.removeChat(chatId),
+            this.removeSidecars(chatId),
             this.hooks.removed?.(chatId, snapshot)
         ]);
     }
@@ -1748,7 +1802,7 @@ export class ChatCore {
                     items,
                     { seq: log?.seq ?? 0, resetSeq: log?.resetSeq ?? 0 },
                     session.preambles,
-                    this.hooks.recordExtras?.(chatId) ?? {},
+                    this.extrasOf(chatId),
                     session.uiAccessRecord
                 );
             } catch (e) {
@@ -1828,7 +1882,7 @@ export class ChatCore {
 
             // A delta held back is already in the thread, so it gets its seq before the snapshot says where it ends.
             this.coalescers.get(chatId)?.flush();
-            const extras = this.hooks.recordExtras?.(chatId) ?? {};
+            const extras = this.extrasOf(chatId);
             const uiAccess = session.uiAccessRecord;
             const unlogged = JSON.stringify([session.preambles, extras, uiAccess]);
             const folds = fold || log.size > COMPACT_ABOVE_BYTES || !log.onDisk;

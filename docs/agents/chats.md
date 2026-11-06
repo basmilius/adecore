@@ -50,6 +50,26 @@ For a question the CLI never asked, such as a card a context command waits on, c
 
 A subagent row with `origin: HOST_TASK_ORIGIN` and a `childId` reads that child's chat instead of a CLI transcript. Stored children load on demand. Watches report changes against the parent row and end when the client disconnects, releases the watch or the parent is removed. `subagentItems` reads the full child conversation. Pass `stopNode(nodeId, reason)` as the third argument of `stopSubagent` to stop host-managed work; the host decides how a node stops. A task whose child has no stored chat remains a host operation.
 
+### Task rows
+
+The core writes the row of each task a chat gave, so a host writes none. The `taskRows(chatId)` hook returns the chat's `Task`s. The core lays a row for each when the chat opens and `syncTaskRow(task)` rewrites one when its task changes. A row is a background subagent item with the id `taskRowId(task.id)` (`task-<id>`), which is also its `toolUseId`, and `origin: HOST_TASK_ORIGIN`. A client reads the task back from a row with `taskIdOfRow(row)`, which is `null` for a row the CLI opened itself. A cancelled task also gets one warning note; `ChatCoreOptions.taskRemovedReason` words the reason when the task has no result, and defaults to "it was removed".
+
+A clear hides the rows of the tasks the chat gave at that moment for good. The core keeps those ids in the record's extras as `clearedTaskIds`, so a reload and a later `syncTaskRow` leave the rows hidden.
+
+### Sidecars
+
+A sidecar is what a host keeps per chat beside its record, as a `ChatSidecar` with three optional members. `owns(name)` says whether a file in the chats folder is one of its files, so the chat list skips it. `removeChat(chatId)` removes what is kept when the chat is cleared, deleted or removed. `copyChat(from, to, kept)` gives a fork its part, where `ForkKept` says which messages (`item`) and visuals (`visual`) the fork took over. The core registers its bookmarks and visuals itself; pass the rest in `ChatCoreOptions.sidecars` and fork with `core.copySidecars`.
+
+```ts
+const plans: ChatSidecar = {
+    owns: (name) => name.endsWith('.plans.json'),
+    removeChat: (chatId) => rm(planFile(chatId), { force: true }),
+    copyChat: (from, to) => copyFile(planFile(from), planFile(to))
+};
+
+new ChatCore({ ...options, sidecars: [plans] });
+```
+
 ## Goals
 
 `/goal <objective>` sets a goal and `/goal` alone shows its state. `/goal pause`, `/goal resume` and `/goal clear` act on it. The goal is `info.goal`. Claude Code pursues it within one turn. Codex opens further turns itself until the goal is met. Stopping a Codex turn pauses its goal first.
@@ -99,7 +119,7 @@ A turn that was running when the host went down is an `InterruptedRun`: the chat
 
 These are the pieces a host meets when it assembles a core or a backend of its own:
 
-- `ChatSessionOptions` are what a `ChatSession` is made from. `PromptNotes` is what a host says in front of the next prompt, and `ChatReferences` the chats a person attached to a message and what the agent is told about them.
+- `ChatSessionOptions` are what a `ChatSession` is made from. `PromptNotes` is what a host says in front of the next prompt, and `ChatReferences` the chats a person attached to a message and what the agent is told about them. `ChatSendExtras.brief`, and `brief` on `ChatSession.wake`, is the host's instruction for that one prompt: it comes to `PromptNotes.next(brief)`, which places it among the rest (without notes it is heard as it is). A slash command hears nothing in front of it, so there the session puts the brief after the command, as `<command>\n\n---\n<brief>`, and the thread shows that message. A brief queued with its message goes out with it and no other, and is not kept across a restart.
 - `ChatThread` is the state of one chat as a client sees it. Every change returns the event that describes it, so the host sends exactly what it applied.
 - A backend gets a `TurnInput` per turn, answers an approval with an `ApprovalDecision` (`allow`, `allow-always` or `deny`), and reports to a `BackendHost` through `onEvent`.
 - `ChatSpawnOptions` start a CLI with `spawnChatProcess`, and `ChatChildOptions` start a `ChatChild`. `ChatProcess` is the part of a child process a backend talks to: lines in and out, a signal and an exit, which a test replaces with a CLI in the same process.
@@ -120,7 +140,7 @@ These are the pieces a host meets when it assembles a core or a backend of its o
 
 ## Live UI sources
 
-`ChatCoreOptions.uiFenceLanguage` sets the fence info string sessions compile (default `UI_FENCE_LANGUAGE`). `ChatCoreOptions.intelligentUi` takes a `ChatUiHost` from `@adecore/agents/chat`. The host records what the writing chat may read and registers a fixed list of `ChatUiSource` entries. Each has argument and result schemas, `authorize`, and an abortable read. `authorize` checks both the recorded and the current rights, also before serving a cached value. Throw a `ChatUiRefusal(code, reason)` to give a refusal or failed read a stable code.
+`ChatCoreOptions.uiFenceLanguage` sets the fence info string sessions compile (default `UI_FENCE_LANGUAGE`), and `core.uiFence` reads the name back. Write the agent's session note (`uiSessionNote`) with that name, so the note and the compiler cannot disagree. `ChatCoreOptions.intelligentUi` takes a `ChatUiHost` from `@adecore/agents/chat`. The host records what the writing chat may read and registers a fixed list of `ChatUiSource` entries. Each has argument and result schemas, `authorize`, and an abortable read. `authorize` checks both the recorded and the current rights, also before serving a cached value. Throw a `ChatUiRefusal(code, reason)` to give a refusal or failed read a stable code.
 
 `ChatUiQueries` compiles against those schemas and freezes the first results and text fallback in the reply. It answers `ui.query` only for a client attached to that chat, after checking the stored block and bound inputs. Reads are rate limited and slow sources time out. Nothing refreshes in the background.
 
