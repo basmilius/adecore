@@ -953,7 +953,8 @@ describe('the + menu', () => {
     test('offers only the sigils this chat answers, and without a stashed prompt only the stash item, off for an empty draft', async () => {
         const composer = await mount({ capabilities: { mentions: false } });
         const rows = await plusRows(composer);
-        expect(labels(rows)).toEqual(['Attach files…', 'Stash this prompt⌘S', 'Commands/']);
+        // The shortcut reads as the platform writes it, ⌘S on a Mac and Ctrl+S elsewhere.
+        expect(labels(rows).map((label) => label.replace(/(⌘|Ctrl\+)S$/, ''))).toEqual(['Attach files…', 'Stash this prompt', 'Commands/']);
         expect(rows[1]!.getAttribute('aria-disabled')).toBe('true');
         expect(rows[2]!.getAttribute('aria-disabled')).toBeNull();
     });
