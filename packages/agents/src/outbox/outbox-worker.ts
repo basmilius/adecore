@@ -17,7 +17,12 @@ export type OutboxHandlers<Work extends OutboxWorkShape> = {
 
 export interface OutboxWorkerOptions<Work extends OutboxWorkShape> {
     store: OutboxStore<Work>;
-    handlers: OutboxHandlers<Work>;
+    /* Handlers known at construction; the others come through `handle`. */
+    handlers?: Partial<OutboxHandlers<Work>>;
+    /* Every kind the host owes. `start` throws naming the kinds that still have no handler, instead of an entry failing later. */
+    kinds?: readonly Work['kind'][];
+    /* How often a failed entry of a kind is tried again before it is given up on; `RETRY_DELAYS_MS` has the waits. Zero gives up at the first failure. */
+    retries?: Partial<Record<Work['kind'], number>>;
     clock?: Clock;
     /* An entry that failed every attempt and is given up on (and logged); the work it stood for is not done. */
     onParked?: (entry: OutboxEntryOf<Work>, error: unknown) => void;
@@ -30,9 +35,11 @@ export interface OutboxWorkerOptions<Work extends OutboxWorkShape> {
  */
 export class OutboxWorker<Work extends OutboxWorkShape> {
     private readonly store: OutboxStore<Work>;
-    private readonly handlers: OutboxHandlers<Work>;
+    private readonly handlers: Partial<OutboxHandlers<Work>>;
+    private readonly kinds: readonly Work['kind'][];
+    private readonly retries: Partial<Record<Work['kind'], number>>;
     private readonly clock: Clock;
-    private readonly onParked: (entry: OutboxEntryOf<Work>, error: unknown) => void;
+    private readonly parkedListeners: Array<(entry: OutboxEntryOf<Work>, error: unknown) => void> = [];
     private readonly running = new Set<string>();
     // Entries that said `wait`, until their target is woken; in memory only, so a restart looks again.
     private readonly waiting = new Set<string>();
@@ -44,12 +51,37 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
 
     constructor(options: OutboxWorkerOptions<Work>) {
         this.store = options.store;
-        this.handlers = options.handlers;
+        this.handlers = { ...options.handlers };
+        this.kinds = options.kinds ?? [];
+        this.retries = options.retries ?? {};
         this.clock = options.clock ?? systemClock;
-        this.onParked = options.onParked ?? (() => undefined);
+
+        if (options.onParked) {
+            this.parkedListeners.push(options.onParked);
+        }
+    }
+
+    /* Takes up the work of one kind. A kind is handled once, so two features cannot both think they own it. */
+    handle<K extends Work['kind']>(kind: K, handler: OutboxHandlers<Work>[K]): void {
+        if (this.handlers[kind] !== undefined) {
+            throw new Error(`The outbox already has a handler for ${kind}`);
+        }
+
+        this.handlers[kind] = handler;
+    }
+
+    /* Hears every entry that is given up on, beside the others that do. */
+    onParked(listener: (entry: OutboxEntryOf<Work>, error: unknown) => void): void {
+        this.parkedListeners.push(listener);
     }
 
     start(): void {
+        const missing = this.kinds.filter((kind) => this.handlers[kind] === undefined);
+
+        if (missing.length > 0) {
+            throw new Error(`The outbox has no handler for: ${missing.join(', ')}`);
+        }
+
         this.started = true;
         this.drain();
     }
@@ -163,7 +195,13 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
         const woken = this.wakes.get(entry.target) ?? 0;
 
         try {
-            const outcome = await (this.handlers[entry.kind as Work['kind']] as (entry: OutboxEntryOf<Work>) => Promise<OutboxOutcome>)(entry);
+            const handler = this.handlers[entry.kind as Work['kind']] as ((entry: OutboxEntryOf<Work>) => Promise<OutboxOutcome>) | undefined;
+
+            if (handler === undefined) {
+                throw new Error(`The outbox has no handler for ${entry.kind}`);
+            }
+
+            const outcome = await handler(entry);
 
             if (outcome === 'wait') {
                 if ((this.wakes.get(entry.target) ?? 0) === woken && this.store.has(entry.id)) {
@@ -186,12 +224,16 @@ export class OutboxWorker<Work extends OutboxWorkShape> {
     }
 
     private async failed(entry: OutboxEntryOf<Work>, error: unknown): Promise<void> {
-        const delay = RETRY_DELAYS_MS[entry.attempts];
+        const retries = this.retries[entry.kind as Work['kind']] ?? RETRY_DELAYS_MS.length;
+        const delay = entry.attempts < retries ? RETRY_DELAYS_MS[Math.min(entry.attempts, RETRY_DELAYS_MS.length - 1)] : undefined;
 
         if (delay === undefined) {
             await this.store.remove(entry.id);
             console.error(`Gave up on ${entry.kind} for ${entry.target}:`, errorText(error));
-            this.onParked(entry, error);
+
+            for (const listener of this.parkedListeners) {
+                listener(entry, error);
+            }
 
             return;
         }
