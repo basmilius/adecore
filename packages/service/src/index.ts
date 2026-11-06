@@ -1,4 +1,12 @@
-export { definitionRunsProgram, launchAgentPlist, scheduledTask, scheduledTaskScript, systemdUnit, type ServiceSpec } from './definitions.js';
+export {
+    definitionRunsProgram,
+    launchAgentPlist,
+    scheduledTask,
+    scheduledTaskScript,
+    systemdUnit,
+    type ServiceIdentity,
+    type ServiceSpec
+} from './definitions.js';
 export {
     launchdManager,
     systemdManager,

@@ -49,9 +49,8 @@ describe.skipIf(!enabled)('a scheduled task on Windows', () => {
         );
 
         const manager = taskSchedulerManager({
-            taskName,
+            service: { label: taskName, logFile },
             definitionFile: join(folder, 'task.xml'),
-            logFile,
             run: runCommand,
             files: diskFiles,
             sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms))

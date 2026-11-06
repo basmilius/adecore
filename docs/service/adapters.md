@@ -57,7 +57,7 @@ const run: CommandRunner = (command, args) => {
     return { code: args[0] === 'print' ? 113 : 0, stdout: '', stderr: '' };
 };
 
-const manager = launchdManager({ label: 'com.example.worker', uid: 501, home: '/Users/ada', logFile: '/Users/ada/Library/Logs/worker.log', run, files, sleep: async () => {} });
+const manager = launchdManager({ service: { label: 'com.example.worker', logFile: '/Users/ada/Library/Logs/worker.log' }, uid: 501, home: '/Users/ada', run, files, sleep: async () => {} });
 manager.install('<plist/>');
 manager.start();
 // commands: print, then bootstrap gui/501 /Users/ada/Library/LaunchAgents/com.example.worker.plist

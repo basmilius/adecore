@@ -1,6 +1,6 @@
 import { posix, win32 } from 'node:path';
 import { scheduledTaskMarker, scheduledTaskScriptName } from './cmd-line.js';
-import { scheduledTaskScript } from './definitions.js';
+import { scheduledTaskScript, type ServiceIdentity } from './definitions.js';
 
 export interface CommandResult {
     code: number;
@@ -72,8 +72,8 @@ export interface LaunchdOptions {
     run: CommandRunner;
     files: ServiceFiles;
     sleep(ms: number): Promise<void>;
-    label: string;
-    logFile: string;
+    /* The spec of the service, or its label and log file. */
+    service: ServiceIdentity;
 }
 
 /*
@@ -81,9 +81,9 @@ export interface LaunchdOptions {
  * plist sealed inside the bundle, where the login shell's PATH and a log path in the home cannot go.
  */
 export function launchdManager(options: LaunchdOptions): ServiceManager {
-    const path = posix.join(options.home, 'Library', 'LaunchAgents', `${options.label}.plist`);
+    const path = posix.join(options.home, 'Library', 'LaunchAgents', `${options.service.label}.plist`);
     const domain = `gui/${options.uid}`;
-    const target = `${domain}/${options.label}`;
+    const target = `${domain}/${options.service.label}`;
 
     const launchctl = (...args: string[]): CommandResult => options.run('/bin/launchctl', args);
 
@@ -100,7 +100,7 @@ export function launchdManager(options: LaunchdOptions): ServiceManager {
         read: () => options.files.read(path),
         install(definition) {
             // launchd opens the log but makes no folder for it, and a job whose log cannot open never starts.
-            options.files.makeDirectory(posix.dirname(options.logFile));
+            options.files.makeDirectory(posix.dirname(options.service.logFile));
             const previous = writeDefinition(options.files, path, definition);
 
             return previous !== null && previous !== definition;
@@ -196,11 +196,10 @@ export function systemdManager(options: SystemdOptions): ServiceManager {
 }
 
 export interface TaskSchedulerOptions {
-    /* The name of the task, which has to be the label of the spec: a stop finds the task's processes by it. */
-    taskName: string;
+    /* The spec of the service, or its label and log file. The task carries the label as its name, which a stop finds the task's processes by. */
+    service: ServiceIdentity;
     /* Where the definition is kept and registered from. */
     definitionFile: string;
-    logFile: string;
     run: CommandRunner;
     files: ServiceFiles;
     sleep(ms: number): Promise<void>;
@@ -212,7 +211,7 @@ export interface TaskSchedulerOptions {
  */
 export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceManager {
     const path = options.definitionFile;
-    const name = options.taskName;
+    const name = options.service.label;
 
     const schtasks = (...args: string[]): CommandResult => options.run('schtasks.exe', args);
 
@@ -255,7 +254,7 @@ export function taskSchedulerManager(options: TaskSchedulerOptions): ServiceMana
         read: () => options.files.read(path),
         install(definition) {
             // cmd.exe appends to the log but makes no folder for it, and the task ends at once without one.
-            options.files.makeDirectory(win32.dirname(options.logFile));
+            options.files.makeDirectory(win32.dirname(options.service.logFile));
             const previous = writeDefinition(options.files, path, definition);
             const script = scheduledTaskScript(definition);
 

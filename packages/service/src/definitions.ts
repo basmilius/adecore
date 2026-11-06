@@ -1,14 +1,19 @@
 import { batchEscaped, cmdEscaped, scheduledTaskScriptName } from './cmd-line.js';
 
-export interface ServiceSpec {
+/* What a manager and the definition it installs both name, so a manager takes it from the spec of the service. */
+export interface ServiceIdentity {
+    /* The launchd label and the name of the scheduled task. */
     label: string;
+    /* launchd and the scheduled task: where stdout and stderr go. systemd has the journal. */
+    logFile: string;
+}
+
+export interface ServiceSpec extends ServiceIdentity {
     description: string;
     program: string;
     args: string[];
     environment: Record<string, string>;
     workingDirectory: string;
-    /* launchd and the scheduled task: where stdout and stderr go. systemd has the journal. */
-    logFile: string;
     /* The scheduled task only, which needs it: the account it starts for at logon, as `DOMAIN\\name`. */
     user?: string;
     /* The scheduled task only, which needs it: the folder of the script it runs. */

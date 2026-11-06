@@ -50,8 +50,7 @@ describe('launchdManager', () => {
         const disk = memoryFiles();
 
         const manager = launchdManager({
-            label: 'com.example.worker',
-            logFile: '/Users/bas/Library/Logs/Example/worker.log',
+            service: { label: 'com.example.worker', logFile: '/Users/bas/Library/Logs/Example/worker.log' },
             uid: 501,
             home: '/Users/bas',
             run: runner.run,
@@ -69,8 +68,7 @@ describe('launchdManager', () => {
         const disk = memoryFiles();
 
         const manager = launchdManager({
-            label: 'com.example.worker',
-            logFile: '/Users/bas/Library/Logs/Example/worker.log',
+            service: { label: 'com.example.worker', logFile: '/Users/bas/Library/Logs/Example/worker.log' },
             uid: 501,
             home: '/Users/bas',
             run: fakeRunner().run,
@@ -86,8 +84,7 @@ describe('launchdManager', () => {
         const runner = fakeRunner({ [PRINT]: [NOT_LOADED, ok()] });
 
         const manager = launchdManager({
-            label: 'com.example.worker',
-            logFile: '/Users/bas/Library/Logs/Example/worker.log',
+            service: { label: 'com.example.worker', logFile: '/Users/bas/Library/Logs/Example/worker.log' },
             uid: 501,
             home: '/Users/bas',
             run: runner.run,
@@ -104,8 +101,7 @@ describe('launchdManager', () => {
         const runner = fakeRunner({ [PRINT]: [ok(), ok(), NOT_LOADED] });
 
         const manager = launchdManager({
-            label: 'com.example.worker',
-            logFile: '/Users/bas/Library/Logs/Example/worker.log',
+            service: { label: 'com.example.worker', logFile: '/Users/bas/Library/Logs/Example/worker.log' },
             uid: 501,
             home: '/Users/bas',
             run: runner.run,
@@ -124,8 +120,7 @@ describe('launchdManager', () => {
         });
 
         const manager = launchdManager({
-            label: 'com.example.worker',
-            logFile: '/Users/bas/Library/Logs/Example/worker.log',
+            service: { label: 'com.example.worker', logFile: '/Users/bas/Library/Logs/Example/worker.log' },
             uid: 501,
             home: '/Users/bas',
             run: runner.run,
@@ -141,8 +136,7 @@ describe('launchdManager', () => {
         const disk = memoryFiles();
 
         const manager = launchdManager({
-            label: 'com.example.worker',
-            logFile: '/Users/bas/Library/Logs/Example/worker.log',
+            service: { label: 'com.example.worker', logFile: '/Users/bas/Library/Logs/Example/worker.log' },
             uid: 501,
             home: '/Users/bas',
             run: runner.run,
@@ -219,9 +213,8 @@ describe('taskSchedulerManager', () => {
 
     const create = (runner: ReturnType<typeof fakeRunner>, disk = memoryFiles()) =>
         taskSchedulerManager({
-            taskName: 'Example Worker',
+            service: { label: 'Example Worker', logFile: 'C:\\Users\\bas\\AppData\\Local\\Example\\logs\\worker.log' },
             definitionFile: FILE,
-            logFile: 'C:\\Users\\bas\\AppData\\Local\\Example\\logs\\worker.log',
             run: runner.run,
             files: disk.api,
             sleep: noSleep
