@@ -21,6 +21,9 @@ export interface SavedWindow {
 /* The part of a display the fit reads. */
 export interface WindowDisplay {
     readonly workArea: Rectangle;
+
+    /* The whole display, which a window in full screen covers. Without it, every window in full screen counts as on a display. */
+    readonly bounds?: Rectangle;
 }
 
 /* How much of a window has to stay on a display to count as reachable: enough of the title bar to grab it. */
@@ -31,17 +34,21 @@ const overlap = (a: Rectangle, b: Rectangle): WindowSize => ({
     height: Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
 });
 
+/* The display that shows enough of a window to grab it, if any. */
+export const reachableOn = (bounds: Rectangle, displays: readonly WindowDisplay[]): WindowDisplay | null =>
+    displays.find(({ workArea }) => {
+        const shared = overlap(bounds, workArea);
+
+        return shared.width >= Math.min(VISIBLE_EDGE.width, bounds.width) && shared.height >= Math.min(VISIBLE_EDGE.height, bounds.height);
+    }) ?? null;
+
 /*
  * Saved bounds stand while a display still shows enough of them to grab, shrunk to its work area;
  * otherwise, or for null, the window opens at its default size, which Electron centers.
  */
 export const fitBounds = (saved: Rectangle | null, displays: readonly WindowDisplay[], defaults: WindowSize): Partial<Rectangle> & WindowSize => {
     if (saved) {
-        const display = displays.find(({ workArea }) => {
-            const shared = overlap(saved, workArea);
-
-            return shared.width >= Math.min(VISIBLE_EDGE.width, saved.width) && shared.height >= Math.min(VISIBLE_EDGE.height, saved.height);
-        });
+        const display = reachableOn(saved, displays);
 
         if (display) {
             const area = display.workArea;
@@ -235,6 +242,12 @@ export const createWindowState = (options: WindowStateOptions) => {
         },
 
         has: (key: string): boolean => windows.has(key),
+
+        /* The displays as they are now, from `displays`. */
+        displays: (): readonly WindowDisplay[] => options.displays(),
+
+        /* Bounds moved onto a display the way a window opens; only a size when no display shows enough of them. */
+        fit: (bounds: Rectangle): Partial<Rectangle> & WindowSize => fitBounds(bounds, options.displays(), options.defaults),
 
         /* Writes what is pending at once, for the moment the app quits. */
         flush: (): void => {

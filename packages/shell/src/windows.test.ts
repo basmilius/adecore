@@ -55,7 +55,7 @@ const fakeWindow = (bounds: Rectangle) => {
     const contentsEvents = emitter();
     const sent: unknown[][] = [];
     const calls: string[] = [];
-    const state = { destroyed: false, minimized: false, bounds };
+    const state = { destroyed: false, minimized: false, fullScreen: false, visible: true, bounds };
 
     const contents = {
         id: nextId++,
@@ -72,12 +72,17 @@ const fakeWindow = (bounds: Rectangle) => {
         isDestroyed: () => state.destroyed,
         isMinimized: () => state.minimized,
         isMaximized: () => false,
-        isFullScreen: () => false,
+        isFullScreen: () => state.fullScreen,
         maximize: () => {},
-        setFullScreen: () => {},
+        setFullScreen: (fullScreen: boolean) => void calls.push(`fullScreen:${fullScreen}`),
         getNormalBounds: () => state.bounds,
         getBounds: () => state.bounds,
-        isVisible: () => true,
+        setBounds: (next: Partial<Rectangle>) => {
+            calls.push(`bounds:${JSON.stringify(next)}`);
+            state.bounds = { ...state.bounds, ...next };
+        },
+        center: () => void calls.push('center'),
+        isVisible: () => state.visible,
         restore: () => {
             calls.push('restore');
             state.minimized = false;
@@ -520,6 +525,76 @@ describe('createWindows', () => {
         expect(quits).toBe(1);
         listeners.get('activate')!();
         expect(fakes).toHaveLength(3);
+    });
+
+    test('a dock click while no window shows brings back one off every display and leaves a minimized one in the dock', () => {
+        const { windows, created, app, events } = setupAttached();
+        windows.attach(app);
+        windows.restore();
+        windows.open('b');
+        const [lost, minimized] = created.map(({ fake }) => fake);
+        lost!.state.bounds = { x: 5000, y: 40, width: 1440, height: 900 };
+        minimized!.state.minimized = true;
+
+        events.emit('activate', {}, true);
+        expect(lost!.calls).toEqual([]);
+
+        events.emit('activate', {}, false);
+        expect(lost!.calls).toEqual(['bounds:{"width":1440,"height":900}', 'center', 'show']);
+        expect(minimized!.calls).toEqual([]);
+        expect(created).toHaveLength(2);
+    });
+
+    test('a hidden window on a display only shows again', () => {
+        const { windows, created } = setupAttached();
+        windows.restore();
+        const fake = created[0]!.fake;
+        fake.state.visible = false;
+
+        windows.bringBack();
+        expect(fake.calls).toEqual(['bounds:{"x":10,"y":40,"width":1440,"height":900}', 'show']);
+    });
+
+    test('a window in full screen whose display went leaves full screen, then comes back on a display that stayed', () => {
+        const builtIn = { workArea: { x: 0, y: 25, width: 1512, height: 957 }, bounds: { x: 0, y: 0, width: 1512, height: 982 } };
+        const external = { workArea: { x: 1512, y: 25, width: 2560, height: 1415 }, bounds: { x: 1512, y: 0, width: 2560, height: 1440 } };
+        let displays = [builtIn, external];
+
+        const state = createWindowState({
+            storage: memory().storage,
+            displays: () => displays,
+            defaults: { width: 1440, height: 900 },
+            setTimeout: () => null
+        });
+
+        const fakes: Fake[] = [];
+
+        const windows = createWindows({
+            state,
+            session: memory().storage,
+            platform: 'darwin',
+            create: () => {
+                const fake = fakeWindow({ ...external.bounds });
+                fake.state.fullScreen = true;
+                fakes.push(fake);
+
+                return fake.window;
+            }
+        });
+
+        windows.restore();
+        const fake = fakes[0]!;
+
+        windows.bringBack();
+        expect(fake.calls).toEqual([]);
+
+        displays = [builtIn];
+        windows.bringBack();
+        expect(fake.calls).toEqual(['fullScreen:false']);
+
+        fake.state.fullScreen = false;
+        fake.events.emit('leave-full-screen');
+        expect(fake.calls).toEqual(['fullScreen:false', 'bounds:{"width":1440,"height":900}', 'center', 'show']);
     });
 
     test('a quit that goes ahead keeps its windows in the session, without the app calling quit()', () => {

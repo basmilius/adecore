@@ -37,7 +37,7 @@ The `Updater` it returns has `state()`, `start()`, `configure(autoDownload)`, `c
 | `platform` | `NodeJS.Platform`, optional | `process.platform` by default. |
 | `setTimeout` | `(run, ms) => unknown`, optional | The timer that asks for a confirmed quit again, for tests. |
 
-The `Windows` it returns has `open`, `restore`, `claim`, `move`, `hold`, `detach`, `transfer`, `holderOf`, `windowAt`, `setState`, `fromPage`, `fromContents`, `focused`, `keyOf`, `all`, `send`, `attach`, `quit`, `resume` and `quitForUpdate`. [Windows](/shell/windows) and [Quitting](/shell/quitting) explain each.
+The `Windows` it returns has `open`, `restore`, `claim`, `move`, `hold`, `detach`, `transfer`, `holderOf`, `windowAt`, `bringBack`, `setState`, `fromPage`, `fromContents`, `focused`, `keyOf`, `all`, `send`, `attach`, `quit`, `resume` and `quitForUpdate`. [Windows](/shell/windows) and [Quitting](/shell/quitting) explain each.
 
 ### `WindowStateOptions`
 
@@ -49,7 +49,7 @@ The `Windows` it returns has `open`, `restore`, `claim`, `move`, `hold`, `detach
 | `delayMs` | `number`, optional | How long a window stands still before a write. `500` by default. |
 | `setTimeout`, `clearTimeout` | optional | The write timer, for tests. |
 
-The `WindowState` it returns has `bounds(key, fallback?)`, `track(key, window)`, `has(key)` and `flush()`.
+The `WindowState` it returns has `bounds(key, fallback?)`, `track(key, window)`, `has(key)`, `displays()`, `fit(bounds)` and `flush()`.
 
 ### `ThemeOptions`
 
