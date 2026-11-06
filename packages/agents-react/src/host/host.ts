@@ -440,7 +440,25 @@ export interface UiModelViewProps {
  * Whatever an app leaves out keeps the default here, which is the chat without that part. One host may
  * serve several scopes, so a function that is about one host of chats is told its scope id.
  */
+/* A CLI's mark, drawn in the current text color. */
+export interface AgentMark {
+    /* Read by a screen reader. */
+    title: string;
+    /* The `d` of one SVG path; several shapes go in one path. */
+    path: string;
+    /* `0 0 24 24` when absent. */
+    viewBox?: string;
+    /* `evenodd` for a path whose holes are subpaths inside its shape; `nonzero` when absent. */
+    fillRule?: 'nonzero' | 'evenodd';
+}
+
 export interface ChatHost {
+    /*
+     * The marks of the kinds the app adds, and any it draws differently. Every place the shared UI draws an agent's
+     * mark reads them; a kind with none keeps the built-in mark or the robot.
+     */
+    agentMarks?: Readonly<Partial<Record<AgentKind, AgentMark>>>;
+
     /* Commands of the host's own after `/`, which turn into the prompt instead of reaching the CLI. */
     useExpandingCommands?(): readonly { name: string; hint: string; expand(args: string): Promise<string> }[];
 
@@ -658,6 +676,7 @@ const NO_CARDS: readonly ThreadCard[] = [];
 const DEFAULT_HOST: ChatHost = {
     accents: { all: [], featured: [], label: (id) => id, current: () => '' },
     isApplePlatform,
+    agentMarks: {},
     isAppShortcut: () => false,
     notify: () => undefined,
     actions: null,
@@ -697,16 +716,37 @@ const DEFAULT_HOST: ChatHost = {
 
 const ChatHostContext = createContext<ChatHost>(DEFAULT_HOST);
 
+type PartOf<Member> = Member extends (...args: never[]) => unknown ? never : Member extends object ? Partial<Member> : never;
+
+/* What a provider hands: any member of the host, and for a member that is a bundle of members, such as `attachments` or `prompts`, only some of its own. */
+export type ChatHostLayer = { [Member in keyof ChatHost]?: ChatHost[Member] | PartOf<ChatHost[Member]> };
+
+function isBundle(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function layered(parent: ChatHost, layer: ChatHostLayer): ChatHost {
+    const merged: Record<string, unknown> = { ...parent };
+
+    for (const [member, value] of Object.entries(layer)) {
+        const before = merged[member];
+        merged[member] = isBundle(before) && isBundle(value) ? { ...before, ...value } : value;
+    }
+
+    return merged as unknown as ChatHost;
+}
+
 /*
  * Hands the views under it a host: `host` over the one of a provider above it, member by member, and
- * over the defaults at the top. A part of an app that loads later and adds hooks renders a provider of
+ * over the defaults at the top. A member that is a bundle on both sides, such as `attachments`, is merged one
+ * level down, so a layer overrides one of its members without copying the rest. A part of an app that loads later and adds hooks renders a provider of
  * its own around what it draws, so every view under it calls the same hooks from its first render on.
  * The host is read once, as the provider mounts, since a hook that changed under a mounted view would
  * break the order of its hooks: a provider that gets another `host` throws, and a new `key` remounts it.
  */
-export function ChatHostProvider({ host, children }: { host: Partial<ChatHost>; children?: ReactNode }) {
+export function ChatHostProvider({ host, children }: { host: ChatHostLayer; children?: ReactNode }) {
     const parent = useContext(ChatHostContext);
-    const [pinned] = useState(() => ({ host, value: { ...parent, ...host } }));
+    const [pinned] = useState(() => ({ host, value: layered(parent, host) }));
 
     if (pinned.host !== host) {
         throw new Error('A ChatHostProvider reads its host once: hand it the same object on every render, or a new key to mount it with another');

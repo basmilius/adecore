@@ -3,7 +3,7 @@ import { Icon } from '@adecore/ui';
 import clsx from 'clsx';
 import { Bot } from 'lucide-react';
 import { siClaude, siGithubcopilot, siGooglegemini } from 'simple-icons';
-import { type AgentMark, hostAgentMark } from './agent-marks';
+import { type AgentMark, useChatHost } from '../host/host';
 import { PROVIDER_PATHS } from './provider-paths';
 
 // simple-icons removed OpenAI's mark at its request, so Codex reuses the usage page's path.
@@ -17,7 +17,7 @@ const BUILT_IN_MARKS: Partial<Record<AgentKind, AgentMark>> = {
 };
 
 export function AgentIcon({ kind, size = 14, className }: { kind: AgentKind; size?: number; className?: string }) {
-    const mark = hostAgentMark(kind) ?? BUILT_IN_MARKS[kind];
+    const mark = useChatHost().agentMarks?.[kind] ?? BUILT_IN_MARKS[kind];
 
     if (!mark) {
         return <Icon icon={Bot} size={size} className={className} />;

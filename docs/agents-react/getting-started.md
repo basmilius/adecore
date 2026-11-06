@@ -71,9 +71,9 @@ import { configureChatStorage } from '@adecore/agents-react';
 configureChatStorage({ namespace: 'my-app' });
 ```
 
-An agent kind your app adds gets its mark once with `configureAgentMarks`. See [Agent marks](/agents-react/providers/marks#a-mark-for-a-kind-the-host-adds).
+An agent kind your app adds gets its mark through the `agentMarks` member of the host. See [Agent marks](/agents-react/providers/marks#a-mark-for-a-kind-the-host-adds).
 
-A `ChatHostProvider` hands the views what only your app can decide. Keep the object in a constant. A field you leave out leaves its part out. See [Host adapters](/agents-react/guide/host).
+A `ChatHostProvider` hands the views what only your app can decide. Keep the object in a constant. A field you leave out leaves its part out. A provider inside another keeps what the outer one handed and replaces what it hands itself; a part that is a bundle on both sides, such as `attachments`, is merged one level down. See [Host adapters](/agents-react/guide/host).
 
 ```tsx
 import { ChatHostProvider, type ChatHost } from '@adecore/agents-react';

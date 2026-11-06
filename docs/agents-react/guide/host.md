@@ -3,9 +3,9 @@
 A `ChatHostProvider` hands the views under it what only the app can decide. Render one around everything that draws a chat. Keep its `host` in a constant, because the provider reads it once, on mount. One host may serve several scopes, so a function about one scope gets its `scopeId`.
 
 ```tsx
-import { ChatHostProvider, type ChatHost } from '@adecore/agents-react';
+import { ChatHostProvider, type ChatHostLayer } from '@adecore/agents-react';
 
-const CHAT_HOST: Partial<ChatHost> = {
+const CHAT_HOST: ChatHostLayer = {
     notify: (toast) => showToast(toast),
     useStreaming: () => useSettings((settings) => settings.streaming)
 };
@@ -23,12 +23,12 @@ A field whose name starts with `use` is a React hook. The provider throws when i
 
 ## A part that loads later
 
-A nested provider starts from the host above it and replaces the top-level fields it sets. To change one function of an object field such as `code` or `prompts`, pass the whole object. A part of the app that loads later renders its own provider around what it draws. Views outside it keep the host they mounted with.
+A nested provider starts from the host above it and replaces the fields it sets. A field that is an object on both sides, such as `attachments` or `prompts`, is merged one level down, so a layer sets the one function it changes (a `ChatHostLayer` types that); a layer that sets such a field to `null` replaces the whole object. A part of the app that loads later renders its own provider around what it draws. Views outside it keep the host they mounted with.
 
 ```tsx
-const WORKSPACE_HOST: Partial<ChatHost> = {
+const WORKSPACE_HOST: ChatHostLayer = {
     useTimelineFind,
-    fileLinks: { target: fileTarget, open: openFile }
+    attachments: { actions: saveActions }
 };
 
 export function Workspace() {

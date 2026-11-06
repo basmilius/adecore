@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { createElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, useChatHost, type ChatHost } from './host';
+import { ChatHostProvider, useChatHost, type ChatHost, type ChatHostLayer } from './host';
 
 function Probe({ onHost }: { onHost(host: ChatHost): void }) {
     onHost(useChatHost());
@@ -9,7 +9,7 @@ function Probe({ onHost }: { onHost(host: ChatHost): void }) {
     return null;
 }
 
-function read(...hosts: Array<Partial<ChatHost>>): ChatHost {
+function read(...hosts: ChatHostLayer[]): ChatHost {
     let seen: ChatHost | null = null;
     const probe = createElement(Probe, { onHost: (host) => (seen = host) });
     renderToStaticMarkup(hosts.reduceRight<ReactNode>((children, host) => createElement(ChatHostProvider, { host }, children), probe));
@@ -35,4 +35,21 @@ test('a provider inside another keeps what the outer one handed and replaces wha
     expect(host.notify).toBe(notify);
     expect(host.useStreaming).toBe(inner);
     expect(host.useSendDelivery()).toBe('queue');
+});
+
+test('a bundle on both sides is merged one level down, so a layer overrides one member without copying the rest', () => {
+    const url = () => ({ url: 'inner', failure: null });
+
+    const host = read(
+        { attachments: { useUrl: () => ({ url: 'outer', failure: null }), read: () => Promise.resolve(new Blob()) }, notify: () => {} },
+        { attachments: { useUrl: url }, prompts: { render: () => null } }
+    );
+    expect(host.attachments.useUrl).toBe(url);
+    expect(host.attachments.read).toBeDefined();
+    expect(host.prompts.answer).toBeDefined();
+});
+
+test('a member a layer sets to null replaces the bundle above it', () => {
+    const host = read({ fileLinks: { target: () => null, open: () => undefined } }, { fileLinks: null });
+    expect(host.fileLinks).toBeNull();
 });
