@@ -56,9 +56,10 @@ export function lastSkillToken(text: string, skills: string[]): { index: number;
 /*
  * The text blocks a prompt with skills becomes. Claude Code expands a skill only from a text block
  * that starts with `/name` and is the last one in the message (verified against 2.1.267 with a
- * skill that writes a marker file), so the last `$name` moves into a block of its own. Anything the
- * person wrote before it stays a block in front, with the earlier `$x` written as `/x` so the model
- * can still reach those through its Skill tool.
+ * skill that writes a marker file). A prompt that opens with the skill is that block whole, the rest
+ * its arguments. Anywhere else the words after it may be an instruction rather than arguments, and a
+ * model reading the text before it as a message of its own took it as cut off, so the prompt stays
+ * whole in front, every `$x` written as `/x`, and the invocation is the bare `/name`.
  */
 export function splitSkillPrompt(text: string, skills: string[]): { lead: string; invocation: string | null } {
     const last = lastSkillToken(text, skills);
@@ -67,10 +68,15 @@ export function splitSkillPrompt(text: string, skills: string[]): { lead: string
         return { lead: text, invocation: null };
     }
 
-    const lead = text.slice(0, last.index).replace(/\$([A-Za-z][A-Za-z0-9_:-]*)/g, (match, name: string) => (skills.includes(name) ? `/${name}` : match));
-    const rest = text.slice(last.index + last.name.length + 1).replace(/^[ \t]+/, '');
+    if (text.slice(0, last.index).trim() === '') {
+        const rest = text.slice(last.index + last.name.length + 1).replace(/^[ \t]+/, '');
 
-    return { lead: lead.trimEnd(), invocation: rest === '' ? `/${last.name}` : `/${last.name} ${rest}` };
+        return { lead: '', invocation: rest === '' ? `/${last.name}` : `/${last.name} ${rest}` };
+    }
+
+    const lead = text.replace(/\$([A-Za-z][A-Za-z0-9_:-]*)/g, (match, name: string) => (skills.includes(name) ? `/${name}` : match));
+
+    return { lead: lead.trim(), invocation: `/${last.name}` };
 }
 
 /* Paths stay in the prompt so the agent can also edit or copy the original attachments. */
