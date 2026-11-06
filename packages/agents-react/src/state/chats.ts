@@ -471,6 +471,32 @@ export function useReportedModels(provider: AgentKind): ReadonlySet<string> {
     return new Set(joined === '' ? [] : joined.split('\n'));
 }
 
+/* `useReportedModels` for every provider at once, as a lookup by provider. */
+export function useReportedModelsByProvider(): (provider: AgentKind) => ReadonlySet<string> {
+    const scope = useContext(ChatScopeContext);
+
+    const joined = useChats((s) => {
+        const names = new Set<string>();
+
+        for (const [key, state] of Object.entries(s.statusByKey)) {
+            if (scope?.owns(key) === true && state.info.model !== null) {
+                names.add(`${state.info.provider}\t${state.info.model}`);
+            }
+        }
+
+        return [...names].sort().join('\n');
+    });
+
+    const byProvider = new Map<string, Set<string>>();
+
+    for (const line of joined === '' ? [] : joined.split('\n')) {
+        const [provider = '', model = ''] = line.split('\t');
+        byProvider.set(provider, (byProvider.get(provider) ?? new Set()).add(model));
+    }
+
+    return (provider) => byProvider.get(provider) ?? new Set();
+}
+
 /* Whether a call still waits on the person's answer to an approval of it, when its clock is not running yet. */
 export function useAwaitsApproval(chatId: string, toolUseId: string): boolean {
     return useChatRow(chatId, (row) => waitingRequestsOf(row).some((request) => request.kind === 'approval' && request.toolUseId === toolUseId));

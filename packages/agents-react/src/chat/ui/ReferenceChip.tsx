@@ -11,13 +11,15 @@ import { ReferenceTrail } from './ReferenceTrail';
 
 interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children'> {
     /* `gone` for a reference that stands for nothing any more, which a copy leaves as text. */
-    kind: 'mention' | 'skill' | 'reference' | 'gone';
-    /* The path, the skill's name or the reference's id. */
+    kind: 'mention' | 'skill' | 'reference' | 'gone' | 'model' | 'account';
+    /* The path, the skill's name, the reference's id or a model's or account's `<cli>/<id>`. */
     value?: string;
     /* The sigil the mark stands in for. Hidden, but a selection copies it with the name. */
     sigil?: string;
     icon: ReactNode;
     label: string;
+    /* What a selection copies in place of a label that is not the text, such as a model's id under its name. */
+    spelled?: string;
     tone: string;
     onOpen?: () => void;
 }
@@ -27,7 +29,7 @@ interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children
  * since a button is a box with a baseline of its own and would not sit on the line the others sit on.
  * It stays out of prose, whose margins on an image would lift a host's picture mark off the line.
  */
-export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, className, ...rest }: TokenChipProps) {
+export function TokenChip({ kind, value, sigil, icon, label, spelled, tone, onOpen, className, ...rest }: TokenChipProps) {
     const onKeyDown = (e: KeyboardEvent<HTMLSpanElement>): void => {
         if (onOpen !== undefined && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
@@ -55,7 +57,16 @@ export function TokenChip({ kind, value, sigil, icon, label, tone, onOpen, class
         >
             {icon}
             {sigil !== undefined && <span className="sr-only">{sigil}</span>}
-            {label}
+            {spelled === undefined ? (
+                label
+            ) : (
+                <>
+                    <span aria-hidden className="sr-only">
+                        {spelled}
+                    </span>
+                    <span className="select-none">{label}</span>
+                </>
+            )}
         </span>
     );
 }

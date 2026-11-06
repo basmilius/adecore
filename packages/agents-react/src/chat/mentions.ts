@@ -117,7 +117,12 @@ export type ChipSegment =
     | { kind: 'text'; text: string }
     | { kind: 'mention'; path: string }
     | { kind: 'skill'; name: string }
-    | { kind: 'reference'; id: string; name: string };
+    | { kind: 'reference'; id: string; name: string }
+    | { kind: 'model'; cli: string; id: string }
+    | { kind: 'account'; cli: string; id: string };
+
+/* A model or a provider account, spelled in the text as `@model:<cli>/<id>` or `@account:<cli>/<id>`. */
+export type NamedChipKind = 'model' | 'account';
 
 function isBoundary(char: string | undefined): boolean {
     return char === undefined || /\s/.test(char);
@@ -213,13 +218,28 @@ export interface MentionSearch {
 
 export const NO_MENTION_SEARCH: MentionSearch = { query: null, files: [] };
 
-/* The path Enter or Tab takes from the `@` list at `index`. Files still on screen from an older query are never taken. */
-export function mentionPick(index: number, search: MentionSearch, query: string): string | null {
-    if (search.query !== query) {
-        return null;
+/* A row of the `@` list above the files: a model or an account, which become a named chip. */
+export interface NamedPick {
+    kind: NamedChipKind;
+    cli: string;
+    id: string;
+}
+
+export type MentionPick = { kind: 'file'; path: string } | NamedPick;
+
+/*
+ * What Enter or Tab takes from the `@` list at `index`: `named` first, then the files. Those answer the
+ * query typed now, so they are always taken; files still on screen from an older query never are.
+ */
+export function mentionPick(index: number, search: MentionSearch, query: string, named: readonly NamedPick[] = []): MentionPick | null {
+    const count = named.length + search.files.length;
+    const at = index < count ? index : 0;
+
+    if (at < named.length) {
+        return named[at] ?? null;
     }
 
-    return search.files[index] ?? search.files[0] ?? null;
+    return search.query === query ? { kind: 'file', path: search.files[at - named.length]! } : null;
 }
 
 function findToken(text: string, sigil: string, value: string, from: number): number {
@@ -284,6 +304,10 @@ export function chipText(segment: ChipSegment): string {
         return `#${segment.name}`;
     }
 
+    if (segment.kind === 'model' || segment.kind === 'account') {
+        return namedChipToken(segment.kind, segment.cli, segment.id);
+    }
+
     return segment.text;
 }
 
@@ -306,10 +330,77 @@ export interface TextRange {
     to: number;
 }
 
-/* `value` is the path, the skill's name or, for a reference, its id; the range spans the name. */
+/* `value` is the path, the skill's name, a reference's id or a model's or account's `<cli>/<id>`; the range spans the name. */
 export interface ChipRange extends TextRange {
-    kind: 'mention' | 'skill' | 'reference';
+    kind: 'mention' | 'skill' | 'reference' | NamedChipKind;
     value: string;
+}
+
+export function namedChipToken(kind: NamedChipKind, cli: string, id: string): string {
+    return `@${kind}:${cli}/${id}`;
+}
+
+/* The part of a named chip its CLI's mark stands in for: `@model:claude/`. */
+export function namedChipPrefix(kind: NamedChipKind, cli: string): string {
+    return `@${kind}:${cli}/`;
+}
+
+// The id runs to whitespace or a backtick; a slash belongs to it (`openrouter/anthropic/claude`).
+const NAMED_CHIP = /@(model|account):([a-z0-9][a-z0-9-]*)\/([^\s`]+)/g;
+
+// Punctuation after the id ends the sentence, except a `]` that closes a `[` in the id (`claude-opus-5-5[1m]`).
+function trimmedId(id: string): string {
+    let end = id.length;
+
+    while (end > 0 && TOKEN_END.test(id[end - 1]!) && !(id[end - 1] === ']' && id.lastIndexOf('[', end - 1) >= 0)) {
+        end -= 1;
+    }
+
+    return id.slice(0, end);
+}
+
+/*
+ * Where the text spells a model or an account, found by the pattern alone, so these chips need no list
+ * in a draft or on an item. The token opens a word or follows an opening bracket or quote; one that
+ * overlaps an excluded range (a code span, say) is text.
+ */
+export function namedChipRanges(text: string, excluded: readonly TextRange[] = []): ChipRange[] {
+    const ranges: ChipRange[] = [];
+
+    for (const found of text.matchAll(NAMED_CHIP)) {
+        const from = found.index;
+        const id = trimmedId(found[3]!);
+        const to = from + found[0].length - (found[3]!.length - id.length);
+
+        if (id === '' || (from > 0 && !REFERENCE_OPENER.test(text[from - 1]!)) || excluded.some((range) => from < range.to && to > range.from)) {
+            continue;
+        }
+
+        ranges.push({ from, to, kind: found[1] as NamedChipKind, value: `${found[2]}/${id}` });
+    }
+
+    return ranges;
+}
+
+/* The picked chips and the named ones together, in text order; where two overlap, the one that starts first stays. */
+export function withNamedChips(text: string, picked: readonly ChipRange[], excluded: readonly TextRange[] = []): ChipRange[] {
+    const named = namedChipRanges(text, excluded);
+
+    if (named.length === 0) {
+        return [...picked];
+    }
+
+    const merged: ChipRange[] = [];
+
+    for (const range of [...picked, ...named].sort((a, b) => a.from - b.from || b.to - a.to)) {
+        const last = merged.at(-1);
+
+        if (last === undefined || range.from >= last.to) {
+            merged.push(range);
+        }
+    }
+
+    return merged;
 }
 
 /*
@@ -370,12 +461,18 @@ function segmentOf(text: string, range: ChipRange): ChipSegment {
         return { kind: 'skill', name: range.value };
     }
 
+    if (range.kind === 'model' || range.kind === 'account') {
+        const slash = range.value.indexOf('/');
+
+        return { kind: range.kind, cli: range.value.slice(0, slash), id: range.value.slice(slash + 1) };
+    }
+
     return { kind: 'reference', id: range.value, name: text.slice(range.from + 1, range.to) };
 }
 
-/* Splits the text so a renderer can draw the mentions, skills and references as chips. */
+/* Splits the text so a renderer can draw the mentions, skills, references, models and accounts as chips. */
 export function tokenizeChips(text: string, mentions: string[], skills: string[] = [], references: readonly ReferenceToken[] = []): ChipSegment[] {
-    return segmentsOf(text, chipRanges(text, mentions, skills, [], references));
+    return segmentsOf(text, withNamedChips(text, chipRanges(text, mentions, skills, [], references)));
 }
 
 // What a `#` may follow in a text nobody typed through the picker: a space, or an opening bracket or quote.

@@ -385,7 +385,9 @@ export default {
             here: 'Bestanden in deze map',
             files: 'Bestanden',
             noMatch: 'Geen bestanden gevonden',
-            empty: 'Hier staan geen bestanden'
+            empty: 'Hier staan geen bestanden',
+            models: 'Modellen',
+            accounts: 'Accounts'
         },
         references: {
             canvas: 'Op dit canvas',

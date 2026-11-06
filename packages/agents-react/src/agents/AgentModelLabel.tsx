@@ -18,6 +18,15 @@ interface AgentModelLabelProps {
     className?: string;
 }
 
+/* A CLI's mark: the provider's own logo where there is one, its icon otherwise. */
+export function CliMark({ kind, size = 14, className }: { kind: AgentKind; size?: number; className?: string }) {
+    return hasProviderLogo(kind) ? (
+        <ProviderLogo provider={kind} size={size} className={className} />
+    ) : (
+        <AgentIcon kind={kind} size={size} className={clsx('shrink-0', className)} />
+    );
+}
+
 /*
  * Who answered or will answer, in one line: the CLI's mark and the model, named the way the machine's
  * catalog names it, as a row of facts writes it ("made by", "runs as").
@@ -31,7 +40,7 @@ export function AgentModelLabel({ provider, model, scopeId, size = 14, className
 
     return (
         <span className={clsx('flex min-w-0 items-center gap-1.5', className)}>
-            {hasProviderLogo(provider) ? <ProviderLogo provider={provider} size={size} /> : <AgentIcon kind={provider} size={size} className="shrink-0" />}
+            <CliMark kind={provider} size={size} />
             <span className="truncate">{name}</span>
         </span>
     );

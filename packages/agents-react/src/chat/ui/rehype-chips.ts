@@ -36,8 +36,15 @@ function valueOf(segment: Exclude<ChipSegment, { kind: 'text' }>): string {
         return segment.path;
     }
 
+    if (segment.kind === 'model' || segment.kind === 'account') {
+        return `${segment.cli}/${segment.id}`;
+    }
+
     return segment.kind === 'skill' ? segment.name : segment.id;
 }
+
+// What every named chip starts with, so a text without one skips the walk.
+const NAMED_CHIP_HINT = /@(model|account):/;
 
 // Inline code overrules a chip: `@a.ts` between backticks is code, not a mention.
 const SKIPPED = new Set(['code', 'pre']);
@@ -55,6 +62,14 @@ function chipElement(segment: Exclude<ChipSegment, { kind: 'text' }>): HastEleme
     };
 }
 
+function textOf(node: HastParent | HastNode): string {
+    if ('children' in node) {
+        return node.children.map(textOf).join('');
+    }
+
+    return node.type === 'text' ? node.value : '';
+}
+
 function split(parent: HastParent, tokenize: (text: string) => ChipSegment[], skipped: ReadonlySet<string>): void {
     parent.children = parent.children.flatMap((child): HastNode[] => {
         if (child.type === 'text') {
@@ -69,10 +84,10 @@ function split(parent: HastParent, tokenize: (text: string) => ChipSegment[], sk
     });
 }
 
-/* The `@path`, `$name` and `#name` tokens a person picked in the composer, cut out of the text as chips. */
+/* The `@path`, `$name` and `#name` tokens a person picked in the composer, and every model and account it spells, cut out of the text as chips. */
 export function rehypeChips({ mentions = [], skills = [], references = [] }: ChipOptions = {}) {
     return (tree: HastParent) => {
-        if (mentions.length === 0 && skills.length === 0 && references.length === 0) {
+        if (mentions.length === 0 && skills.length === 0 && references.length === 0 && !NAMED_CHIP_HINT.test(textOf(tree))) {
             return;
         }
 

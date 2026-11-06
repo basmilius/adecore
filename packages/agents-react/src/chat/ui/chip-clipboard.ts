@@ -9,7 +9,8 @@ import {
     tokenizeNamedReferences,
     writeClipboardChips,
     type ChipSegment,
-    type ClipboardChips
+    type ClipboardChips,
+    type NamedChipKind
 } from '../mentions';
 import type { ReferenceLookup } from './reference-lookup';
 
@@ -54,6 +55,12 @@ function segmentOf(chip: Element): ChipSegment | null {
             const name = chip.getAttribute('data-chip-name');
 
             return name === null || name === '' ? null : { kind: 'reference', id: value, name };
+        }
+        case 'model':
+        case 'account': {
+            const slash = value.indexOf('/');
+
+            return slash < 1 ? null : { kind: chip.getAttribute('data-chip') as NamedChipKind, cli: value.slice(0, slash), id: value.slice(slash + 1) };
         }
         default:
             return null;

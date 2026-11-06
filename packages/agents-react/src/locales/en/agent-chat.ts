@@ -385,7 +385,9 @@ export default {
             here: 'Files in this folder',
             files: 'Files',
             noMatch: 'No files match',
-            empty: 'No files here'
+            empty: 'No files here',
+            models: 'Models',
+            accounts: 'Accounts'
         },
         references: {
             canvas: 'On this canvas',

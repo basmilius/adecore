@@ -1,7 +1,7 @@
 import type { ChatInfo, ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
 import { useEffect, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostReferables } from '../../../host-hooks';
+import { useHostAccountRule, useHostReferables } from '../../../host-hooks';
 import { useChatScope } from '../../../scope';
 import type { ComposerInputHandle } from '../ComposerInput';
 import type { ComposerDraft } from './use-composer-draft';
@@ -26,6 +26,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
     const referables = useHostReferables(scope.id, chatId);
+    const accountRule = useHostAccountRule(scope.id, chatId);
     const [skills, setSkills] = useState<ChatSkill[]>([]);
 
     /*
@@ -61,7 +62,9 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         providerName,
         referables,
         ownId: chatId,
-        label: t('composer.inputLabel')
+        label: t('composer.inputLabel'),
+        accountRule,
+        home: { provider: info.provider, account: info.account }
     });
 }
 

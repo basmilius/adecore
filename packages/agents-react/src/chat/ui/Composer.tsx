@@ -194,7 +194,13 @@ export function Composer({
     const sigils = { mentionable: capabilities?.mentions !== false, referable: menus.offersViews, hasSkills: menus.hasSkills };
     const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, ...sigils });
     const editorExtensions = [
-        chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips, referenceIcon: host.ReferenceIcon }),
+        chipDecorations({
+            mentions: draft.mentions,
+            skills: draft.skills,
+            references: menus.referenceChips,
+            referenceIcon: host.ReferenceIcon,
+            named: menus.namedLook
+        }),
         LEAVE_DROPS_TO_THE_CARD
     ];
 

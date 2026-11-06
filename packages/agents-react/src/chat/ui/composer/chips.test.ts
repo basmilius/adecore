@@ -22,6 +22,12 @@ describe('chipDecorations', () => {
         expect(chipsOf(state)).toEqual(['$unslop', '@a.ts']);
     });
 
+    test('draws a model token with no list as one chip over the whole token', () => {
+        const state = EditorState.create({ doc: 'start @model:claude/claude-opus-5-5 now', extensions: chipDecorations({ mentions: [], skills: [] }) });
+
+        expect(chipsOf(state)).toEqual(['@model:claude/claude-opus-5-5']);
+    });
+
     test('marks a reference by the whole of its name and puts the mark of its kind over the #', () => {
         const references = [
             { id: 'view-q3', name: 'Research Q3', kind: 'chat' as const },

@@ -17,6 +17,7 @@ import {
     insertReference,
     insertSkill,
     mentionPick,
+    namedChipRanges,
     NO_MENTION_SEARCH,
     pastedMentions,
     presentMentions,
@@ -41,7 +42,7 @@ describe('findMentionQuery', () => {
 describe('mentionPick', () => {
     test('picks the file the current query found', () => {
         const search = { query: 'pack', files: ['package.json', 'packages/a.ts'] };
-        expect(mentionPick(1, search, 'pack')).toBe('packages/a.ts');
+        expect(mentionPick(1, search, 'pack')).toEqual({ kind: 'file', path: 'packages/a.ts' });
     });
 
     test('picks no file while the answer for the query typed since is on its way', () => {
@@ -49,6 +50,52 @@ describe('mentionPick', () => {
         const search = { query: '', files: ['README.md', 'src/main.ts'] };
         expect(mentionPick(0, search, 'pack')).toBeNull();
         expect(mentionPick(0, NO_MENTION_SEARCH, '')).toBeNull();
+    });
+
+    test('picks a model or an account above the files, also while the files are stale', () => {
+        const opus = { kind: 'model' as const, cli: 'claude', id: 'claude-opus-5-5' };
+        const work = { kind: 'account' as const, cli: 'codex', id: 'work' };
+        const stale = { query: 'o', files: ['one.ts'] };
+
+        expect(mentionPick(0, stale, 'op', [opus, work])).toEqual(opus);
+        expect(mentionPick(1, stale, 'op', [opus, work])).toEqual(work);
+        expect(mentionPick(2, stale, 'op', [opus, work])).toBeNull();
+        expect(mentionPick(2, { query: 'op', files: ['one.ts'] }, 'op', [opus, work])).toEqual({ kind: 'file', path: 'one.ts' });
+    });
+});
+
+describe('namedChipRanges', () => {
+    test('finds a model and an account, and leaves closing punctuation out', () => {
+        const text = 'use @model:claude/claude-opus-5-5, then @account:codex/work.';
+
+        expect(namedChipRanges(text)).toEqual([
+            { from: 4, to: 33, kind: 'model', value: 'claude/claude-opus-5-5' },
+            { from: 40, to: 59, kind: 'account', value: 'codex/work' }
+        ]);
+    });
+
+    test('keeps a slash and a closing bracket that belong to the id', () => {
+        expect(namedChipRanges('@model:nanogpt/anthropic/claude-x and (@model:claude/claude-opus-5-5[1m])').map((range) => range.value)).toEqual([
+            'nanogpt/anthropic/claude-x',
+            'claude/claude-opus-5-5[1m]'
+        ]);
+    });
+
+    test('leaves a token in code, inside a word or without an id as text', () => {
+        const text = '`@model:claude/x` mail@model:claude/x @model:claude/';
+
+        expect(namedChipRanges(text, [{ from: 0, to: 17 }])).toEqual([]);
+    });
+
+    test('sits beside a file chip', () => {
+        const segments = tokenizeChips('@a.ts with @model:codex/gpt-5', ['a.ts']);
+
+        expect(segments).toEqual([
+            { kind: 'mention', path: 'a.ts' },
+            { kind: 'text', text: ' with ' },
+            { kind: 'model', cli: 'codex', id: 'gpt-5' }
+        ]);
+        expect(segments.map(chipText).join('')).toBe('@a.ts with @model:codex/gpt-5');
     });
 });
 

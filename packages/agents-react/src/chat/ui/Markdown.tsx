@@ -15,6 +15,7 @@ import { DisplayImage } from './DisplayImage';
 import { useFileLinkCwd, useFileLinkScopeId, useFileLinkTarget, useOpenFileLink } from './file-links';
 import { createMarkdownBlockSplitter } from './markdown-blocks';
 import { MermaidBlock } from './MermaidBlock';
+import { NamedChip } from './NamedChip';
 import { ReferenceLookupContext } from './reference-lookup';
 import { ReferenceChip, TokenChip } from './ReferenceChip';
 import { rehypeChips, rehypeNamedReferences, type ChipOptions, type NamedReferenceOptions } from './rehype-chips';
@@ -356,6 +357,10 @@ function ReplyCode({ className, children, node }: { className?: string; children
 function Chip({ kind, value }: { kind: string; value: string }) {
     if (kind === 'reference') {
         return <ReferenceChip id={value} />;
+    }
+
+    if (kind === 'model' || kind === 'account') {
+        return <NamedChip kind={kind} value={value} />;
     }
 
     if (kind === 'skill') {
