@@ -2,7 +2,7 @@ import { Glob } from 'bun';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { designProblemsIn, type DesignOptions } from './design-conventions.ts';
+import { designProblemsIn, type DesignOptions } from '../packages/ui/src/design-conventions.ts';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
 const packages: { directory: string; options: DesignOptions }[] = [
@@ -11,6 +11,8 @@ const packages: { directory: string; options: DesignOptions }[] = [
         options: {
             // These observe modality and held modifiers without binding a shortcut.
             keyListeners: ['ShortcutHints.tsx', 'modality.ts'],
+            // The rules themselves name the utilities they forbid.
+            pageExclusions: ['design-conventions.ts'],
             formatterDirectory: 'format/',
             buttonFile: 'Button.tsx',
             theme: readFileSync(join(ROOT, 'packages/ui/src/theme.css'), 'utf8')

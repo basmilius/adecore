@@ -52,6 +52,31 @@ test('exempts from the color rule only the files named for it', () => {
     expect(designProblemsIn(sources, { colorExempt: ['logic/ansi.ts'] }).map((problem) => problem.location)).toEqual(['Component.tsx:1']);
 });
 
+test('reads a color given as a token, or a hash that is no color, as no raw color', () => {
+    const text = `<div className="bg-[rgb(var(--x))] text-[oklch(from var(--accent) l c h)]" data-id="#pull-request" />`;
+    expect(designProblemsIn([{ path: 'Component.tsx', text }], { rules: ['color'] })).toEqual([]);
+});
+
+test.each(['lab(50 40 30)', '#abcd', '#12345678'])('rejects the raw color %s', (color) => {
+    expect(designProblemsIn([{ path: 'Component.tsx', text: `const paint = '${color}';` }], { rules: ['color'] })).toHaveLength(1);
+});
+
+test('runs only the rules asked for', () => {
+    const text = '<button title="Run" className="text-[11px]" />';
+    expect(designProblemsIn([{ path: 'Component.tsx', text }], { rules: ['tooltip'] }).map((problem) => problem.rule)).toEqual([
+        'a hint is a Tooltip, never a title on an element'
+    ]);
+    expect(designProblemsIn([{ path: 'Component.tsx', text }], { rules: ['color'] })).toEqual([]);
+});
+
+test('lets a file outside the formatter folder use Intl when named for it', () => {
+    const sources = [
+        { path: 'voice/controller.ts', text: 'new Intl.DateTimeFormat()' },
+        { path: 'chat/row.ts', text: 'new Intl.DateTimeFormat()' }
+    ];
+    expect(designProblemsIn(sources, { intlExempt: ['voice/controller.ts'] }).map((problem) => problem.location)).toEqual(['chat/row.ts:1']);
+});
+
 test('reports invalid theme type, colors and lengths while permitting alpha masks', () => {
     const scale = '--text-xs: 12px; --text-sm: 14px; --text-md: 16px; --text-lg: 20px; --text-xl: round(2rem, 1px);';
     const theme = `${scale}\n/* Who floats over whom. */\n.mask { mask-image: linear-gradient(#000, #000); }`;

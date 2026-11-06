@@ -53,6 +53,11 @@
       "types": "./dist/testing/dedupe.d.ts",
       "default": "./dist/testing/dedupe.js"
     },
+    "./design-conventions": {
+      "source": "./src/design-conventions.ts",
+      "types": "./dist/design-conventions.d.ts",
+      "default": "./dist/design-conventions.js"
+    },
     "./theme.css": {
       "source": "./src/theme.css",
       "style": "./src/theme.css",
@@ -74,9 +79,15 @@
   },
   "peerDependencies": {
     "i18next": "^26.4.2",
+    "oxc-parser": "^0.156.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-i18next": "^17.0.15"
+  },
+  "peerDependenciesMeta": {
+    "oxc-parser": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^21.0.4",

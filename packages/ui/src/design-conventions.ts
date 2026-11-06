@@ -1,15 +1,41 @@
 import { parseSync, Visitor, type JSXElement, type JSXElementName, type JSXFragment, type Program } from 'oxc-parser';
-import { ICON_BUTTON_CLASS, ICON_BUTTON_ICON_SIZE, type IconButtonSize } from '../packages/ui/src/icon-button-size.ts';
+import { ICON_BUTTON_CLASS, ICON_BUTTON_ICON_SIZE, type IconButtonSize } from './icon-button-size.ts';
 
 export interface DesignSource {
     path: string;
     text: string;
 }
 
+export const DESIGN_RULES = [
+    'keyListeners',
+    'typeSize',
+    'uppercase',
+    'focusRing',
+    'tooltip',
+    'wordButton',
+    'iconButtonSize',
+    'iconButtonIcon',
+    'iconScale',
+    'intl',
+    'color',
+    'fractionalPixel',
+    'namespace',
+    'forwardRef'
+] as const;
+
+export type DesignRule = (typeof DESIGN_RULES)[number];
+
+/* Paths are the ones of the `DesignSource`s, compared as written. */
 export interface DesignOptions {
+    /* Only these rules run; every rule runs when absent. */
+    rules?: readonly DesignRule[];
     pageExclusions?: readonly string[];
+    /* The files that may listen for a key on the window or the document. */
     keyListeners?: readonly string[];
+    /* A path under it may build a formatter out of `Intl`. */
     formatterDirectory?: string;
+    /* The files outside it that may use `Intl` too. */
+    intlExempt?: readonly string[];
     buttonFile?: string;
     namespace?: string;
     namespaceExempt?: readonly string[];
@@ -22,6 +48,10 @@ export interface DesignProblem {
     location: string;
 }
 
+/* A hex color, or a color function given numbers, in a string; one given a token (`rgb(var(--x))`) is not raw. */
+const RAW_COLOR = /(?:^|[\s[(:,'"])#(?:[0-9a-f]{3,4}|[0-9a-f]{6}|[0-9a-f]{8})(?![0-9a-z])|\b(?:rgba?|hsla?|oklch|oklab|lab|lch)\(\s*[\d.]/i;
+
+/* The problems of the sources of one folder against the design rules of the library; the `theme` option adds those of its stylesheet. */
 export function designProblemsIn(files: readonly DesignSource[], options: DesignOptions = {}): DesignProblem[] {
     const sources = () => files;
     const pageSources = () => files.filter(({ path }) => !options.pageExclusions?.some((folder) => path.startsWith(folder)));
@@ -181,8 +211,9 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
         nodesIn(programOf(path, text)).filter((node): node is JSXElement => node.type === 'JSXElement');
 
     const tsx = () => pageSources().filter(({ path }) => path.endsWith('.tsx'));
-    const checks: [string, () => string[]][] = [
+    const checks: [DesignRule, string, () => string[]][] = [
         [
+            'keyListeners',
             'a key is heard on the window only where a shortcut may be bound',
             () => {
                 const listening = pageSources()
@@ -192,6 +223,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'typeSize',
             'type comes in the four sizes of the theme, never a size in brackets',
             () => {
                 const bracketed = pageSources().flatMap(({ path, text }) => [...text.matchAll(/text-\[\d[^\]]*\]/g)].map((match) => `${path}: ${match[0]}`));
@@ -199,6 +231,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'uppercase',
             'a label is sentence case, never uppercase',
             () => {
                 const shouted = pageSources().flatMap(({ path, text }) =>
@@ -210,6 +243,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'focusRing',
             'keyboard focus is the accent outline, never a ring or a colored border',
             () => {
                 const drawn = pageSources().flatMap(({ path, text }) =>
@@ -219,6 +253,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'tooltip',
             'a hint is a Tooltip, never a title on an element',
             () => {
                 const titled = pageSources()
@@ -245,6 +280,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'wordButton',
             'a button with a word in it is a Button, never a height, a padding and a radius of its own',
             () => {
                 const built = pageSources()
@@ -272,6 +308,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'iconButtonSize',
             'an icon button is sized by its modifier, never a height, a width or a radius of its own',
             () => {
                 const sized = pageSources().flatMap(({ path, text }) =>
@@ -288,6 +325,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'iconButtonIcon',
             'an icon button draws the icon of its size',
             () => {
                 const mismatched = pageSources()
@@ -316,6 +354,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'iconScale',
             'an icon is 12, 14, 16 or 20 pixels, never a size between the steps',
             () => {
                 const between = pageSources()
@@ -333,10 +372,12 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'intl',
             'only format/ builds a formatter out of Intl',
             () => {
                 const building = sources()
                     .filter(({ path }) => options.formatterDirectory === undefined || !path.startsWith(options.formatterDirectory))
+                    .filter(({ path }) => !options.intlExempt?.includes(path))
                     .flatMap(({ path, text }) => {
                         const found: string[] = [];
                         new Visitor({
@@ -352,19 +393,21 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'color',
             'a color is a token of the theme, never a raw value in a component',
             () => {
                 const raw = pageSources()
                     .filter(({ path }) => !options.colorExempt?.includes(path))
                     .flatMap(({ path, text }) =>
                         stringsOf(path, text)
-                            .filter(({ classes }) => /#[0-9a-fA-F]{3,8}\b|\b(?:rgba?|hsla?|oklch|oklab)\(/.test(classes))
+                            .filter(({ classes }) => RAW_COLOR.test(classes))
                             .map(({ start }) => `${path}:${lineOf(text, start)}`)
                     );
                 return raw;
             }
         ],
         [
+            'fractionalPixel',
             'a length is whole pixels: no fractional pixel',
             () => {
                 const fractional = pageSources().flatMap(({ path, text }) =>
@@ -374,6 +417,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'namespace',
             'words are read through useTranslation of the database namespace, never the global i18next',
             () => {
                 if (options.namespace === undefined) {
@@ -389,6 +433,7 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'forwardRef',
             'a component takes its ref as a prop, never through forwardRef',
             () => {
                 return tsx()
@@ -397,7 +442,9 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ]
     ];
-    const problems = checks.flatMap(([rule, check]) => check().map((location) => ({ rule, location })));
+    const problems = checks
+        .filter(([id]) => options.rules === undefined || options.rules.includes(id))
+        .flatMap(([, rule, check]) => check().map((location) => ({ rule, location })));
     if (options.theme !== undefined) {
         problems.push(...themeProblemsIn(options.theme));
     }

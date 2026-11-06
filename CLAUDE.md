@@ -85,7 +85,7 @@ Bun workspaces: a package per folder in `packages/`, each published from its fol
 
 ## Design rules
 
-`bun run lint` checks these in UI and database sources (`scripts/check-design-conventions.ts`, rules in `scripts/design-conventions.ts`):
+`bun run lint` checks these in UI and database sources (`scripts/check-design-conventions.ts` with the options of each package; the rules are `src/design-conventions.ts` in `ui`, published as `@adecore/ui/design-conventions` so an app runs them over its own sources):
 
 - Type in the sizes of the theme's scale, never a size in brackets, nothing below 12px.
 - A hint is a `Tooltip`, never a `title`.
