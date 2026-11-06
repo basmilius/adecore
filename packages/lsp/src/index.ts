@@ -22,5 +22,6 @@ export type { DiagnosticsReport, LanguageDocument, LanguageRequestOptions, Langu
 export { unservedLanguageService } from './unserved.ts';
 export { connectWebSocket, createStreamTransport, type ByteStream, type WebSocketTransportOptions } from './transport.ts';
 export { fileUriToPath, pathToFileUri } from './uris.ts';
+export { documentLanguageId, lspLanguageId, lspLanguageIdOf, SCRIPT_LANGUAGE_IDS } from './language-ids.ts';
 export { bridgeVueTypeScript, vueServerOrder, type VueServer } from './vue.ts';
 export type * from './protocol.ts';

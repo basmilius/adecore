@@ -104,7 +104,7 @@ export {
 export { type LiveTemplate, type PostfixTemplate, type TemplateLanguage, type TemplatePlace } from './template-types.ts';
 export { openingPlace, viewStates, followViewStates, viewStateKey, forgetMovesFrom } from './view-state.ts';
 export type { ViewState, RevealLineRequest } from './view-state.ts';
-export { lspLanguageIdOf, shikiLanguageOf, shikiLanguageOfPath } from './language-ids.ts';
+export { shikiLanguageOf, shikiLanguageOfPath } from './language-ids.ts';
 export { AttributionCard } from './AttributionCard.tsx';
 export type { AttributionCardProps } from './AttributionCard.tsx';
 export { ReviewGroup, joinReviewGroup } from './review-group.ts';

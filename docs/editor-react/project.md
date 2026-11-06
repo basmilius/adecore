@@ -58,9 +58,11 @@ The features ask for symbols, folds, inlay hints, semantic colors, code actions 
 
 ## Language ids
 
-The editor names a language by its highlighter id, a server by its LSP id. `lspLanguageIdOf(language)` gives the LSP id of a highlighter id, such as `typescriptreact` for `tsx`, or `null` when no server here knows it. `shikiLanguageOf(lspLanguageId)` goes the other way, for code a server sends back to be drawn. `shikiLanguageOfPath(path)` picks a highlighter id by file extension, for a file known only by its path, and falls back to `text`.
+The editor names a language by its highlighter id, a server by its LSP id. `lspLanguageIdOf(language)` from [`@adecore/lsp`](/lsp/documents#language-ids) gives the LSP id of a highlighter id, such as `typescriptreact` for `tsx`, or `null` when no server here knows it. `shikiLanguageOf(lspLanguageId)` goes the other way, for code a server sends back to be drawn. `shikiLanguageOfPath(path)` picks a highlighter id by file extension, for a file known only by its path, and falls back to `text`.
 
 ```ts
+import { lspLanguageIdOf } from '@adecore/lsp';
+
 const languageId = lspLanguageIdOf('tsx'); // 'typescriptreact'
 ```
 

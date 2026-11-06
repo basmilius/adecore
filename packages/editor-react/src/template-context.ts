@@ -1,4 +1,5 @@
 import type { EditorPosition } from '@adecore/editor';
+import { lspLanguageId } from '@adecore/lsp';
 import type { LanguageContext } from './language-context.ts';
 import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './template-types.ts';
 
@@ -12,19 +13,11 @@ export function sortAfterServer(key: string): string {
 
 /* The families a language id counts as; TypeScript builds on JavaScript. */
 export function familiesOf(languageId: string): readonly TemplateLanguage[] {
-    switch (languageId) {
+    switch (lspLanguageId(languageId)) {
         case 'javascript':
-        case 'js':
-        case 'mjs':
-        case 'cjs':
-        case 'jsx':
         case 'javascriptreact':
             return ['javascript'];
         case 'typescript':
-        case 'ts':
-        case 'mts':
-        case 'cts':
-        case 'tsx':
         case 'typescriptreact':
             return ['javascript', 'typescript'];
         case 'php':
