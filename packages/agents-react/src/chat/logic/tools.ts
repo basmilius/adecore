@@ -1,4 +1,4 @@
-import type { ChatFileChange, ChatToolItem } from '@adecore/agent-contracts';
+import { toolFileEdit, type ChatFileChange, type ChatToolItem } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 import { toolEntry } from './tool-catalog';
 
@@ -160,25 +160,13 @@ export function readImagePath(name: string, input: unknown): string | null {
 
 /* The before and after text of a file-changing tool call, so the thread can show it as a diff. */
 export function fileChanges(name: string, input: unknown): FileChange[] {
-    if (!isRecord(input)) {
+    const edit = toolFileEdit(name, input);
+
+    if (edit === null) {
         return [];
     }
 
-    const path = str(input.file_path) ?? '';
-
-    if (name === 'Edit') {
-        return [{ path, before: str(input.old_string) ?? '', after: str(input.new_string) ?? '', fragment: true }];
-    }
-
-    if (name === 'Write') {
-        return [{ path, before: '', after: str(input.content) ?? '' }];
-    }
-
-    if (name === 'MultiEdit' && Array.isArray(input.edits)) {
-        return input.edits.filter(isRecord).map((edit) => ({ path, before: str(edit.old_string) ?? '', after: str(edit.new_string) ?? '', fragment: true }));
-    }
-
-    return [];
+    return edit.pieces.map((piece) => (edit.write ? { path: edit.path, ...piece } : { path: edit.path, ...piece, fragment: true }));
 }
 
 export function isFileChange(name: string): boolean {

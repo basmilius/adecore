@@ -2,6 +2,8 @@
 export { type AcpAgentSpec, type AcpClientInfo, type AcpUsageReport, createAcpBackend } from '../backends/acp-backend.ts';
 // What a chat is doing, for every host question about it being busy; the predicate lives in the contracts so a client reads it too.
 export { chatActivity, type ChatActivity } from '@adecore/agent-contracts';
+// The file a tool call edits, parsed once for the thread, an approval and a daemon's provenance.
+export { toolFileEdit, type ToolFileEdit, type ToolFileEditPiece } from '@adecore/agent-contracts';
 
 export type {
     AcpAgentInfo,

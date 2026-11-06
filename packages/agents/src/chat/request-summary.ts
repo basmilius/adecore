@@ -1,4 +1,11 @@
-import { CHAT_REQUEST_LIMITS, type ChatApprovalItem, type ChatQuestionItem, type ChatRequestApproval, type ChatRequestSummary } from '@adecore/agent-contracts';
+import {
+    CHAT_REQUEST_LIMITS,
+    toolFileEdit,
+    type ChatApprovalItem,
+    type ChatQuestionItem,
+    type ChatRequestApproval,
+    type ChatRequestSummary
+} from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 import { str } from '../fields.ts';
 
@@ -88,29 +95,9 @@ function fileChange(toolName: string, input: Record<string, unknown>): FileChang
         return { path: patches[0]!.path, files: patches.length, lines: changedLines(patches[0]!.diff) };
     }
 
-    const path = str(input.file_path);
+    const edit = toolFileEdit(toolName, input);
 
-    if (path === null) {
-        return null;
-    }
-
-    if (toolName === 'Edit') {
-        return { path, files: 1, lines: replacementLines(str(input.old_string) ?? '', str(input.new_string) ?? '') };
-    }
-
-    if (toolName === 'Write') {
-        return { path, files: 1, lines: replacementLines('', str(input.content) ?? '') };
-    }
-
-    if (toolName === 'MultiEdit' && Array.isArray(input.edits)) {
-        return {
-            path,
-            files: 1,
-            lines: input.edits.filter(isRecord).flatMap((edit) => replacementLines(str(edit.old_string) ?? '', str(edit.new_string) ?? ''))
-        };
-    }
-
-    return null;
+    return edit === null ? null : { path: edit.path, files: 1, lines: edit.pieces.flatMap((piece) => replacementLines(piece.before, piece.after)) };
 }
 
 function subjectOf(input: Record<string, unknown>): string {

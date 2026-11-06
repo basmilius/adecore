@@ -60,6 +60,8 @@ The parts of an item have their own types:
 - A turn's `limit` is a `ChatTurnLimit` (`ChatTurnLimitSchema`), see [Limits](#limits).
 - A note may carry the `message` another chat sent this one, a `ChatNoteMessage` (`ChatNoteMessageSchema`) with who sent it, their title and the text.
 
+`toolFileEdit(name, input)` reads the file an `Edit`, `Write` or `MultiEdit` call changes from its `input`, as a `ToolFileEdit`: the `path`, whether the call is a `write` of the whole file, and its `pieces` (`ToolFileEditPiece`, `{ before, after }`, one per edit). It returns `null` for any other tool, for a call without a `file_path` and for a `MultiEdit` without an `edits` list. It does not read the diffs a provider reports in `changes`. The thread's diffs, the summary of an approval and a host that tracks who wrote which line all read their edits through it, and `@adecore/agents/chat` re-exports it.
+
 A running tool's `progress.output` holds only the last `TOOL_OUTPUT_TAIL` UTF-16 units. A tool `delta` carries only the new text, so grow the output with `appendToolOutput(output, text)`, which cuts it as the host does. Once the call settles, `output` replaces the progress.
 
 An `assistant` or `tool` item with a `parentToolUseId` is a subagent's work. Draw it under that subagent, not as the chat's answer. A subagent item's `itemsTruncated` means the thread holds only the start, and `chat.subagent` reads the rest. A workflow's agent has no call of its own, so `chat.subagent` names it as `workflowAgentRef(agentId)`. `workflowAgentIdOf(ref)` reads the id back, or returns `null`.

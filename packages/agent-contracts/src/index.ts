@@ -370,6 +370,7 @@ export {
     type TaskChangedEvent
 } from './task.ts';
 export { clipText, TOOL_OUTPUT_TAIL, appendToolOutput } from './text.ts';
+export { type ToolFileEdit, type ToolFileEditPiece, toolFileEdit } from './tool-edits.ts';
 export {
     UsageProviderSchema,
     type UsageProvider,
