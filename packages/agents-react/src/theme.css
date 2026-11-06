@@ -293,7 +293,7 @@
 /* The same editor as a form field (`PromptEditor`): the field's inset, and room for a few lines before it scrolls. */
 .composer-input.prompt-editor .cm-editor { max-height: 240px; }
 .composer-input.prompt-editor .cm-editor .cm-scroller .cm-content { min-height: 80px; padding: 6px 10px; }
-.composer-hints, .composer-hints-extra { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.composer-hints, .composer-hints-extra, .composer-hint { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 /* The joiner starts with its own comma, so it sits against the lead without the gap. */
 .composer-hints-extra { margin-left: -8px; }
 .composer-hints kbd { padding: 0 6px; border-radius: 5px; background: var(--surface-active); color: var(--text-muted); font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
@@ -304,6 +304,10 @@
 /* The hints stay on the line of the lead or go; wrapped, they would start left of the text. */
 @container composer (width < 36rem) {
     .composer-hints-extra { display: none; }
+}
+/* The longest line, in Dutch on a 14px root, needs 38rem; until then `#` goes first and the rest stay. */
+@container composer (width < 39rem) {
+    .composer-hint-references { display: none; }
 }
 /* Markdown stays source while you type: the markers stay put and dim, and what they wrap takes its look. */
 .composer-input .cm-md-mark { color: var(--text-faint); }

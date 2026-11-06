@@ -366,6 +366,8 @@ export function usePromptMenus<D extends PromptDraft>({
         inputAria,
         menuOpen,
         hasSkills: skills.length > 0,
+        // While only chats can be pointed at, the hint that names views would promise what `#` does not open.
+        offersViews: offersReferences && !referables.chatsOnly,
         skillNames: skills.map((skill) => skill.name),
         commandQuery,
         commands,

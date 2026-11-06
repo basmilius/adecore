@@ -376,6 +376,7 @@ export default {
             joiner: ', or',
             commands: 'commands',
             files: 'files',
+            references: 'views',
             skills: 'skills',
             readOnly: 'Go back to the main agent to write'
         },
