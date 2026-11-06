@@ -268,6 +268,8 @@ export const ChatInfoSchema = z.object({
     // The account of the provider the CLI runs under; absent is the provider's default account.
     account: ProviderAccountIdSchema.optional(),
     cwd: z.string(),
+    // The folder the CLI works in now, once it moved out of `cwd` (into a worktree of its own); absent while it works in `cwd`.
+    workdir: z.string().optional(),
     // Set once the CLI announced itself; what a terminal node needs for `--resume`.
     agentSessionId: z.string().nullable(),
     // The model the CLI reported, which can differ from the selection (aliases, reroutes).

@@ -61,6 +61,17 @@ describe('ThreadProjector', () => {
         expect(thread.info).toMatchObject({ agentSessionId: 'sid', model: 'sonnet' });
     });
 
+    test('a workdir event names the folder the CLI moved to, and coming back to cwd clears it', () => {
+        const { thread, project } = setup();
+
+        expect(project({ type: 'workdir', path: '/' })).toEqual([]);
+        project({ type: 'workdir', path: '/.claude/worktrees/probe' });
+        expect(thread.info.workdir).toBe('/.claude/worktrees/probe');
+        expect(project({ type: 'workdir', path: '/.claude/worktrees/probe' })).toEqual([]);
+        project({ type: 'workdir', path: '/' });
+        expect(thread.info.workdir).toBeUndefined();
+    });
+
     test('text streams into one item per ref and the generation keeps a resumed process apart', () => {
         const { thread, project } = setup();
 

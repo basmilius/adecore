@@ -2428,7 +2428,8 @@ export class ChatSession {
         const backend = made.backend;
         this.backend = backend;
         this.replaceProcess = false;
-        this.emit([this.thread.patchInfo({ running: true, effectiveRuntimeMode: undefined, permissionMode: undefined })]);
+        // A new process starts in `cwd` again, wherever the last one had moved to.
+        this.emit([this.thread.patchInfo({ running: true, effectiveRuntimeMode: undefined, permissionMode: undefined, workdir: undefined })]);
         let started: Promise<void>;
 
         try {

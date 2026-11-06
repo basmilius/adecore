@@ -191,6 +191,15 @@ export class ThreadProjector {
                 events.push(this.thread.patchInfo({ permissionMode: event.permissionMode, effectiveRuntimeMode: event.effectiveRuntimeMode }));
 
                 break;
+            case 'workdir': {
+                const workdir = event.path === info.cwd ? undefined : event.path;
+
+                if (workdir !== info.workdir) {
+                    events.push(this.thread.patchInfo({ workdir }));
+                }
+
+                break;
+            }
             case 'thinking.done':
                 this.appendThinking(generation, event.ref, event.text, true, events);
 
