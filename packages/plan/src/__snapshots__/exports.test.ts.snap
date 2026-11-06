@@ -3,7 +3,9 @@
 exports[`the public API . exports these names 1`] = `
 [
   "PLAN_LEGEND",
+  "PLAN_PERSON_STATES",
   "PLAN_STATE_MARKERS",
+  "PLAN_TEST_OUTCOMES",
   "PlanDraftMetaSchema",
   "PlanDraftSectionSchema",
   "PlanDraftStepSchema",
@@ -12,6 +14,7 @@ exports[`the public API . exports these names 1`] = `
   "allItems",
   "allSteps",
   "applyPlanOps",
+  "asksForNote",
   "canApply",
   "canDeletePlan",
   "createPlan",
@@ -28,6 +31,7 @@ exports[`the public API . exports these names 1`] = `
   "refuse",
   "renderPlanText",
   "stepState",
+  "stepToMarkdown",
   "type PlanApplied",
   "type PlanApplyOptions",
   "type PlanCreateOptions",
