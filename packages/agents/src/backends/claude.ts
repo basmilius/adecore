@@ -84,7 +84,7 @@ export const CLAUDE_CAPABILITIES: ProviderCapabilities = {
     reportsThinking: true,
     slashCommands: true,
     goals: 'command',
-    fork: 'transcript'
+    fork: true
 };
 
 // Claude Code takes its flags before `--resume`, which takes the id.

@@ -40,6 +40,7 @@ async function codexHelp(executable: string): Promise<string> {
  */
 function codexTerminal(executable: string, help: (executable: string) => Promise<string>): ProviderTerminal {
     let noDaemon = false;
+    let asked: Promise<void> | null = null;
 
     return {
         // Codex 0.153 takes only `on-request` and `never` on `--ask-for-approval`, so the three modes that still ask share one policy; the sandbox is what full access widens.
@@ -55,9 +56,13 @@ function codexTerminal(executable: string, help: (executable: string) => Promise
         // Codex 0.154 ignores developer instructions on a resume (measured) and keeps those the session started with.
         noteArgs: (note) => ['-c', `developer_instructions=${JSON.stringify(note)}`],
         extraArgs: () => (noDaemon ? ['--no-daemon'] : []),
-        prepare: async () => {
-            noDaemon = (await help(executable).catch(() => '')).includes('--no-daemon');
-        }
+        // Asked once: a Codex that is not there, or does not answer in time, takes nothing.
+        prepare: () =>
+            (asked ??= help(executable)
+                .catch(() => '')
+                .then((text) => {
+                    noDaemon = text.includes('--no-daemon');
+                }))
     };
 }
 

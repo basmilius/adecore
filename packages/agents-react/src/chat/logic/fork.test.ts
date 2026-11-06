@@ -62,7 +62,7 @@ const CAPABILITIES = {
 const host = {
     loaded: true,
     providers: [
-        { kind: 'claude', capabilities: { ...CAPABILITIES, fork: 'transcript' } },
+        { kind: 'claude', capabilities: { ...CAPABILITIES, fork: true } },
         { kind: 'plain', capabilities: CAPABILITIES }
     ] as unknown as ProviderInfo[]
 };

@@ -39,6 +39,8 @@ export interface AcpServerLaunch {
 export interface AntigravityProviderOptions extends AcpVendorOptions {
     // The installed chat server; absent or null leaves the provider as it would be once one is there.
     readonly server?: AcpServerLaunch | null;
+    // What a chat that starts without an installed server is refused with, in the host's words.
+    readonly installHint?: string;
 }
 
 type VendorSpec = Omit<AcpProviderSpec, 'catalog'>;
@@ -471,7 +473,7 @@ export function createAntigravityProvider(options: AntigravityProviderOptions = 
         },
         createBackend: (backendLaunch, host) => {
             if (server?.launch() == null) {
-                throw new Error('Install the Antigravity server first.');
+                throw new Error(options.installHint ?? 'Install the Antigravity server first.');
             }
 
             return base.createBackend(backendLaunch, host);

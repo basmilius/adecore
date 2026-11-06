@@ -332,12 +332,14 @@ export function holdsConversation(info: Pick<ChatInfo, 'agentSessionId' | 'activ
  */
 export type ChatActivity = 'waiting' | 'working' | 'delegating' | 'background' | 'holding' | 'settled';
 
-export function chatActivity(info: Pick<ChatInfo, 'status' | 'activeTurnId' | 'delegating' | 'background' | 'requests' | 'goal' | 'queue'>): ChatActivity {
+export function chatActivity(
+    info: Pick<ChatInfo, 'status' | 'delegating' | 'background' | 'requests' | 'goal' | 'queue'> & Partial<Pick<ChatInfo, 'activeTurnId'>>
+): ChatActivity {
     if (info.status === 'needs-you') {
         return 'waiting';
     }
 
-    if (info.status === 'running' || info.activeTurnId !== null) {
+    if (info.status === 'running' || (info.activeTurnId ?? null) !== null) {
         return 'working';
     }
 

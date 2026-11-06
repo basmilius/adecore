@@ -10,7 +10,7 @@ interface HostProviders {
 
 /* Whether a CLI keeps a conversation the host can fork, and go on with in a fork: its `fork` capability. */
 export function canForkWith(provider: Pick<ProviderInfo, 'capabilities'>): boolean {
-    return provider.capabilities.fork !== undefined;
+    return provider.capabilities.fork === true;
 }
 
 /* Where a fork goes on after, as the dialog words it. */

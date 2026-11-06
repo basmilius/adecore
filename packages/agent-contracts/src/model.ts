@@ -128,10 +128,9 @@ export const ProviderCapabilitiesSchema = z.object({
     // How `/goal` reaches the CLI: through a protocol of its own that pauses, resumes and clears (`native`),
     // or as the slash command alone (`command`); absent where the CLI has no goals.
     goals: z.enum(['native', 'command']).optional(),
-    // Whether a chat can be forked and go on in a fork, and where the CLI keeps the conversation that is copied:
-    // in a thread its app-server forks (`thread`), or in a transcript file the host cuts (`transcript`);
-    // absent where a chat cannot be forked.
-    fork: z.enum(['thread', 'transcript']).optional()
+    // Whether a chat can be forked and go on in a fork. Absent where it cannot. Where the conversation is copied from
+    // (a thread of the CLI's app-server, or a transcript file) is the provider's own business and stays off the wire.
+    fork: z.boolean().optional()
 });
 export type ProviderCapabilities = z.infer<typeof ProviderCapabilitiesSchema>;
 
