@@ -62,3 +62,7 @@ How each kind is drawn:
 - `text` has no paths. Draw it with the lines from [`linesOf`](/drawing/text).
 
 The path data can change when either library is upgraded.
+
+## drawingScene
+
+`drawingScene(document)` is for a painter that is not a browser, such as a native view. It returns a `Scene`: the `rev`, the `bounds` of the rotated elements and a `SceneElement` per element, back to front. Each one has its `x`, `y`, `angle` and local center, its `ScenePath` list from `pathsOfElement` and its `SceneText` lines placed the way `toSvg` places them. Colors are `SceneColor` values, a palette name and the palette to read it from (`ink`, or `paper` and `edge` for a note), so the painter resolves them in its own theme. `sceneColor(tone, palette)` makes one.

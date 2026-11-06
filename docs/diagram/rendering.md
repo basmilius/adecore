@@ -40,3 +40,7 @@ const svg = toSvg(diagram, {
 ```
 
 `meta.title` stays out of the SVG. To draw the diagram as elements a person can select or drag, see [A painter of your own](/diagram/painter).
+
+## diagramScene
+
+`diagramScene(content)` returns the diagram as a `Scene` of `@adecore/drawing` for a painter that is not a browser. It reads the layout and the shapes `toSvg` paints with, so the two never disagree: the elements are the groups (`group:<id>`), the edges (`edge:<index>`) and the nodes (`node:<id>`), in that order, with their paths and text lines in world coordinates. Colors are palette names, never values.

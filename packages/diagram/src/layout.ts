@@ -66,6 +66,9 @@ export const EDGE_LABEL_PADDING = { x: 4, y: 2 };
 const GROUP_PADDING = 20;
 /* The band on top of a group where its label sits. */
 export const GROUP_LABEL_BAND = 24;
+/* A group's outline is thin and dashed, so it reads as a region and not as a node. */
+export const GROUP_LINE_WIDTH = 1;
+export const GROUP_DASH = [6, 4];
 const GROUP_LABEL_INSET = 12;
 /* Room between a layer's widest box and the first thing in the channel after it. */
 const EDGE_CLEAR = 20;
@@ -79,6 +82,11 @@ const SNAP = 6;
 
 function even(value: number): number {
     return Math.ceil(value / 2) * 2;
+}
+
+/* The baseline of a group's label, 0.7 of the way down the band that holds it. */
+export function groupLabelBaselineY(box: Pick<GroupBox, 'y'>): number {
+    return box.y + Math.round(GROUP_LABEL_BAND * 0.7);
 }
 
 export interface NodeSize {
