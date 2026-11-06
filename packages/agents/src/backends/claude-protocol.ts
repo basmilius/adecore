@@ -280,6 +280,9 @@ export class ClaudeProtocol {
     private interrupting = false;
     // Background subagents still at work; Claude Code holds a goal's check until they report.
     private readonly backgroundAgents = new Set<string>();
+    // Subagents that reported while their own tasks still ran, with what they reported. The CLI does not always
+    // wake one when that work ends, and then never notifies for it again, so the end of its last task settles it.
+    private readonly waitingAgents = new Map<string, Extract<BackendEvent, { type: 'task.done' }>>();
 
     // `cacheTtlMs` is the lifetime the chat knew before this process, so a resumed CLI that only reads the cache still moves its expiry.
     constructor(goal: ChatGoal | null = null, now: () => number = () => Date.now(), cacheTtlMs: number | null = null) {
@@ -480,7 +483,7 @@ export class ClaudeProtocol {
             const effectiveRuntimeMode = claudeRuntimeMode(frame.permissionMode);
             events.push({ type: 'permissions', permissionMode: frame.permissionMode, ...(effectiveRuntimeMode === undefined ? {} : { effectiveRuntimeMode }) });
         } else if (frame.subtype === 'background_tasks_changed') {
-            this.handleBackgroundTasks(frame);
+            this.handleBackgroundTasks(frame, events);
         } else if (frame.subtype === 'task_started') {
             this.handleTaskStarted(frame, events);
         } else if (frame.subtype === 'task_updated') {
@@ -526,14 +529,31 @@ export class ClaudeProtocol {
             const ref = str(frame.tool_use_id);
             const taskId = str(frame.task_id);
 
+            // The CLI wakes the main agent itself when a background task settles; this frame is the only
+            // thing that says what it was about, and it arrives before the turn nobody asked for.
+            const done: Extract<BackendEvent, { type: 'task.done' }> = {
+                type: 'task.done',
+                ref,
+                taskId,
+                summary: str(frame.summary),
+                ok: str(frame.status) === 'completed',
+                usage: taskUsage(frame.usage),
+                outputFile: str(frame.output_file) || null
+            };
+
             if (taskId) {
                 this.liveTasks.delete(taskId);
+                this.waitingAgents.delete(taskId);
             }
 
             if (str(frame.status) === 'completed' && (str(frame.summary)?.startsWith(INTERIM_TASK_SUMMARY) || (taskId !== null && this.hasLiveChild(taskId)))) {
                 // `task_updated` already took it off the list of running agents.
                 if (taskId) {
                     this.backgroundAgents.add(taskId);
+
+                    if (this.hasLiveChild(taskId)) {
+                        this.waitingAgents.set(taskId, done);
+                    }
                 }
 
                 if (ref) {
@@ -543,27 +563,8 @@ export class ClaudeProtocol {
                 return;
             }
 
-            if (ref) {
-                this.subagentModels.delete(ref);
-            }
-
-            if (taskId) {
-                this.endBackground(taskId, events);
-                this.workflows.delete(taskId);
-                this.backgroundAgents.delete(taskId);
-            }
-
-            // The CLI wakes the main agent itself when a background task settles; this frame is the only
-            // thing that says what it was about, and it arrives before the turn nobody asked for.
-            events.push({
-                type: 'task.done',
-                ref: str(frame.tool_use_id),
-                taskId,
-                summary: str(frame.summary),
-                ok: str(frame.status) === 'completed',
-                usage: taskUsage(frame.usage),
-                outputFile: str(frame.output_file) || null
-            });
+            this.settleTask(done, events);
+            this.settleWaitingAgents(events);
         } else if (frame.subtype === 'compact_boundary') {
             const meta = isRecord(frame.compact_metadata) ? frame.compact_metadata : {};
             const preTokens = num(meta.pre_tokens);
@@ -582,6 +583,10 @@ export class ClaudeProtocol {
         if (frame.task_type === 'local_agent') {
             const agentTask = str(frame.task_id);
             const run = str(frame.run_id);
+
+            if (agentTask) {
+                this.waitingAgents.delete(agentTask);
+            }
 
             if (agentTask && frame.is_backgrounded === true) {
                 this.backgroundAgents.add(agentTask);
@@ -652,17 +657,27 @@ export class ClaudeProtocol {
 
         const status = str(patch.status);
 
-        if (status !== null && ENDED_TASK_STATUSES.has(status)) {
-            this.liveTasks.delete(taskId);
-            this.foregroundShells.delete(taskId);
-            this.backgroundAgents.delete(taskId);
-            this.endBackground(taskId, events);
-            this.endWorkflow(taskId, null, status === 'completed', events);
+        if (status === null || !ENDED_TASK_STATUSES.has(status)) {
+            return;
         }
+
+        const waiting = this.waitingAgents.get(taskId);
+        this.liveTasks.delete(taskId);
+        this.foregroundShells.delete(taskId);
+        this.backgroundAgents.delete(taskId);
+        this.endBackground(taskId, events);
+        this.endWorkflow(taskId, null, status === 'completed', events);
+
+        if (waiting !== undefined) {
+            this.waitingAgents.delete(taskId);
+            this.settleTask({ ...waiting, ok: status === 'completed' }, events);
+        }
+
+        this.settleWaitingAgents(events);
     }
 
     /* The whole set of tasks that run now, which replaces the one before it. */
-    private handleBackgroundTasks(frame: Frame): void {
+    private handleBackgroundTasks(frame: Frame, events: BackendEvent[]): void {
         if (!Array.isArray(frame.tasks)) {
             return;
         }
@@ -674,6 +689,32 @@ export class ClaudeProtocol {
                 this.noteTask(task);
             }
         }
+
+        this.settleWaitingAgents(events);
+    }
+
+    /* A subagent that reported while its own tasks ran, once the last of them ended without waking it. */
+    private settleWaitingAgents(events: BackendEvent[]): void {
+        for (const [taskId, done] of this.waitingAgents) {
+            if (!this.hasLiveChild(taskId)) {
+                this.waitingAgents.delete(taskId);
+                this.settleTask(done, events);
+            }
+        }
+    }
+
+    private settleTask(done: Extract<BackendEvent, { type: 'task.done' }>, events: BackendEvent[]): void {
+        if (done.ref) {
+            this.subagentModels.delete(done.ref);
+        }
+
+        if (done.taskId) {
+            this.endBackground(done.taskId, events);
+            this.workflows.delete(done.taskId);
+            this.backgroundAgents.delete(done.taskId);
+        }
+
+        events.push(done);
     }
 
     /* A watcher that is no activity may run as long as the session does, so it never keeps a subagent from settling. */

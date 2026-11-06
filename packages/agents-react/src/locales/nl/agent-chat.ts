@@ -376,6 +376,7 @@ export default {
             joiner: ', of',
             commands: "commando's",
             files: 'bestanden',
+            references: 'weergaven',
             skills: 'skills',
             readOnly: 'Ga terug naar de main agent om te schrijven'
         },

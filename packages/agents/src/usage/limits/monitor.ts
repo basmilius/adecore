@@ -1,4 +1,9 @@
-import { USAGE_PROVIDERS, type UsageLimitsProvider, type UsageLimitsSnapshot, type UsageProvider } from '@adecore/agent-contracts';
+import { mkdir, readFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { USAGE_PROVIDERS, UsageLimitsProviderSchema, type UsageLimitsProvider, type UsageLimitsSnapshot, type UsageProvider } from '@adecore/agent-contracts';
+import { isNotFound } from '@adecore/utils/errors';
+import { writeAtomic } from '@adecore/utils/fs';
+import { z } from 'zod';
 import type { ProbeResult } from '../../backends/limits-probe.ts';
 import { mergeWindows, type LimitsUpdate } from '../../backends/limits.ts';
 import { ClientSinks } from '../../client-sinks.ts';
@@ -14,6 +19,16 @@ const MAX_BACKOFF_MS = 60 * 60_000;
 const RECENT_USE_MS = 24 * 60 * 60_000;
 
 const PROVIDERS: readonly UsageProvider[] = USAGE_PROVIDERS;
+
+const KeptLimitsSchema = z.object({
+    version: z.literal(1),
+    accounts: z.record(z.string(), UsageLimitsProviderSchema.omit({ account: true }))
+});
+
+/* Where a host keeps the last plan numbers, beside the rest of its usage. */
+export function limitsFileIn(home: string): string {
+    return join(home, 'usage', 'limits.json');
+}
 
 export type ProbeEnv = Record<string, string>;
 
@@ -41,6 +56,8 @@ interface ProviderState {
     /* How long to wait after a failure; it doubles up to an hour and resets on the first answer. */
     backoffMs: number;
     nextAt: number;
+    /* Whether a pass read this account since the host started; the first pass reads every account once. */
+    read: boolean;
 }
 
 function blank(kind: UsageProvider): UsageLimitsProvider {
@@ -68,6 +85,8 @@ export interface UsageMonitorOptions {
      */
     plans?: Partial<Record<UsageProvider, (account: LimitAccount) => Promise<ProbeResult>>>;
     now?: () => number;
+    /* Where the last numbers of every account are kept, so a restarted host shows them until its first read; absent keeps none. */
+    file?: string;
 }
 
 /*
@@ -83,11 +102,14 @@ export class UsageMonitor {
     private readonly probe: UsageMonitorOptions['probe'];
     private readonly plans: NonNullable<UsageMonitorOptions['plans']>;
     private readonly now: () => number;
+    private readonly file: string | null;
     private readonly sinks = new ClientSinks<AgentEvent>();
     // By account id, so the default account of a CLI is under the CLI's kind.
     private readonly states = new Map<string, ProviderState>();
     private inFlight: Promise<void> | null = null;
     private timer: ReturnType<typeof setInterval> | null = null;
+    private saving: Promise<void> = Promise.resolve();
+    private saveQueued = false;
 
     constructor(options: UsageMonitorOptions) {
         this.registry = options.providers;
@@ -95,6 +117,7 @@ export class UsageMonitor {
         this.plans = options.plans ?? {};
         this.probe = options.probe;
         this.now = options.now ?? Date.now;
+        this.file = options.file ?? null;
 
         for (const kind of PROVIDERS) {
             this.stateOf(kind, kind);
@@ -116,16 +139,60 @@ export class UsageMonitor {
         return { providers };
     }
 
-    /* Starts the five minute pass. The first read runs at once, so a fresh host has numbers. */
+    /* Starts the five minute pass. The kept numbers come back first and the first read runs at once, so a fresh host has numbers. */
     start(): void {
         this.timer ??= setInterval(() => void this.refresh(false), PROBE_INTERVAL_MS);
-        void this.refresh(false);
+        void this.restore().then(() => this.refresh(false));
     }
 
-    stop(): void {
+    /* Resolves once the last numbers are on disk. */
+    stop(): Promise<void> {
         if (this.timer !== null) {
             clearInterval(this.timer);
             this.timer = null;
+        }
+
+        return this.saving;
+    }
+
+    /* The numbers the previous host kept, on every account no read or turn has drawn yet. */
+    async restore(): Promise<void> {
+        if (this.file === null) {
+            return;
+        }
+
+        let text: string;
+
+        try {
+            text = await readFile(this.file, 'utf8');
+        } catch (e) {
+            if (!isNotFound(e)) {
+                console.warn(`[usage] the kept plan limits would not read: ${errorText(e)}`);
+            }
+
+            return;
+        }
+
+        const kept = KeptLimitsSchema.safeParse(safeJson(text));
+
+        // Numbers from an older or broken file are not worth an error; the first read draws new ones.
+        if (!kept.success) {
+            return;
+        }
+
+        let changed = false;
+
+        for (const [id, published] of Object.entries(kept.data.accounts)) {
+            const state = this.stateOf(published.kind, id);
+
+            if (state.published.checkedAt === 0) {
+                state.published = published;
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            this.sinks.emit({ event: 'usage.limitsChanged', payload: this.snapshot() });
         }
     }
 
@@ -186,14 +253,17 @@ export class UsageMonitor {
         let state = this.states.get(id);
 
         if (state === undefined || state.kind !== kind) {
-            state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0 };
+            state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0, read: false };
             this.states.set(id, state);
         }
 
         return state;
     }
 
-    /* The default account on the clock; another only while it is in use, since every read starts its CLI. */
+    /*
+     * The default account on the clock; another once after the host started, and then only while it is
+     * in use, since every read starts its CLI. A restart forgets which accounts were in use.
+     */
     private due(account: LimitAccount, state: ProviderState, force: boolean): boolean {
         if (force) {
             return true;
@@ -203,7 +273,7 @@ export class UsageMonitor {
             return false;
         }
 
-        if (account.isDefault) {
+        if (account.isDefault || !state.read) {
             return true;
         }
 
@@ -237,6 +307,7 @@ export class UsageMonitor {
             // The next read is counted from when this one started, so a read that takes a few seconds does not push the tick of the clock past its time.
             const startedAt = this.now();
             const result = await this.read(account);
+            state.read = true;
             const failed = 'unavailable' in result && result.unavailable?.reason === 'failed';
             state.backoffMs = failed ? Math.min(MAX_BACKOFF_MS, state.backoffMs * 2) : PROBE_INTERVAL_MS;
             state.nextAt = startedAt + state.backoffMs;
@@ -297,5 +368,50 @@ export class UsageMonitor {
 
     private emit(): void {
         this.sinks.emit({ event: 'usage.limitsChanged', payload: this.snapshot() });
+        this.save();
+    }
+
+    /* One write at a time; changes that arrive meanwhile land together in the next one. */
+    private save(): void {
+        if (this.file === null || this.saveQueued) {
+            return;
+        }
+
+        const file = this.file;
+        this.saveQueued = true;
+
+        this.saving = this.saving.then(async () => {
+            this.saveQueued = false;
+
+            try {
+                await mkdir(dirname(file), { recursive: true });
+                await writeAtomic(file, JSON.stringify(this.kept()), 0o600);
+            } catch (e) {
+                console.warn(`[usage] the plan limits would not keep: ${errorText(e)}`);
+            }
+        });
+    }
+
+    /* The numbers worth showing after a restart: those of every listed account that has any. */
+    private kept(): z.infer<typeof KeptLimitsSchema> {
+        const accounts: Record<string, UsageLimitsProvider> = {};
+
+        for (const { id, kind } of this.listed()) {
+            const { published } = this.stateOf(kind, id);
+
+            if (published.windows.length > 0) {
+                accounts[id] = published;
+            }
+        }
+
+        return { version: 1, accounts };
+    }
+}
+
+function safeJson(text: string): unknown {
+    try {
+        return JSON.parse(text);
+    } catch {
+        return null;
     }
 }

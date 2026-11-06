@@ -44,10 +44,31 @@ An app that used to keep its single window under its own key passes that key as 
 
 - A second instance raises the window in front, or restores the session when no window is open.
 - A dock click with no window open restores the last session.
+- A dock click while windows are open but none shows brings them back with `bringBack()`.
 - A quit keeps its windows in the session and writes pending bounds.
 - Off macOS the app quits with its last window, which stays in the session.
 
 [Quitting](/shell/quitting) covers an app that asks before it quits.
+
+## Windows that got lost
+
+A window can end up where nobody reaches it. When an external display sleeps on a lock, macOS removes the Space of a window that was in full screen on it, and the window is left on no display at all. `bringBack()` puts every window back. A hidden window or one off every display moves onto a display and shows. A window in full screen whose display is gone leaves full screen first. A minimized window stays in the dock.
+
+The package listens to no event of the system, so the app calls `bringBack()` once things settle:
+
+```ts
+const settle = (): void => {
+    clearTimeout(timer);
+    timer = setTimeout(() => windows.bringBack(), 1000);
+};
+
+screen.on('display-removed', settle);
+screen.on('display-added', settle);
+powerMonitor.on('unlock-screen', settle);
+powerMonitor.on('resume', settle);
+```
+
+A full screen window counts as lost only against the displays' `bounds`, which `screen.getAllDisplays()` includes.
 
 ## What a window shows
 

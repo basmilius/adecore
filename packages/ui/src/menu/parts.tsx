@@ -97,10 +97,44 @@ type ItemLook = {
     unstyled?: boolean;
 };
 
+/*
+ * Typing in an open menu moves to the first row whose text starts with the letters, read from the
+ * row's `label` or else its rendered text. The space JSX keeps between an icon and the name
+ * (`<Icon /> {name}`) draws nothing in a row laid out with a gap, but it would start that text and
+ * keep the row from ever matching. A row whose text starts with something other than its name,
+ * such as initials before it, sets `label`.
+ */
+function withoutLeadingSpace(children: ReactNode): ReactNode {
+    if (typeof children === 'string') {
+        return children.trimStart();
+    }
+
+    if (!Array.isArray(children)) {
+        return children;
+    }
+
+    let reached = false;
+
+    return children.map((child: ReactNode) => {
+        if (reached || typeof child !== 'string') {
+            return child;
+        }
+
+        const trimmed = child.trimStart();
+        reached = trimmed !== '';
+
+        return trimmed;
+    });
+}
+
 type MenuItemProps = ComponentProps<typeof BaseMenu.Item> & ItemLook;
 
-export function MenuItem({ unstyled = false, className, ...props }: MenuItemProps) {
-    return <BaseMenu.Item className={unstyled ? className : withClass('menu-item', className)} {...props} />;
+export function MenuItem({ unstyled = false, className, children, ...props }: MenuItemProps) {
+    return (
+        <BaseMenu.Item className={unstyled ? className : withClass('menu-item', className)} {...props}>
+            {unstyled ? children : withoutLeadingSpace(children)}
+        </BaseMenu.Item>
+    );
 }
 
 export interface MenuCheckProps {
@@ -147,7 +181,7 @@ const checkRow = (kind: MenuCheckProps['kind'], unstyled: boolean, indicator: In
     ) : (
         <>
             {indicator === 'start' && <MenuCheck kind={kind} />}
-            {children}
+            {withoutLeadingSpace(children)}
             {indicator === 'end' && <MenuCheck kind={kind} className="ml-auto" />}
         </>
     );
@@ -182,7 +216,7 @@ type SubmenuTriggerProps = ComponentProps<typeof BaseMenu.SubmenuTrigger> & {
 export function MenuSubmenuTrigger({ className, children, chevron = true, ...props }: SubmenuTriggerProps) {
     return (
         <BaseMenu.SubmenuTrigger className={withClass('menu-item', className)} {...props}>
-            {children}
+            {withoutLeadingSpace(children)}
             {chevron && <Icon icon={ChevronRight} size={14} className="ml-auto text-text-faint" />}
         </BaseMenu.SubmenuTrigger>
     );

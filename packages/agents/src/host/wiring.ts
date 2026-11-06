@@ -19,7 +19,7 @@ import { createCodexProvider } from '../providers/codex-provider.ts';
 import type { CodexRules } from '../providers/codex-rules.ts';
 import { ProviderRegistry, type ProviderRegistryOptions } from '../providers/registry.ts';
 import { chatSessionAccounts, limitAccountsOf, usageAccountsOf, usageRootsOf } from '../usage/accounts.ts';
-import { UsageMonitor } from '../usage/limits/monitor.ts';
+import { limitsFileIn, UsageMonitor } from '../usage/limits/monitor.ts';
 import { UsageService } from '../usage/usage-service.ts';
 import { cliEnvironment, type CliEnvironmentPolicy } from './environment.ts';
 import { accountHandlers, chatHandlers, usageHandlers, type AgentHandlers } from './handlers.ts';
@@ -100,7 +100,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
 
     const nameOf = (kind: AgentKind | UsageProvider): string => providers.get(kind).name;
 
-    const limits = new UsageMonitor({ providers, accounts: limitAccountsOf(accounts, nameOf, env) });
+    const limits = new UsageMonitor({ providers, accounts: limitAccountsOf(accounts, nameOf, env), file: limitsFileIn(options.dataDir) });
     accounts.listen(() => limits.accountsChanged());
     const attachments = new AttachmentStore(options.dataDir);
     // Only without `core`, where `Core` is `ChatCore` itself.
@@ -164,7 +164,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
         stop: async () => {
             try {
                 usage.stop();
-                limits.stop();
+                await limits.stop();
                 accounts.stop();
             } finally {
                 await chats.shutdown();

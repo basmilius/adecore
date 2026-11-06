@@ -189,7 +189,14 @@ export function Composer({
 
     const pending = usePendingRequests(chatId);
     const compactionOffer = useCompactionOffer(chatId, info, capabilities?.compaction);
-    const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, mentionable: capabilities?.mentions !== false, hasSkills: menus.hasSkills });
+    const placeholder = useHintedPlaceholder({
+        chatId,
+        disabled,
+        readOnly,
+        mentionable: capabilities?.mentions !== false,
+        referable: menus.offersViews,
+        hasSkills: menus.hasSkills
+    });
     const editorExtensions = [
         chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips, referenceIcon: host.ReferenceIcon }),
         LEAVE_DROPS_TO_THE_CARD

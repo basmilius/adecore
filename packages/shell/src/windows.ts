@@ -1,5 +1,5 @@
 import type { App, BrowserWindow, Rectangle, WebContents } from 'electron';
-import type { WindowSize, WindowState, WindowStateStorage } from './window-state.ts';
+import { reachableOn, type WindowSize, type WindowState, type WindowStateStorage } from './window-state.ts';
 
 /* The key a window that shows no project keeps its bounds under, such as a start screen. */
 export const UNKEYED_STATE = 'start';
@@ -169,6 +169,57 @@ export const createWindows = (options: WindowsOptions) => {
 
         window.show();
         window.focus();
+    };
+
+    const place = (window: BrowserWindow): void => {
+        const bounds = options.state.fit(window.getNormalBounds());
+        window.setBounds(bounds);
+
+        if (bounds.x === undefined) {
+            window.center();
+        }
+
+        window.show();
+    };
+
+    /*
+     * A window in full screen covers a whole display. When that display goes, as an external screen does
+     * when it sleeps on a lock, macOS takes the window's Space with it and leaves the window nowhere.
+     */
+    const lostFullScreen = (window: BrowserWindow): boolean => {
+        const bounds = window.getBounds();
+
+        return !options.state
+            .displays()
+            .some(
+                (display) =>
+                    display.bounds === undefined ||
+                    (display.bounds.x === bounds.x &&
+                        display.bounds.y === bounds.y &&
+                        display.bounds.width === bounds.width &&
+                        display.bounds.height === bounds.height)
+            );
+    };
+
+    const bringBack = (): void => {
+        for (const { window } of alive()) {
+            if (window.isMinimized()) {
+                continue;
+            }
+
+            if (window.isFullScreen()) {
+                if (lostFullScreen(window)) {
+                    window.once('leave-full-screen', () => place(window));
+                    window.setFullScreen(false);
+                }
+
+                continue;
+            }
+
+            if (!window.isVisible() || reachableOn(window.getBounds(), options.state.displays()) === null) {
+                place(window);
+            }
+        }
     };
 
     const boundsFor = (key: string | null): Partial<Rectangle> & WindowSize => {
@@ -405,6 +456,14 @@ export const createWindows = (options: WindowsOptions) => {
             return true;
         },
 
+        /*
+         * Puts every window back where a person can reach it: one hidden or off every display goes onto one,
+         * one whose full screen lost its display leaves full screen first. A minimized window stays in the dock.
+         * Call it once displays settle after they changed, a lock ended or the system woke; a dock click
+         * while no window shows calls it through `attach`.
+         */
+        bringBack,
+
         /* The window that shows or keeps a key, if any. */
         holderOf: (key: string): BrowserWindow | null => holderOf(key)?.window ?? null,
 
@@ -501,9 +560,20 @@ export const createWindows = (options: WindowsOptions) => {
                 }
             });
 
-            app.on('activate', () => {
-                if (started && alive().length === 0) {
+            // Electron hands whether any window shows; none while some are open is a person looking for a window that got lost.
+            app.on('activate', (_event, hasVisibleWindows) => {
+                if (!started) {
+                    return;
+                }
+
+                if (alive().length === 0) {
                     restore();
+
+                    return;
+                }
+
+                if (!hasVisibleWindows) {
+                    bringBack();
                 }
             });
 

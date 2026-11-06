@@ -36,12 +36,17 @@ describe('buildUserMessage', () => {
 });
 
 describe('skill dispatch', () => {
-    test('a picked skill becomes the last text block, starting with a slash', () => {
+    test('a prompt that opens with a skill invokes it with the rest as arguments', () => {
+        const frame = buildUserMessage({ text: '$unslop the notes', skills: ['unslop'] });
+        expect((frame.message as { content: unknown[] }).content).toEqual([{ type: 'text', text: '/unslop the notes' }]);
+    });
+
+    test('a skill inside a sentence keeps the sentence whole and invokes the bare skill last', () => {
         const frame = buildUserMessage({ text: 'look at the notes and $unslop them', skills: ['unslop'] });
 
         expect((frame.message as { content: unknown[] }).content).toEqual([
-            { type: 'text', text: 'look at the notes and' },
-            { type: 'text', text: '/unslop them' }
+            { type: 'text', text: 'look at the notes and /unslop them' },
+            { type: 'text', text: '/unslop' }
         ]);
     });
 
@@ -50,12 +55,12 @@ describe('skill dispatch', () => {
         expect((frame.message as { content: unknown[] }).content).toEqual([{ type: 'text', text: '/unslop' }]);
     });
 
-    test('only the last skill is invoked; the earlier ones become slash names in the leading block', () => {
+    test('only the last skill is invoked; every skill becomes a slash name in the leading block', () => {
         const frame = buildUserMessage({ text: 'run $lint first, then $unslop it', skills: ['unslop', 'lint'] });
 
         expect((frame.message as { content: unknown[] }).content).toEqual([
-            { type: 'text', text: 'run /lint first, then' },
-            { type: 'text', text: '/unslop it' }
+            { type: 'text', text: 'run /lint first, then /unslop it' },
+            { type: 'text', text: '/unslop' }
         ]);
     });
 
@@ -63,7 +68,7 @@ describe('skill dispatch', () => {
         const frame = buildUserMessage({ text: 'see $unslop', skills: ['unslop'], attachments: [png] });
         const blocks = (frame.message as { content: Array<{ text: string }> }).content;
         expect(blocks).toHaveLength(2);
-        expect(blocks[0]!.text).toBe('see\n\nAttached files:\n- /home/x/.ruimte/attachments/chat-1/a1.png (shot.png)');
+        expect(blocks[0]!.text).toBe('see /unslop\n\nAttached files:\n- /home/x/.ruimte/attachments/chat-1/a1.png (shot.png)');
         expect(blocks[1]!.text).toBe('/unslop');
     });
 
@@ -84,7 +89,10 @@ describe('skill dispatch', () => {
 
 describe('splitSkillPrompt', () => {
     test('a name that prefixes another is not mistaken for it', () => {
-        expect(splitSkillPrompt('use $release-notes now', ['release', 'release-notes'])).toEqual({ lead: 'use', invocation: '/release-notes now' });
+        expect(splitSkillPrompt('use $release-notes now', ['release', 'release-notes'])).toEqual({
+            lead: 'use /release-notes now',
+            invocation: '/release-notes'
+        });
     });
 
     test('text without a skill token is left alone', () => {

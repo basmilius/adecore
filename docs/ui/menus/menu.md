@@ -60,6 +60,10 @@ The arrow keys reach each button after its row. Typeahead reads only the row's l
 
 A [`Kbd`](/ui/display/kbd) in a row sits at its end, faint. It only prints the shortcut; bind the key once outside the menu and call the same function.
 
+## Typing to find a row
+
+Typing in an open menu highlights the next row whose text starts with the letters, and Enter picks it. Letters typed within half a second count as one word. Pressing the same letter again moves on to the next row that starts with it. An icon before the name and the space after it don't count. A row whose text starts with something other than its name, such as initials, sets `label` to its name.
+
 ## Keyboard
 
 | Key | Action |
