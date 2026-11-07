@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-10-27T14:14:12.072Z",
+  "updatedAt": "2026-11-07T01:36:50.314Z",
   "defaultModel": "claude-sonnet-5-5",
   "profiles": {
     "frontier": {
@@ -24,7 +24,7 @@
           "type": "select",
           "defaultChoice": "1m",
           "choices": [
-            { "id": "200k", "label": "200k" },
+            { "id": "200k", "label": "200K" },
             { "id": "1m", "label": "1M" }
           ]
         }
@@ -53,7 +53,7 @@
           "type": "select",
           "defaultChoice": "1m",
           "choices": [
-            { "id": "200k", "label": "200k" },
+            { "id": "200k", "label": "200K" },
             { "id": "1m", "label": "1M" }
           ]
         },
@@ -89,7 +89,7 @@
           "type": "select",
           "defaultChoice": "200k",
           "choices": [
-            { "id": "200k", "label": "200k" },
+            { "id": "200k", "label": "200K" },
             { "id": "1m", "label": "1M" }
           ]
         }
