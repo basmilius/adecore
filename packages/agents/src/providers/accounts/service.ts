@@ -19,7 +19,7 @@ import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-tra
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';
-import type { ChatProvider } from '../provider.ts';
+import type { ChatProvider, ProviderShare } from '../provider.ts';
 import {
     accountEnv,
     accountFolder,
@@ -166,6 +166,10 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly watches = new Map<string, LoginWatch>();
     // One change of the file at a time: a create and a save both read what the other just wrote.
     private readonly writes = new Serializer();
+    // Links and unlinks of the shared setup, apart from the checks: an apply that started while the flag was on must end before the removal, and reads the flag again when its turn comes.
+    private readonly shares = new Serializer();
+    // Accounts whose flag is off but whose links could not be removed; every check tries again. Only these are unlinked, so a link a person made themselves stays.
+    private readonly pendingUnshare = new Set<string>();
     private readonly sinks = new ClientSinks<AgentEvent>();
     private readonly listeners = new Set<() => void>();
     // When a CLI last started under each account, by id; kept in memory, so a restart forgets it.
@@ -409,8 +413,30 @@ export class ProviderAccountsService implements AccountLaunches {
             const { shareConfig: _was, ...rest } = account;
             const snapshot = await this.commit({ ...this.accounts, [id]: shared ? { ...rest, shareConfig: true } : rest }, this.folderExists, 'shareConfig');
 
-            if (!shared) {
-                await this.removeShared(defaultFolder(provider, this.env), expandHome(account.home, this.env), share);
+            if (shared) {
+                this.pendingUnshare.delete(id);
+
+                return snapshot;
+            }
+
+            if (account.shareConfig !== true && !this.pendingUnshare.has(id)) {
+                return snapshot;
+            }
+
+            const from = defaultFolder(provider, this.env);
+            const into = expandHome(account.home, this.env);
+
+            try {
+                await this.shares.run(async () => {
+                    this.pendingUnshare.add(id);
+                    await this.removeShared(from, into, share);
+                    this.pendingUnshare.delete(id);
+                });
+            } catch (e) {
+                // The flag is off already; a check says what stayed linked and tries again.
+                void this.queue(true, id);
+
+                throw e;
             }
 
             return snapshot;
@@ -825,7 +851,7 @@ export class ProviderAccountsService implements AccountLaunches {
 
         const home = expandHome(account.home, this.env);
         // Before the hooks, so a settings file the copy writes is one the hooks are then merged into.
-        const sharedMessage = await this.prepareShared(kind, account, home);
+        const sharedMessage = await this.prepareShared(id, kind);
         await this.install?.(kind, home).catch((e: unknown) => console.error(`Could not install hooks in ${home}:`, errorText(e)));
 
         if (account.shadowHome === undefined) {
@@ -842,24 +868,58 @@ export class ProviderAccountsService implements AccountLaunches {
     }
 
     /* Links and seeds an account that shares the default account's setup; a failure is said and never keeps the account from starting. */
-    private async prepareShared(kind: AgentKind, account: ProviderAccount, home: string): Promise<string | null> {
-        const share = this.providers.get(kind).home?.share;
+    private async prepareShared(id: string, kind: AgentKind): Promise<string | null> {
+        const provider = this.providers.get(kind);
+        const share = provider.home?.share;
 
         // A flag on an account of a CLI that shares nothing is kept in the file and ignored here.
-        if (account.shareConfig !== true || share === undefined) {
+        if (share === undefined) {
             return null;
         }
 
-        const from = defaultFolder(this.providers.get(kind), this.env);
+        const from = defaultFolder(provider, this.env);
+
+        // The check began with an account as it was then; a person may have turned sharing off since, so the flag is read when it is this one's turn.
+        return this.shares.run(async () => {
+            const live = this.accounts[id];
+
+            if (live?.home === undefined) {
+                return null;
+            }
+
+            const home = expandHome(live.home, this.env);
+
+            if (live.shareConfig !== true) {
+                return this.retryUnshare(id, from, home, share);
+            }
+
+            try {
+                const report = await this.applyShared(from, home, share, this.ownsSettings);
+
+                return report.unshared.length > 0 ? `Not shared with ${from}: ${report.unshared.join(', ')}` : null;
+            } catch (e) {
+                console.error(`Could not share the setup of ${from} with ${home}:`, errorText(e));
+
+                return `Could not share the setup of ${from}: ${errorText(e)}`;
+            }
+        });
+    }
+
+    /* Tries again to unlink an account that was turned off while its links could not be removed. */
+    private async retryUnshare(id: string, from: string, home: string, share: ProviderShare): Promise<string | null> {
+        if (!this.pendingUnshare.has(id)) {
+            return null;
+        }
 
         try {
-            const report = await this.applyShared(from, home, share, this.ownsSettings);
+            await this.removeShared(from, home, share);
+            this.pendingUnshare.delete(id);
 
-            return report.unshared.length > 0 ? `Not shared with ${from}: ${report.unshared.join(', ')}` : null;
+            return null;
         } catch (e) {
-            console.error(`Could not share the setup of ${from} with ${home}:`, errorText(e));
+            console.error(`Could not remove the shared setup of ${from} from ${home}:`, errorText(e));
 
-            return `Could not share the setup of ${from}: ${errorText(e)}`;
+            return `Could not remove the shared setup of ${from}: ${errorText(e)}`;
         }
     }
 

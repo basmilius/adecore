@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { AgentKind, ProviderAccount, ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
@@ -8,7 +8,7 @@ import { memorySecrets } from '../../testing/accounts.ts';
 import { providerFor } from '../registry.ts';
 import { ProviderAccountsService } from './service.ts';
 import type { ShadowHomeReport } from './shadow-home.ts';
-import type { SharedConfigReport } from './shared-config.ts';
+import { applySharedConfig, removeSharedConfig, type SharedConfigReport } from './shared-config.ts';
 import type { AccountReading } from './status.ts';
 
 // Windows reads the home from USERPROFILE, joins with backslashes and resolves a rooted path onto a drive.
@@ -387,6 +387,152 @@ describe('ProviderAccountsService', () => {
 
             expect(service.snapshot().accounts.codex_personal?.shareConfig).toBe(true);
             expect(steps.filter((step) => step.startsWith('share'))).toEqual([]);
+        });
+
+        describe('against real folders', () => {
+            let root: string;
+            let defaultFolderPath: string;
+            let accountFolderPath: string;
+            let applying: Promise<void> | null;
+            let applyStarted: Promise<void>;
+            let signalApply: () => void;
+            let releaseApply: () => void;
+            let removalFailure: Error | null;
+            let removeCalls: number;
+
+            const realAccount = { kind: 'claude', label: 'Personal' } as const;
+
+            const makeReal = async (): Promise<ProviderAccountsService> => {
+                const service = new ProviderAccountsService({
+                    home: dir,
+                    providers,
+                    env: { HOME: root, USERPROFILE: root },
+                    secrets: null,
+                    ask: async () => ({ signedIn: true, email: null, plan: null, organization: null }),
+                    // Only the first apply waits, so the test holds it while it changes the flag.
+                    applyShared: async (from, into, share, owns) => {
+                        const wait = applying;
+                        applying = null;
+                        signalApply();
+                        await wait;
+
+                        return applySharedConfig(from, into, share, owns);
+                    },
+                    removeShared: async (from, into, share) => {
+                        removeCalls += 1;
+
+                        if (removalFailure !== null) {
+                            throw removalFailure;
+                        }
+
+                        return removeSharedConfig(from, into, share);
+                    }
+                });
+                await service.load();
+                await service.save({ claude_personal: { ...realAccount, home: accountFolderPath } });
+
+                return service;
+            };
+
+            const holdApply = (): void => {
+                applyStarted = new Promise((resolve) => {
+                    signalApply = resolve;
+                });
+                applying = new Promise((resolve) => {
+                    releaseApply = resolve;
+                });
+            };
+
+            const isLinked = async (): Promise<boolean> => {
+                try {
+                    return (await lstat(join(accountFolderPath, 'CLAUDE.md'))).isSymbolicLink();
+                } catch {
+                    return false;
+                }
+            };
+
+            beforeEach(async () => {
+                root = await mkdtemp(join(tmpdir(), 'ruimte-share-'));
+                defaultFolderPath = join(root, '.claude');
+                accountFolderPath = join(root, '.claude_personal');
+                await mkdir(defaultFolderPath);
+                await mkdir(accountFolderPath);
+                await writeFile(join(defaultFolderPath, 'CLAUDE.md'), 'rules');
+                applying = null;
+                signalApply = () => undefined;
+                releaseApply = () => undefined;
+                applyStarted = Promise.resolve();
+                removalFailure = null;
+                removeCalls = 0;
+            });
+
+            afterEach(async () => {
+                await rm(root, { recursive: true, force: true });
+            });
+
+            test('ends unlinked when it is turned off during an apply that was already running', async () => {
+                const service = await makeReal();
+                holdApply();
+                await service.shareConfig('claude_personal', true);
+                await applyStarted;
+                const off = service.shareConfig('claude_personal', false);
+                releaseApply();
+                const after = await off;
+                await service.refresh();
+
+                expect(after.accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(await isLinked()).toBe(false);
+            });
+
+            test('ends linked when it is turned off and on again during an apply that was already running', async () => {
+                const service = await makeReal();
+                holdApply();
+                await service.shareConfig('claude_personal', true);
+                await applyStarted;
+                const off = service.shareConfig('claude_personal', false);
+                const on = service.shareConfig('claude_personal', true);
+                releaseApply();
+                await Promise.all([off, on]);
+                await service.refresh();
+
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBe(true);
+                expect(await isLinked()).toBe(true);
+            });
+
+            test('says when the links stayed and removes them in a later check', async () => {
+                const service = await makeReal();
+                await service.shareConfig('claude_personal', true);
+                await service.refresh();
+                removalFailure = new Error('disk is full');
+
+                await expect(service.shareConfig('claude_personal', false)).rejects.toThrow('disk is full');
+                const failing = await service.refresh();
+
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(await isLinked()).toBe(true);
+                expect(stateOf(failing, 'claude_personal')?.message).toBe(`Could not remove the shared setup of ${defaultFolderPath}: disk is full`);
+
+                removalFailure = null;
+                const fixed = await service.refresh();
+                const calls = removeCalls;
+                await service.refresh();
+
+                expect(await isLinked()).toBe(false);
+                expect(stateOf(fixed, 'claude_personal')?.message).toBeNull();
+                expect(removeCalls).toBe(calls);
+            });
+
+            test('keeps a link a person made in an account that never shared', async () => {
+                await symlink(join(defaultFolderPath, 'CLAUDE.md'), join(accountFolderPath, 'CLAUDE.md'));
+                const service = await makeReal();
+                await service.refresh();
+                await service.shareConfig('claude_personal', false);
+                await service.refresh();
+
+                expect(await isLinked()).toBe(true);
+                expect(removeCalls).toBe(0);
+            });
         });
     });
 
