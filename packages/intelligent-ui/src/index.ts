@@ -42,6 +42,7 @@ export {
     type UiViewNode
 } from './runtime.ts';
 export { uiValidatedState, uiQueryArguments, uiQueryFallback } from './query.ts';
+export { uiNodeQueries } from './node-queries.ts';
 export { UiNodeSchema, UiDiagnosticSchema, UiBlockSchema, UiBlocksSchema } from './protocol.ts';
 export { uiCompactCatalog, uiSessionNote, uiGroupReference, uiReferenceText, uiFallbackText, type UiTextOptions } from './text.ts';
 export { UI_STREAM_INTERVAL_MS, UiStream, type UiStreamClock, type UiStreamOptions, type UiStreamPreview } from './stream.ts';

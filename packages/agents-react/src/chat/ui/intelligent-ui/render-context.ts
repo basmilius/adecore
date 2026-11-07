@@ -44,6 +44,9 @@ export interface UiLiveStatus {
     code?: string;
 }
 
+/* Whether a node that reads live data shows its last reading (`live`) or one a failed read left behind (`stale`). */
+export type UiLiveNodeState = 'live' | 'stale';
+
 /* Live history is separate from the comparison the agent supplies in Stat.previous. */
 export interface UiLiveValue {
     previous?: unknown;
@@ -79,6 +82,8 @@ export interface UiRenderContext {
     place?(nodeId: string, address: string): UiPlacePoint | null | undefined;
     /* Table cells use the evaluated rows index and column key. */
     liveValue?(nodeId: string, prop: string, path?: readonly [row: number, key: string]): UiLiveValue | undefined;
+    /* Undefined for a node that reads no live data. */
+    liveNode?(nodeId: string): UiLiveNodeState | undefined;
 }
 
 export interface UiRendererProps<Props> {

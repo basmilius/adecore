@@ -425,7 +425,7 @@ describe('text and status', () => {
         expect(markup('<Stats><Stat label="Tests" value={3} previous={0} tone="danger"/></Stats>')).toContain('text-status-error');
     });
 
-    test('a live stat lights up once it changed, stays muted when stale and keeps the comparison the agent wrote', () => {
+    test('a live stat lights up once it changed, stays dark when stale and keeps the comparison the agent wrote', () => {
         const source = '<Stats><Stat label="Changed files" value={4} previous={2}/></Stats>';
         const asked: [string, string][] = [];
 
@@ -438,11 +438,12 @@ describe('text and status', () => {
         });
 
         expect(asked.map(([, prop]) => prop)).toEqual(['value']);
-        expect(changed).toMatch(/<span class="text-text chat-ui-changed max-w-full truncate text-lg font-semibold tabular-nums">4<\/span>/);
+        expect(changed).toMatch(/<span class="chat-ui-changed max-w-full truncate text-lg font-semibold text-text tabular-nums">4<\/span>/);
         expect(changed).toContain('100% from 2');
         expect(markup(source, { liveValue: () => ({ previous: 4.001, changed: true, stale: false }) })).not.toContain('chat-ui-changed');
+        // The node around a stale value dims it; the value itself keeps its color.
         const stale = markup(source, { liveValue: () => ({ changed: true, stale: true }) });
-        expect(stale).toContain('text-text-muted max-w-full truncate text-lg');
+        expect(stale).not.toContain('text-text-muted max-w-full');
         expect(stale).not.toContain('chat-ui-changed');
         expect(markup(source)).not.toContain('chat-ui-changed');
     });
@@ -488,27 +489,37 @@ describe('tables', () => {
         expect(html).toContain('Show all 60 rows');
     });
 
-    test('ask for the live state of numeric cells only, by row and key', () => {
+    test('ask for the live state of every cell by row and key, and light any kind that changed', () => {
         const asked: unknown[] = [];
 
         const html = markup(
-            '<Table rows={[{name: "Core", size: 32}, {name: "Client", size: 40}]}><Column key="name"/><Column key="size" as="number"/></Table>',
+            '<Table rows={[{name: "Core", size: 32}, {name: "Client", size: 40, state: "red"}]}><Column key="name"/><Column key="size" as="number"/><Column key="state" as="tag"/></Table>',
             {
                 liveValue: (_nodeId, prop, path) => {
                     asked.push([prop, path]);
 
-                    return path?.[0] === 1 ? { previous: 38, changed: true, stale: false } : { changed: false, stale: true };
+                    if (path?.[0] === 1 && path[1] === 'size') {
+                        return { previous: 38, changed: true, stale: false };
+                    }
+
+                    return path?.[0] === 1 && path[1] === 'state' ? { previous: 'green', changed: true, stale: false } : { changed: false, stale: false };
                 }
             }
         );
 
         expect(asked).toEqual([
+            ['rows', [0, 'name']],
             ['rows', [0, 'size']],
-            ['rows', [1, 'size']]
+            ['rows', [0, 'state']],
+            ['rows', [1, 'name']],
+            ['rows', [1, 'size']],
+            ['rows', [1, 'state']]
         ]);
 
-        expect(html).toContain('<span class="text-text-muted">32</span>');
-        expect(html).toContain('<span class="text-text chat-ui-changed">40</span>');
+        expect(html).toContain('<span>32</span>');
+        expect(html).toContain('<span class="chat-ui-changed">40</span>');
+        expect(html).toMatch(/<span class="chat-ui-changed"><span[^>]*>red<\/span><\/span>/);
+        expect(html).toContain('<span>Core</span>');
     });
 
     test('draw their text when no column is usable', () => {

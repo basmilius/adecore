@@ -155,15 +155,20 @@
     @keyframes chat-fade { from { opacity: 0; } to { opacity: 1; } }
     /* A node of an intelligent UI block that lands inside another, such as a step or a row: 160ms like
        the card's own children, but only a fade, so a parent arriving with its children rises once. */
-    .chat-ui-nodes > * {
+    .chat-ui-nodes > *, .chat-ui-nodes > .chat-ui-live > * {
         transition: opacity 160ms ease-out;
         @starting-style { opacity: 0; }
     }
-    /* A value a live reading changed lights up in the accent once and settles back in 800ms. */
-    .chat-ui-changed { animation: chat-ui-changed 800ms ease-out; }
+    /* A node whose live read failed dims its last value until a read succeeds. The wrapper draws no box of its
+       own, so its child dims; one stale inside another stays at the parent's opacity rather than dimming twice. */
+    .chat-ui-stale.chat-ui-live > *, .chat-ui-stale.chat-ui-live-text { opacity: 0.5; transition: opacity 160ms ease-out; }
+    .chat-ui-stale .chat-ui-stale.chat-ui-live > *, .chat-ui-stale .chat-ui-stale.chat-ui-live-text { opacity: 1; }
+    /* A value a live reading changed lights up in the accent once and settles back in 800ms. A tag keeps a
+       color of its own, so the light runs on the direct child too. */
+    .chat-ui-changed, .chat-ui-changed > * { animation: chat-ui-changed 800ms ease-out; }
     @keyframes chat-ui-changed { from { color: var(--accent); } }
     @media (prefers-reduced-motion: reduce) {
-        .chat-ui-changed { animation: none; }
+        .chat-ui-changed, .chat-ui-changed > * { animation: none; }
     }
     /*
      * A block stands in a band across the whole thread, hatched above and below, with its tiles at the

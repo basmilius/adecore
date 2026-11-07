@@ -294,11 +294,29 @@ interface UiNodesProps {
 
 /* The children of one parent, each in its own boundary. Where the parent stacks them, a run of text and inline nodes becomes a paragraph. */
 function UiNodes({ nodes, parent, texts, context }: UiNodesProps): ReactNode {
-    const drawn = (node: UiViewNode) => (
-        <UiNodeBoundary key={node.id} node={node}>
-            <UiNodeBody node={node} parent={parent} texts={texts} context={context} />
-        </UiNodeBoundary>
-    );
+    const drawn = (node: UiViewNode) => {
+        const body = (
+            <UiNodeBoundary node={node}>
+                <UiNodeBody node={node} parent={parent} texts={texts} context={context} />
+            </UiNodeBoundary>
+        );
+
+        const live = context.liveNode?.(node.id);
+
+        if (live === undefined) {
+            return <Fragment key={node.id}>{body}</Fragment>;
+        }
+
+        // Every node that reads live data has this wrapper, stale or not, so a failed read never mounts a map or a chart again.
+        // Text has no element of its own to dim, so its wrapper is an inline box rather than none.
+        const shape = node.type === '$text' ? 'chat-ui-live-text' : 'chat-ui-live contents';
+
+        return (
+            <span key={node.id} className={live === 'stale' ? `${shape} chat-ui-stale` : shape}>
+                {body}
+            </span>
+        );
+    };
 
     const paragraph = PARAGRAPHS[parent];
 
@@ -506,7 +524,7 @@ function UiBlockBody({
         [sources, element]
     );
 
-    const liveValue = useUiLiveValues(block, evaluation.nodes, queries.currentReadings);
+    const { liveValue, liveNode } = useUiLiveValues(block, evaluation.nodes, queries.currentReadings);
     const sendChoice = host.intelligentUi?.sendChoice;
     const place = useMemo(() => placeReader(frozen, block.revision, unrecorded), [frozen, block.revision, unrecorded]);
 
@@ -518,6 +536,7 @@ function UiBlockBody({
         failedChoiceId,
         live: queries.live,
         liveValue,
+        liveNode,
         choiceReason: uiLiveChoiceReason(t, queries.live),
         onChoose:
             !queries.ready || queries.reading

@@ -1,8 +1,9 @@
 import type { ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
-import { uiInputValues, UI_CATALOG_VERSION, UI_HOST_LIMITS, UiState, type UiBlock, type UiViewNode, type UiNode } from '@adecore/intelligent-ui';
+import { uiInputValues, uiNodeQueries, UI_CATALOG_VERSION, UI_HOST_LIMITS, UiState, type UiBlock, type UiViewNode } from '@adecore/intelligent-ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChatHost } from '../../../host';
-import type { UiLiveValue, UiLiveStatus, UiRenderContext } from './render-context';
+import { UiPageMemory } from './block-local';
+import type { UiLiveNodeState, UiLiveValue, UiLiveStatus, UiRenderContext } from './render-context';
 
 interface LocalReading {
     identity: string;
@@ -13,6 +14,12 @@ interface LocalReading {
 const NO_READINGS: ChatUiQueryState['blocks'][string]['readings'] = {};
 // A changed input reads once it has rested this long, so dragging a slider reads its last value only.
 const INPUT_SETTLE_MS = 300;
+
+// What each block last read, so a block the thread unmounts while scrolling comes back with its own last value rather than the frozen first one.
+const remembered = new UiPageMemory<Record<string, LocalReading>>(64);
+
+/* Answers for a read the host never tried; while a value stands they say nothing about it. */
+const NOT_TRIED = new Set(['busy', 'refresh-limit']);
 
 /* The reading that holds for these inputs: this view's own read of them, or the frozen first one for the inputs the block starts with. */
 function successfulReading(
@@ -45,7 +52,13 @@ export function useUiQueries(
     frozen?: ChatUiQueryState['blocks'][string]
 ) {
     const host = useChatHost();
-    const [readings, setReadings] = useState<Record<string, LocalReading>>({});
+    const memoryKey = JSON.stringify([context.scopeId, context.chatId, context.itemId, block.id]);
+    const [readings, setReadings] = useState<Record<string, LocalReading>>(() => remembered.get(memoryKey) ?? {});
+
+    useEffect(() => {
+        remembered.set(memoryKey, readings);
+    }, [memoryKey, readings]);
+
     const [busyInput, setBusyInput] = useState<string | null>(null);
     const lastRead = useRef({ inputKey: '', at: 0 });
     const names = Object.keys(block.queries);
@@ -168,15 +181,28 @@ export function useUiQueries(
                         state.setQuery(name, reading.value, block);
                     }
 
-                    setReadings((previous) => ({
-                        ...previous,
-                        [name]: {
-                            identity,
-                            reading,
-                            successful:
-                                reading.state === 'fresh' ? { inputs, reading } : previous[name]?.identity === identity ? previous[name].successful : undefined
+                    setReadings((previous) => {
+                        const untried = reading.state === 'failed' && reading.code !== undefined && NOT_TRIED.has(reading.code);
+
+                        // The next refresh tries again; until then the value and any real reason it failed stay as they are.
+                        if (untried && successfulReading(previous[name], initial[name], identity, inputs, defaultInputs) !== undefined) {
+                            return previous;
                         }
-                    }));
+
+                        return {
+                            ...previous,
+                            [name]: {
+                                identity,
+                                reading,
+                                successful:
+                                    reading.state === 'fresh'
+                                        ? { inputs, reading }
+                                        : previous[name]?.identity === identity
+                                          ? previous[name].successful
+                                          : undefined
+                            }
+                        };
+                    });
                 } catch (error) {
                     if (stopped) {
                         return;
@@ -245,7 +271,22 @@ export function useUiQueries(
                 clearTimeout(timer);
             }
         };
-    }, [block, state, context.scopeId, context.chatId, context.itemId, context.phase, inputs, query, subscribe, element, identity, inputKey]);
+    }, [
+        block,
+        state,
+        context.scopeId,
+        context.chatId,
+        context.itemId,
+        context.phase,
+        inputs,
+        query,
+        subscribe,
+        element,
+        identity,
+        inputKey,
+        initial,
+        defaultInputs
+    ]);
 
     const currentReadings = Object.fromEntries(
         names.flatMap((name) => {
@@ -262,8 +303,9 @@ export function useUiQueries(
         ? {
               state: reading || (!ready && !failed) ? 'reading' : (failed?.[1].state ?? 'fresh'),
               sources: names.map((name) => block.queries[name].source),
-              readAt: Object.values(currentReadings)
-                  .filter((reading) => reading.state === 'fresh')
+              // From the readings that hold, so a failure does not take away when the value on screen was read.
+              readAt: names
+                  .flatMap((name) => successfulFor(name, inputs) ?? [])
                   .reduce<number | null>((at, value) => (at === null ? value.readAt : Math.min(at, value.readAt)), null),
               source: failed ? block.queries[failed[0]]?.source : undefined,
               reason: failed?.[1].reason,
@@ -283,47 +325,16 @@ export function useUiLiveValues(block: UiBlock, nodes: readonly UiViewNode[], re
         }
     );
 
-    const dependencies = new Map<string, Set<string>>();
+    const dependencies = useMemo(() => uiNodeQueries(block), [block]);
     const names = new Set(Object.keys(block.queries));
-
-    const references = (value: unknown, into: Set<string>) => {
-        if (!value || typeof value !== 'object') {
-            return;
-        }
-
-        const expression = value as Record<string, unknown>;
-
-        if (expression.kind === 'reference' && names.has(String(expression.name))) {
-            into.add(String(expression.name));
-        }
-
-        for (const child of Object.values(expression)) {
-            if (Array.isArray(child)) {
-                child.forEach((item) => references(item, into));
-            } else if (typeof child === 'object') {
-                references(child, into);
-            }
-        }
-    };
-
-    const written = (nodes: readonly UiNode[], inherited = new Set<string>()) => {
-        for (const node of nodes) {
-            const related = new Set(inherited);
-            references(node.expressions, related);
-            dependencies.set(node.id, related);
-            written(node.children, node.type === 'Each' ? related : inherited);
-        }
-    };
-
-    written(block.nodes);
     const values = new Map<string, Record<string, unknown>>();
-    const sources = new Map<string, Set<string>>();
+    const sources = new Map<string, readonly string[]>();
 
     const collect = (nodes: readonly UiViewNode[]) => {
         for (const node of nodes) {
-            const related = dependencies.get(node.sourceId ?? node.id);
+            const related = dependencies[node.sourceId ?? node.id];
 
-            if (related?.size && !node.error) {
+            if (related !== undefined && !node.error) {
                 values.set(node.id, node.props);
                 sources.set(node.id, related);
             }
@@ -341,29 +352,38 @@ export function useUiLiveValues(block: UiBlock, nodes: readonly UiViewNode[], re
     }
 
     if (!names.size) {
-        return undefined;
+        return { liveValue: undefined, liveNode: undefined };
     }
 
-    return (id: string, prop: string, path?: readonly [number, string]): UiLiveValue | undefined => {
+    const stale = (related: readonly string[]) => related.some((name) => readings[name]?.state === 'failed' || readings[name]?.state === 'refused');
+
+    const liveValue = (id: string, prop: string, path?: readonly [number, string]): UiLiveValue | undefined => {
         const related = sources.get(id);
 
         if (!related) {
             return undefined;
         }
 
-        const get = (props?: Record<string, unknown>): unknown => {
-            const value = props?.[prop];
+        const before = previous.get(id)?.[prop];
+        const now = values.get(id)?.[prop];
 
-            return path && Array.isArray(value) ? value[path[0]]?.[path[1]] : value;
-        };
-
-        const before = get(previous.get(id));
-        const value = get(values.get(id));
+        // A row added or taken away moves every row under it, so a cell compares only while the rows are the ones it had.
+        const moved = path !== undefined && (!Array.isArray(before) || !Array.isArray(now) || before.length !== now.length);
+        const was = path && Array.isArray(before) ? before[path[0]]?.[path[1]] : before;
+        const is = path && Array.isArray(now) ? now[path[0]]?.[path[1]] : now;
 
         return {
-            previous: before,
-            changed: before !== undefined && JSON.stringify(before) !== JSON.stringify(value),
-            stale: [...related].some((name) => readings[name]?.state === 'failed' || readings[name]?.state === 'refused')
+            previous: moved ? undefined : was,
+            changed: !moved && was !== undefined && JSON.stringify(was) !== JSON.stringify(is),
+            stale: stale(related)
         };
     };
+
+    const liveNode = (id: string): UiLiveNodeState | undefined => {
+        const related = sources.get(id);
+
+        return related === undefined ? undefined : stale(related) ? 'stale' : 'live';
+    };
+
+    return { liveValue, liveNode };
 }

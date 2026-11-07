@@ -88,7 +88,7 @@ The backend reads only when a visible block asks.
 
 When a reply is final, the backend reads every query once and freezes those first readings, the link resolutions and a text fallback in the item's `uiQueries`. A page draws them at once, and a client that cannot read live still has them. `uiQueryFallback(block, values)` builds the fallback text from those first values, so the agent's history keeps what the person saw.
 
-The page reads again while a block is visible and the app is in front: at most every ten seconds, and once more after an input rests for 300 ms. A failed read keeps the last value, muted. Choices stay closed while a block reads, and send the read ids of the values on screen; see [choices](/intelligent-ui/host/choices#live-blocks).
+The page reads again while a block is visible and the app is in front: at most every ten seconds, and once more after an input rests for 300 ms. A failed or refused read keeps the last value until the next read succeeds: every node that reads the query dims, and the reason shows under the block. A read the host turned away (`busy`, `refresh-limit`) changes nothing while a value stands. A value that changed lights up once. `uiNodeQueries(block)` names the queries each written node reads, by node id, the queries of an enclosing `Each` included, so a client that draws natively can dim the same nodes. Choices stay closed while a block reads, and send the read ids of the values on screen; see [choices](/intelligent-ui/host/choices#live-blocks).
 
 ## Reason codes
 

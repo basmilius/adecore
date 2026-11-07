@@ -15,6 +15,7 @@ Every name each entry point exports, types included, read from its source. Anyth
 | `parseUiEventTime` | [Status](/intelligent-ui/components/status#timeline-and-event) |
 | `uiLinkTargets` and the link schemas | [Links](/intelligent-ui/host/links) |
 | `uiPlaceQueries` | [Live queries](/intelligent-ui/host/queries#places) |
+| `uiNodeQueries` | [Live queries](/intelligent-ui/host/queries#freshness) |
 
 ## `@adecore/intelligent-ui`
 
