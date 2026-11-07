@@ -16,7 +16,7 @@ import { probeClaude, probeCodex, type ProbeResult } from './probe.ts';
 /* Often enough that a bar is never far behind, rarely enough that two CLIs are not started all day. */
 const PROBE_INTERVAL_MS = 5 * 60_000;
 const MAX_BACKOFF_MS = 60 * 60_000;
-/* An account other than the default one that nobody started a CLI under for this long is only read when a person asks. */
+/* An account other than the default one that nobody started a CLI under for this long is read only while a usage page is open, or when a person asks. */
 const RECENT_USE_MS = 24 * 60 * 60_000;
 
 const PROVIDERS: readonly UsageProvider[] = USAGE_PROVIDERS;
@@ -59,8 +59,6 @@ interface ProviderState {
     /* How long to wait after a failure; it doubles up to an hour and resets on the first answer. */
     backoffMs: number;
     nextAt: number;
-    /* Whether a pass read this account since the host started; the first pass reads every account once. */
-    read: boolean;
     /* Counts the numbers a running turn reported, so a read that started before one does not replace it. */
     liveRevision: number;
 }
@@ -109,7 +107,9 @@ export class UsageMonitor {
     private readonly plans: NonNullable<UsageMonitorOptions['plans']>;
     private readonly now: () => number;
     private readonly file: string | null;
-    private readonly sinks = new ClientSinks<AgentEvent>();
+    private readonly sinks = new ClientSinks<AgentEvent>((clientId) => this.unwatch(clientId));
+    // The clients with a usage page open, which is what lets an account nobody uses here be read.
+    private readonly watchers = new Set<string>();
     // By account id, so the default account of a CLI is under the CLI's kind.
     private readonly states = new Map<string, ProviderState>();
     private inFlight: Promise<void> | null = null;
@@ -134,6 +134,24 @@ export class UsageMonitor {
 
     subscribe(clientId: string, sink: AgentSink): () => void {
         return this.sinks.subscribe(clientId, sink);
+    }
+
+    /*
+     * A usage page opened on this client. While one is open anywhere, the pass also reads the accounts nobody
+     * used here; the first page reads them at once, as far as their clock and backoff allow.
+     */
+    watch(clientId: string): void {
+        const first = this.watchers.size === 0;
+        this.watchers.add(clientId);
+
+        if (first) {
+            void this.refresh(false);
+        }
+    }
+
+    /* The page closed, or the client went. */
+    unwatch(clientId: string): void {
+        this.watchers.delete(clientId);
     }
 
     /* Per CLI its default account first, in the shape an entry had before accounts, then its other accounts. */
@@ -286,7 +304,7 @@ export class UsageMonitor {
         let state = this.states.get(id);
 
         if (state === undefined || state.kind !== kind) {
-            state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0, read: false, liveRevision: 0 };
+            state = { kind, published: blank(kind), backoffMs: PROBE_INTERVAL_MS, nextAt: 0, liveRevision: 0 };
             this.states.set(id, state);
         }
 
@@ -294,8 +312,9 @@ export class UsageMonitor {
     }
 
     /*
-     * The default account on the clock; another once after the host started, and then only while it is
-     * in use, since every read starts its CLI. A restart forgets which accounts were in use.
+     * The default account on the clock; another only while it is in use or a usage page is open, since every
+     * read starts its CLI. A restart forgets which accounts were in use, so until one is used again or a page
+     * opens it shows the numbers kept in `file`.
      */
     private due(account: LimitAccount, state: ProviderState, force: boolean): boolean {
         if (force) {
@@ -306,7 +325,7 @@ export class UsageMonitor {
             return false;
         }
 
-        if (account.isDefault || !state.read) {
+        if (account.isDefault || this.watchers.size > 0) {
             return true;
         }
 
@@ -347,7 +366,6 @@ export class UsageMonitor {
             const startedAt = this.now();
             const liveRevision = state.liveRevision;
             const result = await this.read(account);
-            state.read = true;
             const failed = 'unavailable' in result && result.unavailable?.reason === 'failed';
             state.backoffMs = failed ? Math.min(MAX_BACKOFF_MS, state.backoffMs * 2) : PROBE_INTERVAL_MS;
             state.nextAt = startedAt + state.backoffMs;

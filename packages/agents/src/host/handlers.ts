@@ -164,14 +164,16 @@ export function accountHandlers(accounts: ProviderAccountsService): { [T in Acco
 export function usageHandlers(usage: UsageService, limits: UsageMonitor): { [T in UsageRequestType]: AgentHandler<T> } {
     return {
         'usage.summary': (payload) => usage.summary(payload),
-        // While a client has the page open the host keeps scanning; every other client gets the event too.
+        // While a client has the page open the host keeps scanning and reads the accounts nobody used here; every other client gets the event too.
         'usage.subscribe': (_payload, clientId) => {
             usage.follow(clientId);
+            limits.watch(clientId);
 
             return {};
         },
         'usage.unsubscribe': (_payload, clientId) => {
             usage.unfollow(clientId);
+            limits.unwatch(clientId);
 
             return {};
         },
