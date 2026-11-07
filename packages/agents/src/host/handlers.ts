@@ -151,6 +151,7 @@ export function accountHandlers(accounts: ProviderAccountsService): { [T in Acco
         'accounts.list': () => accounts.snapshot(),
         'accounts.save': (payload) => accounts.save(payload.accounts),
         'accounts.reorder': (payload) => accounts.reorder(payload.kind, payload.ids),
+        'accounts.shareConfig': (payload) => accounts.shareConfig(payload.id, payload.shared),
         'accounts.refresh': () => accounts.refresh(),
         'accounts.create': (payload) => accounts.create(payload),
         'accounts.watchLogin': (payload) => {

@@ -149,7 +149,12 @@ export default {
             confirm: 'Remove account'
         },
         saveFailed: 'Could not save the account',
-        reorderFailed: 'Could not change the order of the accounts'
+        reorderFailed: 'Could not change the order of the accounts',
+        shareConfigFailed: 'Could not change what this account shares',
+        shareConfig: {
+            label: 'Use the setup of the default account',
+            description: 'Instructions, skills, agents and commands come from the default {{provider}} account. Sign-in and history stay apart.'
+        }
     },
     add: {
         title: 'Add {{provider}} account',

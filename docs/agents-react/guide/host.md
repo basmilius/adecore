@@ -68,6 +68,7 @@ export function Workspace() {
 | `openLogin(scopeId, kind, accountId, name)` | No log in button                          | Runs a CLI's own login somewhere a command can run, such as a terminal.                                |
 | `useLoginBlocked(scopeId)`         | Login is always possible                           | Why a login cannot start right now, or `null`.                                                         |
 | `useCanReorderAccounts(scopeId)`   | The host keeps the order                           | Whether the host answers `accounts.reorder`, which shows the drag handles in Providers.                |
+| `useCanShareAccountConfig(scopeId)` | No switch to share the default account's setup    | Whether the host answers `accounts.shareConfig`, which shows the switch on an extra account of a CLI in `sharedConfigKinds`. Left out, the switch stays hidden. |
 | `useAccountRule(scopeId, chatId)`  | Every account that is on is offered                | Per CLI, the account a chat's project starts on and the accounts it never offers.                      |
 | `runProviderCommand(scopeId, kind, command)` | Install page offers Copy only     | Runs an install or sign-in command where a person sees it, such as a terminal on the scope's machine. |
 | `useMachinePlatform(scopeId)`      | The system of the page                             | `darwin`, `linux` or `win32` of the scope's machine, whose install command the install page shows first. |

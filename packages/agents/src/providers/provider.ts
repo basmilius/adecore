@@ -4,6 +4,17 @@ import type { AccountReading } from './accounts/status.ts';
 import type { ModelCatalog } from './catalog.ts';
 import type { CliDetection } from './detect.ts';
 
+/*
+ * What an extra account may take from the default account of its CLI. A closed list: nothing the CLI
+ * keeps for a login, a history or a plugin is ever named here, so none of it can be shared by accident.
+ */
+export interface ProviderShare {
+    // Entries of the config folder an extra account links to the default folder's entry of that name.
+    readonly links: readonly string[];
+    // A settings file copied once, by the keys listed; every other key stays behind, whatever it holds.
+    readonly seed: { readonly file: string; readonly keys: readonly string[] };
+}
+
 export interface ProviderHome {
     // The variable the CLI reads its config folder from.
     readonly env: string;
@@ -14,6 +25,8 @@ export interface ProviderHome {
     // What a person types in a terminal to sign in; the account's folder comes from the terminal's environment.
     // Absent on a CLI that signs in from its first chat, which nothing outside that chat can ask about.
     readonly loginCommand?: string;
+    // What an extra account can share with the default one; absent on a CLI that shares nothing this way.
+    readonly share?: ProviderShare;
 }
 
 export interface ClaudeCodeRuntime {

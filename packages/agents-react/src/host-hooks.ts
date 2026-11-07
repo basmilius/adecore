@@ -162,6 +162,12 @@ export function useHostCanReorderAccounts(scopeId: string): boolean {
     return useCanReorder(scopeId);
 }
 
+export function useHostCanShareAccountConfig(scopeId: string): boolean {
+    const useCanShare = useChatHost().useCanShareAccountConfig ?? (() => false);
+
+    return useCanShare(scopeId);
+}
+
 export function useHostAccountRule(scopeId: string, chatId: string): AccountRule | null {
     const useRule = useChatHost().useAccountRule ?? (() => null);
 

@@ -106,6 +106,7 @@ See [UI blocks in replies](/agent-contracts/ui-replies).
 | `accounts.list` | `EmptySchema` | `ProviderAccountsSchema` (`ProviderAccounts`) |
 | `accounts.save` | `ProviderAccountsSavePayloadSchema` (`ProviderAccountsSavePayload`) | `ProviderAccountsSchema` |
 | `accounts.reorder` | `ProviderAccountsReorderPayloadSchema` (`ProviderAccountsReorderPayload`) | `ProviderAccountsSchema` |
+| `accounts.shareConfig` | `ProviderAccountsShareConfigPayloadSchema` (`ProviderAccountsShareConfigPayload`) | `ProviderAccountsSchema` |
 | `accounts.create` | `ProviderAccountCreatePayloadSchema` (`ProviderAccountCreatePayload`) | `ProviderAccountCreateResultSchema` (`ProviderAccountCreateResult`) |
 | `accounts.refresh` | `EmptySchema` | `ProviderAccountsSchema` |
 | `accounts.watchLogin` | `ProviderAccountWatchLoginPayloadSchema` (`ProviderAccountWatchLoginPayload`) | `EmptySchema` |

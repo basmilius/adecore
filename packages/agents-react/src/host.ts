@@ -596,6 +596,12 @@ export interface ChatHost {
     /* Whether the machine in scope keeps a person's order of the accounts (`accounts.reorder`); left out, it does. */
     useCanReorderAccounts?(scopeId: string): boolean;
     /*
+     * Whether the machine in scope answers `accounts.shareConfig`, which shows a switch on an extra account
+     * to use the default account's instructions, skills, agents and commands. Left out, it does not: a
+     * machine from before the request would refuse it, so only a host that knows it says so.
+     */
+    useCanShareAccountConfig?(scopeId: string): boolean;
+    /*
      * What the project of a chat says about its accounts: per CLI the account its new chats start on and
      * the accounts it never offers. Left out, or null, every account that is on is offered.
      */

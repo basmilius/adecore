@@ -8,6 +8,7 @@ import { memorySecrets } from '../../testing/accounts.ts';
 import { providerFor } from '../registry.ts';
 import { ProviderAccountsService } from './service.ts';
 import type { ShadowHomeReport } from './shadow-home.ts';
+import type { SharedConfigReport } from './shared-config.ts';
 import type { AccountReading } from './status.ts';
 
 // Windows reads the home from USERPROFILE, joins with backslashes and resolves a rooted path onto a drive.
@@ -35,6 +36,10 @@ describe('ProviderAccountsService', () => {
     let installs: string[];
     let shadows: string[];
     let shadowReport: ShadowHomeReport;
+    let steps: string[];
+    let removals: string[];
+    let sharedReport: SharedConfigReport;
+    let ownedByHost: boolean;
     let events: ProviderAccounts[];
     let secrets: ReturnType<typeof memorySecrets> | null;
     let clock: number;
@@ -64,6 +69,19 @@ describe('ProviderAccountsService', () => {
             },
             install: async (kind, folder) => {
                 installs.push(`${kind} ${folder}`);
+                steps.push(`install ${folder}`);
+            },
+            ownsSettings: (config) => config === 'hooks only',
+            applyShared: async (from, into, _share, owns) => {
+                steps.push(`share ${into} <- ${from}`);
+                ownedByHost = owns?.('hooks only') === true;
+
+                return sharedReport;
+            },
+            removeShared: async (from, into) => {
+                removals.push(`${into} <- ${from}`);
+
+                return [];
             },
             secrets,
             now: () => clock,
@@ -93,6 +111,10 @@ describe('ProviderAccountsService', () => {
         installs = [];
         shadows = [];
         shadowReport = { linked: [], unshared: [], sharedLogin: false };
+        steps = [];
+        removals = [];
+        sharedReport = { linked: [], unshared: [], seeded: false };
+        ownedByHost = false;
         events = [];
         secrets = memorySecrets();
         clock = 1_000;
@@ -252,6 +274,120 @@ describe('ProviderAccountsService', () => {
         expect(saved.accounts.claude_personal).toMatchObject({ label: 'Mine', order: 0 });
         expect(saved.accounts.claude?.order).toBe(1);
         expect(service.defaultFor('claude')).toBe('claude_personal');
+    });
+
+    describe("sharing the default account's setup", () => {
+        const personal = { kind: 'claude', label: 'Personal', home: '~/.claude_personal' };
+        const folder = join(HOME, '.claude_personal');
+
+        test('is off for every account until a person turns it on', async () => {
+            const service = await make();
+            const saved = await service.save({ claude_personal: personal });
+            await service.refresh();
+
+            expect(saved.accounts.claude_personal?.shareConfig).toBeUndefined();
+            expect(saved.sharedConfigKinds).toEqual(['claude']);
+            expect(new Set(steps)).toEqual(new Set([`install ${folder}`]));
+        });
+
+        test('puts the shared setup in the folder before the hooks, on every check', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            const shared = await service.shareConfig('claude_personal', true);
+            await service.refresh();
+
+            expect(shared.accounts.claude_personal).toMatchObject({ shareConfig: true });
+            expect(steps.slice(-2)).toEqual([`share ${folder} <- ${join(HOME, '.claude')}`, `install ${folder}`]);
+            expect(ownedByHost).toBe(true);
+            expect(JSON.parse(await readFile(join(dir, 'providers.json'), 'utf8')).accounts.claude_personal.shareConfig).toBe(true);
+        });
+
+        test("says which entries stayed the account's own", async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            sharedReport = { linked: [], unshared: ['CLAUDE.md', 'skills'], seeded: false };
+            await service.shareConfig('claude_personal', true);
+            const after = await service.refresh();
+
+            expect(stateOf(after, 'claude_personal')).toMatchObject({ message: `Not shared with ${join(HOME, '.claude')}: CLAUDE.md, skills` });
+        });
+
+        test('still starts the account when the folder cannot be shared into', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.shareConfig('claude_personal', true);
+            const failing = new ProviderAccountsService({
+                home: dir,
+                providers,
+                env,
+                secrets: null,
+                ask: async () => ({ signedIn: true, email: null, plan: null, organization: null }),
+                folderExists: () => true,
+                applyShared: async () => {
+                    throw new Error('read-only folder');
+                }
+            });
+            await failing.load();
+            const after = await failing.refresh();
+
+            expect(stateOf(after, 'claude_personal')).toMatchObject({ state: 'ready', message: expect.stringContaining('read-only folder') });
+        });
+
+        test('takes the links away when it is turned off', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.shareConfig('claude_personal', true);
+            const off = await service.shareConfig('claude_personal', false);
+
+            expect(off.accounts.claude_personal?.shareConfig).toBeUndefined();
+            expect(removals).toEqual([`${folder} <- ${join(HOME, '.claude')}`]);
+        });
+
+        test('is kept by a save that does not send it, and by a reorder', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.shareConfig('claude_personal', true);
+            const renamed = await service.save({ claude_personal: { ...personal, label: 'Mine' } });
+            const reordered = await service.reorder('claude', ['claude_personal', 'claude']);
+
+            expect(renamed.accounts.claude_personal).toMatchObject({ label: 'Mine', shareConfig: true });
+            expect(reordered.accounts.claude_personal).toMatchObject({ shareConfig: true, order: 0 });
+        });
+
+        test('is not turned off by a save that sends false', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.reorder('claude', ['claude_personal', 'claude']);
+            await service.shareConfig('claude_personal', true);
+            const saved = await service.save({ claude_personal: { ...personal, shareConfig: false } });
+
+            expect(saved.accounts.claude_personal).toMatchObject({ shareConfig: true, order: 0 });
+        });
+
+        test('is refused for the default account, an unknown id and a CLI that shares nothing', async () => {
+            const service = await make();
+            await service.save({ codex_personal: { kind: 'codex', home: '~/.codex', shadowHome: '~/.codex_personal' } });
+
+            expect(service.shareConfig('claude', true)).rejects.toThrow('default account');
+            expect(service.shareConfig('nobody', true)).rejects.toThrow('nobody');
+            expect(service.shareConfig('codex_personal', true)).rejects.toThrow('no setup to share');
+            expect(steps.filter((step) => step.startsWith('share'))).toEqual([]);
+        });
+
+        test('does not apply to an account whose CLI shares nothing, and the flag survives a reload', async () => {
+            await writeFile(
+                join(dir, 'providers.json'),
+                JSON.stringify({
+                    version: 1,
+                    accounts: { codex_personal: { kind: 'codex', home: '~/.codex', shadowHome: '~/.codex_personal', shareConfig: true } }
+                })
+            );
+            const service = await make();
+            await service.refresh();
+
+            expect(service.snapshot().accounts.codex_personal?.shareConfig).toBe(true);
+            expect(steps.filter((step) => step.startsWith('share'))).toEqual([]);
+        });
     });
 
     test('puts an account a reorder leaves out after the ones it names, and refuses another CLI or an unknown id', async () => {

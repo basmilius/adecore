@@ -7,8 +7,10 @@ import { Trans, useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
 import { accountName, FOLDER_VARIABLES, type AccountEntry, type AccountLogin } from '../agents/accounts';
 import { useChatHost } from '../host';
+import { useHostCanShareAccountConfig } from '../host-hooks';
 import { useChatScope } from '../scope';
-import { removeAccount, saveAccount } from './account-actions';
+import { useProviderAccounts } from '../state/provider-accounts';
+import { removeAccount, saveAccount, shareAccountConfig } from './account-actions';
 import { AccountColors } from './AccountColors';
 import { AccountVariables } from './AccountVariables';
 import { CliMark } from './parts';
@@ -73,6 +75,10 @@ export function AccountDetail({ provider, entry, login, canOpenLogin, loginBlock
     const folder = status?.home ?? '';
     const variable = FOLDER_VARIABLES[provider.kind];
     const signedIn = status?.state === 'ready';
+    const sharedConfigKinds = useProviderAccounts((row) => row.accounts?.sharedConfigKinds);
+    const canShareConfig = useHostCanShareAccountConfig(scope.id);
+    const sharesConfig = account.shareConfig === true;
+    const showShareConfig = canShareConfig && !isDefault && sharedConfigKinds?.includes(provider.kind) === true;
 
     const showFolder = (): void => {
         copyText(folder);
@@ -160,6 +166,26 @@ export function AccountDetail({ provider, entry, login, canOpenLogin, loginBlock
                     }
                 />
             </SettingsSection>
+            {showShareConfig && (
+                <SettingsSection>
+                    <SettingsRow
+                        label={t('account.shareConfig.label')}
+                        description={
+                            // What stayed the account's own, such as a CLAUDE.md it already had.
+                            sharesConfig && !trouble && status?.message
+                                ? `${t('account.shareConfig.description', { provider: provider.name })} ${status.message}`
+                                : t('account.shareConfig.description', { provider: provider.name })
+                        }
+                        control={
+                            <Switch
+                                checked={sharesConfig}
+                                label={t('account.shareConfig.label')}
+                                onCheckedChange={(checked) => void shareAccountConfig(scope, host, id, checked)}
+                            />
+                        }
+                    />
+                </SettingsSection>
+            )}
             {(login === 'chat' || (login === 'terminal' && canOpenLogin)) && (
                 <SettingsSection title={t('account.login.title')}>
                     {login === 'chat' ? (

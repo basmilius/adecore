@@ -19,7 +19,12 @@ export function createClaudeProvider(options: ClaudeBackendOptions = {}): ChatPr
             env: 'CLAUDE_CONFIG_DIR',
             fallback: '.claude',
             loginEnv: ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN'],
-            loginCommand: 'claude auth login'
+            loginCommand: 'claude auth login',
+            // An allow list, read from the strings of Claude Code 2.1.319. `settings.json` can hold a login (`env`, `apiKeyHelper`), so it is copied by key and never linked.
+            share: {
+                links: ['CLAUDE.md', 'rules', 'skills', 'agents', 'commands'],
+                seed: { file: 'settings.json', keys: ['permissions', 'hooks', 'model', 'statusLine', 'outputStyle'] }
+            }
         },
         install: {
             description: "Anthropic's coding agent, in a terminal and in a chat.",

@@ -30,6 +30,7 @@ export { type AcpAccountProbe, askAcpAccount, type ProbeTimer } from './accounts
 export { chooseAccount, type AccountChoiceInput, type AccountUnusable, type ChosenAccount } from './accounts/choose.ts';
 export { AccountError, type AccountLaunches, storedAccount, launchEnv } from './accounts/launch.ts';
 export { ProviderAccountsService, type ProviderAccountsOptions } from './accounts/service.ts';
+export type { OwnsSettings } from './accounts/shared-config.ts';
 export type { ShadowHomeReport } from './accounts/shadow-home.ts';
 export type { AccountReading, AskAccount } from './accounts/status.ts';
 export { type AccountsHost, variablesProblem, keychainService, type SecretStore, type ReservedVariables } from './accounts/variables.ts';
@@ -40,7 +41,7 @@ export { createCodexProvider } from './codex-provider.ts';
 export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome, installCodexRules, type CodexRulesResult } from './codex-rules.ts';
 export { codexThreadOptions, codexServiceTier } from './codex.ts';
 export { type CliDetection, detectCli } from './detect.ts';
-export type { ChatProvider, ClaudeCodeRuntime, ProviderHome } from './provider.ts';
+export type { ChatProvider, ClaudeCodeRuntime, ProviderHome, ProviderShare } from './provider.ts';
 export { nanoGptVendorOf } from './nanogpt-vendor.ts';
 export { isOnlyCommands } from './shell-commands.ts';
 export { ProviderRegistry, type ProviderRegistryOptions } from './registry.ts';
