@@ -26,6 +26,8 @@ A border is an alpha over whatever is behind it, never a gray of its own (see [P
 
 The accent marks the primary button, the focus outline, a picked choice and the text selection. The default is a neutral blue; your app sets its own ([below](#your-own-accent)).
 
+`--accent-on-surface` is the accent as text, an icon or the focus outline on a ground. It is the accent itself until an app sets a version that reads on its surface. `text-accent` and the focus outline take it; `bg-accent` and `border-accent` keep the exact accent.
+
 <TokenTable group="accent" />
 
 ## Status
@@ -108,7 +110,7 @@ Set the accent after the theme import, in both forms. `--accent-rgb` is the same
 }
 ```
 
-`--accent-soft` follows by itself. Set `--accent-text` if white does not read on your accent. For a separate dark accent, repeat the rule under `[data-theme="dark"]`.
+`--accent-soft` follows by itself. Set `--accent-text` if white does not read on your accent, and `--accent-on-surface` if the accent itself does not reach 3:1 against `--surface` as text or as the focus outline. For a separate dark accent, repeat the rule under `[data-theme="dark"]`.
 
 ## Your own colors
 

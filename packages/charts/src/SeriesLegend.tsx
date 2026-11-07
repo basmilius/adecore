@@ -144,7 +144,7 @@ export function SeriesLegend<Item extends SeriesLegendItem>({
                                             aria-describedby={item.status === undefined ? undefined : statusId}
                                             disabled={item.disabled === true}
                                             className={clsx(
-                                                'flex w-full items-center gap-2 rounded px-1 text-left text-xs enabled:hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent',
+                                                'flex w-full items-center gap-2 rounded px-1 text-left text-xs enabled:hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-accent-on-surface',
                                                 size === 'md' ? 'min-h-9' : 'min-h-7',
                                                 on ? 'text-text' : 'text-text-faint'
                                             )}

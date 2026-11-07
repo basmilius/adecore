@@ -173,7 +173,7 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                                         <div
                                             role="button"
                                             tabIndex={0}
-                                            className="mb-2 cursor-pointer rounded-sm border-l-2 border-border-strong pl-2.5 text-text-muted hover:bg-text/5 hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+                                            className="mb-2 cursor-pointer rounded-sm border-l-2 border-border-strong pl-2.5 text-text-muted hover:bg-text/5 hover:text-text focus-visible:outline-2 focus-visible:outline-accent-on-surface"
                                             onClick={goToSource}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -356,7 +356,7 @@ function ChoiceLine({ chatId, choice }: { chatId: string; choice: ChatUiChoiceOr
             onClick={navigation ? () => navigation.reveal(choice) : undefined}
             className={clsx(
                 'mb-1 flex max-w-[80%] items-start gap-1.5 px-1 text-left text-xs text-text-muted select-none',
-                navigation && 'rounded-md hover:text-text focus-visible:outline-2 focus-visible:outline-accent'
+                navigation && 'rounded-md hover:text-text focus-visible:outline-2 focus-visible:outline-accent-on-surface'
             )}
         >
             <Icon icon={Reply} size={12} className="mt-1 shrink-0" />

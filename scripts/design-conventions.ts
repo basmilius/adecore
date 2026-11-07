@@ -219,6 +219,17 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
             }
         ],
         [
+            'an outline takes outline-accent-on-surface, which an app keeps readable on its ground, never outline-accent',
+            () => {
+                const plain = pageSources().flatMap(({ path, text }) =>
+                    stringsOf(path, text)
+                        .filter(({ classes }) => classes.split(/\s+/).some((utility) => utility.slice(utility.lastIndexOf(':') + 1) === 'outline-accent'))
+                        .map(({ start }) => `${path}:${lineOf(text, start)}`)
+                );
+                return plain;
+            }
+        ],
+        [
             'a hint is a Tooltip, never a title on an element',
             () => {
                 const titled = pageSources()

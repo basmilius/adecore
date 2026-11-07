@@ -44,7 +44,7 @@ export function TokenChip({ kind, value, sigil, icon, label, spelled, tone, onOp
                 'not-prose',
                 TOKEN_IN_MESSAGE,
                 tone,
-                onOpen !== undefined && 'cursor-pointer focus-visible:outline-2 focus-visible:outline-accent',
+                onOpen !== undefined && 'cursor-pointer focus-visible:outline-2 focus-visible:outline-accent-on-surface',
                 className
             )}
             data-chip={kind}

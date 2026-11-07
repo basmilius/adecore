@@ -45,7 +45,7 @@ Every control works from the keyboard. The overlays inherit Base UI's behavior:
 - A dialog traps focus while it is open, and a dialog opened over another stacks over it.
 - Radio groups such as [`ChoiceCards`](/ui/inputs/choice-cards) move between choices with the arrows.
 
-Keyboard focus is a 2px accent outline, never a ring or a colored border. Pointer focus draws no outline. `.focus-ring` gives the outline to something focusable that is not a button, such as a list row. `.focus-ring-within` draws it on a card that holds a focused field.
+Keyboard focus is a 2px outline in `--accent-on-surface` (the accent unless the app sets it apart), never a ring or a colored border. Pointer focus draws no outline. `.focus-ring` gives the outline to something focusable that is not a button, such as a list row. `.focus-ring-within` draws it on a card that holds a focused field.
 
 ## Input modality
 

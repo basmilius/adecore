@@ -22,7 +22,7 @@ For a value a person reads but does not type, such as a chosen folder, use `read
 
 A `TextArea` is at least 64 pixels tall; `rows` makes it taller. `size="sm"` gives it compact text and padding. `resize="vertical"` adds a resize handle.
 
-`variant="bare"` drops the border, ground and focus outline, for a text area inside a card that draws them. The card then shows focus itself, for example with `has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:-outline-offset-1 has-[textarea:focus-visible]:outline-accent`.
+`variant="bare"` drops the border, ground and focus outline, for a text area inside a card that draws them. The card then shows focus itself, for example with `has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:-outline-offset-1 has-[textarea:focus-visible]:outline-accent-on-surface`.
 
 <Demo src="inputs/text-area-bare" />
 

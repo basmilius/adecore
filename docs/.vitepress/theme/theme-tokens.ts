@@ -122,7 +122,7 @@ function readThemeBlock(declarations: [string, string][], utilities: Map<string,
         const utility = /^(?:color|shadow)-([\w-]+)$/.exec(name);
         if (mapped !== null && utility !== null) {
             utilities.set(mapped[1]!, utility[1]!);
-        } else if (!name.endsWith(LINE_HEIGHT) && !name.endsWith('*')) {
+        } else if (!name.endsWith(LINE_HEIGHT) && !name.endsWith('*') && !name.startsWith('text-color-')) {
             scale.push({ name, group: groupOf(name, SCALE_GROUPS), value, lineHeight: null });
         }
     }

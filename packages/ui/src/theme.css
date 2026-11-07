@@ -53,6 +53,9 @@
     --accent-rgb: 21 93 252;
     --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
     --accent-text: #ffffff;
+    /* The accent as text, an icon or a focus ring on a ground, which `--accent` is not always readable on. It
+       is the accent until an app sets a version that reaches 3:1 against `--surface`. */
+    --accent-on-surface: var(--accent);
     --selection: rgb(var(--accent-rgb) / 0.55);
     /* The part of a name that answers a filter or a search. A tint of its own rather than the
        selection's, so a selected row that matches still shows both. */
@@ -182,6 +185,7 @@
        other way round from the light theme, where the same token is a fill deep enough for white. */
     --positive-text: #052e16;
     /* Repeated so a dark theme nested under a light one resolves its own accent. */
+    --accent-on-surface: var(--accent);
     --chart-1: var(--accent);
     --chart-2: #d95926;
     --chart-3: #199e70;
@@ -294,6 +298,9 @@
     --color-accent: var(--accent);
     --color-accent-soft: var(--accent-soft);
     --color-accent-text: var(--accent-text);
+    --color-accent-on-surface: var(--accent-on-surface);
+    /* Only `text-accent` takes this one, so `bg-accent` and `border-accent` keep the exact accent. */
+    --text-color-accent: var(--accent-on-surface);
     --color-thumb: var(--thumb);
     --color-status-running: var(--status-running);
     --color-status-needs-you: var(--status-needs-you);
@@ -387,9 +394,9 @@
         outline: none;
     }
     .field::placeholder { color: var(--text-faint); }
-    .field:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .field:focus-visible { outline: 2px solid var(--accent-on-surface); outline-offset: -1px; }
     /* A field with an icon is a box around a bare input: the box wears the outline the input would. */
-    .field:has(> input:focus-visible) { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .field:has(> input:focus-visible) { outline: 2px solid var(--accent-on-surface); outline-offset: -1px; }
     /* A value shown in a field but not typed into, such as a chosen folder beside the button that picks it. */
     input.field[readonly], .field > input[readonly] { color: var(--text-muted); text-overflow: ellipsis; }
     /* At the height of a small button: a row of tools, and a name typed in place of the label it renames. */
@@ -405,13 +412,13 @@
     .field-bare:focus-visible { outline: none; }
     /* Keyboard focus is visible on every control; pointer focus stays quiet. `.focus-ring` is the
        same outline for something that takes focus without being a button, such as a row in a list. */
-    .icon-btn:focus-visible, .menu-item:focus-visible, button:focus-visible, .focus-ring:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+    .icon-btn:focus-visible, .menu-item:focus-visible, button:focus-visible, .focus-ring:focus-visible { outline: 2px solid var(--accent-on-surface); outline-offset: 1px; }
     .menu-item:focus-visible { outline-offset: -2px; }
     /* A container that only holds focus, a pane or a block a jump lands on, wears no ring: only what a person
        operates does. A heading keeps it, since a prompt moves focus there to be read out. */
     :where([tabindex='-1']:not(h1, h2, h3, h4, h5, h6)):focus-visible, .ade-split-pane:focus-visible, .ade-split-content:focus-visible { outline: none; }
     /* A card that holds a field, the composer's or a prompt's, wears the field's outline on its own edge. */
-    .focus-ring-within:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: -1px; }
+    .focus-ring-within:has(:focus-visible) { outline: 2px solid var(--accent-on-surface); outline-offset: -1px; }
     /* Base UI moves DOM focus to the item the pointer hovers, and a browser keeps `:focus-visible`
        on for scripted focus as long as its own keyboard flag is up, so after any keystroke the ring
        would follow the mouse through every menu. The last real input event decides instead
@@ -720,8 +727,8 @@
         --trees-selected-fg-override: var(--text);
         --trees-border-color-override: var(--border);
         --trees-accent-override: var(--accent);
-        --trees-focus-ring-color-override: var(--accent);
-        --trees-selected-focused-border-color-override: var(--accent);
+        --trees-focus-ring-color-override: var(--accent-on-surface);
+        --trees-selected-focused-border-color-override: var(--accent-on-surface);
         --trees-status-ignored-override: var(--text-faint);
         --trees-git-ignored-color-override: var(--text-faint);
         --trees-git-modified-color-override: var(--status-needs-you);
