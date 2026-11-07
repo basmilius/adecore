@@ -488,6 +488,28 @@ describe('change mark hover', () => {
         view.gutterElement.dispatchEvent(new (window as unknown as { Event: typeof Event }).Event('pointerleave'));
         expect(seen.at(-1)).toBeNull();
     });
+
+    test('keeps a removal past the end of the file on the last line, where it is painted', () => {
+        const { view, window } = hoverable(text);
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([{ kind: 'deleted', startLine: 9, endLine: 9 }]);
+        pointer(window, view.gutterElement, 'pointermove', 63, 3 * 20 + 6);
+        expect(seen.at(-1)).toMatchObject({ line: 4, mark: { kind: 'deleted', startLine: 4, endLine: 4 } });
+    });
+
+    test('reports the rectangle in screen pixels under a scaled canvas', () => {
+        const { view, window, host } = hoverable(text);
+        const viewport = host.querySelector<HTMLElement>('.se-viewport')!;
+        Object.defineProperty(viewport, 'offsetWidth', { value: 200 });
+        Object.defineProperty(viewport, 'offsetHeight', { value: 100 });
+        viewport.getBoundingClientRect = () => ({ left: 100, top: 50, width: 400, height: 200, right: 500, bottom: 250 }) as DOMRect;
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([{ kind: 'added', startLine: 2, endLine: 2 }]);
+        pointer(window, view.gutterElement, 'pointermove', 100 + 62 * 2, 50 + 25 * 2);
+        expect(seen.at(-1)).toMatchObject({ line: 2, rect: { top: 90, bottom: 130, right: 228, left: 222 } });
+    });
 });
 
 function hoverable(text: string) {
