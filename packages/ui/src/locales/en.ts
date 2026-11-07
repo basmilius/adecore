@@ -61,6 +61,10 @@ export default {
         fit: 'Zoom to fit',
         fitEverything: 'Fit everything'
     },
+    shortcutInput: {
+        prompt: 'Press a shortcut',
+        unsupported: 'That key cannot be a shortcut'
+    },
     waveform: {
         position: '{{time}} of {{duration}}'
     },

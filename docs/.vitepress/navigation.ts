@@ -124,6 +124,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['Input and TextArea', '/ui/inputs/input'],
         ['Segmented', '/ui/inputs/segmented'],
         ['Select', '/ui/inputs/select'],
+        ['ShortcutInput', '/ui/inputs/shortcut-input'],
         ['Slider', '/ui/inputs/slider'],
         ['Stepper', '/ui/inputs/stepper'],
         ['Switch', '/ui/inputs/switch']

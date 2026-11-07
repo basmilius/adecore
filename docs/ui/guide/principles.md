@@ -34,7 +34,7 @@ An icon button picks its icon size from its own size: 16 in the default 32 pixel
 
 A shortcut is Cmd or Ctrl plus a key, never a bare letter. A bare key belongs to whatever has focus: a text field, a terminal, a canvas tool. Write a shortcut once with [`shortcut('Mod+K')`](/ui/utilities/shortcuts). `Mod` is Cmd on macOS and Ctrl elsewhere, and the same value matches the key event and prints the hint.
 
-The library binds no shortcut on the window. Its window listeners only watch: [`ShortcutHints`](/ui/display/shortcut-hints) for a held modifier, the input modality for the device in use, and a [`DockShell`](/ui/layout/dock-shell) with `autoHide` for the pointer. Bind your app's shortcuts on the window in one place, not per component.
+The library binds no shortcut on the window. Its window listeners only watch: [`ShortcutHints`](/ui/display/shortcut-hints) for a held modifier, the input modality for the device in use, and a [`DockShell`](/ui/layout/dock-shell) with `autoHide` for the pointer. A [`ShortcutInput`](/ui/inputs/shortcut-input) listens only while it records a key. Bind your app's shortcuts on the window in one place, not per component.
 
 ## Keyboard and focus
 

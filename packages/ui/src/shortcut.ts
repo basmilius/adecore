@@ -112,6 +112,82 @@ export const matchesShortcut = (target: Shortcut, event: KeyLike, apple: boolean
     return matchesKey(target.key, event);
 };
 
+/* The punctuation keys by their code, the other way round from `PUNCTUATION_CODES`. */
+const PUNCTUATION_BY_CODE: Readonly<Record<string, string>> = /* @__PURE__ */ Object.fromEntries(
+    Object.entries(PUNCTUATION_CODES).map(([key, code]) => [code, key])
+);
+
+/* The key of an event in the words `shortcut()` writes, or null for a key it has no word for. */
+const keyOfEvent = (event: KeyLike): string | null => {
+    const { code, key } = event;
+
+    // An input method's own key press, with the code of the key it was typed on.
+    if (key === 'Process') {
+        return null;
+    }
+
+    if (/^Key[A-Z]$/.test(code)) {
+        return code.slice(3);
+    }
+
+    if (/^Digit[0-9]$/.test(code)) {
+        return code.slice(5);
+    }
+
+    if (Object.hasOwn(PUNCTUATION_BY_CODE, code)) {
+        return PUNCTUATION_BY_CODE[code]!;
+    }
+
+    if (code === 'Space') {
+        return 'Space';
+    }
+
+    return CHARACTER_KEYS.has(key) || NAMED_KEYS.has(key) || FUNCTION_KEY.test(key) ? key : null;
+};
+
+/**
+ * Reads a key press as a shortcut, for a screen that records one. The platform's modifier becomes `mod`, so
+ * the result prints and matches on every platform; Ctrl on macOS and Meta elsewhere stay `ctrl` and `meta`.
+ * Null for a modifier pressed alone and for a key `shortcut()` cannot write, such as a numpad digit, or `_`
+ * where Shift and `-` type it.
+ */
+export const shortcutFromEvent = (event: KeyLike, apple: boolean): Shortcut | null => {
+    const key = keyOfEvent(event);
+
+    if (key === null) {
+        return null;
+    }
+
+    const result: Shortcut = {
+        mod: apple ? event.metaKey : event.ctrlKey,
+        ctrl: apple && event.ctrlKey,
+        meta: !apple && event.metaKey,
+        alt: event.altKey,
+        shift: event.shiftKey,
+        key
+    };
+
+    // What the result would not match is a press `shortcut()` has no word for.
+    return matchesShortcut(result, event, apple) ? result : null;
+};
+
+/* Writes a shortcut the way `shortcut()` reads it, such as `Mod+Shift+K`, to keep it as text. */
+export const shortcutText = (target: Shortcut): string => {
+    const words: string[] = [];
+
+    for (const [word, field] of Object.entries(MODIFIER_FIELDS)) {
+        if (target[field]) {
+            words.push(word);
+        }
+    }
+
+    if (target.key !== '') {
+        words.push(target.key);
+    }
+
+    return words.join('+');
+};
+
 const KEY_LABELS: Record<string, { apple: string; other: string }> = {
     Enter: { apple: '↩', other: 'Enter' },
     Backspace: { apple: '⌫', other: 'Backspace' },

@@ -10,7 +10,7 @@ const packages: { directory: string; options: DesignOptions }[] = [
         directory: 'packages/ui/src',
         options: {
             // These observe modality and held modifiers without binding a shortcut.
-            keyListeners: ['ShortcutHints.tsx', 'modality.ts'],
+            keyListeners: ['ShortcutHints.tsx', 'ShortcutInput.tsx', 'modality.ts'],
             formatterDirectory: 'format/',
             buttonFile: 'Button.tsx',
             theme: readFileSync(join(ROOT, 'packages/ui/src/theme.css'), 'utf8')

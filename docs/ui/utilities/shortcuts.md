@@ -30,6 +30,14 @@ The key is a letter, a digit, one of ``, . / ; ' ` \ [ ]``, `+`, `-`, `=`, a nam
 
 `formatShortcut(target, apple)` writes `⌥⇧⌘K` on macOS and `Ctrl+Alt+Shift+K` elsewhere. `shortcutParts(target, apple)` returns the same as separate caps, which [`Keys`](/ui/display/kbd) draws. Named keys get the platform's symbol, such as `↩` for Enter on a Mac.
 
+## Recording
+
+`shortcutFromEvent(event, apple)` reads a key press as a `Shortcut`, for a screen where a person chooses their own keys. The platform's modifier becomes `mod`, so the shortcut matches and prints on every platform; Ctrl on macOS and Meta elsewhere stay `ctrl` and `meta`. Letters, digits and punctuation come from the physical key, the same way `matchesShortcut` reads them.
+
+It returns `null` for a modifier pressed alone and for a key `shortcut()` has no word for, such as a numpad digit or `_` where Shift and `-` type it. Whatever it returns matches the event it was read from. It does not ask for a modifier: a bare letter reads as a bare letter, and refusing it is the app's rule.
+
+`shortcutText(target)` writes a shortcut the way `shortcut()` reads it, with the modifiers in the order `Mod`, `Ctrl`, `Meta`, `Alt`, `Shift`: `Mod+Shift+K`. Keep that text to store a choice, and read it back with `shortcut()`. [`ShortcutInput`](/ui/inputs/shortcut-input) records with both.
+
 ## Tables
 
 `EDIT_SHORTCUTS` holds the browser's editing shortcuts (`copy`, `cut`, `paste`, `selectAll`), for printing in a menu; the browser handles the keys. `KEY_SHORTCUTS` holds keys printed as a shortcut in a hint: `enter`, `modEnter`, `backspace`, `escape`, `shift` and `rename` (F2).

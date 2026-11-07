@@ -74,6 +74,7 @@ export { Segmented, type SegmentedOption, type SegmentedProps } from './Segmente
 export { Select, type SelectGroup, type SelectItem, type SelectProps } from './Select.tsx';
 export { Separator, type SeparatorProps } from './Separator.tsx';
 export { ShortcutHints } from './ShortcutHints.tsx';
+export { ShortcutInput, type ShortcutInputLabels, type ShortcutInputProps } from './ShortcutInput.tsx';
 export { Skeleton, type SkeletonProps } from './Skeleton.tsx';
 export { Slider, type SliderProps } from './Slider.tsx';
 export { SlidingColumn, type SlidingColumnProps } from './SlidingColumn.tsx';
@@ -107,7 +108,19 @@ export { isApplePlatform } from './platform.ts';
 export { prefetcher, type Loader, type WhenIdle } from './prefetch.ts';
 export { tintStyle } from './tint.ts';
 export { selectAllWithin, selectionWithin } from './selection.ts';
-export { EDIT_SHORTCUTS, KEY_SHORTCUTS, formatShortcut, isModHeld, matchesShortcut, shortcut, shortcutParts, type KeyLike, type Shortcut } from './shortcut.ts';
+export {
+    EDIT_SHORTCUTS,
+    KEY_SHORTCUTS,
+    formatShortcut,
+    isModHeld,
+    matchesShortcut,
+    shortcut,
+    shortcutFromEvent,
+    shortcutParts,
+    shortcutText,
+    type KeyLike,
+    type Shortcut
+} from './shortcut.ts';
 
 export {
     UNDO_MS,
