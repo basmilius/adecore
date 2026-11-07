@@ -1593,3 +1593,52 @@ describe('the model menu', () => {
         expect(sequence).toEqual(['Claude Code', 'Codex', '--', 'Antigravity', 'Grok', '--', 'Claude API', 'NanoGPT']);
     });
 });
+
+describe('the context meter', () => {
+    /* The Context group of the model menu, drawn on its own, and the ring in the pill. */
+    async function meterOf(usage: Partial<ChatInfo['usage']>) {
+        const composer = await mount({
+            info: infoOf({ usage: { turns: 2, contextTokens: 0, contextWindow: 200_000, costUsd: 0, ...usage } as ChatInfo['usage'] })
+        });
+        const popup = composer.propsOf('RunSettings', 'MenuPopup') as { children: ReactNode };
+
+        const find = (node: ReactNode): ReactElement | null => {
+            for (const child of Children.toArray(node) as Array<ReactElement<{ children?: ReactNode }>>) {
+                if (typeof child.type === 'function' && child.type.name === 'ContextUsage') {
+                    return child;
+                }
+
+                const found = find(child.props?.children);
+
+                if (found !== null) {
+                    return found;
+                }
+            }
+
+            return null;
+        };
+
+        const group = await composer.draw(<Menu.Root>{find(popup.children)}</Menu.Root>);
+        const ring = composer.page.host.querySelector('svg circle[stroke="currentColor"]')!;
+
+        return { group, offset: Number(ring.getAttribute('stroke-dashoffset')), full: Number(ring.getAttribute('stroke-dasharray')) };
+    }
+
+    test('after a compaction without a size it says the size comes with the next reply, with an empty ring and no meter', async () => {
+        const { group, offset, full } = await meterOf({ contextPending: true });
+
+        expect(group.textContent).toContain('Size known after the next reply');
+        expect(group.textContent).not.toContain('0 of');
+        expect(group.querySelector('[role="meter"]')).toBeNull();
+        expect(offset).toBe(full);
+    });
+
+    test('with a size it shows how full the context is', async () => {
+        const { group, offset, full } = await meterOf({ contextTokens: 50_000 });
+
+        expect(group.textContent).toContain('of 200');
+        expect(group.textContent).not.toContain('Size known after the next reply');
+        expect(group.querySelector('[role="meter"]')?.getAttribute('aria-valuenow')).toBe('25');
+        expect(offset).toBeLessThan(full);
+    });
+});

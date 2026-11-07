@@ -76,7 +76,7 @@ Clear and `chat.kill` remove a chat's visuals. A core of your own that forks cha
 | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `chat.cancel`                           | Stops the turn and keeps the conversation. With `subagents`, also ends the agents the chat opened. |
 | `chat.clear`                            | Starts the chat over. Refused with `chat-busy` during a turn, unless `force`.                    |
-| `chat.compact`                          | Folds the context, natively or by prompt, as the CLI's `compaction` capability says.             |
+| `chat.compact`                          | Folds the context, natively or by prompt, as the CLI's `compaction` capability says. Either way it opens a turn without a message of the person, which leaves one `compaction` item and moves `usage` to the size after the fold. |
 | `chat.restart`                          | Ends the CLI and keeps the conversation. The next message resumes it in a fresh process that reloads skills, plugins and servers. Fails with `chat-busy` while a turn, request or background work holds the process. |
 | `chat.kill`                             | Removes the chat (record, log, attachments, bookmarks, visuals) and ends its CLI.               |
 | Detaching or disconnecting              | Stops streaming to that client. The chat goes on.                                                |

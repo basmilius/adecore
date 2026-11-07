@@ -12,6 +12,7 @@ import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json
 import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
 import goalCapture from './fixtures/claude-2.1.296-goal.json';
 import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
+import compact319Capture from './fixtures/claude-2.1.319-resume-direct-compact.json';
 
 const launch: BackendLaunch = {
     command: ['claude'],
@@ -242,7 +243,8 @@ describe('a captured run', () => {
         'claude-2.1.285-resume-direct-compact': compactCapture,
         'claude-2.1.285-resume-task-notification': resumedTaskCapture,
         'claude-2.1.296-goal': goalCapture,
-        'claude-2.1.318-interim-subagent': interimCapture
+        'claude-2.1.318-interim-subagent': interimCapture,
+        'claude-2.1.319-resume-direct-compact': compact319Capture
     };
 
     for (const [name, capture] of Object.entries(captures)) {

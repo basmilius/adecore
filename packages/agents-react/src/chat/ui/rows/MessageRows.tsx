@@ -705,14 +705,23 @@ export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => 
 }
 
 /* A dashed line, since what stands above it is still there for the reader but only a summary to the agent. */
-export function CompactionRow({ preTokens }: { preTokens: number | null }) {
+export function CompactionRow({ preTokens, postTokens }: { preTokens: number | null; postTokens?: number }) {
     const { t } = useTranslation('agent-chat');
+
+    // A size the CLI did not name is left out rather than guessed.
+    const text = preTokens
+        ? postTokens === undefined
+            ? t('rows.compaction.from', { tokens: formatTokens(preTokens) })
+            : t('rows.compaction.fromTo', { from: formatTokens(preTokens), to: formatTokens(postTokens) })
+        : postTokens === undefined
+          ? t('rows.compaction.plain')
+          : t('rows.compaction.to', { tokens: formatTokens(postTokens) });
 
     return (
         <div className="flex items-center gap-3 pb-3 text-xs text-text-faint">
             <span className="grow border-t border-dashed border-border" />
             <Tooltip label={t('rows.compaction.summary')}>
-                <span>{preTokens ? t('rows.compaction.from', { tokens: formatTokens(preTokens) }) : t('rows.compaction.plain')}</span>
+                <span>{text}</span>
             </Tooltip>
             <span className="grow border-t border-dashed border-border" />
         </div>

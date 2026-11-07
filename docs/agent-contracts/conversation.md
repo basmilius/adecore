@@ -22,7 +22,7 @@ The fields a client reads most:
 | `queue`, `queuePaused`                  | Messages sent during a turn, in send order, each a `ChatQueuedMessage`.                                  |
 | `background`, `delegating`              | Shell commands and monitors the CLI keeps running, each a `ChatBackgroundTask` (`ChatBackgroundTaskSchema`), and whether its own subagent still works. |
 | `requests`                              | The approvals and questions waiting on a person, oldest first, at most `CHAT_REQUEST_LIMITS.perChat`.    |
-| `usage`                                 | `ChatUsage` (`ChatUsageSchema`): context tokens, context window, cost, turns and an estimated context `breakdown`. `cacheTtlMs` and `cacheExpiresAt` give the prompt cache lifetime when the CLI reports it. |
+| `usage`                                 | `ChatUsage` (`ChatUsageSchema`): context tokens, context window, cost, turns and an estimated context `breakdown`. `cacheTtlMs` and `cacheExpiresAt` give the prompt cache lifetime when the CLI reports it. `contextPending` is set after a compaction whose CLI named no size: the context tokens read 0 until the next count. |
 | `limit`, `resumeAt`, `resumeAtReset`    | The limit the last turn stopped on, when the host resumes, and the chat's switch for that.               |
 | `goal`                                  | `ChatGoal`: the objective, its status and progress. Absent without a goal.                               |
 | `forkOf`, `hidden`, `suggestedTitle`    | Where a fork came from, a chat no list should show, and the CLI's session title.                         |
@@ -46,7 +46,7 @@ Read absent optional arrays (`queue`, `background`, `skills`, `requests`) as emp
 | `question`   | `ChatQuestionItem`, `ChatQuestionItemSchema` | One or more questions, their `answers` once given, and a `state`. |
 | `turn`       | `ChatTurnItem`, `ChatTurnItemSchema` | A run of the agent: `state` (`running`, `done`, `aborted`, `error`), cost, checkpoints, and the `limit` it hit. |
 | `note`       | `ChatNoteItem`, `ChatNoteItemSchema` | Information, a warning or an error from the host, by `level`. |
-| `compaction` | `ChatCompactionItem`, `ChatCompactionItemSchema` | The moment the context was folded, with the token count before it when known. |
+| `compaction` | `ChatCompactionItem`, `ChatCompactionItemSchema` | The moment the context was folded, with the token count before it (`preTokens`) and after it (`postTokens`) when known. |
 
 The parts of an item have their own types:
 

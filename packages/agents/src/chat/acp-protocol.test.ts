@@ -17,6 +17,7 @@ import {
 } from './acp-protocol.ts';
 import type { BackendEvent } from './backend.ts';
 import turnCapture from './fixtures/acp-v1-turn.json';
+import grokCompact from './fixtures/grok-1.0.70-compact.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -677,5 +678,81 @@ describe('a count of the context outside the protocol', () => {
         );
 
         expect(info.models?.models).toEqual([{ id: 'big', name: 'Big', description: null, contextWindow: 256000 }]);
+    });
+});
+
+describe('a compaction asked with /compact', () => {
+    const text = (value: string) => ({ sessionId: 's', update: { sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: value } } });
+    const used = (tokens: number) => ({ sessionId: 's', update: { sessionUpdate: 'usage_update', used: tokens, size: 200_000 } });
+
+    test("is one marker with Grok's own sizes on 1.0.70, and none of its text", () => {
+        const protocol = new AcpProtocol(1, MODES, acpStopWords('Grok'));
+        const turns: BackendEvent[][] = [[]];
+
+        for (const frame of grokCompact.frames) {
+            const events = turns.at(-1)!;
+
+            if ('result' in frame) {
+                events.push(...protocol.finish(frame.result, `prompt-${turns.length}`));
+                turns.push([]);
+
+                if (turns.length === 2) {
+                    protocol.beginCompaction();
+                }
+            } else if (frame.method === 'session/update') {
+                events.push(...protocol.update(grokCompact.sessionId, frame.params));
+            } else {
+                events.push(...protocol.notification(grokCompact.sessionId, frame.params));
+            }
+        }
+
+        const [, compact, after] = turns;
+
+        expect(compact).toEqual([
+            { type: 'compaction', preTokens: 21559, postTokens: 21559 },
+            { type: 'turn.done', promptId: 'prompt-2', costUsd: 0, state: 'done' }
+        ]);
+        expect(after!.filter((event) => event.type === 'usage').at(-1)).toEqual({ type: 'usage', contextTokens: 22169 });
+    });
+
+    test("is one marker from the size before to the agent's next count, without the line it wrote about it", () => {
+        const protocol = new AcpProtocol(1, MODES, acpStopWords('Copilot'));
+        protocol.update('s', used(120_764));
+        protocol.beginCompaction();
+
+        expect(protocol.update('s', text('Compacted conversation history and removed 3 messages and 99,048 tokens.'))).toEqual([]);
+        expect(protocol.update('s', used(21_670))).toEqual([]);
+        expect(protocol.finish({ stopReason: 'end_turn' }, 'prompt-1')).toEqual([
+            { type: 'compaction', preTokens: 120_764, postTokens: 21_670 },
+            { type: 'usage', contextWindow: 200_000 },
+            { type: 'turn.done', promptId: 'prompt-1', costUsd: 0, state: 'done' }
+        ]);
+        expect(protocol.update('s', used(21_844))).toEqual([{ type: 'usage', contextTokens: 21_844, contextWindow: 200_000 }]);
+    });
+
+    test('that does not end its turn lets what it held through and leaves no marker', () => {
+        const protocol = new AcpProtocol(1, MODES, acpStopWords('Copilot'));
+        protocol.beginCompaction();
+        protocol.update('s', text('I could not compact.'));
+
+        const ended = protocol.finish({ stopReason: 'refusal' }, 'prompt-1');
+
+        expect(ended.some((event) => event.type === 'compaction')).toBe(false);
+        expect(ended).toContainEqual(expect.objectContaining({ type: 'text.done', text: 'I could not compact.' }));
+        expect(protocol.update('s', text('Next.'))).toContainEqual(expect.objectContaining({ type: 'text.delta' }));
+    });
+
+    test('that fails lets what it held through, and a notification of Grok outside one says nothing', () => {
+        const protocol = new AcpProtocol(1, MODES, acpStopWords('Grok'));
+        const notification = { sessionId: 's', update: { sessionUpdate: 'auto_compact_completed', tokens_before: 9000, tokens_after: 3000 } };
+
+        expect(protocol.notification('s', notification)).toEqual([]);
+        protocol.beginCompaction();
+        protocol.update('s', used(5000));
+
+        const ended = protocol.abort('prompt-1', 'stream closed');
+
+        expect(ended).toContainEqual({ type: 'usage', contextTokens: 5000, contextWindow: 200_000 });
+        expect(ended.some((event) => event.type === 'compaction')).toBe(false);
     });
 });

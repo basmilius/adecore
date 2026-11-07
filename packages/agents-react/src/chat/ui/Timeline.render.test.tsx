@@ -622,6 +622,26 @@ test('a turn that only compacted shows the divider, and no line of how long it w
     );
 });
 
+test('a compaction marker names both sizes where the CLI named them, and leaves out the one it did not', async () => {
+    const items: ChatItem[] = [
+        { id: 'turn-c', kind: 'turn', turnId: 'turn-c', createdAt: 1000, state: 'done', endedAt: 17_000, costUsd: 0 },
+        { id: 'compaction-c', kind: 'compaction', turnId: 'turn-c', createdAt: 16_000, preTokens: 123_323, postTokens: 86_425 },
+        { id: 'turn-d', kind: 'turn', turnId: 'turn-d', createdAt: 20_000, state: 'done', endedAt: 21_000, costUsd: 0 },
+        { id: 'compaction-d', kind: 'compaction', turnId: 'turn-d', createdAt: 20_500, preTokens: null, postTokens: 8603 }
+    ];
+
+    await mounted(
+        { rowHeights: [40, 40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            const text = page.host.textContent ?? '';
+            expect(text).toMatch(/Context compacted from 123.*K to 86.*K tokens/);
+            expect(text).toMatch(/Context compacted to 8.*K tokens/);
+        },
+        { items }
+    );
+});
+
 test('without looks every shell run reads as a command group', async () => {
     await mounted(
         { rowHeights: [40, 60, 40, 60, 40], composerHeight: 0 },

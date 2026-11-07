@@ -565,10 +565,12 @@ export class ClaudeProtocol {
 
             this.settleTask(done, events);
             this.settleWaitingAgents(events);
-        } else if (frame.subtype === 'compact_boundary') {
+        } else if (frame.subtype === 'compact_boundary' && !str(frame.parent_tool_use_id)) {
+            // A subagent's fold, should the CLI ever stream one with its parent, is not the size of this chat's context.
             const meta = isRecord(frame.compact_metadata) ? frame.compact_metadata : {};
             const preTokens = num(meta.pre_tokens);
-            events.push({ type: 'compaction', preTokens: preTokens > 0 ? preTokens : null });
+            const postTokens = num(meta.post_tokens);
+            events.push({ type: 'compaction', preTokens: preTokens > 0 ? preTokens : null, ...(postTokens > 0 ? { postTokens } : {}) });
         }
     }
 

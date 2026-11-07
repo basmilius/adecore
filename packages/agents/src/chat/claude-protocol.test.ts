@@ -8,6 +8,7 @@ import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json
 import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notification.json';
 import goalCapture from './fixtures/claude-2.1.296-goal.json';
 import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
+import compact319 from './fixtures/claude-2.1.319-resume-direct-compact.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -807,6 +808,37 @@ describe('ClaudeProtocol', () => {
         expect(protocol.handle({ type: 'system', subtype: 'compact_boundary', compact_metadata: { trigger: 'auto', pre_tokens: 150000 } })).toEqual([
             { type: 'compaction', preTokens: 150000 }
         ]);
+    });
+
+    test('a compaction boundary reports the size after the fold where the CLI names it, and leaves out what it does not', () => {
+        const protocol = new ClaudeProtocol();
+        const boundary = (meta?: unknown) =>
+            protocol.handle({ type: 'system', subtype: 'compact_boundary', ...(meta === undefined ? {} : { compact_metadata: meta }) });
+
+        expect(boundary({ trigger: 'manual', pre_tokens: 25513, post_tokens: 8603 })).toEqual([{ type: 'compaction', preTokens: 25513, postTokens: 8603 }]);
+        expect(boundary({ trigger: 'manual', pre_tokens: 25513, post_tokens: 0 })).toEqual([{ type: 'compaction', preTokens: 25513 }]);
+        expect(boundary()).toEqual([{ type: 'compaction', preTokens: null }]);
+    });
+
+    test("a compaction boundary under a subagent's call is not this chat's fold", () => {
+        const protocol = new ClaudeProtocol();
+
+        expect(
+            protocol.handle({
+                type: 'system',
+                subtype: 'compact_boundary',
+                parent_tool_use_id: 'toolu_1',
+                compact_metadata: { pre_tokens: 9000, post_tokens: 3000 }
+            })
+        ).toEqual([]);
+    });
+
+    test('a live /compact on 2.1.319 reports both sizes and no count that would move the meter back', () => {
+        const protocol = new ClaudeProtocol();
+        const events = compact319.frames.flatMap((frame) => protocol.handle(frame));
+
+        expect(events.filter((event) => event.type === 'compaction')).toEqual([{ type: 'compaction', preTokens: 25513, postTokens: 8603 }]);
+        expect(events.filter((event) => event.type === 'usage' && event.contextTokens !== undefined && event.contextTokens > 0)).toEqual([]);
     });
 
     test('frames it does not know say nothing', () => {

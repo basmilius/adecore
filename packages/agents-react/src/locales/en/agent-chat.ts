@@ -105,6 +105,7 @@ export default {
         used: '{{tokens}} used',
         percentUsed: '{{percent}} used',
         estimate: '≈{{tokens}}',
+        pending: 'Size known after the next reply',
         parts: {
             toolOutput: 'Tool output',
             filesRead: 'Files read',
@@ -157,6 +158,8 @@ export default {
         compaction: {
             plain: 'Context compacted',
             from: 'Context compacted from {{tokens}} tokens',
+            to: 'Context compacted to {{tokens}} tokens',
+            fromTo: 'Context compacted from {{from}} to {{to}} tokens',
             summary: 'Everything above reaches the agent only as a summary'
         },
         selectionSwitch: {

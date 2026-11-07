@@ -31,7 +31,9 @@ export const ChatUsageSchema = z.object({
     // How long the prompt cache of the main agent's last request lives, in milliseconds; absent while the CLI names no lifetime.
     cacheTtlMs: z.number().int().positive().optional(),
     // When that cache goes cold, in milliseconds since the epoch: its lifetime from the moment that request started.
-    cacheExpiresAt: z.number().optional()
+    cacheExpiresAt: z.number().optional(),
+    // Set after a compaction whose CLI named no size: `contextTokens` is 0 until the next count, not an empty context.
+    contextPending: z.literal(true).optional()
 });
 export type ChatUsage = z.infer<typeof ChatUsageSchema>;
 
@@ -741,7 +743,9 @@ export const ChatNoteItemSchema = z.object({
 export const ChatCompactionItemSchema = z.object({
     ...base,
     kind: z.literal('compaction'),
-    preTokens: z.number().int().nonnegative().nullable()
+    preTokens: z.number().int().nonnegative().nullable(),
+    // The size the CLI named right after the fold; absent when it named none.
+    postTokens: z.number().int().nonnegative().optional()
 });
 
 /*

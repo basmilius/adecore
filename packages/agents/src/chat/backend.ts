@@ -193,7 +193,8 @@ export type BackendEvent =
     | { type: 'usage'; contextTokens?: number; contextWindow?: number; costUsd?: number; cacheTtlMs?: number; cacheExpiresAt?: number }
     // What the CLI said in passing about the plan it runs on; it belongs to the machine, not the chat.
     | { type: 'limits'; update: LimitsUpdate }
-    | { type: 'compaction'; preTokens: number | null }
+    // `postTokens` is the size the CLI named right after the fold, when it named one.
+    | { type: 'compaction'; preTokens: number | null; postTokens?: number }
     // The goal the CLI works toward as it stands now, whole; null once there is none.
     | { type: 'goal'; goal: ChatGoal | null }
     | { type: 'model'; model: string }

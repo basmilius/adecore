@@ -105,6 +105,7 @@ export default {
         used: '{{tokens}} gebruikt',
         percentUsed: '{{percent}} gebruikt',
         estimate: '≈{{tokens}}',
+        pending: 'Grootte bekend na het volgende antwoord',
         parts: {
             toolOutput: 'Tool-output',
             filesRead: 'Gelezen bestanden',
@@ -157,6 +158,8 @@ export default {
         compaction: {
             plain: 'Context gecomprimeerd',
             from: 'Context gecomprimeerd vanaf {{tokens}} tokens',
+            to: 'Context gecomprimeerd tot {{tokens}} tokens',
+            fromTo: 'Context gecomprimeerd van {{from}} tot {{to}} tokens',
             summary: 'Alles hierboven kent de agent alleen nog als samenvatting'
         },
         selectionSwitch: {

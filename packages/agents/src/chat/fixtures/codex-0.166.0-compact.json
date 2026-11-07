@@ -1,0 +1,249 @@
+{
+  "source": "Recorded from codex app-server 0.166.0 on 2026-11-07 in an empty folder with gpt-6-luna: a turn with about 45 KB of filler, thread/compact/start, and one short turn. Only turn, token usage and contextCompaction frames are kept, as the app-server sent them.",
+  "version": "codex-cli 0.166.0",
+  "frames": [
+    {
+      "method": "turn/started",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turn": {
+          "id": "01a1b360-9399-7b71-9c1a-2cee3011b02a",
+          "rootTurnId": "01a1b360-9399-7b71-9c1a-2cee3011b02a",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1794010813,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1794010813529
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turnId": "01a1b360-9399-7b71-9c1a-2cee3011b02a",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 28376,
+            "inputTokens": 28362,
+            "cachedInputTokens": 8064,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 14,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 28376,
+            "inputTokens": 28362,
+            "cachedInputTokens": 8064,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 14,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1794010815407
+    },
+    {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turn": {
+          "id": "01a1b360-9399-7b71-9c1a-2cee3011b02a",
+          "rootTurnId": "01a1b360-9399-7b71-9c1a-2cee3011b02a",
+          "items": [
+            {
+              "type": "agentMessage",
+              "id": "msg_06dd96a993ba94ab016aee6ebf28e087d28e9340419d9d0588",
+              "text": "I’ll remember the word “marmalade.”",
+              "phase": "final_answer",
+              "memoryCitation": null,
+              "delivery": null,
+              "questions": null,
+              "startedAtMs": 1794010815202,
+              "completedAtMs": 1794010815402
+            }
+          ],
+          "itemsView": "summary",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1794010813,
+          "completedAt": 1794010815,
+          "durationMs": 2231
+        }
+      },
+      "emittedAtMs": 1794010815578
+    },
+    {
+      "method": "turn/started",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turn": {
+          "id": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+          "rootTurnId": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1794010815,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1794010815603
+    },
+    {
+      "method": "item/started",
+      "params": {
+        "item": {
+          "type": "contextCompaction",
+          "id": "01a1b360-9c76-7272-bbaf-f38c2d9fc29b",
+          "startedAtMs": 1794010815606,
+          "completedAtMs": null
+        },
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turnId": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+        "startedAtMs": 1794010815606
+      },
+      "emittedAtMs": 1794010815606
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turnId": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 28376,
+            "inputTokens": 28362,
+            "cachedInputTokens": 8064,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 14,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 32646,
+            "inputTokens": 0,
+            "cachedInputTokens": 0,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 0,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1794010817222
+    },
+    {
+      "method": "item/completed",
+      "params": {
+        "item": {
+          "type": "contextCompaction",
+          "id": "01a1b360-9c76-7272-bbaf-f38c2d9fc29b",
+          "startedAtMs": 1794010815606,
+          "completedAtMs": 1794010817222
+        },
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turnId": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+        "completedAtMs": 1794010817222
+      },
+      "emittedAtMs": 1794010817225
+    },
+    {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turn": {
+          "id": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+          "rootTurnId": "01a1b360-9c5c-7da0-aa58-703fcdbdbd98",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1794010815,
+          "completedAt": 1794010817,
+          "durationMs": 1628
+        }
+      },
+      "emittedAtMs": 1794010817229
+    },
+    {
+      "method": "turn/started",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turn": {
+          "id": "01a1b360-b65e-7f31-8b15-23058177df9d",
+          "rootTurnId": "01a1b360-b65e-7f31-8b15-23058177df9d",
+          "items": [],
+          "itemsView": "notLoaded",
+          "status": "inProgress",
+          "error": null,
+          "startedAt": 1794010822,
+          "completedAt": null,
+          "durationMs": null
+        }
+      },
+      "emittedAtMs": 1794010822246
+    },
+    {
+      "method": "thread/tokenUsage/updated",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turnId": "01a1b360-b65e-7f31-8b15-23058177df9d",
+        "tokenUsage": {
+          "total": {
+            "totalTokens": 57660,
+            "inputTokens": 57639,
+            "cachedInputTokens": 20480,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 21,
+            "reasoningOutputTokens": 0
+          },
+          "last": {
+            "totalTokens": 29284,
+            "inputTokens": 29277,
+            "cachedInputTokens": 12416,
+            "cacheWriteInputTokens": 0,
+            "outputTokens": 7,
+            "reasoningOutputTokens": 0
+          },
+          "modelContextWindow": 258400
+        }
+      },
+      "emittedAtMs": 1794010823124
+    },
+    {
+      "method": "turn/completed",
+      "params": {
+        "threadId": "01a1b360-92f4-7192-a6f6-35b7d9ee2d7e",
+        "turn": {
+          "id": "01a1b360-b65e-7f31-8b15-23058177df9d",
+          "rootTurnId": "01a1b360-b65e-7f31-8b15-23058177df9d",
+          "items": [
+            {
+              "type": "agentMessage",
+              "id": "msg_06dd96a993ba94ab016aee6ec6e96887d2aca4343d20ddb938",
+              "text": "marmalade",
+              "phase": "final_answer",
+              "memoryCitation": null,
+              "delivery": null,
+              "questions": null,
+              "startedAtMs": 1794010822936,
+              "completedAtMs": 1794010823113
+            }
+          ],
+          "itemsView": "summary",
+          "status": "completed",
+          "error": null,
+          "startedAt": 1794010822,
+          "completedAt": 1794010823,
+          "durationMs": 889
+        }
+      },
+      "emittedAtMs": 1794010823135
+    }
+  ]
+}

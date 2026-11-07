@@ -85,6 +85,15 @@ const INTERACTION_PREFIX = 'interaction_';
 
 const SessionNotificationSchema = z.looseObject({ sessionId: z.string(), update: z.looseObject({ sessionUpdate: z.string() }) });
 
+/* Grok's own notifications beside `session/update`, in the same shape (Grok CLI 1.0.70). */
+export const GROK_SESSION_NOTIFICATION = '_x.ai/session_notification';
+
+const GrokCompactedSchema = z.looseObject({
+    sessionUpdate: z.literal('auto_compact_completed'),
+    tokens_before: z.number().int().nonnegative().nullish(),
+    tokens_after: z.number().int().nonnegative().nullish()
+});
+
 const PromptResponseSchema = z.looseObject({ stopReason: z.string() });
 
 const tokenCount = z.number().int().nonnegative();
@@ -936,6 +945,10 @@ export class AcpProtocol {
     // Set by the first `usage_update`; from then on a count outside the protocol is never read.
     private standardUsage = false;
     private vendorTokens: number | null = null;
+    // The context the agent last counted, by either way, so a compaction knows what it folded.
+    private contextTokens = 0;
+    // While `/compact` runs: the sizes around the fold, and the text and counts held back until the turn says whether it folded.
+    private compacting: { preTokens: number; postTokens: number; held: BackendEvent[] } | null = null;
     // The opening prompts of the process, whitespace folded, which an agent may hand back as the session's title.
     private readonly prompts: string[] = [];
 
@@ -958,7 +971,88 @@ export class AcpProtocol {
             return [];
         }
 
-        return [...this.mapUpdate(notification.data.update), ...this.vendorUsage(notification.data._meta)];
+        return this.counted([...this.mapUpdate(notification.data.update), ...this.vendorUsage(notification.data._meta)]);
+    }
+
+    /* One of Grok's own notifications; only the end of a compaction this client asked for means anything here. */
+    notification(sessionId: string, params: unknown): BackendEvent[] {
+        const notification = SessionNotificationSchema.safeParse(params);
+
+        if (!notification.success || notification.data.sessionId !== sessionId || this.compacting === null) {
+            return [];
+        }
+
+        const compacted = GrokCompactedSchema.safeParse(notification.data.update);
+
+        if (compacted.success) {
+            this.compacting.preTokens = compacted.data.tokens_before || this.compacting.preTokens;
+            this.compacting.postTokens = compacted.data.tokens_after || this.compacting.postTokens;
+        }
+
+        return [];
+    }
+
+    /* The next turn is the agent's `/compact`, which ends as one marker in place of its text. */
+    beginCompaction(): void {
+        this.compacting = { preTokens: this.contextTokens, postTokens: 0, held: [] };
+    }
+
+    /*
+     * What reaches the thread of a batch of events. A count of the context is remembered, and while a compaction
+     * runs it waits with the agent's text: it would read as the size before the fold, and the text is the
+     * agent's report of a fold the marker already shows.
+     */
+    private counted(events: BackendEvent[]): BackendEvent[] {
+        const compacting = this.compacting;
+
+        return events.filter((event) => {
+            if (event.type === 'usage' && event.contextTokens !== undefined && event.contextTokens > 0) {
+                if (compacting !== null) {
+                    compacting.postTokens = event.contextTokens;
+                } else {
+                    this.contextTokens = event.contextTokens;
+                }
+            }
+
+            if (compacting === null || (event.type !== 'usage' && event.type !== 'text.delta' && event.type !== 'text.done')) {
+                return true;
+            }
+
+            compacting.held.push(event);
+
+            return false;
+        });
+    }
+
+    /* The end of a `/compact` turn: a fold becomes its marker and its text goes, any other end lets the held events through. */
+    private endCompaction(folded: boolean): BackendEvent[] {
+        const compacting = this.compacting;
+        this.compacting = null;
+
+        if (compacting === null) {
+            return [];
+        }
+
+        if (!folded) {
+            return compacting.held;
+        }
+
+        const contextWindow = compacting.held.findLast((event) => event.type === 'usage' && event.contextWindow !== undefined);
+
+        if (compacting.postTokens > 0) {
+            this.contextTokens = compacting.postTokens;
+        }
+
+        return [
+            {
+                type: 'compaction',
+                preTokens: compacting.preTokens > 0 ? compacting.preTokens : null,
+                ...(compacting.postTokens > 0 ? { postTokens: compacting.postTokens } : {})
+            },
+            ...(contextWindow?.type === 'usage' && contextWindow.contextWindow !== undefined
+                ? [{ type: 'usage', contextWindow: contextWindow.contextWindow } as const]
+                : [])
+        ];
     }
 
     private mapUpdate(update: z.infer<typeof SessionNotificationSchema>['update']): BackendEvent[] {
@@ -1304,10 +1398,11 @@ export class AcpProtocol {
         const stopReason = parsed.success ? parsed.data.stopReason : 'end_turn';
         const reason = cancelled ? 'cancelled' : stopReason === 'cancelled' ? 'end_turn' : stopReason;
         this.refusalLine = false;
-        const events = [...this.closeText(), ...this.closeThought(), ...this.vendorUsage(isRecord(result) ? result._meta : undefined)];
+        const events = this.counted([...this.closeText(), ...this.closeThought(), ...this.vendorUsage(isRecord(result) ? result._meta : undefined)]);
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
         const quota = this.quota;
         this.quota = null;
+        events.push(...this.endCompaction(reason === 'end_turn' && quota === null));
 
         if (quota !== null && reason !== 'cancelled') {
             events.push({ type: 'turn.done', ...base, state: 'error', error: quota.text, limit: quotaLimit(quota) });
@@ -1347,7 +1442,8 @@ export class AcpProtocol {
     abort(promptId: string | undefined, error: string | null, limit: ChatTurnLimit | null = null): BackendEvent[] {
         this.refusalLine = false;
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
-        const events = [...this.closeText(), ...this.closeThought()];
+        const events = this.counted([...this.closeText(), ...this.closeThought()]);
+        events.push(...this.endCompaction(false));
         const quota = this.quota;
         this.quota = null;
 

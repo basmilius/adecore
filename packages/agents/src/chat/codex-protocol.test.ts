@@ -7,6 +7,7 @@ import nativeApprovalCapture from './fixtures/codex-0.159.2-native-approval.json
 import nativeFileApprovalCapture from './fixtures/codex-0.159.2-native-file-approval.json';
 import nativeInteractedCapture from './fixtures/codex-0.159.2-native-interacted.json';
 import usageWindowsCapture from './fixtures/codex-0.159.2-usage-windows.json';
+import compactCapture from './fixtures/codex-0.166.0-compact.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -313,6 +314,34 @@ describe('CodexProtocol', () => {
         });
         expect(events.find((event) => event.type === 'turn.done')).toMatchObject({ state: 'done' });
         expect(events.find((event) => event.type === 'turn.done')).not.toHaveProperty('limit');
+    });
+
+    test('a live compaction on 0.166.0 is one marker from the size before to the count Codex sent just ahead of it', () => {
+        const protocol = new CodexProtocol(1);
+        protocol.threadReady({ thread: { id: compactCapture.frames[0]!.params.threadId } });
+        const events = compactCapture.frames.flatMap((frame) => protocol.handle(frame));
+        const counts = events.filter((event) => event.type === 'compaction' || (event.type === 'usage' && event.contextTokens !== undefined));
+
+        expect(counts).toEqual([
+            { type: 'usage', contextTokens: 28376, contextWindow: 258400 },
+            { type: 'compaction', preTokens: 28376, postTokens: 32646 },
+            { type: 'usage', contextTokens: 29284, contextWindow: 258400 }
+        ]);
+        expect(events).toContainEqual({ type: 'usage', contextWindow: 258400 });
+    });
+
+    test('a compaction that ends without its item lets the count it held through', () => {
+        const protocol = new CodexProtocol(1);
+        const usage = (totalTokens: number) => ({ method: 'thread/tokenUsage/updated', params: { ...ids, tokenUsage: { last: { totalTokens } } } });
+        protocol.handle(usage(40_000));
+        protocol.handle({ method: 'item/started', params: { ...ids, item: { type: 'contextCompaction', id: 'cc-1' } } });
+
+        expect(protocol.handle(usage(12_000))).toEqual([]);
+        expect(protocol.handle({ method: 'turn/completed', params: { threadId: 't1', turn: { id: 'ct1', status: 'interrupted' } } })).toContainEqual({
+            type: 'usage',
+            contextTokens: 12_000
+        });
+        expect(protocol.handle(usage(13_000))).toEqual([{ type: 'usage', contextTokens: 13_000 }]);
     });
 
     for (const [primaryReset, secondaryReset, expectedReset] of [

@@ -607,6 +607,8 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
     const percent = Math.round(fraction * 100);
     const segments = contextSegments(usage);
     const used = formatTokens(usage.contextTokens);
+    // After a compaction whose CLI named no size, 0 is not how full the context is.
+    const pending = usage.contextPending === true;
 
     return (
         <Menu.Group className="flex flex-col gap-2 px-2.5 py-1.5">
@@ -615,10 +617,14 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
                     {t('contextMeter.title')}
                 </Menu.GroupLabel>
                 <span className={clsx('shrink-0 text-xs tabular-nums', fraction >= 0.7 ? contextTone(fraction) : 'text-text-faint')}>
-                    {usage.contextWindow ? t('contextMeter.of', { used, window: formatTokens(usage.contextWindow) }) : t('contextMeter.used', { tokens: used })}
+                    {pending
+                        ? t('contextMeter.pending')
+                        : usage.contextWindow
+                          ? t('contextMeter.of', { used, window: formatTokens(usage.contextWindow) })
+                          : t('contextMeter.used', { tokens: used })}
                 </span>
             </div>
-            {usage.contextWindow ? (
+            {usage.contextWindow && !pending ? (
                 <div
                     role="meter"
                     aria-valuenow={percent}
@@ -655,7 +661,7 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
             )}
             <div className="flex items-center gap-2 text-xs text-text-faint tabular-nums">
                 <span className="min-w-0 grow truncate">
-                    {usage.contextWindow ? t('contextMeter.percentUsed', { percent: formatPercent(fraction * 100) }) : null}
+                    {usage.contextWindow && !pending ? t('contextMeter.percentUsed', { percent: formatPercent(fraction * 100) }) : null}
                 </span>
                 <Menu.Item
                     unstyled

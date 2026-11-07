@@ -116,7 +116,7 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
         case 'sent':
             return <SentByAgentRow chatId={chatId} id={row.id} tool={row.tool} sent={row.sent} />;
         case 'compaction':
-            return <CompactionRow preTokens={row.preTokens} />;
+            return <CompactionRow preTokens={row.preTokens} postTokens={row.postTokens} />;
         case 'selection-switch':
             return <SelectionSwitchRow chatId={chatId} from={row.from} to={row.to} />;
         case 'working':

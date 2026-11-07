@@ -874,25 +874,19 @@ export class ChatSession {
         this.submit(turnId, input);
     }
 
-    /* Asks the CLI to fold its context: a call of its own, or the slash command as a turn. */
+    /*
+     * Asks the CLI to fold its context: a call of its own, or the slash command as a turn the backend sends. Either
+     * way it is an action and not a message, so the thread shows only the marker the fold leaves.
+     */
     compact(): void {
-        const compaction = this.options.provider.capabilities.compaction;
-
-        if (compaction === 'none') {
+        if (this.options.provider.capabilities.compaction === 'none') {
             throw new ChatError('chat-unsupported', `${this.options.provider.name} cannot compact its context`);
-        }
-
-        if (compaction === 'prompt') {
-            this.send('/compact');
-
-            return;
         }
 
         if (this.replacementWaits()) {
             throw new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply');
         }
 
-        // A native compaction has no message of the person in front of it, only a turn to fold behind.
         this.openTurn(null, null, {});
         // Folding the context changes no file, so this turn needs no checkpoint.
         this.turnReady = Promise.resolve();
