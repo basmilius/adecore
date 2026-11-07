@@ -35,6 +35,7 @@ import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
 import { homeFolder } from '../home-folder.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
+import type { Env } from '../providers/accounts/accounts.ts';
 import { AccountError, definedEnv, isDefaultAccountOf, launchEnv, storedAccount, type AccountLaunches } from '../providers/accounts/launch.ts';
 import { runsClaudeCode } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
@@ -203,6 +204,7 @@ export interface ChatCoreOptions {
     // Where Claude Code's own name for a session is read, in the projects folder of the chat's account; the other CLIs write none down.
     claudeTitles?: { forSession(agentSessionId: string, projectsDir: string, cwd: string): Promise<string | null> };
     // A name for a Codex chat, asked of a one-shot CLI: its app-server names no thread on its own.
+    // `input.account` and `input.env` are the chat's own; the one-shot run takes that env (`suggestChatTitle` does).
     nameChat?: (provider: AgentKind, input: ChatTitleInput) => Promise<string | null>;
     // Where a subagent's whole conversation is read and how its growth is noticed.
     subagents?: Partial<Pick<SubagentReaderOptions, 'claudeProjectsDir' | 'seams' | 'now' | 'listOnce'>>;
@@ -419,6 +421,31 @@ export class ChatCore {
         launchEnv(this.accounts, kind, account, this.env);
     }
 
+    /*
+     * Asks the host for a name under the account the chat runs under, with the environment its own CLI
+     * starts with, so a one-shot run never reads the plan of another account. No name for an account
+     * this machine cannot start.
+     */
+    private async askName(
+        nameChat: NonNullable<ChatCoreOptions['nameChat']>,
+        kind: AgentKind,
+        account: string | undefined,
+        base: Env,
+        input: ChatTitleInput
+    ): Promise<string | null> {
+        let env: Record<string, string>;
+
+        try {
+            env = definedEnv(launchEnv(this.accounts, kind, account, base));
+        } catch {
+            return null;
+        }
+
+        const named = storedAccount(kind, account);
+
+        return nameChat(kind, { ...input, env, ...(named === undefined ? {} : { account: named }) });
+    }
+
     accountLabel(kind: AgentKind, account: string | undefined): string {
         return isDefaultAccountOf(kind, account) || account === undefined ? this.providers.get(kind).name : (this.accounts?.labelOf(account) ?? account);
     }
@@ -583,7 +610,9 @@ export class ChatCore {
             ...(runsClaudeCode(provider) && claudeTitles
                 ? { readTitle: (agentSessionId: string) => claudeTitles.forSession(agentSessionId, this.claudeProjectsDirOf(session.info), session.info.cwd) }
                 : {}),
-            ...(namedByOneShot(provider) && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
+            ...(namedByOneShot(provider) && nameChat
+                ? { nameThread: (input: ChatTitleInput) => this.askName(nameChat, kind, session.info.account, base, input) }
+                : {}),
             ...(runsClaudeCode(provider) ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
             ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
         });
