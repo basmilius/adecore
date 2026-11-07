@@ -19,7 +19,7 @@ import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-tra
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';
-import type { ChatProvider, ProviderShare } from '../provider.ts';
+import type { ChatProvider } from '../provider.ts';
 import {
     accountEnv,
     accountFolder,
@@ -168,8 +168,6 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly writes = new Serializer();
     // Links and unlinks of the shared setup, apart from the checks: an apply that started while the flag was on must end before the removal, and reads the flag again when its turn comes.
     private readonly shares = new Serializer();
-    // Accounts whose flag is off but whose links could not be removed; every check tries again. Only these are unlinked, so a link a person made themselves stays.
-    private readonly pendingUnshare = new Set<string>();
     private readonly sinks = new ClientSinks<AgentEvent>();
     private readonly listeners = new Set<() => void>();
     // When a CLI last started under each account, by id; kept in memory, so a restart forgets it.
@@ -389,7 +387,8 @@ export class ProviderAccountsService implements AccountLaunches {
 
     /*
      * Turns on or off that an extra account reads the setup of the default account of its CLI. Answers at
-     * once; turning it on is applied by the check that follows, turning it off removes the links now.
+     * once; turning it on is applied by the check that follows, turning it off removes the links first and clears the
+     * flag only once they are gone, so a failed removal throws and leaves the account sharing.
      */
     shareConfig(id: string, shared: boolean): Promise<ProviderAccounts> {
         return this.writes.run(async () => {
@@ -411,35 +410,22 @@ export class ProviderAccountsService implements AccountLaunches {
             }
 
             const { shareConfig: _was, ...rest } = account;
-            const snapshot = await this.commit({ ...this.accounts, [id]: shared ? { ...rest, shareConfig: true } : rest }, this.folderExists, 'shareConfig');
+            const accounts = { ...this.accounts, [id]: shared ? { ...rest, shareConfig: true } : rest };
 
-            if (shared) {
-                this.pendingUnshare.delete(id);
-
-                return snapshot;
-            }
-
-            if (account.shareConfig !== true && !this.pendingUnshare.has(id)) {
-                return snapshot;
+            // An account that never shared keeps whatever links a person made in it.
+            if (shared || account.shareConfig !== true) {
+                return this.commit(accounts, this.folderExists, 'shareConfig');
             }
 
             const from = defaultFolder(provider, this.env);
             const into = expandHome(account.home, this.env);
 
-            try {
-                await this.shares.run(async () => {
-                    this.pendingUnshare.add(id);
-                    await this.removeShared(from, into, share);
-                    this.pendingUnshare.delete(id);
-                });
-            } catch (e) {
-                // The flag is off already; a check says what stayed linked and tries again.
-                void this.queue(true, id);
+            // Unlink and clear the flag in one turn of `shares`, so no apply reads the flag on between them. When the unlink fails the flag stays on, which the next check agrees with, also after a restart.
+            return this.shares.run(async () => {
+                await this.removeShared(from, into, share);
 
-                throw e;
-            }
-
-            return snapshot;
+                return this.commit(accounts, this.folderExists, 'shareConfig');
+            });
         });
     }
 
@@ -890,7 +876,7 @@ export class ProviderAccountsService implements AccountLaunches {
             const home = expandHome(live.home, this.env);
 
             if (live.shareConfig !== true) {
-                return this.retryUnshare(id, from, home, share);
+                return null;
             }
 
             try {
@@ -903,24 +889,6 @@ export class ProviderAccountsService implements AccountLaunches {
                 return `Could not share the setup of ${from}: ${errorText(e)}`;
             }
         });
-    }
-
-    /* Tries again to unlink an account that was turned off while its links could not be removed. */
-    private async retryUnshare(id: string, from: string, home: string, share: ProviderShare): Promise<string | null> {
-        if (!this.pendingUnshare.has(id)) {
-            return null;
-        }
-
-        try {
-            await this.removeShared(from, home, share);
-            this.pendingUnshare.delete(id);
-
-            return null;
-        } catch (e) {
-            console.error(`Could not remove the shared setup of ${from} from ${home}:`, errorText(e));
-
-            return `Could not remove the shared setup of ${from}: ${errorText(e)}`;
-        }
     }
 
     private emit(): void {

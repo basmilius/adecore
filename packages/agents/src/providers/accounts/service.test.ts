@@ -402,7 +402,7 @@ describe('ProviderAccountsService', () => {
 
             const realAccount = { kind: 'claude', label: 'Personal' } as const;
 
-            const makeReal = async (): Promise<ProviderAccountsService> => {
+            const makeReal = async (saveAccount = true): Promise<ProviderAccountsService> => {
                 const service = new ProviderAccountsService({
                     home: dir,
                     providers,
@@ -429,7 +429,10 @@ describe('ProviderAccountsService', () => {
                     }
                 });
                 await service.load();
-                await service.save({ claude_personal: { ...realAccount, home: accountFolderPath } });
+
+                if (saveAccount) {
+                    await service.save({ claude_personal: { ...realAccount, home: accountFolderPath } });
+                }
 
                 return service;
             };
@@ -441,6 +444,23 @@ describe('ProviderAccountsService', () => {
                 applying = new Promise((resolve) => {
                     releaseApply = resolve;
                 });
+            };
+
+            /*
+             * Lets the service run while the first apply is held: a turn off that does not wait for the
+             * apply unlinks (or settles) within a few file operations, one that waits does neither. The
+             * pending file operations of the service queue behind these probes, so the bound is not a clock.
+             */
+            const untilRemovedOrSettled = async (turnOff: Promise<unknown>): Promise<void> => {
+                let settled = false;
+                void turnOff.then(
+                    () => (settled = true),
+                    () => (settled = true)
+                );
+
+                for (let i = 0; i < 200 && !settled && removeCalls === 0; i++) {
+                    await lstat(accountFolderPath);
+                }
             };
 
             const isLinked = async (): Promise<boolean> => {
@@ -476,6 +496,10 @@ describe('ProviderAccountsService', () => {
                 await service.shareConfig('claude_personal', true);
                 await applyStarted;
                 const off = service.shareConfig('claude_personal', false);
+                await untilRemovedOrSettled(off);
+
+                // The held apply still owns the links, so nothing may have been removed under it.
+                expect(removeCalls).toBe(0);
                 releaseApply();
                 const after = await off;
                 await service.refresh();
@@ -492,6 +516,9 @@ describe('ProviderAccountsService', () => {
                 await applyStarted;
                 const off = service.shareConfig('claude_personal', false);
                 const on = service.shareConfig('claude_personal', true);
+                await untilRemovedOrSettled(off);
+
+                expect(removeCalls).toBe(0);
                 releaseApply();
                 await Promise.all([off, on]);
                 await service.refresh();
@@ -500,27 +527,32 @@ describe('ProviderAccountsService', () => {
                 expect(await isLinked()).toBe(true);
             });
 
-            test('says when the links stayed and removes them in a later check', async () => {
+            test('keeps the flag on and the links when the removal fails, also after a restart, and removes them on a later turn off', async () => {
                 const service = await makeReal();
                 await service.shareConfig('claude_personal', true);
                 await service.refresh();
                 removalFailure = new Error('disk is full');
 
                 await expect(service.shareConfig('claude_personal', false)).rejects.toThrow('disk is full');
-                const failing = await service.refresh();
-
-                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBeUndefined();
-                expect(await isLinked()).toBe(true);
-                expect(stateOf(failing, 'claude_personal')?.message).toBe(`Could not remove the shared setup of ${defaultFolderPath}: disk is full`);
-
-                removalFailure = null;
-                const fixed = await service.refresh();
-                const calls = removeCalls;
                 await service.refresh();
 
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBe(true);
+                expect(await isLinked()).toBe(true);
+
+                service.stop();
+                removalFailure = null;
+                const restarted = await makeReal(false);
+                await restarted.refresh();
+
+                expect(restarted.snapshot().accounts.claude_personal?.shareConfig).toBe(true);
+                expect(await isLinked()).toBe(true);
+
+                const off = await restarted.shareConfig('claude_personal', false);
+                await restarted.refresh();
+
+                expect(off.accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(restarted.snapshot().accounts.claude_personal?.shareConfig).toBeUndefined();
                 expect(await isLinked()).toBe(false);
-                expect(stateOf(fixed, 'claude_personal')?.message).toBeNull();
-                expect(removeCalls).toBe(calls);
             });
 
             test('keeps a link a person made in an account that never shared', async () => {
