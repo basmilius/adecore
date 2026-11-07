@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { buildUserMessage, splitSkillPrompt } from './input.ts';
+import { buildUserMessage, lastSkillToken, splitSkillPrompt } from './input.ts';
 
 const png = { id: 'a1', name: 'shot.png', mime: 'image/png', size: 12, path: '/home/x/.ruimte/attachments/chat-1/a1.png' };
 
@@ -132,5 +132,105 @@ describe('a skill reference inside a longer prompt', () => {
 
     test('an unclosed fence runs to the end of the text', () => {
         expect(splitSkillPrompt('Use $lint\n```\n$review', ['review', 'lint'])).toEqual({ lead: 'Use /lint\n```\n$review', invocation: '/lint' });
+    });
+});
+
+describe('code in a prompt follows CommonMark', () => {
+    const skills = ['lint', 'review', 'also'];
+
+    test('a tilde fence is code', () => {
+        expect(splitSkillPrompt('Use $lint.\n~~~sh\necho $review\n~~~\nDone', skills)).toEqual({
+            lead: 'Use /lint.\n~~~sh\necho $review\n~~~\nDone',
+            invocation: '/lint'
+        });
+    });
+
+    test('a closing fence at least as long as the opening one closes it, a shorter one does not', () => {
+        expect(splitSkillPrompt('Use $lint\n````\n```\n$review\n````\nDone', skills)).toEqual({
+            lead: 'Use /lint\n````\n```\n$review\n````\nDone',
+            invocation: '/lint'
+        });
+        expect(splitSkillPrompt('Use $lint\n```\n$review\n`````\nthen $also', skills)).toEqual({
+            lead: 'Use /lint\n```\n$review\n`````\nthen /also',
+            invocation: '/also'
+        });
+    });
+
+    test('a fence may be indented up to three spaces, closing fence too', () => {
+        for (const indent of [' ', '  ', '   ']) {
+            expect(splitSkillPrompt(`Use $lint\n${indent}~~~\n$review\n${indent}~~~\nDone`, skills)).toEqual({
+                lead: `Use /lint\n${indent}~~~\n$review\n${indent}~~~\nDone`,
+                invocation: '/lint'
+            });
+        }
+
+        expect(splitSkillPrompt('Use $lint\n```\n$review\n   ```\nthen $also', skills).invocation).toBe('/also');
+    });
+
+    test('four spaces make a fence line text, and it neither opens nor closes a fence', () => {
+        expect(splitSkillPrompt('Use $lint\n    ```\n$review', skills)).toEqual({
+            lead: 'Use /lint\n    ```\n/review',
+            invocation: '/review'
+        });
+        expect(splitSkillPrompt('Use $lint\n```\n$review\n    ```\n$also', skills).invocation).toBe('/lint');
+    });
+
+    test('a fence closed by the other character stays open', () => {
+        expect(splitSkillPrompt('Use $lint\n~~~\n$review\n```\n$also', skills)).toEqual({
+            lead: 'Use /lint\n~~~\n$review\n```\n$also',
+            invocation: '/lint'
+        });
+        expect(splitSkillPrompt('Use $lint\n```\n$review\n~~~\n$also', skills).invocation).toBe('/lint');
+    });
+
+    test('anything after a closing fence but spaces keeps it open', () => {
+        expect(splitSkillPrompt('Use $lint\n```\n$review\n``` x\n$also', skills).invocation).toBe('/lint');
+        expect(splitSkillPrompt('Use $lint\n```\n$review\n```  \nthen $also', skills).invocation).toBe('/also');
+    });
+
+    test('an unclosed tilde fence runs to the end of the text', () => {
+        expect(splitSkillPrompt('Use $lint\n~~~\n$review', skills)).toEqual({ lead: 'Use /lint\n~~~\n$review', invocation: '/lint' });
+    });
+
+    test('a backtick fence whose info string holds a backtick is no fence', () => {
+        expect(splitSkillPrompt('Use $lint\n```a`b\n$review', skills)).toEqual({ lead: 'Use /lint\n```a`b\n/review', invocation: '/review' });
+        expect(splitSkillPrompt('Use $lint\n~~~a`b\n$review\n~~~\nDone', skills).invocation).toBe('/lint');
+    });
+
+    test('an indented code block after a blank line or at the start is code', () => {
+        expect(splitSkillPrompt('Use $lint\n\n    echo $review\n\nDone', skills)).toEqual({
+            lead: 'Use /lint\n\n    echo $review\n\nDone',
+            invocation: '/lint'
+        });
+        expect(splitSkillPrompt('Use $lint\n\n\techo $review\n\tmore $also', skills).invocation).toBe('/lint');
+        expect(splitSkillPrompt('    echo $review\n\nUse $lint', skills)).toEqual({
+            lead: '    echo $review\n\nUse /lint',
+            invocation: '/lint'
+        });
+    });
+
+    test('an indented line that continues a paragraph is text', () => {
+        expect(splitSkillPrompt('Use $lint\n    then $review', skills)).toEqual({
+            lead: 'Use /lint\n    then /review',
+            invocation: '/review'
+        });
+    });
+
+    test('text after a closed fence is read as text again', () => {
+        expect(splitSkillPrompt('Use $lint\n~~~\n$review\n~~~\nthen $also', skills)).toEqual({
+            lead: 'Use /lint\n~~~\n$review\n~~~\nthen /also',
+            invocation: '/also'
+        });
+    });
+
+    test('the invocation is the last token outside code', () => {
+        const text = 'Run $lint, then $review.\n~~~\n$also\n~~~\n\n    $also';
+
+        expect(lastSkillToken(text, skills)).toEqual({ index: text.indexOf('$review'), name: 'review' });
+        expect(splitSkillPrompt(text, skills).invocation).toBe('/review');
+    });
+
+    test('an inline span closed by the same number of backticks is code', () => {
+        expect(splitSkillPrompt('Use $lint and ``echo `$review` ``', skills)).toEqual({ lead: 'Use /lint and ``echo `$review` ``', invocation: '/lint' });
     });
 });

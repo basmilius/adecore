@@ -19,11 +19,108 @@ function isTokenEnd(char: string | undefined): boolean {
 }
 
 /*
- * The spans of the text that are code, as `[start, end)` pairs: a fenced block (an unclosed one runs
- * to the end) and an inline span closed by a run of the same number of backticks. A `$x` there is a
- * shell variable or a literal, never a skill.
+ * The spans of the text that are code, as `[start, end)` pairs, the way CommonMark reads them: a
+ * fenced block, an indented block, and an inline span closed by a run of the same number of
+ * backticks. A `$x` there is a shell variable or a literal, never a skill.
  */
 function codeRanges(text: string): Array<[number, number]> {
+    const blocks = blockRanges(text);
+    const ranges = [...blocks];
+    let from = 0;
+
+    for (const [start, end] of [...blocks, [text.length, text.length] as [number, number]]) {
+        for (const [spanStart, spanEnd] of inlineRanges(text.slice(from, start))) {
+            ranges.push([from + spanStart, from + spanEnd]);
+        }
+
+        from = end;
+    }
+
+    return ranges;
+}
+
+/* The width of a line's leading whitespace in columns (a tab runs to the next multiple of four) and the rest of the line. */
+function splitIndent(line: string): { columns: number; rest: string } {
+    let columns = 0;
+    let index = 0;
+
+    for (; index < line.length; index++) {
+        if (line[index] === ' ') {
+            columns++;
+        } else if (line[index] === '\t') {
+            columns += 4 - (columns % 4);
+        } else {
+            break;
+        }
+    }
+
+    return { columns, rest: line.slice(index) };
+}
+
+/*
+ * Fenced blocks (three or more backticks or tildes, indented up to three columns, closed by a fence
+ * of the same character that is at least as long and has only spaces after it; an unclosed one runs
+ * to the end) and indented blocks (four columns, which cannot interrupt a paragraph).
+ */
+function blockRanges(text: string): Array<[number, number]> {
+    const ranges: Array<[number, number]> = [];
+    let fence: { char: string; length: number; start: number } | null = null;
+    let afterParagraph = false;
+    let offset = 0;
+
+    for (const raw of text.split('\n')) {
+        const lineStart = offset;
+        const lineEnd = offset + raw.length;
+        const { columns, rest } = splitIndent(raw.endsWith('\r') ? raw.slice(0, -1) : raw);
+
+        offset = lineEnd + 1;
+
+        if (fence !== null) {
+            const closing = columns < 4 ? /^(`+|~+)[ \t]*$/.exec(rest) : null;
+
+            if (closing !== null && closing[1][0] === fence.char && closing[1].length >= fence.length) {
+                ranges.push([fence.start, lineEnd]);
+                fence = null;
+            }
+
+            continue;
+        }
+
+        if (rest.trim() === '') {
+            afterParagraph = false;
+
+            continue;
+        }
+
+        if (columns >= 4) {
+            if (!afterParagraph) {
+                ranges.push([lineStart, lineEnd]);
+            }
+
+            continue;
+        }
+
+        const opening = /^(`{3,}|~{3,})(.*)$/.exec(rest);
+
+        if (opening !== null && !(opening[1][0] === '`' && opening[2].includes('`'))) {
+            fence = { char: opening[1][0], length: opening[1].length, start: lineStart };
+            afterParagraph = false;
+
+            continue;
+        }
+
+        afterParagraph = true;
+    }
+
+    if (fence !== null) {
+        ranges.push([fence.start, text.length]);
+    }
+
+    return ranges;
+}
+
+/* The inline code spans of a stretch of text: a run of backticks up to the next run of the same length. */
+function inlineRanges(text: string): Array<[number, number]> {
     const ranges: Array<[number, number]> = [];
     let index = 0;
 
@@ -41,21 +138,6 @@ function codeRanges(text: string): Array<[number, number]> {
         }
 
         const length = end - index;
-        const atLineStart = index === 0 || text[index - 1] === '\n';
-
-        if (length >= 3 && atLineStart) {
-            const close = new RegExp(`\\n {0,3}\`{${length},}[ \\t]*(?=\\n|$)`, 'g');
-
-            close.lastIndex = end;
-            const match = close.exec(text);
-            const stop = match === null ? text.length : match.index + match[0].length;
-
-            ranges.push([index, stop]);
-            index = stop;
-
-            continue;
-        }
-
         const closing = findBacktickRun(text, end, length);
 
         if (closing === -1) {
@@ -155,7 +237,8 @@ export function splitSkillPrompt(text: string, skills: string[]): { lead: string
 
     lead += text.slice(from);
 
-    return { lead: lead.trim(), invocation: `/${last.name}` };
+    // Leading blank lines go, the indentation of the first line stays: four spaces there make it code.
+    return { lead: lead.replace(/^(?:[ \t]*\n)+/, '').trimEnd(), invocation: `/${last.name}` };
 }
 
 /* Paths stay in the prompt so the agent can also edit or copy the original attachments. */
