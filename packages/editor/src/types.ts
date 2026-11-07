@@ -66,8 +66,8 @@ export interface EditorFolds {
 export type EditorTheme = string;
 
 export interface EditorOptions {
-    /* More host shortcuts for this mount, on top of the engine's handBack chords. */
-    readonly handBack?: readonly KeyChord[];
+    /* More host shortcuts for this mount, on top of the engine's handBack chords. A function is asked on every key press. */
+    readonly handBack?: readonly KeyChord[] | (() => readonly KeyChord[]);
     readonly text: string;
     /* A Shiki language id. Without one, or with one Shiki does not know, it is plain text. */
     readonly language?: string;
@@ -965,12 +965,13 @@ export type TokenizerSource = (language: string | undefined, theme: EditorTheme,
 export interface SmartEditorEngineOptions {
     /* One lazy search worker per mounted editor; regex search is unavailable without it. */
     readonly searchWorker?: EditorSearchClientOptions['workerFactory'];
-    readonly keymap?: Keymap;
+    /* The key table. A function is asked on every key press, so a rebind reaches the editors that are open. */
+    readonly keymap?: Keymap | (() => Keymap);
     readonly tokenizer: TokenizerSource;
     /* Without it semantic tokens are ignored and the grammar's colors stand. */
     readonly scopeColors?: ScopeColorSource;
-    /* The app's shortcuts that work from anywhere, a text field included; the editor lets them pass untouched. */
-    readonly handBack?: readonly KeyChord[];
+    /* The app's shortcuts that work from anywhere, a text field included; the editor lets them pass untouched. A function is asked on every key press. */
+    readonly handBack?: readonly KeyChord[] | (() => readonly KeyChord[]);
     /* Whether the physical Ctrl and Meta of a shortcut are macOS's. */
     readonly apple?: boolean;
 }

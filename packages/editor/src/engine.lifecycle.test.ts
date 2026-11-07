@@ -1,6 +1,6 @@
 import { describe, expect, jest, test } from 'bun:test';
 import { setup } from './engine.fixture.test.ts';
-import { parseChord } from './keymap-table.ts';
+import { parseChord, resolveKeymap } from './keymap-table.ts';
 import type { KeyChord } from './types.ts';
 import { EditorView } from './view.ts';
 
@@ -110,6 +110,51 @@ describe('saving, blur and shortcuts', () => {
         expect(own.press('Enter', { ctrlKey: true })).toBe(true);
         expect(own.editor.getText()).not.toBe('a');
         own.editor.dispose();
+    });
+
+    test('asks for the shortcuts of the app on every key press, so a rebind reaches an editor that is open', () => {
+        let handBack = [parseChord('Mod+D')];
+        const { editor, press } = setup({ text: 'a' }, { handBack: () => handBack });
+        expect(press('d', { ctrlKey: true })).toBe(false);
+        expect(editor.getText()).toBe('a');
+
+        handBack = [parseChord('Mod+Shift+D')];
+        expect(press('d', { ctrlKey: true, shiftKey: true })).toBe(false);
+        expect(press('d', { ctrlKey: true })).toBe(true);
+        expect(editor.getText()).toBe('a\na');
+    });
+
+    test('asks for the shortcuts of one mount on every key press as well, next to those of the engine', () => {
+        let mount = [parseChord('Mod+Enter')];
+        const { editor, press } = setup({ text: 'a', handBack: () => mount }, { handBack: [parseChord('Mod+D')] });
+        expect(press('Enter', { ctrlKey: true })).toBe(false);
+
+        mount = [];
+        expect(press('Enter', { ctrlKey: true })).toBe(true);
+        expect(editor.getText()).not.toBe('a');
+        expect(press('d', { ctrlKey: true })).toBe(false);
+    });
+
+    test('asks for the key table on every key press, so a rebound command moves at once', () => {
+        let keymap = resolveKeymap();
+        const { editor, press } = setup({ text: 'a' }, { keymap: () => keymap });
+        expect(press('d', { ctrlKey: true })).toBe(true);
+        expect(editor.getText()).toBe('a\na');
+
+        keymap = resolveKeymap({ duplicateLine: { mac: 'Mod+Shift+D', other: 'Mod+Shift+D' } });
+        expect(press('d', { ctrlKey: true })).toBe(false);
+        expect(editor.getText()).toBe('a\na');
+        expect(press('d', { ctrlKey: true, shiftKey: true })).toBe(true);
+        expect(editor.getText()).toBe('a\na\na');
+    });
+
+    test('takes a key table and a list of shortcuts as plain values too', () => {
+        const keymap = resolveKeymap({ duplicateLine: { mac: 'Mod+Shift+D', other: 'Mod+Shift+D' } });
+        const { editor, press } = setup({ text: 'a' }, { keymap, handBack: [parseChord('Mod+Enter')] });
+        expect(press('d', { ctrlKey: true })).toBe(false);
+        expect(press('d', { ctrlKey: true, shiftKey: true })).toBe(true);
+        expect(editor.getText()).toBe('a\na');
+        expect(press('Enter', { ctrlKey: true })).toBe(false);
     });
 
     test('stops reporting once a listener unsubscribes', () => {

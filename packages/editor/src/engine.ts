@@ -76,6 +76,11 @@ const DEFAULT_WIDGET_OWNER = 'default';
 /* The space a hint's padding keeps clear; a whole pixel count so the pill stays on the pixel grid. */
 const INLAY_GAP = 4;
 
+/* A value an app hands over as it is, or as a function the editor asks again each time it needs it. */
+function live<T>(source: T | (() => T)): () => T {
+    return typeof source === 'function' ? (source as () => T) : () => source;
+}
+
 class SmartEditor implements Editor {
     private readonly model: DocumentModel;
     private readonly settings: ViewSettings;
@@ -135,9 +140,12 @@ class SmartEditor implements Editor {
         this.view = new EditorView(element, this.model, this.settings);
         this.grammarPreparation = new GrammarPreparation(this.model, () => this.view.grammarChanged());
 
+        const engineHandBack = live(engine.handBack ?? []);
+        const mountHandBack = live(options.handBack ?? []);
+
         this.controller = new InputController(this.view, {
-            handBack: [...(engine.handBack ?? []), ...(options.handBack ?? [])],
-            keymap: engine.keymap,
+            handBack: () => [...engineHandBack(), ...mountHandBack()],
+            keymap: live(engine.keymap),
             apple: engine.apple ?? false,
             save: () => emit(this.saves),
             blur: () => emit(this.blurs),

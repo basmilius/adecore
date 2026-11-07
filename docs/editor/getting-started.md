@@ -63,8 +63,8 @@ One engine mounts any number of editors. Each has its own document, history and 
 | -------------------------- | -------- | ----------------------------------------------------------------------------------- |
 | `tokenizer`                | required | Returns the `LineTokenizer` for a language and theme, or `null` for plain text      |
 | `scopeColors`              |          | The colors of a theme by TextMate scope; without it semantic tokens are ignored     |
-| `keymap`                   | `KEYMAP` | The key table; see [keymaps](/editor/options#keymaps)                               |
-| `handBack`                 | `[]`     | `KeyChord`s the editor leaves alone, so the app's own shortcuts work from inside it |
+| `keymap`                   | `KEYMAP` | The key table, or a function that returns it; see [keymaps](/editor/options#keymaps) |
+| `handBack`                 | `[]`     | `KeyChord`s the editor leaves alone, so the app's own shortcuts work from inside it, or a function that returns them |
 | `apple`                    | `false`  | Read Ctrl and Meta the way macOS does                                               |
 
 The editor is editable while the tokenizer loads, and ignores a tokenizer that fails or answers after a newer theme was set.
