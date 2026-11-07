@@ -144,13 +144,26 @@ export function paceText(window: UsageWindow, now: number): string {
         : i18next.t(`agent-usage:limits.pace.${pace.standing}`, { percent, pace: pace.percent });
 }
 
-/* When the numbers came in and from where: a read of the machine's own, or a turn that reported them. Null before the first read. */
-export function checkedLabel(entry: UsageLimitsProvider, now: number): string | null {
-    if (entry.checkedAt <= 0) {
+export function checkedAge(entry: UsageLimitsProvider, now: number): number | null {
+    if (!Number.isFinite(entry.checkedAt) || entry.checkedAt <= 0 || entry.checkedAt > now + MINUTE) {
         return null;
     }
 
-    const past = now - entry.checkedAt;
+    return Math.max(0, now - entry.checkedAt);
+}
+
+export function showsWindows(entry: UsageLimitsProvider | null): boolean {
+    return entry !== null && entry.windows.length > 0 && (entry.unavailable === null || entry.unavailable.reason === 'failed');
+}
+
+/* When the numbers came in and from where: a read of the machine's own, or a turn that reported them. Null before the first read. */
+export function checkedLabel(entry: UsageLimitsProvider, now: number): string | null {
+    const past = checkedAge(entry, now);
+
+    if (past === null) {
+        return null;
+    }
+
     const when = past < MINUTE ? i18next.t('agent-usage:limits.checked.now') : i18next.t('agent-usage:limits.checked.ago', { duration: formatDuration(past) });
 
     return entry.source === 'event' ? i18next.t('agent-usage:limits.checked.fromTurn', { when }) : when;
@@ -174,7 +187,7 @@ export function explain(provider: UsageLimitsProvider): string | null {
     return provider.unavailable.message ?? i18next.t('agent-usage:limits.unreachable');
 }
 
-/* Why an account has no bars, or null when it has them. An account the machine does not read says what its login is doing. */
+/* The explanation for an account, including a failed read beside retained bars. An account the machine does not read says what its login is doing. */
 export function accountNote(account: LimitAccount): string | null {
     return account.entry === null ? accountStatusLine(account.status, true).text : explain(account.entry);
 }

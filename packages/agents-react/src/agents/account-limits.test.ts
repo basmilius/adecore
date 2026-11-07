@@ -97,6 +97,17 @@ describe('going on under another account after a limit', () => {
         expect(hasUnreadAccount(accounts, snapshot(limits(null, 1), limits('claude_work', 0.2), limits('claude_home', 0.2)), 'claude', undefined)).toBe(false);
     });
 
+    test('a failed retained reading is retried before offering continuation again', () => {
+        const failed = limits('claude_work', 0.2);
+        failed.unavailable = { reason: 'failed', message: 'offline' };
+        const read = snapshot(limits(null, 1), failed, limits('claude_home', 1));
+        expect(continueTargets(accounts, read, 'claude', undefined)).toEqual([]);
+        expect(hasUnreadAccount(accounts, read, 'claude', undefined)).toBe(true);
+        failed.unavailable = null;
+        expect(hasUnreadAccount(accounts, read, 'claude', undefined)).toBe(false);
+        expect(continueTargets(accounts, read, 'claude', undefined).map((entry) => entry.id)).toEqual(['claude_work']);
+    });
+
     test('an entry from a machine before accounts is the default account', () => {
         expect(limitsOfAccount(snapshot(limits(null, 0.5)), 'claude')?.windows[0]?.used).toBe(0.5);
     });

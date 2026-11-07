@@ -63,12 +63,16 @@ export function continueTarget(
     return continueTargets(accounts, snapshot, kind, current)[0] ?? null;
 }
 
-/* Whether another account a chat could go on under has no numbers yet, since the machine only reads one in use by itself. */
+/* Whether another account needs a first read or a retry before its room can be offered. */
 export function hasUnreadAccount(
     accounts: ProviderAccounts | null,
     snapshot: UsageLimitsSnapshot | null,
     kind: AgentKind,
     current: string | undefined
 ): boolean {
-    return others(accounts, kind, current).some((entry) => (limitsOfAccount(snapshot, entry.id)?.checkedAt ?? 0) === 0);
+    return others(accounts, kind, current).some((entry) => {
+        const reading = limitsOfAccount(snapshot, entry.id);
+
+        return (reading?.checkedAt ?? 0) === 0 || reading?.unavailable?.reason === 'failed';
+    });
 }
