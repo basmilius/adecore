@@ -99,3 +99,38 @@ describe('splitSkillPrompt', () => {
         expect(splitSkillPrompt('nothing here', ['unslop'])).toEqual({ lead: 'nothing here', invocation: null });
     });
 });
+
+describe('a skill reference inside a longer prompt', () => {
+    test('a `$name` that continues a word is text, so a shell variable survives as written', () => {
+        const text = 'Use $review; preserve the shell variable `prefix$review` exactly.';
+
+        expect(splitSkillPrompt(text, ['review'])).toEqual({
+            lead: 'Use /review; preserve the shell variable `prefix$review` exactly.',
+            invocation: '/review'
+        });
+        expect(splitSkillPrompt('keep prefix$review and $reviewer', ['review'])).toEqual({ lead: 'keep prefix$review and $reviewer', invocation: null });
+    });
+
+    test('a skill at the start, after a newline and before a comma is its own token', () => {
+        expect(splitSkillPrompt('$review, then stop', ['review'])).toEqual({ lead: '', invocation: '/review , then stop' });
+        expect(splitSkillPrompt('first line\n$review\nlast', ['review'])).toEqual({ lead: 'first line\n/review\nlast', invocation: '/review' });
+        expect(splitSkillPrompt('run $lint, then $review.', ['lint', 'review'])).toEqual({ lead: 'run /lint, then /review.', invocation: '/review' });
+    });
+
+    test('a skill in brackets or quotes is its own token', () => {
+        expect(splitSkillPrompt('use ($review) or "$lint"', ['review', 'lint'])).toEqual({ lead: 'use (/review) or "/lint"', invocation: '/lint' });
+    });
+
+    test('a skill inside inline code or a fenced block is text, and never the invocation', () => {
+        expect(splitSkillPrompt('Echo `$review` and use $lint', ['review', 'lint'])).toEqual({ lead: 'Echo `$review` and use /lint', invocation: '/lint' });
+        expect(splitSkillPrompt('Use $lint.\n\n```sh\necho $review\n```\nDone', ['review', 'lint'])).toEqual({
+            lead: 'Use /lint.\n\n```sh\necho $review\n```\nDone',
+            invocation: '/lint'
+        });
+        expect(splitSkillPrompt('Run `echo $review` please', ['review'])).toEqual({ lead: 'Run `echo $review` please', invocation: null });
+    });
+
+    test('an unclosed fence runs to the end of the text', () => {
+        expect(splitSkillPrompt('Use $lint\n```\n$review', ['review', 'lint'])).toEqual({ lead: 'Use /lint\n```\n$review', invocation: '/lint' });
+    });
+});
