@@ -106,7 +106,10 @@ describe('applySharedConfig', () => {
             statusLine: SETTINGS.statusLine,
             outputStyle: 'Explanatory'
         });
-        expect((await lstat(join(own, 'settings.json'))).mode & 0o777).toBe(0o600);
+        // Windows keeps no POSIX mode bits, so only the other platforms can show the file is private.
+        if (process.platform !== 'win32') {
+            expect((await lstat(join(own, 'settings.json'))).mode & 0o777).toBe(0o600);
+        }
     });
 
     test('leaves a settings file the host does not own alone', async () => {
