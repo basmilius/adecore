@@ -1,4 +1,5 @@
 import type { AgentKind } from '@adecore/agent-contracts';
+import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { runProcess } from '../run-process.ts';
 import { cleanTitle } from '../title-file.ts';
@@ -65,6 +66,14 @@ export function parseTitle(output: string): string | null {
     const title = cleanTitle(parsed.title);
 
     return title === null ? null : cleanTitle(title.replace(/^["'`]+|["'`.]+$/g, ''));
+}
+
+/*
+ * Claude Code names its own chats. Any other CLI with a one-shot mode gets a name from that mode, and
+ * one without gets none, so a title never runs on another provider's plan.
+ */
+export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneShotArgs'>): boolean {
+    return !runsClaudeCode(provider) && provider.oneShotArgs !== undefined;
 }
 
 /*

@@ -58,7 +58,7 @@ import {
     type TurnCheckpoints
 } from './chat-session.ts';
 import type { ChatRecord, ChatRecordExtras, ChatStore } from './chat-store.ts';
-import type { ChatTitleInput } from './chat-title.ts';
+import { namedByOneShot, type ChatTitleInput } from './chat-title.ts';
 import type { CodexProcessSpec } from './codex-thread.ts';
 import type { CodexClientInfo } from './codex-transport.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
@@ -583,7 +583,7 @@ export class ChatCore {
             ...(runsClaudeCode(provider) && claudeTitles
                 ? { readTitle: (agentSessionId: string) => claudeTitles.forSession(agentSessionId, this.claudeProjectsDirOf(session.info), session.info.cwd) }
                 : {}),
-            ...(kind === 'codex' && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
+            ...(namedByOneShot(provider) && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
             ...(runsClaudeCode(provider) ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
             ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
         });
