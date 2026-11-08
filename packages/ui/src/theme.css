@@ -1119,6 +1119,14 @@
 }
 
 @layer components {
+    /* `Table`. A line above every row of the body but the first, also when that row opens a group, so
+       no line doubles the head's edge or the frame's. */
+    .ade-table-line { border-top: 1px solid var(--border-soft); }
+    :is(.ade-table-grid > :first-child, .ade-table-head + *):is(.ade-table-line),
+    :is(.ade-table-grid > :first-child, .ade-table-head + *) > .ade-table-line:first-child { border-top-width: 0; }
+}
+
+@layer components {
     /* `ScrollArea` and `useOverlayScrollbars`. The scroller stays native and hides its own bar; thin bars
        float over the content, hidden at rest and shown while it scrolls. */
     [data-overlay-scrollbars] { scrollbar-width: none; }

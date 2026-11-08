@@ -14,6 +14,7 @@ export * as KeyValueList from './key-value-list/index.parts.ts';
 export * as Menu from './menu/index.parts.ts';
 export * as Popover from './popover/index.parts.ts';
 export * as PreviewCard from './preview-card/index.parts.ts';
+export * as Table from './table/index.parts.ts';
 export * as Tabs from './tabs/index.parts.ts';
 
 export type { ComboboxInputProps, ComboboxItemProps, ComboboxPopupProps } from './combobox/parts.tsx';
@@ -32,6 +33,21 @@ export type {
 
 export type { KeyValueListItemProps, KeyValueListNameProps, KeyValueListRootProps, KeyValueListValueProps } from './key-value-list/parts.tsx';
 export type { PopoverPopupProps, PopupVariant, PreviewCardPopupProps } from './popover/parts.tsx';
+export type {
+    TableBreakpoint,
+    TableCellProps,
+    TableColumnLayout,
+    TableColumnProps,
+    TableDensity,
+    TableEmptyProps,
+    TableFootProps,
+    TableGroupProps,
+    TableHeadProps,
+    TableLoadingProps,
+    TableRootProps,
+    TableRowProps,
+    TableSort
+} from './table/parts.tsx';
 export type { TabsCountProps, TabsListProps, TabsRootProps, TabsTabProps, TabsValue, TabsVariant } from './tabs/parts.tsx';
 export { tabDropIndex, useTabDrag, type TabDrag, type TabDragOptions } from './tabs/use-tab-drag.ts';
 

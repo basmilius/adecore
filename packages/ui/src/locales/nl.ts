@@ -77,6 +77,9 @@ export default {
         more: 'Meer',
         close: 'Tabblad sluiten'
     },
+    table: {
+        loading: 'Laden'
+    },
     tree: {
         label: 'Bestanden',
         expand: 'Uitvouwen',

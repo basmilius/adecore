@@ -163,7 +163,8 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['SectionLabel', '/ui/display/section-label'],
         ['Separator', '/ui/display/separator'],
         ['ShortcutHints', '/ui/display/shortcut-hints'],
-        ['Surface', '/ui/display/surface']
+        ['Surface', '/ui/display/surface'],
+        ['Table', '/ui/display/table']
     ]),
     group('Status', [
         ['Banner', '/ui/status/banner'],

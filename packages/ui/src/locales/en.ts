@@ -77,6 +77,9 @@ export default {
         more: 'More',
         close: 'Close tab'
     },
+    table: {
+        loading: 'Loading'
+    },
     tree: {
         label: 'Files',
         expand: 'Expand',
