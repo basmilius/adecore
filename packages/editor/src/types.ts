@@ -818,6 +818,8 @@ export interface Editor {
     getContentHeight(): number;
     /* Which lines are folded, for `folds` on mounting. */
     getFolds(): EditorFolds;
+    /* Folds exactly these lines and opens every other fold, as `folds` does on mounting; a host that hides a stretch for a while keeps `getFolds` to put the folds back. */
+    setFolds(folds: EditorFolds): void;
     /* The primary selection, start before end; empty at the caret. */
     getSelection(): EditorRange;
     /* Every selection, the primary one last. */

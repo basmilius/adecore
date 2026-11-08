@@ -1112,6 +1112,10 @@ class SmartEditor implements Editor {
         return this.view.getFolds();
     }
 
+    setFolds(folds: EditorFolds): void {
+        this.view.replaceFolds(folds);
+    }
+
     focus(): void {
         this.view.focus();
     }

@@ -1399,6 +1399,12 @@ export class EditorView {
         };
     }
 
+    /* Puts these folds in place of every fold there is, the ones a person made included, which `getFolds` hands back later. */
+    replaceFolds(state: { collapsed: readonly { startLine: number; endLine: number }[]; custom: readonly { startLine: number; endLine: number }[] }): void {
+        this.collapsed.clear();
+        this.restoreFolds(state);
+    }
+
     /*
      * Folds the lines a host remembers, those that still start a range of the same lines or else any range
      * at their first line, after the ranges are read. Without a memory the roles in `defaults` fold, which

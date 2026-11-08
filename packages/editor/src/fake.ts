@@ -1027,6 +1027,10 @@ export class FakeEditor implements Editor {
         return this.folds;
     }
 
+    setFolds(folds: EditorFolds): void {
+        this.folds = folds;
+    }
+
     getScrollTop(): number {
         return this.scrollTop ?? 0;
     }
