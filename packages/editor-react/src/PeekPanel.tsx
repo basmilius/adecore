@@ -11,7 +11,7 @@ import { PANEL_BODY_HEIGHT } from './panel-size.ts';
 import { PanelResizeHandle } from './PanelResizeHandle.tsx';
 import { basenameOf, relativeTo } from './paths.ts';
 import { PathText } from './PathText.tsx';
-import { distinguishingFolders, visualColumnOf, type NameRange, type PeekPlace } from './peek-model.ts';
+import { distinguishingFolders, highlightedLinesOf, visualColumnOf, type NameRange, type PeekFile, type PeekPlace } from './peek-model.ts';
 import { PEEK_HEIGHT } from './peek.ts';
 import type { PeekView } from './popups.ts';
 import { useEditorRendering } from './rendering-context.ts';
@@ -108,13 +108,73 @@ function folderOf(path: string): string {
     return path.slice(0, Math.max(0, path.lastIndexOf('/')));
 }
 
-/* A line of code with its name in the text color and the rest muted. */
-function PlaceText({ place }: { place: PeekPlace }) {
+/*
+ * The syntax-colored markup of each place's line, by place id, once the highlighter has answered. A file's
+ * lines go through it together, in the language of the file, and a file it fails for keeps its plain lines.
+ */
+function useHighlightedPlaces(files: readonly PeekFile[]): ReadonlyMap<string, string> {
+    const { theme, highlight } = useEditorRendering();
+    const [done, setDone] = useState<{ key: string; lines: ReadonlyMap<string, string> } | null>(null);
+    const key = `${theme}\0${files.map((file) => `${file.uri}\0${file.places.map((place) => place.text).join('\n')}`).join('\0')}`;
+
+    useEffect(() => {
+        if (highlight === undefined) {
+            return;
+        }
+
+        let alive = true;
+
+        Promise.all(
+            files.map(async (file): Promise<Array<[string, string]>> => {
+                const texts = file.places.map((place) => place.text);
+
+                if (texts.every((text) => text === '')) {
+                    return [];
+                }
+
+                const html = await highlight(texts.join('\n'), shikiLanguageOfPath(fileUriToPath(file.uri) ?? file.uri), theme).catch(() => null);
+                const lines = html === null ? null : highlightedLinesOf(html, texts.length);
+
+                return lines === null
+                    ? []
+                    : file.places.flatMap((place, index): Array<[string, string]> => (place.text === '' ? [] : [[place.id, lines[index]!]]));
+            })
+        )
+            .then((entries) => alive && setDone({ key, lines: new Map(entries.flat()) }))
+            .catch(() => undefined);
+
+        return () => {
+            alive = false;
+        };
+    }, [files, theme, key, highlight]);
+
+    return done?.key === key ? done.lines : NO_LINES;
+}
+
+const NO_LINES: ReadonlyMap<string, string> = new Map();
+
+/* A line of code in the colors of its syntax with the name marked, or with its name in the text color and the rest muted while no colors are at hand. */
+function PlaceText({ place, html }: { place: PeekPlace; html: string | undefined }) {
     if (place.text === '') {
         return <span className="min-w-0 truncate text-text-muted">{`:${place.line + 1}`}</span>;
     }
 
     const { name } = place;
+
+    if (html !== undefined) {
+        return (
+            <span className="relative min-w-0 truncate whitespace-pre">
+                {name !== null && (
+                    <span
+                        aria-hidden
+                        className="absolute inset-y-0 rounded-sm bg-(--editor-occurrence)"
+                        style={{ left: `${name.start}ch`, width: `${name.end - name.start}ch` }}
+                    />
+                )}
+                <span className="relative" dangerouslySetInnerHTML={{ __html: html }} />
+            </span>
+        );
+    }
 
     if (name === null) {
         return <span className="min-w-0 truncate text-text-muted">{place.text}</span>;
@@ -135,6 +195,7 @@ function Places({ language, view }: { language: EditorLanguage; view: PeekView }
     const folder = language.project.folder;
     const paths = view.files.map((file) => relativeTo(fileUriToPath(file.uri) ?? file.uri, folder));
     const folders = distinguishingFolders(paths);
+    const highlighted = useHighlightedPlaces(view.files);
 
     useEffect(() => {
         activeRow.current?.scrollIntoView({ block: 'nearest' });
@@ -172,7 +233,7 @@ function Places({ language, view }: { language: EditorLanguage; view: PeekView }
                                     onClick={() => (place.id === view.active ? language.peek.go(place.id) : language.peek.select(place.id))}
                                     onDoubleClick={() => language.peek.go(place.id)}
                                 >
-                                    <PlaceText place={place} />
+                                    <PlaceText place={place} html={highlighted.get(place.id)} />
                                 </button>
                             ))}
                     </div>

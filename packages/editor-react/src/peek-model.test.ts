@@ -1,6 +1,6 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
-import { definitionSnippetOf, distinguishingFolders, peekFilesOf, snippetOf, visualColumnOf } from './peek-model.ts';
+import { definitionSnippetOf, distinguishingFolders, highlightedLinesOf, peekFilesOf, snippetOf, visualColumnOf } from './peek-model.ts';
 
 const at = (line: number, character: number) => ({ line, character });
 const place = (uri: string, line: number) => ({ uri, range: { start: at(line, 2), end: at(line, 6) } });
@@ -70,6 +70,25 @@ describe('definitionSnippetOf', () => {
     test('starts a little above the name when the server gave no declaration', () => {
         expect(definitionSnippetOf(text, 10, null, range)).toMatchObject({ startLine: 8, active: 2 });
         expect(definitionSnippetOf(text, 0, null, range).startLine).toBe(0);
+    });
+});
+
+describe('highlightedLinesOf', () => {
+    const code = (...lines: string[]) =>
+        `<pre class="shiki github-light" style="color:#24292e"><code>${lines.map((line) => `<span class="line">${line}</span>`).join('\n')}</code></pre>`;
+
+    test('gives the markup inside each line, nested tokens and empty lines included', () => {
+        expect(highlightedLinesOf(code('<span style="color:#d73a49">const</span> a = 1;', '', '<span style="color:#6a737d">// x</span>'), 3)).toEqual([
+            '<span style="color:#d73a49">const</span> a = 1;',
+            '',
+            '<span style="color:#6a737d">// x</span>'
+        ]);
+    });
+
+    test('gives nothing when the lines do not add up to what was asked, or the code is not highlighted markup', () => {
+        expect(highlightedLinesOf(code('a', 'b'), 3)).toBeNull();
+        expect(highlightedLinesOf('const a = 1;', 1)).toBeNull();
+        expect(highlightedLinesOf('<pre><code>plain text</code></pre>', 1)).toBeNull();
     });
 });
 
