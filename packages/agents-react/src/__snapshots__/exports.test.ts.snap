@@ -46,6 +46,7 @@ exports[`the public API . exports these names 1`] = `
   "type FileRef",
   "type HostMenuAction",
   "type MountedEntry",
+  "type OutsideReference",
   "type PortTransport",
   "type ReferenceIconProps",
   "type ReplyAuthor",

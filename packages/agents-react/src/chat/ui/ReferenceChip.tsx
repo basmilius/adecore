@@ -77,9 +77,24 @@ export function TokenChip({ kind, value, sigil, icon, label, spelled, tone, onOp
  */
 export function ReferenceChip({ id, lastName, goneHint }: { id: string; lastName?: string; goneHint?: string }) {
     const { t } = useTranslation('agent-chat');
-    const { items, open } = useContext(ReferenceLookupContext);
+    const { items, open, outside } = useContext(ReferenceLookupContext);
     const { ReferenceIcon } = useChatHost();
     const item = items.find((candidate) => candidate.id === id);
+    const elsewhere = item === undefined ? (outside?.(id) ?? null) : null;
+
+    if (elsewhere !== null) {
+        const opens = elsewhere.open;
+
+        return (
+            <TokenChip
+                kind="gone"
+                icon={<Icon icon={elsewhere.icon} size={14} className={TOKEN_ICON} />}
+                label={lastName || t('references.gone')}
+                tone={clsx(REFERENCE_TONE, opens !== null && 'hover:bg-text/12')}
+                onOpen={opens ?? undefined}
+            />
+        );
+    }
 
     if (item === undefined) {
         const chip = (

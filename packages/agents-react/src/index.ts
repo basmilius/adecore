@@ -11,6 +11,7 @@ export {
     type ComposerHeaderSlotProps,
     type ComposerSlotProps,
     type ReferenceIconProps,
+    type OutsideReference,
     type ComposerSendAction,
     type ComposerSendDraft,
     type ComposerStatusDetail,

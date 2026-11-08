@@ -46,13 +46,14 @@ export function useReferenceLookup(chatId: string): ReferenceLookup {
 
 /* The same for a row that may stand outside a scope. */
 export function useReferenceLookupIn(scopeId: string, chatId: string): ReferenceLookup {
-    const { openReference } = useChatHost();
+    const { openReference, outsideReference } = useChatHost();
     const referables = useHostReferables(scopeId, chatId);
     const key = useChatRow(chatId, (chat) => threadReferencedKey(chat?.structure));
 
     return {
         items: referables.items,
         open: openReference ? (id: string) => openReference(scopeId, id) : null,
+        ...(outsideReference ? { outside: (id: string) => outsideReference(scopeId, id) } : {}),
         referenced: key === '' ? [] : key.split('\n')
     };
 }

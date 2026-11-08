@@ -191,6 +191,12 @@ export interface ReferenceIconProps {
     className?: string;
 }
 
+/* What a chip of an id that is no view or node still stands for, such as a sender from outside: its mark, and what clicking it opens. */
+export interface OutsideReference {
+    icon: LucideIcon;
+    open: (() => void) | null;
+}
+
 /* What an app's own bar over the composer gets: the chat it stands on, which may be one the bar has nothing for. */
 export interface ComposerHeaderSlotProps {
     scopeId: string;
@@ -589,6 +595,11 @@ export interface ChatHost {
     ReferenceIcon?: ComponentType<ReferenceIconProps> | null;
     /* Opens a view or zooms to a node a message points at; left out, a chip opens nothing. */
     openReference?(scopeId: string, id: string): void;
+    /*
+     * What an id among no `useReferables` items stands for, such as a sender from outside, which keeps the name its
+     * message gave it. Null, or left out, draws the chip as gone.
+     */
+    outsideReference?(scopeId: string, id: string): OutsideReference | null;
     /* Opens the CLI's own login for an account, somewhere the app can run a command; null offers none. */
     openLogin: ((scopeId: string, kind: AgentKind, accountId: string, name: string) => Promise<void>) | null;
     /* Why a login cannot start from here right now, or null when it can. */
