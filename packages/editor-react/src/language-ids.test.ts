@@ -35,7 +35,20 @@ describe('the language of the catalog', () => {
         expect(lspLanguageIdOf(language)).toBe(language);
     });
 
-    test('finds the language id of a Markdown file by its path', () => {
-        expect(lspLanguageIdOf(shikiLanguageOfPath('docs/README.md'))).toBe('markdown');
+    test.each([
+        ['docs/README.md', 'markdown'],
+        ['Cargo.toml', 'toml'],
+        ['init.LUA', 'lua'],
+        ['cmd/main.go', 'go'],
+        ['Sources/App.swift', 'swift'],
+        ['src/main.zig', 'zig']
+    ])('finds the language id of %s by its path', (path, language) => {
+        expect(shikiLanguageOfPath(path)).toBe(language);
+        expect(lspLanguageIdOf(shikiLanguageOfPath(path))).toBe(language);
+    });
+
+    test('leaves the files that only a path of its own names to the host', () => {
+        expect(shikiLanguageOfPath('go.mod')).toBe('text');
+        expect(shikiLanguageOfPath('build.zon')).toBe('text');
     });
 });
