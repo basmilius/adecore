@@ -34,7 +34,7 @@ import { Table } from '@adecore/ui';
 | `Table.Root` | The table. `label` is its accessible name and `columns` lays out the columns. |
 | `Table.Head` | The row of column headers. |
 | `Table.Column` | One header. `sort` and `onSort` make it a button that sorts. |
-| `Table.Row` | One row. `selected` tints it in the accent, `muted` mutes its text, and `onClick` makes it a button. |
+| `Table.Row` | One row. `selected` tints it in the accent, `muted` mutes its text, and `onClick` makes it a button; `focusable={false}` keeps that row out of the tab order. |
 | `Table.Cell` | One cell. Its text ends in an ellipsis; `truncate={false}` wraps it. `mono` sets it in the monospace face, muted. |
 | `Table.Group` | Rows under a `label` that spans every column. |
 | `Table.Foot` | A row of totals under the body, behind a stronger line. |
@@ -61,7 +61,7 @@ A cell holds any content: two lines, a [`Pill`](/ui/actions/pill), a [`Switch`](
 
 ## Picking rows
 
-A row with `onClick` is a tab stop that Enter and Space press, with a hover color. A click on a control inside the row, such as a checkbox, stays the control's. With `maxHeight` the body scrolls under a head that stays at the top.
+A row with `onClick` is a tab stop that Enter and Space press, with a hover color. A click on a control inside the row, such as a checkbox, stays the control's. When that control does what the row's click does, `focusable={false}` keeps the row out of the tab order: the pointer still picks the whole row, and the keyboard reaches only the control. With `maxHeight` the body scrolls under a head that stays at the top.
 
 <Demo src="display/table-selection" />
 

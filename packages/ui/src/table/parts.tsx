@@ -221,6 +221,9 @@ export type TableRowProps = useRender.ComponentProps<'div'> & {
 
     /* Muted text, for a row a person reads but cannot change. */
     muted?: boolean;
+
+    /* `false` keeps a row with `onClick` out of the tab order, for a row whose own control (a checkbox) already does what its click does. */
+    focusable?: boolean;
 };
 
 const fromControl = (event: MouseEvent<HTMLElement>): boolean => {
@@ -237,10 +240,11 @@ const fromControl = (event: MouseEvent<HTMLElement>): boolean => {
     return control !== null && control !== row && row.contains(control);
 };
 
-/* With `onClick` the row is a tab stop that Enter and Space press, and a click on a control inside it stays the control's. */
-export function TableRow({ selected = false, muted = false, onClick, onKeyDown, render, className, ref, children, ...props }: TableRowProps) {
+/* With `onClick` the row is a tab stop that Enter and Space press, unless `focusable` is false, and a click on a control inside it stays the control's. */
+export function TableRow({ selected = false, muted = false, focusable = true, onClick, onKeyDown, render, className, ref, children, ...props }: TableRowProps) {
     const { density } = useContext(TableContext);
     const clickable = onClick !== undefined;
+    const pressable = clickable && focusable;
 
     return useRender({
         render,
@@ -248,7 +252,7 @@ export function TableRow({ selected = false, muted = false, onClick, onKeyDown, 
         defaultTagName: 'div',
         props: {
             role: 'row',
-            tabIndex: clickable ? 0 : undefined,
+            tabIndex: pressable ? 0 : undefined,
             ...props,
             'data-selected': selected ? '' : undefined,
             className: clsx(
@@ -256,7 +260,7 @@ export function TableRow({ selected = false, muted = false, onClick, onKeyDown, 
                 ROW,
                 ROW_HEIGHT[density],
                 selected ? 'bg-accent-soft' : clickable && 'hover:bg-surface-hover',
-                clickable && 'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-on-surface',
+                pressable && 'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent-on-surface',
                 muted && 'text-text-muted',
                 className
             ),
@@ -270,7 +274,7 @@ export function TableRow({ selected = false, muted = false, onClick, onKeyDown, 
             onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => {
                 onKeyDown?.(event);
 
-                if (!clickable || event.defaultPrevented || event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
+                if (!pressable || event.defaultPrevented || event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
                     return;
                 }
 

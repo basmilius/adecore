@@ -212,6 +212,26 @@ describe.skipIf(typeof document === 'undefined')('a table row under the pointer 
         expect(clicks).toBe(0);
     });
 
+    test('keeps its click but leaves the tab order to its own control when not focusable', async () => {
+        const row = await mount(
+            <Table.Root label="Projects" columns={COLUMNS}>
+                <Table.Row focusable={false} onClick={() => clicks++}>
+                    <Table.Cell>
+                        <input type="checkbox" aria-label="Pick Site" />
+                    </Table.Cell>
+                    <Table.Cell>Site</Table.Cell>
+                </Table.Row>
+            </Table.Root>
+        );
+
+        await act(async () => row.querySelector<HTMLElement>('[role="cell"]:last-child')!.click());
+        await press(row, 'Enter');
+
+        expect(row.hasAttribute('tabindex')).toBe(false);
+        expect(row.className).toContain('hover:bg-surface-hover');
+        expect(clicks).toBe(1);
+    });
+
     test('is no tab stop without a click handler', async () => {
         const row = await mount(
             <Table.Root label="Projects" columns={COLUMNS}>

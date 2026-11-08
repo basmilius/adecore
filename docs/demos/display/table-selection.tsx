@@ -40,7 +40,7 @@ export default function TableSelectionDemo() {
                 <Table.Column>Folder</Table.Column>
             </Table.Head>
             {PROJECTS.map((project) => (
-                <Table.Row key={project.name} selected={picked.has(project.name)} onClick={() => toggle(project.name)}>
+                <Table.Row key={project.name} selected={picked.has(project.name)} focusable={false} onClick={() => toggle(project.name)}>
                     <Table.Cell>
                         <Checkbox label={`Pick ${project.name}`} checked={picked.has(project.name)} onCheckedChange={() => toggle(project.name)} />
                     </Table.Cell>
