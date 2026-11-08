@@ -8,8 +8,8 @@ export interface MessageWords {
     heard(notice: Notice): string;
     /* The line a person reads in the thread about one message. */
     shown(notice: Notice): string;
-    /* What the CLI is sent in a turn a message opened, under the messages its preamble carries. */
-    prompt(count: number): string;
+    /* What the CLI is sent in a turn a message opened, under the messages its preamble carries, so it can name who sent them. */
+    prompt(count: number, notices: readonly Notice[]): string;
     /* The label above that turn in the thread. */
     label(notices: readonly Notice[]): string;
 }
@@ -157,7 +157,7 @@ export async function steerNotices(
             }
 
             const accepted = await chat.steer(targetId, {
-                text: words.prompt(batch.length),
+                text: words.prompt(batch.length, batch),
                 preamble: batch.map((notice) => words.heard(notice)).join('\n\n'),
                 messageHop: Math.max(...batch.map((notice) => notice.hop ?? 0))
             });
