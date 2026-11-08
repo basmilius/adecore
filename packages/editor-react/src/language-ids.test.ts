@@ -27,7 +27,15 @@ describe('the language of the catalog', () => {
         expect(lspLanguageIdOf('docker')).toBe('dockerfile');
         expect(lspLanguageIdOf('shellscript')).toBe('shellscript');
         expect(lspLanguageIdOf('twig')).toBe('twig');
-        expect(lspLanguageIdOf('zig')).toBeNull();
+        expect(lspLanguageIdOf('unknown')).toBeNull();
         expect(lspLanguageIdOf(undefined)).toBeNull();
+    });
+
+    test.each(['markdown', 'toml', 'lua', 'go', 'swift', 'zig'])('gives %s the language id of its own name', (language) => {
+        expect(lspLanguageIdOf(language)).toBe(language);
+    });
+
+    test('finds the language id of a Markdown file by its path', () => {
+        expect(lspLanguageIdOf(shikiLanguageOfPath('docs/README.md'))).toBe('markdown');
     });
 });

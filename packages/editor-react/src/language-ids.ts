@@ -18,7 +18,13 @@ const LSP_IDS: Record<string, string> = {
     docker: 'dockerfile',
     twig: 'twig',
     sql: 'sql',
-    rust: 'rust'
+    rust: 'rust',
+    markdown: 'markdown',
+    toml: 'toml',
+    lua: 'lua',
+    go: 'go',
+    swift: 'swift',
+    zig: 'zig'
 };
 
 /* The LSP language id of a file, or null when no language server here knows its language. */
