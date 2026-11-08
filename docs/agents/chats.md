@@ -132,7 +132,7 @@ A reply that drew UI keeps the block source in its `text`. `readableAssistantTex
 
 ## Choosing how a chat is named
 
-Without a host policy, native titles stay native and Codex uses `ChatCoreOptions.nameChat` after its first successful turn. A host that chooses a writer can also provide `titlePolicy(chatId, provider)`, returning `generated` or `native`. The callback is read when a title arrives or a generation begins, so an already open chat follows a changed choice.
+Without a host policy, native titles stay native, and a CLI that names nothing itself (Codex, Grok and the other CLIs with a one-shot mode) uses `ChatCoreOptions.nameChat` after its first successful turn. A host that chooses a writer can also provide `titlePolicy(chatId, provider)`, returning `generated` or `native`. The callback is read when a title arrives or a generation begins, so an already open chat follows a changed choice.
 
 Under `generated`, `nameChat` can name any provider's newly unnamed chat. Native backend titles and transcript reads wait for that result. A null result or a failed request allows an available native title afterward; it starts no second writer. Existing titles are retained. A clear invalidates pending generation and transcript reads, even before a backend reports a session id. Without `nameChat`, native titles remain available under either policy.
 

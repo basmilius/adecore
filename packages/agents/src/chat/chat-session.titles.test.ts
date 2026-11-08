@@ -14,6 +14,7 @@ describe('host-selected chat naming', () => {
     test('the native default leaves Claude naming alone', async () => {
         let requests = 0;
         const run = rig({
+            titlePolicy: () => 'native',
             nameThread: async () => {
                 requests += 1;
                 return 'Generated';
@@ -26,6 +27,16 @@ describe('host-selected chat naming', () => {
         await flush();
         expect(run.session.info.suggestedTitle).toBe('Native title');
         expect(requests).toBe(0);
+        await run.session.dispose();
+    });
+
+    test('a CLI that names nothing itself is named under the native policy', async () => {
+        const run = rig({ namedByOneShot: true, titlePolicy: () => 'native', nameThread: async () => 'One-shot title' });
+        run.session.send('Review a change');
+        await flush();
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        await flush();
+        expect(run.session.info.suggestedTitle).toBe('One-shot title');
         await run.session.dispose();
     });
 
