@@ -1,8 +1,11 @@
 import './test-setup.ts';
 import { afterEach, expect, test } from 'bun:test';
+import type { EditorKeyHandler } from '@adecore/editor';
 import { mountEditor } from '@adecore/editor/testing';
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import { EditorLanguage } from './editor-language.ts';
+import { KeyDispatcher } from './key-priority.ts';
+import { Popups } from './popups.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { SnippetFeature } from './snippet-session.ts';
 import type { SnippetTransformInput } from './snippet-transform-protocol.ts';
@@ -53,7 +56,18 @@ function mount(source: string) {
     });
 
     const offs: (() => void)[] = [];
-    const feature = new SnippetFeature({ editor: mounted.editor, project, onDispose: (off) => offs.push(off) }, {}, timers);
+    const keys = new KeyDispatcher();
+    offs.push(mounted.editor.onKeyDown((event) => keys.dispatch(event)));
+
+    const host = {
+        editor: mounted.editor,
+        project,
+        popups: new Popups(),
+        onKey: (handler: EditorKeyHandler, priority = 0) => keys.add(handler, priority),
+        onDispose: (off: () => void) => void offs.push(off)
+    };
+
+    const feature = new SnippetFeature(host, { pick: { open: () => undefined, close: () => undefined } }, timers);
     const parsed = parseSnippet(source);
     mounted.editor.setText(parsed.text);
     feature.begin({ line: 0, character: 0 }, parsed.text, tabOrder(parsed), parsed.fields);

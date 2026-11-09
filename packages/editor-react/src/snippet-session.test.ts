@@ -1,8 +1,11 @@
 import './test-setup.ts';
 import { afterEach, expect, test } from 'bun:test';
+import type { Editor, EditorKeyHandler } from '@adecore/editor';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { mountEditor } from '@adecore/editor/testing';
 import { EditorLanguage } from './editor-language.ts';
+import { KeyDispatcher } from './key-priority.ts';
+import { Popups } from './popups.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { signatureViewOf } from './signature-model.ts';
 import { SnippetFeature } from './snippet-session.ts';
@@ -17,9 +20,25 @@ afterEach(() => {
     }
 });
 
+/* A choice list these tests never look at. */
+const UNSEEN_CHOICES = { pick: { open: () => undefined, close: () => undefined } };
+
+/* What an editor's language hands its snippets without a project: its keys through the key dispatcher, and its popups. */
+function hostOf(editor: Editor) {
+    const keys = new KeyDispatcher();
+    cleanup.push(editor.onKeyDown((event) => keys.dispatch(event)));
+
+    return {
+        editor,
+        popups: new Popups(),
+        onKey: (handler: EditorKeyHandler, priority = 0) => keys.add(handler, priority),
+        onDispose: (dispose: () => void) => void cleanup.push(dispose)
+    };
+}
+
 function snippet(source: string) {
     const mounted = mountEditor({ text: '' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
+    const feature = new SnippetFeature(hostOf(mounted.editor), UNSEEN_CHOICES);
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet(source);
     mounted.editor.applyEdits([{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, text: parsed.text }]);
@@ -239,7 +258,7 @@ test('native textarea replacement also commits all mirrors', () => {
 
 test('a caret outside the insertion ends the session after text ranges have settled', async () => {
     const mounted = mountEditor({ text: 'prefix foo suffix' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
+    const feature = new SnippetFeature(hostOf(mounted.editor), UNSEEN_CHOICES);
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet('${1:foo}');
     feature.begin({ line: 0, character: 7 }, parsed.text, tabOrder(parsed), parsed.fields);
@@ -290,7 +309,7 @@ test('replacing a parent keeps independent occurrences of a nested field', () =>
 
 test('Tab after replacing a parent in touching instances follows the primary instance', () => {
     const mounted = mountEditor({ text: '' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
+    const feature = new SnippetFeature(hostOf(mounted.editor), UNSEEN_CHOICES);
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet('${1:new ${2:Foo}()}');
     mounted.editor.setText(parsed.text + parsed.text);
@@ -960,7 +979,7 @@ test('a touching parent does not consume the next occurrences indentation', asyn
 
 test('snippet tracking metadata stays out of the public editor selections', () => {
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'foo foo z', theme: 'light' });
-    const feature = new SnippetFeature({ editor, onDispose: (dispose) => cleanup.push(dispose) }, {});
+    const feature = new SnippetFeature(hostOf(editor), UNSEEN_CHOICES);
     cleanup.push(() => editor.dispose());
     const parsed = parseSnippet('${1:foo} ${1/(.*)/$1/} ${2:z}$0');
     feature.begin({ line: 0, character: 0 }, parsed.text, tabOrder(parsed), parsed.fields);

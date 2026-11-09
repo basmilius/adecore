@@ -84,11 +84,12 @@ interface SnippetInsertion {
     readonly fields?: readonly SnippetField[];
 }
 
-type SnippetHost = Pick<LanguageContext, 'editor' | 'onDispose'> & Partial<Pick<LanguageContext, 'popups' | 'project' | 'onKey'>>;
+// Without a project the snippets run no transforms and choose no words; keys and popups always come as an editor's language gives them.
+type SnippetHost = Pick<LanguageContext, 'editor' | 'onDispose' | 'popups' | 'onKey'> & Partial<Pick<LanguageContext, 'project'>>;
 
-/* The choice list, when the editor has one. */
+/* The choice list. */
 interface SnippetPeers {
-    readonly pick?: Pick<PickFeature, 'close' | 'open'>;
+    readonly pick: Pick<PickFeature, 'close' | 'open'>;
 }
 
 const MAX_FRAMES = 8;
@@ -218,11 +219,7 @@ export class SnippetFeature {
 
         const key = (event: KeyboardEvent): boolean => this.key(event);
 
-        const offs = [
-            language.onKey === undefined ? editor.onKeyDown(key) : language.onKey(key, KEY_PRIORITY.snippets),
-            editor.onTextChange((change) => this.edited(change)),
-            editor.onCaret(() => this.moved())
-        ];
+        const offs = [language.onKey(key, KEY_PRIORITY.snippets), editor.onTextChange((change) => this.edited(change)), editor.onCaret(() => this.moved())];
 
         language.onDispose(() => {
             this.transforms?.dispose();
@@ -422,10 +419,10 @@ export class SnippetFeature {
     }
 
     private closeChoices(): void {
-        const view = this.language.popups?.slot('pick').get();
+        const view = this.language.popups.slot('pick').get();
 
         if (this.choicePrefix !== null && view?.groups.some((group) => group.rows.some((row) => row.id.startsWith(this.choicePrefix!)))) {
-            this.peers.pick?.close();
+            this.peers.pick.close();
         }
 
         this.choicePrefix = null;
@@ -510,7 +507,7 @@ export class SnippetFeature {
     private openChoices(frame: Frame, activeChoice?: number): void {
         const field = this.fieldOf(frame);
 
-        if (field?.choices === undefined || field.choices.length === 0 || this.peers.pick === undefined) {
+        if (field?.choices === undefined || field.choices.length === 0) {
             return;
         }
 
@@ -580,10 +577,7 @@ export class SnippetFeature {
         if (event.key === 'Escape') {
             const popups = this.language.popups;
 
-            if (
-                popups !== undefined &&
-                (['completion', 'signature', 'hover', 'pick', 'peek', 'callHierarchy'] as const).some((name) => popups.slot(name).get() !== null)
-            ) {
+            if ((['completion', 'signature', 'hover', 'pick', 'peek', 'callHierarchy'] as const).some((name) => popups.slot(name).get() !== null)) {
                 return false;
             }
 
@@ -753,7 +747,7 @@ export class SnippetFeature {
         }
 
         const frame = this.frames.at(-1);
-        const pick = this.language.popups?.slot('pick').get();
+        const pick = this.language.popups.slot('pick').get();
 
         const activeChoice =
             this.choicePrefix !== null && pick?.active.startsWith(this.choicePrefix) ? Number(pick.active.slice(this.choicePrefix.length)) : undefined;
@@ -850,7 +844,7 @@ export class SnippetFeature {
         }
 
         // The generic picker closes on any text edit, including an exit elsewhere in the snippet.
-        if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups?.slot('pick').get() === null) {
+        if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups.slot('pick').get() === null) {
             this.openChoices(frame, activeChoice);
         }
     }
