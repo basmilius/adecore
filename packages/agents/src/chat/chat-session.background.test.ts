@@ -123,7 +123,7 @@ describe('background work recovered from a stored chat', () => {
         await first.session.settleOrphanedSubagents();
         expect(first.session.thread.get('worker')).toMatchObject({ status: 'failed' });
         expect(first.session.thread.get('wf')).toMatchObject({ state: 'error' });
-        expect(first.session.preambles).toHaveLength(2);
+        expect(first.session.preambles).toHaveLength(1);
 
         const second = rig({
             info: structuredClone(first.session.info),
@@ -133,13 +133,112 @@ describe('background work recovered from a stored chat', () => {
 
         second.session.settleStored(second.session.info.selection, { resumeTurnId: null, reason: null });
         await second.session.settleOrphanedSubagents();
-        expect(second.session.preambles).toHaveLength(2);
+        expect(second.session.preambles).toHaveLength(1);
         second.session.send('continue');
         await flush();
         expect(second.sent[0]?.preamble).toContain('will not send a result');
         expect(second.sent[0]?.preamble).toContain('Native worker');
-        expect(second.sent[0]?.preamble).toContain('Workflow');
+        expect(second.sent[0]?.preamble).toContain('- workflow "workflow"');
         expect(second.session.preambles).toHaveLength(0);
+        await first.session.dispose();
+        await second.session.dispose();
+    });
+
+    test('one note names the interrupted turn and every lost command, subagent and workflow', async () => {
+        const running: import('@adecore/agent-contracts').ChatTurnItem = { ...main, state: 'running', endedAt: null };
+
+        const run = rig({
+            info: {
+                ...info(),
+                status: 'running',
+                activeTurnId: 'main',
+                background: [
+                    { id: 'b1', kind: 'shell', description: 'Watch CI', command: 'gh run watch 42 --exit-status', startedAt: 1 },
+                    { id: 'b2', kind: 'monitor', description: 'Tail the log', command: null, startedAt: 1 }
+                ]
+            },
+            items: [
+                running,
+                { id: 'u', kind: 'user', createdAt: 1, turnId: 'main', text: 'ship the release' },
+                row,
+                {
+                    id: 'wf',
+                    turnId: 'main',
+                    kind: 'tool',
+                    createdAt: 1,
+                    toolUseId: 'workflow',
+                    name: 'Workflow',
+                    input: {},
+                    output: 'launched',
+                    state: 'running',
+                    parentToolUseId: null,
+                    workflow: { name: 'Build', phases: [], agents: [] }
+                }
+            ]
+        });
+
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: null, reason: 'it was not resumed' });
+        const lost = await run.session.settleOrphanedSubagents();
+
+        expect(lost).toMatchObject({ noteId: 'lost:b1 b2 wf worker', turnId: 'main', resumed: false });
+        expect(run.session.preambles).toEqual([
+            [
+                'The machine restarted during your turn on "ship the release", which ended there.',
+                'This background work ended with it and will not send a result:',
+                '- command "gh run watch 42 --exit-status"',
+                '- monitor "Tail the log"',
+                '- workflow "Build"',
+                '- subagent "Native worker"',
+                'Restart what is still needed.'
+            ].join('\n')
+        ]);
+        expect(run.session.info.background).toEqual([]);
+        await run.session.dispose();
+    });
+
+    test('a resumed turn hears the note with its resume prompt, and the host owes no wake', async () => {
+        const running: import('@adecore/agent-contracts').ChatTurnItem = { ...main, state: 'running', endedAt: null };
+
+        const run = rig({
+            info: {
+                ...info(),
+                status: 'running',
+                activeTurnId: 'main',
+                background: [{ id: 'b1', kind: 'shell', description: '', command: 'bun dev', startedAt: 1 }]
+            },
+            items: [running, { id: 'u', kind: 'user', createdAt: 1, turnId: 'main', text: 'start the server' }]
+        });
+
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: 'main', reason: null });
+        const lost = await run.session.settleOrphanedSubagents();
+
+        expect(lost).toMatchObject({ turnId: 'main', resumed: true });
+        await run.session.resume('main', 2, { prompt: 'Go on.', note: 'Resumed.', preamble: null });
+        await flush();
+        expect(run.sent[0]?.preamble).toContain('during your turn on "start the server", which is taken up again now');
+        expect(run.sent[0]?.preamble).toContain('- command "bun dev"');
+        await run.session.dispose();
+    });
+
+    test('the wake after a restart lapses once a turn opened or a person stopped the chat', async () => {
+        const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
+        const first = rig({ info: { ...info(), background }, items: [main] });
+        first.session.settleStored(first.session.info.selection, { resumeTurnId: null, reason: null });
+        const lost = await first.session.settleOrphanedSubagents();
+
+        expect(lost).toMatchObject({ noteId: 'lost:b1', turnId: null, resumed: false });
+        expect(first.session.thread.get('lost:b1')).toMatchObject({ text: expect.stringMatching(/^The machine restarted\.\n/) });
+        expect(first.session.owesRestartWake('lost:b1')).toBe(true);
+        expect(first.session.owesRestartWake('lost:other')).toBe(false);
+        first.session.send('what now?');
+        await flush();
+        expect(first.session.owesRestartWake('lost:b1')).toBe(false);
+
+        const second = rig({ info: { ...info(), background }, items: [main] });
+        second.session.settleStored(second.session.info.selection, { resumeTurnId: null, reason: null });
+        await second.session.settleOrphanedSubagents();
+        second.session.cancel();
+        expect(second.session.owesRestartWake('lost:b1')).toBe(false);
         await first.session.dispose();
         await second.session.dispose();
     });

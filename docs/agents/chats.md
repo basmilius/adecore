@@ -91,6 +91,8 @@ A turn running when the host went down loads as aborted, with a note from `notRe
 
 A turn that hit the usage limit or an overloaded model ends as an `error` turn with a `limit`. Resuming it when the limit lifts needs `limitResume` on the core, which `AgentHost` does not install. `resumeAtReset` on a chat turns it off for that chat. Moving the chat to another account is always the person's choice.
 
+Background work goes down with the host too. A chat that loads after a restart tells its agent in one note what it lost: the turn it was in, every command and monitor by its full text, and every subagent and workflow, with the advice to restart what is still needed. A resumed turn hears that note with its resume prompt. `recoverInterrupted()` also loads a chat that still listed commands in the background. When no turn of such a chat is taken up again, the core hands the `LostWork` to the `lostWork` hook. A host that wants the agent to hear it right away owes the chat a turn, and checks `owesRestartWake(noteId)` on the session before opening it.
+
 A turn that was running when the host went down is an `InterruptedRun`: the chat, the turn and the attempt that would take it up. A session decides with a `ResumeDecision` which turn it takes up, or why that turn ends. `ResumeWords` say how: what the CLI is told and the note a person reads.
 
 `limitedTurn(items)` returns the last turn of a thread when it stopped on a limit. `limitResumeAt(items, turn, now)` returns when the host takes it up again, or `null`: a usage limit at its reset, an overload after 1, 5 and 15 minutes. `LimitResumeHooks` are what a session needs for that: the host's switch, a clock, and a way to owe the resume.

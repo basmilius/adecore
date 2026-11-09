@@ -98,6 +98,7 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `opened`, `recordExtras`                                       | What the host lays down in a loaded chat, and keeps in its record beside the thread.     |
 | `clearing`, `cleared`, `forgotten`, `removed`, `broadcasted`   | What goes along with a clear or a removal, and a look at every event.                     |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |
+| `lostWork(chatId, lost)`                                       | Background work a restart took from a chat that no resumed turn tells; see [Restarts](/agents/chats#restarts). |
 
 No hook knows the client. Checking who asks belongs on the wire.
 

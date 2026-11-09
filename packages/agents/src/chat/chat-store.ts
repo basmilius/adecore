@@ -285,7 +285,7 @@ export class ChatStore {
     }
 
     /*
-     * Whether the chat has neither a turn in flight nor a resume after a limit, by the info its record
+     * Whether the chat has neither a turn in flight, a command in the background nor a resume after a limit, by the info its record
      * starts with and the last one its log wrote, without parsing the thread. False whenever that
      * cannot be told so cheaply, which leaves the decision to `read`.
      */
@@ -462,7 +462,13 @@ function lastLoggedInfo(raw: string): unknown {
 }
 
 function settledInfo(info: unknown): boolean {
-    return typeof info === 'object' && info !== null && (info as { activeTurnId?: unknown }).activeTurnId === null && !('resumeAt' in info);
+    if (typeof info !== 'object' || info === null || (info as { activeTurnId?: unknown }).activeTurnId !== null || 'resumeAt' in info) {
+        return false;
+    }
+
+    const background = (info as { background?: unknown }).background;
+
+    return !Array.isArray(background) || background.length === 0;
 }
 
 function parseOrUndefined(text: string): unknown {

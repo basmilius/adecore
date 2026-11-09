@@ -61,6 +61,7 @@ export type { ComposerPreference } from './composer-preferences.ts';
 export { type ChatErrorCode, ChatError } from './errors.ts';
 export { type SessionFs, type ExternalSession, listClaudeSessions, listCodexSessions, nodeSessionFs } from './external-sessions.ts';
 export { limitedTurn, limitResumeAt } from './limit-resume.ts';
+export type { LostWork } from './lost-work.ts';
 export { readableAssistantText } from './readable-text.ts';
 export type { SubagentChat, SubagentReaderOptions } from './subagent-reader.ts';
 export type { SubagentSettlement } from './subagent-settlement.ts';

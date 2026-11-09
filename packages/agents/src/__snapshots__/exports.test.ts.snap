@@ -115,6 +115,7 @@ exports[`the public API ./chat exports these names 1`] = `
   "type ExternalSession",
   "type InterruptedRun",
   "type LimitResumeHooks",
+  "type LostWork",
   "type PromptNotes",
   "type ResumeDecision",
   "type ResumeWords",
