@@ -466,6 +466,26 @@ describe('inline completion with a source of the app', () => {
         expect(mine.state.cleared).toBe(1);
     });
 
+    test('a source that removes itself when told its suggestion is gone hears it once', async () => {
+        const { language } = await setup('');
+        const mine = drawingSource('word');
+        let remove = (): void => undefined;
+        const source: InlineSuggestionSource = {
+            ...mine.source,
+            cleared: () => {
+                mine.state.cleared++;
+                remove();
+            }
+        };
+        remove = language.inlineCompletion.addSource(source, 10);
+        language.inlineCompletion.trigger();
+        await settle();
+
+        expect(language.inlineCompletion.acceptWord()).toBe(true);
+        expect(mine.state.cleared).toBe(1);
+        expect(language.inlineCompletion.current).toBeNull();
+    });
+
     test('removing a source drops the ask that typing queued for it', async () => {
         const { editor, language, timers } = await setup('');
         const mine = drawingSource('mine', { automatic: true });

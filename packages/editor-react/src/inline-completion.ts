@@ -279,13 +279,14 @@ export class InlineCompletionFeature {
             this.accepting = false;
         }
         const rest = suggestion.rest.slice(word.length);
-        source.cleared?.();
         this.suggestions = rest.trim() === '' ? [] : [{ ...suggestion, range: { start: next, end: next }, text: rest, rest }];
         if (this.suggestions.length === 0) {
             this.owner = null;
         }
         this.index = 0;
         this.draw();
+        // Last, so a source that unregisters itself in it finds the state settled and is not cleared a second time by `hide`.
+        source.cleared?.();
         return true;
     }
 
