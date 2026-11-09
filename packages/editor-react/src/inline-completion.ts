@@ -144,7 +144,12 @@ export class InlineCompletionFeature {
     private index = 0;
     private manual = false;
     private timer: unknown = null;
-    private pending: { readonly controller: AbortController; readonly caret: EditorPosition; readonly manual: boolean } | null = null;
+    private pending: {
+        readonly controller: AbortController;
+        readonly source: InlineSuggestionSource;
+        readonly caret: EditorPosition;
+        readonly manual: boolean;
+    } | null = null;
     private revision = 0;
     private accepting = false;
 
@@ -196,7 +201,7 @@ export class InlineCompletionFeature {
             if (at !== -1) {
                 this.sources.splice(at, 1);
             }
-            if (this.owner === source) {
+            if (this.uses(source)) {
                 this.hide();
             }
         };
@@ -205,9 +210,14 @@ export class InlineCompletionFeature {
     /* Turns the language servers' suggestions on or off; they are off until the host asks. */
     configure(settings: { readonly enabled?: boolean }): void {
         this.servers.enabledByHost = settings.enabled === true;
-        if (!this.servers.enabledByHost && this.owner === this.servers) {
+        if (!this.servers.enabledByHost && this.uses(this.servers)) {
             this.hide();
         }
+    }
+
+    /* Whether the source has a suggestion drawn or a request out. */
+    private uses(source: InlineSuggestionSource): boolean {
+        return this.owner === source || this.pending?.source === source;
     }
 
     /* Asks the enabled source of the highest priority for suggestions at the caret now, as a person asking for one does; false when none is enabled. */
@@ -369,7 +379,7 @@ export class InlineCompletionFeature {
         this.hide();
         const controller = new AbortController();
         const caret = editor.getCaret();
-        const pending = { controller, caret, manual: triggerKind === 1 };
+        const pending = { controller, source, caret, manual: triggerKind === 1 };
         this.pending = pending;
         const revision = this.revision;
         let found: readonly InlineSuggestion[] = [];
@@ -382,7 +392,9 @@ export class InlineCompletionFeature {
             return;
         }
         this.pending = null;
-        if (revision !== this.revision || comparePositions(editor.getCaret(), caret) !== 0 || found.length === 0) {
+        // An app's setting can turn a source off without telling this feature, so a late answer is drawn only for a source still asked.
+        const stillAsked = source.enabled && this.sources.some((entry) => entry.source === source);
+        if (!stillAsked || revision !== this.revision || comparePositions(editor.getCaret(), caret) !== 0 || found.length === 0) {
             return;
         }
         this.owner = source;

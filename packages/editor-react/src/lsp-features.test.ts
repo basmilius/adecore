@@ -334,6 +334,76 @@ describe('inline completion with a source of the app', () => {
         expect(aborted).toBe(true);
     });
 
+    /* A source whose request stays out until the test answers it. */
+    function pendingSource() {
+        const state = {
+            aborted: false,
+            enabled: true,
+            answer: (): void => undefined
+        };
+        const source: InlineSuggestionSource = {
+            get enabled() {
+                return state.enabled;
+            },
+            automatic: false,
+            suggest: ({ caret, signal }) =>
+                new Promise((resolve) => {
+                    signal.addEventListener('abort', () => {
+                        state.aborted = true;
+                    });
+                    state.answer = () => resolve([{ text: 'late', range: { start: caret, end: caret }, rest: 'late' }]);
+                })
+        };
+
+        return { state, source };
+    }
+
+    test('turning the language servers off ends a request of theirs that is still out', async () => {
+        let answer: () => void = () => undefined;
+        const { editor, language, service } = await setup('', {
+            'textDocument/inlineCompletion': () =>
+                new Promise((resolve) => {
+                    answer = () => resolve([{ insertText: 'late' }]);
+                })
+        });
+        language.inlineCompletion.configure({ enabled: true });
+        language.inlineCompletion.trigger();
+        await settle();
+        const signal = service.calls.find((call) => call.method === 'textDocument/inlineCompletion')?.options.signal;
+        expect(signal?.aborted).toBe(false);
+        language.inlineCompletion.configure({ enabled: false });
+        expect(signal?.aborted).toBe(true);
+        answer();
+        await settle();
+        expect(editor.ghost).toBeNull();
+    });
+
+    test('removing a source ends a request of its that is still out', async () => {
+        const { editor, language } = await setup('');
+        const { state, source } = pendingSource();
+        const remove = language.inlineCompletion.addSource(source, 10);
+        language.inlineCompletion.trigger();
+        expect(state.aborted).toBe(false);
+        remove();
+        expect(state.aborted).toBe(true);
+        state.answer();
+        await settle();
+        expect(editor.ghost).toBeNull();
+        expect(language.inlineCompletion.current).toBeNull();
+    });
+
+    test('draws no answer of a source that was turned off by the app while its request was out', async () => {
+        const { editor, language } = await setup('');
+        const { state, source } = pendingSource();
+        language.inlineCompletion.addSource(source, 10);
+        language.inlineCompletion.trigger();
+        state.enabled = false;
+        state.answer();
+        await settle();
+        expect(editor.ghost).toBeNull();
+        expect(language.inlineCompletion.current).toBeNull();
+    });
+
     test('a suggestion that came by itself gives Tab to an open completion list', async () => {
         const { editor, language, timers } = await setup('', { 'textDocument/inlineCompletion': () => [{ insertText: 'abc' }] });
         language.inlineCompletion.configure({ enabled: true });
