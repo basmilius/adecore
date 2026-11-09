@@ -87,7 +87,6 @@ function goalLostNote(objective: string): string {
     return `The agent stopped before its goal was met: ${objective}`;
 }
 
-/* What a settled turn of a child makes of its task. */
 export function resultOfTurn(turn: ChatTurnItem, items: readonly ChatItem[], at: number): { status: 'done' | 'failed'; result: TaskResult } {
     if (turn.state === 'done') {
         return { status: 'done', result: { text: answerOf(items, turn.id) ?? 'It ended its turn without an answer.', source: 'turn', at } };

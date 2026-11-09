@@ -63,10 +63,8 @@ interface PageState {
     readonly before: readonly number[];
 }
 
-/* Rows in the first page of a result, and in every page after it. */
 const PAGE_SIZE = 500;
 
-/* Where the height of the results is kept, in pixels, for every console. */
 export const RESULTS_HEIGHT_KEY = 'database:console-results';
 
 /* The results and the editor never shrink below these; the results start at half the console. */
@@ -239,7 +237,6 @@ export function QueryConsole({
         onValueChange?.(next);
     };
 
-    /* The SQL a run of the scope sends, or null when there is nothing to run. */
     const targetOf = (scope: QueryConsoleRunScope): string | null => {
         if (engine === undefined) {
             return null;

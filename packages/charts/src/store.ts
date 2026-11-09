@@ -64,7 +64,6 @@ interface YAxisEntry {
 
 /* One row of labels under the plot; the rows stack in the order of the children. */
 interface XAxisEntry {
-    /* The height of the row. */
     readonly room: number;
     /* The widest label, which decides how many fit; null before the row has been measured. */
     readonly widest: number | null;

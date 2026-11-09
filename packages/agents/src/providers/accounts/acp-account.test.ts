@@ -9,7 +9,6 @@ import { ASK_TIMEOUT_MS } from './status.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 
-/* A fake agent that notes the folder it started in and every frame it was sent. */
 function recorded(cli: FakeCli) {
     const sent: Frame[] = [];
     const folders: string[] = [];

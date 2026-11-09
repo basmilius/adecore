@@ -6,7 +6,6 @@ import { providerFor } from './providers.ts';
 
 const KINDS: AgentKind[] = ['claude', 'codex', 'copilot'];
 
-/* A keychain in memory; `values` is what it holds, by key. */
 export function memorySecrets(values = new Map<string, string>()): SecretStore & { values: Map<string, string> } {
     return {
         values,

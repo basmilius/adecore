@@ -42,7 +42,6 @@ async function newHome(): Promise<string> {
 
 const GROK_SESSION_MODES = ['default', 'plan', 'ask'];
 
-/* A chat backend of the provider on the fake ACP agent, the events it raised and the arguments it started with. */
 function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial<BackendLaunch> = {}) {
     const events: BackendEvent[] = [];
     const methods: string[] = [];

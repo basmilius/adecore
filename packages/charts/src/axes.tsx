@@ -86,9 +86,7 @@ const X_TICK_SPACING = 96;
 const GUESS = 48;
 const SLANT = (40 * Math.PI) / 180;
 const DASH = '2 5';
-/* The row an x axis title takes under its labels. */
 const X_TITLE_ROOM = 21;
-/* The baseline of a y axis title from the top of the chart, and the room above the plot it needs. */
 const Y_TITLE_BASELINE = 15;
 const Y_TITLE_ROOM = 28;
 /* The names of the rows of a horizontal chart: their widest and the share of the chart they may take, and their line. */

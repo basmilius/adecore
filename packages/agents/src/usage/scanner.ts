@@ -21,7 +21,6 @@ const READ_CHUNK_BYTES = 1 << 20;
 const CODEX_PARSER_VERSION = 2;
 const NEWLINE = 0x0a;
 
-/* Hashes the first `length` bytes of a file into `hash`, a chunk at a time. */
 async function hashPrefix(path: string, length: number, hash: Hash): Promise<Hash> {
     const handle = await open(path, 'r');
 
@@ -144,7 +143,6 @@ async function listUsageFiles(dir: string, provider: UsageProvider, out: string[
     return out;
 }
 
-/* The bytes of a file from `from` to its end, a chunk at a time. */
 async function* fileChunks(path: string, from: number): AsyncGenerator<Uint8Array> {
     const handle = await open(path, 'r');
 
@@ -181,7 +179,6 @@ function readBytes(path: string, from: number, compressed: boolean): AsyncIterab
     return source.pipe(decompressed);
 }
 
-/* The usage record of one transcript line, when it carries one. */
 function parseLine(raw: string, provider: UsageProvider, codex: CodexParserState | null, format: UsageRootPath['format']): UsageRecord | null {
     const line = raw.endsWith('\r') ? raw.slice(0, -1) : raw;
 

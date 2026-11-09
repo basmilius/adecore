@@ -88,7 +88,6 @@ export interface ChartContextValue {
     readonly positions: readonly (readonly [number, number] | null)[];
     /* The series of a point chart, in the order they first appear, each with its rows in the order of the data. */
     readonly pointGroups: readonly { readonly key: string; readonly indexes: readonly number[] }[];
-    /* The series whose points are all dimmed. */
     readonly dimmedGroups: ReadonlySet<string>;
     /* The categorical color of the series of a row, for a part without a tone of its own. */
     readonly groupColorOf: (index: number) => string;
@@ -101,7 +100,6 @@ export interface ChartContextValue {
     readonly readable: readonly (readonly [string, SeriesEntry])[];
     /* The surface under the chart, which the halo around a label and the ring of a point are drawn in. */
     readonly halo: string;
-    /* The keyboard moved the cursor last, not the pointer. */
     readonly byKeyboard: boolean;
     /* The bucket or point the keyboard is on, apart from one the pointer passes over; -1 for none. */
     readonly keyIndex: number;

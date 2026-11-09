@@ -74,7 +74,6 @@ export interface ProviderAccountsOptions {
     // Where sensitive values are kept; null on a machine without a keychain. Absent is the platform's own.
     secrets?: SecretStore | null;
     now?: () => number;
-    // How a login watch waits between two checks.
     sleep?: (ms: number) => Promise<void>;
 }
 
@@ -469,7 +468,6 @@ export class ProviderAccountsService implements AccountLaunches {
         return watch.done;
     }
 
-    /* Asks every CLI again, and answers once they all did. */
     async refresh(): Promise<ProviderAccounts> {
         await this.queue(true);
 

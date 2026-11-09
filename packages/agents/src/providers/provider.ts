@@ -51,7 +51,6 @@ export interface ProviderTerminal {
     readonly modeArgs?: Readonly<Record<RuntimeMode, readonly string[]>>;
     // The flag that names a model, for a CLI whose catalog a person picks from.
     readonly modelFlag?: string;
-    // The arguments that load an MCP server from the line.
     mcpArgs?(server: CliMcpServer): string[];
     // The arguments that run every tool of a server without a prompt.
     mcpAllowArgs?(serverName: string): string[];
@@ -63,7 +62,6 @@ export interface ProviderTerminal {
     prepare?(): Promise<void>;
 }
 
-/* Whether a provider's chats run Claude Code. */
 export function runsClaudeCode(provider: Pick<ChatProvider, 'claudeCode'>): boolean {
     return provider.claudeCode !== undefined;
 }
@@ -83,7 +81,6 @@ export interface ChatProvider {
     readonly name: string;
     readonly catalog: ModelCatalog;
     readonly capabilities: ProviderCapabilities;
-    // The executable and its leading arguments.
     readonly command: string[];
     /* The CLI a terminal and a single prompt start, where `command` is a chat server of its own; absent is `command[0]`. */
     readonly executable?: string;

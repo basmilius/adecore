@@ -56,7 +56,6 @@ export function readCodexAccount(answer: unknown): AccountReading {
     return { signedIn: true, email: text(account.email), plan: text(account.planType), organization: null };
 }
 
-/* Starts Claude Code in the account's environment and asks it who is signed in. */
 export async function askClaudeAccount(command: readonly string[], env: Record<string, string | undefined>): Promise<AccountReading> {
     const { stdout } = await runProcess([...command, 'auth', 'status', '--json'], {
         env,
@@ -68,7 +67,6 @@ export async function askClaudeAccount(command: readonly string[], env: Record<s
     return readClaudeAuthStatus(stdout);
 }
 
-/* Starts Codex's app-server in the account's environment, as the host the client names, and asks it who is signed in. */
 export async function askCodexAccount(command: readonly string[], env: Record<string, string | undefined>, client: CodexClientInfo): Promise<AccountReading> {
     const transport = new CodexTransport({
         command: [...command],

@@ -7,13 +7,10 @@ export type AccountUnusable = 'turned off on this machine' | 'signed out' | 'at 
 export interface AccountChoiceInput {
     kind: AgentKind;
     accounts: ProviderAccountMap;
-    /* The account the start named; undefined for none. */
     named: string | undefined;
     /* The account the place of the start prefers, such as a project's default. */
     preferred: string | undefined;
-    /* The accounts the place of the start never offers. */
     off: readonly string[];
-    /* Why an account cannot take a start right now, or null when it can. */
     unusable(id: string): AccountUnusable | null;
 }
 

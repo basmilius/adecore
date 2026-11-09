@@ -17,7 +17,6 @@ import type { SpawnChatProcess } from '../../chat-process.ts';
 import { definedEnv } from './launch.ts';
 import { ASK_TIMEOUT_MS, type AccountReading } from './status.ts';
 
-/* The clock the probe's deadline runs on. */
 interface ProbeTimer {
     setTimeout(run: () => void, ms: number): unknown;
     clearTimeout(handle: unknown): void;

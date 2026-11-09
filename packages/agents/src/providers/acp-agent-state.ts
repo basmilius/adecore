@@ -209,7 +209,6 @@ export class AcpAgentState {
         return this.options.catalog.adopt(adopted.models, adopted.defaultModel, adopted.options.map(capitalized));
     }
 
-    /* Saves and tells the listeners once something changed. */
     private settle(changed: boolean): void {
         if (changed) {
             this.save();
