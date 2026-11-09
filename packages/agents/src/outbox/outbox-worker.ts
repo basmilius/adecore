@@ -15,7 +15,7 @@ export type OutboxHandlers<Work extends OutboxWorkShape> = {
     [K in Work['kind']]: (entry: Extract<OutboxEntryOf<Work>, { kind: K }>) => Promise<OutboxOutcome>;
 };
 
-export interface OutboxWorkerOptions<Work extends OutboxWorkShape> {
+interface OutboxWorkerOptions<Work extends OutboxWorkShape> {
     store: OutboxStore<Work>;
     /* Handlers known at construction; the others come through `handle`. */
     handlers?: Partial<OutboxHandlers<Work>>;

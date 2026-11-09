@@ -25,7 +25,7 @@ The timeline fills its parent and scrolls on its own. Every flex parent down to 
 - A shell command draws in the code theme, and code embedded in it (`bash -lc`, `python3 -c`, a heredoc) in its own language. `embeddedCode(command)` finds those stretches.
 - A long path is cut in the middle ([`MiddleTruncate`](/ui/display/middle-truncate)), with the whole path on a tooltip.
 
-The timeline draws only the rows on screen. The thread follows new text while scrolled to the end and loads older pages near the top. A scrubber along the edge marks every message and bookmark. Each mark is a `ScrubberTick` of a `TickKind`: a message of the person (`person`), a turn the host opened with the results of tasks (`wake`), or a message with a bookmark (`bookmark`).
+The timeline draws only the rows on screen. The thread follows new text while scrolled to the end and loads older pages near the top. A scrubber along the edge marks every message and bookmark. Each mark is one of three kinds: a message of the person (`person`), a turn the host opened with the results of tasks (`wake`), or a message with a bookmark (`bookmark`).
 
 Code outside the thread can move it. `jumpToTimelineTurn(key, turnId, target)` scrolls a chat's thread to a turn, its prompt or its changed files (a `TurnTarget`, `prompt` or `changes`). It returns false when no thread of that chat is on screen, and the jump then waits for the next one. `stepTimelineMessage(key, direction)` moves to the previous or next message. A thread of your own takes jumps with `registerTurnJumper(key, jump)`, which returns its release.
 
@@ -63,7 +63,7 @@ A program matches only where the shell runs it, by its last path segment, so `gr
 - Calls of one look with the same `group.key` read as that group's `sentence`. Calls under different keys use the look's own `sentence`.
 - `sent` draws a call as a message the agent sent to another node, with the node's chip, its text and how it went, and the call one click away. The timeline asks it only for a line that is exactly that one call, with no word the shell fills in. Returning null leaves the call a tool line. A folded turn counts such messages in its summary.
 
-The opened call still shows the whole command. `matchCommandLook(command, looks)` returns what a row draws, for a find of your own: a `CommandLookRun`, whose words a host may name are `CommandLookWord`s, offsets into the detail.
+The opened call still shows the whole command. `matchCommandLook(command, looks)` returns what a row draws, for a find of your own: the words a host may name come back as offsets into the detail.
 
 `describe` returns a `CommandLookMatch`, and `useNames` a `CommandName` for a word: a `name`, an optional `icon`, and optionally the id of a node it stands for. `sent` gets a `CommandLookCall` (the words, a heredoc, the state and the output) and returns a `CommandLookSent`: the node it went to, the text and how it went.
 
@@ -104,8 +104,8 @@ A call of `site_deploy` reads `Deploy Site deploy site=Website message="Ship it"
 - Every CLI's shape matches: `mcp__deploy__site_deploy`, `deploy/site_deploy`, a Grok `use_tool` call that names `deploy__site_deploy`, and an ACP call of an agent that marks no server, titled `deploy__site_deploy`, `deploy_site_deploy` or `deploy-site_deploy`. `mcpCallOf(item, servers)` reads the server, the tool and its arguments out of any of them, with the answer taken out of the envelope a CLI wraps it in.
 - A name that says its server wins over a title: `mcp__other__write` titled `deploy-site_deploy` is no call of `deploy`. The timeline tries the servers longest name first, so `mcp__deploy__site__push` goes to a server `deploy__site` before `deploy`. A title only counts on a generic ACP row (`Tool`, or a `Read` without a `file_path`).
 - `group`, `sentence` and `sent` work as they do for a `CommandLook`. `sent` gets the tool, its input, its state and its answer.
-- A shell line goes to `commandLooks` first. `lookRunOf(item, commandLooks, toolLooks)` returns what a row draws for either, and `matchToolLook(item, toolLooks)` only for an MCP call.
-- `describe` returns a `ToolLookMatch`, and `sent` gets a `ToolLookCall`. `mcpCallOf` returns an `McpCall`, `matchToolLook` a `ToolLookRun`, and `lookRunOf` a `LookRun`. A `Look` is either kind of look.
+- A shell line goes to `commandLooks` first. `lookRunOf(item, commandLooks, toolLooks)` returns what a row draws for either.
+- `describe` returns a `ToolLookMatch`, and `sent` gets a `ToolLookCall`. `mcpCallOf` returns the call read out of an item. A `Look` is either kind of look.
 - `sentMessageOf(item, commandLooks, toolLooks?)` returns the message a call sent as its look reads it, or `null`. `summarizeGroup(tools, commandLooks?, toolLooks?)` returns the sentence for a run of calls: "Read 4 files", "Ran 2 commands", or the `sentence` of a look all of them are runs of.
 
 ## Reading width
@@ -133,7 +133,7 @@ const open = trail.at(-1);
 
 A `FileRef` has a `path`, an optional one-based `line` and `column`, an inclusive `endLine` and `directory`. The host's `fileLinks.target(text, cwd, scopeId)` and `fileLinks.open(cwd, ref, scopeId)` get the thread's scope, or `null` outside a `ChatScopeContext`.
 
-A file link records its place, scope and cwd for `readTimelineTarget`, so the menu opens what the link pointed at even after the cwd changed. A subagent's conversation uses its own cwd. `useFileLinkCwd()` reads the cwd for a renderer of your own, and `openFileLink(cwd, ref, scopeId)` hands a link to the host. `EMPTY_TARGET` is the `TimelineTarget` of a menu opened on nothing.
+A file link records its place, scope and cwd, so the menu opens what the link pointed at even after the cwd changed. A subagent's conversation uses its own cwd. `useFileLinkCwd()` reads the cwd for a renderer of your own, and `openFileLink(cwd, ref, scopeId)` hands a link to the host.
 
 ## Streaming
 
@@ -147,15 +147,15 @@ The thread has no find of its own. The host's `useTimelineFind(options)` gets th
 
 ## Rows
 
-The `Timeline` draws each `TimelineRow` itself. These rows are exported from `@adecore/agents-react/chat/ui`: `AssistantRow`, `ReportRow`, `NoteRow`, `AgentTurnRow`, `CompactionRow`, `WorkRow`, `WorkGroupRow`, `WorkingRow`, `TaskRow`, `WorkflowRow` and `ForksRow`. A workflow's agent line is exported as `WorkflowAgentLine`, for a column of phases of your own ([subagents](/agents-react/chat/subagents#workflows)). `deriveTimelineRows(items, options)` turns items into rows as the timeline does.
+The `Timeline` draws each `TimelineRow` itself. These rows are exported from `@adecore/agents-react/chat/ui`: `ReportRow`, `NoteRow`, `AgentTurnRow`, `CompactionRow`, `WorkRow`, `WorkGroupRow`, `WorkingRow`, `TaskRow`, `WorkflowRow` and `ForksRow`. A workflow's agent line is exported as `WorkflowAgentLine`, for a column of phases of your own ([subagents](/agents-react/chat/subagents#workflows)). `deriveTimelineRows(items, options)` turns items into rows as the timeline does.
 
 <Demo src="agents/rows" />
 
 `WorkRow` takes an optional `icon`, `label` and `failed` to name a call in your own words. `toolSummary(name, input)` from `@adecore/agents-react/chat` is the one line that says what a call is about: the command, the file or the pattern.
 
-A subagent's row is a `SubagentBranch`: its item, the work the thread kept of it, and the agents it opened in turn. The changed files of a turn carry a `BaseMoved` when the turn ended on another branch than it started on, so its diff also holds what came in with the move. `handbackReportOf(item)` returns the report a subagent's handback call carries, or `null` for any other item.
+A subagent's row is a `SubagentBranch`: its item, the work the thread kept of it, and the agents it opened in turn. The changed files of a turn note it when the turn ended on another branch than it started on, so its diff also holds what came in with the move. `handbackReportOf(item)` returns the report a subagent's handback call carries, or `null` for any other item.
 
-`recentChatMessages(items, order, limit)` returns the last messages of a chat as `RecentChatMessages`: up to `limit` `RecentChatMessage`s (role, text and time) and whether there were more. It leaves out a subagent's replies, which belong to its own conversation. `recentSubagentMessages(items, limit)` does the same for a subagent's conversation.
+`recentChatMessages(items, order, limit)` returns the last messages of a chat: up to `limit` of them (role, text and time) and whether there were more. It leaves out a subagent's replies, which belong to its own conversation. `recentSubagentMessages(items, limit)` does the same for a subagent's conversation.
 
 ### Generated images
 
@@ -165,4 +165,4 @@ A failure is a failed tool line with the reason. `generatedImageView(tool)` retu
 
 <Demo src="agents/generated-image" />
 
-`TimelineMenuPopup` is the right click menu. Prefer the whole `Timeline` unless your app owns grouping and scrolling.
+The right click menu belongs to the `Timeline`. Prefer the whole `Timeline` unless your app owns grouping and scrolling.

@@ -78,7 +78,7 @@ While a goal is active, messages queue, `delivery: "steer"` included. `chat.goal
 
 ## Searching and resuming
 
-`searchThreadItems(items, query, { limit })` from `@adecore/agents/chat` returns `ThreadHit` records with a snippet for each user or assistant message that matches (`ThreadSearchOptions` holds the limit). `findClaudeSession(projectsDir, sessionId, cwd?)` returns the path of a Claude session's transcript, searching `cwd`'s project folder first. It caches the location, so call it as often as you need.
+`searchThreadItems(items, query, { limit })` from `@adecore/agents/chat` returns up to `limit` hits, each with a snippet, for the user and assistant messages that match. `findClaudeSession(projectsDir, sessionId, cwd?)` returns the path of a Claude session's transcript, searching `cwd`'s project folder first. It caches the location, so call it as often as you need.
 
 `listClaudeSessions` and `listCodexSessions` from `@adecore/agents/chat` list CLI sessions started outside your app, newest first, as `ExternalSession` records. They read through a `SessionFs`, and `nodeSessionFs()` reads the real disk. Both leave out Codex forks and subagents (`isForkOrSubagent`).
 
@@ -111,25 +111,24 @@ A turn running when the host went down loads as aborted, with a note from `notRe
 
 A turn that hit the usage limit or an overloaded model ends as an `error` turn with a `limit`. Resuming it when the limit lifts needs `limitResume` on the core, which `AgentHost` does not install. `resumeAtReset` on a chat turns it off for that chat. Moving the chat to another account is always the person's choice.
 
-A turn that was running when the host went down is an `InterruptedRun`: the chat, the turn and the attempt that would take it up. A session decides with a `ResumeDecision` which turn it takes up, or why that turn ends. `ResumeWords` say how: what the CLI is told and the note a person reads.
+A turn that was running when the host went down is an `InterruptedRun`: the chat, the turn and the attempt that would take it up. A session decides which turn it takes up, or why that turn ends. `ResumeWords` say how: what the CLI is told and the note a person reads.
 
-`limitedTurn(items)` returns the last turn of a thread when it stopped on a limit. `limitResumeAt(items, turn, now)` returns when the host takes it up again, or `null`: a usage limit at its reset, an overload after 1, 5 and 15 minutes. `LimitResumeHooks` are what a session needs for that: the host's switch, a clock, and a way to owe the resume.
+`limitedTurn(items)` returns the last turn of a thread when it stopped on a limit. `limitResumeAt(items, turn, now)` returns when the host takes it up again, or `null`: a usage limit at its reset, an overload after 1, 5 and 15 minutes. A session also needs the host's switch, a clock and a way to owe the resume.
 
 ## Parts of the core
 
 These are the pieces a host meets when it assembles a core or a backend of its own:
 
-- `ChatSessionOptions` are what a `ChatSession` is made from. `PromptNotes` is what a host says in front of the next prompt, and `ChatReferences` the chats a person attached to a message and what the agent is told about them. `ChatSendExtras.brief`, and `brief` on `ChatSession.wake`, is the host's instruction for that one prompt: it comes to `PromptNotes.next(brief)`, which places it among the rest (without notes it is heard as it is). A slash command hears nothing in front of it, so there the session puts the brief after the command, as `<command>\n\n---\n<brief>`, and the thread shows that message. A brief queued with its message goes out with it and no other, and is not kept across a restart.
+- `PromptNotes` is what a host says in front of the next prompt, and `ChatReferences` the chats a person attached to a message and what the agent is told about them. `ChatSendExtras.brief`, and `brief` on `ChatSession.wake`, is the host's instruction for that one prompt: it comes to `PromptNotes.next(brief)`, which places it among the rest (without notes it is heard as it is). A slash command hears nothing in front of it, so there the session puts the brief after the command, as `<command>\n\n---\n<brief>`, and the thread shows that message. A brief queued with its message goes out with it and no other, and is not kept across a restart.
 - `ChatThread` is the state of one chat as a client sees it. Every change returns the event that describes it, so the host sends exactly what it applied.
 - A backend gets a `TurnInput` per turn, answers an approval with an `ApprovalDecision` (`allow`, `allow-always` or `deny`), and reports to a `BackendHost` through `onEvent`.
-- `ChatSpawnOptions` start a CLI with `spawnChatProcess`, and `ChatChildOptions` start a `ChatChild`. `ChatProcess` is the part of a child process a backend talks to: lines in and out, a signal and an exit, which a test replaces with a CLI in the same process.
-- `ClaudeBackendOptions` and `CodexBackendOptions` are the options of the two built-in backends. `CodexClientInfo` is how the host names itself to the Codex app-server.
-- `forkThreadOnce(spec, params)` forks a Codex thread up to a turn in a process of its own (`CodexProcessSpec`, `ThreadForkParams`) and returns the new id. `ThreadItemsParams` pages through a thread's items.
+- `ChatSpawnOptions` start a CLI with `spawnChatProcess`, and a `ChatChild` wraps one. A backend talks to the part of the child process that moves lines in and out, takes a signal and reports an exit, which a test replaces with a CLI in the same process.
+- The two built-in backends take options of their own. `CodexClientInfo` is how the host names itself to the Codex app-server.
+- `forkThreadOnce(spec, params)` forks a Codex thread up to a turn in a process of its own (`CodexProcessSpec`) and returns the new id.
 - `ClaudeTitleReader` reads the title Claude Code gave a session from its transcript; a title a person set with `/rename` wins. `claudeProjectSlug(cwd)` is the folder name Claude Code gives a working folder. `suggestChatTitle` asks a CLI in its one-shot mode for a title, from a `ChatTitleInput`, and returns `null` when none answers in time.
-- `runningInBackground(items)` returns the `BackgroundWork` a CLI goes on with after its turn ended: background subagents and workflows.
-- `SubagentChat` is what the subagent reader needs of a chat, so a test can hand in a thread without a CLI, and `SubagentReaderOptions` its options. `SubagentSettlement` is how a subagent's own transcript says it ended.
-- `chatOpener(deps)` returns a function that opens the chat a turn is owed in, with `ChatOpenerDeps`.
-- `ComposerPreference` is a stored runtime mode and model selection. `SkillRootOptions` say where to look for skills when the home or Claude Code's configuration folder is not the default.
+- `runningInBackground(items)` returns the work a CLI goes on with after its turn ended: background subagents and workflows.
+- `chatOpener(deps)` returns a function that opens the chat a turn is owed in.
+- `ComposerPreference` is a stored runtime mode and model selection.
 - `ChatErrorCode` is the union of the codes a `ChatError` carries; [Error codes](/agents/errors) explains them.
 
 ## Visual working files

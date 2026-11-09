@@ -1,4 +1,4 @@
-import type { UsageLimitsSnapshot, UsageWindow } from '@adecore/agent-contracts';
+import { evenPace, type PaceStanding, type UsageLimitsSnapshot, type UsageWindow } from '@adecore/agent-contracts';
 import { Icon, Tooltip } from '@adecore/ui';
 import { formatClock, formatWeekdayClock, isSameDay, formatCountdown, formatPercent } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -14,7 +14,6 @@ import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
 import {
     accountNote,
     emptyWindows,
-    evenPace,
     explain,
     isSignedOut,
     limitAccountKey,
@@ -23,8 +22,7 @@ import {
     ringWindows,
     showsWindows,
     type LimitAccount,
-    type LimitGroup,
-    type PaceStanding
+    type LimitGroup
 } from './limit-groups';
 import { LimitProvenance } from './LimitProvenance';
 

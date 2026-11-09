@@ -16,7 +16,7 @@ export interface UiBlockFix {
     message: string;
 }
 
-export interface UiBlockFooterProps {
+interface UiBlockFooterProps {
     live?: UiLiveStatus | null;
     /* The label of the Choice that answered the block, and when, in milliseconds since the epoch. */
     answered?: { label: string; at: number } | null;

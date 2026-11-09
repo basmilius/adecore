@@ -278,7 +278,7 @@ export function SourcesRenderer({ node, children }: UiRendererProps<UiProps<'Sou
     );
 }
 
-export interface UiSourceCitationProps {
+interface UiSourceCitationProps {
     /* The number of the Source, as its row in the list counts it. */
     number: number;
     title: string;

@@ -1,7 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import { focusPromptStart } from './focus';
 
-export interface FocusAfterAnswer {
+interface FocusAfterAnswer {
     /* Called before the front card changes, to remember whether the keyboard is in it, since the card is gone by the time the next one shows. */
     hold(): void;
     /* The card stays after all, as when its answer failed. */

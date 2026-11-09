@@ -4,7 +4,7 @@
  */
 export const MENTION_DRAG_TYPE = 'application/x-adecore-mention';
 export const LEGACY_MENTION_DRAG_TYPE = 'application/x-ruimte-mention';
-export const MENTION_DRAG_TYPES = [MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE] as const;
+const MENTION_DRAG_TYPES = [MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE] as const;
 
 export function carriesMentions(types: readonly string[]): boolean {
     return MENTION_DRAG_TYPES.some((type) => types.includes(type));
@@ -225,7 +225,7 @@ export interface NamedPick {
     id: string;
 }
 
-export type MentionPick = { kind: 'file'; path: string } | NamedPick;
+type MentionPick = { kind: 'file'; path: string } | NamedPick;
 
 /*
  * What Enter or Tab takes from the `@` list at `index`: `named` first, then the files. Those answer the
@@ -331,7 +331,7 @@ export interface TextRange {
 }
 
 /* `value` is the path, the skill's name, a reference's id or a model's or account's `<cli>/<id>`; the range spans the name. */
-export interface ChipRange extends TextRange {
+interface ChipRange extends TextRange {
     kind: 'mention' | 'skill' | 'reference' | NamedChipKind;
     value: string;
 }

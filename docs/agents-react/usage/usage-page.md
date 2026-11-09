@@ -29,7 +29,7 @@ While mounted, the page sends `usage.subscribe`, asks `usage.summary` for the pe
 | Currency | `USD`, `EUR` at the rate the summary carries            | Yes, `USD` |
 | Account  | All, or one account once a CLI has several              | No        |
 
-The period follows the viewer's calendar days and time zone. `windowFor(period)` builds that window, and `dayOf(date)` writes a date as the viewer's own `YYYY-MM-DD`. A period is a `UsagePeriod`, a metric a `UsageMetric` and a currency a `UsageCurrency`. The price table is in dollars, and the page can also show euros.
+The period follows the viewer's calendar days and time zone. `windowFor(period)` builds that window, and `dayOf(date)` writes a date as the viewer's own `YYYY-MM-DD`. A period is a `UsagePeriod` and a metric a `UsageMetric`. The price table is in dollars, and the page can also show euros.
 
 ## Props
 
@@ -50,4 +50,4 @@ The usage section of the settings dialog: the currency and a button to the page.
 
 ## State
 
-`useUsageStore` holds the three [stored](/agents-react/guide/persistence) choices and, per scope, the summary, its request, its loading or failed state and the plan limits. `askedKey(payload)` is a summary's key. `useUsage(select)` reads a `UsageView`: the viewer's choices together with the summary and limits of the scope in context. The page draws a picked host as a scope of its own, so browsing another host's spend never moves the limit bars outside it.
+`useUsageStore` holds the three [stored](/agents-react/guide/persistence) choices and, per scope, the summary, its request, its loading or failed state and the plan limits. `askedKey(payload)` is a summary's key. `useUsage(select)` reads the viewer's choices together with the summary and limits of the scope in context. The page draws a picked host as a scope of its own, so browsing another host's spend never moves the limit bars outside it.

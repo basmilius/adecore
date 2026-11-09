@@ -176,7 +176,7 @@ export function accountEnv(id: string, account: ProviderAccount, provider: ChatP
     return withVariables(env);
 }
 
-export interface NamedAccount {
+interface NamedAccount {
     id: string;
     account: ProviderAccount;
 }

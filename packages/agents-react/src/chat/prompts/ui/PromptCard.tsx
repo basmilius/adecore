@@ -9,7 +9,7 @@ import { headingKey, isPrimaryKey, staysInCard, stepIndex, toolbarKey } from '..
 export const PROMPT_SURFACE =
     'flex flex-col overflow-hidden rounded-2xl border border-border bg-[color-mix(in_srgb,var(--surface-raised)_92%,transparent)] shadow-float backdrop-blur-[14px]';
 
-export type PromptCardKind = 'approval' | 'question' | 'waiting';
+type PromptCardKind = 'approval' | 'question' | 'waiting';
 
 const ICONS: Record<PromptCardKind, LucideIcon> = { approval: Hand, question: MessageCircleQuestionMark, waiting: MessageCircleQuestionMark };
 

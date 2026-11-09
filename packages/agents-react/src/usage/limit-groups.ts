@@ -14,8 +14,6 @@ import { limitsAccountId } from '../agents/account-limits';
 import { accountName, accountsOfKind, accountStatusLine } from '../agents/accounts';
 import { PROVIDER_LABELS } from './format';
 
-export { evenPace, type EvenPace, type PaceStanding } from '@adecore/agent-contracts';
-
 const MINUTE = 60_000;
 
 /* One account of a CLI as the limits draw it. */

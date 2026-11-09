@@ -15,7 +15,7 @@ function textInput(text: string) {
 }
 
 /* The enabled skills of a `skills/list` answer; Codex reports one entry per folder it was asked about. */
-export function parseSkillsList(result: unknown): ChatSkill[] {
+function parseSkillsList(result: unknown): ChatSkill[] {
     const data = isRecord(result) && Array.isArray(result.data) ? result.data : [];
     const skills = new Map<string, ChatSkill>();
 
@@ -36,7 +36,7 @@ export function parseSkillsList(result: unknown): ChatSkill[] {
     return [...skills.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-export type GoalCommand = { kind: 'show' } | { kind: 'clear' } | { kind: 'pause' } | { kind: 'resume' } | { kind: 'set'; objective: string };
+type GoalCommand = { kind: 'show' } | { kind: 'clear' } | { kind: 'pause' } | { kind: 'resume' } | { kind: 'set'; objective: string };
 
 // The words Claude Code 2.1.296 takes for clearing a goal; Codex reads the same, so `/goal` means one thing in every chat.
 const CLEAR_WORDS = new Set(['clear', 'stop', 'off', 'reset', 'none', 'cancel']);
@@ -71,7 +71,7 @@ function goalLine(goal: ChatGoal): string {
     return `Goal ${goal.status.replace('-', ' ')}: ${goal.objective}`;
 }
 
-export interface CodexBackendOptions {
+interface CodexBackendOptions {
     // How the host names itself in `initialize`.
     client: CodexClientInfo;
 }

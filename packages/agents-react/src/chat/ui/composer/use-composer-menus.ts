@@ -10,7 +10,7 @@ import { usePromptMenus, type PromptMenus } from './use-prompt-menus';
 export type { ComposerCommand } from './use-prompt-menus';
 
 // Commands the composer handles itself; the CLI's own ones are sent through as text.
-export const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
+const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
 
 interface MenusInput {
     chatId: string;

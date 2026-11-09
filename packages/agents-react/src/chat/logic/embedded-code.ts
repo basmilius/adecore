@@ -14,7 +14,7 @@ export const EMBEDDED_CODE_LIMIT = 20_000;
 const MAX_DEPTH = 3;
 
 /* A stretch of a shell command, as offsets into it. */
-export interface ShellSpan {
+interface ShellSpan {
     readonly start: number;
     readonly end: number;
 }
@@ -27,13 +27,13 @@ export interface ShellWord extends ShellSpan {
 }
 
 /* A redirect such as `2>&1` or `> out.txt`, its descriptor included. */
-export interface ShellRedirect extends ShellSpan {
+interface ShellRedirect extends ShellSpan {
     readonly op: string;
     readonly target: ShellWord;
 }
 
 /* The `<<'EOF'` of a heredoc, and the lines it feeds the command. */
-export interface ShellHeredoc extends ShellSpan {
+interface ShellHeredoc extends ShellSpan {
     readonly body: ShellSpan;
 }
 

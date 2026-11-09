@@ -28,7 +28,7 @@ For a view of a workflow outside the thread, the helpers in `@adecore/agents-rea
 
 `workflowAgentState(agent, running)` is a `WorkflowAgentState`: `running`, `waiting`, `stopped`, `done` or `failed`. `workflowCounts(phases)` counts the agents by state (`WorkflowCounts`). `workflowAgentTime(view)` is the time an agent's line shows, `workflowAgentPreview(view)` its second line (`WorkflowAgentPreview`), and `workflowDescription(input)` the description in the script's `meta`.
 
-`workflowPhaseState(phase)` is a `WorkflowPhaseState`: a `WorkflowPhaseStateKind`, with how many of its agents `settled` of the `total`. The kind is `running` while an agent of the phase is at work or some settled and others wait, `waiting` before any started, then `done`, or `failed` when one failed or stopped. `workflowPhaseTime(phase)` is a `WorkflowPhaseTime` from the first start to the last known end, with `endedAt` null while an agent is at work. The agents of a phase run beside each other, so it is never their sum.
+`workflowPhaseState(phase)` returns a `kind` (a `WorkflowPhaseStateKind`) with how many of its agents `settled` of the `total`. The kind is `running` while an agent of the phase is at work or some settled and others wait, `waiting` before any started, then `done`, or `failed` when one failed or stopped. `workflowPhaseTime(phase)` is the time from the first start to the last known end, with `endedAt` null while an agent is at work. The agents of a phase run beside each other, so it is never their sum.
 
 `liveWorkflowPhase(phases, running)` is the key of the phase to keep open by itself: the one with an agent at work, the one whose agent started last when several are, before that the first that waits, and null once the workflow stopped running.
 

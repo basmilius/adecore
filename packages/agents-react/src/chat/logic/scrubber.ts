@@ -118,7 +118,7 @@ export function ticksOf(
 }
 
 /* One drawn tick: a message, or a run of messages merged once the height has fewer pixels than they need. */
-export interface TickSlot {
+interface TickSlot {
     first: number;
     last: number;
     kind: TickKind;
@@ -130,7 +130,7 @@ export interface TickSlot {
     y: number;
 }
 
-export interface ScrubberLayout {
+interface ScrubberLayout {
     top: number;
     pitch: number;
     count: number;
@@ -282,7 +282,7 @@ function lastAtOrAbove(starts: MessageStarts, line: number): number {
     return lastIndexAtOrBelow(starts.length, (index) => starts.at(index)!, line);
 }
 
-export interface ReadingPosition {
+interface ReadingPosition {
     /* Where each message's row starts in the thread, in the virtualizer's measurements. */
     starts: MessageStarts;
     scrollTop: number;
@@ -290,7 +290,7 @@ export interface ReadingPosition {
     visibleHeight: number;
 }
 
-export interface MessageRange {
+interface MessageRange {
     first: number;
     last: number;
 }

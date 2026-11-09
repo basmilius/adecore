@@ -44,7 +44,7 @@ Import `terminal.css` of [`@adecore/terminal`](/terminal/) to give tool output, 
 
 ## Words
 
-Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`, each an `AgentsNamespace`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
+Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
 
 Some helpers call the default `i18next` instance directly. Add the words to that instance and pass it to `UIProvider`:
 

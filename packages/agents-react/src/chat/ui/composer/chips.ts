@@ -14,7 +14,7 @@ import { referenceGlyph } from '../reference-icons';
 import { ReferenceTrail } from '../ReferenceTrail';
 import { codeRanges } from './editor';
 
-export interface ChipChoices {
+interface ChipChoices {
     mentions: string[];
     skills: string[];
     /* Null for a kind the host no longer names, which draws the chip without its mark. */

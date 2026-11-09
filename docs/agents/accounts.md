@@ -6,7 +6,7 @@ An account is one config folder of a CLI plus the environment variables a person
 
 Under a non-default account, the host removes the variables that would sign the CLI in another way, points the CLI's folder variable at the account's folder, and adds the account's own variables. A chat can move only between accounts of the same CLI that share a conversation folder (`canContinue`). Otherwise the host fails with `account-incompatible`. An account it cannot start fails with `account-unavailable`.
 
-A person orders the accounts of each CLI with `accounts.reorder`, which writes `order`. A start that names no account takes the top one that is on (`defaultFor`, `topAccountOf`). A host that gives a place its own default and turned-off accounts, such as a project, decides with `chooseAccount` in `ChatCoreHooks.openingAccount`. A named account the place turned off fails with `account-off-in-project`. A preferred account that cannot take the start gives way to the next usable one, with the reason in `passedOver`.
+A person orders the accounts of each CLI with `accounts.reorder`, which writes `order`. A start that names no account takes the top one that is on (`defaultFor`, `topAccountOf`). A host that gives a place its own default and turned-off accounts, such as a project, decides with `chooseAccount` in the core's `openingAccount` hook. A named account the place turned off fails with `account-off-in-project`. A preferred account that cannot take the start gives way to the next usable one, with the reason in `passedOver`.
 
 A CLI keeps accounts when its provider has a `home`: the folder variable, the default folder, the variables that sign it in by themselves, and the `loginCommand` a person types in a terminal. A CLI that signs in from its first chat, such as an ACP agent, leaves `loginCommand` out. Its kind appears in `chatLogins` instead of `loginCommands`, and its accounts count as `ready` without a check.
 
@@ -16,19 +16,19 @@ A provider reads who is signed in with its own `askAccount(command, env)`: Claud
 
 ## Sharing the default account's setup
 
-A provider whose `home` has a `share` (`ProviderShare`) lets an extra account read the setup of the default account. Claude Code does: `CLAUDE.md`, `rules`, `skills`, `agents` and `commands` become links to the default folder's entries, and `settings.json` is written once with only the keys `permissions`, `hooks`, `model`, `statusLine` and `outputStyle`. The list is closed. A login, `env`, `apiKeyHelper`, history, projects and plugins are never named, so they are never shared.
+A provider whose `home` has a `share` lets an extra account read the setup of the default account. Claude Code does: `CLAUDE.md`, `rules`, `skills`, `agents` and `commands` become links to the default folder's entries, and `settings.json` is written once with only the keys `permissions`, `hooks`, `model`, `statusLine` and `outputStyle`. The list is closed. A login, `env`, `apiKeyHelper`, history, projects and plugins are never named, so they are never shared.
 
 A person turns it on per account with `accounts.shareConfig`, which sets `shareConfig` on the account. `sharedConfigKinds` in the snapshot names the kinds that offer it. The service applies it in `prepare`, before the host's `install`, when it creates the account and on every check, so an entry the default account gained later is linked. An entry the account already holds stays and is named in the status message. Turning it off removes only links that point at the default folder's entry of that name; real files and the copied `settings.json` stay.
 
-A settings file is replaced by the copy only when it is missing or when the host's `ownsSettings(config)` option (an `OwnsSettings`) says it holds nothing but what the host wrote there, such as its hooks. `config` is the parsed file, or `undefined` when it is not JSON. Without `ownsSettings` the host owns nothing, so an existing file always stays and only a missing one is written.
+A settings file is replaced by the copy only when it is missing or when the host's `ownsSettings(config)` option says it holds nothing but what the host wrote there, such as its hooks. `config` is the parsed file, or `undefined` when it is not JSON. Without `ownsSettings` the host owns nothing, so an existing file always stays and only a missing one is written.
 
 ## The types behind it
 
 - `ProviderAccountsOptions` are the options of the service: the data folder, the `AccountsHost`, the providers, the environment and the `secrets`.
-- `chooseAccount` takes an `AccountChoiceInput` (the kind, the accounts, the named and preferred account, and those turned off) and returns a `ChosenAccount`. A passed-over account carries an `AccountUnusable` reason, such as `signed out` or `at its usage limit`.
+- `chooseAccount` takes the kind, the accounts, the named and preferred account, and those turned off, and returns a `ChosenAccount`. A passed-over account carries an `AccountUnusable` reason, such as `signed out` or `at its usage limit`.
 - `AccountLaunches` is how a terminal or a chat starts a CLI under an account: its environment, its transcript folder and its config folder. `launchEnv(accounts, kind, account, baseEnv)` returns the environment of a launch; without accounts wired only the default account starts. `storedAccount(kind, account)` is the id a record keeps: none for the default account, so nothing changes on disk for a host without accounts.
-- `askAccount` asks a CLI who is signed in and answers an `AccountReading`: `signedIn`, `email`, `plan` and `organization`. `AcpAccountProbe` holds what `askAcpAccount` needs to ask an ACP agent.
-- Making a Codex account reports a `ShadowHomeReport`: what it linked, what was in the way and stayed unshared, and whether the login itself would be shared.
+- `askAccount` asks a CLI who is signed in and answers with `signedIn`, `email`, `plan` and `organization`.
+- Making a Codex account reports what it linked, what was in the way and stayed unshared, and whether the login itself would be shared.
 
 ## Secrets
 
@@ -42,7 +42,7 @@ const accountsHost: AccountsHost = { name: 'My app', variablePrefixes: ['MYAPP_'
 
 Pass it as the host's `accountsHost`. `name` is how refusals name the host. No account may set a variable starting with one of the `variablePrefixes`. `keychainPrefix` plus a hash of the data folder names the keychain items. `HOME`, `PATH`, the CLIs' folder variables and duplicates are always refused. Keep the prefix and the data folder when you move a host, or it loses its secrets.
 
-`keychainService(host, home)` is that name. A `SecretStore` reads, writes and removes the secrets. Pass one as `secrets` in the service's options to keep them elsewhere, such as in memory in a test; absent is the platform's own. `variablesProblem(variables, reserved)` says what is wrong with an account's variables, such as a name set twice or a reserved one, or returns `null`. `ReservedVariables` holds the host and the CLIs' folder variables it checks against.
+`keychainService(host, home)` is that name. A `SecretStore` reads, writes and removes the secrets. Pass one as `secrets` in the service's options to keep them elsewhere, such as in memory in a test; absent is the platform's own. `variablesProblem(variables, reserved)` says what is wrong with an account's variables, such as a name set twice or a reserved one, or returns `null`. `reserved` holds the host and the CLIs' folder variables it checks against.
 
 ## The environment
 
@@ -60,5 +60,5 @@ const env = cliEnvironment(process.env, {
 
 `variables` removes names, and `prefixes` removes names starting with one. `sessionPrefixes` removes `<prefix>_HOOK_*`, `<prefix>_CONTEXT_*` and `<prefix>_SESSION_ID` and keeps the rest, such as `MYAPP_HOME`. Without this, a host started inside an agent session hands that session's callbacks to its own agents. Filtering never changes its input. A legacy set of hook, context and session variables is always removed, whatever the policy. The names are in [`host/environment`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/host/environment.ts), behind `@adecore/agents/host`.
 
-The policy is a `CliEnvironmentPolicy`. An `env` you pass is used as is, unless you also pass `environmentPolicy`. Add a chat's own credentials in `envFor` on the core.
+An `env` you pass is used as is, unless you also pass `environmentPolicy`. Add a chat's own credentials in `envFor` on the core.
 

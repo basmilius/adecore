@@ -73,9 +73,6 @@ export interface AcpAgentSpec {
     // True takes the session titles the agent sends (`session_info_update`) as the chat's suggested title. Absent leaves
     // naming the chat to the host, since an agent may rename the session after every turn.
     adoptTitles?: boolean;
-    // A permission request the host answers itself, in any runtime mode: true allows it once without asking the
-    // person, for a call the host already guards. A throw counts as false.
-    autoAllow?(request: AcpPermissionRequest): boolean;
     // The arguments that make the agent run every tool of one MCP server without asking, for an agent whose permission
     // requests name no server; put on its line for each server of the launch that allows its tools.
     allowToolsArgs?(serverName: string): string[];
@@ -137,7 +134,7 @@ function mcpNameClash(servers: readonly ChatMcpServer[]): [string, string] | nul
  * A turn is one `session/prompt` request and ends on its response. The client advertises no file
  * system and no terminal, so the agent works with its own tools.
  */
-export class AcpBackend implements ChatBackend {
+class AcpBackend implements ChatBackend {
     private readonly launch: BackendLaunch;
     private readonly host: BackendHost;
     private readonly spec: AcpAgentSpec;
@@ -775,7 +772,7 @@ export class AcpBackend implements ChatBackend {
             return;
         }
 
-        if (autoAllows(this.launch.runtimeMode, permission.kind) || this.allowsMcpTool(permission.request) || this.hostAllows(permission.request)) {
+        if (autoAllows(this.launch.runtimeMode, permission.kind) || this.allowsMcpTool(permission.request)) {
             this.emitAll(permission.events.filter((event) => event.type !== 'approval.requested'));
             const answer = this.protocol.answer(permission.requestId, 'allow');
 
@@ -811,14 +808,6 @@ export class AcpBackend implements ChatBackend {
 
         if (update !== null && (!this.replaying || update.commands !== null)) {
             this.early.push(params);
-        }
-    }
-
-    private hostAllows(request: AcpPermissionRequest): boolean {
-        try {
-            return this.spec.autoAllow?.(request) === true;
-        } catch {
-            return false;
         }
     }
 

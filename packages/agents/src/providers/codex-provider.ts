@@ -16,7 +16,7 @@ import type { ChatProvider, LaunchDecorator, ProviderTerminal } from './provider
 // A hanging CLI must not hold its terminal launch indefinitely.
 const HELP_TIMEOUT_MS = 5_000;
 
-export interface CodexProviderOptions {
+interface CodexProviderOptions {
     // How the host names itself in the `initialize` of every app-server this provider opens.
     client: CodexClientInfo;
     // What starts the app-server, when it is not `codex app-server` on the path: a fake in a test.

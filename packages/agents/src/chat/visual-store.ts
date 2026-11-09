@@ -43,12 +43,12 @@ export interface VisualInput {
     turnId?: string;
 }
 
-export interface VisualStoreOptions {
+interface VisualStoreOptions {
     // The clock `at` is stamped with, which has to be the one the thread's `createdAt` comes from.
     now?: () => number;
 }
 
-export type VisualListener = (chatId: string, visuals: ChatVisual[]) => void;
+type VisualListener = (chatId: string, visuals: ChatVisual[]) => void;
 
 const MIB = 1024 * 1024;
 

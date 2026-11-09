@@ -24,7 +24,7 @@ export interface UiPlacePoint {
 }
 
 /* The Choice that answered a block. `sending` already reads as sent, so a second click does nothing. */
-export interface UiAnswer {
+interface UiAnswer {
     choiceId: string;
     state: 'sending' | 'sent' | 'queued';
 }

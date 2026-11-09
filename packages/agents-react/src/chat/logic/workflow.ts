@@ -121,7 +121,7 @@ export function workflowCounts(phases: WorkflowPhaseView[]): WorkflowCounts {
 /* `running` while an agent of it is at work, `waiting` before any started, and once none can move again `failed` when one did not finish. */
 export type WorkflowPhaseStateKind = 'running' | 'waiting' | 'done' | 'failed';
 
-export interface WorkflowPhaseState {
+interface WorkflowPhaseState {
     state: WorkflowPhaseStateKind;
     /* The agents of the phase that are no longer at work or waiting, of all it started so far. */
     settled: number;
@@ -146,7 +146,7 @@ export function workflowPhaseState(phase: WorkflowPhaseView): WorkflowPhaseState
     return { state: phase.agents.every((view) => view.state === 'done') ? 'done' : 'failed', settled, total };
 }
 
-export interface WorkflowPhaseTime {
+interface WorkflowPhaseTime {
     startedAt: number;
     /* Null while an agent of it is still at work, so the time counts on from `startedAt`. */
     endedAt: number | null;

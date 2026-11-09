@@ -14,9 +14,6 @@ export interface ToolCallBase {
 /* The input field a write takes the revision it was decided on in. */
 export const REVISION_FIELD = 'revision';
 
-/* The input field that asks a tool to check everything and change nothing. */
-export const DRY_RUN_FIELD = 'dry_run';
-
 /* Agents dry-run every call before the real one to be safe, which doubles what each costs them. */
 export const DRY_RUN_PREVIEW = 'a refused call makes nothing either, so it is only a preview and never needed for safety';
 
@@ -55,7 +52,7 @@ export interface Toolkit<Call extends ToolCallBase = ToolCallBase, Output = stri
     readonly tools: readonly Tool<Call, Output>[];
 }
 
-export interface ToolRegistry<Call extends ToolCallBase = ToolCallBase, Output = string[]> {
+interface ToolRegistry<Call extends ToolCallBase = ToolCallBase, Output = string[]> {
     readonly toolkits: readonly Toolkit<Call, Output>[];
     /* Every tool of every toolkit, in the order of the toolkits. */
     readonly tools: readonly Tool<Call, Output>[];

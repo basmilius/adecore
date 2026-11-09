@@ -4,7 +4,7 @@ import { isWaiting } from '../state/chats';
 import { errorCode, isConnectionError, type ChatTransport } from '../transport';
 
 // What the panel opens on: the newest end of the conversation, which is where an agent that works is.
-export const SUBAGENT_PAGE = 60;
+const SUBAGENT_PAGE = 60;
 
 export interface SubagentConversationState {
     status: 'loading' | 'ready' | 'failed';

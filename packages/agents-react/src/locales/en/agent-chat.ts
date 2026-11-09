@@ -443,7 +443,6 @@ export default {
         continue: 'Continue',
         continueHint: 'Continue the stopped turn',
         send: 'Send',
-        sendActions: 'More send options',
         clear: {
             title: 'Clear thread?',
             description: 'A turn is running.',

@@ -4,8 +4,8 @@ import { modelRequirementOf } from '../agents/model-requirement';
 import type { AccountRule } from '../host/host';
 import type { NamedPick } from './mentions';
 
-export const MODEL_SUGGESTIONS = 5;
-export const ACCOUNT_SUGGESTIONS = 3;
+const MODEL_SUGGESTIONS = 5;
+const ACCOUNT_SUGGESTIONS = 3;
 
 export interface ModelSuggestion extends NamedPick {
     kind: 'model';

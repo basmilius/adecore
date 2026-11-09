@@ -125,7 +125,7 @@ export function stopLabel(stop: SubagentStop): string {
  * What the composer's Stop does. A plain click stops the turn alone, as it always has; Shift also ends
  * every agent the chat opened and marks its CLI's own sub-agents stopped, which a turn alone leaves running.
  */
-export type ComposerStop = 'turn' | 'turn-and-subagents';
+type ComposerStop = 'turn' | 'turn-and-subagents';
 
 export function composerStopOf(shiftKey: boolean): ComposerStop {
     return shiftKey ? 'turn-and-subagents' : 'turn';

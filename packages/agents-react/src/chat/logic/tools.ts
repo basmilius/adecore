@@ -77,7 +77,7 @@ export function shellCommand(name: string, input: unknown): string | null {
 }
 
 /* What a call was asked to do, as the lines its opened row shows. */
-export interface ToolCallLines {
+interface ToolCallLines {
     /* The command of a shell call, whole. */
     readonly command: string | null;
     /* The rest of the input as key and value: a string as it is, anything else as compact JSON. */

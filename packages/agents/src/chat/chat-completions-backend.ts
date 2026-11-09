@@ -35,7 +35,7 @@ export interface ChatCompletionsUsage extends ChatCompletionsTokens {
 }
 
 /** The sentences a person reads that name what to do in the host, beside the ones the backend writes itself. */
-export interface ChatCompletionsWords {
+interface ChatCompletionsWords {
     /** Why a chat does not start without a key. */
     noKey: string;
 

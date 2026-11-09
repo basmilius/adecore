@@ -7,7 +7,7 @@ export interface KnownProject {
     folder: string;
 }
 
-export interface ResolvedProject {
+interface ResolvedProject {
     folder: string;
     name: string;
     projectId: string | null;

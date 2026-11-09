@@ -12,7 +12,7 @@ const referencedOf = new WeakMap<Record<string, ChatItem>, string>();
  * it answers the same value until a message with another one comes; the structure a streamed word
  * leaves alone is what it is cached on.
  */
-export function threadReferencedKey(structure: Record<string, ChatItem> | undefined): string {
+function threadReferencedKey(structure: Record<string, ChatItem> | undefined): string {
     if (structure === undefined) {
         return '';
     }

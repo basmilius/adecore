@@ -46,7 +46,7 @@ async function hashPrefix(path: string, length: number, hash: Hash): Promise<Has
     }
 }
 
-export interface LineRead {
+interface LineRead {
     /* The bytes of every whole line, newlines included. */
     consumed: number;
     /* What follows the last newline: a line still being written. */
@@ -245,7 +245,7 @@ type AccountOf = (record: UsageRecord) => string | undefined;
  * the one account that writes there, else the one the host knows ran the session, else the
  * default account of the CLI, which is the only one a session nobody started through the host ran under.
  */
-export function accountResolver(root: UsageRootPath, sessionAccounts: () => ReadonlyMap<string, string>): AccountOf {
+function accountResolver(root: UsageRootPath, sessionAccounts: () => ReadonlyMap<string, string>): AccountOf {
     const accounts = root.accounts ?? [root.provider];
 
     const stored = (id: string): string | undefined => (id === root.provider ? undefined : id);

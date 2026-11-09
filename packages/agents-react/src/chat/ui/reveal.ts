@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 /* How long a word takes to fade in. `.chat-fade` in styles.css carries the same number. */
-export const REVEAL_FADE_MS = 300;
+const REVEAL_FADE_MS = 300;
 
 /* The time constant of the catch-up: after this long about two thirds of what was behind is on screen. */
 export const REVEAL_TAU_MS = 250;
@@ -10,7 +10,7 @@ export const REVEAL_TAU_MS = 250;
 export const REVEAL_MIN_CPS = 40;
 
 // Once the item is done nothing more arrives to wait for, so the tail is closed faster.
-export const REVEAL_FINISH_MIN_CPS = 120;
+const REVEAL_FINISH_MIN_CPS = 120;
 
 // A tab that comes back hands one frame the whole time it was away; it would show everything at once.
 export const REVEAL_MAX_FRAME_MS = 100;
@@ -71,7 +71,7 @@ export function revealBoundary(text: string, position: number, complete: boolean
     return last >= 0xd800 && last <= 0xdbff ? end - 1 : end;
 }
 
-export interface RevealedText {
+interface RevealedText {
     text: string;
     /* True until the reveal caught up with a finished text and its last fade is over; spans are needed until then. */
     active: boolean;

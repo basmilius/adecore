@@ -24,7 +24,7 @@ const markdownClasses = tagHighlighter([
     { tag: tags.processingInstruction, class: 'cm-md-mark' }
 ]);
 
-export interface CodeRange {
+interface CodeRange {
     from: number;
     to: number;
     kind: 'inline' | 'fence';

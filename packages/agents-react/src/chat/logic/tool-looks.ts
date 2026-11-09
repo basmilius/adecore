@@ -12,7 +12,7 @@ const TOOL_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]*$/;
 const ACP_TOOL_ROW = 'Tool';
 
 /* A call of a tool on an MCP server, the same whichever CLI made it. */
-export interface McpCall {
+interface McpCall {
     readonly server: string;
     /* The tool's name on its server, without the server. */
     readonly tool: string;
@@ -23,7 +23,7 @@ export interface McpCall {
 }
 
 /* A call of a look's MCP server read as a tool of its own. */
-export interface ToolLookRun extends LookRun {
+interface ToolLookRun extends LookRun {
     readonly look: ToolLook;
     readonly match: ToolLookMatch;
     readonly call: McpCall;

@@ -48,7 +48,7 @@ export interface ChatRecord {
 }
 
 /* Where a snapshot stands in the chat's stream. */
-export interface ChatSeq {
+interface ChatSeq {
     seq: number;
     resetSeq: number;
 }
@@ -95,7 +95,7 @@ function liftUiAccess(record: unknown): unknown {
     return Object.keys(uiAccess).length === 0 ? record : { ...record, uiAccess };
 }
 
-export interface ChatStoreOptions {
+interface ChatStoreOptions {
     attachments?: AttachmentStore | null;
 }
 

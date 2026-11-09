@@ -1,13 +1,12 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
-export { type AccountChoice, useAccountChoice, type NewAccountChoice, useNewAccountChoice } from './account-choice';
-export { transportActions, actionsOf, useChatActions } from './actions';
+export { type AccountChoice, useAccountChoice, useNewAccountChoice } from './account-choice';
+export { actionsOf, useChatActions } from './actions';
 export { type ChatSendExtras, ChatClient } from '../chat-client';
 export type { ProjectChat, Referable, ReferableKind, Referables } from '../host/references';
 export { REFERENCE_ICONS } from './ui/reference-icons';
-export { sendFromComposer, type ComposerSend } from './composer-send';
+export { sendFromComposer } from './composer-send';
 export { stepEffortFromComposer } from './composer-effort';
-export type { EffortStep } from './logic/effort';
-export { EMPTY_DRAFT, useDrafts, readDraft, writeDraft, offerDraft, type ChatDraft } from './drafts';
+export { EMPTY_DRAFT, useDrafts, readDraft, writeDraft, offerDraft } from './drafts';
 export { stripAnsi } from './logic/ansi';
 
 export {
@@ -21,21 +20,16 @@ export {
     forkShapes,
     type ForkCliChoice,
     forkPayload,
-    branchRefusal,
-    type ForkPoint,
-    type ForkWorktreeChoice
+    branchRefusal
 } from './logic/fork';
 
-export { matchCommandLook, lookRunOf, sentMessageOf, type LookRun, type CommandLookRun, type CommandLookWord } from './logic/command-looks';
+export { matchCommandLook, lookRunOf, sentMessageOf } from './logic/command-looks';
 export { type Look } from '../host/timeline-row';
-export { mcpCallOf, matchToolLook, type McpCall, type ToolLookRun } from './logic/tool-looks';
+export { mcpCallOf } from './logic/tool-looks';
 export { handbackReportOf } from './logic/handback';
-export { limitView, type LimitView } from './logic/limit';
-export type { TickKind, ScrubberTick } from './logic/scrubber';
-export { type TimedRow, withTimedRows, timedRowsOf } from './logic/thread-cards';
-export { EMPTY_TARGET, readTimelineTarget, type TimelineTarget } from './logic/timeline-target';
+export { limitView } from './logic/limit';
 export { summarizeGroup, deriveTimelineRows } from './logic/timeline';
-export { type TimelineRow, type SubagentBranch, type BaseMoved } from '../host/timeline-row';
+export { type TimelineRow, type SubagentBranch } from '../host/timeline-row';
 export { toolSummary, type FileChange } from './logic/tools';
 
 export {
@@ -53,21 +47,10 @@ export {
     type WorkflowAgentState,
     type WorkflowAgentPreview,
     type WorkflowCounts,
-    type WorkflowPhaseState,
-    type WorkflowPhaseStateKind,
-    type WorkflowPhaseTime
+    type WorkflowPhaseStateKind
 } from './logic/workflow';
 
-export {
-    MENTION_DRAG_TYPE,
-    LEGACY_MENTION_DRAG_TYPE,
-    carriesMentions,
-    droppedMentions,
-    writeMentionDrag,
-    chipText,
-    type MentionQuery,
-    type ChipSegment
-} from './mentions';
+export { MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE, carriesMentions, droppedMentions, writeMentionDrag, chipText } from './mentions';
 
 export {
     defaultProvider,
@@ -86,12 +69,10 @@ export {
     type ChatPreferences
 } from './preferences';
 
-export type { HoldRelease } from './prompt-hold';
-export { CHAT_READING_WIDTHS, readingWidthLabel, readingWidthHint, type ChatReadingWidth } from './reading-width';
-export { recentChatMessages, recentSubagentMessages, type RecentChatMessage, type RecentChatMessages } from './recent-messages';
+export { CHAT_READING_WIDTHS, readingWidthLabel, readingWidthHint } from './reading-width';
+export { recentChatMessages, recentSubagentMessages } from './recent-messages';
 export { RUNTIME_MODES, runtimeModeLabel, runtimeModeHint } from './runtime-modes';
-export { CHAT_SEND_KEYS, SEND_AND_NEW_SHORTCUT, sendKeyLabel, sendKeyHint, type ChatSendKey } from './send-key';
-export type { StashedAttachment, StashedPrompt, StashedQuote } from './stash';
+export { CHAT_SEND_KEYS, SEND_AND_NEW_SHORTCUT, sendKeyLabel, sendKeyHint } from './send-key';
 export { subagentTitle, summaryWordOf, stopOf, type SubagentStop } from './subagent-list';
 export { useSubagentSupport } from './subagent-support';
 
@@ -107,7 +88,7 @@ export {
     type SubagentTrail
 } from './subagent-view';
 
-export { stepTimelineMessage, jumpToTimelineItem, type TurnTarget, registerTurnJumper, jumpToTimelineTurn, type ItemJumpOptions } from './timeline-scroll';
-export { type StatusWord, statusLookOf, taskStatusWord, type StatusLook, type TaskState } from '../agents/status-look';
+export { stepTimelineMessage, jumpToTimelineItem, type TurnTarget, registerTurnJumper, jumpToTimelineTurn } from './timeline-scroll';
+export { type StatusWord, statusLookOf, taskStatusWord } from '../agents/status-look';
 
 export { ChatPromptFeed } from './pending-prompts';

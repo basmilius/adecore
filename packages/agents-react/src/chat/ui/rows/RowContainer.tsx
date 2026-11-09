@@ -4,7 +4,7 @@ import { useChatHost } from '../../../host/host';
 import type { TimelineRow } from '../../../host/timeline-row';
 import { rowPosition, rowRhythm, saidToChat } from './row-rhythm';
 
-export interface RowContainerProps {
+interface RowContainerProps {
     row: TimelineRow;
     previous: TimelineRow | null;
     index: number;

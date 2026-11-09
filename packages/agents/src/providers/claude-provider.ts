@@ -7,7 +7,7 @@ import { ModelCatalog } from './catalog.ts';
 import { detectCli } from './detect.ts';
 import type { ChatProvider, LaunchDecorator } from './provider.ts';
 
-export interface ClaudeProviderOptions extends ClaudeBackendOptions {
+interface ClaudeProviderOptions extends ClaudeBackendOptions {
     // What starts Claude Code, when it is not the `claude` on the path: a fake in a test, or the host's own flags.
     command?: string[];
     // The host's additions to every launch, such as its MCP server.

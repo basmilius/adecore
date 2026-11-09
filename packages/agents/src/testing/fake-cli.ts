@@ -20,7 +20,7 @@ export interface FakeProgram {
 
 export type FakeCli = (io: FakeIo) => FakeProgram;
 
-export interface StartedFake {
+interface StartedFake {
     readonly argv: string[];
     // Runs what the fake put off with `later`, in the order it was put off.
     runLater(): void;

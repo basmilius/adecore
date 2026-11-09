@@ -37,7 +37,7 @@ const ChunkSchema = z.object({
         .optional()
 });
 
-export interface ChatCompletionsToolRequest {
+interface ChatCompletionsToolRequest {
     id: string;
     type: 'function';
     function: { name: string; arguments: string };
@@ -58,7 +58,7 @@ export interface ChatCompletionsTokens {
     reasoning: number;
 }
 
-export interface ChatCompletionsStreamHandlers {
+interface ChatCompletionsStreamHandlers {
     onText(text: string): void;
     onThinking(text: string): void;
     onUsage(usage: ChatCompletionsTokens): void;

@@ -25,14 +25,14 @@ Run `watchProviderAccounts(scopeId, transport)` for the scope; see [Getting star
 | `target`        | `string \| null`                                          | The `searchId` of a settings search result; the pane opens on its CLI. `providers.install.<kind>` opens a CLI's install page. |
 | `detailOf`      | `(provider: ProviderInfo) => ReactNode \| null`           | A detail of your own for a CLI; `null` draws the usual one.                                                                                 |
 | `defaults`      | `boolean`                                                 | Shows what a new chat starts with. `true` by default.                                                       |
-| `installStepOf` | `(provider: ProviderInfo) => ProviderInstallStep \| null` | A step of your own on a CLI's install page, after its install.                                                     |
-| `setupStatusOf` | `(provider: ProviderInfo) => ProviderSetupStatus \| null` | Puts a provider under Needs setup; `null` leaves it to its accounts.                                       |
+| `installStepOf` | `(provider: ProviderInfo) => { title, done, body } \| null` | A step of your own on a CLI's install page, after its install.                                                     |
+| `setupStatusOf` | `(provider: ProviderInfo) => { text, tone } \| null`      | Puts a provider under Needs setup; `null` leaves it to its accounts.                                       |
 | `sectionsOf`    | `(provider: ProviderInfo) => ReactNode \| null`           | Sections of your own under a CLI's usual detail, such as an update.                                        |
 | `addPage`       | `(added: (kind: AgentKind) => void) => ReactNode`         | A page of your own to add a provider from, opened by an Add provider row.                                   |
 
 ## Setup status
 
-A provider without a CLI login cannot report readiness through its accounts. Return a `ProviderSetupStatus` (`text` and a `tone` of `muted` or `warning`) while it cannot be used yet.
+A provider without a CLI login cannot report readiness through its accounts. Return its status (`text` and a `tone` of `muted` or `warning`) while it cannot be used yet.
 
 ```tsx
 <ProvidersPane setupStatusOf={(provider) => (provider.kind === 'example' && !example.enabled ? { text: 'Off', tone: 'muted' } : null)} />
@@ -52,7 +52,7 @@ Report the provider anew once installed and the page follows. When every step is
 <ProvidersPane target="providers.install.example" />
 ```
 
-A CLI that needs more, such as a server your app installs beside it, gets an extra step through `installStepOf`. Return a `ProviderInstallStep` with a `title`, `done` and a `body`. Sign-in waits until it is done.
+A CLI that needs more, such as a server your app installs beside it, gets an extra step through `installStepOf`. Return a step with a `title`, `done` and a `body`. Sign-in waits until it is done.
 
 ```tsx
 <ProvidersPane
@@ -70,7 +70,7 @@ A CLI that needs more, such as a server your app installs beside it, gets an ext
 
 ## In the settings dialog
 
-`settingsSection(section, Pane)` makes the dialog's entry. `PROVIDERS_SECTION` is this pane's section and `USAGE_SECTION` the one of [`UsagePane`](/agents-react/usage/usage-page#usagepane). Each is an `AgentsSettingsSection`: an id, an icon, and its label and description, read when the dialog draws it.
+`settingsSection(section, Pane)` makes the dialog's entry. `PROVIDERS_SECTION` is this pane's section and `USAGE_SECTION` the one of [`UsagePane`](/agents-react/usage/usage-page#usagepane). Each is a section with an id, an icon, and its label and description, read when the dialog draws it.
 
 ```tsx
 import { SettingsDialog, useSettingsTarget } from '@adecore/ui/settings';
@@ -91,4 +91,4 @@ Keep the pane component the same between renders, or its forms start over.
 
 The detail and its forms are internal. A refused save shows a toast through the host's `notify`. Removing an account keeps its folder; new chats fall back to the CLI's default account.
 
-`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. The first returns an `AccountEntry` per account (its id, record, status and whether it is the default), and the second a line with an `AccountTone`: `muted`, `needs-you` or `error`. `ACCOUNT_TONE_CLASSES` maps each tone to its text color class. `canContinueOn(accounts, kind, from, to)` says whether a chat of one account can go on under another: the same account, or two accounts of the CLI that write to one conversation folder. `topAccountEntry` picks the account a start without one goes to: the first in the order that is on. `AccountRule` is the shape a host's `useAccountRule` answers with, per CLI the project's default and the accounts it turned off. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.
+`accountsOfKind` and `accountStatusLine` read a CLI's accounts for a list of your own. The first returns an `AccountEntry` per account (its id, record, status and whether it is the default), and the second a line with a tone: `muted`, `needs-you` or `error`. `ACCOUNT_TONE_CLASSES` maps each tone to its text color class. `canContinueOn(accounts, kind, from, to)` says whether a chat of one account can go on under another: the same account, or two accounts of the CLI that write to one conversation folder. `topAccountEntry` picks the account a start without one goes to: the first in the order that is on. A host's `useAccountRule` answers with, per CLI, the project's default and the accounts it turned off. `providerAbilities(provider)` describes where a CLI opens and whether it reports its status.

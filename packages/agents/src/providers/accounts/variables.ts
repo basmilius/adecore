@@ -47,7 +47,7 @@ export interface ReservedVariables {
     folderVariables: readonly string[];
 }
 
-export function isReservedName(name: string, reserved: ReservedVariables): boolean {
+function isReservedName(name: string, reserved: ReservedVariables): boolean {
     return RESERVED.has(name) || reserved.host.variablePrefixes.some((prefix) => name.startsWith(prefix)) || reserved.folderVariables.includes(name);
 }
 
@@ -103,7 +103,7 @@ async function run(args: string[], stdin?: string): Promise<{ code: number; stdo
  * hex in its interactive mode: on the command line any process could read it, and the password
  * prompt cuts it at 128 characters.
  */
-export function keychainSecrets(service: string): SecretStore {
+function keychainSecrets(service: string): SecretStore {
     return {
         read: async (key) => {
             const { code, stdout, stderr } = await run(['find-generic-password', '-s', service, '-a', key, '-w']);

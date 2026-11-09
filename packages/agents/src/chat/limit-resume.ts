@@ -1,7 +1,7 @@
 import type { ChatItem, ChatTurnItem, ChatTurnLimit } from '@adecore/agent-contracts';
 
 /* How long the host waits before each next try of a turn that stopped on a limit; one more limited turn in a row than there are delays is an error like any other. */
-export const LIMIT_RETRY_DELAYS_MS: readonly number[] = [60_000, 5 * 60_000, 15 * 60_000];
+const LIMIT_RETRY_DELAYS_MS: readonly number[] = [60_000, 5 * 60_000, 15 * 60_000];
 
 /* The last turn of a thread, when it stopped on a limit. */
 export function limitedTurn(items: readonly ChatItem[]): (ChatTurnItem & { limit: ChatTurnLimit }) | null {

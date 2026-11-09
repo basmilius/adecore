@@ -10,7 +10,7 @@ import { UnifiedDiff, EditDiff, DiffPool } from '@adecore/agents-react/chat/ui';
 
 ## UnifiedDiff
 
-A unified patch in a `ChatFileChange`. A patch without a file header gets one from the path; text without hunks shows as plain lines. Its props are `UnifiedDiffProps`, and its `contents` is a `DiffContents`.
+A unified patch in a `ChatFileChange`. A patch without a file header gets one from the path; text without hunks shows as plain lines. Its `contents` is a `DiffContents`.
 
 | Prop        | Type                     |                                                                                     |
 | ----------- | ------------------------ | ----------------------------------------------------------------------------------- |
@@ -45,35 +45,13 @@ import DiffWorker from '@pierre/diffs/worker/worker.js?worker';
 <DiffPool workerFactory={() => new DiffWorker()}>{chat}</DiffPool>;
 ```
 
-Without a pool, diffs highlight on the main thread. The pool follows the theme of the host's `code`; `useDiffTheme()` returns it.
+Without a pool, diffs highlight on the main thread. The pool follows the theme of the host's `code`.
 
 ## Changes of a turn
 
 `ChatActions.turnDiff(chatId, turnId)` returns the working tree against the checkpoint the turn started from, or `null`. The timeline reads other changes from the tool calls.
 
 A turn whose diff the host keeps apart (`checkpointDiffRef`) lists every file. A held-back file offers "Show full diff", which loads through `turnDiff`. A truncated tool output (`outputRef`) offers "Show full output", which loads through `ChatActions.toolOutput(chatId, itemId)`. A failed load shows "Try again".
-
-## Editor source tokens
-
-These helpers connect a [`DiffView`](/editor-react/diff-view) to the shared Shiki runtime. The editor path installs `@adecore/editor-react` even for hosts that do not use it, but loads it lazily.
-
-```ts
-import { diffSourceTokens, diffSyntaxRuntime } from '@adecore/agents-react/chat/ui';
-import { diffSyntaxDocument } from '@adecore/editor-react';
-
-const mapping = diffSyntaxDocument(document, language, theme);
-// `code` is the host's, read with useChatHost() in the component that draws the view.
-const tokens = diffSourceTokens(document, mapping, diffSyntaxRuntime(code));
-// Pass tokens to DiffView, then call tokens.dispose() when this source leaves the view.
-```
-
-`diffSourceTokens(document, mapping, runtime)` returns a `DiffSourceTokenSession` that fits the view's `DiffSourceTokens`. `get(side, index)` returns `undefined` while pending, a `LineToken` array when ready, or `null` on failure. `subscribe(listener)` reports finished blocks and returns an unsubscribe function. Call `dispose()` when the source leaves the view, and make a new one when the text, language, theme or mapping changes.
-
-`diffSyntaxDocument` builds a `DiffSyntaxMapping`: the old and new `DiffSyntaxDocument` and a `locate(side, index)` callback.
-
-`diffSyntaxRuntime(code)` returns the shared runtime of a host's `code`. `createDiffSyntaxRuntime(options)` makes an independent `DiffSyntaxRuntime` from `DiffSyntaxRuntimeOptions`: custom `themes` (an array or a function), an optional `workerFactory` and a borrowed `highlighter`. Dispose an independent runtime when its owner ends. A runtime opens a `DiffSyntaxSession` per document, with `request(block)`, `cancel()` and `dispose()`.
-
-`useDiffSourceTokens(document, language, theme, runtime?)` builds the mapping and tokens and releases them on unmount. Pass its result to `DiffView`. Without `runtime` it uses the host's shared one.
 
 ## Reviewing several changes
 

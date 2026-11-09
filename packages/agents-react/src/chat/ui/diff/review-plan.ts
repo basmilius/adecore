@@ -10,13 +10,13 @@ export interface ReviewEntry {
         | { readonly kind: 'patch'; readonly patch: ChatFileChange; readonly contents?: DiffContents };
 }
 
-export interface ReviewBudget {
+interface ReviewBudget {
     readonly editors: number;
     readonly rows: number;
     readonly characters: number;
 }
 
-export const REVIEW_BUDGET: ReviewBudget = { editors: 3, rows: 2000, characters: 2000000 };
+const REVIEW_BUDGET: ReviewBudget = { editors: 3, rows: 2000, characters: 2000000 };
 
 export type ReviewSlot = 'editor' | 'deferred';
 

@@ -218,7 +218,7 @@ function validItems<T>(schema: z.ZodType<T>, items: readonly unknown[] | null | 
     });
 }
 
-export interface AcpAgentInfo {
+interface AcpAgentInfo {
     name: string;
     title: string | null;
     version: string;
@@ -266,7 +266,7 @@ export function parseInitialize(result: unknown): AcpAgentCapabilities {
     };
 }
 
-export interface AcpModel {
+interface AcpModel {
     id: string;
     name: string;
     description: string | null;
@@ -275,25 +275,25 @@ export interface AcpModel {
 }
 
 /* The models a session offers. `configId` is the config option that picks one, or null where the agent takes `session/set_model`. */
-export interface AcpModelState {
+interface AcpModelState {
     current: string;
     models: AcpModel[];
     configId: string | null;
 }
 
-export interface AcpMode {
+interface AcpMode {
     id: string;
     name: string;
 }
 
 /* The modes a session offers. `configId` is the config option that picks one, or null where the agent takes `session/set_mode`. */
-export interface AcpModeState {
+interface AcpModeState {
     current: string;
     modes: AcpMode[];
     configId: string | null;
 }
 
-export interface AcpChoice {
+interface AcpChoice {
     id: string;
     name: string;
     description: string | null;
@@ -745,14 +745,11 @@ function toolOutput(tool: ToolState): string | null {
     return null;
 }
 
-/* What an agent asks permission for, in the plain form a host's `autoAllow` judges it by. */
+/* What an agent asks permission for, in the plain form the backend judges it by. */
 export interface AcpPermissionRequest {
     // The ACP tool kind (`execute`, `edit`, `fetch`, ...), or null when the agent names none.
     kind: string | null;
     title: string | null;
-    // Every text the call carries that may be what it runs: the command in its raw input and each text in its
-    // content. The agent decides which one it runs, so a host allows the call only when every one passes.
-    commands: string[];
     // The MCP server whose tool the call runs, where the agent marks it (`mcpServerOf`); null for any other call.
     mcpServer: string | null;
 }
@@ -778,7 +775,7 @@ function mcpServerOf(tool: Pick<ToolState, 'kind' | 'mcp'>, servers: readonly st
 }
 
 /* A permission request as the backend acts on it: the event it raises, and the tool kind a runtime mode may answer it by. */
-export interface AcpPermission {
+interface AcpPermission {
     requestId: string;
     rpcId: number | string;
     kind: string | null;
@@ -794,7 +791,7 @@ export interface AcpQuestion {
 }
 
 /* The words a turn that ended for another reason than its end leaves in the thread, and a question it could not answer. */
-export interface AcpStopWords {
+interface AcpStopWords {
     maxTokens: string;
     maxTurnRequests: string;
     refusal: string;
@@ -1176,12 +1173,9 @@ export class AcpProtocol {
             canAllowAlways: options.some((option) => option.kind === 'allow_always')
         });
 
-        const command = rawField(tool.rawInput, ...COMMAND_KEYS);
-
         const asked: AcpPermissionRequest = {
             kind: tool.kind,
             title: tool.title === '' ? null : tool.title,
-            commands: [...(command === null ? [] : [command]), ...tool.text],
             mcpServer: mcpServerOf(tool, mcpServers)
         };
 

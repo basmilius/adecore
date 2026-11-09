@@ -7,7 +7,7 @@ import { imageForDisplay } from './image-display';
 /* The edge of a composer thumbnail: a few times the 56 px it is drawn at, so a sharp screen still gets a sharp one. */
 export const THUMBNAIL_PX = 256;
 
-export interface ThumbnailCrop {
+interface ThumbnailCrop {
     sx: number;
     sy: number;
     /* The edge of the square taken from the middle of the image. */

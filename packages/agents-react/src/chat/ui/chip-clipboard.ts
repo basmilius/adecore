@@ -68,7 +68,7 @@ function segmentOf(chip: Element): ChipSegment | null {
 }
 
 /* The chips a selection holds whole, beside the text it copies; a chip cut in half is only text. */
-export function selectionChips(selection: Selection): ClipboardChips {
+function selectionChips(selection: Selection): ClipboardChips {
     const segments: ChipSegment[] = [];
 
     for (let i = 0; i < selection.rangeCount; i++) {

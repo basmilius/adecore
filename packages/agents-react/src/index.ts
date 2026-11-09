@@ -12,8 +12,6 @@ export {
     type ComposerSlotProps,
     type ReferenceIconProps,
     type OutsideReference,
-    type ComposerSendAction,
-    type ComposerSendDraft,
     type ComposerStatusDetail,
     type ComposerStatusItem,
     type SubagentSlotProps,
@@ -35,11 +33,7 @@ export {
     ChatHostProvider,
     type AgentMark,
     type ChatHostLayer,
-    useChatHost,
-    type AccentChoice,
-    type ChatToast,
-    type TextareaProps,
-    type ResourceUrl
+    useChatHost
 } from './host/host';
 
 export { type ChatScope, ChatScopeContext, useChatScope } from './scope';
@@ -55,6 +49,6 @@ export {
 } from './transport';
 
 export { portTransport, type PortTransport } from './port-transport';
-export { configureChatStorage, type ChatStorageRecord, type ChatStorageAdapter, type ChatStorageOptions } from './storage';
+export { configureChatStorage } from './storage';
 export { type MountedEntry, MountedRegistry } from './mounted-registry';
-export { type AgentsSettingsSection, PROVIDERS_SECTION, USAGE_SECTION, settingsSection } from './settings/sections';
+export { PROVIDERS_SECTION, USAGE_SECTION, settingsSection } from './settings/sections';

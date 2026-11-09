@@ -32,7 +32,7 @@ export function modelName(slug: string, models: readonly ModelInfo[] | undefined
 }
 
 /* What an agent picker's chip says: the provider's name beside the model, and whether its mark is the logo of the usage page or the generic icon. */
-export interface AgentChip {
+interface AgentChip {
     readonly mark: 'logo' | 'icon';
     readonly name: string;
     readonly model: string;

@@ -26,10 +26,10 @@ export const DeliverWaitingWorkSchema = z.object({
     payload: z.object({ childId: z.string().min(1), requestId: z.string().min(1) })
 });
 
-export type BackgroundLimitWork = z.infer<typeof BackgroundLimitWorkSchema>;
-export type WakeParentWork = z.infer<typeof WakeParentWorkSchema>;
-export type GiveTaskWork = z.infer<typeof GiveTaskWorkSchema>;
-export type DeliverWaitingWork = z.infer<typeof DeliverWaitingWorkSchema>;
+type BackgroundLimitWork = z.infer<typeof BackgroundLimitWorkSchema>;
+type WakeParentWork = z.infer<typeof WakeParentWorkSchema>;
+type GiveTaskWork = z.infer<typeof GiveTaskWorkSchema>;
+type DeliverWaitingWork = z.infer<typeof DeliverWaitingWorkSchema>;
 
 /* The work tasks owe, which a host puts in the discriminated union of its outbox beside its own kinds. */
 export type TaskWork = BackgroundLimitWork | WakeParentWork | GiveTaskWork | DeliverWaitingWork;

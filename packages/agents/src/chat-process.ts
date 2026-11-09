@@ -95,7 +95,7 @@ export function spawnChatProcess(options: ChatSpawnOptions): ChatProcess {
     };
 }
 
-export interface ProcessTreeKillOptions {
+interface ProcessTreeKillOptions {
     platform?: NodeJS.Platform;
     kill?(pid: number, signal: NodeJS.Signals): void;
     run?(command: string[]): void;
@@ -291,7 +291,7 @@ export async function readStreamLines(
     }
 }
 
-export interface ChatChildOptions extends Omit<ChatSpawnOptions, 'onExit'> {
+interface ChatChildOptions extends Omit<ChatSpawnOptions, 'onExit'> {
     spawn?: SpawnChatProcess;
     // `stderr` is the tail of what the CLI wrote there, for an exit with an error code only.
     onExit(exitCode: number | null, stderr: string | null, signal?: string | null): void;

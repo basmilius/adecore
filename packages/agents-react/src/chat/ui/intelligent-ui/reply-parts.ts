@@ -1,6 +1,6 @@
 import type { UiBlock } from '@adecore/intelligent-ui';
 
-export type UiReplyPart = { kind: 'text'; text: string } | { kind: 'ui'; block: UiBlock };
+type UiReplyPart = { kind: 'text'; text: string } | { kind: 'ui'; block: UiBlock };
 
 export function uiReplyParts(text: string, blocks: readonly UiBlock[], streaming = false): UiReplyPart[] {
     const parts: UiReplyPart[] = [];

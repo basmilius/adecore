@@ -11,7 +11,7 @@ interface PromptSessionOptions<T> {
     disabled: boolean;
 }
 
-export interface PromptSession<T> {
+interface PromptSession<T> {
     active: T | null;
     activeId: string | null;
     /* Where the active prompt stands among the waiting ones. */

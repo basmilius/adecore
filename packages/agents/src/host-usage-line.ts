@@ -6,7 +6,7 @@
  * the APIs do not agree: some report a prompt that holds its cached part, some report the input apart from both
  * cache kinds, and only some have a cache write at all.
  */
-export interface HostUsageEntry {
+interface HostUsageEntry {
     at: number;
     model: string;
     session: string;

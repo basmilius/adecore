@@ -11,7 +11,7 @@ import { reviewEntries } from '../../ui/diff/review-plan';
 import { isPrimaryKey } from '../logic/keys';
 
 /* A command in the sunken box a person reads before allowing it, with the folder it runs in when that is known. */
-export function CommandBox({ command, cwd }: { command: string; cwd?: string }) {
+function CommandBox({ command, cwd }: { command: string; cwd?: string }) {
     return (
         <TextMenu className="rounded-xl bg-surface-sunken p-3">
             {cwd !== undefined && <p className="mb-2 break-all font-mono text-xs text-text-muted select-text">{cwd}</p>}

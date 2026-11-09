@@ -2,7 +2,7 @@ import type { LngLatBoundsLike, MapOptions } from 'maplibre-gl';
 import { BASE_LAND_JSON } from './base-land';
 
 // The package does not export its style type, only the options that take one.
-export type MapStyle = Exclude<MapOptions['style'], string | undefined>;
+type MapStyle = Exclude<MapOptions['style'], string | undefined>;
 
 type Expression = unknown[];
 
@@ -19,10 +19,10 @@ export interface MapPoint {
 }
 
 /* How far a map zooms to fit its points: street level with tiles, and only a country or two on the outline, which has nothing finer. */
-export const MAP_MAX_ZOOM = { tiles: 16, outline: 6 } as const;
+const MAP_MAX_ZOOM = { tiles: 16, outline: 6 } as const;
 
 /* The room around the places in a fitted view, in pixels. */
-export const MAP_FIT_PADDING = 32;
+const MAP_FIT_PADDING = 32;
 
 /* What fits every place in view: the first view and the way back to it share it, so they cannot drift apart. */
 export function mapFitOptions(outline: boolean): { padding: number; maxZoom: number } {
@@ -30,9 +30,9 @@ export function mapFitOptions(outline: boolean): { padding: number; maxZoom: num
 }
 
 /* The width of a marker, in pixels. */
-export const MAP_MARKER_SIZE = 20;
+const MAP_MARKER_SIZE = 20;
 
-export interface ScreenPoint {
+interface ScreenPoint {
     id: string;
     x: number;
     y: number;

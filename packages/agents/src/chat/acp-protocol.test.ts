@@ -336,7 +336,7 @@ describe('AcpProtocol', () => {
         });
     });
 
-    test('reads the command of a call from the field the agent names it by, for a host to judge', () => {
+    test('reads the command of a call from the field the agent names it by', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
 
         const permission = protocol.permission(7, 's', {
@@ -345,7 +345,6 @@ describe('AcpProtocol', () => {
             options: [{ optionId: 'once', name: 'Allow', kind: 'allow_once' }]
         })!;
 
-        expect(permission.request.commands).toEqual(['ruimte-context list']);
         expect(permission.events.find((event) => event.type === 'approval.requested')).toMatchObject({ input: { command: 'ruimte-context list' } });
     });
 

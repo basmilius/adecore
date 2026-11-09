@@ -12,11 +12,11 @@ export const PROMPT_SHORTCUTS = {
 
 export type PromptKeyEvent = KeyLike & { isComposing: boolean };
 
-export type ListStep = 'previous' | 'next' | 'first' | 'last';
+type ListStep = 'previous' | 'next' | 'first' | 'last';
 
-export type ChoiceKeyAction = { kind: 'move'; to: ListStep } | { kind: 'pick' } | { kind: 'pick-and-commit' } | { kind: 'commit' };
+type ChoiceKeyAction = { kind: 'move'; to: ListStep } | { kind: 'pick' } | { kind: 'pick-and-commit' } | { kind: 'commit' };
 
-export type AnswerFieldKeyAction = { kind: 'to-last-choice' } | { kind: 'commit' } | { kind: 'ignore' };
+type AnswerFieldKeyAction = { kind: 'to-last-choice' } | { kind: 'commit' } | { kind: 'ignore' };
 
 function isPlain(event: PromptKeyEvent): boolean {
     return !event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && !event.isComposing;

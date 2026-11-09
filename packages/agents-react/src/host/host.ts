@@ -12,9 +12,7 @@ import type {
     ChatUiLinkPayload,
     ChatUiLinkReading,
     ChatVisual,
-    ModelSelection,
-    ProviderPlatform,
-    RuntimeMode
+    ProviderPlatform
 } from '@adecore/agent-contracts';
 import type { EditorEngine } from '@adecore/editor';
 import { isApplePlatform, syncAnimations } from '@adecore/ui';
@@ -212,28 +210,6 @@ export interface ComposerHeaderSlotProps {
     disabled: boolean;
     /* Whether this composer has the focus; a bar keeps its controls out of the tab order while it does not, as the editor does. */
     focused: boolean;
-}
-
-/* What a send action of the app's gets: the message as it stands when a person picks the action. */
-export interface ComposerSendDraft {
-    scopeId: string;
-    chatId: string;
-    /* The draft as Send would send it, trimmed and with its quote; empty when nothing is written. */
-    text: string;
-    provider: AgentKind;
-    selection: ModelSelection;
-    runtimeMode: RuntimeMode;
-}
-
-/* An action of the app's own in the menu beside the composer's send button, such as sending the draft later. */
-export interface ComposerSendAction {
-    /* Unique among the actions of one composer. */
-    id: string;
-    label: string;
-    icon?: LucideIcon;
-    disabled?: boolean;
-    /* Runs once a person picks it; the draft stays in the box, and the host shows a failure itself. */
-    run(draft: ComposerSendDraft): void;
 }
 
 /* A row in the popover a status item opens. */
@@ -660,8 +636,6 @@ export interface ChatHost {
     useChatPlace(chatId: string): ChatPlace;
     /* What a chat may read besides its folder, named under an empty thread. */
     useContextSources(chatId: string): ReadonlyArray<{ title: string }>;
-    /* Whether the folder a chat works in is the app's business only, so an empty thread does not name it. */
-    useHidesFolder(chatId: string): boolean;
     /* Whether a chat before its first message opens on a greeting with the composer under it, rather than an empty thread over a docked composer. */
     useWelcome(chatId: string): boolean;
     tasks: {
@@ -690,8 +664,6 @@ export interface ChatHost {
     ComposerSlot: ComponentType<ComposerSlotProps> | null;
     /* The app's own bar at the top of the composer, inside its card, such as a switch between chats of one thing; left out, or a slot that renders nothing, draws none. */
     ComposerHeaderSlot?: ComponentType<ComposerHeaderSlotProps> | null;
-    /* Actions of the app's own behind a chevron on the send button, in the order given; left out, or none, Send stands alone. */
-    useComposerSendActions?(scopeId: string, chatId: string): readonly ComposerSendAction[];
     /* Items of the app's own on a line under the composer's card, such as where the chat works; left out, or none, draws no line. */
     useComposerStatus?(scopeId: string, chatId: string): readonly ComposerStatusItem[];
     /* The app's own chips for a chat's sub-agents over the composer; null draws the one flyout. */
@@ -744,7 +716,6 @@ const DEFAULT_HOST: ChatHost = {
     useMachineLabel: () => null,
     useChatPlace: () => NOWHERE,
     useContextSources: () => NO_SOURCES,
-    useHidesFolder: () => false,
     useWelcome: () => false,
     tasks: { useTasks: () => undefined, useTask: () => null },
     confirm: { stopSubagents: (_scopeId, _chatId, run) => run(), stopTask: (_scopeId, _childId, _title, run) => run() },

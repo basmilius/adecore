@@ -30,7 +30,7 @@ export interface ToolRounds {
 }
 
 /** What a tool call answers the model. */
-export interface ApiToolOutcome {
+interface ApiToolOutcome {
     output: string;
     failed: boolean;
 }

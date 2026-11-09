@@ -42,7 +42,7 @@ export interface LookRun {
 }
 
 /* A shell call read as a tool of its own: the first command of the line a look knows. */
-export interface CommandLookRun extends LookRun {
+interface CommandLookRun extends LookRun {
     readonly look: CommandLook;
     readonly match: CommandLookMatch;
     /* The words after the program, quotes taken out. */

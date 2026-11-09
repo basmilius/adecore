@@ -8,7 +8,7 @@ export function PromptPrimary(props: ButtonHTMLAttributes<HTMLButtonElement>) {
     return <Button variant="inverse" size="sm" data-prompt-primary {...props} />;
 }
 
-export interface ApprovalButton {
+interface ApprovalButton {
     id: string;
     label: string;
     description?: string;

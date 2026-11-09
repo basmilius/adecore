@@ -3,7 +3,7 @@ import { CircleCheck, CircleSlash, CircleX, Hourglass, LoaderCircle, type Lucide
 /* The states a piece of work settles into, wherever it is drawn. */
 export type StatusWord = 'running' | 'paused' | 'done' | 'failed' | 'cancelled';
 
-export interface StatusLook {
+interface StatusLook {
     icon: LucideIcon;
     tone: string;
     spins: boolean;
@@ -27,7 +27,7 @@ export function statusLookOf(word: StatusWord): StatusLook {
 }
 
 /* A task as far as its look goes, for an app that hands work to agents as tasks. */
-export interface TaskState {
+interface TaskState {
     status: 'open' | 'done' | 'failed' | 'cancelled';
     /* Set while the child waits out a limit. */
     paused?: object;

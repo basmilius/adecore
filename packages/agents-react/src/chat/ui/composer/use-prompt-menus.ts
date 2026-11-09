@@ -48,7 +48,7 @@ const REFERENCE_RESULTS = 20;
 
 export type PromptDraft = Pick<ChatDraft, 'text' | 'mentions' | 'skills' | 'chats' | 'references' | 'referenceNames'>;
 
-export interface PromptDraftBox<D extends PromptDraft> {
+interface PromptDraftBox<D extends PromptDraft> {
     draft: D;
     setDraft: Dispatch<SetStateAction<D>>;
     /* The mentions and skills default to the draft's own as last rendered. */
@@ -63,7 +63,7 @@ export interface ComposerCommand {
     skill: boolean;
 }
 
-export interface PromptMenusInput<D extends PromptDraft> {
+interface PromptMenusInput<D extends PromptDraft> {
     draft: PromptDraftBox<D>;
     inputRef: RefObject<ComposerInputHandle | null>;
     /* Where `@` searches for files; null offers none. */

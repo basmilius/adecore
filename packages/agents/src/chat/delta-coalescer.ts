@@ -1,7 +1,7 @@
 import type { ChatEvent } from '@adecore/agent-contracts';
 
 /* The same rhythm as terminal output: a frame at 60 Hz. */
-export const DELTA_TICK_MS = 16;
+const DELTA_TICK_MS = 16;
 
 /*
  * Holds the deltas of one chat back for a frame and sends the run on one item as a single delta. A

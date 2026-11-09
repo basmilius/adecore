@@ -107,7 +107,7 @@ A client applies a preview only while the item's text is `textLength` long, so a
 
 ## Draw the blocks
 
-The `Timeline` of `@adecore/agents-react` draws an item's `ui` through [`UiReply`](/agents-react/chat/intelligent-ui), between the reply's Markdown. `ChatHost.intelligentUi` decides what a block may do outside itself:
+The `Timeline` of `@adecore/agents-react` draws an item's `ui` [as cards](/agents-react/chat/intelligent-ui), between the reply's Markdown. `ChatHost.intelligentUi` decides what a block may do outside itself:
 
 ```ts
 import type { ChatHost } from '@adecore/agents-react';

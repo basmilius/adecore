@@ -83,7 +83,7 @@ function positiveInteger(value: string | undefined): number | null {
 }
 
 export type UiReplyTarget = Pick<ChatUiChoiceOrigin, 'itemId' | 'blockId' | 'revision'>;
-export type UiReplyJump = { kind: 'missing' | 'earlier' } | { kind: 'turn'; turnId: string } | { kind: 'row'; index: number };
+type UiReplyJump = { kind: 'missing' | 'earlier' } | { kind: 'turn'; turnId: string } | { kind: 'row'; index: number };
 
 export function uiReplyJump(
     target: UiReplyTarget,

@@ -15,7 +15,7 @@ export interface UiReplyHost {
     observe(item: ChatAssistantItem, final: boolean): void;
 }
 
-export interface UiRepliesOptions {
+interface UiRepliesOptions {
     thread: ChatThread;
     fenceLanguage: string;
     clock: Clock;

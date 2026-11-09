@@ -56,11 +56,11 @@ export function wakePrompt(tasks: readonly Task[], teamsOut = 0, restOf?: (child
 }
 
 /* The label of the turn a wake opens: what a person reads above it in the thread. */
-export function wakeLabel(tasks: readonly Task[]): string {
+function wakeLabel(tasks: readonly Task[]): string {
     return tasks.map((task) => task.title).join(', ');
 }
 
-export function wakeNote(tasks: readonly Task[]): string {
+function wakeNote(tasks: readonly Task[]): string {
     return `Woken by ${tasks.length} finished ${tasks.length === 1 ? 'task' : 'tasks'}`;
 }
 
@@ -83,7 +83,7 @@ function deliveryPending(items: readonly ChatItem[], tasks: readonly Task[]): bo
     });
 }
 
-export interface WakeParentDeps {
+interface WakeParentDeps {
     tasks: Pick<TaskStore, 'pendingWake' | 'readyWake' | 'openBatches' | 'markWoken' | 'dropWake'>;
     /* The chat as it is now, loading it from disk when nobody has; null for a chat that has no thread any more. */
     chat(chatId: string): Promise<WakeChat | null>;
@@ -163,7 +163,7 @@ export function wakeParentHandler(deps: WakeParentDeps) {
     };
 }
 
-export interface OweWakeDeps {
+interface OweWakeDeps {
     enqueue(projectId: string, target: string, work: TaskWork): Promise<void>;
 }
 

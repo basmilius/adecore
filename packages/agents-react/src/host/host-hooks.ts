@@ -5,7 +5,7 @@
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
 import type { AccountRule } from './host';
-import { useChatHost, type ChatHost, type CommandLook, type ComposerSendAction, type ComposerStatusItem } from './host';
+import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem } from './host';
 import { referablesOfChats, type Referables } from './references';
 
 export function useHostCodeMode(): 'light' | 'dark' {
@@ -48,7 +48,7 @@ export function useHostTimelineFind(...args: Parameters<ChatHost['useTimelineFin
     return useChatHost().useTimelineFind(...args);
 }
 
-export function useHostReferableChats(): ReturnType<ChatHost['useReferableChats']> {
+function useHostReferableChats(): ReturnType<ChatHost['useReferableChats']> {
     return useChatHost().useReferableChats();
 }
 
@@ -100,10 +100,6 @@ export function useHostContextSources(...args: Parameters<ChatHost['useContextSo
     return useChatHost().useContextSources(...args);
 }
 
-export function useHostHidesFolder(...args: Parameters<ChatHost['useHidesFolder']>): ReturnType<ChatHost['useHidesFolder']> {
-    return useChatHost().useHidesFolder(...args);
-}
-
 export function useHostWelcome(...args: Parameters<ChatHost['useWelcome']>): ReturnType<ChatHost['useWelcome']> {
     return useChatHost().useWelcome(...args);
 }
@@ -114,16 +110,6 @@ export function useHostResumeAtReset(...args: Parameters<ChatHost['useResumeAtRe
 
 export function useHostComposerPlaceholder(...args: Parameters<ChatHost['useComposerPlaceholder']>): ReturnType<ChatHost['useComposerPlaceholder']> {
     return useChatHost().useComposerPlaceholder(...args);
-}
-
-const NO_SEND_ACTIONS: readonly ComposerSendAction[] = [];
-
-const noSendActions = (): readonly ComposerSendAction[] => NO_SEND_ACTIONS;
-
-export function useHostComposerSendActions(scopeId: string, chatId: string): readonly ComposerSendAction[] {
-    const useSendActions = useChatHost().useComposerSendActions ?? noSendActions;
-
-    return useSendActions(scopeId, chatId);
 }
 
 const NO_STATUS: readonly ComposerStatusItem[] = [];

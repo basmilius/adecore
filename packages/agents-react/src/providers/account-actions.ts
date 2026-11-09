@@ -19,7 +19,7 @@ function linkTo(scope: ChatScope): ChatTransport {
 }
 
 /* The whole map, as `accounts.save` takes it. Answers false when the host refused, which a toast then says. */
-export async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, accounts: ProviderAccountMap): Promise<boolean> {
+async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, accounts: ProviderAccountMap): Promise<boolean> {
     try {
         useProviderAccountsStore.getState().set(scope.id, await linkTo(scope).request('accounts.save', { accounts }));
 

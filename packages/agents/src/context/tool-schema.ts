@@ -5,7 +5,7 @@ import { z } from 'zod';
  * fields of an object, without bounds, unions, nulls or `additionalProperties`. A type alias, so a JSON
  * value takes it.
  */
-export type ToolField = {
+type ToolField = {
     type: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object';
     description?: string;
     enum?: Array<string | number | boolean>;

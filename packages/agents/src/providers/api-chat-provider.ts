@@ -3,13 +3,13 @@ import type { ModelCatalog } from './catalog.ts';
 import type { ChatProvider, LaunchDecorator } from './provider.ts';
 
 /** What the provider reads of the service that holds the key and the models. */
-export interface ApiChatService {
+interface ApiChatService {
     readonly catalog: ModelCatalog;
     status(): { configured: boolean; models: number };
     onChange(listener: () => void): () => void;
 }
 
-export interface ApiChatProviderOptions {
+interface ApiChatProviderOptions {
     readonly kind: AgentKind;
     readonly name: string;
 

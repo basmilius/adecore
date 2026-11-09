@@ -18,12 +18,12 @@ import { definedEnv } from './launch.ts';
 import { ASK_TIMEOUT_MS, type AccountReading } from './status.ts';
 
 /* The clock the probe's deadline runs on. */
-export interface ProbeTimer {
+interface ProbeTimer {
     setTimeout(run: () => void, ms: number): unknown;
     clearTimeout(handle: unknown): void;
 }
 
-export interface AcpAccountProbe {
+interface AcpAccountProbe {
     // The agent as a person reads it, in the error a failed read carries.
     name: string;
     command: readonly string[];

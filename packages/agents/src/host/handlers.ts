@@ -7,7 +7,7 @@ import type { ProviderRegistry } from '../providers/registry.ts';
 import type { UsageMonitor } from '../usage/limits/monitor.ts';
 import type { UsageService } from '../usage/usage-service.ts';
 
-export type AgentRequestMap = {
+type AgentRequestMap = {
     [T in AgentRequestType]: {
         payload: z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['payload']>;
         result: z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['result']>;
@@ -24,7 +24,7 @@ export type AgentHandlers = { [T in AgentRequestType]: AgentHandler<T> };
 
 type AccountRequestType = Extract<AgentRequestType, `accounts.${string}`>;
 type UsageRequestType = Extract<AgentRequestType, `usage.${string}`>;
-export type ChatRequestType = Exclude<AgentRequestType, AccountRequestType | UsageRequestType>;
+type ChatRequestType = Exclude<AgentRequestType, AccountRequestType | UsageRequestType>;
 
 // A fork lands on a canvas and a summary goes back along its line, which a host of chats alone does not have.
 function unsupported(what: string) {

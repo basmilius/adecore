@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-export interface ToggleSet {
+interface ToggleSet {
     ids: ReadonlySet<string>;
     /* Opens what is closed and closes what is open, and tells `onToggle` a person did it. */
     toggle(id: string): void;

@@ -2,9 +2,9 @@ import type { SyntaxNode, Tree } from '@lezer/common';
 import { modSends, type ChatSendKey } from '../../send-key';
 
 /* `send-alternate` sends with the delivery a running turn does not get by default; `send-and-new` also opens a new chat once it went. */
-export type EnterAction = 'send' | 'send-alternate' | 'send-and-new' | 'newline' | 'continue-list' | 'leave-list';
+type EnterAction = 'send' | 'send-alternate' | 'send-and-new' | 'newline' | 'continue-list' | 'leave-list';
 
-export interface EnterKeys {
+interface EnterKeys {
     shift: boolean;
     /* Cmd on macOS, Ctrl elsewhere. */
     mod: boolean;
@@ -172,7 +172,7 @@ export function inCode(tree: Tree, text: string, pos: number): boolean {
     return /(^|[^\\])`/.test(text.slice(from, pos));
 }
 
-export interface RecallContext {
+interface RecallContext {
     key: string;
     text: string;
     from: number;

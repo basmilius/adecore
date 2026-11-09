@@ -16,7 +16,7 @@ export interface ComposerInputHandle {
     insertSigil(sigil: string): void;
 }
 
-export interface InputSelection {
+interface InputSelection {
     from: number;
     to: number;
 }

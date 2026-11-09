@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react';
 
-export interface AnsiToken {
+interface AnsiToken {
     content: string;
     style: CSSProperties;
 }

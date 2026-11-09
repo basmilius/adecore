@@ -5,14 +5,14 @@ import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic } from '@adecore/utils/fs';
 import { errorText } from '../error-text.ts';
 
-export const FRANKFURTER_URL = 'https://api.frankfurter.app/latest';
+const FRANKFURTER_URL = 'https://api.frankfurter.app/latest';
 
 /* The bank publishes one rate a day, so a rate a day old is the rate. */
 const TTL_MS = 24 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 10_000;
 
 /* The one currency the page offers next to dollars. Every price the host knows is in dollars. */
-export const TARGET_CURRENCY = 'EUR';
+const TARGET_CURRENCY = 'EUR';
 
 export function parseRate(document: unknown, currency: string): Omit<UsageRate, 'fetchedAt'> | null {
     const body = typeof document === 'object' && document !== null ? (document as Record<string, unknown>) : null;

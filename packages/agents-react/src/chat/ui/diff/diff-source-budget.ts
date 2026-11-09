@@ -9,7 +9,7 @@ const SOURCE_BUDGET: TextBudget = { rows: 20000, characters: 2000000, lineLength
 const PATCH_BUDGET: TextBudget = { rows: 50000, characters: 4000000, lineLength: 1000001 };
 const LEGACY_BUDGET: TextBudget = { rows: 400, characters: 100000, lineLength: 10000 };
 
-export function textFitsBudget(text: string, budget: TextBudget): boolean {
+function textFitsBudget(text: string, budget: TextBudget): boolean {
     if (text.length > budget.characters) {
         return false;
     }

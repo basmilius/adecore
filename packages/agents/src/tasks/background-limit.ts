@@ -5,7 +5,7 @@ import type { TaskCoordinator, TaskCoordinatorDeps } from './task-coordinator.ts
 import type { TaskStore } from './task-store.ts';
 import { isBackgroundLimit, type AnyOutboxEntry, type BackgroundLimitEntry, type TaskOutbox } from './task-work.ts';
 
-export interface BackgroundLimitDeps extends ChatOpenerDeps {
+interface BackgroundLimitDeps extends ChatOpenerDeps {
     tasks: Pick<TaskStore, 'get'>;
     coordinator: Pick<TaskCoordinator, 'outlasted'>;
 }
@@ -42,7 +42,7 @@ export function backgroundLimitHandler(deps: BackgroundLimitDeps) {
     };
 }
 
-export interface RestartedOutbox {
+interface RestartedOutbox {
     list(): readonly AnyOutboxEntry[];
     update(entry: BackgroundLimitEntry): Promise<void>;
 }

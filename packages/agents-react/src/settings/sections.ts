@@ -4,7 +4,7 @@ import { Brain, ChartNoAxesColumn, type LucideIcon } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 /* A section of this package for the settings dialog of @adecore/ui, with its words read when it is drawn. */
-export interface AgentsSettingsSection {
+interface AgentsSettingsSection {
     id: string;
     icon: LucideIcon;
     /* A list beside a detail that scrolls on its own (`MasterDetail`). */

@@ -14,7 +14,7 @@ export function canForkWith(provider: Pick<ProviderInfo, 'capabilities'>): boole
 }
 
 /* Where a fork goes on after, as the dialog words it. */
-export interface ForkPoint {
+interface ForkPoint {
     turnId: string;
     number: number;
     total: number;
@@ -181,7 +181,7 @@ export function forkShapes(origin: ForkShape): ForkShape[] {
 }
 
 /* A worktree the fork works in, on this branch, with or without the files as they were after the turn. */
-export interface ForkWorktreeChoice {
+interface ForkWorktreeChoice {
     branch: string;
     filesAfterTurn: boolean;
 }

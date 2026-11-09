@@ -1,5 +1,6 @@
 import { USAGE_PROVIDERS, type UsageAccount } from '@adecore/agent-contracts';
 import { Button, CloseButton, Dialog, EmptyState, FormError, IconButton, ScrollArea, Segmented, Select, Skeleton } from '@adecore/ui';
+import { formatClock } from '@adecore/ui/format';
 import { ChartNoAxesColumn, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,7 +10,7 @@ import { useChatScope } from '../scope';
 import { useProvidersStore } from '../state/providers';
 import { askedKey, summaryPayload, USAGE_PERIODS, useUsage, useUsageStore, type UsageMetric, type UsagePeriod } from '../state/usage';
 import { whenOpen, type ChatTransport } from '../transport';
-import { formatClock, formatCount, formatDate, formatRateDate, formatTokens, PROVIDER_LABELS } from './format';
+import { formatCount, formatDate, formatRateDate, formatTokens, PROVIDER_LABELS } from './format';
 import { useMoney } from './money';
 import { deriveUsage, labelEveryFor } from './summary';
 import { UsageBreakdown } from './UsageBreakdown';

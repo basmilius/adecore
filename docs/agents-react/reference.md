@@ -68,6 +68,6 @@ Prompts in every state, for tests and demos. See [Testing](/agents-react/guide/t
 
 `DisplayImage` (also exported by `@adecore/agents-react/chat/ui`) adds a HEIC and HEIF fallback to native image props. Remote sources must allow cross-origin reads.
 
-`imageDocumentForDisplay(html)` replaces embedded HEIC and HEIF data URLs with PNG data URLs for a sandboxed HTML preview. It leaves unreadable images in place so the rest of the document can open. `VisualPageFrame` applies it before it hands a page to its sandbox.
+`VisualPageFrame` replaces embedded HEIC and HEIF data URLs in a page with PNG data URLs before it hands the page to its sandbox. It leaves unreadable images in place so the rest of the document can open.
 
 <ExportTable entry="@adecore/agents-react/images" />

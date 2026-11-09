@@ -14,7 +14,7 @@ export interface SubagentStep {
 /* From the chat down to what is on screen, which is the last step; empty is the main agent. */
 export type SubagentTrail = readonly SubagentStep[];
 
-export interface BreadcrumbStep {
+interface BreadcrumbStep {
     label: string;
     /* How many steps of the trail stay when this crumb is picked; the chat's own title is 0. */
     depth: number;

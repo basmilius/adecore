@@ -6,7 +6,7 @@ import type { AgentKind, ChatSkill, ChatSkillSource } from '@adecore/agent-contr
 import { wait } from '@adecore/utils/async';
 import { hasErrorCode, isNotFound } from '@adecore/utils/errors';
 
-export interface SkillRoot {
+interface SkillRoot {
     dir: string;
     source: ChatSkillSource;
     // A plugin names its skills `<plugin>:<skill>`, the way the CLI's init frame does.
@@ -16,7 +16,7 @@ export interface SkillRoot {
 }
 
 /* How far one scan reaches, so a home or a project of any size answers quickly. */
-export interface SkillScanLimits {
+interface SkillScanLimits {
     // Folders listed under one root, nearest first, so a deep tree never costs the skills near the top.
     directories: number;
     skills: number;
@@ -62,7 +62,7 @@ const HEAD_BYTES = 64 * 1024;
 
 const MAX_DESCRIPTION = 1024;
 
-export interface SkillRootOptions {
+interface SkillRootOptions {
     home?: string;
     // Where Claude Code keeps its own configuration, when it is not `<home>/.claude`.
     claudeConfigDir?: string;
@@ -191,7 +191,7 @@ export async function pluginSkillRoots(configDir: string): Promise<SkillRoot[]> 
 }
 
 /* Where a provider's CLI looks for skills, in the order a name clash is decided. */
-export async function skillRootsFor(kind: AgentKind, cwd: string, options: SkillRootOptions = {}): Promise<SkillRoot[]> {
+async function skillRootsFor(kind: AgentKind, cwd: string, options: SkillRootOptions = {}): Promise<SkillRoot[]> {
     const home = options.home ?? homedir();
 
     if (kind === 'codex') {

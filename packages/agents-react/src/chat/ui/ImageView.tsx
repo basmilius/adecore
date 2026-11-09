@@ -329,7 +329,7 @@ function Lightbox({
     );
 }
 
-export interface ImageThumbProps {
+interface ImageThumbProps {
     source: ResourceUrl;
     alt: string;
     className?: string;

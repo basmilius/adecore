@@ -188,7 +188,7 @@ export const useUsageStore = createChatStore<UsageStore>(
  * The viewer's preferences over the numbers of the host in scope. The usage page renders its picked
  * host as a scope of its own, so browsing another host's spend never moves the limit bars outside it.
  */
-export type UsageView = Preferences & UsageRow;
+type UsageView = Preferences & UsageRow;
 
 export function useUsage<T>(select: (view: UsageView) => T): T {
     const { id } = useChatScope();

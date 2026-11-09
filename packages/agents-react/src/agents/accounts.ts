@@ -90,7 +90,7 @@ export function accountLoginOf(accounts: ProviderAccounts | null | undefined, ki
     return accounts?.chatLogins?.includes(kind) === true ? 'chat' : null;
 }
 
-export type AccountTone = 'muted' | 'needs-you' | 'error';
+type AccountTone = 'muted' | 'needs-you' | 'error';
 
 export const ACCOUNT_TONE_CLASSES: Record<AccountTone, string> = {
     muted: 'text-text-muted',

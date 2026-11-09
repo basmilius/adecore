@@ -30,7 +30,7 @@ export function niceScale(max: number, ticks = 4): { max: number; step: number }
     return { max: Math.ceil(max / step) * step, step };
 }
 
-export interface DerivedUsage {
+interface DerivedUsage {
     slots: ChartSlot[];
     providers: ProviderTotal[];
     /* The providers that did anything, in the order the chart stacks them. */
@@ -114,7 +114,7 @@ export function deriveUsage(summary: UsageSummaryResult, metric: UsageMetric): D
 }
 
 /* One row of the Day table, what each provider cost that day, and what the day moved in all. */
-export interface UsageDay {
+interface UsageDay {
     /* `YYYY-MM-DD`, always a calendar day, whatever resolution the chart above it is drawn at. */
     slot: string;
     costByProvider: Partial<Record<UsageProvider, number>>;

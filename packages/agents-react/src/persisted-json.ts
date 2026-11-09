@@ -1,6 +1,6 @@
 import { chatStorageAdapter, hydrateChatStorage } from './storage';
 
-export interface PersistedJson<T> {
+interface PersistedJson<T> {
     read(): T;
     /* False when storage refused; the value still survives for this session. */
     write(value: T): boolean;

@@ -15,7 +15,7 @@ const storageKey = (): string => chatStorageKey('stash');
 export const STASH_LIMIT = 20;
 
 /* What was attached when the prompt was put away. The bytes are not kept, only what they were. */
-export interface StashedAttachment {
+interface StashedAttachment {
     name: string;
     mime: string;
     size: number;
@@ -36,7 +36,7 @@ export interface StashedPrompt {
     references: string[];
 }
 
-export interface StashedQuote {
+interface StashedQuote {
     text: string;
     chatId: string;
     itemId: string;

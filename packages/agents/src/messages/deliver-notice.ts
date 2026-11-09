@@ -92,7 +92,7 @@ export async function deliverToChat(
 }
 
 /* The chat a message may join while it runs. False when it cannot take one now, which leaves the message waiting. */
-export interface SteerChat {
+interface SteerChat {
     steer(chatId: string, steer: { text: string; preamble: string; messageHop: number }): Promise<boolean>;
 }
 

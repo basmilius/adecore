@@ -69,7 +69,7 @@ function storedPart<T>(schema: z.ZodType<T>, value: unknown): T | null {
     return parsed.success ? parsed.data : null;
 }
 
-export interface AcpAgentStateOptions {
+interface AcpAgentStateOptions {
     catalog: ModelCatalog;
     adoptModels: boolean;
     store: AcpCatalogStore | null;

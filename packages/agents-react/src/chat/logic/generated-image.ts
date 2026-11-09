@@ -9,7 +9,7 @@ export type GeneratedImageFailure =
     | { kind: 'not-image' }
     | { kind: 'too-large'; limit: number };
 
-export type GeneratedImageView =
+type GeneratedImageView =
     | { state: 'generating' }
     | { state: 'failed'; failure: GeneratedImageFailure }
     | { state: 'ready'; attachment: ChatAttachment; prompt: string | null; transparent: boolean };

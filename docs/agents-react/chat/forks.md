@@ -14,13 +14,13 @@ import { forkPayload, forkPointLabel, forkPointOf, forkRefusal, lastSettledTurn 
 
 ## Where it goes on
 
-`lastSettledTurn(items, order)` returns the last turn that ended, where a fork from a menu without a message goes on after. `forkPointOf(items, order, turnId, whole)` returns a `ForkPoint`: the turn, its number among the turns, whether it is the last, and the first line of what the person asked. Pass `whole` as false while the client holds only the newest page, so the numbers count from there. `forkPointLabel(point, maxPrompt?)` writes the line at the top of the dialog, such as which turn and what it was about.
+`lastSettledTurn(items, order)` returns the last turn that ended, where a fork from a menu without a message goes on after. `forkPointOf(items, order, turnId, whole)` returns the fork point: the turn, its number among the turns, whether it is the last, and the first line of what the person asked. Pass `whole` as false while the client holds only the newest page, so the numbers count from there. `forkPointLabel(point, maxPrompt?)` writes the line at the top of the dialog, such as which turn and what it was about.
 
 ## What it becomes
 
 A `ForkShape` is `node` or `view`: a chat node on a canvas, or a chat view of its own. `forkShapes(origin)` returns what the dialog offers, the default first: a view forks into a view, and a node into a node or, when asked, a view.
 
-A `ForkWorktreeChoice` puts the fork in a worktree on a new branch, with or without the files as they were after the turn. `branchRefusal(branch, taken)` says why a branch name cannot be used: it is empty or taken. A `ForkCliChoice` is the CLI, model and account the fork goes on with.
+A fork can also go in a worktree on a new branch, with or without the files as they were after the turn. `branchRefusal(branch, taken)` says why a branch name cannot be used: it is empty or taken. A `ForkCliChoice` is the CLI, model and account the fork goes on with.
 
 ## The request
 

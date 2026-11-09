@@ -27,7 +27,7 @@ export interface ReferenceStep {
 }
 
 /* The heading a reference is offered under when a host offers more than one project. */
-export interface ReferenceSection {
+interface ReferenceSection {
     id: string;
     name: string;
     /* The project of the chat that asks, which comes first and says so. */

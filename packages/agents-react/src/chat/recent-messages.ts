@@ -1,12 +1,12 @@
 import type { ChatItem } from '@adecore/agent-contracts';
 
-export interface RecentChatMessage {
+interface RecentChatMessage {
     role: 'user' | 'assistant';
     text: string;
     createdAt: number;
 }
 
-export interface RecentChatMessages {
+interface RecentChatMessages {
     messages: RecentChatMessage[];
     truncated: boolean;
 }
@@ -25,7 +25,7 @@ function isMessage(item: ChatItem | undefined): item is MessageItem {
 }
 
 /* The last messages of a conversation already cut down to the ones worth reading, clipped to what a reader can take in. */
-export function recentMessages(eligible: readonly MessageItem[], limit: number): RecentChatMessages {
+function recentMessages(eligible: readonly MessageItem[], limit: number): RecentChatMessages {
     const candidates = eligible.slice(-limit);
     const messages: RecentChatMessage[] = [];
     let characters = 0;

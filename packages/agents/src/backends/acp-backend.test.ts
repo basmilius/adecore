@@ -7,7 +7,7 @@ import type { ChatAttachment, RuntimeMode } from '@adecore/agent-contracts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { createAcpBackend, type AcpAgentSpec, type AcpUsageReport } from './acp-backend.ts';
-import type { AcpPermissionRequest, AcpSessionInfo } from './acp-protocol.ts';
+import type { AcpSessionInfo } from './acp-protocol.ts';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 
 type Frame = { id?: unknown; method?: string; params?: Record<string, unknown>; result?: unknown; error?: unknown };
@@ -183,45 +183,6 @@ for (const [runtimeMode, prompt, asks] of [
             expect(fake.sent.find((frame) => frame.method === undefined)).toMatchObject({ result: { outcome: { outcome: 'selected', optionId: 'once' } } });
         }
 
-        await fake.backend.dispose();
-    });
-}
-
-test("a request the host's autoAllow passes is allowed once without an approval, and the call still shows", async () => {
-    const asked: AcpPermissionRequest[] = [];
-
-    const autoAllow = (request: AcpPermissionRequest): boolean => {
-        asked.push(request);
-
-        return true;
-    };
-
-    const fake = run({}, {}, { ...SPEC, autoAllow });
-    await fake.backend.start();
-    fake.backend.sendTurn(turn('tool: ruimte-context help'));
-    await fake.next('turn.done');
-    expect(asked).toEqual([{ kind: 'execute', title: 'Run ruimte-context help', commands: ['ruimte-context help'], mcpServer: null }]);
-    expect(fake.events.some((event) => event.type === 'approval.requested')).toBe(false);
-    expect(fake.events.find((event) => event.type === 'tool.started')).toMatchObject({ name: 'Bash', input: { command: 'ruimte-context help' } });
-    expect(fake.sent.find((frame) => frame.method === undefined)).toMatchObject({ result: { outcome: { outcome: 'selected', optionId: 'once' } } });
-    await fake.backend.dispose();
-});
-
-for (const [label, autoAllow] of [
-    ['declines', () => false],
-    [
-        'throws on',
-        () => {
-            throw new Error('broken');
-        }
-    ]
-] as Array<[string, () => boolean]>) {
-    test(`a request the host's autoAllow ${label} becomes an approval`, async () => {
-        const fake = run({}, {}, { ...SPEC, autoAllow });
-        await fake.backend.start();
-        fake.backend.sendTurn(turn('tool: rm -rf build'));
-        expect(await fake.next('approval.requested')).toMatchObject({ toolName: 'Bash', input: { command: 'rm -rf build' } });
-        expect(fake.sent.some((frame) => frame.method === undefined)).toBe(false);
         await fake.backend.dispose();
     });
 }

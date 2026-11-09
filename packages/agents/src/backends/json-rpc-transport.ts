@@ -3,7 +3,7 @@ import { errorText } from '../error-text.ts';
 
 export type JsonRpcFrame = Record<string, unknown>;
 
-export interface JsonRpcTransportOptions {
+interface JsonRpcTransportOptions {
     command: string[];
     cwd: string;
     env: Record<string, string>;
@@ -23,7 +23,7 @@ export interface JsonRpcTransportOptions {
     onExit(exitCode: number | null, stderr: string | null): void;
 }
 
-export interface JsonRpcRequestOptions {
+interface JsonRpcRequestOptions {
     // Overrides the transport's timeout for this request; null waits for as long as the process runs.
     timeoutMs?: number | null;
 }

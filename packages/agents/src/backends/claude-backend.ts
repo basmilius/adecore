@@ -65,7 +65,7 @@ function movesTheKey(name: string): boolean {
 }
 
 /* Chats on an Anthropic API key instead of the person's own sign-in. */
-export interface ClaudeApiKeyOptions {
+interface ClaudeApiKeyOptions {
     // Read at every start, so a key the person replaces reaches the next process.
     key(): string | Promise<string>;
     // A configuration folder of its own (`CLAUDE_CONFIG_DIR`), so the person's sign-in, settings and sessions stay out.

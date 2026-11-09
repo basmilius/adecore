@@ -9,7 +9,7 @@ export interface ProcessResult {
     stderr: string;
 }
 
-export interface RunProcessOptions {
+interface RunProcessOptions {
     env?: Record<string, string | undefined>;
     cwd?: string;
     // Written and closed at once; absent, the process reads from nothing.

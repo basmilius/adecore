@@ -76,7 +76,7 @@ export interface NoteDelivery {
 }
 
 /* What a message pointed at: other chats with `@`, and views and nodes with `#`, by id. */
-export interface ChatAttached {
+interface ChatAttached {
     chats: string[];
     references: string[];
 }

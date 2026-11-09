@@ -17,7 +17,7 @@ export interface CodexRules {
     commands: readonly string[];
 }
 
-export type CodexRulesResult = 'unchanged' | 'written';
+type CodexRulesResult = 'unchanged' | 'written';
 
 export function codexRulesText(rules: CodexRules): string {
     return (

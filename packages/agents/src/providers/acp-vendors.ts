@@ -25,7 +25,7 @@ export interface AcpVendorOptions {
     readonly catalogStore?: AcpCatalogStore;
 }
 
-export interface CopilotProviderOptions extends AcpVendorOptions {
+interface CopilotProviderOptions extends AcpVendorOptions {
     // The folder every turn's usage is logged to (`copilotUsageDirectory`); absent logs nothing.
     readonly usageLog?: string;
 }
@@ -36,7 +36,7 @@ export interface AcpServerLaunch {
     launch(): string[] | null;
 }
 
-export interface AntigravityProviderOptions extends AcpVendorOptions {
+interface AntigravityProviderOptions extends AcpVendorOptions {
     // The installed chat server; absent or null leaves the provider as it would be once one is there.
     readonly server?: AcpServerLaunch | null;
     // What a chat that starts without an installed server is refused with, in the host's words.
@@ -144,7 +144,7 @@ const GROK_SPEC: VendorSpec = {
 };
 
 /* What `grok models` printed: who is signed in, and the models the account may use. */
-export interface GrokModels {
+interface GrokModels {
     signedIn: boolean;
     defaultModel: string | null;
     models: string[];
@@ -202,7 +202,7 @@ export function readGrokModels(output: string): GrokModels {
 const GROK_ASK_TIMEOUT_MS = 20_000;
 
 /* Asks `grok models` in the account's environment (`GROK_HOME`), which opens no session. */
-export async function askGrokModels(command: readonly string[], env: Record<string, string | undefined>): Promise<GrokModels> {
+async function askGrokModels(command: readonly string[], env: Record<string, string | undefined>): Promise<GrokModels> {
     const { exitCode, stdout, stderr } = await runProcess([command[0] ?? 'grok', '--no-auto-update', 'models'], {
         env,
         timeoutMs: GROK_ASK_TIMEOUT_MS,
@@ -389,7 +389,7 @@ export function createCopilotProvider(options: CopilotProviderOptions = {}): Cha
 }
 
 // Google's CLI, which a terminal starts and a single prompt goes to; the chat runs on a server of its own.
-export const ANTIGRAVITY_CLI = 'agy';
+const ANTIGRAVITY_CLI = 'agy';
 
 /* The server's session modes (`default`, `auto_edit`, `yolo`); it has none between accepting edits and accepting everything. */
 export const ANTIGRAVITY_MODES: AcpModeMap = {
