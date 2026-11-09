@@ -9,7 +9,6 @@ import type { BackendEvent, ChatBackend } from './backend.ts';
 
 type QuestionEvent = Extract<BackendEvent, { type: 'question.requested' }>;
 
-/* A backend on a capture, the events it raised, every answer the agent got, and the next event of a kind. */
 async function open(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervised') {
     const events: BackendEvent[] = [];
     const answers: unknown[] = [];

@@ -383,7 +383,6 @@ export class ClaudeProtocol {
         return events;
     }
 
-    /* The `control_response` that answers a permission request, or null when nothing waits under that id. */
     approvalResponse(requestId: string, decision: ApprovalDecision, message?: string): unknown | null {
         const pending = this.pending.get(requestId);
 
@@ -408,7 +407,6 @@ export class ClaudeProtocol {
         return { type: 'control_response', response: { subtype: 'success', request_id: requestId, response } };
     }
 
-    /* The `control_response` that answers an AskUserQuestion, or null when nothing waits under that id. */
     questionResponse(requestId: string, answers: Record<string, string>): unknown | null {
         const pending = this.pending.get(requestId);
 
@@ -440,7 +438,6 @@ export class ClaudeProtocol {
         };
     }
 
-    /* The `control_response` that turns down an approval or a question the CLI still holds, or null when nothing waits under that id. */
     declineResponse(requestId: string, message: string): unknown | null {
         const pending = this.pending.get(requestId);
 
@@ -769,7 +766,6 @@ export class ClaudeProtocol {
         events.push({ type: 'task.done', ref, taskId, summary, ok });
     }
 
-    /* The control request that ends one task the CLI runs beside its turns. */
     stopTaskRequest(taskId: string): unknown {
         const requestId = `stop-task-${taskId}-${Date.now()}`;
         this.stopRequests.set(requestId, taskId);

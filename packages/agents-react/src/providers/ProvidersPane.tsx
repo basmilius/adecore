@@ -35,7 +35,6 @@ interface ProvidersPaneProps {
     addPage?(added: (kind: AgentKind) => void): ReactNode;
 }
 
-/* The agent CLIs of the host in scope, each with its accounts, beside the detail of what is picked. */
 export function ProvidersPane({ target = null, detailOf, defaults = true, installStepOf, setupStatusOf, sectionsOf, addPage }: ProvidersPaneProps) {
     const { t } = useTranslation('agent-providers');
     const { id: scopeId } = useChatScope();

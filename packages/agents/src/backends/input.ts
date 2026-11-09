@@ -153,7 +153,6 @@ function inlineRanges(text: string): Array<[number, number]> {
     return ranges;
 }
 
-/* The start of the next run of exactly `length` backticks from `from`; -1 when there is none. */
 function findBacktickRun(text: string, from: number, length: number): number {
     let index = text.indexOf('`', from);
 
@@ -201,7 +200,6 @@ function skillTokens(text: string, skills: string[]): Array<{ index: number; nam
     return tokens.sort((a, b) => a.index - b.index);
 }
 
-/* The last `$name` in the text that names one of the skills. */
 export function lastSkillToken(text: string, skills: string[]): { index: number; name: string } | null {
     return skillTokens(text, skills).at(-1) ?? null;
 }

@@ -47,7 +47,6 @@ function listThreadItemsOnce(client: CodexClientInfo, spec: ThreadProcess, param
     return withAppServer(client, spec, (transport) => transport.request('thread/items/list', params));
 }
 
-/* The id of the `turns`-th turn of a thread, oldest first, or null when it has fewer. */
 async function nthTurnId(transport: CodexTransport, threadId: string, turns: number): Promise<string | null> {
     let seen = 0;
     let cursor: string | null = null;
@@ -109,7 +108,6 @@ function forkThreadOnce(client: CodexClientInfo, spec: ThreadProcess, params: Th
     });
 }
 
-/* What Codex's app-server answers about a thread, asked as the host the client names. */
 export function codexThreads(client: CodexClientInfo): ProviderThreads {
     return {
         listItems: (spec, params) => listThreadItemsOnce(client, spec, params),

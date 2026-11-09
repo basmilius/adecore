@@ -144,7 +144,6 @@ function toLines(value: unknown): string[] {
 
 const CHANGE_KINDS = new Set<ChatFileChange['kind']>(['add', 'update', 'delete']);
 
-/* The files a `fileChange` item touches, with the unified diff Codex reports per file. */
 function parseChanges(value: unknown): ChatFileChange[] {
     if (!Array.isArray(value)) {
         return [];
@@ -477,7 +476,6 @@ export class CodexProtocol {
         return events;
     }
 
-    /* The reply that settles an approval, or null when nothing waits under that id. */
     approvalDecision(requestId: string, decision: ApprovalDecision): { rpcId: CodexRpcId; result: unknown } | null {
         const pending = this.pending.get(requestId);
 
@@ -1100,7 +1098,6 @@ export class CodexProtocol {
         }
     }
 
-    /* Settles the row of every agent a collab call reports stopped; true when one of them did just now. */
     private settleEndedAgents(states: unknown, events: BackendEvent[]): boolean {
         let settled = false;
 

@@ -61,7 +61,6 @@ export function useUsageLimits(): UsageLimitsSnapshot | null {
     return limits;
 }
 
-/* The snapshot per CLI and account, with the accounts of the same host it is read from. */
 export function useLimitGroups(limits: UsageLimitsSnapshot | null): LimitGroup[] {
     const accounts = useProviderAccounts((row) => row.accounts);
 

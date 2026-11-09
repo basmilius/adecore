@@ -27,7 +27,6 @@ const ALL_ACCOUNTS = '*';
 /* Over the whole popup rather than the body under the header, so an empty state stands in the middle of the dialog. */
 const DIALOG_CENTER = 'pointer-events-none absolute inset-0';
 
-/* Whether the scope's host answers right now, redrawn as its link comes and goes. */
 function useAnswering(transport: ChatTransport): boolean {
     return useSyncExternalStore(
         (onChange: () => void) => transport.subscribeStatus(onChange),

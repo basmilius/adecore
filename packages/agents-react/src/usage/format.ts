@@ -2,7 +2,6 @@ import type { UsageProvider, UsageRate } from '@adecore/agent-contracts';
 import { formatDay, formatHour, formatWeekdayDay, formatMoney, formatNumber, formatTokens } from '@adecore/ui/format';
 import type { UsageCurrency } from '../state/usage';
 
-/* Read in the region of the machine looking at it: `$5,480.96` in the US, `$ 5.480,96` in the Netherlands. */
 export function formatCount(value: number): string {
     return formatNumber(value);
 }

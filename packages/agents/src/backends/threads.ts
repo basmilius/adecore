@@ -25,8 +25,6 @@ export interface ThreadForkParams {
 
 /* What a CLI that keeps a chat in threads of an app-server can be asked without a chat of its own running. */
 export interface ProviderThreads {
-    /* A page of a thread's items, asked of a process started for the question. */
     listItems(process: ThreadProcess, params: ThreadItemsParams): Promise<unknown>;
-    /* A new thread with the turns of one up to the cut, and its id. */
     fork(process: ThreadProcess, params: ThreadForkParams): Promise<string>;
 }

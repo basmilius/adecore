@@ -1,7 +1,6 @@
 import type { ProviderInfo } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 
-/* What a provider offers, in one sentence, where it can be opened and whether its hooks report status. */
 export function providerAbilities(provider: ProviderInfo): string {
     const where = provider.capabilities.chat ? i18next.t('agent-providers:abilities.chatAndTerminal') : i18next.t('agent-providers:abilities.terminalOnly');
     const status = provider.capabilities.hooks ? i18next.t('agent-providers:abilities.reportsStatus') : i18next.t('agent-providers:abilities.noStatus');

@@ -45,7 +45,6 @@ function render(
     );
 }
 
-/* The state of each step, in order, as the page marks it. */
 const statesIn = (markup: string): string[] => [...markup.matchAll(/data-state="(\w+)"/g)].map((match) => match[1]!);
 
 const onMachine = (platform: ProviderPlatform | null): Partial<ChatHost> => ({ useMachinePlatform: () => platform });

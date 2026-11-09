@@ -23,7 +23,6 @@ export function claudeModel(selection: ModelSelection): string {
     return `${selection.model}${selection.options.contextWindow === '1m' ? '[1m]' : ''}`;
 }
 
-/* The effort the CLI takes on its flag, or null for one it is asked for in the prompt instead. */
 export function claudeEffort(selection: ModelSelection): string | null {
     const effort = selection.options.effort;
 

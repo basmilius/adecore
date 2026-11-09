@@ -98,7 +98,6 @@ function steerWithdrawal(query: Query): ((uuid: string) => Promise<boolean>) | n
     return async (uuid) => (await (cancel as (uuid: string) => Promise<unknown>).call(query, uuid)) === true;
 }
 
-/* A chat's messages in the order they were sent, as the SDK's streaming input; it ends once closed. */
 class MessageQueue implements AsyncIterable<SDKUserMessage> {
     private readonly messages: SDKUserMessage[] = [];
     private wake: (() => void) | null = null;
@@ -754,7 +753,6 @@ export class ClaudeBackend implements ChatBackend {
         this.steers.clear();
     }
 
-    /* A pipe that failed takes no more writes. */
     private broken(error: unknown): void {
         if (this.inputBroken) {
             return;

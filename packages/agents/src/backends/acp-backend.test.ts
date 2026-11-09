@@ -34,7 +34,6 @@ function turn(text: string): TurnInput {
     return { promptId: `prompt-${text}`, text, preamble: null, attachments: [], mentions: [], skills: [] };
 }
 
-/* A backend on the fake agent, the events it raised, and every frame the client sent. */
 function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {}, spec: AcpAgentSpec = SPEC) {
     const sent: Frame[] = [];
     const events: BackendEvent[] = [];
@@ -68,7 +67,6 @@ function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {
         }
     );
 
-    /* The next event that matches, or one already raised. */
     const next = <T extends BackendEvent['type']>(type: T, match: (event: Extract<BackendEvent, { type: T }>) => boolean = () => true) => {
         const fits = (event: BackendEvent): boolean => event.type === type && match(event as Extract<BackendEvent, { type: T }>);
 

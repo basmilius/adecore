@@ -97,7 +97,6 @@ interface UsageRow {
     /* The question the summary on screen answers, or null while nothing has come back yet. */
     asked: string | null;
     summary: UsageSummaryResult | null;
-    /* True while the host has not answered the question that is being asked now. */
     loading: boolean;
     /* The last request failed; the summary before it stays on screen under a red line. */
     failed: boolean;
@@ -114,7 +113,6 @@ interface UsageStore extends Preferences {
      * remembered host outlives this client's knowledge of it. It does survive closing the page.
      */
     chosen: string | null;
-    /* Which host's numbers the page shows; null hands it back to the one around it. */
     choose(scopeId: string | null): void;
     setPeriod(period: UsagePeriod): void;
     setMetric(metric: UsageMetric): void;

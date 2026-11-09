@@ -60,7 +60,6 @@ interface ProviderListProps {
     onPick(picked: Picked): void;
 }
 
-/* The providers by whether they are ready, need setup or are not installed; a group without providers is left out. */
 export function ProviderList({ groups, current, canAddAccount, canAddProvider = false, onPick }: ProviderListProps) {
     const { t } = useTranslation('agent-providers');
 

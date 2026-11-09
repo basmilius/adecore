@@ -21,7 +21,6 @@ const launch: BackendLaunch = {
     resumeNote: 'Linked context.'
 };
 
-/* Resumes `thread-1`, sends one prompt and hands back every request the app-server was asked. */
 async function resumeAndSend(overrides: Partial<BackendLaunch>, options: FakeCodexOptions = {}): Promise<Frame[]> {
     const requests: Frame[] = [];
     let turnSent: (() => void) | null = null;

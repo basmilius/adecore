@@ -41,7 +41,6 @@ export function codexRuntimeMode(approvalPolicy: string, sandbox: string): Runti
 // What the app-server calls the faster of the two tiers it lists per model; the standard tier is no id at all.
 const CODEX_PRIORITY_TIER = 'priority';
 
-/* The service tier a thread or a turn runs on, or null for the standard one the account defaults to. */
 export function codexServiceTier(selection: ModelSelection): string | null {
     return selection.options.serviceTier === true ? CODEX_PRIORITY_TIER : null;
 }

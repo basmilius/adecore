@@ -28,7 +28,6 @@ interface JsonRpcRequestOptions {
     timeoutMs?: number | null;
 }
 
-/* An error the other side answered a request with. */
 export class JsonRpcError extends Error {
     readonly code: number | null;
     readonly data: unknown;

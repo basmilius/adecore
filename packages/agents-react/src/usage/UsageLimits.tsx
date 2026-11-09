@@ -51,7 +51,6 @@ function LoginButton({ account, login }: { account: LimitAccount; login: Login }
     );
 }
 
-/* One account: where its numbers come from, then a bar per window, or why there are none. */
 function LimitCard({ account, named, now, login }: { account: LimitAccount; named: boolean; now: number; login: Login | null }) {
     const { t } = useTranslation('agent-usage');
     const signedOut = isSignedOut(account);

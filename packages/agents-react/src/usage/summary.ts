@@ -2,7 +2,6 @@ import type { UsageProvider, UsageSummaryResult, UsageTotals } from '@adecore/ag
 import { EMPTY_TOTALS, USAGE_PROVIDERS, addTotals, totalTokensOf } from '@adecore/agent-contracts';
 import { dayOf, type UsageMetric } from '../state/usage';
 
-/* One bar of the chart, what each provider put in this slot, and the height of the stack. */
 export interface ChartSlot {
     slot: string;
     byProvider: Partial<Record<UsageProvider, number>>;
@@ -62,7 +61,6 @@ export function enumerateSlots(summary: Pick<UsageSummaryResult, 'from' | 'to' |
     return slots;
 }
 
-/* How often an x label fits: every third hour, every day, every week, every fortnight. */
 export function labelEveryFor(slots: number): number {
     return slots <= 10 ? 1 : slots <= 24 ? 3 : slots <= 31 ? 7 : 15;
 }
@@ -113,7 +111,6 @@ export function deriveUsage(summary: UsageSummaryResult, metric: UsageMetric): D
     };
 }
 
-/* One row of the Day table, what each provider cost that day, and what the day moved in all. */
 interface UsageDay {
     /* `YYYY-MM-DD`, always a calendar day, whatever resolution the chart above it is drawn at. */
     slot: string;

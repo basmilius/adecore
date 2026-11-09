@@ -23,7 +23,6 @@ interface AccountDetailProps {
     entry: AccountEntry;
     /* Null for a CLI without a config folder: it has only its own login, and nothing to sign in here. */
     login: AccountLogin;
-    /* Whether the host can open a terminal for a login at all. */
     canOpenLogin: boolean;
     /* Why a login cannot open a terminal right now, or null when it can. */
     loginBlocked: string | null;
@@ -64,7 +63,6 @@ function NameField({ value, label, onSave }: { value: string; label: string; onS
     );
 }
 
-/* One account: how it looks in a picker, who is signed in, where its folder is, its variables. */
 export function AccountDetail({ provider, entry, login, canOpenLogin, loginBlocked, secretsAvailable, onRemoved }: AccountDetailProps) {
     const { t } = useTranslation('agent-providers');
     const scope = useChatScope();

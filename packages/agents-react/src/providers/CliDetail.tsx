@@ -51,7 +51,6 @@ interface CliDetailProps {
     onPickAccount(id: string): void;
 }
 
-/* One CLI: what it is, what a new chat of it starts with unless `defaults` is off, and its accounts. */
 export function CliDetail({ provider, entries, defaults, login, onAddAccount, onPickAccount }: CliDetailProps) {
     const { t } = useTranslation('agent-providers');
     const scope = useChatScope();

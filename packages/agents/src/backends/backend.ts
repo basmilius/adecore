@@ -113,7 +113,6 @@ export type BackendEvent =
           effectiveRuntimeMode?: RuntimeMode;
           permissionMode?: string;
       }
-    // The CLI renamed its thread, for a protocol that says so.
     | { type: 'title'; title: string }
     | { type: 'permissions'; permissionMode: string; effectiveRuntimeMode?: RuntimeMode }
     // The folder the CLI works in now, for a CLI that can move out of the one it started in.

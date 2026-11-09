@@ -209,7 +209,6 @@ const InitializeResponseSchema = z.looseObject({
 
 const SessionResponseSchema = z.looseObject({ sessionId: z.string().optional() });
 
-/* Parses each item on its own, dropping the ones that do not fit instead of the whole list. */
 function validItems<T>(schema: z.ZodType<T>, items: readonly unknown[] | null | undefined): T[] {
     return (items ?? []).flatMap((item) => {
         const parsed = schema.safeParse(item);
@@ -224,7 +223,6 @@ interface AcpAgentInfo {
     version: string;
 }
 
-/* What `initialize` answered, as far as a chat acts on it. */
 export interface AcpAgentCapabilities {
     protocolVersion: number;
     loadSession: boolean;
@@ -318,7 +316,6 @@ export interface AcpSessionInfo {
 
 type ConfigOption = z.infer<typeof ConfigOptionSchema>;
 
-/* The values of a select option, grouped or not. */
 function selectValues(option: ConfigOption): Array<z.infer<typeof SelectValueSchema>> {
     const flat = (option.options ?? []).flatMap((entry) => (isRecord(entry) && Array.isArray(entry.options) ? entry.options : [entry]));
 
@@ -783,7 +780,6 @@ interface AcpPermission {
     events: BackendEvent[];
 }
 
-/* A question an agent asks the person, as the backend acts on it. */
 export interface AcpQuestion {
     requestId: string;
     rpcId: number | string;

@@ -196,7 +196,6 @@ function sameInfo(left: ChatInfo, right: ChatInfo): boolean {
     return JSON.stringify(left) === JSON.stringify(right);
 }
 
-/* The statuses with this chat's info in them, the same object when that info is already there. */
 function withStatus(statuses: ChatStatuses, key: string, info: ChatInfo): ChatStatuses {
     return statuses[key]?.info === info ? statuses : { ...statuses, [key]: { info } };
 }
@@ -434,7 +433,6 @@ export function useReportedModels(provider: AgentKind): ReadonlySet<string> {
     return new Set(joined === '' ? [] : joined.split('\n'));
 }
 
-/* `useReportedModels` for every provider at once, as a lookup by provider. */
 export function useReportedModelsByProvider(): (provider: AgentKind) => ReadonlySet<string> {
     const scope = useContext(ChatScopeContext);
 

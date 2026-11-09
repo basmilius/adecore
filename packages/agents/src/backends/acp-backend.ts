@@ -43,13 +43,11 @@ export interface AcpClientInfo {
 
 export const DEFAULT_ACP_CLIENT: AcpClientInfo = { name: 'agents', title: 'Agents', version: '0.1.0' };
 
-/* One agent that speaks ACP over its stdio, as the backend needs to know it. */
 export interface AcpAgentSpec {
     // The agent as a person reads it, in the notes and errors the backend writes.
     name: string;
     // Which agent this is, for an error code only that agent gives a meaning; absent reads none of them.
     kind?: AgentKind;
-    // Variables set over the launch's environment.
     env?: Record<string, string>;
     // The agent's own mode ids per runtime mode, best first. A runtime mode the agent has no id for runs in
     // the next narrower one it has, and the backend answers the rest of what the runtime mode allows itself.
@@ -78,7 +76,6 @@ export interface AcpAgentSpec {
     allowToolsArgs?(serverName: string): string[];
 }
 
-/* One turn's usage, with the session, folder and model it ran in. */
 export interface AcpUsageReport extends AcpTurnUsage {
     sessionId: string;
     cwd: string;
@@ -786,7 +783,6 @@ class AcpBackend implements ChatBackend {
         this.emitAll(permission.events);
     }
 
-    /* Puts a question to the person, or turns it down at once when the turn is being cancelled. */
     private ask(transport: JsonRpcTransport, question: AcpQuestion): void {
         if (this.prompt?.cancelled) {
             this.emitAll(question.events.filter((event) => event.type !== 'question.requested'));

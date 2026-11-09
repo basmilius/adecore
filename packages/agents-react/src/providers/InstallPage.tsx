@@ -101,7 +101,6 @@ interface InstallPageProps {
     extra: ProviderInstallStep | null;
 }
 
-/* How to get a CLI that is not on the machine yet, step by step, until it is there and signed in. */
 export function InstallPage({ provider, signedIn, extra }: InstallPageProps) {
     const { t } = useTranslation('agent-providers');
     const { id: scopeId } = useChatScope();

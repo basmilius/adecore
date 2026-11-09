@@ -11,7 +11,6 @@ import type { BackendEvent } from './backend.ts';
 const NOW = Date.UTC(2026, 9, 21, 12, 0, 0);
 const HOUR = 3_600_000;
 
-/* Runs one turn of a capture on the ACP backend and answers with every event up to its end. */
 async function turnOf(capture: AcpCapture, runtimeMode: RuntimeMode = 'supervised', kind?: AgentKind): Promise<BackendEvent[]> {
     const events: BackendEvent[] = [];
 

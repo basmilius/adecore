@@ -38,7 +38,6 @@ function ProviderMark({ provider }: { provider: UsageProvider }) {
     );
 }
 
-/* The name the machine's catalog gives the model, where it has the model; the slug made readable where it does not. */
 function ModelName({ provider, slug }: { provider: UsageProvider; slug: string }) {
     return useModelName(provider, slug);
 }
@@ -108,7 +107,6 @@ function ModelRows({ models, metric, total }: { models: readonly UsageModel[]; m
     );
 }
 
-/* One project's row, under the name and the mark its host gives it, or its folder's own under a folder. */
 function ProjectRow({ project, top, money }: { project: UsageProject; top: number; money(usd: number): string }) {
     // The usage on screen is one host's, so the look of a project is that host's too.
     const look = useHostProjectLook(useChatScope().id, project.projectId);
@@ -154,7 +152,6 @@ function ProjectRows({ projects }: { projects: readonly UsageProject[] }) {
     );
 }
 
-/* The chart written out per calendar day, a column per provider that did anything in the period. */
 function DayRows({ summary, providers }: { summary: UsageSummaryResult; providers: readonly UsageProvider[] }) {
     const { t } = useTranslation('agent-usage');
     const money = useMoney();
@@ -199,7 +196,6 @@ interface UsageBreakdownProps {
     providers: readonly UsageProvider[];
 }
 
-/* The same period cut three ways: which model, which checkout, and which day it went on. */
 export function UsageBreakdown({ summary, metric, providers }: UsageBreakdownProps) {
     const { t } = useTranslation('agent-usage');
     const [tab, setTab] = useState<Breakdown>('models');

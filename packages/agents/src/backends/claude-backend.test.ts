@@ -49,7 +49,6 @@ async function until(check: () => boolean): Promise<void> {
     expect(check()).toBe(true);
 }
 
-/* Settles once no event arrived for a while, counted in event-loop turns. */
 async function quiet(events: readonly unknown[]): Promise<void> {
     let seen = -1;
     let still = 0;
@@ -98,7 +97,6 @@ function requestOf(events: readonly BackendEvent[], type: 'approval.requested' |
     return request.requestId;
 }
 
-/* What a person does in one chat. */
 const SCENARIOS: Record<string, (run: Run) => Promise<void>> = {
     'a plain turn': async ({ backend, events }) => {
         backend.sendTurn(turn('hello', 'p1'));
@@ -272,7 +270,6 @@ describe('a captured run', () => {
     }
 });
 
-/* The spawn of a fake that also keeps the command and the environment it was started with. */
 function recording(cli: FakeCli = fakeClaude) {
     const fake = inProcess(cli);
     const spawned: ChatSpawnOptions[] = [];
