@@ -24,7 +24,6 @@ const reads = tools.filter((tool) => tool.name === 'Read' || tool.name === 'Grep
 const workflow = workflowTool();
 const tasks = taskRows();
 
-/* A workflow's phases in a column of their own, the live one open, with the agent picked in it marked. */
 function WorkflowPhases() {
     const [picked, setPicked] = useState<number | null>(null);
     const running = workflow.state === 'running';

@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { ShopDatabase } from '../shared/database.tsx';
 import { SHOP_CONNECTIONS } from '../shared/shop.ts';
 
-/* What the app was asked to do, in words. */
 function describe(action: DatabaseAction): string {
     switch (action.kind) {
         case 'open-table':

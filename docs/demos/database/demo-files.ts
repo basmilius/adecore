@@ -57,7 +57,6 @@ function withFiles(session: DatabaseSession): DatabaseSession {
     });
 }
 
-/* A client whose sessions take files, for the demos of export and import. */
 export function withDemoFiles(client: DatabaseClient): DatabaseClient {
     const wrapped = new WeakMap<DatabaseSession, DatabaseSession>();
 

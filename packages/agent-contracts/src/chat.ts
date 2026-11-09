@@ -82,7 +82,6 @@ export function attachmentImageMime({ name, mime }: { name: string; mime: string
     return dot < 0 ? null : (IMAGE_MIME_BY_EXTENSION.get(name.slice(dot + 1).toLowerCase()) ?? null);
 }
 
-// What the composer hands the daemon: the bytes, plus what the file is called and what it is.
 export const ChatAttachmentUploadSchema = z.object({
     name: z.string().min(1).max(255),
     mime: z.string().min(1).max(255),

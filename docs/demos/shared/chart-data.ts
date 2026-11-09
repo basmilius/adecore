@@ -122,7 +122,6 @@ export interface TokenDay {
     readonly output: number;
 }
 
-/* Tokens per day over two weeks, lighter on the weekend. */
 export function tokensPerDay(): TokenDay[] {
     return Array.from({ length: 14 }, (_, index) => {
         const day = START - (13 - index) * DAY;
@@ -137,7 +136,6 @@ export function tokensPerDay(): TokenDay[] {
     });
 }
 
-/* Events per day over two weeks for a handful of services, for a row of sparklines. */
 export function eventsPerService(): { name: string; perDay: number[] }[] {
     return ['api', 'worker', 'scheduler', 'mailer'].map((name, service) => ({
         name,
@@ -239,7 +237,6 @@ export interface ModelCost extends ModelScore {
     readonly cost: number;
 }
 
-/* The scores per model and effort with what a task costs at each. */
 export function costsByModel(): ModelCost[] {
     return MODELS.flatMap(({ model, lab, scores }) =>
         scores.map(([effort, score], index) => ({ key: `${model}:${effort}`, model, lab, effort, score, cost: COSTS[model]![index]! }))
