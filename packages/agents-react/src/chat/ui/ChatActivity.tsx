@@ -16,6 +16,7 @@ import { backgroundCounts } from '../activity';
 import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskIdOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
+import { waitingOnLabel, waitingOnOf } from '../waiting-on';
 import { flyoutWorkflows, workflowPillOf, type WorkflowCall, type WorkflowWord } from '../workflow-list';
 import { WorkflowRow } from './rows/WorkflowRow';
 import { SubagentStopButton } from './SubagentStopButton';
@@ -98,7 +99,8 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
             {background.length > 0 && (
                 <Flyout
                     icon={<Icon icon={shells > 0 ? SquareTerminal : Activity} size={14} />}
-                    label={[shells > 0 && t('activity.shells', { count: shells }), monitors > 0 && t('activity.monitors', { count: monitors })]
+                    label={<BackgroundLabel tasks={background} />}
+                    heading={[shells > 0 && t('activity.shells', { count: shells }), monitors > 0 && t('activity.monitors', { count: monitors })]
                         .filter(Boolean)
                         .join(' · ')}
                 >
@@ -116,12 +118,12 @@ export function StatusIcon({ word }: { word: StatusWord }) {
 }
 
 /* A chip that opens a list over it, headed by what the chip says unless the list counts more than the chip does. */
-function Flyout({ icon, label, heading = label, children }: { icon: ReactNode; label: string; heading?: string; children: ReactNode }) {
+function Flyout({ icon, label, heading = label, children }: { icon: ReactNode; label: ReactNode; heading?: ReactNode; children: ReactNode }) {
     return (
         <Popover.Root>
             <Surface
                 render={<Popover.Trigger />}
-                className="pointer-events-auto inline-flex h-7.5 items-center gap-1.5 rounded-full px-3 text-xs text-text-muted tabular-nums hover:text-text"
+                className="pointer-events-auto inline-flex h-7.5 max-w-full min-w-0 items-center gap-1.5 rounded-full px-3 text-xs text-text-muted tabular-nums hover:text-text"
             >
                 {icon}
                 {label}
@@ -132,6 +134,14 @@ function Flyout({ icon, label, heading = label, children }: { icon: ReactNode; l
             </Popover.Popup>
         </Popover.Root>
     );
+}
+
+/* What the background chip says: the oldest command or monitor and how long it has run, on a clock of its own. */
+function BackgroundLabel({ tasks }: { tasks: readonly ChatBackgroundTask[] }) {
+    const now = useNow(1000);
+    const waiting = waitingOnOf({ background: tasks });
+
+    return <span className="truncate">{waiting === null ? null : waitingOnLabel(waiting, now)}</span>;
 }
 
 function WorkflowIcon({ word }: { word: WorkflowWord }) {

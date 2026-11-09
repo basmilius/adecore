@@ -91,6 +91,7 @@ export { RUNTIME_MODES, runtimeModeLabel, runtimeModeHint } from './runtime-mode
 export { CHAT_SEND_KEYS, SEND_AND_NEW_SHORTCUT, sendKeyLabel, sendKeyHint, type ChatSendKey } from './send-key';
 export type { StashedAttachment, StashedPrompt, StashedQuote } from './stash';
 export { subagentTitle, summaryWordOf, stopOf, type SubagentStop } from './subagent-list';
+export { waitingOnOf, waitingOnLabel, type WaitingChild, type WaitingOn, type WaitingOnInput } from './waiting-on';
 export { useSubagentSupport } from './subagent-support';
 
 export {

@@ -479,6 +479,18 @@ export default {
         stop: 'Stop',
         stopFailed: 'Could not stop task'
     },
+    waitingOn: {
+        needsYou_one: 'A sub-agent needs you',
+        needsYou_other: '{{count}} sub-agents need you',
+        paused: 'A sub-agent is paused',
+        pausedUntil: 'A sub-agent is paused until {{time}}',
+        command: '{{command}} · {{age}}',
+        background: 'Working in the background',
+        subagents_one: '{{count}} sub-agent in the background',
+        subagents_other: '{{count}} sub-agents in the background',
+        workflows_one: '{{count}} workflow',
+        workflows_other: '{{count}} workflows'
+    },
     subagents: {
         stop: {
             task: 'Stop task',
