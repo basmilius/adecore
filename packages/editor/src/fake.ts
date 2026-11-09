@@ -374,7 +374,7 @@ export class FakeEditor implements Editor {
         );
 
         this.followTracked(changed);
-        this.ghost = null;
+        this.dropGhost();
         this.announceCaret();
 
         // Last to first, so each change's range is also where it stands once the ones after it are applied, as the real editor reports them.
@@ -966,11 +966,45 @@ export class FakeEditor implements Editor {
         this.inlayLink = target;
     }
 
-    /* The suggestion after the caret now, which any change of the text takes away as the real editor does. */
+    /* The suggestion after the caret now, which any change of the text takes away as the real editor does. Its accessory is mounted and disposed as there too. */
     ghost: EditorGhostText | null = null;
+    private ghostSerial = 0;
+    private ghostDispose: (() => void) | void = undefined;
 
     setGhostText(ghost: EditorGhostText | null): void {
-        this.ghost = ghost;
+        const serial = this.dropGhost();
+
+        // A disposer that set a ghost of its own came later than this call.
+        if (serial !== this.ghostSerial) {
+            return;
+        }
+
+        this.ghost = ghost === null || ghost.text === '' ? null : ghost;
+
+        if (this.ghost?.accessory === undefined) {
+            return;
+        }
+
+        const dispose = this.ghost.accessory(this.element.ownerDocument?.createElement('div') ?? ({} as HTMLElement));
+
+        if (serial !== this.ghostSerial) {
+            dispose?.();
+
+            return;
+        }
+
+        this.ghostDispose = dispose;
+    }
+
+    /* Takes the ghost away and disposes its accessory, returning the serial a caller compares after it. */
+    private dropGhost(): number {
+        const serial = ++this.ghostSerial;
+        const dispose = this.ghostDispose;
+        this.ghost = null;
+        this.ghostDispose = undefined;
+        dispose?.();
+
+        return serial;
     }
 
     semanticTokens: readonly EditorSemanticToken[] | null = null;
@@ -1320,6 +1354,7 @@ export class FakeEditor implements Editor {
         this.finds.clear();
         this.scopes.clear();
         this.tracked.clear();
+        this.dropGhost();
     }
 
     private announceFind(state: EditorFindState): void {

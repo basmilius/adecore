@@ -470,8 +470,8 @@ export interface EditorLineAction {
     readonly id: string;
     /* Zero-based; the action stays on its line through edits until its owner sets its actions again. */
     readonly line: number;
-    /* Fills the element once; it is kept for as long as the action is. */
-    render(container: HTMLElement): void;
+    /* Fills the element once; it is kept for as long as the action is. What it returns runs once, when the element is taken away. */
+    render(container: HTMLElement): (() => void) | void;
 }
 
 /* One thing a code vision row says, such as how many times a declaration is used. */
@@ -576,8 +576,8 @@ export interface EditorGhostText {
     /* Where the suggestion would be inserted; the caret stays in front of it. */
     readonly position: EditorPosition;
     readonly text: string;
-    /* Fills the element drawn after the end of the first line's text, such as the keys that take the suggestion. */
-    readonly accessory?: (container: HTMLElement) => void;
+    /* Fills the element drawn after the end of the first line's text, such as the keys that take the suggestion. What it returns runs once, when that element is taken away. */
+    readonly accessory?: (container: HTMLElement) => (() => void) | void;
 }
 
 /* A button in the gutter on one line, such as the lightbulb that offers code actions. */

@@ -65,7 +65,7 @@ A color here, in `renderCode` and in the [agent marks](/editor/agents) is a cust
 
 ## Line actions
 
-`setLineActions(actions, owner?)` puts DOM after the last character of a line, such as review buttons. An `EditorLineAction` has an `id`, a zero-based `line` and `render(container)`, which runs once. An action takes no height, follows its line, hides on a folded line and never moves the caret on press. Without wrap it can sit past the right edge.
+`setLineActions(actions, owner?)` puts DOM after the last character of a line, such as review buttons. An `EditorLineAction` has an `id`, a zero-based `line` and `render(container)`, which runs once. A function `render` returns runs once when the element goes, so a React root mounted there can unmount. An action takes no height, follows its line, hides on a folded line and never moves the caret on press. Without wrap it can sit past the right edge.
 
 ## Code vision
 

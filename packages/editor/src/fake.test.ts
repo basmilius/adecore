@@ -140,6 +140,25 @@ describe('FakeEditor.setGhostText', () => {
         editor.setGhostText(null);
         expect(editor.ghost).toBeNull();
     });
+
+    test('mounts the accessory of each suggestion and disposes it once, as the real editor does', () => {
+        const editor = new FakeEditorEngine().mount(element, { text: 'a', theme: 'light' });
+        const events: string[] = [];
+
+        const accessory = (name: string) => () => {
+            events.push(`mount ${name}`);
+
+            return () => void events.push(`dispose ${name}`);
+        };
+
+        editor.setGhostText({ position: { line: 0, character: 1 }, text: 'bc', accessory: accessory('one') });
+        editor.setGhostText({ position: { line: 0, character: 1 }, text: 'bd', accessory: accessory('two') });
+        editor.type('ax');
+        editor.setGhostText({ position: { line: 0, character: 2 }, text: 'bc', accessory: accessory('three') });
+        editor.dispose();
+
+        expect(events).toEqual(['mount one', 'dispose one', 'mount two', 'dispose two', 'mount three', 'dispose three']);
+    });
 });
 
 describe('FakeEditor.setWordSources', () => {

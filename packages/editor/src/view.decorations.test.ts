@@ -15,7 +15,13 @@ describe('inlays and widgets', () => {
     test('draws a ghost suggestion after the caret, with its other lines in a row under the line, and drops it on an edit', () => {
         const { host, model, view } = mount('const a = 1;\nreturn a;');
         model.setSelections([{ anchor: 12, head: 12 }]);
-        view.setGhost({ at: 12, text: ' // one\n    two\n    three', accessory: (container) => (container.textContent = 'Tab') });
+        view.setGhost({
+            at: 12,
+            text: ' // one\n    two\n    three',
+            accessory: (container) => {
+                container.textContent = 'Tab';
+            }
+        });
         expect(host.querySelector('.se-ghost')!.textContent).toBe(' // one');
         const rows = [...host.querySelectorAll('.se-ghost-rows .se-code-row')].map((row) => row.textContent);
         expect(rows).toEqual(['    two', '    three']);
@@ -26,6 +32,48 @@ describe('inlays and widgets', () => {
         model.applyEdits([{ from: 0, to: 0, text: 'x' }]);
         expect(host.querySelector('.se-ghost')).toBeNull();
         expect(host.querySelector('.se-ghost-rows')).toBeNull();
+        expect(host.querySelector('.se-line-action')).toBeNull();
+    });
+
+    test('disposes each accessory it mounted once, when an edit, a new suggestion or the end of the view takes its element away', () => {
+        const { model, view } = mount('const a = 1;');
+        const disposed: string[] = [];
+
+        const accessory = (name: string) => (container: HTMLElement) => {
+            container.textContent = name;
+
+            return () => void disposed.push(name);
+        };
+
+        view.setGhost({ at: 12, text: ' // one', accessory: accessory('first') });
+        model.applyEdits([{ from: 0, to: 0, text: 'x' }]);
+
+        expect(disposed).toEqual(['first']);
+
+        view.setGhost({ at: 13, text: ' // two', accessory: accessory('second') });
+        view.setGhost({ at: 13, text: ' // three', accessory: accessory('third') });
+
+        expect(disposed).toEqual(['first', 'second']);
+
+        view.dispose();
+
+        expect(disposed).toEqual(['first', 'second', 'third']);
+    });
+
+    test('disposes an accessory at once when its own mounting takes the suggestion away', () => {
+        const { host, view } = mount('foo');
+        let disposed = 0;
+        view.setGhost({
+            at: 3,
+            text: '(bar)',
+            accessory: () => {
+                view.setGhost(null);
+
+                return () => void disposed++;
+            }
+        });
+
+        expect(disposed).toBe(1);
         expect(host.querySelector('.se-line-action')).toBeNull();
     });
 

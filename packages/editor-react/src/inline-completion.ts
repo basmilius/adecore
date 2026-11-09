@@ -19,8 +19,8 @@ export interface InlineSuggestion {
     readonly rest: string;
     /* The server's item, for the command that runs once the suggestion is taken. */
     readonly item?: InlineCompletionItem;
-    /* Fills the element after the first line of the ghost, such as the keys that take it. */
-    readonly accessory?: (container: HTMLElement) => void;
+    /* Fills the element after the first line of the ghost, such as the keys that take it. What it returns runs once, when that element is taken away. */
+    readonly accessory?: (container: HTMLElement) => (() => void) | void;
     /* Whether the suggestion may be taken a word at a time. It must be an insertion at the caret. */
     readonly words?: boolean;
 }
@@ -41,8 +41,6 @@ export interface InlineSuggestionSource {
     readonly automatic: boolean;
     suggest(request: InlineSuggestionRequest): Promise<readonly InlineSuggestion[]>;
     accepted?(suggestion: InlineSuggestion): void;
-    /* The suggestions it gave are no longer drawn, for a source that mounted something with them. */
-    cleared?(): void;
 }
 
 export function itemsOf(result: InlineCompletionResult): InlineCompletionItem[] {
@@ -84,6 +82,40 @@ export function firstWord(text: string): string {
 interface Registered {
     readonly source: InlineSuggestionSource;
     readonly priority: number;
+}
+
+interface Asking {
+    readonly kind: 'asking';
+    readonly source: InlineSuggestionSource;
+    readonly controller: AbortController;
+    readonly caret: EditorPosition;
+    readonly manual: boolean;
+}
+
+/*
+ * Where the feature stands. Every phase but `idle` belongs to one source, so no field can still point at a source
+ * that is gone. A phase is never changed in place: a new object for every step, so a call that compares
+ * `this.phase` with the one it entered knows whether foreign code moved the feature on in between.
+ */
+type Phase =
+    | { readonly kind: 'idle' }
+    | { readonly kind: 'scheduled'; readonly source: InlineSuggestionSource; readonly timer: unknown }
+    | Asking
+    | {
+          readonly kind: 'showing';
+          readonly source: InlineSuggestionSource;
+          readonly suggestions: readonly InlineSuggestion[];
+          readonly index: number;
+          readonly manual: boolean;
+      };
+
+/* Lets go of what a phase holds outside the feature. Aborting runs the source's listeners, which may call back in. */
+function release(phase: Phase, timers: Timers): void {
+    if (phase.kind === 'scheduled') {
+        timers.clear(phase.timer);
+    } else if (phase.kind === 'asking') {
+        phase.controller.abort();
+    }
 }
 
 /* The language servers as a source: asked after typing stops, once the host turned it on. */
@@ -139,19 +171,7 @@ export class InlineCompletionFeature {
     private readonly timers: Timers;
     private readonly servers: ServerSuggestions;
     private readonly sources: Registered[] = [];
-    private owner: InlineSuggestionSource | null = null;
-    private suggestions: readonly InlineSuggestion[] = [];
-    private index = 0;
-    private manual = false;
-    private timer: unknown = null;
-    private timerSource: InlineSuggestionSource | null = null;
-    private pending: {
-        readonly controller: AbortController;
-        readonly source: InlineSuggestionSource;
-        readonly caret: EditorPosition;
-        readonly manual: boolean;
-    } | null = null;
-    private revision = 0;
+    private phase: Phase = { kind: 'idle' };
     private accepting = false;
 
     constructor(language: LanguageContext, timers: Timers = realTimers) {
@@ -167,6 +187,8 @@ export class InlineCompletionFeature {
             editor.onCaret(() => this.moved())
         ];
         language.onDispose(() => {
+            // No source is asked again, also not by one that calls back in while it is let go of.
+            this.sources.splice(0);
             this.hide();
             for (const off of offs) {
                 off();
@@ -183,11 +205,12 @@ export class InlineCompletionFeature {
     }
 
     get current(): InlineSuggestion | null {
-        return this.suggestions[this.index] ?? null;
+        const { phase } = this;
+        return phase.kind === 'showing' ? (phase.suggestions[phase.index] ?? null) : null;
     }
 
     holds(source: InlineSuggestionSource): boolean {
-        return this.current !== null && this.owner === source;
+        return this.phase.kind === 'showing' && this.phase.source === source;
     }
 
     /* Adds a source; of two the one with the higher priority is asked first, and the language servers' has -1. */
@@ -201,10 +224,6 @@ export class InlineCompletionFeature {
 
             if (at !== -1) {
                 this.sources.splice(at, 1);
-            }
-            if (this.timerSource === source) {
-                this.timers.clear(this.timer);
-                this.timerSource = null;
             }
             if (this.uses(source)) {
                 this.hide();
@@ -220,9 +239,14 @@ export class InlineCompletionFeature {
         }
     }
 
-    /* Whether the source has a suggestion drawn or a request out. */
+    /* Whether the source has a suggestion drawn, a request out or an ask queued. */
     private uses(source: InlineSuggestionSource): boolean {
-        return this.owner === source || this.pending?.source === source;
+        return this.phase.kind !== 'idle' && this.phase.source === source;
+    }
+
+    /* Whether the source is registered and enabled. An app's setting can turn a source off without telling this feature, so it is read at every step. */
+    private asks(source: InlineSuggestionSource): boolean {
+        return source.enabled && this.sources.some((entry) => entry.source === source);
     }
 
     /* Asks the enabled source of the highest priority for suggestions at the caret now, as a person asking for one does; false when none is enabled. */
@@ -242,86 +266,99 @@ export class InlineCompletionFeature {
 
     /* Takes the drawn suggestion into the text; false when there is none. */
     accept(): boolean {
+        const { phase } = this;
         const suggestion = this.current;
-        const source = this.owner;
-        if (suggestion === null || source === null) {
+        if (phase.kind !== 'showing' || suggestion === null) {
             return false;
         }
-        const { editor } = this.language;
-        this.accepting = true;
-        try {
-            editor.applyEdits([{ range: suggestion.range, text: suggestion.text }]);
-            editor.setCaret(endOfInsertion(suggestion.range.start, suggestion.text));
-        } finally {
-            this.accepting = false;
+        this.insert(suggestion.range, suggestion.text, endOfInsertion(suggestion.range.start, suggestion.text));
+        if (this.phase === phase) {
+            this.enter({ kind: 'idle' });
         }
-        this.hide();
-        source.accepted?.(suggestion);
+        // Last: the disposer of the accessory ran in between and may have taken the source away.
+        if (this.asks(phase.source)) {
+            phase.source.accepted?.(suggestion);
+        }
         return true;
     }
 
     /* Takes the first word of a suggestion that allows it; the rest stays drawn after it. */
     acceptWord(): boolean {
+        const { phase } = this;
         const suggestion = this.current;
-        const source = this.owner;
-        if (suggestion === null || source === null || suggestion.words !== true) {
+        if (phase.kind !== 'showing' || suggestion === null || suggestion.words !== true) {
             return false;
         }
-        const { editor } = this.language;
-        const caret = editor.getCaret();
+        const caret = this.language.editor.getCaret();
         const word = firstWord(suggestion.rest);
         const next = endOfInsertion(caret, word);
-        this.accepting = true;
-        try {
-            editor.applyEdits([{ range: { start: caret, end: caret }, text: word }]);
-            editor.setCaret(next);
-        } finally {
-            this.accepting = false;
+        this.insert({ start: caret, end: caret }, word, next);
+        if (this.phase !== phase) {
+            return true;
         }
         const rest = suggestion.rest.slice(word.length);
-        this.suggestions = rest.trim() === '' ? [] : [{ ...suggestion, range: { start: next, end: next }, text: rest, rest }];
-        if (this.suggestions.length === 0) {
-            this.owner = null;
-        }
-        this.index = 0;
-        this.draw();
-        // Last, so a source that unregisters itself in it finds the state settled and is not cleared a second time by `hide`.
-        source.cleared?.();
+        this.enter(
+            rest.trim() === ''
+                ? { kind: 'idle' }
+                : { ...phase, suggestions: [{ ...suggestion, range: { start: next, end: next }, text: rest, rest }], index: 0 }
+        );
         return true;
     }
 
     cycle(step: 1 | -1): void {
-        if (this.suggestions.length > 1) {
-            this.index = (this.index + step + this.suggestions.length) % this.suggestions.length;
-            this.draw();
+        const { phase } = this;
+        if (phase.kind !== 'showing' || phase.suggestions.length < 2) {
+            return;
         }
+        const count = phase.suggestions.length;
+        this.enter({ ...phase, index: (phase.index + step + count) % count });
     }
 
     /* Puts the suggestions away and ends a request that is still out. */
     hide(): void {
-        this.revision++;
-        this.timers.clear(this.timer);
-        this.pending?.controller.abort();
-        this.pending = null;
-        if (this.suggestions.length > 0) {
-            this.suggestions = [];
-            this.language.editor.setGhostText(null);
+        this.enter({ kind: 'idle' });
+    }
+
+    /*
+     * The one way the phase changes: state first, then the previous phase let go of, then the ghost drawn from
+     * `this.phase` alone. Letting go runs the source's abort listeners, so drawing waits until they are done and
+     * is skipped when they entered a phase of their own, which drew itself.
+     */
+    private enter(next: Phase): void {
+        const previous = this.phase;
+        this.phase = next;
+        release(previous, this.timers);
+        if (this.phase !== next) {
+            return;
         }
-        const owner = this.owner;
-        this.owner = null;
-        owner?.cleared?.();
+        if (previous.kind === 'showing' || next.kind === 'showing') {
+            this.draw();
+        }
+    }
+
+    /* An edit and caret of the feature's own, which neither puts the suggestion away nor asks again. */
+    private insert(range: Range, text: string, caret: EditorPosition): void {
+        const { editor } = this.language;
+        this.accepting = true;
+        try {
+            editor.applyEdits([{ range, text }]);
+            editor.setCaret(caret);
+        } finally {
+            this.accepting = false;
+        }
     }
 
     /* Tab takes the suggestion on screen before any feature that expands on Tab; without one it is left alone. */
     private tab(event: KeyboardEvent): boolean {
-        if (this.current === null || event.isComposing) {
+        const { phase } = this;
+        if (phase.kind !== 'showing' || event.isComposing) {
             return false;
         }
         if (event.key !== 'Tab' || event.shiftKey || event.altKey || event.ctrlKey || event.metaKey) {
             return false;
         }
         const { popups } = this.language;
-        if (!this.manual && (popups.slot('completion').get() !== null || popups.slot('pick').get() !== null)) {
+        if (!phase.manual && (popups.slot('completion').get() !== null || popups.slot('pick').get() !== null)) {
             return false;
         }
         return this.accept();
@@ -334,11 +371,12 @@ export class InlineCompletionFeature {
         if (event.isComposing) {
             return false;
         }
-        if (event.key === 'Escape' && (this.current !== null || this.pending?.manual === true)) {
+        const { phase } = this;
+        if (event.key === 'Escape' && (phase.kind === 'showing' || (phase.kind === 'asking' && phase.manual))) {
             this.hide();
             return true;
         }
-        if (this.current === null) {
+        if (phase.kind !== 'showing') {
             return false;
         }
         if (isShortcut(this.language.shortcuts.acceptGhostWord, event) && this.acceptWord()) {
@@ -355,11 +393,19 @@ export class InlineCompletionFeature {
         if (this.accepting) {
             return;
         }
-        this.hide();
         const source = this.sources.find((entry) => entry.source.automatic && entry.source.enabled)?.source;
-        if (source !== undefined && change.source === 'input') {
-            this.timerSource = source;
-            this.timer = this.timers.set(() => void this.ask(source, 2), DELAY_MS);
+        if (source === undefined || change.source !== 'input') {
+            this.hide();
+            return;
+        }
+        const timer = this.timers.set(() => this.fire(timer), DELAY_MS);
+        this.enter({ kind: 'scheduled', source, timer });
+    }
+
+    private fire(timer: unknown): void {
+        const { phase } = this;
+        if (phase.kind === 'scheduled' && phase.timer === timer) {
+            void this.ask(phase.source, 2);
         }
     }
 
@@ -368,9 +414,10 @@ export class InlineCompletionFeature {
         if (this.accepting) {
             return;
         }
+        const { phase } = this;
         const { editor } = this.language;
         const caret = editor.getCaret();
-        if (this.pending !== null && comparePositions(this.pending.caret, caret) !== 0) {
+        if (phase.kind === 'asking' && comparePositions(phase.caret, caret) !== 0) {
             this.hide();
             return;
         }
@@ -385,49 +432,39 @@ export class InlineCompletionFeature {
 
     private async ask(source: InlineSuggestionSource, triggerKind: 1 | 2): Promise<void> {
         const { editor } = this.language;
-        if (
-            !source.enabled ||
-            !this.sources.some((entry) => entry.source === source) ||
-            editor.getSelections().length !== 1 ||
-            editor.isReadOnly?.() === true
-        ) {
+        if (!this.asks(source) || editor.getSelections().length !== 1 || editor.isReadOnly?.() === true) {
             return;
         }
-        this.hide();
-        const controller = new AbortController();
-        const caret = editor.getCaret();
-        const pending = { controller, source, caret, manual: triggerKind === 1 };
-        this.pending = pending;
-        const revision = this.revision;
+        const asking: Asking = { kind: 'asking', source, controller: new AbortController(), caret: editor.getCaret(), manual: triggerKind === 1 };
+        this.enter(asking);
+        if (this.phase !== asking) {
+            return;
+        }
         let found: readonly InlineSuggestion[] = [];
         try {
-            found = await source.suggest({ caret, triggerKind, signal: controller.signal });
+            found = await source.suggest({ caret: asking.caret, triggerKind, signal: asking.controller.signal });
         } catch {
             // A source that fails gives no suggestion; the next pause asks again.
         }
-        if (this.pending !== pending) {
+        if (this.phase !== asking) {
             return;
         }
-        this.pending = null;
-        // An app's setting can turn a source off without telling this feature, so a late answer is drawn only for a source still asked.
-        const stillAsked = source.enabled && this.sources.some((entry) => entry.source === source);
-        if (!stillAsked || revision !== this.revision || comparePositions(editor.getCaret(), caret) !== 0 || found.length === 0) {
+        // The answer ends the request without aborting it; there is nothing left to let go of.
+        this.phase = { kind: 'idle' };
+        if (!this.asks(source) || comparePositions(editor.getCaret(), asking.caret) !== 0 || found.length === 0) {
             return;
         }
-        this.owner = source;
-        this.suggestions = found;
-        this.index = 0;
-        this.manual = pending.manual;
-        this.draw();
+        this.enter({ kind: 'showing', source, suggestions: found, index: 0, manual: asking.manual });
     }
 
     private draw(): void {
+        const { editor } = this.language;
         const suggestion = this.current;
-        this.language.editor.setGhostText(
+        editor.setGhostText(
             suggestion === null
                 ? null
                 : {
-                      position: this.language.editor.getCaret(),
+                      position: editor.getCaret(),
                       text: suggestion.rest,
                       ...(suggestion.accessory === undefined ? {} : { accessory: suggestion.accessory })
                   }

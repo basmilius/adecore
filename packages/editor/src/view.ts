@@ -154,6 +154,9 @@ const STICKY_MAX_LINES = 5;
 /* A view shows at most this share of its rows as sticky headers, so a small node keeps most of its text. */
 const STICKY_ROW_SHARE = 4;
 
+/* Fills an element of the host's; what it returns runs once, when the element is taken away. */
+type HostMount = (container: HTMLElement) => (() => void) | void;
+
 /* A range of lines that folds: the document's own, or one a person made of a selection. */
 type ViewFold = Omit<FoldingRange, 'kind'> & { kind: FoldingRange['kind'] | 'custom' };
 
@@ -264,8 +267,8 @@ export class EditorView {
     private remoteCarets: { id: string; name: string; color: string; at: number }[] = [];
     private remoteKey: string | null = null;
     /* The host's DOM after the last character of a line, by owner; `at` is the start of its line and follows the text through edits. */
-    private readonly lineActions = new Map<string, { id: string; at: number; render: (container: HTMLElement) => void }[]>();
-    private readonly actionElements = new Map<string, HTMLElement>();
+    private readonly lineActions = new Map<string, { id: string; at: number; render: HostMount }[]>();
+    private readonly actionElements = new Map<string, { element: HTMLElement; dispose: (() => void) | void }>();
     private readonly attributionListeners = new Set<(hover: { id: string; rect: EditorRect } | null) => void>();
     private readonly changeListeners = new Set<(hover: EditorChangeMarkHover | null) => void>();
     private changeHover: EditorChangeMarkHover | null = null;
@@ -308,7 +311,7 @@ export class EditorView {
     private selectionOccurrenceCache: { key: string; ranges: readonly { from: number; to: number }[] } = { key: '', ranges: [] };
     private link: { from: number; to: number } | null = null;
     private composition: string | undefined;
-    private ghost: { at: number; text: string; accessory: ((container: HTMLElement) => void) | undefined } | null = null;
+    private ghost: { at: number; text: string; accessory: HostMount | undefined } | null = null;
     private ghostSerial = 0;
     private foldRanges: ViewFold[] = [];
     /* The folds made of a selection, which follow their text through edits. */
@@ -1021,7 +1024,7 @@ export class EditorView {
     }
 
     /* A suggestion after the caret: its first line in the text, the rest in rows under the line, and the host's accessory after the first line. */
-    setGhost(ghost: { at: number; text: string; accessory: ((container: HTMLElement) => void) | undefined } | null): void {
+    setGhost(ghost: { at: number; text: string; accessory: HostMount | undefined } | null): void {
         this.ghost = ghost === null || ghost.text === '' ? null : ghost;
         this.layoutGhostParts();
         this.configureText();
@@ -1060,7 +1063,8 @@ export class EditorView {
                           at: ghost.at,
                           render: (container) => {
                               container.classList.add('se-ghost-accessory');
-                              ghost.accessory?.(container);
+
+                              return ghost.accessory?.(container);
                           }
                       }
                   ]
@@ -2878,7 +2882,7 @@ export class EditorView {
     }
 
     /* The host's own DOM after the end of a line, which stays on its line through edits until the owner sets its actions again. */
-    setLineActions(owner: string, actions: readonly { id: string; at: number; render: (container: HTMLElement) => void }[]): void {
+    setLineActions(owner: string, actions: readonly { id: string; at: number; render: HostMount }[]): void {
         if (actions.length === 0) {
             if (!this.lineActions.has(owner)) {
                 return;
@@ -2891,14 +2895,26 @@ export class EditorView {
 
         const wanted = new Set([...this.lineActions].flatMap(([name, entries]) => entries.map((entry) => `${name}\0${entry.id}`)));
 
-        for (const [key, element] of [...this.actionElements]) {
+        for (const key of [...this.actionElements.keys()]) {
             if (!wanted.has(key)) {
-                element.remove();
-                this.actionElements.delete(key);
+                this.removeActionElement(key);
             }
         }
 
         this.render();
+    }
+
+    /* Out of the map first, so a disposer that sets actions again finds the element gone. */
+    private removeActionElement(key: string): void {
+        const mounted = this.actionElements.get(key);
+
+        if (mounted === undefined) {
+            return;
+        }
+
+        this.actionElements.delete(key);
+        mounted.element.remove();
+        mounted.dispose?.();
     }
 
     private paintLineActions(): void {
@@ -2908,7 +2924,7 @@ export class EditorView {
         for (const [owner, entries] of this.lineActions) {
             for (const entry of entries) {
                 const key = `${owner}\0${entry.id}`;
-                let element = this.actionElements.get(key);
+                let element = this.actionElements.get(key)?.element;
 
                 if (element === undefined) {
                     element = this.document.createElement('div');
@@ -2916,8 +2932,18 @@ export class EditorView {
                     element.addEventListener('pointerdown', (event) => event.stopPropagation());
                     element.addEventListener('mousedown', (event) => event.stopPropagation());
                     this.actions.append(element);
-                    this.actionElements.set(key, element);
-                    entry.render(element);
+                    const mounted: { element: HTMLElement; dispose: (() => void) | void } = { element, dispose: undefined };
+                    this.actionElements.set(key, mounted);
+                    const dispose = entry.render(element);
+
+                    // An owner that took the element away again from inside its own render gets it disposed at once.
+                    if (this.actionElements.get(key) !== mounted) {
+                        dispose?.();
+
+                        continue;
+                    }
+
+                    mounted.dispose = dispose;
                 }
 
                 const line = this.model.positionAt(entry.at).line;
@@ -3507,7 +3533,11 @@ export class EditorView {
         this.tracked.clear();
         this.remoteCarets = [];
         this.lineActions.clear();
-        this.actionElements.clear();
+
+        for (const key of [...this.actionElements.keys()]) {
+            this.removeActionElement(key);
+        }
+
         this.attribution.clear();
         this.highlights.clear();
         this.attributionListeners.clear();
