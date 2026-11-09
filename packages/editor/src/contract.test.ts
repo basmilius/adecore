@@ -420,6 +420,42 @@ describe.each(implementations)('%s', (_name, mount) => {
         });
     });
 
+    describe('a ghost suggestion', () => {
+        /* An accessory that logs its mounts and disposals under a name. */
+        const logged = (log: string[], name: string, inside: () => void = () => undefined) => {
+            return () => {
+                log.push(`mount ${name}`);
+                inside();
+
+                return () => void log.push(`dispose ${name}`);
+            };
+        };
+
+        test('mounts its accessory when it is set, and disposes it once when a new one, an edit or null takes it away', () => {
+            const editor = mount({ text: 'const a = 1;' });
+            const log: string[] = [];
+
+            editor.setGhostText({ position: at(0, 12), text: ' // one', accessory: logged(log, 'one') });
+            expect(log).toEqual(['mount one']);
+            editor.setGhostText({ position: at(0, 12), text: ' // two', accessory: logged(log, 'two') });
+            expect(log).toEqual(['mount one', 'dispose one', 'mount two']);
+            editor.applyEdits([{ range: range(0, 0, 0, 0), text: 'x' }]);
+            expect(log).toEqual(['mount one', 'dispose one', 'mount two', 'dispose two']);
+            editor.setGhostText({ position: at(0, 13), text: ' // three', accessory: logged(log, 'three') });
+            editor.setGhostText(null);
+            expect(log.slice(4)).toEqual(['mount three', 'dispose three']);
+        });
+
+        test('disposes an accessory at once when its own mounting takes the suggestion away', () => {
+            const editor = mount({ text: 'foo' });
+            const log: string[] = [];
+
+            editor.setGhostText({ position: at(0, 3), text: '(bar)', accessory: logged(log, 'one', () => editor.setGhostText(null)) });
+
+            expect(log).toEqual(['mount one', 'dispose one']);
+        });
+    });
+
     describe('settings', () => {
         test('give back the indentation and whether the text is read only', () => {
             expect(mount().getIndentation()).toEqual({ tabSize: 4, insertSpaces: true });
