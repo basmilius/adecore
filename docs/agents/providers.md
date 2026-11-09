@@ -40,6 +40,7 @@ Everything one CLI does differently sits on its `ChatProvider`, so no other code
 | `claudeCode`, `subagentSource`, `threads` | Whether the chats run Claude Code, where a subagent's conversation is read from (`claude-transcript` or `codex-thread`), and the thread calls of an app-server (`listItems` and `fork`, each asked of a process the host starts). A chat of a provider whose `capabilities.fork` is set forks through `threads.fork` when the provider has `threads`, and otherwise by the host cutting the CLI's transcript. |
 | `terminal` | How a terminal starts the CLI: flags per runtime mode, the model flag, how an MCP server is loaded from the line, a note for a fresh start, and `prepare` for flags only a newer version takes. |
 | `oneShotArgs`, `oneShotStdinArgs`, `leanOneShotArgs` | A single prompt, and the same run made short and cheap for a model asked for an answer alone. |
+| `oneShotApart` | The single prompt runs on a CLI apart from the chats: `oneShotProvider` asks it first only for its own kind and after every other CLI otherwise, and it names no chat. |
 
 `createCodexProvider` requires the `client` that names the host to every app-server it opens: the chat's, the account check, the plan probe and the thread calls. It is given once, there; `wireAgents` is the one place that falls back to "Agents".
 

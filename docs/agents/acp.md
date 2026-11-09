@@ -45,7 +45,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `adoptTitles` | `true` takes the agent's session titles as the chat's suggested title. Absent leaves naming to the host. |
 | `onContextReport()` | Called once per process, at the first `usage_update` that names the context window. |
 | `capabilities` | Overrides on top of the ACP defaults and what the agent showed (see [Capabilities](#capabilities)). |
-| `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
+| `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotApart`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
 
 ## A session
 

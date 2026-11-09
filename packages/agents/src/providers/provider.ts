@@ -107,6 +107,9 @@ export interface ChatProvider {
     /* The arguments for one prompt in and one answer out, no session and no chat, which is how a
        host asks for a commit message or a title. Absent on a CLI that only runs interactively. */
     oneShotArgs?(prompt: string): string[];
+    /* Set on a CLI whose single prompt runs apart from its chats: it answers one first only for its own kind, after
+       every other CLI otherwise, and it names no chat. */
+    readonly oneShotApart?: boolean;
     /* The same run with the prompt read from stdin, for a prompt too long for one argument (Linux
        refuses one past 128 KiB) or too private for the process list. Absent on a CLI that cannot. */
     readonly oneShotStdinArgs?: readonly string[];

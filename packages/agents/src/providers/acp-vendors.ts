@@ -422,6 +422,8 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
         }
     },
     oneShotArgs: antigravityOneShotArgs,
+    // `agy` answers apart from the chat's server, so it is the last CLI asked and names no chat.
+    oneShotApart: true,
     model: agentModel,
     modes: ANTIGRAVITY_MODES,
     // The server runs the browser sign-in itself, on a callback server of its own.

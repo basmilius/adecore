@@ -73,11 +73,11 @@ export function parseTitle(output: string): string | null {
 }
 
 /*
- * Claude Code names its own chats. Any other CLI with a one-shot mode gets a name from that mode, and
- * one without gets none, so a title never runs on another provider's plan.
+ * Claude Code names its own chats. Any other CLI with a one-shot mode of its chats gets a name from that
+ * mode, and one without gets none, so a title never runs on another provider's plan.
  */
-export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneShotArgs'>): boolean {
-    return !runsClaudeCode(provider) && provider.oneShotArgs !== undefined;
+export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneShotArgs' | 'oneShotApart'>): boolean {
+    return !runsClaudeCode(provider) && provider.oneShotArgs !== undefined && provider.oneShotApart !== true;
 }
 
 /*

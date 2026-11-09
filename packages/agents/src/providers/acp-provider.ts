@@ -50,6 +50,7 @@ export interface AcpProviderSpec extends AcpAgentSpec {
     // The host's additions to every launch, such as its MCP server.
     launch?: LaunchDecorator;
     oneShotArgs?(prompt: string): string[];
+    oneShotApart?: boolean;
     oneShotStdinArgs?: readonly string[];
     leanOneShotArgs?(args: readonly string[], model: string): string[];
     // Absent leaves the agent to chats only.
@@ -114,6 +115,7 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
         ...(spec.terminal === undefined ? {} : { terminal: spec.terminal }),
         ...(spec.launch === undefined ? {} : { launch: spec.launch }),
         ...(spec.oneShotArgs ? { oneShotArgs: spec.oneShotArgs } : {}),
+        ...(spec.oneShotApart === true ? { oneShotApart: true } : {}),
         ...(spec.oneShotStdinArgs ? { oneShotStdinArgs: spec.oneShotStdinArgs } : {}),
         ...(spec.leanOneShotArgs ? { leanOneShotArgs: spec.leanOneShotArgs } : {}),
         ...(spec.enabled ? { enabled: spec.enabled } : {}),
