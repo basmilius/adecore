@@ -24,6 +24,7 @@ import {
     createElement,
     useContext,
     useLayoutEffect,
+    useMemo,
     useState,
     type ComponentProps,
     type ComponentType,
@@ -765,13 +766,14 @@ function layered(parent: ChatHost, layer: ChatHostLayer): ChatHost {
  */
 export function ChatHostProvider({ host, children }: { host: ChatHostLayer; children?: ReactNode }) {
     const parent = useContext(ChatHostContext);
-    const [pinned] = useState(() => ({ host, value: layered(parent, host) }));
+    const [mounted] = useState(() => host);
 
-    if (pinned.host !== host && !replacementTaken.on) {
+    if (mounted !== host && !replacementTaken.on) {
         throw new Error('A ChatHostProvider reads its host once: hand it the same object on every render, or a new key to mount it with another');
     }
 
-    const value = pinned.host === host ? pinned.value : layered(parent, host);
+    // The compiler leaves this call uncached, and a new value on every render would redraw every consumer of the context.
+    const value = useMemo(() => layered(parent, host), [parent, host]);
 
     // Every shining live row steps on the spinners' clock, so the paints of several rows fall in one frame.
     useLayoutEffect(() => syncAnimations(['chat-shine']), []);
