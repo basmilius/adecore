@@ -760,19 +760,34 @@ function layered(parent: ChatHost, layer: ChatHostLayer): ChatHost {
  * its own around what it draws, so every view under it calls the same hooks from its first render on.
  * The host is read once, as the provider mounts, since a hook that changed under a mounted view would
  * break the order of its hooks: a provider that gets another `host` throws, and a new `key` remounts it.
+ * Only a dev server that replaces modules in place takes another `host`: re-running the module that makes it is
+ * how a change reaches a mounted view, and React Fast Refresh remounts what the new hooks would break.
  */
 export function ChatHostProvider({ host, children }: { host: ChatHostLayer; children?: ReactNode }) {
     const parent = useContext(ChatHostContext);
     const [pinned] = useState(() => ({ host, value: layered(parent, host) }));
 
-    if (pinned.host !== host) {
+    if (pinned.host !== host && !replacementTaken.on) {
         throw new Error('A ChatHostProvider reads its host once: hand it the same object on every render, or a new key to mount it with another');
     }
+
+    const value = pinned.host === host ? pinned.value : layered(parent, host);
 
     // Every shining live row steps on the spinners' clock, so the paints of several rows fall in one frame.
     useLayoutEffect(() => syncAnimations(['chat-shine']), []);
 
-    return createElement(ChatHostContext.Provider, { value: pinned.value }, children);
+    return createElement(ChatHostContext.Provider, { value }, children);
+}
+
+/*
+ * Whether the module that makes a host may be replaced while the page runs, which only a dev server does. Vite
+ * leaves `import.meta.hot` in a dev page and drops it from a build, so a production page and a test still throw.
+ */
+const replacementTaken = { on: (import.meta as ImportMeta & { hot?: unknown }).hot !== undefined };
+
+/* For the tests of this package: stands in for a dev server that replaces modules, or for a build. */
+export function takeHostReplacement(on: boolean): void {
+    replacementTaken.on = on;
 }
 
 /* The host of the nearest `ChatHostProvider`, or the defaults outside one. */

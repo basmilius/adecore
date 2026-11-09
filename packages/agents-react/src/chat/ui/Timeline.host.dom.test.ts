@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import { act, createElement, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost, type TimelineFind } from '../../host/host';
+import { ChatHostProvider, takeHostReplacement, type ChatHost, type TimelineFind } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { Timeline } from './Timeline';
 
@@ -66,6 +66,20 @@ test('a mounted thread refuses a host with other hooks with an explicit error, n
         expect(calls.count).toBe(0);
         expect(errors.filter((error) => /hook/i.test(String(error)))).toEqual([]);
     });
+});
+
+test('under a dev server that replaces modules a provider takes the host a re-run of its module made', async () => {
+    takeHostReplacement(true);
+
+    try {
+        await mounted(async (root, errors) => {
+            await act(async () => root.render(thread({ host: {} })));
+            await act(async () => root.render(thread({ host: {} })));
+            expect(errors).toEqual([]);
+        });
+    } finally {
+        takeHostReplacement(false);
+    }
 });
 
 test('a provider that a later part of an app renders adds hooks to the threads it mounts', async () => {
