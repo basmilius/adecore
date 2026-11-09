@@ -142,7 +142,6 @@ export function apiToolInput(call: ApiToolCall): Record<string, unknown> {
     }
 }
 
-/* The card an `ask_user` call puts in the thread, one question with its options as choices. */
 export function askUserCard(id: string, call: Extract<ApiToolCall, { name: 'ask_user' }>) {
     return {
         type: 'question.requested' as const,

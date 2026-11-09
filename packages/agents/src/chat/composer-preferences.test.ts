@@ -15,7 +15,6 @@ describe('ComposerPreferences', () => {
         const preferences = new ComposerPreferences();
         preferences.set('mac', { runtimeMode: 'supervised', selections: { claude: opus }, changedAt: 10 });
         expect(preferences.for('claude')).toEqual({ runtimeMode: 'supervised', selection: opus });
-        // A model picked for another CLI means nothing here, so the CLI's own default stays.
         expect(preferences.for('codex')).toEqual({ runtimeMode: 'supervised' });
     });
 

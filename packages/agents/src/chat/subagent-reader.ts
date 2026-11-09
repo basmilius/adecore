@@ -45,7 +45,6 @@ export interface SubagentReaderOptions {
     sourceOf(info: ChatInfo): SubagentSource | undefined;
     /* The threads of a chat's provider, and how its app-server is started for a chat whose own is not running. */
     threadsOf(info: ChatInfo): { threads: ProviderThreads; process: ThreadProcess } | undefined;
-    /* Tells one client that a conversation it holds has more in it. */
     notify(clientId: string, event: ChatSubagentChangedEvent): void;
     seams?: WatchSeams;
     now?(): number;
@@ -196,7 +195,6 @@ export class SubagentReader {
         }
     }
 
-    /* Forgets everything about a chat that is gone. */
     releaseChat(chatId: string): void {
         const ofChat = (key: string): boolean => key.startsWith(`${chatId}\n`);
 

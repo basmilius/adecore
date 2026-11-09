@@ -16,7 +16,6 @@ interface ThreadSearchOptions {
     limit: number;
 }
 
-// Characters kept on each side of the match.
 const CONTEXT = 60;
 
 // Emphasis and code markers carry no meaning in a one-line snippet, where they only read as noise.

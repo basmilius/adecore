@@ -162,7 +162,6 @@ export interface ChatCoreHooks {
     envFor?(chatId: string, base: Record<string, string>): Record<string, string | undefined>;
     /* A chat just loaded or made, its stored turns settled; whatever the host lays down in it goes here. */
     opened?(session: ChatSession, stored: ChatRecord | null): Promise<void>;
-    /* What the host keeps in the chat's record beside the thread. */
     recordExtras?(chatId: string): ChatRecordExtras;
     /*
      * The tasks a chat gave. The core lays a row for each in the thread when the chat opens, even when a crash
@@ -234,7 +233,6 @@ export interface ChatCoreOptions {
         now(): number;
         owe(chatId: string, turnId: string, at: number): Promise<void>;
         lapse(chatId: string): Promise<void>;
-        // Whether an entry is owed for this chat now.
         owed(chatId: string): boolean;
     };
     // The accounts a chat may run under; without them every chat runs under its CLI's default account.
@@ -1318,7 +1316,6 @@ export class ChatCore {
         session.upsertItems(taskRowItems(session, task, this.taskRemovedReason));
     }
 
-    /* What the record keeps beside the thread: the host's extras and the tasks whose rows a clear hid. */
     private extrasOf(chatId: string): ChatRecordExtras {
         return { ...this.hooks.recordExtras?.(chatId), ...clearedTasksExtras(this.clearedTasks.get(chatId)) };
     }
@@ -1339,7 +1336,6 @@ export class ChatCore {
         }
     }
 
-    /* What the chat's CLI would run as a skill. */
     skills(chatId: string): Promise<ChatSkill[]> {
         const session = this.require(chatId);
 
@@ -2107,7 +2103,6 @@ export class ChatCore {
     }
 }
 
-/* The hooks of one chat, over the core's own. */
 function limitHooks(hooks: NonNullable<ChatCoreOptions['limitResume']>, chatId: string): LimitResumeHooks {
     return {
         allowed: () => hooks.allowed(),

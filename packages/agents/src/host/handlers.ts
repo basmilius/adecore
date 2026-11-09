@@ -14,7 +14,6 @@ type AgentRequestMap = {
     };
 };
 
-/* One request as a host answers it, for the client that asked. */
 export type AgentHandler<T extends AgentRequestType> = (
     payload: AgentRequestMap[T]['payload'],
     clientId: string

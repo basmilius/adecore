@@ -84,7 +84,6 @@ export interface ChatCompletionsSpec {
     /** The tokens of every request that reported them, awaited before a stop can end the turn. */
     onUsage?(usage: ChatCompletionsUsage): Promise<void>;
 
-    /** Tools the host offers beside the project tools; null offers none. */
     hostTools?(launch: BackendLaunch, host: BackendHost): ApiHostTools | null;
 
     words: ChatCompletionsWords;

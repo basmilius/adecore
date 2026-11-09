@@ -734,7 +734,6 @@ export class ThreadProjector {
             }
         }
 
-        // The result supersedes whatever progress said; a settled call carries none.
         const settled: ChatToolItem = { ...tool, output: event.output ?? tool.output, state: event.state };
         delete settled.progress;
 

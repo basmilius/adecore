@@ -5,7 +5,6 @@ import { toolInputSchema } from './tool-schema.ts';
 /* A tool said no. The code is for a script, the message for the agent, the lines for what it can pick instead. */
 export class ToolRefusal extends CodedError {}
 
-/* What every call carries, whatever else an app puts in it. */
 export interface ToolCallBase {
     /* The revision of the document the caller read before it decided on this write. */
     expectedRevision?: number;
@@ -19,7 +18,6 @@ export const DRY_RUN_PREVIEW = 'a refused call makes nothing either, so it is on
 
 /* What a client may conclude about a tool before it runs it. */
 export interface ToolAnnotations {
-    /* Changes nothing at all. */
     readOnly?: boolean;
     /* May remove or overwrite what it cannot give back. */
     destructive?: boolean;

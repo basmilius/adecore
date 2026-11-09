@@ -7,7 +7,6 @@ import type { Notice, NoticeStore } from './notice-store.ts';
 export interface MessageWords {
     /* What the receiving agent hears of one message: the id to act on, the title to read, and the message itself. */
     heard(notice: Notice): string;
-    /* The line a person reads in the thread about one message. */
     shown(notice: Notice): string;
     /* What the CLI is sent in a turn a message opened, under the messages its preamble carries, so it can name who sent them. */
     prompt(count: number, notices: readonly Notice[]): string;

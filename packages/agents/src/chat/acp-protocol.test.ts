@@ -29,7 +29,6 @@ const catalog = new ModelCatalog({
     models: [{ slug: 'example-fast', name: 'Example Fast', profile: 'standard' }]
 });
 
-/* Every event the captured turn maps to, with the permission request answered as the capture says. */
 function replay(protocol: AcpProtocol): BackendEvent[] {
     const events: BackendEvent[] = [];
 
@@ -452,7 +451,6 @@ describe('modes', () => {
     });
 });
 
-/* The MCP server a permission request for `toolCall` names, with the launch's `servers`. */
 function mcpServerOf(toolCall: Record<string, unknown>, servers: readonly string[] = ['ruimte']): string | null | undefined {
     const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
 

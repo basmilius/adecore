@@ -330,7 +330,6 @@ export class ChatSession {
         return this.backend?.running === true;
     }
 
-    /* Whether the CLI opens a turn of its own once its background work ended. */
     get reportsOnBackgroundWork(): boolean {
         return reportsOnBackgroundWork(this.options.provider);
     }
@@ -820,7 +819,6 @@ export class ChatSession {
         this.options.persist();
     }
 
-    /* The next queued message, once nothing is in its way. */
     private drainQueue(asked = false): void {
         const [next, ...rest] = this.queue;
         const limited = limitedTurn(this.thread.list());

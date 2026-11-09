@@ -22,7 +22,6 @@ export function isBookmarkFileName(name: string): boolean {
 
 type BookmarkListener = (chatId: string, bookmarks: ChatBookmark[]) => void;
 
-/* A name as it is kept: trimmed, and none at all when nothing is left. */
 function cleanName(name: string | undefined): string | undefined {
     const trimmed = name === undefined ? undefined : clipText(name.trim(), CHAT_BOOKMARK_LIMITS.name);
 

@@ -4,9 +4,7 @@ import { isVisualFileName, type VisualStore } from './visual-store.ts';
 
 /* What a fork keeps of the conversation it was cut from. */
 export interface ForkKept {
-    /* Whether a message of the original is in the fork's thread. */
     item(itemId: string): boolean;
-    /* Whether a visual of the original goes along. */
     visual(visual: ChatVisual): boolean;
 }
 
@@ -19,7 +17,6 @@ export interface ForkKept {
 export interface ChatSidecar {
     /* Whether a file name in the chats folder is one of its files, which the chat list must not take for a chat. */
     owns?(name: string): boolean;
-    /* Removes everything kept for the chat. */
     removeChat?(chatId: string): Promise<void>;
     /* Gives a fork the part of the original's that it keeps. */
     copyChat?(fromChatId: string, toChatId: string, kept: ForkKept): Promise<void>;

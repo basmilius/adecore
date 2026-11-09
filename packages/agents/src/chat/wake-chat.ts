@@ -36,7 +36,6 @@ export async function loadChat(deps: ChatOpenerDeps, chatId: string): Promise<Ch
     return deps.chats.get(chatId) ?? null;
 }
 
-/* The chat a turn is to be opened in. */
 export function chatOpener(deps: ChatOpenerDeps) {
     return async (chatId: string): Promise<WakeChat | null> => {
         const session = await loadChat(deps, chatId);

@@ -4,7 +4,6 @@ import { extname, join } from 'node:path';
 import { attachmentImageMime, type ChatAttachment, type ChatAttachmentUpload } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 
-// The extension the file gets on disk when its name does not carry a usable one.
 const EXTENSIONS: Record<string, string> = {
     'image/png': 'png',
     'image/jpeg': 'jpg',
@@ -51,7 +50,6 @@ export class AttachmentStore {
         this.dir = join(home, 'attachments');
     }
 
-    /* Writes one upload and answers the metadata the thread stores. */
     async save(chatId: string, upload: ChatAttachmentUpload): Promise<ChatAttachment> {
         const bytes = Buffer.from(upload.data, 'base64');
         const mime = attachmentImageMime(upload) ?? upload.mime;
@@ -106,7 +104,6 @@ export class AttachmentStore {
         return { ...attachment, path };
     }
 
-    /* Everything a chat attached; used when the chat itself is deleted. */
     async removeAll(chatId: string): Promise<void> {
         await rm(this.folderOf(chatId), { recursive: true, force: true });
     }
