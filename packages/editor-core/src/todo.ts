@@ -21,7 +21,7 @@ export interface TodoOptions {
 }
 
 /* What finding the TODOs of a document reads of it. */
-export interface TodoSource {
+interface TodoSource {
     lineCount: number;
     line(index: number): DocumentLine;
     context(line: number, column: number): TypingContext;
@@ -34,7 +34,7 @@ function escape(word: string): string {
 }
 
 /* Null when there is nothing to look for. */
-export function todoPattern(words: readonly string[] = DEFAULT_TODO_WORDS): RegExp | null {
+function todoPattern(words: readonly string[] = DEFAULT_TODO_WORDS): RegExp | null {
     const usable = words.map((word) => word.trim()).filter((word) => word !== '');
 
     if (usable.length === 0) {
@@ -51,7 +51,7 @@ export function todoPattern(words: readonly string[] = DEFAULT_TODO_WORDS): RegE
  * The TODOs on one line. A word counts only where the lexer says a comment is, so one in a string or in
  * code is no TODO, and a second word in the same comment is part of the first one's TODO.
  */
-export function todosOnLine(source: TodoSource, index: number, pattern: RegExp, words: readonly string[]): TodoMatch[] {
+function todosOnLine(source: TodoSource, index: number, pattern: RegExp, words: readonly string[]): TodoMatch[] {
     const line = source.line(index);
     const result: TodoMatch[] = [];
     pattern.lastIndex = 0;

@@ -76,7 +76,7 @@ import { useStoredLayout } from './useStoredLayout.ts';
 import { useTableTransfer, type TransferNotice } from './useTableTransfer.ts';
 
 /* Where the width of the record view is kept, in pixels, for every table. */
-export const RECORD_WIDTH_KEY = 'database:record-view';
+const RECORD_WIDTH_KEY = 'database:record-view';
 const RECORD_WIDTH = 360;
 
 export interface TableViewProps {

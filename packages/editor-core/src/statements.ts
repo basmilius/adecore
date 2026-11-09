@@ -43,7 +43,7 @@ export function enclosingBrace(source: EditSource, offset: number): number | nul
     return enclosingBraces(source, offset)[0] ?? null;
 }
 
-export interface IndentGuide {
+interface IndentGuide {
     /* The line the guide starts on: the header, at the guide's own indent. */
     startLine: number;
     /* The first later line at or above the guide's indent, or the line count when the text ends first. */
@@ -179,7 +179,7 @@ export function declarationBody(source: EditSource, offset: number): 'interface'
     return /\b(?:class|enum|trait|impl|struct|object|record|namespace)\b/.test(header) ? 'other' : null;
 }
 
-export interface StatementRange {
+interface StatementRange {
     /* The first line, counting the doc comment and the attributes above the code. */
     first: number;
     /* The first line of the code itself. */

@@ -15,9 +15,9 @@ const PAUSE_MS = 200;
 const SCROLL_PAUSE_MS = 100;
 
 /* A document with more lines or characters than this is first asked for what is in view, when the server answers ranges. */
-export const DEFAULT_RANGE_LINES = 5000;
+const DEFAULT_RANGE_LINES = 5000;
 
-export const DEFAULT_RANGE_CHARACTERS = 500_000;
+const DEFAULT_RANGE_CHARACTERS = 500_000;
 
 /* What decides when a document is too large to wait for in full. */
 export interface SemanticTokensOptions {

@@ -23,7 +23,7 @@ const KINDS: Record<number, string> = {
     23: 'struct'
 };
 
-export interface SymbolSpan {
+interface SymbolSpan {
     readonly name: string;
     readonly kind: number;
     readonly range: Range;

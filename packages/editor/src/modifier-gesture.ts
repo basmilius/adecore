@@ -14,7 +14,7 @@ export interface GestureEvent {
     shiftKey: boolean;
 }
 
-export type GestureAction = 'above' | 'below';
+type GestureAction = 'above' | 'below';
 
 /* How long the taps may be apart. */
 const TAP_MS = 300;

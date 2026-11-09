@@ -4,7 +4,7 @@ import type { DocumentSymbol, DocumentSymbolResult, SymbolInformation, Workspace
 export type SymbolGroup = 'namespaces' | 'classes' | 'interfaces' | 'enums' | 'functions' | 'methods' | 'properties' | 'variables' | 'constants' | 'other';
 
 /* The order the groups are listed in: what a file declares, then what those declare. */
-export const SYMBOL_GROUPS: readonly SymbolGroup[] = [
+const SYMBOL_GROUPS: readonly SymbolGroup[] = [
     'namespaces',
     'classes',
     'interfaces',

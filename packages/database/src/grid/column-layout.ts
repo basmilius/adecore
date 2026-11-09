@@ -11,7 +11,7 @@ export interface GridLayout {
     readonly pinned: readonly string[];
 }
 
-export interface ColumnState {
+interface ColumnState {
     readonly resized: Readonly<Record<number, number>>;
     readonly view: ColumnView;
 }

@@ -1,15 +1,15 @@
 import type { SplitRect } from './geometry.ts';
 
 /* The gap above the indicator's tab, so it reads as a tab standing in the bar. */
-export const TAB_TOP_INSET = 4;
+const TAB_TOP_INSET = 4;
 
 /* The corner of the indicator's tab, and of its body, which is `rounded-sm` like the other drop indicator. */
-export const TAB_RADIUS = 6;
+const TAB_RADIUS = 6;
 
-export const BODY_RADIUS = 4;
+const BODY_RADIUS = 4;
 
 /* The stroke is centered on the path, so the path runs half of it inside the box to keep the outer edge on it. */
-export const DROP_STROKE = 2;
+const DROP_STROKE = 2;
 
 /* In the grid's coordinates. A rectangle is a tab with no height standing on a body; for a tab, the box is the cell with its bar. */
 export interface DropPreviewShape {

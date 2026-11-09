@@ -2,7 +2,7 @@
 export const MIN_THUMB = 24;
 
 /* A press on the track moves this share of the visible length, so a line of the old view stays in sight. */
-export const PAGE_SHARE = 0.9;
+const PAGE_SHARE = 0.9;
 
 export interface ScrollMetrics {
     /* The length of the bar the thumb moves along, in pixels. */

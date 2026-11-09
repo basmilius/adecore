@@ -56,7 +56,7 @@ export const inlineIndexSql = (dialect: Dialect, index: IndexDraft): string =>
 export const createIndexSql = (dialect: Dialect, schema: string, table: string, index: Pick<IndexDraft, 'name' | 'columns' | 'unique'>): string =>
     `CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX ${dialect.engine === 'sqlite' ? sqliteSchemaPrefix(dialect, schema) : ''}${quote(dialect, index.name)} ON ${tableName(dialect, dialect.engine === 'sqlite' ? '' : schema, table)} (${columnList(dialect, index.columns)})`;
 
-export interface CreateParts {
+interface CreateParts {
     readonly table: string;
     /* SQLite creates its indexes after the table, where MySQL declares them inside it. */
     readonly indexes: readonly IndexDraft[];

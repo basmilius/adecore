@@ -30,7 +30,7 @@ const restore = (storage: DatabaseStorage | undefined, connections: readonly Con
     return { expanded, collapsed, loaded };
 };
 
-export interface StoredExpansion extends Expansion {
+interface StoredExpansion extends Expansion {
     setExpanded(update: Update): void;
     setCollapsed(update: Update): void;
 }

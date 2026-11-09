@@ -47,7 +47,7 @@ type Node =
 
 export type SnippetVariableResolver = (name: string) => string | undefined;
 
-export interface SnippetRenderOptions {
+interface SnippetRenderOptions {
     /* The way VS Code treats `TM_SELECTED_TEXT`: the lines of a value after its first take the leading whitespace of the output line the variable starts on. */
     readonly indentVariables?: boolean;
 }

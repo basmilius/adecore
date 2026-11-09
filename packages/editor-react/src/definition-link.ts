@@ -34,7 +34,7 @@ export function followModKey(apple: boolean, onHeld: (held: boolean) => void): (
 }
 
 /* The sibling features DefinitionLinkFeature drives, which the editor language hands over. */
-export interface DefinitionLinkPeers {
+interface DefinitionLinkPeers {
     readonly links: Pick<DocumentLinksFeature, 'rangeAt'>;
 }
 

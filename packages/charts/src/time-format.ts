@@ -3,7 +3,7 @@ import { formatClock, formatDay, formatDayClock } from '@adecore/ui/format';
 const HOUR = 60 * 60 * 1000;
 const DAY = 24 * HOUR;
 
-export type TimeLabel = 'clock' | 'dayClock' | 'day';
+type TimeLabel = 'clock' | 'dayClock' | 'day';
 
 /*
  * How a time axis writes its ticks: the clock within a day, the day once the ticks are a day apart, and

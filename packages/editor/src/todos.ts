@@ -10,7 +10,7 @@ const TODO_LIMIT = 2_000_000;
 const CACHED_LINES = 600;
 
 /* The text is kept with the mark, since the list is only read again after a pause and the offsets may be stale until then. */
-export type TodoMark = TodoMatch & { readonly text: string };
+type TodoMark = TodoMatch & { readonly text: string };
 
 /*
  * The TODO comments of a view: drawn in their own color over the grammar's on the lines being painted,

@@ -1,7 +1,7 @@
 import { scaleLinear, scaleLog, scaleTime } from 'd3-scale';
 import type { ChartXOptions, ChartYOptions, ChartYScale } from './types.ts';
 
-export interface StackInput {
+interface StackInput {
     readonly id: string;
     readonly values: readonly (number | null)[];
     /* Series with the same stack key pile up in the order they are listed; without one a series stands on zero. */

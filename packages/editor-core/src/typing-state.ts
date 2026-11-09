@@ -1,4 +1,4 @@
-export interface TypingBracket {
+interface TypingBracket {
     at: number;
     close: string;
     previous?: TypingBracket;

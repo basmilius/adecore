@@ -1,6 +1,6 @@
 import type { TableRef } from '../client/types.ts';
 
-export type TableViewMode = 'data' | 'structure';
+type TableViewMode = 'data' | 'structure';
 
 export type WorkbenchTab =
     | { readonly id: string; readonly kind: 'table'; readonly ref: TableRef; readonly view: TableViewMode; readonly where?: string }
@@ -8,7 +8,7 @@ export type WorkbenchTab =
     /* Without `table` the designer makes a new table. */
     | { readonly id: string; readonly kind: 'designer'; readonly connectionId: string; readonly schema: string; readonly table?: string };
 
-export interface WorkbenchState {
+interface WorkbenchState {
     readonly tabs: readonly WorkbenchTab[];
     readonly activeId: string | null;
     /* The next number for an id that is not derived from what the tab shows. Never reused, so a restored tab cannot clash with a new one. */

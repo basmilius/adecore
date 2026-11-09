@@ -48,12 +48,12 @@ export function uniquePlaces(result: NavigationResult): { location: Location; ta
 }
 
 /* The places of a result, each once. */
-export function uniqueLocations(result: NavigationResult): Location[] {
+function uniqueLocations(result: NavigationResult): Location[] {
     return uniquePlaces(result).map(({ location }) => location);
 }
 
 /* The sibling features NavigationFeature drives, which the editor language hands over. */
-export interface NavigationPeers {
+interface NavigationPeers {
     readonly peek: { open(position: EditorPosition): Promise<void> };
     readonly pick: Pick<PickFeature, 'locations'>;
 }

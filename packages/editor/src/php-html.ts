@@ -3,14 +3,14 @@ import type { Highlighter } from 'shiki';
 type LanguageRegistration = Extract<Parameters<Highlighter['loadLanguage']>[0], { readonly scopeName: string }>;
 
 /* Shiki's `php` is only the code inside the tags, which makes a plain `<?php` an operator and a constant. */
-export const PHP_DOCUMENT_ID = 'php-html';
+const PHP_DOCUMENT_ID = 'php-html';
 
 /*
  * A PHP file as a document: HTML with PHP between its tags, the way `text.html.php` of the PHP
  * grammar family does it. Shiki bundles no such grammar, so it is written here on top of `html` and
  * `php`, which have to be loaded first. The tags carry the scope a theme draws a tag's brackets in.
  */
-export const PHP_DOCUMENT: LanguageRegistration = {
+const PHP_DOCUMENT: LanguageRegistration = {
     name: PHP_DOCUMENT_ID,
     scopeName: 'text.html.php',
     embeddedLangs: ['html', 'php'],

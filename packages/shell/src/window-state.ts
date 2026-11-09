@@ -27,7 +27,7 @@ export interface WindowDisplay {
 }
 
 /* How much of a window has to stay on a display to count as reachable: enough of the title bar to grab it. */
-export const VISIBLE_EDGE = { width: 100, height: 40 };
+const VISIBLE_EDGE = { width: 100, height: 40 };
 
 const overlap = (a: Rectangle, b: Rectangle): WindowSize => ({
     width: Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x)),

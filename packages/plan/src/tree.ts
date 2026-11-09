@@ -32,7 +32,7 @@ export function missingItem(id: string): PlanRefusal {
 }
 
 /* Where an item stands: the array that holds it, so an operation can splice it, and the step or section around it. */
-export interface PlanLocation {
+interface PlanLocation {
     item: PlanItem;
     siblings: PlanItem[];
     index: number;
@@ -141,7 +141,7 @@ export function effectiveChecks(plan: Pick<Plan, 'meta'>, step: PlanStep): PlanC
     return step.unlocked ? 'anyone' : (step.checks ?? plan.meta.checks);
 }
 
-export function isFinishedOutcome(state: PlanStepState): boolean {
+function isFinishedOutcome(state: PlanStepState): boolean {
     return state === 'done' || state === 'skipped' || state === 'warning' || state === 'info';
 }
 

@@ -1,6 +1,6 @@
 import { valueOfCell, type Cell, type EditValue, type RowChange, type RowKey, type RowsResult, type TableStructure, type Value } from '../protocol/index.ts';
 
-export interface InsertedRow {
+interface InsertedRow {
     /* Unique among the inserted rows; the grid keys the row by it. */
     readonly id: number;
     /* The columns a person filled in; the others take their default. */
@@ -26,7 +26,7 @@ export const isPendingEmpty = (pending: PendingChanges): boolean =>
 export const pendingCount = (pending: PendingChanges): number =>
     Object.keys(pending.edits).filter((row) => !pending.deletes.has(Number(row))).length + pending.inserts.length + pending.deletes.size;
 
-export const valuesEqual = (left: EditValue | undefined, right: EditValue | undefined): boolean => {
+const valuesEqual = (left: EditValue | undefined, right: EditValue | undefined): boolean => {
     if (left === undefined || right === undefined) {
         return false;
     }

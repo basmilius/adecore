@@ -6,7 +6,7 @@ import { useState, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { searchHistory, type HistoryEntry } from './history.ts';
 
-export interface HistoryPanelProps {
+interface HistoryPanelProps {
     entries: readonly HistoryEntry[];
     /* Clicking puts the SQL in the editor, and Mod+click or a double click runs it as well. */
     onPick(entry: HistoryEntry, run: boolean): void;

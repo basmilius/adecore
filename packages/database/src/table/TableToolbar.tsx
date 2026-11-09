@@ -25,7 +25,7 @@ import { CommandField } from './CommandField.tsx';
 import { PAGE_SIZES, type PageBounds } from './paging.ts';
 
 /* The menu of export and import; present only when the app can show file dialogs. */
-export interface TransferMenu {
+interface TransferMenu {
     /* An export is running. */
     busy: boolean;
     onExport(format: FileFormat): void;

@@ -6,7 +6,7 @@ import { mapOffset } from './offsets.ts';
 import { DECLARATION, declarationBody, METHOD, NOT_METHODS, indentWidth, statementAt, visualWidth } from './statements.ts';
 import type { Selection, TextEdit } from './types.ts';
 
-export interface MoveStatementOptions {
+interface MoveStatementOptions {
     language: string;
     /* One level of indentation. */
     unit: string;
@@ -17,7 +17,7 @@ export interface MoveStatementOptions {
     lineSpan?: (line: number) => { first: number; last: number };
 }
 
-export interface StatementMove extends EditPlan {
+interface StatementMove extends EditPlan {
     /* The lines that changed place, by their number before (`from`) and after (`to`). */
     moves: { from: number; to: number }[];
 }

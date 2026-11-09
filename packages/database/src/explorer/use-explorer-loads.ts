@@ -20,7 +20,7 @@ interface Loads {
 
 const EMPTY: Loads = { entries: new Map(), versions: new Map() };
 
-export interface ExplorerLoads {
+interface ExplorerLoads {
     schemas(connectionId: string): Load<readonly SchemaInfo[]>;
     tables(connectionId: string, schema: string): Load<readonly TableInfo[]>;
     structures(connectionId: string, schema: string, table: string): Load<TableStructure>;

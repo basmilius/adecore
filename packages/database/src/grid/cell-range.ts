@@ -1,7 +1,7 @@
 import type { CellPosition } from './navigation.ts';
 
 /* A block of cells, both ends included. Columns are positions as drawn, so a block stays rectangular on screen. */
-export interface CellRect {
+interface CellRect {
     readonly top: number;
     readonly bottom: number;
     readonly left: number;

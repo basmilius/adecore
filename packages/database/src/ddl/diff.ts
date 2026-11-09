@@ -4,7 +4,7 @@ import type { Dialect } from './dialect.ts';
 import type { ColumnDraft, ForeignKeyDraft, IndexDraft, TableDraft } from './draft.ts';
 import type { TableOptions } from './parse.ts';
 
-export interface KeptColumn {
+interface KeptColumn {
     readonly original: ColumnDraft;
     readonly column: ColumnDraft;
     readonly renamed: boolean;
@@ -15,14 +15,14 @@ export interface KeptColumn {
     readonly after: string | null;
 }
 
-export interface AddedColumn {
+interface AddedColumn {
     readonly column: ColumnDraft;
     /* Whether a column that stays comes after it, so that it cannot simply go to the end. */
     readonly placed: boolean;
     readonly after: string | null;
 }
 
-export interface RenamedIndex {
+interface RenamedIndex {
     readonly from: IndexDraft;
     readonly to: IndexDraft;
 }

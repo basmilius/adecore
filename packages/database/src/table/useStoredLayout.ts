@@ -3,9 +3,9 @@ import type { DatabaseStorage } from '../actions.ts';
 import { EMPTY_LAYOUT, parseStoredLayout, serializeLayout, type StoredLayout } from './layout-store.ts';
 
 /* How long a change waits for the next before it is written, so a drag of a column edge is one write. */
-export const STORE_DELAY_MS = 500;
+const STORE_DELAY_MS = 500;
 
-export interface StoredLayoutHandle {
+interface StoredLayoutHandle {
     /* What was stored when the view mounted, or `null` when nothing usable was. */
     readonly stored: StoredLayout | null;
     /* Merges a change into what is remembered and writes it after a pause. Does nothing without storage. */

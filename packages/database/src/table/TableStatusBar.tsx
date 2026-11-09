@@ -15,7 +15,7 @@ export interface SelectionFigures {
     readonly aggregates: Aggregates;
 }
 
-export interface TableStatusBarProps {
+interface TableStatusBarProps {
     elapsedMs: number;
     bounds: PageBounds;
     counting: boolean;

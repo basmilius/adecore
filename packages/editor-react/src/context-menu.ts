@@ -1,10 +1,10 @@
 import type { CodeActionsFeature } from './code-actions.ts';
 import type { LanguageContext } from './language-context.ts';
 
-export type ClipboardAction = 'cut' | 'copy' | 'paste';
+type ClipboardAction = 'cut' | 'copy' | 'paste';
 
 /* The sibling features ContextMenuFeature drives, which the editor language hands over. */
-export interface ContextMenuPeers {
+interface ContextMenuPeers {
     readonly codeActions: Pick<CodeActionsFeature, 'list'>;
 }
 

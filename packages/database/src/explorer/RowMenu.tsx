@@ -23,7 +23,7 @@ import type { TableKind } from '../protocol/index.ts';
 import type { TableRequest } from './TableDialog.tsx';
 import { selectAllSql, type LoadTarget, type TreeRow } from './tree.ts';
 
-export interface RowMenuProps {
+interface RowMenuProps {
     row: TreeRow;
     connection: Connection;
     onRefresh(target: LoadTarget): void;

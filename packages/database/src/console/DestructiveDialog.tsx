@@ -4,7 +4,7 @@ import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { DestructiveStatement } from './destructive.ts';
 
-export interface DestructiveDialogProps {
+interface DestructiveDialogProps {
     /* The statements to warn about; the dialog is open while there are any. */
     statements: readonly DestructiveStatement[];
     onConfirm(): void;

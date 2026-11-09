@@ -30,7 +30,7 @@ export interface ChannelLabel {
     across: number;
 }
 
-export interface ChannelInput {
+interface ChannelInput {
     /* Where the channel begins along the flow, right after the widest box of its layer. */
     start: number;
     /* Room kept free at the start and the end, for a group's border and an arrowhead. */
@@ -42,7 +42,7 @@ export interface ChannelInput {
     obstacles: { y: number; h: number }[];
 }
 
-export interface ChannelResult {
+interface ChannelResult {
     width: number;
     trackX: Map<number, number>;
     labels: Map<number, Rect>;

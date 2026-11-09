@@ -16,7 +16,7 @@ function labelOf(text: string): string {
 }
 
 /* The sibling features PasteHistoryFeature drives, which the editor language hands over. */
-export interface PasteHistoryPeers {
+interface PasteHistoryPeers {
     readonly pick: Pick<PickFeature, 'open'>;
 }
 

@@ -2,7 +2,7 @@
 
 const INDENT = '  ';
 
-export type JsonCheck = { readonly ok: true } | { readonly ok: false; readonly reason: string };
+type JsonCheck = { readonly ok: true } | { readonly ok: false; readonly reason: string };
 
 export const checkJson = (text: string): JsonCheck => {
     try {

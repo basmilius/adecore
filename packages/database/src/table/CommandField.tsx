@@ -19,7 +19,7 @@ import {
 
 const FOCUS_SHORTCUT = shortcut('Mod+F');
 
-export interface CommandFieldProps {
+interface CommandFieldProps {
     chips: readonly Chip[];
     columns: readonly CommandColumn[];
     engine: Engine;

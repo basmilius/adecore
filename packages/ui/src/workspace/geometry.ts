@@ -19,7 +19,7 @@ export interface SplitMinimum {
     height: number;
 }
 
-export interface SplitPaneRect extends SplitRect {
+interface SplitPaneRect extends SplitRect {
     pane: SplitPane;
 }
 
@@ -31,7 +31,7 @@ export interface SplitDivider extends SplitRect {
     minimums: number[];
 }
 
-export interface SplitGeometry {
+interface SplitGeometry {
     panes: SplitPaneRect[];
     dividers: SplitDivider[];
 }
@@ -232,7 +232,7 @@ export function tabGapAt(rects: readonly { left: number; right: number }[], x: n
     return index < 0 ? rects.length : index;
 }
 
-export interface TabScrollView {
+interface TabScrollView {
     scrollLeft: number;
     clientWidth: number;
     scrollWidth: number;

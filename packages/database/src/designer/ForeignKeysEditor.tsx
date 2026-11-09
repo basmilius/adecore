@@ -7,7 +7,7 @@ import { addForeignKey, patchForeignKey, removeForeignKey, setReferencedTable, t
 import type { EditorProps } from './editor-props.ts';
 import { NamePicker } from './NamePicker.tsx';
 
-export interface ForeignKeysEditorProps extends EditorProps {
+interface ForeignKeysEditorProps extends EditorProps {
     schema: string;
     /* The tables a key can point at. */
     tables: readonly string[];

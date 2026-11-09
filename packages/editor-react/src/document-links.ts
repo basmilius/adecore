@@ -113,7 +113,7 @@ export class DocumentLinksFeature {
 }
 
 /* Opens a file or a document of a server in the editor, and a web address through the host. */
-export function openTarget(language: LanguageContext, target: string, selection?: EditorRange): void {
+function openTarget(language: LanguageContext, target: string, selection?: EditorRange): void {
     if (!opensInEditor(target)) {
         const { host } = language.project;
         if (host.openExternal !== undefined) {

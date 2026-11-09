@@ -90,7 +90,7 @@ function mergedRanges(ranges: readonly EditorRange[]): EditorRange[] | null {
 }
 
 /* The sibling features SurroundFeature drives, which the editor language hands over. */
-export interface SurroundPeers {
+interface SurroundPeers {
     readonly pick: Pick<PickFeature, 'open'>;
     readonly markup: Pick<MarkupFeature, 'startWrap' | 'supported'>;
     readonly snippets: InsertingSnippets & Pick<SnippetFeature, 'end'>;

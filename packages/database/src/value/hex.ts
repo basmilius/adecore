@@ -2,9 +2,9 @@
 
 export type HexProblem = 'characters' | 'odd';
 
-export type ParsedHex = { readonly ok: true; readonly hex: string } | { readonly ok: false; readonly problem: HexProblem };
+type ParsedHex = { readonly ok: true; readonly hex: string } | { readonly ok: false; readonly problem: HexProblem };
 
-export const BYTES_PER_LINE = 16;
+const BYTES_PER_LINE = 16;
 
 const GROUP = 8;
 const GROUP_WIDTH = GROUP * 3 - 1;

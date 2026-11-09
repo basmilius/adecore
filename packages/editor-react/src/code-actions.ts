@@ -66,7 +66,7 @@ interface AskOptions {
 }
 
 /* The sibling features CodeActionsFeature drives, which the editor language hands over. */
-export interface CodeActionsPeers {
+interface CodeActionsPeers {
     readonly diagnostics: Pick<DiagnosticsFeature, 'at' | 'onChange' | 'problems'>;
     readonly completion: Pick<CompletionFeature, 'close'>;
     readonly pick: Pick<PickFeature, 'open'>;

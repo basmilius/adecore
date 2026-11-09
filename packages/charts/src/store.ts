@@ -43,17 +43,17 @@ export interface BandEntry {
     readonly color: string;
 }
 
-export interface AxisSizes {
+interface AxisSizes {
     /* The room end labels take right of the plot, inside its svg. */
     readonly end: number | null;
     /* The room the row labels of a horizontal chart take left of the plot. */
     readonly start: number | null;
 }
 
-export type YAxisSide = 'left' | 'right';
+type YAxisSide = 'left' | 'right';
 
 /* A y axis on one side. Both sides read the one value scale, so each keeps its own ticks, title and format. */
-export interface YAxisEntry {
+interface YAxisEntry {
     /* Null before its labels have been measured. */
     readonly width: number | null;
     readonly ticks: number | null;
@@ -63,7 +63,7 @@ export interface YAxisEntry {
 }
 
 /* One row of labels under the plot; the rows stack in the order of the children. */
-export interface XAxisEntry {
+interface XAxisEntry {
     /* The height of the row. */
     readonly room: number;
     /* The widest label, which decides how many fit; null before the row has been measured. */
@@ -71,7 +71,7 @@ export interface XAxisEntry {
     readonly format: ((x: ChartX) => string) | undefined;
 }
 
-export interface ChartFormats {
+interface ChartFormats {
     /* The title of the x axis, which names the x where a point is read out. */
     readonly xTitle?: string;
 }

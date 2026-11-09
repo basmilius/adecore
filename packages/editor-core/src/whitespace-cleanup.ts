@@ -17,7 +17,7 @@ export interface WhitespaceCleanupOptions {
 }
 
 /* What the cleanup reads of a document. */
-export interface CleanupSource {
+interface CleanupSource {
     lineCount: number;
     line(index: number): DocumentLine;
     newline(index: number): string;
@@ -25,7 +25,7 @@ export interface CleanupSource {
     keeps?(line: number, column: number): boolean;
 }
 
-export interface CleanupLines {
+interface CleanupLines {
     modified(line: number): boolean;
     carets: ReadonlySet<number>;
 }

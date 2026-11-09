@@ -12,7 +12,7 @@ export interface BracketMatch {
 }
 
 /* An open bracket without its offset, so the state at a line stays the same however far an edit above moves it. */
-export interface OpenBracket {
+interface OpenBracket {
     close: string;
     /* An `${` whose closer resumes the template text. */
     template: boolean;

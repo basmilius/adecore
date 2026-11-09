@@ -32,7 +32,7 @@ export function isImportLine(language: string, trimmed: string): boolean {
 const REGION_START = /^\s*(?:\/\/|#|<!--|\/\*|--)\s*(?:#\s*)?region\b/;
 const REGION_END = /^\s*(?:\/\/|#|<!--|\/\*|--)\s*(?:#\s*)?endregion\b/;
 
-export interface LexicalFoldOptions {
+interface LexicalFoldOptions {
     /* Each on unless false. */
     imports?: boolean;
     regions?: boolean;

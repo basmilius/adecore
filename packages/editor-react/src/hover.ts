@@ -25,7 +25,7 @@ export interface HoverSettings {
 }
 
 /* The sibling features HoverFeature drives, which the editor language hands over. */
-export interface HoverPeers {
+interface HoverPeers {
     readonly diagnostics: { at(position: EditorPosition): Problem[] };
     readonly inlayHints: { showTooltipAt(position: EditorPosition): Promise<boolean> };
 }

@@ -104,7 +104,7 @@ export interface LocalCompletionItem {
 }
 
 /** What a source is asked for when the list is requested. */
-export interface CompletionRequest {
+interface CompletionRequest {
     readonly position: EditorPosition;
 
     /** Whether the person asked for the list with the keyboard. */
@@ -119,7 +119,7 @@ export interface CompletionSource {
 }
 
 /* The sibling features CompletionFeature drives, which the editor language hands over. */
-export interface CompletionPeers {
+interface CompletionPeers {
     readonly pick: Pick<PickFeature, 'close'>;
     readonly snippets: Pick<
         SnippetFeature,

@@ -9,7 +9,7 @@ const EMPTY_LINE_NAME = '﷐empty';
 
 export type FileTreeEmptyLabel = (row: FileTreeVisibleRow) => string | undefined;
 
-export function emptyLineOf(directory: string): string {
+function emptyLineOf(directory: string): string {
     return `${directory}${EMPTY_LINE_NAME}`;
 }
 

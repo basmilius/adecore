@@ -2,7 +2,7 @@ import type { EditSource } from './edit-source.ts';
 import type { TextEdit } from './types.ts';
 
 /* A change of text in one place and where the caret stands in what replaces it. */
-export interface HandlerEdit {
+interface HandlerEdit {
     from: number;
     to: number;
     text: string;
@@ -137,7 +137,7 @@ export function replacesComparison(typed: string, selected: string, inCommentOrS
 
 const closerOf: Readonly<Record<string, string>> = { '(': ')', '[': ']', '{': '}', '<': '>', '"': '"', "'": "'", '`': '`' };
 
-export function matchingDelimiter(character: string): string {
+function matchingDelimiter(character: string): string {
     return closerOf[character] ?? character;
 }
 

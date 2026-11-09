@@ -54,7 +54,7 @@ import { TextMirror } from './text-mirror.ts';
 const FULL_SYNC_DELAY_MS = 200;
 
 /* What a document asks of the session it is open in. */
-export interface DocumentSession {
+interface DocumentSession {
     readonly connection: JsonRpcConnection;
     readonly options: { readonly fullSyncDelayMs?: number };
     readonly syncOptions: TextDocumentSyncOptions;

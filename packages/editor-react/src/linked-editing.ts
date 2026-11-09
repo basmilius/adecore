@@ -19,7 +19,7 @@ interface Session {
 }
 
 /* The server's word pattern, anchored, or null when it gave none or one that does not compile. */
-export function wordPatternOf(ranges: LinkedEditingRanges): RegExp | null {
+function wordPatternOf(ranges: LinkedEditingRanges): RegExp | null {
     if (ranges.wordPattern === undefined) {
         return null;
     }

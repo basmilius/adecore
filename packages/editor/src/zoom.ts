@@ -2,8 +2,8 @@ import type { EditorFont } from './metrics.ts';
 import type { EditorZoom } from './types.ts';
 
 /* Nothing a person reads is smaller. */
-export const MIN_FONT_SIZE = 12;
-export const MAX_FONT_SIZE = 90;
+const MIN_FONT_SIZE = 12;
+const MAX_FONT_SIZE = 90;
 /* A trackpad or a pinch sends the wheel in small steps; this many pixels of them are one step of the size. */
 const PIXELS_PER_STEP = 20;
 

@@ -7,7 +7,7 @@ const MAX_COLUMN = 56;
 /* Share of a bucket a column takes when it is alone in it; the rest is air between buckets. */
 const COLUMN_SHARE = 0.72;
 
-export interface BandGroup {
+interface BandGroup {
     readonly key: string;
     readonly first: number;
     readonly last: number;
@@ -28,7 +28,7 @@ export interface BandLayout {
 }
 
 /* The run of equal keys each bucket belongs to, in the order of the data; a key that comes back later starts a run of its own. */
-export function groupRuns(keys: readonly string[]): { key: string; first: number; last: number }[] {
+function groupRuns(keys: readonly string[]): { key: string; first: number; last: number }[] {
     const runs: { key: string; first: number; last: number }[] = [];
 
     keys.forEach((key, index) => {
@@ -161,7 +161,7 @@ export const LABEL_INSET = 6;
 /* The height of a row of labels and what a label is taken to measure per character until it has been drawn once, per size. */
 const LABEL_SIZES = { '2xs': { row: 16, char: 8 }, xs: { row: 18, char: 9 } } as const;
 
-export type ValueLabelSize = keyof typeof LABEL_SIZES;
+type ValueLabelSize = keyof typeof LABEL_SIZES;
 
 const LABEL_AIR = 3;
 

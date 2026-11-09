@@ -151,7 +151,7 @@ function MappingRow({ name, value, items, disabled, label, onChange }: MappingRo
     );
 }
 
-export interface ImportDialogProps extends ImportFormProps {
+interface ImportDialogProps extends ImportFormProps {
     open: boolean;
     onOpenChange(open: boolean): void;
 }

@@ -7,7 +7,7 @@ import { comparePositions, sameRange, shiftRange } from './positions.ts';
 import { isShortcut } from './shortcut-keys.ts';
 
 /* The sibling features DiagnosticsFeature drives, which the editor language hands over. */
-export interface DiagnosticsPeers {
+interface DiagnosticsPeers {
     readonly hover: { showProblemsAt(position: EditorPosition): boolean };
 }
 

@@ -5,7 +5,7 @@ import { whitespaceOf } from './line-text.ts';
 import { BODIES, DECLARATION, declarationBody, METHOD, NOT_METHODS, statementStart } from './statements.ts';
 import type { Selection } from './types.ts';
 
-export interface CompleteStatementOptions {
+interface CompleteStatementOptions {
     language: string;
     /* One level of indentation. */
     unit: string;

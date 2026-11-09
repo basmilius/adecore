@@ -32,7 +32,7 @@ export const sizeOf = (source: Source, draft: Draft): { unit: 'bytes' | 'charact
 };
 
 /* A read only view stops its dump here; the text view and a copy are not limited. */
-export const DUMP_LIMIT_BYTES = 16 * 1024;
+const DUMP_LIMIT_BYTES = 16 * 1024;
 
 export type Rendered =
     /* A NULL or a DEFAULT, which has nothing to lay out. */

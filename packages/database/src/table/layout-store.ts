@@ -7,7 +7,7 @@ import { PAGE_SIZES } from './paging.ts';
  * Bump when the shape changes; a stored value of another version is ignored rather than migrated. `filters`
  * came later without a bump, since `where` still says the same thing for a value without it.
  */
-export const LAYOUT_VERSION = 1;
+const LAYOUT_VERSION = 1;
 
 /* What is remembered of one table's view between visits. */
 export interface StoredLayout extends GridLayout {

@@ -1,7 +1,7 @@
 /* One press of an arrow moves the handle this share of the frame. */
 export const WIPE_KEY_STEP = 0.02;
 
-export const clampSplit = (split: number): number => Math.min(1, Math.max(0, split));
+const clampSplit = (split: number): number => Math.min(1, Math.max(0, split));
 
 /* A frame without a width has no place to point at, so the split stays where it is. */
 export const splitAt = (clientX: number, frame: { left: number; width: number }): number | null =>

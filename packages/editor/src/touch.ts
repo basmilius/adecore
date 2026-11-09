@@ -1,6 +1,6 @@
 import type { DocumentModel } from '@adecore/editor-core';
 
-export interface TouchHost {
+interface TouchHost {
     readonly model: DocumentModel;
     offsetAt(clientX: number, clientY: number): number;
     camelHumps(): boolean;

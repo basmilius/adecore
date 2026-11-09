@@ -23,7 +23,7 @@ const KINDS = {
 } as const;
 
 /* The sibling features PeekFeature drives, which the editor language hands over. */
-export interface PeekPeers {
+interface PeekPeers {
     readonly callHierarchy: { close(): void };
 }
 

@@ -5,7 +5,7 @@ import { CODE_TEXT } from '../code-text.ts';
 
 export type EditMove = 'next' | 'previous';
 
-export interface CellEditorProps {
+interface CellEditorProps {
     value: string;
     label: string;
     onValueChange(value: string): void;

@@ -6,7 +6,7 @@ export type CopyFormat = 'tsv' | 'csv' | 'json' | 'sql';
 
 export const COPY_FORMATS: readonly CopyFormat[] = ['tsv', 'csv', 'json', 'sql'];
 
-export interface CopyColumn {
+interface CopyColumn {
     readonly name: string;
     readonly kind: ValueKind;
 }

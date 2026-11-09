@@ -19,7 +19,7 @@ export const defaultClause = (expression: string): string => {
     return text.startsWith('(') && text.endsWith(')') ? text : `(${text})`;
 };
 
-export interface ColumnSqlOptions {
+interface ColumnSqlOptions {
     /* SQLite only: the column is the whole primary key, which an `AUTOINCREMENT` has to be declared on. */
     readonly inlinePrimaryKey?: boolean;
 }

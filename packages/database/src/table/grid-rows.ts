@@ -4,7 +4,7 @@ import { gridColumnOf, type GridColumn, type GridRow } from '../grid/types.ts';
 import type { EditValue, RowsResult, TableStructure } from '../protocol/index.ts';
 import { rowKeyOf, type PendingChanges } from './pending.ts';
 
-export type RowRef = { readonly kind: 'loaded'; readonly index: number } | { readonly kind: 'inserted'; readonly id: number };
+type RowRef = { readonly kind: 'loaded'; readonly index: number } | { readonly kind: 'inserted'; readonly id: number };
 
 export const loadedRowKey = (index: number): string => `row:${index}`;
 
@@ -21,7 +21,7 @@ export const buildGridColumns = (loaded: Pick<RowsResult, 'columns'>, structure:
     return loaded.columns.map((column) => gridColumnOf(column, infoOf(column.name), keys));
 };
 
-export interface GridRowsInput {
+interface GridRowsInput {
     readonly structure: TableStructure | null;
     readonly loaded: Pick<RowsResult, 'columns' | 'rows'>;
     readonly pending: PendingChanges;

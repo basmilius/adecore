@@ -19,14 +19,14 @@ export interface FilterChip {
     readonly sql: string;
 }
 
-export interface SortChip {
+interface SortChip {
     readonly kind: 'sort';
     readonly column: string;
     readonly direction: SortDirection;
 }
 
 /* An ORDER BY that is more than a list of columns, such as one with `NULLS LAST`, kept as it was written. */
-export interface OrderChip {
+interface OrderChip {
     readonly kind: 'order';
     readonly text: string;
 }
@@ -46,7 +46,7 @@ export type Suggestion =
     | { readonly kind: 'sql'; readonly chip: FilterChip };
 
 /* How many columns the suggestions list for what is typed. */
-export const SUGGESTED_COLUMNS = 4;
+const SUGGESTED_COLUMNS = 4;
 
 const OR = /\bor\b/i;
 const BARE_NAME = /^[A-Za-z_][\w$]*$/;
@@ -60,7 +60,7 @@ const IS_TEST = /^IS\s+(?:NOT\s+)?(?:NULL|TRUE|FALSE)$/i;
 /* A name being typed, or one that opened a quote. Whitespace after it means an operator is coming. */
 const NAME_BEING_TYPED = /^\s*(?:[\w$]*|[`"][^`"]*[`"]?)$/;
 
-export const chipKey = (chip: Chip): string => (chip.kind === 'sort' ? `sort:${chip.column}` : `${chip.kind}:${chip.kind === 'filter' ? chip.sql : chip.text}`);
+const chipKey = (chip: Chip): string => (chip.kind === 'sort' ? `sort:${chip.column}` : `${chip.kind}:${chip.kind === 'filter' ? chip.sql : chip.text}`);
 
 const isFilter = (chip: Chip): chip is FilterChip => chip.kind === 'filter';
 
@@ -153,7 +153,7 @@ export const sortChipsOf = (engine: Engine, orderBy: string): Chip[] => {
     return sorts === null ? [{ kind: 'order', text }] : sorts.map(sortChip);
 };
 
-export interface ChipSource {
+interface ChipSource {
     readonly where: string;
     readonly orderBy: string;
     readonly remembered?: readonly StoredFilter[];

@@ -26,7 +26,7 @@ export function subRowBand(top: number, subRows: number, lineHeight: number, win
     };
 }
 
-export interface LayoutDocument {
+interface LayoutDocument {
     getLineCount(): number;
     getLine(line: number): { start: number; end: number; next: number; text: string };
     positionAt(offset: number): Position;
@@ -103,7 +103,7 @@ export interface TextRow extends RowBase {
     replacement?: BlockReplacement;
 }
 
-export interface BlockRow extends RowBase {
+interface BlockRow extends RowBase {
     kind: 'block';
     widget: BlockWidget;
 }
@@ -118,7 +118,7 @@ export interface LayoutRect {
 }
 
 export const TEXT_PADDING = 0;
-export const BOTTOM_PADDING = 8;
+const BOTTOM_PADDING = 8;
 export const RIGHT_PADDING = 16;
 /* The room the platform keeps past the widest line, in columns of a space. */
 const ADDITIONAL_COLUMNS = 3;

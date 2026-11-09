@@ -7,7 +7,7 @@ import { CODE_TEXT } from '../code-text.ts';
 import type { DraftProblem } from '../ddl/index.ts';
 import { scriptOf, type Plan } from './plan.ts';
 
-export interface SqlPreviewProps {
+interface SqlPreviewProps {
     plan: Plan;
     className?: string;
     ref?: Ref<HTMLDivElement>;

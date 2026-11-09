@@ -36,7 +36,7 @@ export interface HippieCycle {
     proposal: Pick<Variant, 'text' | 'source' | 'side'>;
 }
 
-export interface HippiePlan {
+interface HippiePlan {
     edits: TextEdit[];
     carets: number[];
     /* Null when the cycle is over and the next press starts again. */
@@ -55,7 +55,7 @@ function isWordPart(character: string, hyphenated: boolean): boolean {
 }
 
 /* The words of a text in order. A word has a letter or a digit in it. */
-export function hippieWords(text: string, hyphenated: boolean): Word[] {
+function hippieWords(text: string, hyphenated: boolean): Word[] {
     const words: Word[] = [];
     let start = -1;
 
@@ -79,7 +79,7 @@ export function hippieWords(text: string, hyphenated: boolean): Word[] {
 }
 
 /* Where the word before the caret starts, which is the caret itself when it is not in a word. */
-export function hippiePrefixStart(text: string, caret: number, hyphenated: boolean): number {
+function hippiePrefixStart(text: string, caret: number, hyphenated: boolean): number {
     let start = caret;
 
     while (start > 0 && isWordPart(text[start - 1]!, hyphenated)) {

@@ -28,10 +28,10 @@ export const setFormatSource = (next: FormatSource): FormatSource => {
 const LANGUAGE_REGIONS: Record<string, string> = { en: 'en-US', nl: 'nl-NL' };
 
 /* So a format never depends on which machine ran the test. */
-export const FALLBACK_LOCALE = 'en-US';
+const FALLBACK_LOCALE = 'en-US';
 
 /* A month and a weekday are words, so they come from the language; the order, the separators and the clock come from the region. */
-export const wordLocale = (): string => source.language();
+const wordLocale = (): string => source.language();
 
 /* macOS hands out locales with overrides attached, and a formatter built on one `Intl` does not know throws. */
 const usable = (tag: string | undefined): string | null => {

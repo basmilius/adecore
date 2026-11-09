@@ -4,7 +4,7 @@
 import { extract, markup, markupAbbreviation, resolveConfig, type MarkupAbbreviationNode } from 'emmet';
 import type { MarkupSyntax } from './markup-context.ts';
 
-export interface AbbreviationOptions {
+interface AbbreviationOptions {
     readonly syntax: MarkupSyntax;
     /* One level of indentation inside the expansion. */
     readonly indent: string;
@@ -12,7 +12,7 @@ export interface AbbreviationOptions {
     readonly wrap?: readonly string[];
 }
 
-export interface FoundAbbreviation {
+interface FoundAbbreviation {
     readonly abbreviation: string;
     /* UTF-16 columns of the line, `end` past the caret when brackets the editor closed follow it. */
     readonly start: number;

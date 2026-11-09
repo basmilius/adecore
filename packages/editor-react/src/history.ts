@@ -7,7 +7,7 @@ import type { PickFeature } from './pick.ts';
 import { isShortcut } from './shortcut-keys.ts';
 
 /* The sibling features HistoryFeature drives, which the editor language hands over. */
-export interface HistoryPeers {
+interface HistoryPeers {
     readonly pick: Pick<PickFeature, 'locations'>;
 }
 

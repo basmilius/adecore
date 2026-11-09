@@ -53,7 +53,7 @@ function prefixLength(key: string, before: string): number {
 }
 
 /* The sibling features TemplatesFeature drives, which the editor language hands over. */
-export interface TemplatesPeers {
+interface TemplatesPeers {
     readonly completion: Pick<CompletionFeature, 'addSource' | 'close' | 'showItems'>;
     readonly markup: Pick<MarkupFeature, 'abbreviationAt'>;
     readonly pick: Pick<PickFeature, 'open'>;

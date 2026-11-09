@@ -9,7 +9,7 @@ interface Entry {
 /* A line this long is left uncolored: a grammar can spend seconds on it, and nobody reads it in colors. */
 const LONGEST_COLORED_LINE = 20000;
 
-export interface TokenSource {
+interface TokenSource {
     getLineCount(): number;
     getLineText(line: number): string;
 }

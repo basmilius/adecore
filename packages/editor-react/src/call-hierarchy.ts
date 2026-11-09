@@ -33,7 +33,7 @@ export const CALL_HIERARCHY_HEIGHT = PEEK_HEIGHT + 2;
 const OWNER = 'call-hierarchy';
 
 /* The sibling features CallHierarchyFeature drives, which the editor language hands over. */
-export interface CallHierarchyPeers {
+interface CallHierarchyPeers {
     readonly peek: { close(): void };
 }
 

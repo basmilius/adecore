@@ -35,12 +35,12 @@ function hexOf(color: Color): string {
 }
 
 /* The edits a presentation makes: its own text edit, or its label over the color, and the edits that come with it. */
-export function presentationEdits(presentation: ColorPresentation, information: ColorInformation): TextEdit[] {
+function presentationEdits(presentation: ColorPresentation, information: ColorInformation): TextEdit[] {
     return [presentation.textEdit ?? { range: information.range, newText: presentation.label }, ...(presentation.additionalTextEdits ?? [])];
 }
 
 /* The sibling features DocumentColorsFeature drives, which the editor language hands over. */
-export interface DocumentColorsPeers {
+interface DocumentColorsPeers {
     readonly pick: Pick<PickFeature, 'open'>;
 }
 

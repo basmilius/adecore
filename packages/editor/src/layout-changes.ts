@@ -1,7 +1,7 @@
 import type { DocumentChange } from '@adecore/editor-core';
 import { offsetMapper } from './offsets.ts';
 
-export interface LineBounds {
+interface LineBounds {
     start: number;
     end: number;
 }

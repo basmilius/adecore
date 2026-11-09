@@ -4,7 +4,7 @@ import { mapOffset } from './offsets.ts';
 import { indentationColumn } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
 
-export interface PasteOptions {
+interface PasteOptions {
     tabSize: number;
     insertSpaces: boolean;
     /* The text was copied from a caret with nothing selected. A caret with nothing selected takes it as lines above its own. */

@@ -19,7 +19,7 @@ export interface DiagramSvgOptions {
     layout?: DiagramLayout;
 }
 
-export const DEFAULT_DIAGRAM_MARGIN = 32;
+const DEFAULT_DIAGRAM_MARGIN = 32;
 
 /* What a node, a group and an edge wear when the file names no tone. */
 export const DEFAULT_NODE_TONE: DrawingColor = 'ink';

@@ -52,7 +52,7 @@ export interface PatchLimits {
     readonly maxCharacters?: number;
 }
 
-export const DEFAULT_PATCH_LIMITS = { maxLines: 50_000, maxCharacters: 4_000_000 } as const;
+const DEFAULT_PATCH_LIMITS = { maxLines: 50_000, maxCharacters: 4_000_000 } as const;
 
 const OTHER: PatchLayoutLine = { role: 'other', old: null, new: null };
 const FILE_HEADER: PatchLayoutLine = { role: 'file-header', old: null, new: null };

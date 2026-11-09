@@ -35,7 +35,7 @@ const NAME = /^[\w:.-]*$/;
 const NAME_BEFORE = /<\/?[\w:.-]*$/;
 
 /* The sibling features MarkupFeature drives, which the editor language hands over. */
-export interface MarkupPeers {
+interface MarkupPeers {
     readonly snippets: Pick<SnippetFeature, 'applyEdits' | 'begin' | 'beginInstances' | 'isActive' | 'token'>;
 }
 

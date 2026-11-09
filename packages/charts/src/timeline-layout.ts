@@ -133,7 +133,7 @@ export function durationTicks(total: number, count = 5): number[] {
     return ticks;
 }
 
-export interface TimelineBar {
+interface TimelineBar {
     /* Both in percent of the axis. */
     readonly left: number;
     readonly width: number;
@@ -172,7 +172,7 @@ export function kindTimes(rows: readonly TimelineTreeRow<TimelineSpan>[]): Map<s
     return times;
 }
 
-export type TimelineMove = { readonly focus: number } | { readonly expand: string } | { readonly collapse: string } | { readonly select: string };
+type TimelineMove = { readonly focus: number } | { readonly expand: string } | { readonly collapse: string } | { readonly select: string };
 
 /*
  * What a key does in the tree of rows, as in a tree view: Up and Down step, Home and End go to the ends, Right

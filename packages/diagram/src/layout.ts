@@ -89,7 +89,7 @@ export function groupLabelBaselineY(box: Pick<GroupBox, 'y'>): number {
     return box.y + Math.round(GROUP_LABEL_BAND * 0.7);
 }
 
-export interface NodeSize {
+interface NodeSize {
     w: number;
     h: number;
     label: string[];

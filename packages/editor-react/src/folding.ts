@@ -24,7 +24,7 @@ const BODIES: Readonly<Record<number, EditorFoldSymbol['body']>> = {
 };
 
 /* The symbols that have a body of more than one line, as what the editor folds them by. */
-export function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] {
+function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] {
     return symbolSpansOf(result).flatMap(({ kind, range }) => {
         const body = BODIES[kind];
 

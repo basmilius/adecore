@@ -20,7 +20,7 @@ function overlaps(edits: readonly TextEdit[]): boolean {
 }
 
 /* The sibling features FormatOnTypeFeature drives, which the editor language hands over. */
-export interface FormatOnTypePeers {
+interface FormatOnTypePeers {
     readonly snippets: Pick<SnippetFeature, 'applyEdits' | 'isActive' | 'token'>;
 }
 

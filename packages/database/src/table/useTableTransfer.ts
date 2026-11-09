@@ -17,7 +17,7 @@ export type TransferNotice =
 const NOTICE_MS = 8000;
 
 /* The import a person is setting up. */
-export interface ImportDraft {
+interface ImportDraft {
     readonly path: string;
     readonly format: ImportFormat;
     readonly header: boolean;
@@ -28,7 +28,7 @@ export interface ImportDraft {
     readonly error: string | null;
 }
 
-export interface TableTransferInput {
+interface TableTransferInput {
     readonly client: DatabaseClient;
     readonly session: DatabaseSession;
     /* Without the app's file dialogs there is no export and no import. */
@@ -45,7 +45,7 @@ export interface TableTransferInput {
     readonly report?: (notice: TransferNotice) => void;
 }
 
-export interface TableTransfer {
+interface TableTransfer {
     readonly notice: TransferNotice | null;
     readonly importDraft: ImportDraft | null;
     exportAs(format: FileFormat): void;

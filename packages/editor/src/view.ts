@@ -160,17 +160,17 @@ const STICKY_MAX_LINES = 5;
 const STICKY_ROW_SHARE = 4;
 
 /* A range of lines that folds: the document's own, or one a person made of a selection. */
-export type ViewFold = Omit<FoldingRange, 'kind'> & { kind: FoldingRange['kind'] | 'custom' };
+type ViewFold = Omit<FoldingRange, 'kind'> & { kind: FoldingRange['kind'] | 'custom' };
 
 /* A mark the host asked for, such as every use of the name under the caret. */
-export interface Occurrence {
+interface Occurrence {
     from: number;
     to: number;
     kind?: EditorHighlightKind;
 }
 
 /* A stretch of text the language servers classified, anchored to offsets that follow the text through edits. */
-export interface ViewSemanticToken {
+interface ViewSemanticToken {
     from: number;
     to: number;
     scopes: readonly string[];
@@ -178,7 +178,7 @@ export interface ViewSemanticToken {
 }
 
 /* A problem the host marked, anchored to offsets that follow the text through edits. */
-export interface GutterMarker {
+interface GutterMarker {
     id: string;
     line: number;
     label: string;
@@ -186,7 +186,7 @@ export interface GutterMarker {
     pressed?: boolean;
 }
 
-export interface ViewMarker {
+interface ViewMarker {
     severity: EditorMarkerSeverity;
     from: number;
     to: number;

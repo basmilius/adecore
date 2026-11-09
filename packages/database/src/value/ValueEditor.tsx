@@ -30,7 +30,7 @@ const WRAPPING_VIEWS: ReadonlySet<ViewId> = new Set(['text', 'formatted', 'utf8'
 const READING_FRAME = 'flex-1 rounded-lg border border-border bg-surface';
 const READING = `p-2 ${CODE_TEXT} text-text`;
 
-export interface ValueEditorProps {
+interface ValueEditorProps {
     column: GridColumn;
     value: Value;
     editable: boolean;

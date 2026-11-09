@@ -43,7 +43,7 @@ export const folderKey = (connectionId: string, schema: string, group: TableKind
 export const tableKey = (ref: TableRef): string => `t:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}`;
 
 /* The folders of a table, in the order they come under it. */
-export const PARTS = ['columns', 'keys', 'foreignKeys', 'indexes', 'checks', 'triggers'] as const;
+const PARTS = ['columns', 'keys', 'foreignKeys', 'indexes', 'checks', 'triggers'] as const;
 
 export type TablePart = (typeof PARTS)[number];
 
@@ -93,7 +93,7 @@ interface RowBase {
     readonly focusable: boolean;
 }
 
-export interface ConnectionRow extends RowBase {
+interface ConnectionRow extends RowBase {
     readonly kind: 'connection';
     readonly connection: Connection;
     readonly expanded: boolean;
@@ -103,7 +103,7 @@ export interface ConnectionRow extends RowBase {
     readonly schemaCount: { readonly shown: number; readonly total: number } | null;
 }
 
-export interface SchemaRow extends RowBase {
+interface SchemaRow extends RowBase {
     readonly kind: 'schema';
     readonly connection: Connection;
     readonly schema: string;
@@ -111,7 +111,7 @@ export interface SchemaRow extends RowBase {
 }
 
 /* The "Tables" or the "Views" of a schema; it exists only when the schema has some. */
-export interface FolderRow extends RowBase {
+interface FolderRow extends RowBase {
     readonly kind: 'folder';
     readonly connection: Connection;
     readonly schema: string;
@@ -138,7 +138,7 @@ export interface ColumnRow extends RowBase {
 }
 
 /* One of the folders a table opens into, which exists only when it holds something. */
-export interface PartRow extends RowBase {
+interface PartRow extends RowBase {
     readonly kind: 'part';
     readonly ref: TableRef;
     readonly part: TablePart;
@@ -147,7 +147,7 @@ export interface PartRow extends RowBase {
 }
 
 /* What a folder of a table holds besides its columns. */
-export type TableEntry =
+type TableEntry =
     | { readonly type: 'key'; readonly name: string | null; readonly columns: readonly string[]; readonly primary: boolean }
     | { readonly type: 'foreignKey'; readonly foreignKey: ForeignKeyInfo }
     | { readonly type: 'index'; readonly index: IndexInfo }
@@ -160,7 +160,7 @@ export interface EntryRow extends RowBase {
     readonly entry: TableEntry;
 }
 
-export interface LoadingRow extends RowBase {
+interface LoadingRow extends RowBase {
     readonly kind: 'loading';
 }
 
@@ -171,7 +171,7 @@ export interface ErrorRow extends RowBase {
 }
 
 /* A folder of the app's own under a connection. */
-export interface AppFolderRow extends RowBase {
+interface AppFolderRow extends RowBase {
     readonly kind: 'appFolder';
     readonly connection: Connection;
     readonly folder: ExplorerFolder;
@@ -180,14 +180,14 @@ export interface AppFolderRow extends RowBase {
     readonly count: number;
 }
 
-export interface AppItemRow extends RowBase {
+interface AppItemRow extends RowBase {
     readonly kind: 'appItem';
     readonly connection: Connection;
     readonly item: ExplorerItem;
 }
 
 /* A connection without schemas, a schema without tables or a table without columns. */
-export interface EmptyRow extends RowBase {
+interface EmptyRow extends RowBase {
     readonly kind: 'empty';
     readonly of: 'schemas' | 'tables' | 'columns';
 }
@@ -275,7 +275,7 @@ export interface TreeInput {
     folders?(connectionId: string): readonly ExplorerFolder[];
 }
 
-export const visibleSchemas = (schemas: readonly SchemaInfo[], showSystemSchemas: boolean): readonly SchemaInfo[] =>
+const visibleSchemas = (schemas: readonly SchemaInfo[], showSystemSchemas: boolean): readonly SchemaInfo[] =>
     showSystemSchemas ? schemas : schemas.filter((schema) => !schema.system);
 
 /* One schema is no level worth a row, so its folders hang straight under the connection. */
@@ -309,7 +309,7 @@ const pendingDraft = (load: Exclude<Load<unknown>, { status: 'ready' }>, retry: 
 const matches = (name: string, query: string): boolean => name.toLowerCase().includes(query);
 
 /* What each folder of a table besides its columns holds: the primary key and the unique keys, the foreign keys, the other indexes, the checks and the triggers. */
-export const tableEntries = (structure: TableStructure): Readonly<Record<Exclude<TablePart, 'columns'>, readonly TableEntry[]>> => {
+const tableEntries = (structure: TableStructure): Readonly<Record<Exclude<TablePart, 'columns'>, readonly TableEntry[]>> => {
     const primaryIndex = structure.indexes.find((index) => index.primary);
 
     const primary: TableEntry[] =
@@ -633,7 +633,7 @@ export const neededLoads = (input: Omit<TreeInput, 'filter'>): LoadTarget[] => {
     return needed;
 };
 
-export type TreeAction =
+type TreeAction =
     | { readonly type: 'focus'; readonly key: string }
     | { readonly type: 'expand'; readonly key: string }
     | { readonly type: 'collapse'; readonly key: string }

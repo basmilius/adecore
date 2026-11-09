@@ -13,7 +13,7 @@ const PAUSE_MS = 150;
 
 const KINDS: Record<number, EditorHighlightKind> = { 1: 'text', 2: 'read', 3: 'write' };
 
-export function editorHighlightsOf(highlights: readonly DocumentHighlight[]): EditorHighlight[] {
+function editorHighlightsOf(highlights: readonly DocumentHighlight[]): EditorHighlight[] {
     return highlights
         .filter((highlight) => comparePositions(highlight.range.start, highlight.range.end) < 0)
         .map((highlight) => ({ range: highlight.range, kind: KINDS[highlight.kind ?? 1] ?? 'text' }))
@@ -21,7 +21,7 @@ export function editorHighlightsOf(highlights: readonly DocumentHighlight[]): Ed
 }
 
 /* The range before the caret when stepping back, or after it when stepping forward, wrapping round the document; null for no ranges. */
-export function neighborRange(ranges: readonly EditorRange[], from: EditorPosition, direction: 1 | -1): EditorRange | null {
+function neighborRange(ranges: readonly EditorRange[], from: EditorPosition, direction: 1 | -1): EditorRange | null {
     if (ranges.length === 0) {
         return null;
     }

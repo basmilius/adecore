@@ -26,7 +26,7 @@ import type {
 import type { EditorView } from './view.ts';
 import { WheelZoom } from './zoom.ts';
 
-export interface ControllerOptions {
+interface ControllerOptions {
     /* Read on every key press, so a rebind reaches an editor that is already open. */
     keymap(): Keymap | undefined;
     handBack(): readonly KeyChord[];

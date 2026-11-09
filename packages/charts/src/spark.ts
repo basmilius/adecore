@@ -2,7 +2,7 @@ const GAP = 2;
 /* The shortest column that still reads as a bar rather than a dot. */
 const MIN_HEIGHT = 4;
 
-export interface SparkColumn {
+interface SparkColumn {
     readonly x: number;
     readonly y: number;
     readonly width: number;

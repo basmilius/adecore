@@ -5,7 +5,7 @@ import { DatabaseRequestError } from '../client/types.ts';
 import type { DockerContainer } from '../protocol/index.ts';
 
 /* `unsupported` is a machine without Docker, or one the app cannot ask. */
-export type DockerState =
+type DockerState =
     | { readonly status: 'loading' }
     | { readonly status: 'ready'; readonly containers: readonly DockerContainer[] }
     | { readonly status: 'unsupported'; readonly message: string }

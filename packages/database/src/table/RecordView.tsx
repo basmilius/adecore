@@ -31,7 +31,7 @@ import type { EditValue, Value } from '../protocol/index.ts';
 import { isNumericKind } from '../sql.ts';
 import { ValueEditor } from '../value/ValueEditor.tsx';
 
-export interface RecordViewProps {
+interface RecordViewProps {
     columns: readonly GridColumn[];
     rows: readonly GridRow[];
     /* The row shown, an index into `rows`; -1 shows none. */

@@ -2,7 +2,7 @@ import type { App, BrowserWindow, Rectangle, WebContents } from 'electron';
 import { reachableOn, type WindowSize, type WindowState, type WindowStateStorage } from './window-state.ts';
 
 /* The key a window that shows no project keeps its bounds under, such as a start screen. */
-export const UNKEYED_STATE = 'start';
+const UNKEYED_STATE = 'start';
 
 /* How far a new window sits from the one in front, when its key has no bounds of its own. */
 export const CASCADE = 24;

@@ -76,7 +76,7 @@ function samePlace(range: EditorRange | null, position: EditorPosition): boolean
 }
 
 /* The sibling features RenderedDocsFeature drives, which the editor language hands over. */
-export interface RenderedDocsPeers {
+interface RenderedDocsPeers {
     readonly navigation: Pick<NavigationFeature, 'goToName'>;
 }
 

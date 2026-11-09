@@ -5,14 +5,14 @@ import type { ChartRect } from './types.ts';
 export type Drawn = SeriesEntry['kind'] | 'marker' | 'band' | 'groups';
 
 /* A segment across the plot, in the coordinates of its svg. */
-export interface PlotLine {
+interface PlotLine {
     readonly x1: number;
     readonly x2: number;
     readonly y1: number;
     readonly y2: number;
 }
 
-export interface RuleLabel {
+interface RuleLabel {
     readonly x: number;
     readonly y: number;
     readonly dy?: string;

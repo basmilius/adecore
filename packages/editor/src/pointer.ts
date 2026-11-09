@@ -2,7 +2,7 @@ import type { DocumentModel, Selection } from '@adecore/editor-core';
 import type { ContentPoint } from './column-selection.ts';
 
 /* A visual line as the layout knows it: a wrapped line is as many as it has rows and a collapsed fold is one. */
-export interface VisualLine {
+interface VisualLine {
     start: number;
     end: number;
     next: number;

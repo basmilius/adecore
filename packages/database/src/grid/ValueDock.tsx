@@ -3,10 +3,10 @@ import clsx from 'clsx';
 import { useRef, useState, type ReactNode, type Ref } from 'react';
 import { assignRef } from '../assign-ref.ts';
 
-export const VALUE_PANEL_WIDTH = 320;
-export const VALUE_PANEL_MIN_WIDTH = 240;
+const VALUE_PANEL_WIDTH = 320;
+const VALUE_PANEL_MIN_WIDTH = 240;
 
-export interface ValueDockProps {
+interface ValueDockProps {
     open: boolean;
     /* Drawn on the right of the children while the dock is open. */
     panel: ReactNode;

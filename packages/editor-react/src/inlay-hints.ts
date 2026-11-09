@@ -21,16 +21,16 @@ const DOUBLE_PRESS_MS = 500;
 /* Lines asked for above and below what is in view, so a little scrolling stays inside what is already drawn. */
 const MARGIN_LINES = 60;
 
-export function hintLabelOf(hint: InlayHint): string {
+function hintLabelOf(hint: InlayHint): string {
     return typeof hint.label === 'string' ? hint.label : hint.label.map((part) => part.value).join('');
 }
 
-export function drawableHints(hints: readonly InlayHint[]): InlayHint[] {
+function drawableHints(hints: readonly InlayHint[]): InlayHint[] {
     return hints.filter((hint) => hintLabelOf(hint) !== '').sort((left, right) => comparePositions(left.position, right.position));
 }
 
 /* A hint as the editor draws it: a label with parts keeps them apart so each can be pointed at. */
-export function editorHintOf(hint: InlayHint, id: string): EditorInlayHint {
+function editorHintOf(hint: InlayHint, id: string): EditorInlayHint {
     return {
         id,
         position: hint.position,
@@ -53,7 +53,7 @@ export function covers(asked: EditorRange, visible: EditorRange): boolean {
 }
 
 /* The words of a tooltip: plain text is escaped so it reads as typed, Markdown goes through the hover card's own rendering. */
-export function tooltipTextOf(tooltip: string | MarkupContent | undefined): HoverText | null {
+function tooltipTextOf(tooltip: string | MarkupContent | undefined): HoverText | null {
     if (tooltip === undefined) {
         return null;
     }
@@ -80,7 +80,7 @@ export function tooltipOf(hint: InlayHint, index: number | null): HoverText | nu
 }
 
 /* Whether a server could still say more about the hint: nothing in it gives a tooltip, a place or a command yet. */
-export function lacksInfo(hint: InlayHint, index: number | null): boolean {
+function lacksInfo(hint: InlayHint, index: number | null): boolean {
     if (hint.tooltip !== undefined) {
         return false;
     }
@@ -91,7 +91,7 @@ export function lacksInfo(hint: InlayHint, index: number | null): boolean {
 }
 
 /* Whether the edits fit the text as it is now: positions inside it, each range in order, none overlapping the next. */
-export function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
+function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
     const end = editor.positionAt(Number.MAX_SAFE_INTEGER);
 
     const inside = (position: EditorPosition): boolean =>
@@ -124,7 +124,7 @@ type Action =
     | { readonly kind: 'insert'; readonly edits: TextEdit[] };
 
 /* What a press does, from what is known of the hint: a double click inserts it and nothing else, Mod+click follows a part's place, a plain click runs its command. */
-export function actionOf(hint: InlayHint, click: Pick<EditorInlayClick, 'part' | 'mod' | 'clicks'>): Action | null {
+function actionOf(hint: InlayHint, click: Pick<EditorInlayClick, 'part' | 'mod' | 'clicks'>): Action | null {
     if (click.clicks === 2) {
         return hint.textEdits !== undefined && hint.textEdits.length > 0 ? { kind: 'insert', edits: hint.textEdits } : null;
     }
@@ -149,7 +149,7 @@ interface Entry {
 }
 
 /* The sibling features InlayHintsFeature drives, which the editor language hands over. */
-export interface InlayHintsPeers {
+interface InlayHintsPeers {
     readonly hover: { hide(): void; release(): void; showText(position: EditorPosition, text: HoverText): void };
 }
 

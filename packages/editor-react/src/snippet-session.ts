@@ -77,7 +77,7 @@ interface Frame {
     readonly exits: Map<number, number>;
 }
 
-export interface SnippetInsertion {
+interface SnippetInsertion {
     readonly start: EditorPosition;
     readonly text: string;
     readonly stops: readonly SnippetStop[];
@@ -87,7 +87,7 @@ export interface SnippetInsertion {
 type SnippetHost = Pick<LanguageContext, 'editor' | 'onDispose'> & Partial<Pick<LanguageContext, 'popups' | 'project' | 'onKey'>>;
 
 /* The choice list, when the editor has one. */
-export interface SnippetPeers {
+interface SnippetPeers {
     readonly pick?: Pick<PickFeature, 'close' | 'open'>;
 }
 

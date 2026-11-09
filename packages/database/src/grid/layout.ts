@@ -14,7 +14,7 @@ export const MAX_FIT_WIDTH = 640;
 export const ROW_BLOCK = 16;
 
 /* Two presses on a resize handle this close are a double click. */
-export const DOUBLE_CLICK_MS = 350;
+const DOUBLE_CLICK_MS = 350;
 
 /* What a viewport is taken to be until it is measured, so a first paint already holds rows. */
 export const FALLBACK_VIEWPORT_HEIGHT = 600;
@@ -29,7 +29,7 @@ const SAMPLE_ROWS = 50;
 /* The arrow and the position number a sorted header carries after its name. */
 const SORT_ROOM = 24;
 
-export interface VisibleRange {
+interface VisibleRange {
     /* Index of the first row to draw. */
     readonly start: number;
     /* One past the last row to draw. */

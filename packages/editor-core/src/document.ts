@@ -139,7 +139,7 @@ interface TypingInput {
 }
 
 /* The row of the screen an offset is on: where it starts and where it ends, which is where the next one starts when the line wraps. */
-export type VisualLineOf = (offset: number) => { start: number; end: number };
+type VisualLineOf = (offset: number) => { start: number; end: number };
 
 /* A caret made by cloning another, with the columns it keeps wherever the lines it crosses are short. */
 interface CaretClone {

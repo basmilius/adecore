@@ -7,7 +7,7 @@ import type { GridColumn } from './types.ts';
 /* What a cell shows: a cell of a result, or the column's default for a value an edit set to `DEFAULT`. */
 export type Shown = Cell | { readonly kind: 'default' };
 
-export type CellTone = 'value' | 'null' | 'default';
+type CellTone = 'value' | 'null' | 'default';
 
 export interface CellView {
     readonly text: string;

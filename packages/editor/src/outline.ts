@@ -3,7 +3,7 @@ import { offsetMapper } from './offsets.ts';
 import type { EditorBlock } from './types.ts';
 
 /* A block with a header line, in zero-based lines and both ends inclusive. */
-export interface OutlineBlock {
+interface OutlineBlock {
     startLine: number;
     endLine: number;
     /* What a breadcrumb calls it. Blocks of the editor's own structure only have one when their header declares something. */
@@ -19,7 +19,7 @@ interface OutlineEntry {
     kind?: string;
 }
 
-export interface OutlineDocument {
+interface OutlineDocument {
     getLine(line: number): { start: number; end: number; text: string };
     positionAt(offset: number): { line: number };
     getLineCount(): number;
@@ -256,7 +256,7 @@ export class Outline {
 }
 
 /* Where the rows of the document are, which the pinned headers are placed by. */
-export interface StickyRows {
+interface StickyRows {
     /* The top and the bottom of the row a line is drawn in. */
     top(line: number): number;
     bottom(line: number): number;

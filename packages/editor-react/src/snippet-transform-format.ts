@@ -330,7 +330,7 @@ export function validateSnippetTransformJobs(jobs: readonly SnippetTransformJob[
     }
 }
 
-export interface SnippetTransformBudget {
+interface SnippetTransformBudget {
     remaining: number;
     matches: number;
 }

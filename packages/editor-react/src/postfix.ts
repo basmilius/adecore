@@ -47,7 +47,7 @@ function rowLabel(text: string): string {
 }
 
 /* The sibling features PostfixFeature drives, which the editor language hands over. */
-export interface PostfixPeers {
+interface PostfixPeers {
     readonly completion: Pick<CompletionFeature, 'close' | 'showItems'>;
     readonly pick: Pick<PickFeature, 'open'>;
     readonly snippets: InsertingSnippets;

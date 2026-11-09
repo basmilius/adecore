@@ -67,7 +67,7 @@ export interface RowActions {
     changeDraft(draft: string): void;
 }
 
-export interface GridRowViewProps {
+interface GridRowViewProps {
     row: GridRow;
     index: number;
     selected: boolean;

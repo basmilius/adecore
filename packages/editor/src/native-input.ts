@@ -9,7 +9,7 @@ interface InputContext {
     end: number;
 }
 
-export interface NativeInputHost {
+interface NativeInputHost {
     readOnly(): boolean;
     replace(text: string): void;
     /* One typed character, with the pairing and the overtyping a keystroke gets. */

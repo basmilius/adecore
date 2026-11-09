@@ -1,10 +1,10 @@
-export interface RowSelection {
+interface RowSelection {
     readonly selected: ReadonlySet<string>;
     /* The row a Shift-click extends from. */
     readonly anchor: number;
 }
 
-export interface RowClick {
+interface RowClick {
     readonly shiftKey: boolean;
     readonly mod: boolean;
 }

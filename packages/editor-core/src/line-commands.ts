@@ -8,7 +8,7 @@ import { mapOffset } from './offsets.ts';
 import type { Selection, TextEdit } from './types.ts';
 import type { TypingContext } from './typing-state.ts';
 
-export interface LineCommandOptions {
+interface LineCommandOptions {
     language: string;
     /* One level of indentation. */
     unit: string;

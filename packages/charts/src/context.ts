@@ -6,7 +6,7 @@ import type { ContinuousXScale, Stacked, YAxisScale } from './scale.ts';
 import type { BandEntry, ChartStore, MarkerEntry, SeriesEntry } from './store.ts';
 import type { ChartNote, ChartRect, ChartX, ChartXScale } from './types.ts';
 
-export interface ChartSlots {
+interface ChartSlots {
     readonly legend: HTMLElement | null;
     readonly table: HTMLElement | null;
     readonly tooltip: HTMLElement | null;
@@ -122,7 +122,7 @@ export function useChartContext(part: string): ChartContextValue {
 /* The `Chart.Bars` a `Chart.Bar` is drawn in. */
 export const BarsContext = createContext<{ id: string; stack: boolean } | null>(null);
 
-export interface GroupCursor {
+interface GroupCursor {
     readonly x: ChartX | null;
     /* The chart the pointer or the keyboard is in, the one that shows its tooltip. */
     readonly owner: string | null;

@@ -3,7 +3,7 @@ export interface CellPosition {
     readonly column: number;
 }
 
-export interface GridSize {
+interface GridSize {
     readonly rows: number;
     readonly columns: number;
     /* How many rows a PageUp or PageDown moves. */

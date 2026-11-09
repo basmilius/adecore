@@ -135,7 +135,7 @@ function fillRun(
     }
 }
 
-export function lineElement(
+function lineElement(
     document: Document,
     geometry: LineGeometry,
     tokens: readonly LineToken[] | null,
@@ -493,7 +493,7 @@ export class RowPainter {
     }
 }
 
-export interface GutterPaint {
+interface GutterPaint {
     lineNumber(line: number): string | null;
     activeLines: ReadonlySet<number>;
     /* How the lines the host marked differ from what it compares against. */
@@ -656,7 +656,7 @@ export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: 
     container.replaceChildren(fragment);
 }
 
-export interface OverlayPaint {
+interface OverlayPaint {
     currentLine: LayoutRect | null;
     selections: readonly LayoutRect[];
     focused: boolean;
@@ -796,7 +796,7 @@ const SVG = 'http://www.w3.org/2000/svg';
  * An arrow as the platform draws a tab or a soft wrap: a line across the middle of half a line's height,
  * ending in a head that points right with a bar behind it, in as much room as it has.
  */
-export function arrowSign(document: Document, width: number, lineHeight: number, className: string): SVGSVGElement {
+function arrowSign(document: Document, width: number, lineHeight: number, className: string): SVGSVGElement {
     const svg = document.createElementNS(SVG, 'svg');
     svg.setAttribute('class', className);
     svg.setAttribute('width', String(Math.max(1, Math.round(width))));

@@ -1,14 +1,14 @@
 /* `vue` and `php` are HTML with interpolations or code blocks a markup feature leaves alone. */
 export type MarkupSyntax = 'html' | 'xml' | 'vue' | 'php';
 
-export interface OpenElement {
+interface OpenElement {
     readonly name: string;
     /* The offset of the first character of the name, after the `<`. */
     readonly nameFrom: number;
 }
 
 /* The tag an offset is in, from its `<` up to and including its `>`. */
-export interface TagAt {
+interface TagAt {
     readonly start: number;
     readonly closing: boolean;
     readonly name: string;
@@ -18,25 +18,25 @@ export interface TagAt {
     readonly inValue: boolean;
 }
 
-export type MarkupPlace =
+type MarkupPlace =
     | { readonly kind: 'text'; readonly open: readonly OpenElement[] }
     | { readonly kind: 'tag'; readonly tag: TagAt }
     | { readonly kind: 'other' };
 
 /* The names of an element that are one start tag and its end tag, which change together. */
-export interface TagPair {
+interface TagPair {
     readonly open: { readonly from: number; readonly to: number };
     readonly close: { readonly from: number; readonly to: number };
 }
 
 /* A whole tag, from its `<` up to and after its `>`. */
-export interface TagSpan {
+interface TagSpan {
     readonly from: number;
     readonly to: number;
 }
 
 /* An element as its tags: `close` is null for one that was never closed. */
-export interface EnclosingElement {
+interface EnclosingElement {
     readonly name: string;
     readonly open: TagSpan;
     readonly close: TagSpan | null;

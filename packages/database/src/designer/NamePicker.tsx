@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 
-export interface NamePickerProps {
+interface NamePickerProps {
     /* Every name that can be picked, in the order to show them. */
     options: readonly string[];
     /* The names picked, in the order they were picked. For a key that order is the order of its columns. */

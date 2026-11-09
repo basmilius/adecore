@@ -4,7 +4,7 @@ import type { z } from 'zod';
 export type UiPlaces = 'coordinates' | 'addresses';
 
 /* What an entry says to a host that looks addresses up: its own description and needs, and the prop only such a host reads. */
-export interface UiLookup {
+interface UiLookup {
     readonly prop: string;
     readonly description: string;
     readonly needs: string;

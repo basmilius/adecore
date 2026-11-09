@@ -27,7 +27,7 @@ export interface Inlay {
     swatch?: string;
 }
 
-export interface TextRun {
+interface TextRun {
     /* Line-relative offsets let preceding edits move a line without rewriting its runs. */
     from: number;
     to: number;
@@ -37,7 +37,7 @@ export interface TextRun {
     text: string;
 }
 
-export interface InlineBox {
+interface InlineBox {
     inlay: Inlay;
     x: number;
     width: number;

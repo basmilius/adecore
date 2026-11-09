@@ -19,7 +19,7 @@ const MAX_PARALLEL = 3;
 const SCROLL_PAUSE_MS = 150;
 
 /* Past this many lines a file gets no rows at all, which is also what keeps blame and the walk of symbols cheap. */
-export const MAX_LINES = 20_000;
+const MAX_LINES = 20_000;
 
 export interface CodeVisionSettings {
     readonly usages: boolean;
@@ -35,7 +35,7 @@ export type BlameSource =
     | { readonly kind: 'ready'; readonly blame: GitBlameResult; readonly base: string; openCommit?(hash: string): void };
 
 /* What the code vision feature takes from its sibling features, which the editor language hands over. */
-export interface CodeVisionPeers {
+interface CodeVisionPeers {
     /* Told whenever the document symbols are read; returns the way to stop listening. */
     onSymbols(listener: (result: DocumentSymbolResult) => void): () => void;
     readonly peek: { open(position: EditorPosition): Promise<void> };

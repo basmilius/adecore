@@ -7,7 +7,7 @@ import { pathOfRow, visibleRows, visibleRowsAround } from './helpers.ts';
 import { matchHighlight, rangesOfMatches } from './highlight.ts';
 import { FILE_TREE_CSS } from './style.ts';
 
-export interface RowSlot {
+interface RowSlot {
     row: FileTreeVisibleRow;
     control: HTMLElement;
     decoration: HTMLElement;
@@ -27,7 +27,7 @@ export interface Port {
     unhover?(): void;
 }
 
-export type FileTreeRowIcon = (row: FileTreeVisibleRow) => LucideIcon | undefined;
+type FileTreeRowIcon = (row: FileTreeVisibleRow) => LucideIcon | undefined;
 
 /*
  * Read from the spacer beta.6 puts above the mounted window, so a scroll frame copies those rows and not
@@ -106,7 +106,7 @@ function setSpace(row: HTMLElement, name: string, space: number): void {
     }
 }
 
-export interface FileTreeSlotOptions {
+interface FileTreeSlotOptions {
     order: FileTreeDecorationOrder;
     rowIcon?: FileTreeRowIcon;
 

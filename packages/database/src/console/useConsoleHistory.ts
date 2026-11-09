@@ -10,7 +10,7 @@ interface Loaded {
     readonly changed: boolean;
 }
 
-export interface ConsoleHistory {
+interface ConsoleHistory {
     readonly entries: readonly HistoryEntry[];
     record(entry: HistoryEntry): void;
     clear(): void;

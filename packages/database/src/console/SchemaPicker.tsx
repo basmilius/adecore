@@ -3,7 +3,7 @@ import type { Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SchemaInfo } from '../protocol/index.ts';
 
-export interface SchemaPickerProps {
+interface SchemaPickerProps {
     schemas: readonly SchemaInfo[];
     /* `null` while the statements run in whatever the session has selected. */
     value: string | null;
