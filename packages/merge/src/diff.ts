@@ -28,7 +28,6 @@ interface Move {
     y: number;
 }
 
-/* Whether a diagonal's furthest reach steps in from diagonal + 1 (an insert) rather than diagonal - 1 (a delete). */
 function cameDown(reach: Int32Array, offset: number, diagonal: number, distance: number): boolean {
     return diagonal === -distance || (diagonal !== distance && reach[offset + diagonal - 1]! < reach[offset + diagonal + 1]!);
 }
@@ -67,7 +66,6 @@ function extend(left: readonly string[], right: readonly string[], reach: Int32A
     return false;
 }
 
-/* The path back from the far corner, one edit per step, in the order the file reads. */
 function backtrack(left: readonly string[], right: readonly string[], saved: readonly Int32Array[], distance: number, offset: number): Move[] {
     const moves: Move[] = [];
     let x = left.length;
@@ -133,7 +131,6 @@ function walk(left: readonly string[], right: readonly string[], maxWork?: numbe
     return { moves: null, limited: false };
 }
 
-/* The stretches the moves cover, with edits that follow each other straight away folded into one. */
 function changesOf(moves: readonly Move[]): Change[] {
     const changes: Change[] = [];
     let current: Change | null = null;
@@ -169,7 +166,6 @@ function changesOf(moves: readonly Move[]): Change[] {
     return changes;
 }
 
-/* Where `other` differs from `base`, in line stretches, in the order they appear. */
 export function diffLines(base: readonly string[], other: readonly string[]): Change[] {
     return diffChanges(base, other).changes;
 }

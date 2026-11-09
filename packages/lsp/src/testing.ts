@@ -92,7 +92,6 @@ export class FakeLanguageServer {
         this.connection.onRequest(method, handler);
     }
 
-    /* The params of every request or notification of `method`, in the order they came. */
     paramsOf(method: string): unknown[] {
         return this.received.filter((message) => message.method === method).map((message) => message.params);
     }

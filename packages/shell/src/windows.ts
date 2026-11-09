@@ -151,7 +151,6 @@ export const createWindows = (options: WindowsOptions) => {
 
     const holderOf = (key: string): Entry | null => alive().find((entry) => entry.key === key || entry.held.includes(key)) ?? null;
 
-    /* Takes a key out of the window that has it, shown or kept. */
     const release = (entry: Entry, key: string): void => {
         if (entry.key === key) {
             entry.key = null;
@@ -464,7 +463,6 @@ export const createWindows = (options: WindowsOptions) => {
          */
         bringBack,
 
-        /* The window that shows or keeps a key, if any. */
         holderOf: (key: string): BrowserWindow | null => holderOf(key)?.window ?? null,
 
         /* The app window under a point on the screen, the one last in front first, leaving out `except`. */

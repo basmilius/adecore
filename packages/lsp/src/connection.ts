@@ -1,7 +1,6 @@
 import { asError } from './as-error.ts';
 import type { Disposable, LspTransport, RequestId, RequestOptions, RpcMessage, RpcRequest, WorkDoneProgress } from './protocol.ts';
 
-/* The JSON-RPC and LSP codes this package answers with. */
 export const ErrorCodes = {
     InvalidRequest: -32600,
     MethodNotFound: -32601,
@@ -47,7 +46,6 @@ function cancelledError(): LspError {
     return new LspError('Request cancelled', ErrorCodes.RequestCancelled);
 }
 
-/* JSON-RPC 2.0 over an `LspTransport`: correlation, cancellation, and the requests a server sends back. */
 export class JsonRpcConnection {
     readonly transport: LspTransport;
     readonly timeoutMs: number;
@@ -125,7 +123,6 @@ export class JsonRpcConnection {
         });
     }
 
-    /* Adds the tokens of partial results and work-done progress to the params of a request, and hears `$/progress` for them. */
     private progressOf(id: RequestId, params: unknown, options: RequestOptions): { params: unknown; listening?: Disposable } {
         const { onPartialResult, onWorkDoneProgress } = options;
         if ((onPartialResult === undefined && onWorkDoneProgress === undefined) || params === null || typeof params !== 'object' || Array.isArray(params)) {

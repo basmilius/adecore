@@ -80,7 +80,6 @@ export interface SettingsDialogProps {
 
     onTargetShown?(): void;
 
-    /* On the popup. */
     className?: string;
 
     ref?: Ref<HTMLDivElement>;

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { documentLanguageId, lspLanguageId, lspLanguageIdOf, SCRIPT_LANGUAGE_IDS } from './language-ids.ts';
 
-/* Each name a client, a highlighter or a file extension uses, and the id the language server is told. */
 const IDS: ReadonlyArray<readonly [string, string]> = [
     ['typescript', 'typescript'],
     ['ts', 'typescript'],

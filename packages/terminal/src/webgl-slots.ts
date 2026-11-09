@@ -36,7 +36,6 @@ export class WebglSlots {
     private outputSwitchedAt = Number.NEGATIVE_INFINITY;
     private readonly now: () => number;
 
-    /* `now` is a clock in milliseconds. */
     constructor(cap: number = DEFAULT_WEBGL_CONTEXTS, now: () => number = () => performance.now()) {
         this.cap = Math.max(1, cap);
         this.now = now;

@@ -40,7 +40,6 @@ export interface TerminalViewHandle {
 
 export interface TerminalViewProps {
     ref?: Ref<TerminalViewHandle>;
-    /* What the person types or pastes. */
     onData?(data: string): void;
     /* The grid changed after the container or the font did, which is what the program should be told.
        Not called for the grid at mount, which `size()` has, unless the host had no room then: its first fit comes here. */

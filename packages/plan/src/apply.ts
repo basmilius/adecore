@@ -118,7 +118,6 @@ function setNote(step: PlanStep, text: string): void {
     }
 }
 
-/* The array a new or moved item goes into and where, or a refusal. */
 function placeFor(
     plan: Plan,
     type: PlanItem['type'],

@@ -18,7 +18,6 @@ export interface SavedWindow {
     fullScreen: boolean;
 }
 
-/* The part of a display the fit reads. */
 export interface WindowDisplay {
     readonly workArea: Rectangle;
 
@@ -34,7 +33,6 @@ const overlap = (a: Rectangle, b: Rectangle): WindowSize => ({
     height: Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y))
 });
 
-/* The display that shows enough of a window to grab it, if any. */
 export const reachableOn = (bounds: Rectangle, displays: readonly WindowDisplay[]): WindowDisplay | null =>
     displays.find(({ workArea }) => {
         const shared = overlap(bounds, workArea);
@@ -67,7 +65,6 @@ export const fitBounds = (saved: Rectangle | null, displays: readonly WindowDisp
     return { width: defaults.width, height: defaults.height };
 };
 
-/* The part of a window the store reads and listens to. */
 export type StateWindow = Pick<
     BrowserWindow,
     'getNormalBounds' | 'isMaximized' | 'isFullScreen' | 'isDestroyed' | 'maximize' | 'setFullScreen' | 'on' | 'once'
@@ -243,7 +240,6 @@ export const createWindowState = (options: WindowStateOptions) => {
 
         has: (key: string): boolean => windows.has(key),
 
-        /* The displays as they are now, from `displays`. */
         displays: (): readonly WindowDisplay[] => options.displays(),
 
         /* Bounds moved onto a display the way a window opens; only a size when no display shows enough of them. */

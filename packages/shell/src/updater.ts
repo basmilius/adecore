@@ -28,7 +28,6 @@ export interface UpdaterOptions {
     packaged: boolean;
     /* `require('electron-updater').autoUpdater`, loaded only in a packaged app. */
     load: () => AppUpdater;
-    /* Every change of the state, for the pages that draw it. */
     publish: (state: UpdateState) => void;
     /* Right before a check asks the feed, such as to refresh release notes along with it. */
     beforeCheck?: () => void;

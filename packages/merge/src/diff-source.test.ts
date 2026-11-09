@@ -12,7 +12,6 @@ function patch(text: string): DiffDocument {
     return diffDocument(parsePatch(text), undefined);
 }
 
-/* The rows of the old pane of a split, with both of their sides. */
 function oldPane(document: DiffDocument): DiffLineRow[] {
     return diffSplit(document).aligned.flatMap((entry) => (entry.kind === 'line' && entry.old !== undefined ? [entry.row] : []));
 }

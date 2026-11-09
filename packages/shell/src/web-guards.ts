@@ -75,7 +75,6 @@ export const createGestureGate = (now: () => number = Date.now) => {
 
 export type GestureGate = ReturnType<typeof createGestureGate>;
 
-/* The part of an IPC event's sender frame the check reads. */
 export interface SenderFrame {
     readonly url: string;
     readonly parent: unknown;

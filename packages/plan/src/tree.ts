@@ -167,7 +167,6 @@ export function deriveState(states: readonly PlanStepState[]): PlanStepState {
     return 'open';
 }
 
-/* A leaf's own state, or for a parent the state its children add up to. */
 export function stepState(step: PlanStep): PlanStepState {
     return isParentStep(step) ? deriveState(step.steps!.map(stepState)) : (step.state ?? 'open');
 }
@@ -234,7 +233,6 @@ export function activeStepIds(plan: Pick<Plan, 'items'>): string[] {
     return ids;
 }
 
-/* True when a leaf step, here or underneath, carries a state a person set. */
 export function holdsPersonState(item: PlanItem): boolean {
     if (item.type === 'step' && !isParentStep(item)) {
         return item.by === 'person' && item.state !== undefined;

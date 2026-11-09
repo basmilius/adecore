@@ -85,7 +85,6 @@ export interface LspSessionOptions {
     locale?: string;
 }
 
-/* The capability that advertises each method statically. */
 const PROVIDERS: Record<string, keyof ServerCapabilities> = {
     'textDocument/completion': 'completionProvider',
     'completionItem/resolve': 'completionProvider',
@@ -186,7 +185,6 @@ function matches(options: ProviderOptions, document?: Pick<DocumentItem, 'uri' |
     );
 }
 
-/* Whether provider options cover a method that a provider only offers on top of its feature. */
 function offersMethod(method: string, options: ProviderOptions): boolean {
     if (method.endsWith('/resolve')) {
         return options.resolveProvider === true;
@@ -219,7 +217,6 @@ function offersMethod(method: string, options: ProviderOptions): boolean {
     return true;
 }
 
-/* One conversation with one language server: the handshake, what it can do, and the documents open in it. */
 export class LspSession {
     readonly connection: JsonRpcConnection;
     readonly options: LspSessionOptions;
@@ -497,12 +494,10 @@ export class LspSession {
         return this.request('workspace/textDocumentContent', { uri }, options);
     }
 
-    /* Changes the trace level the server sends `$/logTrace` at. */
     setTrace(value: TraceValue): Promise<void> {
         return this.notify('$/setTrace', { value });
     }
 
-    /* Asks the server to stop work it reported as cancellable under `token`. */
     cancelWorkDoneProgress(token: ProgressToken): Promise<void> {
         return this.notify('window/workDoneProgress/cancel', { token });
     }
@@ -643,7 +638,6 @@ export class LspSession {
         return this.askBefore('willRename', renamesTaken(this.fileOperationFilters('willRename'), files), options);
     }
 
-    /* Tells the server which of these files moved, those its filters take. */
     async didRenameFiles(files: readonly RenamedFile[]): Promise<void> {
         await this.tellAfter('didRename', renamesTaken(this.fileOperationFilters('didRename'), files));
     }
@@ -653,7 +647,6 @@ export class LspSession {
         return this.askBefore('willCreate', createsTaken(this.fileOperationFilters('willCreate'), files), options);
     }
 
-    /* Tells the server which of these files were made, those its filters take. */
     async didCreateFiles(files: readonly CreatedFile[]): Promise<void> {
         await this.tellAfter('didCreate', createsTaken(this.fileOperationFilters('didCreate'), files));
     }
@@ -663,7 +656,6 @@ export class LspSession {
         return this.askBefore('willDelete', deletesTaken(this.fileOperationFilters('willDelete'), files), options);
     }
 
-    /* Tells the server which of these files were deleted, those its filters take. */
     async didDeleteFiles(files: readonly DeletedFile[]): Promise<void> {
         await this.tellAfter('didDelete', deletesTaken(this.fileOperationFilters('didDelete'), files));
     }

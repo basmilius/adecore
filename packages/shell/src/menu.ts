@@ -13,7 +13,6 @@ export interface MenuTemplateOptions<Action extends string> {
     platform?: NodeJS.Platform;
 }
 
-/* The native menu of a spec the page sent, or null for a spec that is no menu at all. */
 export const menuTemplateOf = <Action extends string>(spec: MenuSpec<Action>, options: MenuTemplateOptions<Action>): MenuItemConstructorOptions[] | null => {
     if (!Array.isArray(spec?.menus)) {
         return null;
@@ -113,7 +112,6 @@ export const staticMenuTemplate = (options: StaticMenuOptions): MenuItemConstruc
     return [appMenu, ...fileMenu, { role: 'editMenu' }, viewMenu, { role: 'windowMenu' }];
 };
 
-/* The part of a window a menu command reaches. */
 export interface MenuWindow {
     isMinimized(): boolean;
     show(): void;
@@ -122,7 +120,6 @@ export interface MenuWindow {
 
 export interface MenuCommandOptions {
     pageKeys: PageKeys;
-    /* The window whose page runs a command. */
     window: () => MenuWindow | null;
     /* True while the keyboard is in a page that never hands a key to the app's page, such as a guest. */
     keyBypassesPage?: () => boolean;

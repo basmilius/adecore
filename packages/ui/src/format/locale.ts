@@ -85,7 +85,6 @@ export const formatLocale = (): string => resolve(source.region());
 
 const subscribe = (onChange: () => void): (() => void) => source.subscribe(onChange);
 
-/* Subscribing is the point: a component draws again once the region changes. */
 export const useFormatLocale = (): string => useSyncExternalStore(subscribe, formatLocale, formatLocale);
 
 interface Cached<T> {

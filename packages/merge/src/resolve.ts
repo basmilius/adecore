@@ -25,7 +25,6 @@ function autoLines(block: MergeBlock): string[] | null {
     }
 }
 
-/* Where `inner` starts in `outer` as one run of lines, or -1. */
 function runIn(outer: readonly string[], inner: readonly string[]): number {
     for (let start = 0; start + inner.length <= outer.length; start += 1) {
         if (inner.every((line, index) => outer[start + index] === line)) {

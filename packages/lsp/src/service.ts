@@ -176,7 +176,6 @@ export interface LanguageService {
     onShowDocument?(handler: (params: ShowDocumentParams) => Promise<ShowDocumentResult>): Disposable;
 }
 
-/* A message of a server: one to show a person, or a line for its log. */
 export interface ServerMessage {
     readonly kind: 'show' | 'log';
     readonly type: MessageType;

@@ -52,7 +52,6 @@ export class ScriptedTransport implements LspTransport {
         }
     }
 
-    /* The last request of `method` the client sent. */
     request(method: string) {
         return this.sent.findLast((message) => 'method' in message && message.method === method && 'id' in message) as {
             id: number;

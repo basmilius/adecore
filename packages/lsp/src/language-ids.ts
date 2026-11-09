@@ -1,7 +1,5 @@
-/* The LSP ids of the script languages. */
 export const SCRIPT_LANGUAGE_IDS = ['typescript', 'typescriptreact', 'javascript', 'javascriptreact'] as const;
 
-/* Every name a highlighter, a file extension or a client uses for a language, mapped to the LSP id of that language. */
 const LSP_IDS: Readonly<Record<string, string>> = {
     typescript: 'typescript',
     ts: 'typescript',

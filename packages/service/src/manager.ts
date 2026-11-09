@@ -21,10 +21,8 @@ export interface ServiceFiles {
 
 export interface ServiceManager {
     readonly kind: 'launchd' | 'systemd' | 'task-scheduler';
-    /* The definition's file. */
     readonly path: string;
     isInstalled(): boolean;
-    /* The definition on disk, null when there is none. */
     read(): string | null;
     /*
      * Puts the definition on disk, so the service starts with the person's session. A running daemon
@@ -49,7 +47,6 @@ function expectSuccess(result: CommandResult, what: string): void {
     }
 }
 
-/* Writes the definition when it differs and returns the one it replaces. */
 function writeDefinition(files: ServiceFiles, path: string, definition: string): string | null {
     const previous = files.read(path);
 
@@ -72,7 +69,6 @@ export interface LaunchdOptions {
     run: CommandRunner;
     files: ServiceFiles;
     sleep(ms: number): Promise<void>;
-    /* The spec of the service, or its label and log file. */
     service: ServiceIdentity;
 }
 
@@ -196,7 +192,7 @@ export function systemdManager(options: SystemdOptions): ServiceManager {
 }
 
 export interface TaskSchedulerOptions {
-    /* The spec of the service, or its label and log file. The task carries the label as its name, which a stop finds the task's processes by. */
+    /* The task carries the label as its name, which a stop finds the task's processes by. */
     service: ServiceIdentity;
     /* Where the definition is kept and registered from. */
     definitionFile: string;

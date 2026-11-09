@@ -53,7 +53,6 @@ import { TextMirror } from './text-mirror.ts';
 /* The delay of the VS Code language client for servers with full sync. */
 const FULL_SYNC_DELAY_MS = 200;
 
-/* What a document asks of the session it is open in. */
 interface DocumentSession {
     readonly connection: JsonRpcConnection;
     readonly options: { readonly fullSyncDelayMs?: number };
@@ -359,7 +358,6 @@ export class LspDocument {
         return this.feature('textDocument/rangesFormatting', { ranges: [...ranges], options: formatting }, options);
     }
 
-    /* Tells the server a save is coming, when it asked to hear it. */
     async willSave(reason: TextDocumentSaveReason = 1): Promise<void> {
         this.assertOpen();
         if (this.session.syncOptions.willSave) {

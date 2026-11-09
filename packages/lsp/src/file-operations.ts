@@ -6,12 +6,10 @@ export interface RenamedFile extends FileRename {
     directory: boolean;
 }
 
-/* A file or folder that is made. */
 export interface CreatedFile extends FileCreate {
     directory: boolean;
 }
 
-/* A file or folder that is deleted. */
 export interface DeletedFile extends FileDelete {
     directory: boolean;
 }
@@ -49,7 +47,6 @@ export function renamesTaken(filters: readonly FileOperationFilter[], files: rea
     return files.filter((file) => anyTakes(filters, file.oldUri, file.directory)).map(({ oldUri, newUri }) => ({ oldUri, newUri }));
 }
 
-/* The files made that a server asked to hear about, by the filters it registered. */
 export function createsTaken(filters: readonly FileOperationFilter[], files: readonly CreatedFile[]): FileCreate[] {
     return files.filter((file) => anyTakes(filters, file.uri, file.directory)).map(({ uri }) => ({ uri }));
 }
