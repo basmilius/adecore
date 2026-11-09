@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-11-07T01:36:50.314Z",
+  "updatedAt": "2026-11-09T19:21:35.009Z",
   "defaultModel": "claude-sonnet-5-5",
   "profiles": {
     "frontier": {
@@ -102,7 +102,8 @@
     }
   },
   "models": [
-    { "slug": "claude-fable-5-1", "name": "Claude Fable 5.1", "profile": "frontier", "aliases": ["fable"] },
+    { "slug": "claude-fable-5-2", "name": "Claude Fable 5.2", "badge": "new", "profile": "frontier", "aliases": ["fable"] },
+    { "slug": "claude-fable-5-1", "name": "Claude Fable 5.1", "profile": "frontier", "legacy": true },
     { "slug": "claude-opus-5-5", "name": "Claude Opus 5.5", "badge": "new", "profile": "opus", "aliases": ["opus"] },
     { "slug": "claude-opus-5", "name": "Claude Opus 5", "profile": "opus", "legacy": true },
     { "slug": "claude-sonnet-5-5", "name": "Claude Sonnet 5.5", "badge": "new", "profile": "sonnet", "aliases": ["sonnet"] },
