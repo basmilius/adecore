@@ -382,7 +382,14 @@ export class InlineCompletionFeature {
         if (isShortcut(this.language.shortcuts.acceptGhostWord, event) && this.acceptWord()) {
             return true;
         }
-        if (event.altKey && !event.ctrlKey && !event.metaKey && (event.code === 'BracketRight' || event.code === 'BracketLeft')) {
+        // With one suggestion there is nothing to cycle to, so the key goes on to the editor and types its character.
+        if (
+            phase.suggestions.length > 1 &&
+            event.altKey &&
+            !event.ctrlKey &&
+            !event.metaKey &&
+            (event.code === 'BracketRight' || event.code === 'BracketLeft')
+        ) {
             this.cycle(event.code === 'BracketRight' ? 1 : -1);
             return true;
         }

@@ -397,4 +397,25 @@ describe('the keys of inline completion', () => {
 
         end();
     });
+
+    test('with one suggestion Alt+[ and Alt+] go on to the editor, and with two they cycle', async () => {
+        const one = await keyed(['alpha']);
+        one.editor.press({ key: 'F9', code: 'F9', altKey: true });
+        await settle();
+
+        expect(one.language.inlineCompletion.current?.rest).toBe('alpha');
+        expect(one.editor.press({ key: '“', code: 'BracketLeft', altKey: true })).toBe(false);
+        expect(one.editor.press({ key: '‘', code: 'BracketRight', altKey: true })).toBe(false);
+
+        one.end();
+
+        const two = await keyed(['alpha', 'beta']);
+        two.editor.press({ key: 'F9', code: 'F9', altKey: true });
+        await settle();
+
+        expect(two.editor.press({ key: '‘', code: 'BracketRight', altKey: true })).toBe(true);
+        expect(two.language.inlineCompletion.current?.rest).toBe('beta');
+
+        two.end();
+    });
 });
