@@ -24,6 +24,7 @@ export default {
         refusal: {
             notInConversation: 'Deze turn zit niet in het gesprek',
             cliCannotFork: 'Deze agent kan zijn gesprek niet forken',
+            agentsLoading: 'Wacht tot de agents geladen zijn',
             noConversation: 'Nog niets om te forken. Stuur eerst een bericht.',
             turnRunning: 'Wacht tot de turn klaar is',
             originalGone: 'Origineel niet meer in dit project'

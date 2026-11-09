@@ -81,8 +81,9 @@ describe('fork', () => {
         expect(forkRefusal(info(), items.u1, host)).not.toBeNull();
     });
 
-    test('before the host named its CLIs, a settled turn is not refused for its CLI', () => {
-        expect(forkRefusal(info({ provider: 'gemini' }), items.t1, { providers: [], loaded: false })).toBeNull();
+    test('before the host named its CLIs, a settled turn is refused until it did, also of a CLI that forks', () => {
+        expect(forkRefusal(info(), items.t1, { providers: [], loaded: false })).toBe('Wait for the agents to load');
+        expect(forkRefusal(info(), items.t1, { ...host, loaded: false })).toBe('Wait for the agents to load');
     });
 
     test('a row of the thread names the turn it belongs to, and a row outside every turn names none', () => {

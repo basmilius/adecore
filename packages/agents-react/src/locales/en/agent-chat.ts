@@ -24,6 +24,7 @@ export default {
         refusal: {
             notInConversation: 'This turn is not in the conversation',
             cliCannotFork: 'This agent cannot fork its conversation',
+            agentsLoading: 'Wait for the agents to load',
             noConversation: 'Nothing to fork yet. Send a message first.',
             turnRunning: 'Wait for the turn to end',
             originalGone: 'Original no longer in this project'

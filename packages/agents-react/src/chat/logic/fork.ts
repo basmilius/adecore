@@ -34,17 +34,21 @@ function turnsOf(items: Record<string, ChatItem>, order: readonly string[]): Cha
 
 /*
  * Why a chat cannot be forked after this turn right now, or null when it can. A turn still running,
- * or any turn in the chat, is a transcript that grows while it would be copied. Before the host answered
- * which CLIs it offers nothing is refused for the CLI's sake; the host refuses a CLI that cannot itself.
+ * or any turn in the chat, is a transcript that grows while it would be copied. Until the host named its
+ * CLIs, no CLI is known to fork.
  */
 export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined, host: HostProviders): string | null {
     if (info === null || turn?.kind !== 'turn') {
         return i18next.t('agent-chat:fork.refusal.notInConversation');
     }
 
+    if (!host.loaded) {
+        return i18next.t('agent-chat:fork.refusal.agentsLoading');
+    }
+
     const provider = host.providers.find((entry) => entry.kind === info.provider);
 
-    if (host.loaded && (provider === undefined || !canForkWith(provider))) {
+    if (provider === undefined || !canForkWith(provider)) {
         return i18next.t('agent-chat:fork.refusal.cliCannotFork');
     }
 
