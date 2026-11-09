@@ -64,8 +64,6 @@ export interface EditorLanguageOptions<App extends object = {}> {
 export class EditorLanguage<App extends object = {}> implements LanguageContext {
     readonly editor: Editor;
     readonly apple: boolean;
-    readonly keymap: Keymap;
-    readonly shortcuts: ReturnType<typeof shortcutsOf>;
     readonly project: ProjectLanguage;
     readonly document: LanguageDocumentHandle;
     readonly languageId: string;
@@ -112,6 +110,7 @@ export class EditorLanguage<App extends object = {}> implements LanguageContext 
     private readonly keys = new KeyDispatcher();
     private readonly timers: Timers;
     private disposed = false;
+    private resolvedShortcuts: { readonly keymap: Keymap; readonly shortcuts: ReturnType<typeof shortcutsOf> } | null = null;
 
     constructor(
         project: ProjectLanguage,
@@ -123,8 +122,6 @@ export class EditorLanguage<App extends object = {}> implements LanguageContext 
     ) {
         this.editor = editor;
         this.apple = project.host.apple ?? false;
-        this.keymap = project.host.keymap ?? KEYMAP;
-        this.shortcuts = shortcutsOf(this.keymap, this.apple);
         this.project = project;
         this.languageId = languageId;
         this.served = options.serve ?? true;
@@ -183,6 +180,22 @@ export class EditorLanguage<App extends object = {}> implements LanguageContext 
         this.onDispose(() => editor.setWordSources?.(null));
         this.placeOpenedCaret(editor.getCaret());
         this.onDispose(editor.onCaret((position) => this.placeOpenedCaret(position)));
+    }
+
+    /* Read from the host on every use, so a rebound key reaches an editor that is already open. */
+    get keymap(): Keymap {
+        return this.project.host.keymap ?? KEYMAP;
+    }
+
+    /* The keymap's shortcuts, resolved again only when the host hands a new keymap. */
+    get shortcuts(): ReturnType<typeof shortcutsOf> {
+        const keymap = this.keymap;
+
+        if (this.resolvedShortcuts?.keymap !== keymap) {
+            this.resolvedShortcuts = { keymap, shortcuts: shortcutsOf(keymap, this.apple) };
+        }
+
+        return this.resolvedShortcuts.shortcuts;
     }
 
     get uri(): string {

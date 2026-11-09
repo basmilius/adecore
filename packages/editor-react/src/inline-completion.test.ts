@@ -1,6 +1,7 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
 import { FakeEditorEngine } from '@adecore/editor/fake';
+import { type Keymap, resolveKeymap } from '@adecore/editor/keymap';
 import { EditorLanguage } from './editor-language.ts';
 import type { InlineSuggestion, InlineSuggestionSource } from './inline-completion.ts';
 import { ProjectLanguage } from './project-language.ts';
@@ -346,5 +347,54 @@ describe('inline completion with the language servers turned off', () => {
 
         language.dispose();
         project.dispose();
+    });
+});
+
+describe('the keys of inline completion', () => {
+    /* An editor whose host's keymap the test rebinds, with one manual source that answers the given suggestions at once. */
+    async function keyed(texts: readonly string[]) {
+        let keymap: Keymap = resolveKeymap({ suggestInline: { mac: 'Alt+F9', other: 'Alt+F9' } });
+        const project = new ProjectLanguage(new FakeLanguageService(), {
+            get keymap() {
+                return keymap;
+            }
+        });
+        const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'let ', theme: 'light' });
+        const language = new EditorLanguage(project, editor, uri, 'typescript', new ManualTimers());
+        await language.document.ready;
+        await settle();
+        editor.moveCaret(START);
+
+        language.inlineCompletion.addSource({
+            enabled: true,
+            automatic: false,
+            suggest: async ({ caret }) => texts.map((text) => ({ text, range: { start: caret, end: caret }, rest: text }))
+        });
+
+        const rebind = (next: Keymap): void => {
+            keymap = next;
+        };
+
+        const end = (): void => {
+            language.dispose();
+            project.dispose();
+        };
+
+        return { editor, language, rebind, end };
+    }
+
+    test('a key rebound while the editor is open asks for a suggestion, and the old key no longer does', async () => {
+        const { editor, language, rebind, end } = await keyed(['alpha']);
+
+        rebind(resolveKeymap({ suggestInline: { mac: 'Alt+F10', other: 'Alt+F10' } }));
+
+        expect(editor.press({ key: 'F9', code: 'F9', altKey: true })).toBe(false);
+        expect(editor.press({ key: 'F10', code: 'F10', altKey: true })).toBe(true);
+
+        await settle();
+
+        expect(language.inlineCompletion.current?.rest).toBe('alpha');
+
+        end();
     });
 });
