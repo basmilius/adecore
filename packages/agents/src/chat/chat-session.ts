@@ -36,7 +36,7 @@ import type { SpawnChatProcess } from './chat-process.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import { ChatError } from './errors.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
-import { lostWorkNote, lostWorkNoteId, type LostWork } from './lost-work.ts';
+import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-work.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
@@ -1139,17 +1139,14 @@ export class ChatSession {
             permissionMode: undefined
         };
 
-        // No process of the host that went down is left to run what it kept in the background; the note waits for `settleOrphanedSubagents`.
+        // No process of the host that went down is left to run what it kept in the background. `background` stays stored until
+        // `settleOrphanedSubagents` writes the note, so a restart in between still finds every command.
         this.lostOnRestart = {
             turnId: resumeTurnId ?? interrupted?.id ?? null,
             resumed: resumeTurnId !== null,
-            commands: [...(info.background ?? [])],
+            commands: (info.background ?? []).filter((command) => !toldLost(items, command.id)),
             work: lostWork
         };
-
-        if (info.background?.length) {
-            patch.background = [];
-        }
 
         // The window stored is whatever the session that went left behind; the next CLI starts on the pick.
         const contextWindow = this.options.provider.catalog.contextWindowFor(selection);
@@ -1164,7 +1161,6 @@ export class ChatSession {
             info.running ||
             info.effectiveRuntimeMode !== undefined ||
             info.permissionMode !== undefined ||
-            patch.background !== undefined ||
             info.status !== patch.status ||
             info.activeTurnId !== resumeTurnId
         ) {
@@ -1610,7 +1606,6 @@ export class ChatSession {
      * or to carry on in, which starts the CLI again like any send.
      */
     end(reason: string): void {
-        this.stoppedSinceLoad = true;
         this.clearStartWarning();
         this.clearWorkflowWarnings();
         this.sendAfterStop = false;
@@ -1762,14 +1757,17 @@ export class ChatSession {
         const restart = this.lostOnRestart ?? { turnId: null, resumed: false, commands: [], work: [] };
         this.lostOnRestart = null;
         const work = [...restart.work, ...lost];
+        let told: LostWork | null = null;
 
-        if (restart.commands.length === 0 && work.length === 0) {
-            return null;
+        if (restart.commands.length > 0 || work.length > 0) {
+            told = { ...restart, work, noteId: lostWorkNoteId(restart.commands, work) };
+            const text = lostWorkNote(told, this.thread.list());
+            this.deliverNote({ noteId: told.noteId, note: text, preamble: text });
         }
 
-        const told: LostWork = { ...restart, work, noteId: lostWorkNoteId(restart.commands, work) };
-        const text = lostWorkNote(told, this.thread.list());
-        this.deliverNote({ noteId: told.noteId, note: text, preamble: text });
+        if (this.thread.info.background?.length) {
+            this.emit([this.thread.patchInfo({ background: [] })]);
+        }
 
         return told;
     }

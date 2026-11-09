@@ -157,7 +157,8 @@ export interface ChatCoreHooks {
     /*
      * A chat loaded after a restart lost background work, and no turn of it is taken up again to say so.
      * The note is in the thread already; a host that wants the agent to hear it now owes a turn, which
-     * `ChatSession.owesRestartWake` says is still owed.
+     * `ChatSession.owesRestartWake` says is still owed. It runs while the chat still loads: owe the
+     * turn and return, never await a request on this chat.
      */
     lostWork?(chatId: string, lost: LostWork): Promise<void>;
     /* A chat just loaded or made, its stored turns settled; whatever the host lays down in it goes here. */
@@ -641,8 +642,11 @@ export class ChatCore {
             session.settleOwedResume();
             const lost = await session.settleOrphanedSubagents();
 
+            // Only tells the host; a host that fails to hear it must not leave the chat half loaded.
             if (lost !== null && !lost.resumed) {
-                await this.hooks.lostWork?.(session.id, lost);
+                await this.hooks
+                    .lostWork?.(session.id, lost)
+                    ?.catch((e: unknown) => console.error(`Reporting the lost work of chat ${session.id} failed:`, errorText(e)));
             }
         }
 
@@ -1683,9 +1687,9 @@ export class ChatCore {
     }
 
     /*
-     * Loads every stored chat whose turn was running when the host went down, that ran commands in the
-     * background then, or that shows a resume after a limit nobody owes, so `create` decides what becomes of it without waiting for a client to
-     * open it. One file at a time: it runs beside the host answering, not in front of it.
+     * Loads every stored chat whose turn was running when the host went down, that ran commands in
+     * the background then, or that shows a resume after a limit nobody owes, so `create` decides what
+     * becomes of it without waiting for a client to open it. One file at a time: it runs beside the host answering, not in front of it.
      */
     async recoverInterrupted(): Promise<void> {
         if (!this.store) {

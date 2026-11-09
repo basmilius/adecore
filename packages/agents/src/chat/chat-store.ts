@@ -285,8 +285,8 @@ export class ChatStore {
     }
 
     /*
-     * Whether the chat has neither a turn in flight, a command in the background nor a resume after a limit, by the info its record
-     * starts with and the last one its log wrote, without parsing the thread. False whenever that
+     * Whether the chat has neither a turn in flight, a command in the background nor a resume after
+     * a limit, by the info its record starts with and the last one its log wrote, without parsing the thread. False whenever that
      * cannot be told so cheaply, which leaves the decision to `read`.
      */
     async settled(chatId: string): Promise<boolean> {

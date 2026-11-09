@@ -2,7 +2,7 @@ import type { ChatBackgroundTask, ChatItem } from '@adecore/agent-contracts';
 import { commandLabel, type BackgroundWork } from './background-work.ts';
 
 const NOTE_PREFIX = 'lost:';
-const LEGACY_NOTE_PREFIX = 'lost-background-';
+const LEGACY_NOTE_PREFIXES = ['lost-background-', 'lost-command-'];
 const TURN_NAME_LENGTH = 80;
 
 /* What a host restart took down with the CLI of one chat, told to the agent in one note. */
@@ -21,12 +21,13 @@ export function lostWorkNoteId(commands: readonly ChatBackgroundTask[], work: re
     return NOTE_PREFIX + [...commands.map((command) => command.id), ...work.map((item) => item.id)].join(' ');
 }
 
-/* Whether a thread holds a note that told the agent this item was lost, in one note or the older note per item. */
+/* Whether a thread holds a note that told the agent this item or command was lost, in one note or the older note per item. */
 export function toldLost(items: readonly ChatItem[], itemId: string): boolean {
     return items.some(
         (note) =>
             note.kind === 'note' &&
-            (note.id === `${LEGACY_NOTE_PREFIX}${itemId}` || (note.id.startsWith(NOTE_PREFIX) && note.id.slice(NOTE_PREFIX.length).split(' ').includes(itemId)))
+            (LEGACY_NOTE_PREFIXES.some((prefix) => note.id === `${prefix}${itemId}`) ||
+                (note.id.startsWith(NOTE_PREFIX) && note.id.slice(NOTE_PREFIX.length).split(' ').includes(itemId)))
     );
 }
 

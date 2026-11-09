@@ -243,6 +243,34 @@ describe('background work recovered from a stored chat', () => {
         await second.session.dispose();
     });
 
+    test('the commands stay stored until the note about them is written, and a host ending the CLI keeps the wake', async () => {
+        const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
+        const run = rig({ info: { ...info(), background }, items: [main] });
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: null, reason: null });
+
+        expect(run.session.info.background).toEqual(background);
+
+        await run.session.settleOrphanedSubagents();
+        run.session.end('the opener stopped');
+
+        expect(run.session.info.background).toEqual([]);
+        expect(run.session.owesRestartWake('lost:b1')).toBe(true);
+        await run.session.dispose();
+    });
+
+    test('a command an older note per command already told is not told again', async () => {
+        const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
+        const told = { id: 'lost-command-b1', kind: 'note' as const, createdAt: 1, turnId: null, level: 'warning' as const, text: 'gh run watch was lost' };
+        const run = rig({ info: { ...info(), background }, items: [main, told] });
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: null, reason: null });
+        const lost = await run.session.settleOrphanedSubagents();
+
+        expect(lost).toBeNull();
+        expect(run.session.thread.get('lost:b1')).toBeUndefined();
+        expect(run.session.info.background).toEqual([]);
+        await run.session.dispose();
+    });
+
     test('a completed native transcript is recovered before deciding the work was lost', async () => {
         const recovered = rig({ items: [main, row], subagentSettlement: async () => ({ report: 'finished work', finishedAt: 3 }) });
         recovered.session.settleStored(recovered.session.info.selection, { resumeTurnId: null, reason: null });
