@@ -191,6 +191,15 @@ export class ThreadProjector {
                 events.push(this.thread.patchInfo({ permissionMode: event.permissionMode, effectiveRuntimeMode: event.effectiveRuntimeMode }));
 
                 break;
+            case 'workdir': {
+                const workdir = event.path === info.cwd ? undefined : event.path;
+
+                if (workdir !== info.workdir) {
+                    events.push(this.thread.patchInfo({ workdir }));
+                }
+
+                break;
+            }
             case 'thinking.done':
                 this.appendThinking(generation, event.ref, event.text, true, events);
 
@@ -413,11 +422,14 @@ export class ThreadProjector {
                 break;
             }
             case 'usage': {
-                const usage = info.usage;
+                const { contextPending, ...usage } = info.usage;
                 const contextTokens = event.contextTokens ?? usage.contextTokens;
+                // Only a real count ends the wait a compaction without a size left; a turn that reports 0 has counted nothing.
+                const pending = contextPending === true && !(event.contextTokens !== undefined && event.contextTokens > 0);
 
                 const next = {
                     ...usage,
+                    ...(pending ? { contextPending: true as const } : {}),
                     contextTokens,
                     contextWindow: event.contextWindow ?? usage.contextWindow,
                     costUsd: Math.max(usage.costUsd, event.costUsd ?? 0),
@@ -435,14 +447,17 @@ export class ThreadProjector {
                     next.contextWindow !== usage.contextWindow ||
                     next.costUsd !== usage.costUsd ||
                     next.cacheTtlMs !== usage.cacheTtlMs ||
-                    next.cacheExpiresAt !== usage.cacheExpiresAt
+                    next.cacheExpiresAt !== usage.cacheExpiresAt ||
+                    pending !== (contextPending === true)
                 ) {
                     events.push(this.thread.patchInfo({ usage: next }));
                 }
 
                 break;
             }
-            case 'compaction':
+            case 'compaction': {
+                const { contextPending: _pending, breakdown: _breakdown, ...usage } = info.usage;
+
                 events.push(
                     this.thread.upsert({
                         id: `compaction-${this.now()}`,
@@ -450,11 +465,23 @@ export class ThreadProjector {
                         createdAt: this.now(),
                         turnId: info.activeTurnId,
                         // A CLI that reports no size before the fold still has the tokens the last request carried.
-                        preTokens: event.preTokens ?? (info.usage.contextTokens > 0 ? info.usage.contextTokens : null)
+                        preTokens: event.preTokens ?? (usage.contextTokens > 0 ? usage.contextTokens : null),
+                        ...(event.postTokens === undefined ? {} : { postTokens: event.postTokens })
+                    })
+                );
+
+                // After the marker, so the estimate counts only what follows the fold. Without a size the old one would read as if nothing was folded.
+                events.push(
+                    this.thread.patchInfo({
+                        usage:
+                            event.postTokens === undefined
+                                ? { ...usage, contextTokens: 0, contextPending: true }
+                                : { ...usage, contextTokens: event.postTokens, breakdown: estimateContextBreakdown(this.thread.list(), event.postTokens) }
                     })
                 );
 
                 break;
+            }
             case 'model':
                 events.push(this.thread.patchInfo({ model: event.model }));
 

@@ -23,7 +23,12 @@ const PATH_IDS: Record<string, string> = {
     md: 'markdown',
     twig: 'twig',
     sql: 'sql',
-    rs: 'rust'
+    rs: 'rust',
+    toml: 'toml',
+    lua: 'lua',
+    go: 'go',
+    swift: 'swift',
+    zig: 'zig'
 };
 
 /* The highlighter id for the code of a file we only know by its path, such as a place another file refers to. */

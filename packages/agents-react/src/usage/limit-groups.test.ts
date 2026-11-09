@@ -1,6 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 import type { ProviderAccounts, ProviderAccountStatus, UsageLimitsProvider, UsageWindow } from '@adecore/agent-contracts';
-import { checkedLabel, emptyWindows, explain, hasSeveralAccounts, limitGroups, noteIsWarning, paceText, ringWindows, type LimitAccount } from './limit-groups';
+import {
+    checkedAge,
+    checkedLabel,
+    emptyWindows,
+    explain,
+    hasSeveralAccounts,
+    limitGroups,
+    noteIsWarning,
+    paceText,
+    ringWindows,
+    showsWindows,
+    type LimitAccount
+} from './limit-groups';
 
 function status(id: string, kind: string, state: ProviderAccountStatus['state'] = 'ready'): ProviderAccountStatus {
     return {
@@ -188,5 +200,29 @@ describe('the even pace of a window as words', () => {
         expect(paceText(window(0.2), 7 * HOUR)).toBe('20% used, behind an even pace of 40%');
         expect(paceText(window(0.4), 7 * HOUR)).toBe('40% used, on an even pace');
         expect(paceText(window(0.5, { resetsAt: null }), 7 * HOUR)).toBe('50% used');
+    });
+});
+
+describe('the age of a row from a machine clock', () => {
+    test.each([
+        [0, null],
+        [-1, null],
+        [Number.NaN, null],
+        [Number.POSITIVE_INFINITY, null],
+        [1_030_000, 0],
+        [1_300_000, null],
+        [401_000, 599_000],
+        [400_000, 600_000]
+    ])('checkedAt %s has age %s at one million milliseconds', (checkedAt, expected) => {
+        expect(checkedAge(entry('claude', undefined, { checkedAt: checkedAt! }), 1_000_000)).toBe(expected);
+    });
+
+    test('only failed reads retain visible windows, without erasing their explanation', () => {
+        const retained = entry('claude', undefined, { windows: [window('session', null)], unavailable: { reason: 'failed', message: 'CLI offline' } });
+        expect(showsWindows(retained)).toBe(true);
+        expect(explain(retained)).toBe('CLI offline');
+        expect(showsWindows({ ...retained, unavailable: { reason: 'no-subscription', message: null } })).toBe(false);
+        expect(showsWindows({ ...retained, unavailable: { reason: 'not-installed', message: null } })).toBe(false);
+        expect(showsWindows({ ...retained, windows: [] })).toBe(false);
     });
 });

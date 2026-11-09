@@ -7,7 +7,7 @@ import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, typ
 import { useTranslation } from 'react-i18next';
 import type { ChatSendExtras } from '../../chat-client';
 import { useChatHost } from '../../host/host';
-import { useHostComposerSendActions, useHostExtraPrompts, useHostSendDelivery } from '../../host/host-hooks';
+import { useHostComposerSendActions, useHostComposerStatus, useHostExtraPrompts, useHostSendDelivery } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useProviders } from '../../state/providers';
 import { isEmptyDraft } from '../drafts';
@@ -22,6 +22,7 @@ import { ChatActivity } from './ChatActivity';
 import { chipDecorations } from './composer/chips';
 import { ComposerControls } from './composer/ComposerControls';
 import { ComposerMenu } from './composer/ComposerMenu';
+import { ComposerStatusLine } from './composer/ComposerStatusLine';
 import { DraftAttachments, DraftQuote } from './composer/DraftParts';
 import { composerKeyHandler } from './composer/key-handler';
 import { useHintedPlaceholder } from './composer/placeholder';
@@ -141,6 +142,7 @@ export function Composer({
     const [sentFor, setSentFor] = useState<string | null>(null);
     const extraPrompts = useHostExtraPrompts(scope.id, chatId);
     const sendActions = useHostComposerSendActions(scope.id, chatId);
+    const statusItems = useHostComposerStatus(scope.id, chatId);
 
     const { submit, continueTurn, restoreStashed, toggleStash } = useComposerSubmit({
         chatId,
@@ -189,16 +191,16 @@ export function Composer({
 
     const pending = usePendingRequests(chatId);
     const compactionOffer = useCompactionOffer(chatId, info, capabilities?.compaction);
-    const placeholder = useHintedPlaceholder({
-        chatId,
-        disabled,
-        readOnly,
-        mentionable: capabilities?.mentions !== false,
-        referable: menus.offersViews,
-        hasSkills: menus.hasSkills
-    });
+    const sigils = { mentionable: capabilities?.mentions !== false, referable: menus.offersViews, hasSkills: menus.hasSkills };
+    const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, ...sigils });
     const editorExtensions = [
-        chipDecorations({ mentions: draft.mentions, skills: draft.skills, references: menus.referenceChips, referenceIcon: host.ReferenceIcon }),
+        chipDecorations({
+            mentions: draft.mentions,
+            skills: draft.skills,
+            references: menus.referenceChips,
+            referenceIcon: host.ReferenceIcon,
+            named: menus.namedLook
+        }),
         LEAVE_DROPS_TO_THE_CARD
     ];
 
@@ -245,7 +247,7 @@ export function Composer({
     };
 
     return (
-        <div className="chat-composer-content pointer-events-none relative z-10 w-full">
+        <div className="chat-composer-content pointer-events-none relative z-10 @container/composer-area w-full">
             {/* Over the composer rather than in the thread, since the composer's height is the one it always clears.
                 A read-only composer sits under something that stands in the thread's place, whose end is not this one. */}
             {!atEnd && !readOnly && (
@@ -263,7 +265,8 @@ export function Composer({
             <ChatActivity chatId={chatId} workflows={workflowPill} />
             <div
                 className={clsx(
-                    '@container/composer pointer-events-auto flex flex-col overflow-hidden rounded-2xl border shadow-float backdrop-blur-[14px] focus-ring-within',
+                    // Above the status line, whose fade starts under the card's lower edge.
+                    '@container/composer pointer-events-auto relative z-1 flex flex-col overflow-hidden rounded-2xl border shadow-float backdrop-blur-[14px] focus-ring-within',
                     files.dragging
                         ? 'border-accent bg-[color-mix(in_srgb,var(--accent-soft)_60%,var(--surface-raised))]'
                         : 'border-border bg-[color-mix(in_srgb,var(--surface-raised)_92%,transparent)]'
@@ -365,6 +368,8 @@ export function Composer({
                             providerFixed={providerFixed}
                             writable={writable}
                             attachable={capabilities?.attachments !== false}
+                            emptyDraft={empty}
+                            sigils={sigils}
                             controls={controls}
                             send={{
                                 visible: !busy || !empty,
@@ -392,6 +397,12 @@ export function Composer({
                                 inputRef.current?.focus();
                             }}
                             onRestore={restoreStashed}
+                            onStash={toggleStash}
+                            onSigil={(sigil) => {
+                                if (writable) {
+                                    inputRef.current?.insertSigil(sigil);
+                                }
+                            }}
                             insert={(added) => {
                                 if (writable) {
                                     inputRef.current?.insert(added);
@@ -401,6 +412,7 @@ export function Composer({
                     </div>
                 </PromptComposer>
             </div>
+            <ComposerStatusLine items={statusItems} />
             <PromptDialog
                 open={controls.confirmClear}
                 title={t('composer.clear.title')}

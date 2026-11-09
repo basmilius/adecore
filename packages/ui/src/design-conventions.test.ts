@@ -6,6 +6,7 @@ const cases: [string, string, DesignOptions, string][] = [
     ['off-scale type', '<div className="text-[11px]" />', {}, 'type comes'],
     ['uppercase label', '<div className="hover:uppercase" />', {}, 'a label is sentence case'],
     ['focus ring', '<div className="focus-visible:ring-2" />', {}, 'keyboard focus'],
+    ['plain accent outline', '<div className="focus-visible:outline-2 focus-visible:outline-accent" />', {}, 'an outline takes'],
     ['native tooltip', '<button title="Run" />', {}, 'a hint is a Tooltip'],
     ['custom word button', '<button className="h-8 px-2 rounded-lg">Run</button>', {}, 'a button with a word'],
     ['custom icon button size', '<IconButton className="w-8" />', {}, 'an icon button is sized'],
@@ -26,7 +27,7 @@ test.each(cases)('rejects %s', (_name, text, options, rule) => {
 });
 
 test('permits named frames, token colors, row buttons, and nested or overlaid icons', () => {
-    const text = `<><iframe title="Preview" /><div className="text-accent focus:outline-accent" />
+    const text = `<><iframe title="Preview" /><div className="text-accent focus:outline-accent-on-surface" />
         <button role="checkbox" className="h-8 px-2 rounded-lg" />
         <button className="icon-btn icon-btn-sm"><IconButton size="md"><Icon /></IconButton><Icon className="absolute" size={12} /><Icon size={14} /></button></>`;
     expect(designProblemsIn([{ path: 'Component.tsx', text }])).toEqual([]);

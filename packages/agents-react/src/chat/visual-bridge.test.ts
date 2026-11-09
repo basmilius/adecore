@@ -246,4 +246,37 @@ describe('VisualBridge', () => {
         frame.bridge.setTheme(LIGHT);
         expect(frame.posted).toEqual([]);
     });
+
+    test('suspension silences pending page work and timers, then a fresh handshake can use the same page', async () => {
+        const content = Promise.withResolvers<string>();
+        const page = setup({ page: content.promise });
+        page.bridge.loaded();
+        page.fromFrame(visualProxyReadyMessage());
+        page.bridge.suspend();
+        content.resolve('<p>late</p>');
+        await flush();
+        page.bridge.setTheme(LIGHT);
+        page.bridge.setViewport({ top: 0, height: 600 });
+        page.timers[0]!.run();
+        expect(page.messages()).toEqual([]);
+        expect(page.failures()).toBe(0);
+        expect(page.bridge.resume()).toBe(true);
+        page.fromFrame(visualProxyReadyMessage());
+        expect(page.messages()).toEqual([visualResourceReadyMessage('<p>late</p>'), visualHostContextMessage(LIGHT)]);
+    });
+
+    test('a page read failure waits until resumed, and a disposed bridge never resumes', async () => {
+        const content = Promise.withResolvers<string>();
+        const page = setup({ page: content.promise });
+        page.bridge.suspend();
+        content.reject(new Error('gone'));
+        await flush();
+        expect(page.failures()).toBe(0);
+        expect(page.bridge.resume()).toBe(false);
+        expect(page.failures()).toBe(1);
+        page.bridge.suspend();
+        page.bridge.dispose();
+        expect(page.bridge.resume()).toBe(false);
+        expect(page.failures()).toBe(1);
+    });
 });

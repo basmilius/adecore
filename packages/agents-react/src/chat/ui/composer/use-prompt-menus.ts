@@ -3,10 +3,13 @@ import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import { useEffect, useId, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host/host';
+import { useChatHost, type AccountRule } from '../../../host/host';
 import { useHostExpandingCommands } from '../../../host/host-hooks';
 import { type Referable, type Referables } from '../../../host/references';
 import { useChatScope } from '../../../scope';
+import { useReportedModelsByProvider } from '../../../state/chats';
+import { useProviderAccounts } from '../../../state/provider-accounts';
+import { useProviders } from '../../../state/providers';
 import { referenceSuggestions, referenceTokens } from '../../chat-references';
 import type { ChatDraft } from '../../drafts';
 import { usableSlashCommands } from '../../guards';
@@ -18,15 +21,21 @@ import {
     insertMention,
     insertReference,
     insertSkill,
+    insertToken,
     mentionPick,
+    namedChipToken,
     NO_MENTION_SEARCH,
     presentReferences,
     queryOutsideChips,
+    withNamedChips,
     type MentionQuery,
     type MentionSearch,
+    type NamedPick,
     type TextRange
 } from '../../mentions';
+import { accountSuggestions, modelSuggestions } from '../../tag-suggestions';
 import type { ComposerInputHandle } from '../ComposerInput';
+import { useNamedChipLookup, type NamedChipHome } from '../named-chip-look';
 import { inCode } from './keys';
 import { clampMenuIndex, composerMenuAria } from './menu-aria';
 
@@ -72,6 +81,10 @@ export interface PromptMenusInput<D extends PromptDraft> {
     ownId?: string;
     /* The editor's accessible name. */
     label: string;
+    /* What the project says of accounts, for the accounts `@` offers. */
+    accountRule?: AccountRule | null;
+    /* The chat the prompt is written in, whose account a model it names runs on. */
+    home?: NamedChipHome | null;
 }
 
 const NO_COMMANDS: readonly string[] = [];
@@ -96,7 +109,9 @@ export function usePromptMenus<D extends PromptDraft>({
     providerName,
     referables,
     ownId,
-    label
+    label,
+    accountRule = null,
+    home = null
 }: PromptMenusInput<D>) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
@@ -106,6 +121,10 @@ export function usePromptMenus<D extends PromptDraft>({
     const [referenceQuery, setReferenceQuery] = useState<MentionQuery | null>(null);
     const [skillQuery, setSkillQuery] = useState<MentionQuery | null>(null);
     const [searched, setSearched] = useState<MentionSearch>(NO_MENTION_SEARCH);
+    const providers = useProviders((row) => row.providers);
+    const accounts = useProviderAccounts((row) => row.accounts);
+    const reportedOf = useReportedModelsByProvider();
+    const namedLook = useNamedChipLookup(home);
     const text = draft.text;
 
     // Every keystroke inside an `@word` searches again; a slow answer must not overwrite a newer one.
@@ -181,10 +200,14 @@ export function usePromptMenus<D extends PromptDraft>({
 
     const commandMenuOpen = commandQuery !== null && commands.length > 0;
     const skillMenuOpen = !commandMenuOpen && skillQuery !== null && skillMatches.length > 0;
-    const mentionMenuOpen = !commandMenuOpen && !skillMenuOpen && mention !== null;
     // Results belong to the query that asked for them; a closed picker shows none while the next answer is on its way.
-    const files = mention === null ? [] : searched.files;
-    const mentionCount = files.length;
+    const files = mention === null || cwd === null ? [] : searched.files;
+    const modelMatches = mention === null ? [] : modelSuggestions(providers, accounts, mention.query, reportedOf);
+    const accountMatches = mention === null ? [] : accountSuggestions(providers, accounts, accountRule, mention.query);
+    const named: NamedPick[] = [...modelMatches, ...accountMatches];
+    // Without files to search, `@` opens only once a model or an account matches.
+    const mentionMenuOpen = !commandMenuOpen && !skillMenuOpen && mention !== null && (cwd !== null || named.length > 0);
+    const mentionCount = files.length + named.length;
     // A host with nothing to point at keeps `#fff` out of the way rather than saying nothing matches.
     const offersReferences = referables.items.some((item) => !referables.chatsOnly || item.kind === 'chat');
     const referenceMenuOpen = !commandMenuOpen && !skillMenuOpen && !mentionMenuOpen && referenceQuery !== null && offersReferences;
@@ -214,11 +237,10 @@ export function usePromptMenus<D extends PromptDraft>({
         const empty = selection.from === selection.to;
         const tree = empty ? (ensureSyntaxTree(state, selection.from, 50) ?? syntaxTree(state)) : null;
         const caret = tree !== null && !inCode(tree, value, selection.from) ? selection.from : null;
-        const chips = caret === null ? [] : chipRanges(value, draft.mentions, draft.skills, [], referenceChips);
+        const chips = caret === null ? [] : withNamedChips(value, chipRanges(value, draft.mentions, draft.skills, [], referenceChips));
         const skill = caret === null ? null : queryOutsideChips(findSkillQuery(value, caret), chips);
         setSkillQuery((current) => (sameQuery(current, skill) ? current : skill));
-        // A CLI that does not expand `@path` gets the text as it is, so the picker stays out of the way.
-        const next = caret === null || cwd === null ? null : queryOutsideChips(findMentionQuery(value, caret), chips);
+        const next = caret === null ? null : queryOutsideChips(findMentionQuery(value, caret), chips);
         setMention((current) => (sameQuery(current, next) ? current : next));
         const reference = caret === null ? null : queryOutsideChips(findReferenceQuery(value, caret), chips);
         setReferenceQuery((current) => (sameQuery(current, reference) ? current : reference));
@@ -246,11 +268,29 @@ export function usePromptMenus<D extends PromptDraft>({
         moveCaret(result.caret);
     };
 
-    const chooseMentionAt = (index: number): void => {
-        const path = mention === null ? null : mentionPick(index, searched, mention.query);
+    /* A model or an account becomes its token, which a pattern finds again, so the draft keeps no list of them. */
+    const chooseNamed = (pick: NamedPick): void => {
+        if (!mention) {
+            return;
+        }
 
-        if (path !== null) {
-            chooseMention(path);
+        const result = insertToken(text, mention, '', namedChipToken(pick.kind, pick.cli, pick.id));
+        setText(result.text);
+        setMention(null);
+        moveCaret(result.caret);
+    };
+
+    const chooseMentionAt = (index: number): void => {
+        const pick = mention === null ? null : mentionPick(index, { query: searched.query, files }, mention.query, named);
+
+        if (pick === null) {
+            return;
+        }
+
+        if (pick.kind === 'file') {
+            chooseMention(pick.path);
+        } else {
+            chooseNamed(pick);
         }
     };
 
@@ -379,6 +419,9 @@ export function usePromptMenus<D extends PromptDraft>({
         mentionMenuOpen,
         mentionCount,
         files,
+        modelMatches,
+        accountMatches,
+        namedLook,
         referenceMenuOpen,
         referenceMatches,
         referables,
@@ -387,6 +430,7 @@ export function usePromptMenus<D extends PromptDraft>({
         trackTriggers,
         close,
         chooseMention,
+        chooseNamed,
         chooseMentionAt,
         chooseReference,
         chooseReferenceAt,

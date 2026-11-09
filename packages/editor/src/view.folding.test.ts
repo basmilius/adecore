@@ -31,6 +31,22 @@ describe('folding', () => {
         expect(rendered(host)).toEqual(['0', '1', '5', '6']);
     });
 
+    test('replaces the folds of the document and of a person with the ones a host names, and gives the old ones back', () => {
+        const { host, view } = mount(text);
+        view.refreshFolds();
+        view.toggleFold(0);
+        const before = view.getFolds();
+        expect(rendered(host)).toEqual(['0', '4', '5']);
+
+        view.replaceFolds({ collapsed: [{ startLine: 1, endLine: 2 }], custom: [{ startLine: 1, endLine: 2 }] });
+        expect(rendered(host)).toEqual(['0', '1', '3', '4', '5']);
+        expect(view.getFolds()).toEqual({ collapsed: [{ startLine: 1, endLine: 2 }], custom: [{ startLine: 1, endLine: 2 }] });
+
+        view.replaceFolds(before);
+        expect(rendered(host)).toEqual(['0', '4', '5']);
+        expect(view.getFolds()).toEqual(before);
+    });
+
     test('has nothing to fold on a line that starts no range', () => {
         const { view } = mount(text);
         view.refreshFolds();

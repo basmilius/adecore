@@ -21,10 +21,12 @@ import {
     noteIsWarning,
     paceText,
     ringWindows,
+    showsWindows,
     type LimitAccount,
     type LimitGroup,
     type PaceStanding
 } from './limit-groups';
+import { LimitProvenance } from './LimitProvenance';
 
 /* Red where a window is nearly spent, amber where it is worth knowing; room to spare is not news and takes the text color. */
 function toneOf(used: number): string {
@@ -139,14 +141,14 @@ export function LimitsList({ limits, now, compact = false }: LimitsListProps) {
                             {PROVIDER_LABELS[provider.kind]}
                             {provider.plan !== null && <span className="text-text-muted capitalize">· {provider.plan}</span>}
                         </p>
-                        {note === null ? (
+                        <LimitProvenance entry={provider} now={now} />
+                        {note !== null && <p className="text-xs text-text-muted">{note}</p>}
+                        {showsWindows(provider) && (
                             <div className={clsx('flex flex-col', compact ? 'gap-3' : 'gap-4')}>
                                 {provider.windows.map((window) => (
                                     <WindowBar key={window.id} window={window} now={now} compact={compact} />
                                 ))}
                             </div>
-                        ) : (
-                            <p className="text-xs text-text-faint">{note}</p>
                         )}
                     </div>
                 );
@@ -280,7 +282,9 @@ function AccountRow({ group, account, now, folded, onToggle }: AccountRowProps) 
     const empty = emptyWindows(group, account);
     const note = isSignedOut(account) ? t('limits.signedOut') : accountNote(account);
 
-    if (note !== null && empty.length === 0) {
+    const retained = showsWindows(account.entry);
+
+    if (note !== null && empty.length === 0 && !retained) {
         return (
             <p className="flex min-h-7 min-w-0 items-center gap-2 px-1.5">
                 <AccountLogo account={account} className="grid size-3.5 shrink-0" />
@@ -314,6 +318,8 @@ function AccountRow({ group, account, now, folded, onToggle }: AccountRowProps) 
             </button>
             {!folded && (
                 <div className="flex flex-col gap-0.75 pt-0.5 pr-1.5 pb-2 pl-7">
+                    {retained && account.entry !== null && <LimitProvenance entry={account.entry} now={now} />}
+                    {retained && note !== null && <p className="text-xs text-status-needs-you">{note}</p>}
                     {empty.length > 0
                         ? empty.map((window) => <EmptyWindowLine key={window.id} label={window.label} />)
                         : windows.map((window) => <WindowLine key={window.id} window={window} now={now} />)}

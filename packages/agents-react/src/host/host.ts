@@ -199,6 +199,12 @@ export interface ReferenceIconProps {
     className?: string;
 }
 
+/* What a chip of an id that is no view or node still stands for, such as a sender from outside: its mark, and what clicking it opens. */
+export interface OutsideReference {
+    icon: LucideIcon;
+    open: (() => void) | null;
+}
+
 /* What an app's own bar over the composer gets: the chat it stands on, which may be one the bar has nothing for. */
 export interface ComposerHeaderSlotProps {
     scopeId: string;
@@ -228,6 +234,33 @@ export interface ComposerSendAction {
     disabled?: boolean;
     /* Runs once a person picks it; the draft stays in the box, and the host shows a failure itself. */
     run(draft: ComposerSendDraft): void;
+}
+
+/* A row in the popover a status item opens. */
+export interface ComposerStatusDetail {
+    icon: LucideIcon;
+    label: string;
+    /* A second line under the label, such as a path. */
+    detail?: string;
+    /* A word at the end of the row, such as what the label is. */
+    hint?: string;
+    /* Sets the label in the code font, for a name such as a branch. */
+    mono?: boolean;
+    /* Draws the row faint, for one that is listed but asks for no attention. */
+    muted?: boolean;
+}
+
+/* One item in the line under the composer's card, such as the branch a chat works on. */
+export interface ComposerStatusItem {
+    /* Unique among the items of one composer. */
+    id: string;
+    icon: LucideIcon;
+    label: string;
+    tooltip?: string;
+    /* Where on the line it stands; left out, at the start. */
+    side?: 'start' | 'end';
+    /* Rows a click on the item opens; left out, the item is no button. */
+    details?: readonly ComposerStatusDetail[];
 }
 
 /* What an app's own chips for a chat's sub-agents get, in place of the one flyout over the composer. */
@@ -588,12 +621,23 @@ export interface ChatHost {
     ReferenceIcon?: ComponentType<ReferenceIconProps> | null;
     /* Opens a view or zooms to a node a message points at; left out, a chip opens nothing. */
     openReference?(scopeId: string, id: string): void;
+    /*
+     * What an id among no `useReferables` items stands for, such as a sender from outside, which keeps the name its
+     * message gave it. Null, or left out, draws the chip as gone.
+     */
+    outsideReference?(scopeId: string, id: string): OutsideReference | null;
     /* Opens the CLI's own login for an account, somewhere the app can run a command; null offers none. */
     openLogin: ((scopeId: string, kind: AgentKind, accountId: string, name: string) => Promise<void>) | null;
     /* Why a login cannot start from here right now, or null when it can. */
     useLoginBlocked(scopeId: string): string | null;
     /* Whether the machine in scope keeps a person's order of the accounts (`accounts.reorder`); left out, it does. */
     useCanReorderAccounts?(scopeId: string): boolean;
+    /*
+     * Whether the machine in scope answers `accounts.shareConfig`, which shows a switch on an extra account
+     * to use the default account's instructions, skills, agents and commands. Left out, it does not: a
+     * machine from before the request would refuse it, so only a host that knows it says so.
+     */
+    useCanShareAccountConfig?(scopeId: string): boolean;
     /*
      * What the project of a chat says about its accounts: per CLI the account its new chats start on and
      * the accounts it never offers. Left out, or null, every account that is on is offered.
@@ -648,6 +692,8 @@ export interface ChatHost {
     ComposerHeaderSlot?: ComponentType<ComposerHeaderSlotProps> | null;
     /* Actions of the app's own behind a chevron on the send button, in the order given; left out, or none, Send stands alone. */
     useComposerSendActions?(scopeId: string, chatId: string): readonly ComposerSendAction[];
+    /* Items of the app's own on a line under the composer's card, such as where the chat works; left out, or none, draws no line. */
+    useComposerStatus?(scopeId: string, chatId: string): readonly ComposerStatusItem[];
     /* The app's own chips for a chat's sub-agents over the composer; null draws the one flyout. */
     SubagentSlot: ComponentType<SubagentSlotProps> | null;
     /* Cards of the app's own in a thread, in any order. Hand back the same array while none changed, or the thread lays out its rows again on every render. */

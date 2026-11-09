@@ -173,7 +173,7 @@ export function UserRow({ chatId, item }: { chatId: string; item: ChatUserItem }
                                         <div
                                             role="button"
                                             tabIndex={0}
-                                            className="mb-2 cursor-pointer rounded-sm border-l-2 border-border-strong pl-2.5 text-text-muted hover:bg-text/5 hover:text-text focus-visible:outline-2 focus-visible:outline-accent"
+                                            className="mb-2 cursor-pointer rounded-sm border-l-2 border-border-strong pl-2.5 text-text-muted hover:bg-text/5 hover:text-text focus-visible:outline-2 focus-visible:outline-accent-on-surface"
                                             onClick={goToSource}
                                             onKeyDown={(e) => {
                                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -356,7 +356,7 @@ function ChoiceLine({ chatId, choice }: { chatId: string; choice: ChatUiChoiceOr
             onClick={navigation ? () => navigation.reveal(choice) : undefined}
             className={clsx(
                 'mb-1 flex max-w-[80%] items-start gap-1.5 px-1 text-left text-xs text-text-muted select-none',
-                navigation && 'rounded-md hover:text-text focus-visible:outline-2 focus-visible:outline-accent'
+                navigation && 'rounded-md hover:text-text focus-visible:outline-2 focus-visible:outline-accent-on-surface'
             )}
         >
             <Icon icon={Reply} size={12} className="mt-1 shrink-0" />
@@ -705,14 +705,23 @@ export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => 
 }
 
 /* A dashed line, since what stands above it is still there for the reader but only a summary to the agent. */
-export function CompactionRow({ preTokens }: { preTokens: number | null }) {
+export function CompactionRow({ preTokens, postTokens }: { preTokens: number | null; postTokens?: number }) {
     const { t } = useTranslation('agent-chat');
+
+    // A size the CLI did not name is left out rather than guessed.
+    const text = preTokens
+        ? postTokens === undefined
+            ? t('rows.compaction.from', { tokens: formatTokens(preTokens) })
+            : t('rows.compaction.fromTo', { from: formatTokens(preTokens), to: formatTokens(postTokens) })
+        : postTokens === undefined
+          ? t('rows.compaction.plain')
+          : t('rows.compaction.to', { tokens: formatTokens(postTokens) });
 
     return (
         <div className="flex items-center gap-3 pb-3 text-xs text-text-faint">
             <span className="grow border-t border-dashed border-border" />
             <Tooltip label={t('rows.compaction.summary')}>
-                <span>{preTokens ? t('rows.compaction.from', { tokens: formatTokens(preTokens) }) : t('rows.compaction.plain')}</span>
+                <span>{text}</span>
             </Tooltip>
             <span className="grow border-t border-dashed border-border" />
         </div>

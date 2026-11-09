@@ -116,6 +116,8 @@ export type BackendEvent =
     // The CLI renamed its thread, for a protocol that says so.
     | { type: 'title'; title: string }
     | { type: 'permissions'; permissionMode: string; effectiveRuntimeMode?: RuntimeMode }
+    // The folder the CLI works in now, for a CLI that can move out of the one it started in.
+    | { type: 'workdir'; path: string }
     | { type: 'text.delta'; ref: string; text: string; phase?: string }
     // `parentRef` is set for text a subagent wrote; it belongs to that agent's row, not to the thread.
     | { type: 'text.done'; ref: string; text: string; parentRef?: string | null; phase?: string }
@@ -194,7 +196,8 @@ export type BackendEvent =
     | { type: 'usage'; contextTokens?: number; contextWindow?: number; costUsd?: number; cacheTtlMs?: number; cacheExpiresAt?: number }
     // What the CLI said in passing about the plan it runs on; it belongs to the machine, not the chat.
     | { type: 'limits'; update: LimitsUpdate }
-    | { type: 'compaction'; preTokens: number | null }
+    // `postTokens` is the size the CLI named right after the fold, when it named one.
+    | { type: 'compaction'; preTokens: number | null; postTokens?: number }
     // The goal the CLI works toward as it stands now, whole; null once there is none.
     | { type: 'goal'; goal: ChatGoal | null }
     | { type: 'model'; model: string }

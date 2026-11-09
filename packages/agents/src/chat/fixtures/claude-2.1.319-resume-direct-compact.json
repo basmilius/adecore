@@ -1,0 +1,109 @@
+{
+  "source": "Live /compact on a resumed Haiku session in an empty folder with hooks off, on 2026-11-07. Non-protocol init and result fields omitted; the summary text is shortened.",
+  "version": "2.1.319",
+  "frames": [
+    {
+      "type": "system",
+      "subtype": "status",
+      "status": "compacting",
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "uuid": "cf3b13af-63a6-4bf2-891a-3fc7f917d5d1"
+    },
+    {
+      "type": "rate_limit_event",
+      "rate_limit_info": {
+        "status": "allowed",
+        "resetsAt": 1794024600,
+        "rateLimitType": "five_hour",
+        "overageStatus": "rejected",
+        "overageDisabledReason": "org_level_disabled",
+        "isUsingOverage": false,
+        "unifiedWindows": {
+          "five_hour": {
+            "utilization": 0.23,
+            "resetsAt": 1794024600,
+            "status": "allowed"
+          },
+          "seven_day": {
+            "utilization": 0.67,
+            "resetsAt": 1794024000,
+            "status": "allowed"
+          }
+        }
+      },
+      "uuid": "1cc09a6a-fbf2-4fec-9e69-fc8f790ee801",
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5"
+    },
+    {
+      "type": "system",
+      "subtype": "status",
+      "status": null,
+      "compact_result": "success",
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "uuid": "972c1e49-219d-494c-ab50-49af5a3f5141"
+    },
+    {
+      "type": "system",
+      "subtype": "init",
+      "uuid": "648fabce-2492-444a-b8f3-3ff8ce207696",
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "model": "claude-haiku-5-5"
+    },
+    {
+      "type": "system",
+      "subtype": "compact_boundary",
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "uuid": "7b4f960d-fb01-4f91-871f-a61adb2ed3da",
+      "compact_metadata": {
+        "trigger": "manual",
+        "pre_tokens": 25513,
+        "post_tokens": 8603,
+        "cumulative_dropped_tokens": 16910,
+        "duration_ms": 3544
+      },
+      "logical_parent_uuid": "d76a7ec0-86c7-4b9e-b751-d1a2ca996844"
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.\n\n<system-reminder>\n<tools-used-before-summary></tools-used-before-summary>\n</system-reminder>\nSummary:\n1. Primary Request and Intent:\n   The user as..."
+      },
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "parent_tool_use_id": null,
+      "uuid": "cf8af806-872e-493b-8582-d3a7a696064f",
+      "timestamp": "2026-11-07T00:17:39.193Z",
+      "isReplay": false,
+      "isSynthetic": true
+    },
+    {
+      "type": "user",
+      "message": {
+        "role": "user",
+        "content": "<local-command-stdout>Compacted </local-command-stdout>"
+      },
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "parent_tool_use_id": null,
+      "uuid": "453012a3-97ae-4600-bf21-9563dd3846fb",
+      "timestamp": "2026-11-07T00:17:39.302Z",
+      "isReplay": true
+    },
+    {
+      "type": "result",
+      "subtype": "success",
+      "is_error": false,
+      "num_turns": 0,
+      "result": "",
+      "stop_reason": null,
+      "session_id": "d8dff758-7510-4fc4-bf49-36ee9555e4d5",
+      "total_cost_usd": 0.0038959400000000005,
+      "usage": {
+        "input_tokens": 0,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "output_tokens": 0
+      },
+      "uuid": "e09977bf-0fa8-428e-942f-4d363dd7568e"
+    }
+  ]
+}

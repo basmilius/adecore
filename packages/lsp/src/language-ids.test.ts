@@ -32,7 +32,13 @@ const IDS: ReadonlyArray<readonly [string, string]> = [
     ['docker', 'dockerfile'],
     ['twig', 'twig'],
     ['sql', 'sql'],
-    ['rust', 'rust']
+    ['rust', 'rust'],
+    ['markdown', 'markdown'],
+    ['toml', 'toml'],
+    ['lua', 'lua'],
+    ['go', 'go'],
+    ['swift', 'swift'],
+    ['zig', 'zig']
 ];
 
 describe('the LSP id of a language', () => {
@@ -44,8 +50,8 @@ describe('the LSP id of a language', () => {
     it('leaves a language it does not list as it is, or as unknown', () => {
         expect(lspLanguageId('dockerfile')).toBe('dockerfile');
         expect(lspLanguageId('typescriptreact')).toBe('typescriptreact');
-        expect(lspLanguageId('zig')).toBe('zig');
-        expect(lspLanguageIdOf('zig')).toBeNull();
+        expect(lspLanguageId('unknown')).toBe('unknown');
+        expect(lspLanguageIdOf('unknown')).toBeNull();
         expect(lspLanguageIdOf(undefined)).toBeNull();
     });
 

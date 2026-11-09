@@ -84,6 +84,19 @@ export async function reorderAccounts(scope: ChatScope, host: Pick<ChatHost, 'no
     }
 }
 
+/* Turns the sharing of the default account's setup on or off for one account. Answers false when the host refused, which a toast then says. */
+export async function shareAccountConfig(scope: ChatScope, host: Pick<ChatHost, 'notify'>, id: string, shared: boolean): Promise<boolean> {
+    try {
+        useProviderAccountsStore.getState().set(scope.id, await linkTo(scope).request('accounts.shareConfig', { id, shared }));
+
+        return true;
+    } catch (e) {
+        host.notify({ id: `providers-share-${scope.id}`, kind: 'error', title: words('account.shareConfigFailed'), description: errorMessage(e) });
+
+        return false;
+    }
+}
+
 /* An account in a folder the host makes for it; answers its id. Throws what the host said, for the form to show. */
 export async function createAccount(scope: ChatScope, kind: AgentKind, label: string, color: string): Promise<string> {
     const { id, ...accounts } = await linkTo(scope).request('accounts.create', { kind, label, color });

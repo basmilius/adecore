@@ -17,6 +17,7 @@ export type {
     EditorBlock,
     EditorChangeKind,
     EditorChangeMark,
+    EditorChangeMarkHover,
     EditorCodeVision,
     EditorCodeVisionEntry,
     EditorClick,

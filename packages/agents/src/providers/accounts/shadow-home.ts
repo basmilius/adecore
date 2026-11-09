@@ -37,7 +37,7 @@ export class ShadowHomeError extends Error {}
 
 type Existing = { kind: 'missing' } | { kind: 'link'; target: string } | { kind: 'real' };
 
-async function existing(path: string): Promise<Existing> {
+export async function existing(path: string): Promise<Existing> {
     try {
         const stats = await lstat(path);
 

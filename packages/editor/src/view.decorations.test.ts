@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { pointer } from './testing.ts';
+import type { EditorChangeMarkHover } from './types.ts';
 import { mount } from './view.fixture.test.ts';
 
 describe('inlays and widgets', () => {
@@ -408,6 +409,106 @@ describe('attribution marks', () => {
         gutterEdge('pointermove', 1, 2);
         view.setAttributionMarks([]);
         expect(seen).toEqual(['a', null]);
+    });
+});
+
+describe('change mark hover', () => {
+    const text = 'one\ntwo\nthree\nfour';
+
+    test('keeps each mark and layer identity instead of merging adjacent painted runs', () => {
+        const { view, gutterEdge } = hoverable(text);
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks(
+            [
+                { kind: 'modified', startLine: 1, endLine: 1 },
+                { kind: 'modified', startLine: 2, endLine: 3 }
+            ],
+            'git'
+        );
+        gutterEdge('pointermove', 0, 2);
+        expect(seen.at(-1)).toMatchObject({ layer: 'git', line: 1, mark: { kind: 'modified', startLine: 1, endLine: 1 } });
+        gutterEdge('pointermove', 1, 2);
+        expect(seen.at(-1)).toMatchObject({ line: 2, mark: { startLine: 2, endLine: 3 } });
+        view.setChangeMarks([{ kind: 'added', startLine: 2, endLine: 2 }], 'review');
+        expect(seen.at(-1)).toMatchObject({ layer: 'review', mark: { kind: 'added' } });
+        view.setChangeMarks([], 'review');
+        expect(seen.at(-1)).toMatchObject({ layer: 'git', mark: { kind: 'modified' } });
+        view.setChangeMarks([], 'git');
+        expect(seen.at(-1)).toBeNull();
+    });
+
+    test('finds both halves of a removal triangle and chooses the closer mark on the preceding line', () => {
+        const { view, window } = hoverable(text);
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([
+            { kind: 'added', startLine: 2, endLine: 2 },
+            { kind: 'deleted', startLine: 3, endLine: 3 }
+        ]);
+        pointer(window, view.gutterElement, 'pointermove', 63, 39);
+        expect(seen.at(-1)).toMatchObject({ line: 3, mark: { kind: 'deleted' }, rect: { top: 36, bottom: 44 } });
+        pointer(window, view.gutterElement, 'pointermove', 63, 41);
+        expect(seen.at(-1)?.mark.kind).toBe('deleted');
+        pointer(window, view.gutterElement, 'pointermove', 63, 27);
+        expect(seen.at(-1)?.mark.kind).toBe('added');
+    });
+
+    test('refreshes a stationary pointer after scrolling, maps edited marks and ignores touch', () => {
+        const { view, gutterEdge, host, window, model } = hoverable(text);
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([{ kind: 'added', startLine: 2, endLine: 3 }]);
+        gutterEdge('pointermove', 1, 2);
+        expect(seen.at(-1)?.line).toBe(2);
+        const viewport = host.querySelector<HTMLElement>('.se-viewport')!;
+        viewport.scrollTop = 20;
+        view.render();
+        expect(seen.at(-1)).toMatchObject({ line: 3, rect: { top: 20, bottom: 40 } });
+        model.applyEdits([{ from: 0, to: 0, text: 'inserted\n' }]);
+        expect(seen.at(-1)?.mark).toMatchObject({ startLine: 3, endLine: 4 });
+        const touch = new (window as unknown as { Event: typeof Event }).Event('pointermove');
+        Object.assign(touch, { clientX: 62, clientY: 25, pointerType: 'touch' });
+        view.gutterElement.dispatchEvent(touch);
+        expect(seen.at(-1)).toBeNull();
+    });
+
+    test('reports changes under attribution but not under highlight bars, and leaves with the pointer', () => {
+        const { view, gutterEdge, window } = hoverable(text);
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([{ kind: 'modified', startLine: 2, endLine: 2 }]);
+        view.setAttributionMarks([{ id: 'agent', startLine: 2, endLine: 2, color: '--agent-1' }]);
+        gutterEdge('pointermove', 1, 2);
+        expect(seen.at(-1)?.mark.kind).toBe('modified');
+        view.setLineHighlights([{ startLine: 2, endLine: 2, color: '--agent-1', bar: 'solid' }]);
+        expect(seen.at(-1)).toBeNull();
+        view.setLineHighlights([]);
+        expect(seen.at(-1)?.mark.kind).toBe('modified');
+        view.gutterElement.dispatchEvent(new (window as unknown as { Event: typeof Event }).Event('pointerleave'));
+        expect(seen.at(-1)).toBeNull();
+    });
+
+    test('keeps a removal past the end of the file on the last line, where it is painted', () => {
+        const { view, window } = hoverable(text);
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([{ kind: 'deleted', startLine: 9, endLine: 9 }]);
+        pointer(window, view.gutterElement, 'pointermove', 63, 3 * 20 + 6);
+        expect(seen.at(-1)).toMatchObject({ line: 4, mark: { kind: 'deleted', startLine: 4, endLine: 4 } });
+    });
+
+    test('reports the rectangle in screen pixels under a scaled canvas', () => {
+        const { view, window, host } = hoverable(text);
+        const viewport = host.querySelector<HTMLElement>('.se-viewport')!;
+        Object.defineProperty(viewport, 'offsetWidth', { value: 200 });
+        Object.defineProperty(viewport, 'offsetHeight', { value: 100 });
+        viewport.getBoundingClientRect = () => ({ left: 100, top: 50, width: 400, height: 200, right: 500, bottom: 250 }) as DOMRect;
+        const seen: (EditorChangeMarkHover | null)[] = [];
+        view.onChangeMarkHover((hover) => seen.push(hover));
+        view.setChangeMarks([{ kind: 'added', startLine: 2, endLine: 2 }]);
+        pointer(window, view.gutterElement, 'pointermove', 100 + 62 * 2, 50 + 25 * 2);
+        expect(seen.at(-1)).toMatchObject({ line: 2, rect: { top: 90, bottom: 130, right: 228, left: 222 } });
     });
 });
 

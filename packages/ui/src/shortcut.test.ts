@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { formatShortcut, matchesShortcut, shortcut, shortcutParts, type KeyLike } from './shortcut.ts';
+import { formatShortcut, matchesShortcut, shortcut, shortcutFromEvent, shortcutParts, shortcutText, type KeyLike } from './shortcut.ts';
 
 const event = (patch: Partial<KeyLike>): KeyLike => ({ metaKey: false, ctrlKey: false, altKey: false, shiftKey: false, key: '', code: '', ...patch });
 
@@ -95,5 +95,115 @@ describe('formatShortcut', () => {
             expect(formatShortcut(shortcut(name), true)).toBe(apple);
             expect(formatShortcut(shortcut(name), false)).toBe(other);
         }
+    });
+});
+
+describe('shortcutFromEvent', () => {
+    test('reads a letter by the physical key, whatever Shift or Option made of the character', () => {
+        expect(shortcutFromEvent(event({ metaKey: true, shiftKey: true, key: 'K', code: 'KeyK' }), true)).toEqual(shortcut('Mod+Shift+K'));
+        expect(shortcutFromEvent(event({ altKey: true, key: 'Dead', code: 'KeyB' }), true)).toEqual(shortcut('Alt+B'));
+    });
+
+    test('reads a digit by the physical key', () => {
+        expect(shortcutFromEvent(event({ ctrlKey: true, shiftKey: true, key: '!', code: 'Digit1' }), false)).toEqual(shortcut('Mod+Shift+1'));
+    });
+
+    test('reads punctuation by the physical key', () => {
+        expect(shortcutFromEvent(event({ metaKey: true, key: ',', code: 'Comma' }), true)).toEqual(shortcut('Mod+,'));
+        expect(shortcutFromEvent(event({ metaKey: true, shiftKey: true, key: '{', code: 'BracketLeft' }), true)).toEqual(shortcut('Mod+Shift+['));
+    });
+
+    test('reads the characters that sit on a different key per layout by the character', () => {
+        expect(shortcutFromEvent(event({ metaKey: true, key: '-', code: 'Minus' }), true)).toEqual(shortcut('Mod+-'));
+        expect(shortcutFromEvent(event({ metaKey: true, shiftKey: true, key: '+', code: 'Equal' }), true)).toEqual(shortcut('Mod+Shift++'));
+        expect(shortcutFromEvent(event({ metaKey: true, key: '=', code: 'Equal' }), true)).toEqual(shortcut('Mod+='));
+    });
+
+    test('reads named keys, Space and function keys', () => {
+        expect(shortcutFromEvent(event({ ctrlKey: true, key: 'Enter', code: 'Enter' }), false)).toEqual(shortcut('Mod+Enter'));
+        expect(shortcutFromEvent(event({ altKey: true, key: 'ArrowUp', code: 'ArrowUp' }), true)).toEqual(shortcut('Alt+ArrowUp'));
+        expect(shortcutFromEvent(event({ ctrlKey: true, key: ' ', code: 'Space' }), false)).toEqual(shortcut('Mod+Space'));
+        expect(shortcutFromEvent(event({ key: 'Escape', code: 'Escape' }), true)).toEqual(shortcut('Escape'));
+        expect(shortcutFromEvent(event({ key: 'F2', code: 'F2' }), true)).toEqual(shortcut('F2'));
+        expect(shortcutFromEvent(event({ metaKey: true, key: 'F12', code: 'F12' }), true)).toEqual(shortcut('Mod+F12'));
+    });
+
+    test('keeps the physical Ctrl on macOS and the physical Meta elsewhere apart from Mod', () => {
+        expect(shortcutFromEvent(event({ ctrlKey: true, key: 'k', code: 'KeyK' }), true)).toEqual(shortcut('Ctrl+K'));
+        expect(shortcutFromEvent(event({ ctrlKey: true, metaKey: true, key: 'k', code: 'KeyK' }), true)).toEqual(shortcut('Mod+Ctrl+K'));
+        expect(shortcutFromEvent(event({ metaKey: true, key: 'k', code: 'KeyK' }), false)).toEqual(shortcut('Meta+K'));
+        expect(shortcutFromEvent(event({ ctrlKey: true, metaKey: true, key: 'k', code: 'KeyK' }), false)).toEqual(shortcut('Mod+Meta+K'));
+    });
+
+    test('is null for a modifier on its own', () => {
+        for (const key of ['Shift', 'Control', 'Alt', 'Meta', 'AltGraph', 'CapsLock']) {
+            expect(shortcutFromEvent(event({ key, code: `${key}Left`, shiftKey: key === 'Shift' }), true)).toBeNull();
+        }
+    });
+
+    test('is null for a key shortcut() has no word for', () => {
+        expect(shortcutFromEvent(event({ metaKey: true, key: '1', code: 'Numpad1' }), true)).toBeNull();
+        expect(shortcutFromEvent(event({ metaKey: true, key: 'F13', code: 'F13' }), true)).toBeNull();
+        expect(shortcutFromEvent(event({ metaKey: true, key: 'Home', code: 'Home' }), true)).toBeNull();
+        expect(shortcutFromEvent(event({ metaKey: true, shiftKey: true, key: '_', code: 'Minus' }), true)).toBeNull();
+        expect(shortcutFromEvent(event({ key: 'Unidentified', code: '' }), true)).toBeNull();
+        expect(shortcutFromEvent(event({ key: 'Process', code: 'KeyA' }), true)).toBeNull();
+    });
+
+    test('does not read a bare key as more than it is, leaving the refusal to the caller', () => {
+        expect(shortcutFromEvent(event({ key: 'k', code: 'KeyK' }), true)).toEqual(shortcut('K'));
+        expect(shortcutFromEvent(event({ shiftKey: true, key: 'K', code: 'KeyK' }), true)).toEqual(shortcut('Shift+K'));
+    });
+
+    test('matches the event it was read from', () => {
+        const presses: Array<[KeyLike, boolean]> = [
+            [event({ metaKey: true, shiftKey: true, key: 'p', code: 'KeyP' }), true],
+            [event({ ctrlKey: true, altKey: true, key: '/', code: 'Slash' }), false],
+            [event({ ctrlKey: true, key: '+', shiftKey: true, code: 'Equal' }), true],
+            [event({ altKey: true, key: 'ArrowLeft', code: 'ArrowLeft' }), true]
+        ];
+
+        for (const [press, apple] of presses) {
+            expect(matchesShortcut(shortcutFromEvent(press, apple)!, press, apple)).toBe(true);
+        }
+    });
+});
+
+describe('shortcutText', () => {
+    test('writes the modifiers in a fixed order, then the key', () => {
+        expect(shortcutText({ mod: true, ctrl: true, meta: true, alt: true, shift: true, key: 'K' })).toBe('Mod+Ctrl+Meta+Alt+Shift+K');
+        expect(shortcutText(shortcut('Shift+Alt+Mod+K'))).toBe('Mod+Alt+Shift+K');
+        expect(shortcutText(shortcut('F2'))).toBe('F2');
+    });
+
+    test('reads back through shortcut() as the same shortcut', () => {
+        const texts = [
+            'Mod+K',
+            'Mod+Shift+K',
+            'Ctrl+Alt+Delete',
+            'Mod+,',
+            'Mod+\\',
+            'Mod+Shift+[',
+            'Mod++',
+            '+',
+            '-',
+            'Mod+=',
+            'Alt+ArrowUp',
+            'Mod+Space',
+            'F2',
+            'Mod+F12',
+            'Mod',
+            'Meta+Ctrl+1'
+        ];
+
+        for (const text of texts) {
+            expect(shortcut(shortcutText(shortcut(text)))).toEqual(shortcut(text));
+        }
+    });
+
+    test('round-trips what a key press read as', () => {
+        const recorded = shortcutFromEvent(event({ metaKey: true, shiftKey: true, key: '+', code: 'Equal' }), true)!;
+        expect(shortcutText(recorded)).toBe('Mod+Shift++');
+        expect(shortcut(shortcutText(recorded))).toEqual(recorded);
     });
 });

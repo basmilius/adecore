@@ -4,7 +4,7 @@ import { EditorView, placeholder as placeholderText } from '@codemirror/view';
 import { useImperativeHandle, useLayoutEffect, useRef, useState, type Ref } from 'react';
 import { useChatHost } from '../../host/host';
 import { composerEditorExtensions, externalChange } from './composer/editor';
-import { insertAtSelection } from './composer/insert';
+import { insertAtSelection, insertSigil } from './composer/insert';
 
 export interface ComposerInputHandle {
     focus(): void;
@@ -12,6 +12,8 @@ export interface ComposerInputHandle {
     setCaret(pos: number): void;
     /* Types text in over the selection (`insertAtSelection`) and gives the editor the focus. */
     insert(text: string): void;
+    /* Types a sigil at the caret (`insertSigil`), which opens its picker, and gives the editor the focus. */
+    insertSigil(sigil: string): void;
 }
 
 export interface InputSelection {
@@ -72,6 +74,8 @@ export function ComposerInput({
     const viewRef = useRef<EditorView | null>(null);
     const [scroller, setScroller] = useState<HTMLElement | null>(null);
     const scrollbars = useOverlayScrollbars(scroller);
+    // Activity restarts effects; the immutable editor state carries the caret and undo history.
+    const retained = useRef<{ state: EditorState; extensions: Extension | undefined } | null>(null);
 
     const [compartments] = useState(() => ({
         attributes: new Compartment(),
@@ -96,66 +100,73 @@ export function ComposerInput({
         }
 
         const initial = latest.current.value;
+        const previous = retained.current;
+        const resume =
+            previous !== null && previous.extensions === dictation.composer?.extensions && previous.state.doc.toString() === initial ? previous.state : null;
 
         const view = new EditorView({
             parent: host,
-            state: EditorState.create({
-                doc: initial,
-                selection: { anchor: initial.length },
-                extensions: [
-                    composerEditorExtensions(),
-                    dictation.composer?.extensions ?? [],
-                    compartments.attributes.of([]),
-                    compartments.editable.of([]),
-                    compartments.placeholder.of([]),
-                    compartments.extensions.of([]),
-                    Prec.highest(
-                        EditorView.domEventHandlers({
-                            keydown: (event, target) => latest.current.handlers.onKeyDown?.(event, target) ?? false,
-                            paste: (event, target) => latest.current.handlers.onPaste?.(event, target) ?? false,
-                            copy: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
-                            cut: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
-                            compositionstart: () => {
-                                latest.current.handlers.onComposing?.(true);
+            state:
+                resume ??
+                EditorState.create({
+                    doc: initial,
+                    selection: { anchor: initial.length },
+                    extensions: [
+                        composerEditorExtensions(),
+                        dictation.composer?.extensions ?? [],
+                        compartments.attributes.of([]),
+                        compartments.editable.of([]),
+                        compartments.placeholder.of([]),
+                        compartments.extensions.of([]),
+                        Prec.highest(
+                            EditorView.domEventHandlers({
+                                keydown: (event, target) => latest.current.handlers.onKeyDown?.(event, target) ?? false,
+                                paste: (event, target) => latest.current.handlers.onPaste?.(event, target) ?? false,
+                                copy: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
+                                cut: (event, target) => latest.current.handlers.onCopy?.(event, target) ?? false,
+                                compositionstart: () => {
+                                    latest.current.handlers.onComposing?.(true);
 
-                                return false;
-                            },
-                            compositionend: () => {
-                                latest.current.handlers.onComposing?.(false);
+                                    return false;
+                                },
+                                compositionend: () => {
+                                    latest.current.handlers.onComposing?.(false);
 
-                                return false;
+                                    return false;
+                                }
+                            })
+                        ),
+                        EditorView.updateListener.of((update) => {
+                            const current = latest.current.handlers;
+
+                            if (update.focusChanged && !update.view.hasFocus) {
+                                current.onBlur?.();
+                            }
+
+                            if ((!update.docChanged && !update.selectionSet) || update.transactions.some((tr) => tr.annotation(externalChange))) {
+                                return;
+                            }
+
+                            const text = update.state.doc.toString();
+                            const { from, to } = update.state.selection.main;
+
+                            if (update.docChanged) {
+                                reported.current = text;
+                                current.onChange(text, { from, to }, update.state);
+                            } else {
+                                current.onSelectionChange?.(text, { from, to }, update.state);
                             }
                         })
-                    ),
-                    EditorView.updateListener.of((update) => {
-                        const current = latest.current.handlers;
-
-                        if (update.focusChanged && !update.view.hasFocus) {
-                            current.onBlur?.();
-                        }
-
-                        if ((!update.docChanged && !update.selectionSet) || update.transactions.some((tr) => tr.annotation(externalChange))) {
-                            return;
-                        }
-
-                        const text = update.state.doc.toString();
-                        const { from, to } = update.state.selection.main;
-
-                        if (update.docChanged) {
-                            reported.current = text;
-                            current.onChange(text, { from, to }, update.state);
-                        } else {
-                            current.onSelectionChange?.(text, { from, to }, update.state);
-                        }
-                    })
-                ]
-            })
+                    ]
+                })
         });
 
         viewRef.current = view;
         setScroller(view.scrollDOM);
+        retained.current = null;
 
         return () => {
+            retained.current = { state: view.state, extensions: dictation.composer?.extensions };
             view.destroy();
             viewRef.current = null;
             setScroller(null);
@@ -218,6 +229,16 @@ export function ComposerInput({
 
                 view.dispatch(insertAtSelection(view.state, text));
                 view.focus();
+            },
+            insertSigil: (sigil: string) => {
+                const view = viewRef.current;
+
+                if (!view) {
+                    return;
+                }
+
+                view.focus();
+                view.dispatch(insertSigil(view.state, sigil));
             }
         }),
         []

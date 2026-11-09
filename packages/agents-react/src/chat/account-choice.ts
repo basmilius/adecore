@@ -18,6 +18,14 @@ export interface AccountChoice {
     nameOf(entry: AccountEntry): string;
 }
 
+/* The color a person gave the account the chat runs under, also when it is the CLI's only one. */
+export function useAccountColorId(kind: AgentKind, account: string | undefined): string | undefined {
+    const accounts = useProviderAccounts((row) => row.accounts);
+    const currentId = account ?? kind;
+
+    return accounts?.accounts[currentId]?.color;
+}
+
 /*
  * The accounts of a chat's CLI on the machine in scope and the one the chat runs under, or null while
  * the CLI has fewer than two accounts that are on: with one there is nothing to choose or tell apart.

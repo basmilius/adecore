@@ -27,8 +27,8 @@ function Elapsed({ startedAt }: { startedAt: number }) {
 
 /*
  * One agent of a workflow: its label, what it does or did, and its time. It opens the agent's
- * conversation when `onOpen` is given and the agent started; one still waiting has no transcript yet.
- * `selected` marks the agent whose conversation is open beside it.
+ * conversation when `onOpen` is given and the agent started; one still waiting has no transcript yet
+ * and, like a line without `onOpen`, draws no arrow. `selected` marks the agent whose conversation is open beside it.
  */
 export function WorkflowAgentLine({
     view,
@@ -87,7 +87,7 @@ export function WorkflowAgentLine({
                     time !== null && <span className={TIME}>{time}</span>
                 )}
                 {state === 'failed' && <Icon icon={X} size={12} className="shrink-0 text-status-error" />}
-                <Icon icon={ChevronRight} size={12} className={clsx('shrink-0 text-text-faint', open === undefined && 'invisible')} />
+                {open !== undefined && <Icon icon={ChevronRight} size={12} className="shrink-0 text-text-faint" />}
             </span>
         </button>
     );

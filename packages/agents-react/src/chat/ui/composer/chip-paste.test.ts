@@ -31,6 +31,12 @@ describe('pastedChipsIn', () => {
         expect(mayHoldChips('see (#Admin)')).toBe(true);
         expect(mayHoldChips('$review it')).toBe(true);
     });
+
+    test('a model token pastes as text, which draws its chip by itself', () => {
+        const text = 'run on @model:claude/claude-opus-5-5';
+
+        expect(pastedChipsIn(text, 0, text.length, [], choices)).toEqual({ text, mentions: [], skills: [], references: [] });
+    });
 });
 
 describe('withPastedChips', () => {

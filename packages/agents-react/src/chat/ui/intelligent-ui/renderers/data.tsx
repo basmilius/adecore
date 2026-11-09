@@ -3,7 +3,7 @@ import { Button, Icon, KeyValueList, Pill, ScrollArea, Tooltip } from '@adecore/
 import { formatBytes, formatDuration, formatMoment, formatNumber, formatPercent, formatRounded } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { ArrowDown, ArrowRight, ArrowUp } from 'lucide-react';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf, uiWithUnit } from '../node-text';
@@ -21,15 +21,29 @@ const TILED_UP_TO = 4;
 const EntityTiles = createContext(false);
 
 /*
- * A number that live readings keep up to date. Keyed by its text, so a value that changed mounts
- * again and lights up once, even when it changes again before the last light settled.
+ * A value that live readings keep up to date. Keyed by its text, so a value that changed mounts
+ * again and lights up once, even when it changes again before the last light settled. A stale
+ * value is dimmed by the node around it, not here.
  */
-function LiveFigure({ text, previous, live, className }: { text: string; previous?: string; live?: UiLiveValue; className?: string }) {
+function LiveFigure({
+    text,
+    previous,
+    live,
+    className,
+    children
+}: {
+    text: string;
+    previous?: string;
+    live?: UiLiveValue;
+    className?: string;
+    /* What to draw for `text`, where it is more than the text itself. */
+    children?: ReactNode;
+}) {
     const lit = live !== undefined && live.changed && !live.stale && previous !== text;
 
     return (
-        <span key={text} className={clsx(live?.stale ? 'text-text-muted' : 'text-text', lit && 'chat-ui-changed', className)}>
-            {text}
+        <span key={text} className={clsx(lit && 'chat-ui-changed', className) || undefined}>
+            {children ?? text}
         </span>
     );
 }
@@ -57,7 +71,7 @@ export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>
                 text={uiWithUnit(formatRounded(value, 2), unit)}
                 previous={typeof live?.previous === 'number' ? uiWithUnit(formatRounded(live.previous, 2), unit) : undefined}
                 live={live}
-                className="max-w-full truncate text-lg font-semibold tabular-nums"
+                className="max-w-full truncate text-lg font-semibold text-text tabular-nums"
             />
             {change !== null && (
                 <Tooltip label={said}>
@@ -122,25 +136,29 @@ function numberText(cell: Extract<UiTableCell, { kind: 'number' }>, unit: string
     return cell.as === 'bytes' ? formatBytes(cell.value) : cell.as === 'duration' ? formatDuration(cell.value) : uiWithUnit(formatRounded(cell.value, 2), unit);
 }
 
-function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; live?: UiLiveValue }) {
-    const cell = uiTableCell(value, column);
-
+/* What a cell reads as, so two readings that draw the same do not light up. */
+function cellText(cell: UiTableCell, column: UiTableColumn): string {
     switch (cell.kind) {
         case 'empty':
-            return null;
+            return '';
         case 'text':
-            return <>{cell.text}</>;
-        case 'number': {
-            const before = live?.previous === undefined ? undefined : uiTableCell(live.previous, column);
+        case 'tag':
+            return cell.text;
+        case 'number':
+            return numberText(cell, column.unit);
+        case 'date':
+            return formatMoment(cell.at);
+        case 'file':
+            return cell.path;
+    }
+}
 
-            return (
-                <LiveFigure
-                    text={numberText(cell, column.unit)}
-                    previous={before?.kind === 'number' ? numberText(before, column.unit) : undefined}
-                    live={live}
-                />
-            );
-        }
+function cellContent(cell: Exclude<UiTableCell, { kind: 'empty' }>, column: UiTableColumn): ReactNode {
+    switch (cell.kind) {
+        case 'text':
+            return cell.text;
+        case 'number':
+            return numberText(cell, column.unit);
         case 'date':
             return <time dateTime={new Date(cell.at).toISOString()}>{formatMoment(cell.at)}</time>;
         case 'file':
@@ -153,6 +171,23 @@ function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; 
                 </Pill>
             );
     }
+}
+
+function Cell({ value, column, live }: { value: unknown; column: UiTableColumn; live?: UiLiveValue }) {
+    const cell = uiTableCell(value, column);
+
+    if (cell.kind === 'empty') {
+        return null;
+    }
+
+    const text = cellText(cell, column);
+    const previous = live?.previous === undefined ? undefined : cellText(uiTableCell(live.previous, column), column);
+
+    return (
+        <LiveFigure text={text} previous={previous} live={live}>
+            {cellContent(cell, column)}
+        </LiveFigure>
+    );
 }
 
 /*
@@ -213,11 +248,7 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
                                             isNumericColumn(column) ? 'text-right whitespace-nowrap' : 'text-left'
                                         )}
                                     >
-                                        <Cell
-                                            value={row[column.key]}
-                                            column={column}
-                                            live={isNumericColumn(column) ? context.liveValue?.(node.id, 'rows', [index, column.key]) : undefined}
-                                        />
+                                        <Cell value={row[column.key]} column={column} live={context.liveValue?.(node.id, 'rows', [index, column.key])} />
                                     </td>
                                 ))}
                             </tr>

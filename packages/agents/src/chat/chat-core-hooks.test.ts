@@ -3,7 +3,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
-import type { BackendLaunch } from '../backends/backend.ts';
+import type { BackendHost, BackendLaunch } from '../backends/backend.ts';
 import type { AgentEvent } from '../events.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { claudeProvider, codexProvider } from '../testing/providers.ts';
@@ -15,14 +15,16 @@ let home: string;
 let store: ChatStore;
 let launches: BackendLaunch[];
 let core: ChatCore | null;
+let backendHost: BackendHost | null;
 
 const providers = new ProviderRegistry({
     detect: async () => ({ installed: true, version: 'test' }),
     providers: [
         {
             ...claudeProvider,
-            createBackend: (launch) => {
+            createBackend: (launch, host) => {
                 launches.push(launch);
+                backendHost = host;
 
                 return {
                     running: true,
@@ -79,6 +81,7 @@ beforeEach(async () => {
     store = new ChatStore(home);
     launches = [];
     core = null;
+    backendHost = null;
 });
 
 afterEach(async () => {
@@ -334,4 +337,36 @@ describe('a record nobody loaded', () => {
         await chats.create({ chatId: 'chat-1' });
         expect(chats.history('chat-1', undefined, 2).items.map((item) => (item.kind === 'user' ? item.text : ''))).toEqual(['two', 'three']);
     });
+});
+
+test('a host title policy reaches an open non-Codex chat without changing its backend', async () => {
+    let policy: 'native' | 'generated' = 'native';
+    const requests: string[] = [];
+    core = new ChatCore({
+        providers,
+        store,
+        attachments: new AttachmentStore(home),
+        titlePolicy: (chatId, provider) => {
+            expect([chatId, provider]).toEqual(['named', 'claude']);
+            return policy;
+        },
+        nameChat: async (provider, input) => {
+            requests.push(`${provider}/${input.prompt}`);
+            return 'Chosen title';
+        }
+    });
+    await core.create({ chatId: 'named', cwd: home });
+    policy = 'generated';
+    await core.send('named', 'Review this change');
+    await settle();
+
+    if (backendHost === null) {
+        throw new Error('The chat did not start its backend');
+    }
+
+    backendHost.onEvent({ type: 'title', title: 'Native title' });
+    backendHost.onEvent({ type: 'turn.done', state: 'done', costUsd: 0 });
+    await settle();
+    expect(core.list().find((chat) => chat.chatId === 'named')?.suggestedTitle).toBe('Chosen title');
+    expect(requests).toEqual(['claude/Review this change']);
 });

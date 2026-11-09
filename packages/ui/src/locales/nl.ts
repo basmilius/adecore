@@ -61,6 +61,10 @@ export default {
         fit: 'Zoomen tot alles past',
         fitEverything: 'Alles laten passen'
     },
+    shortcutInput: {
+        prompt: 'Druk op een sneltoets',
+        unsupported: 'Die toets kan geen sneltoets zijn'
+    },
     waveform: {
         position: '{{time}} van {{duration}}'
     },
@@ -72,6 +76,9 @@ export default {
     tabs: {
         more: 'Meer',
         close: 'Tabblad sluiten'
+    },
+    table: {
+        loading: 'Laden'
     },
     tree: {
         label: 'Bestanden',

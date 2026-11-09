@@ -1,12 +1,15 @@
+import type { AgentKind } from '@adecore/agent-contracts';
 import { syntaxTree } from '@codemirror/language';
 import { Facet, StateField, type EditorState, type Extension, type Range } from '@codemirror/state';
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { createElement, Fragment, type ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { CliMark } from '../../../agents/AgentModelLabel';
 import type { ReferenceIconProps } from '../../../host/host';
 import type { ReferableKind, ReferenceStep } from '../../../host/references';
-import { chipRanges, type ReferenceToken } from '../../mentions';
+import { chipRanges, withNamedChips, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
+import type { NamedChipLook, NamedChipLookup } from '../named-chip-look';
 import { referenceGlyph } from '../reference-icons';
 import { ReferenceTrail } from '../ReferenceTrail';
 import { codeRanges } from './editor';
@@ -18,6 +21,8 @@ export interface ChipChoices {
     references?: ReadonlyArray<ReferenceToken & { kind: ReferableKind | null; trail?: readonly ReferenceStep[] }>;
     /* The host's mark of a reference, which the editor draws outside the host's provider. */
     referenceIcon?: ComponentType<ReferenceIconProps> | null;
+    /* How a model or an account reads; without it a named chip shows its id. */
+    named?: NamedChipLookup | null;
 }
 
 const NO_CHOICES: ChipChoices = { mentions: [], skills: [] };
@@ -81,13 +86,79 @@ class ReferenceIcon extends WidgetType {
     }
 }
 
-function chipMarks(state: EditorState): DecorationSet {
-    const { mentions, skills, references = [], referenceIcon = null } = state.facet(choices);
+/*
+ * A model or an account in place of its whole token: the CLI's mark in the color of the account it runs
+ * on, and the name the machine knows it by. The token is one atom, so the caret steps over it whole.
+ */
+class NamedChipWidget extends WidgetType {
+    readonly cli: AgentKind;
+    readonly look: NamedChipLook;
+
+    constructor(cli: AgentKind, look: NamedChipLook) {
+        super();
+        this.cli = cli;
+        this.look = look;
+    }
+
+    override eq(other: NamedChipWidget): boolean {
+        return other.cli === this.cli && other.look.label === this.look.label && other.look.color === this.look.color;
+    }
+
+    toDOM(): HTMLElement {
+        const chip = document.createElement('span');
+        const mark = document.createElement('span');
+        const root = createRoot(mark);
+
+        chip.className = `${REFERENCE_TONE} ${CHIP_IN_EDITOR}`;
+        mark.className = TOKEN_ICON_IN_EDITOR;
+
+        if (this.look.color !== undefined) {
+            mark.style.color = this.look.color;
+        }
+
+        root.render(createElement(CliMark, { kind: this.cli, size: 12 }));
+        roots.set(chip, root);
+        chip.append(mark, this.look.label);
+
+        return chip;
+    }
+
+    override destroy(dom: HTMLElement): void {
+        const root = roots.get(dom);
+        roots.delete(dom);
+        queueMicrotask(() => root?.unmount());
+    }
+}
+
+interface ChipMarks {
+    marks: DecorationSet;
+    /* The named chips, which the caret and a delete take whole. */
+    atoms: DecorationSet;
+}
+
+function chipMarks(state: EditorState): ChipMarks {
+    const { mentions, skills, references = [], referenceIcon = null, named = null } = state.facet(choices);
     const tokens = new Map(references.map((token) => [token.id, token]));
     const marks: Range<Decoration>[] = [];
+    const atoms: Range<Decoration>[] = [];
+    const text = state.doc.toString();
+    const code = codeRanges(state);
 
     // `@a.ts` in backticks is code, not a mention.
-    for (const range of chipRanges(state.doc.toString(), mentions, skills, codeRanges(state), references)) {
+    for (const range of withNamedChips(text, chipRanges(text, mentions, skills, code, references), code)) {
+        if (range.kind === 'model' || range.kind === 'account') {
+            const slash = range.value.indexOf('/');
+            const cli = range.value.slice(0, slash);
+            const id = range.value.slice(slash + 1);
+            const look = named?.(range.kind, cli, id) ?? { label: id, color: undefined };
+            const atom = Decoration.replace({ widget: new NamedChipWidget(cli as AgentKind, look) }).range(range.from, range.to);
+
+            marks.push(atom);
+            atoms.push(atom);
+
+            continue;
+        }
+
         if (range.kind !== 'reference') {
             marks.push((range.kind === 'skill' ? skillMark : mentionMark).range(range.from, range.to));
 
@@ -104,17 +175,17 @@ function chipMarks(state: EditorState): DecorationSet {
         }
     }
 
-    return Decoration.set(marks, true);
+    return { marks: Decoration.set(marks, true), atoms: Decoration.set(atoms, true) };
 }
 
-const chipField = StateField.define<DecorationSet>({
+const chipField = StateField.define<ChipMarks>({
     create: chipMarks,
     // The parser finishes a long text after the edit that asked for it, and a code span it finds then unmakes a chip.
     update: (marks, tr) =>
         tr.docChanged || tr.startState.facet(choices) !== tr.state.facet(choices) || syntaxTree(tr.startState) !== syntaxTree(tr.state)
             ? chipMarks(tr.state)
             : marks,
-    provide: (field) => EditorView.decorations.from(field)
+    provide: (field) => [EditorView.decorations.from(field, (value) => value.marks), EditorView.atomicRanges.of((view) => view.state.field(field).atoms)]
 });
 
 /* Draws the chosen `@path`, `$name` and `#name` tokens as chips; a new `ChipChoices` object is what redraws them. */

@@ -41,6 +41,7 @@ import { errorText } from '../error-text.ts';
 import type { AgentEvent, AgentSink } from '../events.ts';
 import { homeFolder } from '../home-folder.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
+import type { Env } from '../providers/accounts/accounts.ts';
 import { AccountError, definedEnv, isDefaultAccountOf, launchEnv, storedAccount, type AccountLaunches } from '../providers/accounts/launch.ts';
 import { runsClaudeCode } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
@@ -64,7 +65,7 @@ import {
 } from './chat-session.ts';
 import { bookmarkSidecar, visualSidecar, type ChatSidecar, type ForkKept } from './chat-sidecar.ts';
 import type { ChatRecord, ChatRecordExtras, ChatStore } from './chat-store.ts';
-import type { ChatTitleInput } from './chat-title.ts';
+import { namedByOneShot, type ChatTitleInput } from './chat-title.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
@@ -215,8 +216,11 @@ export interface ChatCoreOptions {
     onLimits?: (update: LimitsUpdate) => void;
     // Where Claude Code's own name for a session is read, in the projects folder of the chat's account; for a provider that runs Claude Code.
     claudeTitles?: { forSession(agentSessionId: string, projectsDir: string, cwd: string): Promise<string | null> };
-    // A name for a chat, asked of a one-shot CLI, for a provider whose CLI names no thread on its own (`titleFromOneShot`).
+    // A generated name: asked for a chat whose CLI names nothing itself, and for any provider under the generated title policy.
+    // `input.account` and `input.env` are the chat's own; the one-shot run takes that env (`suggestChatTitle` does).
     nameChat?: (provider: AgentKind, input: ChatTitleInput) => Promise<string | null>;
+    // Read when a title arrives or is requested, so changing the host's choice also reaches open chats.
+    titlePolicy?: (chatId: string, provider: AgentKind) => 'native' | 'generated';
     // Where a subagent's whole conversation is read and how its growth is noticed.
     subagents?: Partial<Pick<SubagentReaderOptions, 'claudeProjectsDir' | 'seams' | 'now'>>;
     /*
@@ -301,6 +305,7 @@ export class ChatCore {
     private readonly observers = new Set<AgentSink>();
     private readonly claudeTitles: ChatCoreOptions['claudeTitles'] | null;
     private readonly nameChat: ChatCoreOptions['nameChat'] | null;
+    private readonly titlePolicy: ChatCoreOptions['titlePolicy'] | null;
     private readonly onInterruptedRun: ChatCoreOptions['onInterruptedRun'] | null;
     private readonly limitResume: ChatCoreOptions['limitResume'] | null;
     private readonly unloadAfterMs: number | null;
@@ -334,6 +339,7 @@ export class ChatCore {
         this.onLimits = options.onLimits ?? null;
         this.claudeTitles = options.claudeTitles ?? null;
         this.nameChat = options.nameChat ?? null;
+        this.titlePolicy = options.titlePolicy ?? null;
         this.onInterruptedRun = options.onInterruptedRun ?? null;
         this.limitResume = options.limitResume ?? null;
         this.unloadAfterMs = options.store && options.unloadAfterMs !== undefined ? options.unloadAfterMs : null;
@@ -442,6 +448,31 @@ export class ChatCore {
 
     requireAccount(kind: AgentKind, account: string | undefined): void {
         launchEnv(this.accounts, kind, account, this.env);
+    }
+
+    /*
+     * Asks the host for a name under the account the chat runs under, with the environment its own CLI
+     * starts with, so a one-shot run never reads the plan of another account. No name for an account
+     * this machine cannot start.
+     */
+    private async askName(
+        nameChat: NonNullable<ChatCoreOptions['nameChat']>,
+        kind: AgentKind,
+        account: string | undefined,
+        base: Env,
+        input: ChatTitleInput
+    ): Promise<string | null> {
+        let env: Record<string, string>;
+
+        try {
+            env = definedEnv(launchEnv(this.accounts, kind, account, base));
+        } catch {
+            return null;
+        }
+
+        const named = storedAccount(kind, account);
+
+        return nameChat(kind, { ...input, env, ...(named === undefined ? {} : { account: named }) });
     }
 
     accountLabel(kind: AgentKind, account: string | undefined): string {
@@ -576,6 +607,7 @@ export class ChatCore {
         const resume: ResumeDecision = stored ? await this.owedResume(payload.chatId, stored) : { resumeTurnId: null, reason: null };
         const claudeTitles = this.claudeTitles;
         const nameChat = this.nameChat;
+        const titlePolicy = this.titlePolicy;
         const base = this.hooks.envFor ? this.hooks.envFor(payload.chatId, this.env) : this.env;
         this.logs.set(payload.chatId, await this.openLog(payload.chatId, stored ?? null));
         const promptNotes = this.hooks.promptNotesFor?.(payload.chatId);
@@ -613,7 +645,13 @@ export class ChatCore {
             ...(runsClaudeCode(provider) && claudeTitles
                 ? { readTitle: (agentSessionId: string) => claudeTitles.forSession(agentSessionId, this.claudeProjectsDirOf(session.info), session.info.cwd) }
                 : {}),
-            ...(provider.titleFromOneShot === true && nameChat ? { nameThread: (input: ChatTitleInput) => nameChat(kind, input) } : {}),
+            ...(nameChat && (namedByOneShot(provider) || titlePolicy)
+                ? {
+                      nameThread: (input: ChatTitleInput) => this.askName(nameChat, kind, session.info.account, base, input),
+                      ...(namedByOneShot(provider) ? { namedByOneShot: true } : {})
+                  }
+                : {}),
+            ...(titlePolicy ? { titlePolicy: () => titlePolicy(payload.chatId, kind) } : {}),
             ...(runsClaudeCode(provider) ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
             ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
         });

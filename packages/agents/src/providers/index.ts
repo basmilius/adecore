@@ -30,6 +30,7 @@ export { type AcpAccountProbe, askAcpAccount, type ProbeTimer } from './accounts
 export { chooseAccount, type AccountChoiceInput, type AccountUnusable, type ChosenAccount } from './accounts/choose.ts';
 export { AccountError, type AccountLaunches, storedAccount, launchEnv } from './accounts/launch.ts';
 export { ProviderAccountsService, type ProviderAccountsOptions } from './accounts/service.ts';
+export type { OwnsSettings } from './accounts/shared-config.ts';
 export type { ShadowHomeReport } from './accounts/shadow-home.ts';
 export type { AccountReading } from './accounts/status.ts';
 export { type AccountsHost, variablesProblem, keychainService, type SecretStore, type ReservedVariables } from './accounts/variables.ts';
@@ -45,6 +46,7 @@ export {
     type ClaudeCodeRuntime,
     type LaunchDecorator,
     type ProviderHome,
+    type ProviderShare,
     type ProviderTerminal,
     type SubagentSource,
     cliExecutable

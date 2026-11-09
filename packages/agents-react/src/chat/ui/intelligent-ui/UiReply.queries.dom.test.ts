@@ -96,7 +96,7 @@ test('changing a query input closes its choice until matching data is read', asy
         now += 10_001;
         await act(async () => refresh());
         expect(element.querySelector('.text-lg')?.textContent).toBe('2');
-        expect(element.querySelector('.text-lg')?.classList.contains('text-text-muted')).toBe(true);
+        expect(element.querySelector('.text-lg')?.closest('.chat-ui-stale')).not.toBeNull();
         await act(async () => choose().click());
         expect(sends).toMatchObject([{ values: { $flag: true }, reads: { $data: 'reading-2' } }]);
     } finally {
@@ -331,3 +331,214 @@ test('a citation reveals and focuses its Source without opening its URL', async 
         HTMLElement.prototype.scrollIntoView = scroll;
     }
 });
+
+type Reader = NonNullable<NonNullable<ChatHost['intelligentUi']>['query']>;
+
+/*
+ * A block of `source` reading `$data` from `status`, on a stopped clock and without an IntersectionObserver, so
+ * every refresh reads at once once the clock moved ten seconds. `frozen` is the first reading the machine kept.
+ */
+async function mountLive(scopeId: string, source: string, frozen?: unknown) {
+    const observer = globalThis.IntersectionObserver;
+    Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: undefined });
+    const originalNow = Date.now;
+    let now = originalNow();
+    Date.now = () => now;
+
+    const text = '```ui\n' + source + '\n```';
+    const block = compileUiBlock(source, { id: `${scopeId}-block`, final: true, querySchemas: { status: z.object({}) } });
+    expect(block.diagnostics).toEqual([]);
+    block.revision = 'revision';
+    block.start = 0;
+    block.end = text.length;
+
+    let refresh = () => {};
+    let reader: Reader = async () => ({ state: 'failed', readAt: Date.now(), code: 'unreadable' });
+
+    const host: Partial<ChatHost> = {
+        intelligentUi: {
+            query: (scope, payload) => reader(scope, payload),
+            subscribe: (_scope, _chat, listener) => {
+                refresh = listener;
+
+                return () => {};
+            },
+            sendChoice: async () => 'sent'
+        }
+    };
+
+    const queries =
+        frozen === undefined
+            ? undefined
+            : { authorChatId: 'chat', blocks: { [block.id]: { revision: 'revision', readings: { $data: frozen }, fallback: '' } } };
+    const element = document.createElement('div');
+    document.body.append(element);
+    let root = createRoot(element);
+
+    const draw = () =>
+        root.render(
+            createElement(
+                ChatHostProvider,
+                { host },
+                createElement(UiReply, {
+                    text,
+                    blocks: [block],
+                    queries: queries as never,
+                    context: { scopeId, chatId: 'chat', itemId: 'item', phase: 'final' }
+                })
+            )
+        );
+
+    return {
+        element,
+        /* Reads with `read` from the next read on. */
+        reads: (read: Reader) => {
+            reader = read;
+        },
+        draw: () => act(async () => draw()),
+        /* Ten seconds later, the next refresh. */
+        later: async () => {
+            now += 10_001;
+            await act(async () => refresh());
+        },
+        /* The thread scrolled the block away and back: a new mount with the page's memory. */
+        remount: async () => {
+            await act(async () => root.unmount());
+            root = createRoot(element);
+            await act(async () => draw());
+        },
+        unmount: async () => {
+            await act(async () => root.unmount());
+            element.remove();
+            Date.now = originalNow;
+            Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: observer });
+        }
+    };
+}
+
+const fresh =
+    (value: unknown, id: string): Reader =>
+    async () => ({ state: 'fresh', value, readId: id, readAt: Date.now() });
+
+const failed =
+    (code: string): Reader =>
+    async () => ({ state: 'failed', readAt: Date.now(), code });
+
+const STAT = '$data = @Query("status", {})\n<Stats><Stat label="Count" value={$data.count}/></Stats>';
+
+test.skipIf(typeof document === 'undefined')('after a remount a failed read keeps the last live value, dimmed, with its read time and its reason', async () => {
+    const view = await mountLive('remount-test', STAT, { state: 'fresh', value: { count: 1 }, readId: 'frozen', readAt: Date.now() });
+    const figure = () => view.element.querySelector('.text-lg');
+
+    try {
+        view.reads(fresh({ count: 2 }, 'reading-2'));
+        await view.draw();
+        expect(figure()?.textContent).toBe('2');
+
+        view.reads(failed('unreadable'));
+        await view.remount();
+        expect(figure()?.textContent).toBe('2');
+        expect(figure()?.closest('.chat-ui-stale')).not.toBeNull();
+        expect(view.element.querySelector('[data-ui-live-reason]')?.textContent).toBe('Could not read the source.');
+        expect(view.element.querySelector('[role="group"] time')).not.toBeNull();
+    } finally {
+        await view.unmount();
+    }
+});
+
+test.skipIf(typeof document === 'undefined')('a read the host never tried changes nothing while a value stands', async () => {
+    const view = await mountLive('untried-test', STAT);
+    const figure = () => view.element.querySelector('.text-lg');
+    const reason = () => view.element.querySelector('[data-ui-live-reason]')?.textContent;
+
+    try {
+        view.reads(fresh({ count: 2 }, 'reading-2'));
+        await view.draw();
+        view.reads(failed('busy'));
+        await view.later();
+        expect(figure()?.closest('.chat-ui-stale')).toBeNull();
+        expect(reason()).toBeUndefined();
+
+        view.reads(failed('unreadable'));
+        await view.later();
+        expect(reason()).toBe('Could not read the source.');
+        view.reads(failed('refresh-limit'));
+        await view.later();
+        expect(reason()).toBe('Could not read the source.');
+        expect(figure()?.closest('.chat-ui-stale')).not.toBeNull();
+    } finally {
+        await view.unmount();
+    }
+});
+
+test.skipIf(typeof document === 'undefined')('a recovered read lights a value that changed while dimmed, and not one that did not', async () => {
+    const view = await mountLive('recover-test', STAT);
+    const figure = () => view.element.querySelector('.text-lg');
+
+    try {
+        view.reads(fresh({ count: 2 }, 'reading-2'));
+        await view.draw();
+        view.reads(failed('unreadable'));
+        await view.later();
+        view.reads(fresh({ count: 3 }, 'reading-3'));
+        await view.later();
+        expect(figure()?.textContent).toBe('3');
+        expect(figure()?.classList.contains('chat-ui-changed')).toBe(true);
+        expect(figure()?.closest('.chat-ui-stale')).toBeNull();
+
+        view.reads(failed('unreadable'));
+        await view.later();
+        view.reads(fresh({ count: 3 }, 'reading-4'));
+        await view.later();
+        expect(figure()?.classList.contains('chat-ui-changed')).toBe(false);
+    } finally {
+        await view.unmount();
+    }
+});
+
+test.skipIf(typeof document === 'undefined')(
+    'a failed read dims every node that reads it without mounting one again, and a table lights only cells of the same rows',
+    async () => {
+        const source =
+            '$data = @Query("status", {})\n<Chart kind="bar" data={$data.series}/><Callout tone="info">Total {$data.total}</Callout><Callout tone="info">Plain</Callout><Table rows={$data.rows}><Column key="name"/><Column key="state"/></Table>';
+
+        const view = await mountLive('dim-test', source);
+        const reading = (state: string, rows = [{ name: 'core', state }]) => ({ series: [{ label: 'a', value: 1 }], total: 4, rows });
+        const callout = (text: string) => [...view.element.querySelectorAll('[role="note"], div')].find((node) => node.textContent?.trim() === text);
+        const lit = () => [...view.element.querySelectorAll('.chat-ui-changed')].map((node) => node.textContent);
+
+        try {
+            view.reads(fresh(reading('ok'), 'reading-1'));
+            await view.draw();
+            const chart = view.element.querySelector('figure');
+            expect(chart).not.toBeNull();
+
+            view.reads(failed('unreadable'));
+            await view.later();
+            expect(view.element.querySelector('figure')).toBe(chart);
+            expect(chart!.closest('.chat-ui-stale')).not.toBeNull();
+            expect(view.element.querySelector('.chat-ui-live-text.chat-ui-stale')?.textContent).toBe('4');
+            expect(callout('Plain')?.closest('.chat-ui-live')).toBeNull();
+            expect(view.element.querySelector('table')?.closest('.chat-ui-stale')).not.toBeNull();
+
+            view.reads(fresh(reading('bad'), 'reading-2'));
+            await view.later();
+            expect(view.element.querySelector('.chat-ui-stale')).toBeNull();
+            expect(lit()).toEqual(['bad']);
+
+            view.reads(
+                fresh(
+                    reading('bad', [
+                        { name: 'new', state: 'fine' },
+                        { name: 'core', state: 'bad' }
+                    ]),
+                    'reading-3'
+                )
+            );
+            await view.later();
+            expect(lit()).toEqual([]);
+        } finally {
+            await view.unmount();
+        }
+    }
+);

@@ -96,7 +96,7 @@ Clear and `chat.kill` remove a chat's visuals. A core of your own that forks cha
 | --------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | `chat.cancel`                           | Stops the turn and keeps the conversation. With `subagents`, also ends the agents the chat opened. |
 | `chat.clear`                            | Starts the chat over. Refused with `chat-busy` during a turn, unless `force`.                    |
-| `chat.compact`                          | Folds the context, natively or by prompt, as the CLI's `compaction` capability says.             |
+| `chat.compact`                          | Folds the context, natively or by prompt, as the CLI's `compaction` capability says. Either way it opens a turn without a message of the person, which leaves one `compaction` item and moves `usage` to the size after the fold. |
 | `chat.restart`                          | Ends the CLI and keeps the conversation. The next message resumes it in a fresh process that reloads skills, plugins and servers. Fails with `chat-busy` while a turn, request or background work holds the process. |
 | `chat.kill`                             | Removes the chat (record, log, attachments, bookmarks, visuals) and ends its CLI.               |
 | Detaching or disconnecting              | Stops streaming to that client. The chat goes on.                                                |
@@ -149,3 +149,11 @@ The recorded access lives in the chat record under `uiAccess` and never reaches 
 A reply that drew UI keeps the block source in its `text`. `readableAssistantText(item)` from `@adecore/agents/chat` returns the text with each block replaced by its fallback. Use it wherever your app hands a reply to another agent, a notification or a search index.
 
 `ChatUiHost.link` checks File, Diff, Commit and Node targets against what the writer could reach then and now. `ui.link` answers only for a stored, visible node in an attached chat. A missing or refused link stays plain text. [Live queries](/intelligent-ui/host/queries) and [Links](/intelligent-ui/host/links) cover both sides.
+
+## Choosing how a chat is named
+
+Without a host policy, native titles stay native, and a CLI that names nothing itself (Codex, Grok and the other CLIs with a one-shot mode) uses `ChatCoreOptions.nameChat` after its first successful turn. A host that chooses a writer can also provide `titlePolicy(chatId, provider)`, returning `generated` or `native`. The callback is read when a title arrives or a generation begins, so an already open chat follows a changed choice.
+
+Under `generated`, `nameChat` can name any provider's newly unnamed chat. Native backend titles and transcript reads wait for that result. A null result or a failed request allows an available native title afterward; it starts no second writer. Existing titles are retained. A clear invalidates pending generation and transcript reads, even before a backend reports a session id. Without `nameChat`, native titles remain available under either policy.
+
+`buildTitlePrompt(prompt, answer)` and `parseTitle(output)` let a host use its own bounded, account-aware generator while keeping the package's title format. They cap the conversation input and accept a JSON title object; output without a valid title returns null.

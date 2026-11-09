@@ -166,6 +166,44 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  # This workflow builds and tests on its own, but the CI workflow also runs checks it does not, so a release waits for CI on this exact commit.
+  ci:
+    runs-on: ubuntu-latest
+    needs: release-info
+    name: 🚦 CI is green for this commit
+    timeout-minutes: 60
+    permissions:
+      actions: read
+    steps:
+      - name: 🚦 Wait for CI on ${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # A run starts a moment after its push, so a commit pushed just now gets a short grace before it counts as having none.
+          run=""
+          for _ in 1 2 3 4 5 6; do
+              run=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml --commit "$GITHUB_SHA" --limit 1 --json databaseId,status,conclusion --jq '.[0] // empty')
+              if [[ -n "$run" ]]; then
+                  break
+              fi
+              sleep 10
+          done
+          if [[ -z "$run" ]]; then
+              echo "::error::CI has no run for $GITHUB_SHA. Push the commit and let CI finish before releasing."
+              exit 1
+          fi
+          id=$(jq -r .databaseId <<< "$run")
+          if [[ "$(jq -r .status <<< "$run")" != completed ]]; then
+              echo "CI run $id is still running; waiting for it."
+              gh run watch "$id" --repo "$GITHUB_REPOSITORY" > /dev/null || true
+          fi
+          conclusion=$(gh run view "$id" --repo "$GITHUB_REPOSITORY" --json status,conclusion --jq 'select(.status == "completed") | .conclusion')
+          if [[ "$conclusion" != success ]]; then
+              echo "::error::CI run $id for $GITHUB_SHA ended as '${conclusion:-unfinished}'. Fix it and release the commit that passes."
+              exit 1
+          fi
+          echo "CI run $id passed for $GITHUB_SHA."
+
   prepare:
     runs-on: ubuntu-latest
     needs: release-info
@@ -223,8 +261,8 @@ jobs:
 
   publish:
     runs-on: ubuntu-latest
-    # A failed helper must block every publication, even when preparation already succeeded.
-    needs: [release-info, prepare, helper]
+    # A failed helper or a CI run that is not green must block every publication, even when preparation already succeeded.
+    needs: [release-info, prepare, helper, ci]
     name: 🚀 Publish to npm
     env:
       RELEASE_VERSION: ${{ needs.release-info.outputs.version }}

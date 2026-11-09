@@ -11,6 +11,7 @@ export const DESIGN_RULES = [
     'typeSize',
     'uppercase',
     'focusRing',
+    'outlineAccent',
     'tooltip',
     'wordButton',
     'iconButtonSize',
@@ -250,6 +251,18 @@ export function designProblemsIn(files: readonly DesignSource[], options: Design
                     [...text.matchAll(/focus(-visible|-within)?:(ring-|border-accent)/g)].map((match) => `${path}: ${match[0]}`)
                 );
                 return drawn;
+            }
+        ],
+        [
+            'outlineAccent',
+            'an outline takes outline-accent-on-surface, which an app keeps readable on its ground, never outline-accent',
+            () => {
+                const plain = pageSources().flatMap(({ path, text }) =>
+                    stringsOf(path, text)
+                        .filter(({ classes }) => classes.split(/\s+/).some((utility) => utility.slice(utility.lastIndexOf(':') + 1) === 'outline-accent'))
+                        .map(({ start }) => `${path}:${lineOf(text, start)}`)
+                );
+                return plain;
             }
         ],
         [

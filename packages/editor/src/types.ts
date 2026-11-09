@@ -65,8 +65,8 @@ export interface EditorFolds {
 export type EditorTheme = string;
 
 export interface EditorOptions {
-    /* More host shortcuts for this mount, on top of the engine's handBack chords. */
-    readonly handBack?: readonly KeyChord[];
+    /* More host shortcuts for this mount, on top of the engine's handBack chords. A function is asked on every key press. */
+    readonly handBack?: readonly KeyChord[] | (() => readonly KeyChord[]);
     readonly text: string;
     /* A Shiki language id. Without one, or with one Shiki does not know, it is plain text. */
     readonly language?: string;
@@ -263,6 +263,15 @@ export interface EditorCodeBlockOptions {
     readonly emphasis?: ReadonlyArray<ReadonlyArray<readonly [number, number]>>;
     /* Draws the text a little faded, as lines that are gone. */
     readonly faded?: boolean;
+}
+
+/* A change mark under the pointer, even where an attribution bar takes its place. */
+export interface EditorChangeMarkHover {
+    readonly mark: EditorChangeMark;
+    readonly layer: string;
+    /* One-based line under the pointer; a deletion names its boundary line. */
+    readonly line: number;
+    readonly rect: EditorRect;
 }
 
 /* The pointer is on the bar of a run. */
@@ -765,6 +774,8 @@ export interface Editor {
      * editor's and a row as high as a line. Call it from `EditorWidget.render`.
      */
     renderCode(container: HTMLElement, text: string, options?: EditorCodeBlockOptions): void;
+    /* Optional for older implementations. Null when the pointer leaves or the mark is no longer visible. */
+    onChangeMarkHover?(listener: (hover: EditorChangeMarkHover | null) => void): () => void;
     /* The pointer rests on a bar, or null when it left it or the bar is gone. */
     onAttributionHover(listener: (hover: EditorAttributionHover | null) => void): () => void;
     /* Problems to draw, replacing the ones set before. */
@@ -809,6 +820,8 @@ export interface Editor {
     getContentHeight(): number;
     /* Which lines are folded, for `folds` on mounting. */
     getFolds(): EditorFolds;
+    /* Folds exactly these lines and opens every other fold, as `folds` does on mounting; a host that hides a stretch for a while keeps `getFolds` to put the folds back. */
+    setFolds(folds: EditorFolds): void;
     /* The primary selection, start before end; empty at the caret. */
     getSelection(): EditorRange;
     /* Every selection, the primary one last. */
@@ -945,12 +958,13 @@ export type TokenizerSource = (language: string | undefined, theme: EditorTheme,
 export interface SmartEditorEngineOptions {
     /* One lazy search worker per mounted editor; regex search is unavailable without it. */
     readonly searchWorker?: EditorSearchWorkerFactory;
-    readonly keymap?: Keymap;
+    /* The key table. A function is asked on every key press, so a rebind reaches the editors that are open. */
+    readonly keymap?: Keymap | (() => Keymap);
     readonly tokenizer: TokenizerSource;
     /* Without it semantic tokens are ignored and the grammar's colors stand. */
     readonly scopeColors?: ScopeColorSource;
-    /* The app's shortcuts that work from anywhere, a text field included; the editor lets them pass untouched. */
-    readonly handBack?: readonly KeyChord[];
+    /* The app's shortcuts that work from anywhere, a text field included; the editor lets them pass untouched. A function is asked on every key press. */
+    readonly handBack?: readonly KeyChord[] | (() => readonly KeyChord[]);
     /* Whether the physical Ctrl and Meta of a shortcut are macOS's. */
     readonly apple?: boolean;
 }

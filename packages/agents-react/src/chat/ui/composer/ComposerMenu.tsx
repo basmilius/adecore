@@ -3,8 +3,11 @@ import clsx from 'clsx';
 import { SquareSlash, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CliMark } from '../../../agents/AgentModelLabel';
 import { useChatHost } from '../../../host/host';
 import type { Referable } from '../../../host/references';
+import type { AccountSuggestion, ModelSuggestion } from '../../tag-suggestions';
+import { ModelMarks } from '../ModelMarks';
 import { referenceGlyph } from '../reference-icons';
 import { optionIdOf } from './menu-aria';
 import type { ComposerMenus as Menus } from './use-composer-menus';
@@ -76,28 +79,92 @@ function SkillMenu({ menus }: { menus: Menus }) {
     );
 }
 
+/* The CLI's mark of a model or account row, in the color of the account it runs on, as its chip wears it. */
+function NamedMark({ menus, pick }: { menus: Menus; pick: ModelSuggestion | AccountSuggestion }) {
+    const { color } = menus.namedLook(pick.kind, pick.cli, pick.id);
+
+    return (
+        <span className="flex shrink-0" style={color === undefined ? undefined : { color }}>
+            <CliMark kind={pick.cli} size={14} />
+        </span>
+    );
+}
+
 function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
     const { t } = useTranslation('agent-chat');
-    const { listId, files, mentionCount } = menus;
+    const { listId, files, modelMatches, accountMatches, mentionCount } = menus;
     const filesLabelId = `${listId}-files`;
-    const filesLabelShown = query === '';
+    const modelsLabelId = `${listId}-models`;
+    const accountsLabelId = `${listId}-accounts`;
+    const sectioned = modelMatches.length + accountMatches.length > 0;
+    // A label for the files only where it says something: the folder's own list, or files beside other sections.
+    const filesLabel = query === '' ? t('composer.mentions.here') : sectioned ? t('composer.mentions.files') : null;
+    // Models and accounts come first, so the files the query also finds never push them out of sight.
+    const accountsFrom = modelMatches.length;
+    const filesFrom = accountsFrom + accountMatches.length;
 
     return (
         <div className="border-b border-border px-1.5 py-1.5">
             {mentionCount > 0 && (
-                <div id={listId} role="listbox" {...(filesLabelShown ? { 'aria-labelledby': filesLabelId } : { 'aria-label': t('composer.mentions.files') })}>
-                    {filesLabelShown && <Menu.Label id={filesLabelId}>{t('composer.mentions.here')}</Menu.Label>}
-                    {files.map((path, index) => {
-                        const { name, dir } = splitPath(path);
+                <div id={listId} role="listbox" aria-label={t('composer.mentions.files')}>
+                    {modelMatches.length > 0 && (
+                        <div role="group" aria-labelledby={modelsLabelId}>
+                            <Menu.Label id={modelsLabelId}>{t('composer.mentions.models')}</Menu.Label>
+                            {modelMatches.map((match, index) => (
+                                <MenuOption
+                                    key={`${match.cli}/${match.id}`}
+                                    menus={menus}
+                                    index={index}
+                                    className="items-center"
+                                    onPick={() => menus.chooseNamed(match)}
+                                >
+                                    <NamedMark menus={menus} pick={match} />
+                                    <span className="truncate text-text">{match.model.name}</span>
+                                    <ModelMarks model={match.model} />
+                                </MenuOption>
+                            ))}
+                        </div>
+                    )}
+                    {accountMatches.length > 0 && (
+                        <div role="group" aria-labelledby={accountsLabelId}>
+                            <Menu.Label id={accountsLabelId}>{t('composer.mentions.accounts')}</Menu.Label>
+                            {accountMatches.map((match, index) => (
+                                <MenuOption
+                                    key={`${match.cli}/${match.id}`}
+                                    menus={menus}
+                                    index={accountsFrom + index}
+                                    className="items-center"
+                                    onPick={() => menus.chooseNamed(match)}
+                                >
+                                    <NamedMark menus={menus} pick={match} />
+                                    <span className="truncate text-text">{match.name}</span>
+                                    <span className="truncate text-text-faint">{match.provider.name}</span>
+                                </MenuOption>
+                            ))}
+                        </div>
+                    )}
+                    {files.length > 0 && (
+                        <div role="group" {...(filesLabel === null ? { 'aria-label': t('composer.mentions.files') } : { 'aria-labelledby': filesLabelId })}>
+                            {filesLabel !== null && <Menu.Label id={filesLabelId}>{filesLabel}</Menu.Label>}
+                            {files.map((path, index) => {
+                                const { name, dir } = splitPath(path);
 
-                        return (
-                            <MenuOption key={path} menus={menus} index={index} className="items-center" onPick={() => menus.chooseMention(path)}>
-                                <FileIcon path={path} size={14} />
-                                <span className="truncate font-mono text-text">{name}</span>
-                                {dir && <MiddleTruncate text={dir} tooltip={false} className="text-text-faint" />}
-                            </MenuOption>
-                        );
-                    })}
+                                return (
+                                    <MenuOption
+                                        key={path}
+                                        menus={menus}
+                                        index={filesFrom + index}
+                                        className="items-center"
+                                        onPick={() => menus.chooseMention(path)}
+                                    >
+                                        <FileIcon path={path} size={14} />
+                                        <span className="truncate font-mono text-text">{name}</span>
+                                        {dir && <MiddleTruncate text={dir} tooltip={false} className="text-text-faint" />}
+                                    </MenuOption>
+                                );
+                            })}
+                        </div>
+                    )}
                 </div>
             )}
             {mentionCount === 0 && (

@@ -155,8 +155,8 @@ export function acceptAccounts(
     env: Env,
     isDirectory: (path: string) => boolean,
     host: AccountsHost = DEFAULT_ACCOUNTS_HOST,
-    // Only `accounts.reorder` takes the order it is given.
-    takeOrder = false
+    // The one field a request other than a save sets: `accounts.reorder` the order, `accounts.shareConfig` the sharing.
+    take?: KeptField
 ): StoredAccounts {
     const stored: StoredAccounts = {};
     const reserved = { host, folderVariables: folderVariablesOf(providers) };
@@ -183,21 +183,30 @@ export function acceptAccounts(
             throw new InvalidAccountError(`${id}: ${problem}`);
         }
 
-        stored[id] = takeOrder ? account : withKeptOrder(account, before[id]);
+        stored[id] = withKeptFields(account, before[id], take);
     }
 
     return stored;
 }
 
-/*
- * Only `accounts.reorder` moves an account, so a save keeps the place the file has: an older client
- * strips `order`, and a newer one may send the order it read before a reorder elsewhere.
- */
-function withKeptOrder(account: ProviderAccount, before: unknown): ProviderAccount {
-    const { order: _sent, ...rest } = account;
-    const order = typeof before === 'object' && before !== null ? (before as { order?: unknown }).order : undefined;
+type KeptField = 'order' | 'shareConfig';
 
-    return typeof order === 'number' ? { ...rest, order } : rest;
+/*
+ * Only `accounts.reorder` moves an account and only `accounts.shareConfig` shares its setup, so a save
+ * keeps what the file has: an older client strips both fields, and a newer one may send what it read
+ * before a change elsewhere.
+ */
+function withKeptFields(account: ProviderAccount, before: unknown, take: KeptField | undefined): ProviderAccount {
+    const { order: sentOrder, shareConfig: sentShare, ...rest } = account;
+    const kept = typeof before === 'object' && before !== null ? (before as { order?: unknown; shareConfig?: unknown }) : {};
+    const order = take === 'order' ? sentOrder : kept.order;
+    const shareConfig = take === 'shareConfig' ? sentShare : kept.shareConfig;
+
+    return {
+        ...rest,
+        ...(typeof order === 'number' ? { order } : {}),
+        ...(typeof shareConfig === 'boolean' ? { shareConfig } : {})
+    };
 }
 
 /* The map with the accounts of one CLI in this order; one of that CLI not named, such as one made meanwhile, follows in the order it had. */

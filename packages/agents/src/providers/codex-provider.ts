@@ -82,7 +82,6 @@ export function createCodexProvider(options: CodexProviderOptions): ChatProvider
         ignoresProjectConfig: false,
         subagentSource: 'codex-thread',
         threads: codexThreads(client),
-        titleFromOneShot: true,
         ...(launch === undefined ? {} : { launch }),
         // The auth variables Codex 0.157 names in its own "no Codex credentials were found" advice.
         home: {

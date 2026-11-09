@@ -31,7 +31,9 @@ export const ChatUsageSchema = z.object({
     // How long the prompt cache of the main agent's last request lives, in milliseconds; absent while the CLI names no lifetime.
     cacheTtlMs: z.number().int().positive().optional(),
     // When that cache goes cold, in milliseconds since the epoch: its lifetime from the moment that request started.
-    cacheExpiresAt: z.number().optional()
+    cacheExpiresAt: z.number().optional(),
+    // Set after a compaction whose CLI named no size: `contextTokens` is 0 until the next count, not an empty context.
+    contextPending: z.literal(true).optional()
 });
 export type ChatUsage = z.infer<typeof ChatUsageSchema>;
 
@@ -268,6 +270,8 @@ export const ChatInfoSchema = z.object({
     // The account of the provider the CLI runs under; absent is the provider's default account.
     account: ProviderAccountIdSchema.optional(),
     cwd: z.string(),
+    // The folder the CLI works in now, once it moved out of `cwd` (into a worktree of its own); absent while it works in `cwd`.
+    workdir: z.string().optional(),
     // Set once the CLI announced itself; what a terminal node needs for `--resume`.
     agentSessionId: z.string().nullable(),
     // The model the CLI reported, which can differ from the selection (aliases, reroutes).
@@ -784,7 +788,9 @@ export const ChatNoteItemSchema = z.object({
 export const ChatCompactionItemSchema = z.object({
     ...base,
     kind: z.literal('compaction'),
-    preTokens: z.number().int().nonnegative().nullable()
+    preTokens: z.number().int().nonnegative().nullable(),
+    // The size the CLI named right after the fold; absent when it named none.
+    postTokens: z.number().int().nonnegative().optional()
 });
 
 /*

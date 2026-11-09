@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, spyOn, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -90,7 +90,8 @@ describe('the usage monitor', () => {
         await monitor.refresh(false);
         expect(probes).toBe(2);
         expect(providerOf(monitor, 'claude').windows[0]).toMatchObject({ used: 0.23 });
-        expect(providerOf(monitor, 'claude').unavailable).toBeNull();
+        expect(providerOf(monitor, 'claude').unavailable).toEqual(answer.unavailable);
+        expect(providerOf(monitor, 'claude').checkedAt).toBe(1_000);
 
         for (const minutes of [10, 20, 40, 60, 60]) {
             const before = probes;
@@ -169,6 +170,156 @@ describe('the usage monitor', () => {
         monitor.stop();
     });
 
+    test('force joining a normal pass shares one forced follow-up even after stop', async () => {
+        const entered = Promise.withResolvers<void>();
+        const release = Promise.withResolvers<void>();
+        const calls: string[] = [];
+
+        const monitor = new UsageMonitor({
+            providers: registry(['claude']),
+            accounts: {
+                list: () => [
+                    { id: 'claude', kind: 'claude', label: 'Own', isDefault: true },
+                    { id: 'work', kind: 'claude', label: 'Work', isDefault: false }
+                ],
+                envFor: (_kind, id) => ({ ACCOUNT: id }),
+                lastUsedAt: () => null
+            },
+            now: () => 1_000,
+            probe: async (_kind, _command, env) => {
+                calls.push(env.ACCOUNT!);
+
+                if (calls.length === 1) {
+                    entered.resolve();
+                    await release.promise;
+                }
+
+                return reading(0.2);
+            }
+        });
+
+        // The normal pass leaves out the account nobody used here; only the forced one after it reads that account.
+        const normal = monitor.refresh(false);
+        await entered.promise;
+        const forced = monitor.refresh(true);
+        const another = monitor.refresh(true);
+        const tick = monitor.refresh(false);
+        monitor.stop();
+        release.resolve();
+        await Promise.all([normal, forced, another, tick]);
+        expect(calls).toEqual(['claude', 'claude', 'work']);
+        expect(monitor.snapshot().providers[1]?.checkedAt).toBe(1_000);
+    });
+
+    test.each([1, 2])('a registry failure in pass %i belongs to that pass and does not lose queued force', async (failure) => {
+        const providers = registry(['claude']);
+        const list = providers.list.bind(providers);
+        const entered = Promise.withResolvers<void>();
+        const release = Promise.withResolvers<void>();
+        let lists = 0;
+
+        const mock = spyOn(providers, 'list').mockImplementation(async () => {
+            lists += 1;
+
+            if (lists === 1) {
+                entered.resolve();
+                await release.promise;
+            }
+
+            if (lists === failure) {
+                throw new Error('registry unavailable');
+            }
+
+            return list();
+        });
+
+        const monitor = new UsageMonitor({ providers, probe: () => Promise.resolve(reading(0.2)) });
+        const normal = monitor.refresh(false).then(
+            () => 'ok',
+            (error: Error) => error.message
+        );
+        await entered.promise;
+        const forced = monitor.refresh(true).then(
+            () => 'ok',
+            (error: Error) => error.message
+        );
+        release.resolve();
+        expect(await normal).toBe(failure === 1 ? 'registry unavailable' : 'ok');
+        expect(await forced).toBe(failure === 2 ? 'registry unavailable' : 'ok');
+        expect(lists).toBe(2);
+        mock.mockRestore();
+        monitor.stop();
+    });
+
+    test.each(
+        ['claude', 'work'].flatMap((account) =>
+            [reading(0.1), { unavailable: { reason: 'failed', message: 'old failure' } }, { unavailable: { reason: 'no-subscription', message: null } }].map(
+                (result) => ({ account, result: result as ProbeResult })
+            )
+        )
+    )('an older probe never replaces a newer live account update: %j', async ({ account, result }) => {
+        const entered = Promise.withResolvers<void>();
+        const release = Promise.withResolvers<void>();
+        const calls: string[] = [];
+        let now = 1_000;
+
+        const monitor = new UsageMonitor({
+            providers: registry(['claude']),
+            accounts: {
+                list: () => [
+                    { id: 'claude', kind: 'claude', label: 'Own', isDefault: true },
+                    { id: 'work', kind: 'claude', label: 'Work', isDefault: false }
+                ],
+                envFor: (_kind, id) => ({ ACCOUNT: id }),
+                lastUsedAt: () => now
+            },
+            now: () => now,
+            probe: async (_kind, _command, env) => {
+                calls.push(env.ACCOUNT!);
+
+                if (env.ACCOUNT !== account) {
+                    return reading(0.25);
+                }
+
+                entered.resolve();
+                await release.promise;
+
+                return result;
+            }
+        });
+
+        const pending = monitor.refresh(true);
+        await entered.promise;
+        monitor.applyLive({ kind: 'claude', account, windows: [{ id: 'five_hour', used: 0.8 }] });
+        release.resolve();
+        await pending;
+        expect(monitor.snapshot().providers.find((entry) => entry.account?.id === account)).toMatchObject({
+            source: 'event',
+            checkedAt: 1_000,
+            unavailable: null,
+            windows: [{ used: 0.8 }]
+        });
+        expect(monitor.snapshot().providers.find((entry) => entry.account?.id !== account)?.windows[0]?.used).toBe(0.25);
+        now += 5 * 60_000;
+        await monitor.refresh(false);
+        expect(calls.filter((id) => id === account)).toHaveLength('unavailable' in result && result.unavailable?.reason === 'failed' ? 1 : 2);
+        monitor.stop();
+    });
+
+    test('an old not-installed registry answer cannot erase a live row', async () => {
+        const providers = registry([]);
+        const answer = Promise.withResolvers<Awaited<ReturnType<ProviderRegistry['list']>>>();
+        const mock = spyOn(providers, 'list').mockReturnValueOnce(answer.promise);
+        const monitor = new UsageMonitor({ providers, now: () => 1_000 });
+        const pending = monitor.refresh(true);
+        monitor.applyLive({ kind: 'claude', windows: [{ id: 'five_hour', used: 0.8 }] });
+        answer.resolve([]);
+        await pending;
+        expect(providerOf(monitor, 'claude')).toMatchObject({ source: 'event', unavailable: null, windows: [{ used: 0.8 }] });
+        mock.mockRestore();
+        monitor.stop();
+    });
+
     describe('per account', () => {
         const HOUR = 60 * 60_000;
         let now = 100 * HOUR;
@@ -200,33 +351,61 @@ describe('the usage monitor', () => {
                 }
             });
 
-        test('lists the default account of a CLI first, reads every account once, and another after that only while it was used in the last day or when asked', async () => {
+        test('lists the default account of a CLI first, and reads another only while it was used in the last day or when asked', async () => {
             probed.length = 0;
             used.clear();
             const monitor = monitorOf(claudeAccounts);
             await monitor.refresh(false);
-            expect(probed).toEqual(['claude', 'claude_work']);
+            expect(probed).toEqual(['claude']);
             expect(monitor.snapshot().providers.map((provider) => [provider.kind, provider.account?.id, provider.checkedAt > 0])).toEqual([
                 ['claude', 'claude', true],
-                ['claude', 'claude_work', true]
+                ['claude', 'claude_work', false]
             ]);
-
-            now += 6 * 60_000;
-            await monitor.refresh(false);
-            expect(probed.slice(2)).toEqual(['claude']);
 
             used.set('claude_work', now - 2 * HOUR);
             now += 6 * 60_000;
             await monitor.refresh(false);
-            expect(probed.slice(3)).toEqual(['claude', 'claude_work']);
+            expect(probed.slice(1)).toEqual(['claude', 'claude_work']);
             expect(monitor.snapshot().providers[1]).toMatchObject({ account: { id: 'claude_work', label: 'Work', color: 'blue' }, windows: [{ used: 0.7 }] });
 
             used.set('claude_work', now - 25 * HOUR);
             now += 6 * 60_000;
             await monitor.refresh(false);
-            expect(probed.slice(5)).toEqual(['claude']);
+            expect(probed.slice(3)).toEqual(['claude']);
             await monitor.refresh(true);
-            expect(probed.slice(6)).toEqual(['claude', 'claude_work']);
+            expect(probed.slice(4)).toEqual(['claude', 'claude_work']);
+            monitor.stop();
+        });
+
+        test('reads an account nobody used here only while a usage page is open, and not after it closed', async () => {
+            probed.length = 0;
+            used.clear();
+            const monitor = monitorOf(claudeAccounts);
+            await monitor.refresh(false);
+            expect(probed).toEqual(['claude']);
+
+            // The first page reads the account at once; a second one adds no read of its own.
+            monitor.watch('phone');
+            await monitor.refresh(false);
+            expect(probed.slice(1)).toEqual(['claude_work']);
+            monitor.watch('desktop');
+            await monitor.refresh(false);
+            expect(probed.slice(2)).toEqual([]);
+
+            now += 6 * 60_000;
+            await monitor.refresh(false);
+            expect(probed.slice(2)).toEqual(['claude', 'claude_work']);
+
+            monitor.unwatch('phone');
+            now += 6 * 60_000;
+            await monitor.refresh(false);
+            expect(probed.slice(4)).toEqual(['claude', 'claude_work']);
+
+            // A client that goes lets go of its page, as its socket closing does.
+            monitor.subscribe('desktop', () => {})();
+            now += 6 * 60_000;
+            await monitor.refresh(false);
+            expect(probed.slice(6)).toEqual(['claude']);
             monitor.stop();
         });
 

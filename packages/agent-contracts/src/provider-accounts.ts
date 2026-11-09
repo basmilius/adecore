@@ -39,7 +39,9 @@ export const ProviderAccountSchema = z.object({
     // Set on the CLI's environment after the login variables are taken off, so a key here is one a person chose.
     env: z.array(ProviderAccountVariableSchema).optional(),
     // Its place among the accounts of its CLI, lowest first; only `accounts.reorder` sets it, and a save without it keeps it.
-    order: z.number().int().nonnegative().optional()
+    order: z.number().int().nonnegative().optional(),
+    // Absent is off. Whether this extra account reads the default account's instructions, skills, agents and commands; only `accounts.shareConfig` sets it, and a save without it keeps it.
+    shareConfig: z.boolean().optional()
 });
 export type ProviderAccount = z.infer<typeof ProviderAccountSchema>;
 
@@ -89,7 +91,9 @@ export const ProviderAccountsSchema = z.object({
     // The agent kinds that keep accounts in folders of their own but sign in from a chat, with no command to type.
     chatLogins: z.array(AgentKindSchema).optional(),
     // The agent kinds of `loginCommands` whose CLI cannot say who is signed in, so nothing notices a login end.
-    silentLogins: z.array(AgentKindSchema).optional()
+    silentLogins: z.array(AgentKindSchema).optional(),
+    // The agent kinds whose extra accounts can share the default account's setup (`accounts.shareConfig`).
+    sharedConfigKinds: z.array(AgentKindSchema).optional()
 });
 export type ProviderAccounts = z.infer<typeof ProviderAccountsSchema>;
 
@@ -105,6 +109,13 @@ export const ProviderAccountsReorderPayloadSchema = z.object({
     ids: z.array(ProviderAccountIdSchema)
 });
 export type ProviderAccountsReorderPayload = z.infer<typeof ProviderAccountsReorderPayloadSchema>;
+
+/* Turns the sharing of the default account's setup on or off for one extra account. Refused for a default account and for a CLI that shares nothing. */
+export const ProviderAccountsShareConfigPayloadSchema = z.object({
+    id: ProviderAccountIdSchema,
+    shared: z.boolean()
+});
+export type ProviderAccountsShareConfigPayload = z.infer<typeof ProviderAccountsShareConfigPayloadSchema>;
 
 /*
  * The ids of the accounts of one CLI in a person's order: the ordered ones first, then the default

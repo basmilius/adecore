@@ -62,7 +62,7 @@ export function Slider({ value, onValueChange, min, max, step = 1, decimals = pl
                     <BaseSlider.Indicator className="rounded-full bg-accent" />
                     <BaseSlider.Thumb
                         getAriaValueText={() => `${reading}${unit ?? ''}`}
-                        className="block size-4 rounded-full bg-thumb shadow-thumb outline-offset-2 outline-accent has-focus-visible:outline-2"
+                        className="block size-4 rounded-full bg-thumb shadow-thumb outline-offset-2 outline-accent-on-surface has-focus-visible:outline-2"
                     />
                 </BaseSlider.Track>
             </BaseSlider.Control>

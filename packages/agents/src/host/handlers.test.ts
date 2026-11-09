@@ -105,6 +105,15 @@ describe('the handlers of a host', () => {
         expect(await usage['usage.subscribe']({}, 'client-1')).toEqual({});
         expect(await usage['usage.unsubscribe']({}, 'client-1')).toEqual({});
         expect(await usage['usage.refreshLimits']({}, 'client-1')).toBe('snapshot result' as never);
-        expect(calls).toEqual([['snapshot'], ['watchLogin', 'work'], ['follow', 'client-1'], ['unfollow', 'client-1'], ['refresh', true], ['snapshot']]);
+        expect(calls).toEqual([
+            ['snapshot'],
+            ['watchLogin', 'work'],
+            ['follow', 'client-1'],
+            ['watch', 'client-1'],
+            ['unfollow', 'client-1'],
+            ['unwatch', 'client-1'],
+            ['refresh', true],
+            ['snapshot']
+        ]);
     });
 });

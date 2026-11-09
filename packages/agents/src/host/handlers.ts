@@ -151,6 +151,7 @@ export function accountHandlers(accounts: ProviderAccountsService): { [T in Acco
         'accounts.list': () => accounts.snapshot(),
         'accounts.save': (payload) => accounts.save(payload.accounts),
         'accounts.reorder': (payload) => accounts.reorder(payload.kind, payload.ids),
+        'accounts.shareConfig': (payload) => accounts.shareConfig(payload.id, payload.shared),
         'accounts.refresh': () => accounts.refresh(),
         'accounts.create': (payload) => accounts.create(payload),
         'accounts.watchLogin': (payload) => {
@@ -164,14 +165,16 @@ export function accountHandlers(accounts: ProviderAccountsService): { [T in Acco
 export function usageHandlers(usage: UsageService, limits: UsageMonitor): { [T in UsageRequestType]: AgentHandler<T> } {
     return {
         'usage.summary': (payload) => usage.summary(payload),
-        // While a client has the page open the host keeps scanning; every other client gets the event too.
+        // While a client has the page open the host keeps scanning and reads the accounts nobody used here; every other client gets the event too.
         'usage.subscribe': (_payload, clientId) => {
             usage.follow(clientId);
+            limits.watch(clientId);
 
             return {};
         },
         'usage.unsubscribe': (_payload, clientId) => {
             usage.unfollow(clientId);
+            limits.unwatch(clientId);
 
             return {};
         },

@@ -62,7 +62,7 @@ export type TimelineRow =
     | { kind: 'message'; id: string; message: ChatNoteMessage; createdAt: number }
     // A message this chat's agent sent another node with a command of a look, drawn as said instead of as its call.
     | { kind: 'sent'; id: string; tool: ChatToolItem; sent: CommandLookSent }
-    | { kind: 'compaction'; id: string; preTokens: number | null }
+    | { kind: 'compaction'; id: string; preTokens: number | null; postTokens?: number }
     // The turn below ran on another model or effort than the turn before it.
     | { kind: 'selection-switch'; id: string; from: ModelSelection; to: ModelSelection }
     | {

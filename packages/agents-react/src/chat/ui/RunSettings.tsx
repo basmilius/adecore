@@ -1,6 +1,7 @@
 import {
     inPickerOrder,
     separatesGroups,
+    UsageProviderSchema,
     type AgentKind,
     type ChatUsage,
     type ModelInfo,
@@ -33,14 +34,16 @@ import { Fragment, useEffect, useRef, useState, type KeyboardEvent } from 'react
 import { useTranslation } from 'react-i18next';
 import { limitsOfAccount, sessionWindow } from '../../agents/account-limits';
 import { AccountDot } from '../../agents/AccountDot';
-import { canContinueOn } from '../../agents/accounts';
+import { accountColor, canContinueOn } from '../../agents/accounts';
 import { AgentIcon } from '../../agents/AgentIcon';
-import { modelName, shortModelName } from '../../agents/model-name';
+import { modelName } from '../../agents/model-name';
 import { localizedOption } from '../../agents/option-words';
 import { useChatHost } from '../../host/host';
+import { PROVIDER_COLORS } from '../../usage/format';
 import { useUsageLimits } from '../../usage/limits';
 import type { AccountChoice } from '../account-choice';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
+import { EFFORT_OPTION } from '../logic/effort';
 import { favoritesFirst, searchModels, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { RUNTIME_MODES } from '../runtime-modes';
@@ -91,6 +94,8 @@ interface RunSettingsProps {
     onCompact(): void;
     /* Null while the chat's CLI has fewer than two accounts that are on. */
     account: AccountPick | null;
+    /* The color a person gave the account the chat runs under, which tints the mark also when it is the only account. */
+    accountColorId?: string;
 }
 
 interface AccountPick {
@@ -151,14 +156,17 @@ export function RunSettings({
     usage,
     compactDisabled,
     onCompact,
-    account
+    account,
+    accountColorId
 }: RunSettingsProps) {
     const { t } = useTranslation('agent-chat');
+    const { accents } = useChatHost();
     const [query, setQuery] = useState('');
     const searchRef = useRef<HTMLInputElement>(null);
     const owner = providers.find((entry) => entry.kind === provider);
     const current = modelName(selection.model, owner?.models);
-    const short = shortModelName(current, owner?.models);
+    // Claude's mark already says whose model it is, so the pill drops the maker's name in front of it.
+    const pillName = provider === 'claude' || provider === 'anthropic-claude-api' ? current.replace(/^Claude /, '') : current;
     const options = orderOptions((model?.options ?? []).map(localizedOption));
 
     const summary = options.flatMap((option) => {
@@ -174,6 +182,14 @@ export function RunSettings({
     if (standaloneContext) {
         summary.push({ id: CONTEXT_OPTION, label: formatTokens(usage.contextWindow ?? 0), ring: true });
     }
+
+    // Reasoning and the other knobs read as words after the model's name; the context stands apart with its ring.
+    const words = summary.filter((entry) => !entry.ring).sort((a, b) => Number(b.id === EFFORT_OPTION) - Number(a.id === EFFORT_OPTION));
+    const context = summary.find((entry) => entry.ring) ?? null;
+    const usageKind = UsageProviderSchema.safeParse(provider);
+    const providerColor = usageKind.success ? PROVIDER_COLORS[usageKind.data] : null;
+    // A chosen account without a color of its own still reads apart by the provider's; a sole one without a color keeps the mark as it is.
+    const accountTint = accountColor(accountColorId, accents.all) ?? (account?.choice.current ? providerColor : null);
 
     const grouped = providers.length > 1;
     const live = modelGroupsOf(providers, false);
@@ -350,39 +366,37 @@ export function RunSettings({
                 <Menu.Trigger
                     disabled={disabled}
                     className={clsx(
-                        'flex h-8 min-w-0 items-center gap-2 rounded-full border pr-3 pl-2.5 text-xs whitespace-nowrap text-text-muted @max-xl/composer:gap-1.5 @max-sm/composer:pr-2.5',
-                        open ? 'border-accent bg-accent-soft' : 'border-border hover:bg-surface-hover-edged'
+                        'flex h-8 min-w-0 items-center gap-2 rounded-full border border-transparent pr-3 pl-2.5 text-xs whitespace-nowrap text-text-muted @max-xl/composer:gap-1.5 @max-sm/composer:pr-2.5',
+                        open ? 'bg-surface-hover text-text' : 'hover:bg-surface-hover'
                     )}
                 >
-                    <AgentIcon kind={provider} size={14} className="shrink-0" />
-                    {/* The composer's width decides how much is said: words give way first, then whole parts. */}
+                    {/* An account of its own tints the mark; its name stays in the menu. */}
+                    <span className="flex shrink-0" style={accountTint === null ? undefined : { color: accountTint }}>
+                        <AgentIcon kind={provider} size={14} />
+                    </span>
+                    {/* The composer's width decides how much is said: the window's size and the mode's name give way first, never the model's version. */}
                     <span className="flex min-w-0 items-center gap-2 overflow-hidden @max-xl/composer:gap-1.5">
-                        <span className="truncate font-medium text-text @max-xl/composer:hidden">{current}</span>
-                        <span className="hidden truncate font-medium text-text @max-xl/composer:inline">{short}</span>
-                        {account !== null && (
-                            <span className="flex min-w-0 items-center gap-2 @max-xl/composer:gap-1.5">
-                                <span className="shrink-0 text-text-faint">·</span>
-                                <AccountDot color={account.choice.current?.account.color} />
-                                {/* The account name remains in the menu when the composer is narrow. */}
-                                <span className="truncate @max-xl/composer:hidden">
-                                    {account.choice.current === null ? account.choice.currentId : account.choice.nameOf(account.choice.current)}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                            <span className="truncate font-medium text-text">{pillName}</span>
+                            {words.map((entry) => (
+                                <span key={entry.id} className={clsx('shrink-0', entry.id !== EFFORT_OPTION && '@max-xl/composer:hidden')}>
+                                    {entry.label}
                                 </span>
+                            ))}
+                        </span>
+                        {context !== null && (
+                            <span className="flex shrink-0 items-center gap-2 @max-xl/composer:gap-1.5">
+                                <span className="text-text-faint">·</span>
+                                <ContextRing usage={usage} />
+                                <span className="@max-xl/composer:hidden">{context.label}</span>
                             </span>
                         )}
-                        {summary.map((entry) => (
-                            <span
-                                key={entry.id}
-                                className={clsx('flex shrink-0 items-center gap-2 @max-xl/composer:gap-1.5', !entry.ring && '@max-xl/composer:hidden')}
-                            >
-                                <span className="text-text-faint">·</span>
-                                {entry.ring && <ContextRing usage={usage} />}
-                                <span className={clsx(entry.ring && '@max-sm/composer:hidden')}>{entry.label}</span>
-                            </span>
-                        ))}
                         <span className="shrink-0 text-text-faint">·</span>
                         <span className={clsx('flex shrink-0 items-center gap-1', fullAccess && 'text-status-needs-you')}>
                             <Icon icon={MODE_ICONS[shownMode]} size={12} className="shrink-0" />
-                            <span>{effectiveRuntimeMode === undefined && permissionMode !== undefined ? permissionMode : t(`modes.${shownMode}.short`)}</span>
+                            <span className="@max-xl/composer:hidden">
+                                {effectiveRuntimeMode === undefined && permissionMode !== undefined ? permissionMode : t(`modes.${shownMode}.short`)}
+                            </span>
                             {permissionFallback && <Icon icon={TriangleAlert} size={12} className="shrink-0 text-status-needs-you" />}
                         </span>
                     </span>
@@ -595,6 +609,8 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
     const percent = Math.round(fraction * 100);
     const segments = contextSegments(usage);
     const used = formatTokens(usage.contextTokens);
+    // After a compaction whose CLI named no size, 0 is not how full the context is.
+    const pending = usage.contextPending === true;
 
     return (
         <Menu.Group className="flex flex-col gap-2 px-2.5 py-1.5">
@@ -603,10 +619,14 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
                     {t('contextMeter.title')}
                 </Menu.GroupLabel>
                 <span className={clsx('shrink-0 text-xs tabular-nums', fraction >= 0.7 ? contextTone(fraction) : 'text-text-faint')}>
-                    {usage.contextWindow ? t('contextMeter.of', { used, window: formatTokens(usage.contextWindow) }) : t('contextMeter.used', { tokens: used })}
+                    {pending
+                        ? t('contextMeter.pending')
+                        : usage.contextWindow
+                          ? t('contextMeter.of', { used, window: formatTokens(usage.contextWindow) })
+                          : t('contextMeter.used', { tokens: used })}
                 </span>
             </div>
-            {usage.contextWindow ? (
+            {usage.contextWindow && !pending ? (
                 <div
                     role="meter"
                     aria-valuenow={percent}
@@ -643,7 +663,7 @@ function ContextUsage({ usage, disabled, onCompact }: { usage: ChatUsage; disabl
             )}
             <div className="flex items-center gap-2 text-xs text-text-faint tabular-nums">
                 <span className="min-w-0 grow truncate">
-                    {usage.contextWindow ? t('contextMeter.percentUsed', { percent: formatPercent(fraction * 100) }) : null}
+                    {usage.contextWindow && !pending ? t('contextMeter.percentUsed', { percent: formatPercent(fraction * 100) }) : null}
                 </span>
                 <Menu.Item
                     unstyled

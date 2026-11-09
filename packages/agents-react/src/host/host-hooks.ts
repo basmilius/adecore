@@ -5,7 +5,7 @@
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
 import type { AccountRule } from './host';
-import { useChatHost, type ChatHost, type CommandLook, type ComposerSendAction } from './host';
+import { useChatHost, type ChatHost, type CommandLook, type ComposerSendAction, type ComposerStatusItem } from './host';
 import { referablesOfChats, type Referables } from './references';
 
 export function useHostCodeMode(): 'light' | 'dark' {
@@ -126,6 +126,16 @@ export function useHostComposerSendActions(scopeId: string, chatId: string): rea
     return useSendActions(scopeId, chatId);
 }
 
+const NO_STATUS: readonly ComposerStatusItem[] = [];
+
+const noStatus = (): readonly ComposerStatusItem[] => NO_STATUS;
+
+export function useHostComposerStatus(scopeId: string, chatId: string): readonly ComposerStatusItem[] {
+    const useStatus = useChatHost().useComposerStatus ?? noStatus;
+
+    return useStatus(scopeId, chatId);
+}
+
 export function useHostThreadCards(...args: Parameters<ChatHost['useThreadCards']>): ReturnType<ChatHost['useThreadCards']> {
     return useChatHost().useThreadCards(...args);
 }
@@ -150,6 +160,12 @@ export function useHostCanReorderAccounts(scopeId: string): boolean {
     const useCanReorder = useChatHost().useCanReorderAccounts ?? (() => true);
 
     return useCanReorder(scopeId);
+}
+
+export function useHostCanShareAccountConfig(scopeId: string): boolean {
+    const useCanShare = useChatHost().useCanShareAccountConfig ?? (() => false);
+
+    return useCanShare(scopeId);
 }
 
 export function useHostAccountRule(scopeId: string, chatId: string): AccountRule | null {

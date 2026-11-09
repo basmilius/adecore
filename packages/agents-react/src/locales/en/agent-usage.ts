@@ -1,5 +1,12 @@
 export default {
     limits: {
+        notRead: 'No plan limits have been read. Read them again on this machine.',
+        refresh: 'Read limits again',
+        reading: 'Reading limits',
+        refreshHint: 'Asks this machine to read the eligible accounts again.',
+        refreshFailed: 'Could not read limits. Try again.',
+        offline: 'Connect to this machine to read limits.',
+        lastKnown: 'Last known numbers',
         title: 'Limits',
         explain: 'The mark shows where usage would be at an even pace. Past the mark, you use it up faster than it resets.',
         loading: 'Loading limits…',
@@ -24,6 +31,9 @@ export default {
         signedOutDetail: 'Not logged in. Log in to see limits.',
         logIn: 'Log in',
         checked: {
+            unknown: 'Update time unknown',
+            updated: 'Last updated · {{when}}',
+            old: 'May be out of date',
             now: 'now',
             ago: '{{duration}} ago',
             fromTurn: 'From a turn · {{when}}'

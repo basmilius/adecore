@@ -159,6 +159,7 @@ exports[`the public API . exports these names 1`] = `
   "ProviderAccountsReorderPayloadSchema",
   "ProviderAccountsSavePayloadSchema",
   "ProviderAccountsSchema",
+  "ProviderAccountsShareConfigPayloadSchema",
   "ProviderCapabilitiesSchema",
   "ProviderInfoSchema",
   "ProviderInstallSchema",
@@ -388,6 +389,7 @@ exports[`the public API . exports these names 1`] = `
   "type ProviderAccounts",
   "type ProviderAccountsReorderPayload",
   "type ProviderAccountsSavePayload",
+  "type ProviderAccountsShareConfigPayload",
   "type ProviderCapabilities",
   "type ProviderInfo",
   "type ProviderInstall",
@@ -837,6 +839,7 @@ exports[`the public API ./provider-accounts exports these names 1`] = `
   "ProviderAccountsReorderPayloadSchema",
   "ProviderAccountsSavePayloadSchema",
   "ProviderAccountsSchema",
+  "ProviderAccountsShareConfigPayloadSchema",
   "orderedAccountIds",
   "topAccountOf",
   "type ProviderAccount",
@@ -851,6 +854,7 @@ exports[`the public API ./provider-accounts exports these names 1`] = `
   "type ProviderAccounts",
   "type ProviderAccountsReorderPayload",
   "type ProviderAccountsSavePayload",
+  "type ProviderAccountsShareConfigPayload",
 ]
 `;
 

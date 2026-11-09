@@ -105,6 +105,7 @@ export default {
         used: '{{tokens}} gebruikt',
         percentUsed: '{{percent}} gebruikt',
         estimate: '≈{{tokens}}',
+        pending: 'Grootte bekend na het volgende antwoord',
         parts: {
             toolOutput: 'Tool-output',
             filesRead: 'Gelezen bestanden',
@@ -157,6 +158,8 @@ export default {
         compaction: {
             plain: 'Context gecomprimeerd',
             from: 'Context gecomprimeerd vanaf {{tokens}} tokens',
+            to: 'Context gecomprimeerd tot {{tokens}} tokens',
+            fromTo: 'Context gecomprimeerd van {{from}} tot {{to}} tokens',
             summary: 'Alles hierboven kent de agent alleen nog als samenvatting'
         },
         selectionSwitch: {
@@ -385,7 +388,9 @@ export default {
             here: 'Bestanden in deze map',
             files: 'Bestanden',
             noMatch: 'Geen bestanden gevonden',
-            empty: 'Hier staan geen bestanden'
+            empty: 'Hier staan geen bestanden',
+            models: 'Modellen',
+            accounts: 'Accounts'
         },
         references: {
             canvas: 'Op dit canvas',
@@ -420,7 +425,18 @@ export default {
             goToSource: 'Naar het antwoord'
         },
         removeAttachment: '{{name}} verwijderen',
-        attach: 'Bestanden toevoegen',
+        plus: {
+            label: 'Toevoegen aan het bericht',
+            attach: 'Bestanden toevoegen…',
+            stash: 'Deze prompt stashen',
+            mention: 'Een bestand noemen',
+            reference: 'Naar een weergave of node verwijzen',
+            skill: 'Een skill gebruiken',
+            commands: "Commando's"
+        },
+        status: {
+            label: 'Waar deze chat werkt'
+        },
         tooLong: 'tekens, te lang om te versturen',
         stop: 'Stoppen. Shift-klik stopt ook de sub-agents',
         queueButton: 'In de wachtrij zetten',
@@ -479,8 +495,7 @@ export default {
         noAnswer: 'De machine antwoordde niet',
         stopFailed: 'Kon de sub-agent niet stoppen',
         info: {
-            label: 'Over deze sub-agent',
-            tokens: '{{tokens}} tokens'
+            label: 'Over deze sub-agent'
         }
     },
     modes: {

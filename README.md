@@ -71,7 +71,7 @@ An app can use a checkout of this repository without a build per change. Every p
 
 ## Releases
 
-A release starts as a draft GitHub release, then [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, sets the version in every package, checks, tests, builds and validates the packed artifacts. It publishes the public packages in dependency order through Trusted Publishing, deploys the docs and publishes the GitHub release last, because a published release is immutable. A prerelease goes out under the `next` dist-tag. Every `package.json` in the repository stays at `0.0.0`.
+A release starts as a draft GitHub release, then [`release.yml`](.github/workflows/release.yml) runs by hand for its version. It tags the commit, waits for the CI run of that commit and stops unless it passed, sets the version in every package, checks, tests, builds and validates the packed artifacts. It publishes the public packages in dependency order through Trusted Publishing, deploys the docs and publishes the GitHub release last, because a published release is immutable. A prerelease goes out under the `next` dist-tag. Every `package.json` in the repository stays at `0.0.0`.
 
 ## Issues
 

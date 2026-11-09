@@ -398,7 +398,7 @@ export function TimelineRows<Span extends TimelineSpan>({ label, detail, classNa
                             aria-describedby={shownDetail ? detailId : undefined}
                             className={clsx(
                                 COLUMNS,
-                                'cursor-default outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-accent',
+                                'cursor-default outline-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-solid focus-visible:outline-accent-on-surface',
                                 selected ? 'bg-surface-active' : 'hover:bg-surface-hover'
                             )}
                             onFocus={(e) => {

@@ -1,24 +1,11 @@
 import { activeSubagents, HOST_TASK_ORIGIN, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
-import { formatMoment, formatElapsedShort, formatTokens } from '@adecore/ui/format';
+import { formatMoment, formatElapsedShort } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
 import type { SubagentTask } from '../host/host';
 
 export function subagentTitle(item: ChatSubagentItem): string {
     return item.description || item.summary || item.subagentType || i18next.t('agent-chat:rows.subagent.label');
-}
-
-/* What the bar over a sub-agent's conversation says of it beside its state and its time; the model is named by the caller, which has the catalog. */
-export function subagentFacts(item: ChatSubagentItem, modelName: string | null): string[] {
-    return [
-        modelName,
-        item.subagentType,
-        item.background ? i18next.t('agent-chat:rows.subagent.background') : null,
-        item.usage !== null && item.usage.totalTokens > 0
-            ? i18next.t('agent-chat:subagents.info.tokens', { tokens: formatTokens(item.usage.totalTokens) })
-            : null,
-        item.usage !== null && item.usage.toolUses > 0 ? i18next.t('agent-chat:group.toolCalls', { count: item.usage.toolUses }) : null
-    ].filter((fact): fact is string => fact !== null && fact !== '');
 }
 
 /* A cancelled task is a failed row on the wire and a paused one a running row, and only the task itself still says which it is. */

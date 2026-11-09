@@ -79,7 +79,13 @@ export function PromptEditor({
         label
     });
 
-    const extensions = chipDecorations({ mentions: value.mentions, skills: value.skills, references: menus.referenceChips, referenceIcon: host.ReferenceIcon });
+    const extensions = chipDecorations({
+        mentions: value.mentions,
+        skills: value.skills,
+        references: menus.referenceChips,
+        referenceIcon: host.ReferenceIcon,
+        named: menus.namedLook
+    });
 
     const onKeyDown = (e: KeyboardEvent): boolean => {
         if (e.isComposing) {

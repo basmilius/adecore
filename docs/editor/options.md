@@ -92,6 +92,23 @@ chordOf('duplicateLine', apple, keymap); // 'Mod+Shift+D'
 
 `typesInsteadOfChord(event, apple)` tells whether a Ctrl+Alt press off macOS types a character, as AltGr+Q types `@` on many layouts. Such a press does not match a chord. Keys that type nothing, such as arrows, always match. A host that matches its own chords uses it to leave typing alone.
 
+A person who rebinds a key does not reload the editors that are open. Pass `keymap` and `handBack` as functions, and the editor asks again on every key press:
+
+```ts
+let keymap = resolveKeymap(overrides);
+
+const engine = createSmartEditorEngine({
+    tokenizer,
+    keymap: () => keymap,
+    handBack: () => handedBack
+});
+
+// After a rebind, the open editors follow with the next key.
+keymap = resolveKeymap(newOverrides);
+```
+
+`handBack` in the options of one mount takes a function too. Return the same object while nothing changed; the editor calls the function for every key.
+
 Two hooks let the app take keys:
 
 - `handBack` chords pass through the editor untouched, so the app's global shortcuts work while the editor has focus.

@@ -89,6 +89,8 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
     const boxRef = useRef<HTMLDivElement | null>(null);
     const frameRef = useRef<HTMLIFrameElement>(null);
     const bridgeRef = useRef<VisualBridge | null>(null);
+    const bridgeInputs = useRef<readonly unknown[] | null>(null);
+    const [frameVersion, setFrameVersion] = useState(0);
     const viewportRef = useRef<HTMLDivElement | null>(null);
     const controllerRef = useRef<VisualViewportController | null>(null);
     const [viewportReady, setViewportReady] = useState(false);
@@ -127,32 +129,51 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
             return;
         }
 
-        const bridge = new VisualBridge({
-            frame: () => frame.contentWindow,
-            visual: { maxHeight },
-            page: page().then(imageDocumentForDisplay),
-            theme: opening.theme,
-            mayOpenLink: () => personActsIn(frame),
-            openLink: (url) => visuals?.openLink(url),
-            onHeight: (next) => {
-                if (fill) {
-                    return;
-                }
+        const inputs = [opening, page, maxHeight, fill, visuals];
+        const changed = bridgeInputs.current === null || inputs.some((input, index) => input !== bridgeInputs.current?.[index]);
+        const replaced = changed && bridgeRef.current !== null;
+        let bridge = bridgeRef.current;
 
-                setReported(next);
-                onHeightRef.current?.(widthRef.current, next);
-            },
-            ...(!fill
-                ? {
-                      onViewportReady: () => setViewportReady(true),
-                      onScroll: (request) => controllerRef.current?.scroll(request)
-                  }
-                : {}),
-            onAppearance: setDrawn,
-            onFailure: () => setFailed(true)
-        });
+        if (bridge === null || changed) {
+            bridge?.dispose();
+            bridge = new VisualBridge({
+                frame: () => frameRef.current?.contentWindow ?? null,
+                visual: { maxHeight },
+                page: page().then(imageDocumentForDisplay),
+                theme: opening.theme,
+                mayOpenLink: () => frameRef.current !== null && personActsIn(frameRef.current),
+                openLink: (url) => visuals?.openLink(url),
+                onHeight: (next) => {
+                    if (fill) {
+                        return;
+                    }
 
-        bridgeRef.current = bridge;
+                    setReported(next);
+                    onHeightRef.current?.(widthRef.current, next);
+                },
+                ...(!fill
+                    ? {
+                          onViewportReady: () => setViewportReady(true),
+                          onScroll: (request) => controllerRef.current?.scroll(request)
+                      }
+                    : {}),
+                onAppearance: setDrawn,
+                onFailure: () => setFailed(true)
+            });
+
+            bridgeRef.current = bridge;
+            bridgeInputs.current = inputs;
+        }
+
+        // Activity removes effects while retaining the iframe and this holder's handshake state.
+        if (bridge.resume() || replaced) {
+            setViewportReady(false);
+            setDrawn(null);
+            setReported(null);
+            setFailed(false);
+            setFrameVersion((version) => version + 1);
+        }
+
         const view = frame.ownerDocument.defaultView ?? window;
 
         const listen = (event: MessageEvent): void => bridge.receive(event);
@@ -161,8 +182,7 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
 
         return () => {
             view.removeEventListener('message', listen);
-            bridge.dispose();
-            bridgeRef.current = null;
+            bridge.suspend();
         };
     }, [opening, page, maxHeight, fill, visuals]);
 
@@ -198,6 +218,7 @@ function PageFrame({ page, title, maxHeight, fill = false, className, initialHei
             <div ref={viewportRef} className={fill ? 'absolute inset-0' : 'sticky top-0 w-full'} style={fill ? undefined : { height: '100%' }}>
                 {opening !== null && (
                     <iframe
+                        key={frameVersion}
                         ref={frameRef}
                         src={opening.src}
                         title={title}

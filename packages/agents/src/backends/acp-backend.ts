@@ -13,6 +13,7 @@ import {
     acpStopWords,
     autoAllows,
     GROK_QUESTION_METHODS,
+    GROK_SESSION_NOTIFICATION,
     parseInitialize,
     parseSessionInfo,
     promptUsageOf,
@@ -577,6 +578,10 @@ export class AcpBackend implements ChatBackend {
     /* ACP has no call to fold the context, so an agent that lists a `compact` command gets it as a prompt. */
     compact(): void {
         if (this.commands.includes('compact')) {
+            if (this.transport) {
+                this.protocol.beginCompaction();
+            }
+
             this.sendTurn({ text: '/compact', preamble: null, attachments: [], mentions: [], skills: [] });
 
             return;
@@ -703,6 +708,12 @@ export class AcpBackend implements ChatBackend {
             }
 
             this.emitAll(this.protocol.update(this.sessionId, frame.params));
+
+            return;
+        }
+
+        if (frame.method === GROK_SESSION_NOTIFICATION && id === null) {
+            this.emitAll(this.protocol.notification(this.sessionId, frame.params));
 
             return;
         }

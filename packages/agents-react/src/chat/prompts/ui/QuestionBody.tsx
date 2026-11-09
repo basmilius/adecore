@@ -136,7 +136,7 @@ export function QuestionBody({
                     })}
                     <label
                         className={clsx(
-                            'flex min-h-9 items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs text-text focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-accent',
+                            'flex min-h-9 items-start gap-2 rounded-lg border px-3 py-2 text-left text-xs text-text focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-accent-on-surface',
                             answer.custom ? 'border-accent bg-accent-soft' : 'border-border bg-surface-hover',
                             locked && 'opacity-50'
                         )}

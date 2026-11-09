@@ -1,6 +1,6 @@
 import { EmptyState, ContextMenu, Icon, ScrollArea } from '@adecore/ui';
 import { Bot, LoaderCircle } from 'lucide-react';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChatHost } from '../../host/host';
 import { useHostHidesToolCalls } from '../../host/host-hooks';
@@ -14,6 +14,7 @@ import { INITIAL_CONVERSATION, SubagentConversation, type SubagentConversationSt
 import { useSubagentSupport } from '../subagent-support';
 import { openBelow, useSubagentTrail, type SubagentStep } from '../subagent-view';
 import { firstRowInView, restoreAnchor, wantsEarlier, type ReadingAnchor } from '../timeline-scroll';
+import { CoveredBottomContext } from './covered-bottom';
 import { FileLinkContext } from './file-links';
 import { ReplyContext } from './reply-context';
 import { FOLLOW_THRESHOLD_PX, rowRhythm } from './rows/row-rhythm';
@@ -52,6 +53,7 @@ export function SubagentTimeline({
     const threadRef = useRef<HTMLDivElement>(null);
     const [target, setTarget] = useState<TimelineTarget>(EMPTY_TARGET);
     const followRef = useRef(true);
+    const covered = useContext(CoveredBottomContext);
 
     const stopFollowing = () => {
         followRef.current = false;
@@ -146,7 +148,8 @@ export function SubagentTimeline({
     };
 
     return (
-        <div className="flex h-full min-h-0 flex-col" style={readingWidthStyle(readingWidth)}>
+        // Only the conversation scrolls under the composer; a note in its place keeps clear of it.
+        <div className="flex h-full min-h-0 flex-col" style={{ ...readingWidthStyle(readingWidth), paddingBottom: state.status === 'ready' ? 0 : covered }}>
             {info && <SubagentInfo chatId={chatId} toolUseId={toolUseId} />}
             {state.status === 'loading' && <div className="chat-column-content px-4 pt-4 text-xs text-text-faint">{t('subagents.loading')}</div>}
             {state.status === 'failed' && (
@@ -163,6 +166,7 @@ export function SubagentTimeline({
                             data-file-scope-id={scope.id}
                             className="grow"
                             viewportClassName="chat-thread relative px-4 pt-4 pb-3"
+                            coveredBottom={covered}
                             // The thread keeps its reader in place itself when a page goes in above.
                             style={{ overflowAnchor: 'none' }}
                             onScroll={(event) => {
@@ -206,6 +210,7 @@ export function SubagentTimeline({
                                 </ContextMenu.Trigger>
                                 <TimelineMenuPopup target={target} thread={threadRef} />
                             </ContextMenu.Root>
+                            <div className="shrink-0" style={{ height: covered }} aria-hidden />
                         </ScrollArea>
                     </ReplyContext.Provider>
                 </FileLinkContext.Provider>

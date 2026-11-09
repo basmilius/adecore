@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import type { AgentKind, ProviderAccount, ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
@@ -8,6 +8,7 @@ import { memorySecrets } from '../../testing/accounts.ts';
 import { providerFor } from '../../testing/providers.ts';
 import { ProviderAccountsService } from './service.ts';
 import type { ShadowHomeReport } from './shadow-home.ts';
+import { applySharedConfig, removeSharedConfig, type SharedConfigReport } from './shared-config.ts';
 import type { AccountReading } from './status.ts';
 
 // Windows reads the home from USERPROFILE, joins with backslashes and resolves a rooted path onto a drive.
@@ -24,6 +25,15 @@ const providers = {
     kinds: () => KINDS
 };
 
+/* Providers whose CLI always answers that it is signed in, so a service under test never starts one. */
+const signedInProviders = {
+    ...providers,
+    get: (kind: AgentKind) => ({
+        ...providerFor(kind),
+        askAccount: async () => ({ signedIn: true, email: null, plan: null, organization: null })
+    })
+};
+
 interface Asked {
     kind: AgentKind;
     folder: string | undefined;
@@ -38,6 +48,10 @@ describe('ProviderAccountsService', () => {
     let installs: string[];
     let shadows: string[];
     let shadowReport: ShadowHomeReport;
+    let steps: string[];
+    let removals: string[];
+    let sharedReport: SharedConfigReport;
+    let ownedByHost: boolean;
     let events: ProviderAccounts[];
     let secrets: ReturnType<typeof memorySecrets> | null;
     let clock: number;
@@ -72,6 +86,19 @@ describe('ProviderAccountsService', () => {
             },
             install: async (kind, folder) => {
                 installs.push(`${kind} ${folder}`);
+                steps.push(`install ${folder}`);
+            },
+            ownsSettings: (config) => config === 'hooks only',
+            applyShared: async (from, into, _share, owns) => {
+                steps.push(`share ${into} <- ${from}`);
+                ownedByHost = owns?.('hooks only') === true;
+
+                return sharedReport;
+            },
+            removeShared: async (from, into) => {
+                removals.push(`${into} <- ${from}`);
+
+                return [];
             },
             secrets,
             now: () => clock,
@@ -101,6 +128,10 @@ describe('ProviderAccountsService', () => {
         installs = [];
         shadows = [];
         shadowReport = { linked: [], unshared: [], sharedLogin: false };
+        steps = [];
+        removals = [];
+        sharedReport = { linked: [], unshared: [], seeded: false };
+        ownedByHost = false;
         events = [];
         secrets = memorySecrets();
         clock = 1_000;
@@ -260,6 +291,296 @@ describe('ProviderAccountsService', () => {
         expect(saved.accounts.claude_personal).toMatchObject({ label: 'Mine', order: 0 });
         expect(saved.accounts.claude?.order).toBe(1);
         expect(service.defaultFor('claude')).toBe('claude_personal');
+    });
+
+    describe("sharing the default account's setup", () => {
+        const personal = { kind: 'claude', label: 'Personal', home: '~/.claude_personal' };
+        const folder = join(HOME, '.claude_personal');
+
+        test('is off for every account until a person turns it on', async () => {
+            const service = await make();
+            const saved = await service.save({ claude_personal: personal });
+            await service.refresh();
+
+            expect(saved.accounts.claude_personal?.shareConfig).toBeUndefined();
+            expect(saved.sharedConfigKinds).toEqual(['claude']);
+            expect(new Set(steps)).toEqual(new Set([`install ${folder}`]));
+        });
+
+        test('puts the shared setup in the folder before the hooks, on every check', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            const shared = await service.shareConfig('claude_personal', true);
+            await service.refresh();
+
+            expect(shared.accounts.claude_personal).toMatchObject({ shareConfig: true });
+            expect(steps.slice(-2)).toEqual([`share ${folder} <- ${join(HOME, '.claude')}`, `install ${folder}`]);
+            expect(ownedByHost).toBe(true);
+            expect(JSON.parse(await readFile(join(dir, 'providers.json'), 'utf8')).accounts.claude_personal.shareConfig).toBe(true);
+        });
+
+        test("says which entries stayed the account's own", async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            sharedReport = { linked: [], unshared: ['CLAUDE.md', 'skills'], seeded: false };
+            await service.shareConfig('claude_personal', true);
+            const after = await service.refresh();
+
+            expect(stateOf(after, 'claude_personal')).toMatchObject({ message: `Not shared with ${join(HOME, '.claude')}: CLAUDE.md, skills` });
+        });
+
+        test('still starts the account when the folder cannot be shared into', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.shareConfig('claude_personal', true);
+            const failing = new ProviderAccountsService({
+                home: dir,
+                providers: signedInProviders,
+                env,
+                secrets: null,
+                folderExists: () => true,
+                applyShared: async () => {
+                    throw new Error('read-only folder');
+                }
+            });
+            await failing.load();
+            const after = await failing.refresh();
+
+            expect(stateOf(after, 'claude_personal')).toMatchObject({ state: 'ready', message: expect.stringContaining('read-only folder') });
+        });
+
+        test('takes the links away when it is turned off', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.shareConfig('claude_personal', true);
+            const off = await service.shareConfig('claude_personal', false);
+
+            expect(off.accounts.claude_personal?.shareConfig).toBeUndefined();
+            expect(removals).toEqual([`${folder} <- ${join(HOME, '.claude')}`]);
+        });
+
+        test('is kept by a save that does not send it, and by a reorder', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.shareConfig('claude_personal', true);
+            const renamed = await service.save({ claude_personal: { ...personal, label: 'Mine' } });
+            const reordered = await service.reorder('claude', ['claude_personal', 'claude']);
+
+            expect(renamed.accounts.claude_personal).toMatchObject({ label: 'Mine', shareConfig: true });
+            expect(reordered.accounts.claude_personal).toMatchObject({ shareConfig: true, order: 0 });
+        });
+
+        test('is not turned off by a save that sends false', async () => {
+            const service = await make();
+            await service.save({ claude_personal: personal });
+            await service.reorder('claude', ['claude_personal', 'claude']);
+            await service.shareConfig('claude_personal', true);
+            const saved = await service.save({ claude_personal: { ...personal, shareConfig: false } });
+
+            expect(saved.accounts.claude_personal).toMatchObject({ shareConfig: true, order: 0 });
+        });
+
+        test('is refused for the default account, an unknown id and a CLI that shares nothing', async () => {
+            const service = await make();
+            await service.save({ codex_personal: { kind: 'codex', home: '~/.codex', shadowHome: '~/.codex_personal' } });
+
+            expect(service.shareConfig('claude', true)).rejects.toThrow('default account');
+            expect(service.shareConfig('nobody', true)).rejects.toThrow('nobody');
+            expect(service.shareConfig('codex_personal', true)).rejects.toThrow('no setup to share');
+            expect(steps.filter((step) => step.startsWith('share'))).toEqual([]);
+        });
+
+        test('does not apply to an account whose CLI shares nothing, and the flag survives a reload', async () => {
+            await writeFile(
+                join(dir, 'providers.json'),
+                JSON.stringify({
+                    version: 1,
+                    accounts: { codex_personal: { kind: 'codex', home: '~/.codex', shadowHome: '~/.codex_personal', shareConfig: true } }
+                })
+            );
+            const service = await make();
+            await service.refresh();
+
+            expect(service.snapshot().accounts.codex_personal?.shareConfig).toBe(true);
+            expect(steps.filter((step) => step.startsWith('share'))).toEqual([]);
+        });
+
+        describe('against real folders', () => {
+            let root: string;
+            let defaultFolderPath: string;
+            let accountFolderPath: string;
+            let applying: Promise<void> | null;
+            let applyStarted: Promise<void>;
+            let signalApply: () => void;
+            let releaseApply: () => void;
+            let removalFailure: Error | null;
+            let removeCalls: number;
+
+            const realAccount = { kind: 'claude', label: 'Personal' } as const;
+
+            const makeReal = async (saveAccount = true): Promise<ProviderAccountsService> => {
+                const service = new ProviderAccountsService({
+                    home: dir,
+                    providers: signedInProviders,
+                    env: { HOME: root, USERPROFILE: root },
+                    secrets: null,
+                    // Only the first apply waits, so the test holds it while it changes the flag.
+                    applyShared: async (from, into, share, owns) => {
+                        const wait = applying;
+                        applying = null;
+                        signalApply();
+                        await wait;
+
+                        return applySharedConfig(from, into, share, owns);
+                    },
+                    removeShared: async (from, into, share) => {
+                        removeCalls += 1;
+
+                        if (removalFailure !== null) {
+                            throw removalFailure;
+                        }
+
+                        return removeSharedConfig(from, into, share);
+                    }
+                });
+                await service.load();
+
+                if (saveAccount) {
+                    await service.save({ claude_personal: { ...realAccount, home: accountFolderPath } });
+                }
+
+                return service;
+            };
+
+            const holdApply = (): void => {
+                applyStarted = new Promise((resolve) => {
+                    signalApply = resolve;
+                });
+                applying = new Promise((resolve) => {
+                    releaseApply = resolve;
+                });
+            };
+
+            /*
+             * Lets the service run while the first apply is held: a turn off that does not wait for the
+             * apply unlinks (or settles) within a few file operations, one that waits does neither. The
+             * pending file operations of the service queue behind these probes, so the bound is not a clock.
+             */
+            const untilRemovedOrSettled = async (turnOff: Promise<unknown>): Promise<void> => {
+                let settled = false;
+                void turnOff.then(
+                    () => (settled = true),
+                    () => (settled = true)
+                );
+
+                for (let i = 0; i < 200 && !settled && removeCalls === 0; i++) {
+                    await lstat(accountFolderPath);
+                }
+            };
+
+            const isLinked = async (): Promise<boolean> => {
+                try {
+                    return (await lstat(join(accountFolderPath, 'CLAUDE.md'))).isSymbolicLink();
+                } catch {
+                    return false;
+                }
+            };
+
+            beforeEach(async () => {
+                root = await mkdtemp(join(tmpdir(), 'ruimte-share-'));
+                defaultFolderPath = join(root, '.claude');
+                accountFolderPath = join(root, '.claude_personal');
+                await mkdir(defaultFolderPath);
+                await mkdir(accountFolderPath);
+                await writeFile(join(defaultFolderPath, 'CLAUDE.md'), 'rules');
+                applying = null;
+                signalApply = () => undefined;
+                releaseApply = () => undefined;
+                applyStarted = Promise.resolve();
+                removalFailure = null;
+                removeCalls = 0;
+            });
+
+            afterEach(async () => {
+                await rm(root, { recursive: true, force: true });
+            });
+
+            test('ends unlinked when it is turned off during an apply that was already running', async () => {
+                const service = await makeReal();
+                holdApply();
+                await service.shareConfig('claude_personal', true);
+                await applyStarted;
+                const off = service.shareConfig('claude_personal', false);
+                await untilRemovedOrSettled(off);
+
+                // The held apply still owns the links, so nothing may have been removed under it.
+                expect(removeCalls).toBe(0);
+                releaseApply();
+                const after = await off;
+                await service.refresh();
+
+                expect(after.accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(await isLinked()).toBe(false);
+            });
+
+            test('ends linked when it is turned off and on again during an apply that was already running', async () => {
+                const service = await makeReal();
+                holdApply();
+                await service.shareConfig('claude_personal', true);
+                await applyStarted;
+                const off = service.shareConfig('claude_personal', false);
+                const on = service.shareConfig('claude_personal', true);
+                await untilRemovedOrSettled(off);
+
+                expect(removeCalls).toBe(0);
+                releaseApply();
+                await Promise.all([off, on]);
+                await service.refresh();
+
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBe(true);
+                expect(await isLinked()).toBe(true);
+            });
+
+            test('keeps the flag on and the links when the removal fails, also after a restart, and removes them on a later turn off', async () => {
+                const service = await makeReal();
+                await service.shareConfig('claude_personal', true);
+                await service.refresh();
+                removalFailure = new Error('disk is full');
+
+                await expect(service.shareConfig('claude_personal', false)).rejects.toThrow('disk is full');
+                await service.refresh();
+
+                expect(service.snapshot().accounts.claude_personal?.shareConfig).toBe(true);
+                expect(await isLinked()).toBe(true);
+
+                service.stop();
+                removalFailure = null;
+                const restarted = await makeReal(false);
+                await restarted.refresh();
+
+                expect(restarted.snapshot().accounts.claude_personal?.shareConfig).toBe(true);
+                expect(await isLinked()).toBe(true);
+
+                const off = await restarted.shareConfig('claude_personal', false);
+                await restarted.refresh();
+
+                expect(off.accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(restarted.snapshot().accounts.claude_personal?.shareConfig).toBeUndefined();
+                expect(await isLinked()).toBe(false);
+            });
+
+            test('keeps a link a person made in an account that never shared', async () => {
+                await symlink(join(defaultFolderPath, 'CLAUDE.md'), join(accountFolderPath, 'CLAUDE.md'));
+                const service = await makeReal();
+                await service.refresh();
+                await service.shareConfig('claude_personal', false);
+                await service.refresh();
+
+                expect(await isLinked()).toBe(true);
+                expect(removeCalls).toBe(0);
+            });
+        });
     });
 
     test('puts an account a reorder leaves out after the ones it names, and refuses another CLI or an unknown id', async () => {

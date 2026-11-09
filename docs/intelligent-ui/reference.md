@@ -16,6 +16,7 @@ Every name each entry point exports, types included, read from its source. Anyth
 | `uiLinkTargets` and the link schemas | [Links](/intelligent-ui/host/links) |
 | `UiBlockSchema`, `UiNodeSchema` and the types inferred from them | [Getting started](/intelligent-ui/getting-started#the-wire) |
 | `uiGroupDescription` and the `places` option | [Compilation and streaming](/intelligent-ui/host/compilation#the-catalog-in-code) |
+| `uiNodeQueries` | [Live queries](/intelligent-ui/host/queries#freshness) |
 
 ## `@adecore/intelligent-ui`
 

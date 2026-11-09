@@ -173,10 +173,10 @@ A provider starts from `ACP_CAPABILITIES` and adds what its agent showed in sess
 | The agent | Capability |
 | --- | --- |
 | Sends a `usage_update` with its context window | `reportsContextWindow: true` |
-| Lists a `compact` command | `compaction: 'prompt'`: the chat sends `/compact` as a prompt, and so does the backend's `compact()` |
+| Lists a `compact` command | `compaction: 'prompt'`: the backend's `compact()` sends `/compact` as a prompt. The turn ends as one `compaction` with the size before and the agent's last count, in place of the agent's text; a turn that does not end with `end_turn` keeps its text and leaves no marker |
 | Lists a `goal` command | `goals: 'command'`: the goal goes to the agent as `/goal` |
 
-A list without `compact` sets `compaction` back to `none`. A model entry with `_meta.totalContextTokens` gets that size as its context window, so the meter has a size before the first `usage_update`.
+An agent that reports a fold in a notification of its own, as Grok's `_x.ai/session_notification` with `auto_compact_completed` does, gives that compaction its sizes. A list without `compact` sets `compaction` back to `none`. A model entry with `_meta.totalContextTokens` gets that size as its context window, so the meter has a size before the first `usage_update`.
 
 ## Usage
 

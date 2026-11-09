@@ -32,6 +32,7 @@ import {
 } from './accounts.ts';
 import { AccountError, isDefaultAccountOf, type AccountLaunches } from './launch.ts';
 import { prepareShadowHome, type ShadowHomeReport } from './shadow-home.ts';
+import { applySharedConfig, removeSharedConfig, type OwnsSettings } from './shared-config.ts';
 import {
     acceptAccounts,
     accountsPath,
@@ -62,6 +63,14 @@ export interface ProviderAccountsOptions {
     folderExists?: (path: string) => boolean;
     // What the host puts in a config folder of an account (its hooks); absent puts nothing there.
     install?: (kind: AgentKind, folder: string) => Promise<void>;
+    /*
+     * Whether a settings file holds nothing but what the host put there (its hooks), so an account that
+     * shares the default account's setup may have it replaced by the default account's settings. Absent
+     * means the host owns nothing: a settings file that exists stays, and only a missing one is written.
+     */
+    ownsSettings?: OwnsSettings;
+    applyShared?: typeof applySharedConfig;
+    removeShared?: typeof removeSharedConfig;
     // Where sensitive values are kept; null on a machine without a keychain. Absent is the platform's own.
     secrets?: SecretStore | null;
     now?: () => number;
@@ -136,6 +145,9 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly prepareShadow: NonNullable<ProviderAccountsOptions['prepareShadow']>;
     private readonly folderExists: NonNullable<ProviderAccountsOptions['folderExists']>;
     private readonly install: ProviderAccountsOptions['install'];
+    private readonly ownsSettings: OwnsSettings;
+    private readonly applyShared: NonNullable<ProviderAccountsOptions['applyShared']>;
+    private readonly removeShared: NonNullable<ProviderAccountsOptions['removeShared']>;
     private readonly secrets: SecretStore | null;
     // The sensitive values by `secretKey`, read from the keychain once, since a spawn asks for them without waiting.
     private readonly secretValues = new Map<string, string>();
@@ -144,6 +156,8 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly watches = new Map<string, LoginWatch>();
     // One change of the file at a time: a create and a save both read what the other just wrote.
     private readonly writes = new Serializer();
+    // Links and unlinks of the shared setup, apart from the checks: an apply that started while the flag was on must end before the removal, and reads the flag again when its turn comes.
+    private readonly shares = new Serializer();
     private readonly sinks = new ClientSinks<AgentEvent>();
     private readonly listeners = new Set<() => void>();
     // When a CLI last started under each account, by id; kept in memory, so a restart forgets it.
@@ -163,6 +177,9 @@ export class ProviderAccountsService implements AccountLaunches {
         this.prepareShadow = options.prepareShadow ?? prepareShadowHome;
         this.folderExists = options.folderExists ?? isFolder;
         this.install = options.install;
+        this.ownsSettings = options.ownsSettings ?? (() => false);
+        this.applyShared = options.applyShared ?? applySharedConfig;
+        this.removeShared = options.removeShared ?? removeSharedConfig;
         this.secrets = options.secrets === undefined ? platformSecrets(this.host, options.home) : options.secrets;
         this.now = options.now ?? Date.now;
         this.sleep = options.sleep ?? sleep;
@@ -183,10 +200,15 @@ export class ProviderAccountsService implements AccountLaunches {
         const loginCommands: Partial<Record<AgentKind, string>> = {};
         const chatLogins: AgentKind[] = [];
         const silentLogins: AgentKind[] = [];
+        const sharedConfigKinds: AgentKind[] = [];
 
         for (const kind of this.kinds()) {
             const provider = this.providers.get(kind);
             const home = provider.home;
+
+            if (home?.share !== undefined) {
+                sharedConfigKinds.push(kind);
+            }
 
             if (home?.loginCommand !== undefined) {
                 loginCommands[kind] = home.loginCommand;
@@ -205,7 +227,8 @@ export class ProviderAccountsService implements AccountLaunches {
             secretsAvailable: this.secrets !== null,
             loginCommands,
             ...(chatLogins.length > 0 ? { chatLogins } : {}),
-            ...(silentLogins.length > 0 ? { silentLogins } : {})
+            ...(silentLogins.length > 0 ? { silentLogins } : {}),
+            ...(sharedConfigKinds.length > 0 ? { sharedConfigKinds } : {})
         };
     }
 
@@ -347,7 +370,51 @@ export class ProviderAccountsService implements AccountLaunches {
 
     /* Puts the accounts of one CLI in this order; an id of another CLI or one this machine does not have refuses it. */
     reorder(kind: AgentKind, ids: readonly string[]): Promise<ProviderAccounts> {
-        return this.writes.run(() => this.commit(reorderedAccounts(this.accounts, kind, ids), this.folderExists, true));
+        return this.writes.run(() => this.commit(reorderedAccounts(this.accounts, kind, ids), this.folderExists, 'order'));
+    }
+
+    /*
+     * Turns on or off that an extra account reads the setup of the default account of its CLI. Answers at
+     * once; turning it on is applied by the check that follows, turning it off removes the links first and clears the
+     * flag only once they are gone, so a failed removal throws and leaves the account sharing.
+     */
+    shareConfig(id: string, shared: boolean): Promise<ProviderAccounts> {
+        return this.writes.run(async () => {
+            const account = this.accounts[id];
+
+            if (account === undefined) {
+                throw new InvalidAccountError(`${id}: no account on this machine has that id`);
+            }
+
+            const provider = isOfferedKind(account.kind, this.kinds()) ? this.providers.get(account.kind) : null;
+            const share = provider?.home?.share;
+
+            if (provider === null || share === undefined) {
+                throw new InvalidAccountError(`${id}: ${provider?.name ?? account.kind} has no setup to share between accounts`);
+            }
+
+            if (isDefaultAccount(id, account) || account.home === undefined) {
+                throw new InvalidAccountError(`${id}: the default account is the one the others share from`);
+            }
+
+            const { shareConfig: _was, ...rest } = account;
+            const accounts = { ...this.accounts, [id]: shared ? { ...rest, shareConfig: true } : rest };
+
+            // An account that never shared keeps whatever links a person made in it.
+            if (shared || account.shareConfig !== true) {
+                return this.commit(accounts, this.folderExists, 'shareConfig');
+            }
+
+            const from = defaultFolder(provider, this.env);
+            const into = expandHome(account.home, this.env);
+
+            // Unlink and clear the flag in one turn of `shares`, so no apply reads the flag on between them. When the unlink fails the flag stays on, which the next check agrees with, also after a restart.
+            return this.shares.run(async () => {
+                await this.removeShared(from, into, share);
+
+                return this.commit(accounts, this.folderExists, 'shareConfig');
+            });
+        });
     }
 
     /*
@@ -444,8 +511,8 @@ export class ProviderAccountsService implements AccountLaunches {
         return { kinds: this.kinds(), get: (kind) => this.providers.get(kind) };
     }
 
-    private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean, takeOrder = false): Promise<ProviderAccounts> {
-        const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host, takeOrder);
+    private async commit(accounts: ProviderAccountMap, isDirectory: (path: string) => boolean, take?: 'order' | 'shareConfig'): Promise<ProviderAccounts> {
+        const stored = acceptAccounts(accounts, this.stored, this.accountProviders(), this.env, isDirectory, this.host, take);
         const { writes, removals } = this.planSecrets(stored);
 
         for (const [key, value] of writes) {
@@ -749,10 +816,11 @@ export class ProviderAccountsService implements AccountLaunches {
     }
 
     /*
-     * Puts the hooks in the account's folder and links a shadow home to the home it shares, before the
-     * CLI is asked anything: Codex writes its own files into a fresh home the moment it starts, and a
-     * real file there is one the host will never replace by a link. Answers what a person should
-     * know about the shadow home, and throws when it cannot be used.
+     * Puts the default account's shared setup and the hooks in the account's folder and links a shadow
+     * home to the home it shares, before the CLI is asked anything: Codex writes its own files into a
+     * fresh home the moment it starts, and a real file there is one the host will never replace by a
+     * link. Answers what a person should know about what stayed unshared, and throws when a shadow
+     * home cannot be used.
      */
     private async prepare(id: string, kind: AgentKind, account: ProviderAccount): Promise<string | null> {
         if (isDefaultAccount(id, account) || account.home === undefined) {
@@ -760,6 +828,8 @@ export class ProviderAccountsService implements AccountLaunches {
         }
 
         const home = expandHome(account.home, this.env);
+        // Before the hooks, so a settings file the copy writes is one the hooks are then merged into.
+        const sharedMessage = await this.prepareShared(id, kind);
         await this.install?.(kind, home).catch((e: unknown) => console.error(`Could not install hooks in ${home}:`, errorText(e)));
         await this.providers
             .get(kind)
@@ -767,7 +837,7 @@ export class ProviderAccountsService implements AccountLaunches {
             .catch((e: unknown) => console.error(`Could not prepare ${home}:`, errorText(e)));
 
         if (account.shadowHome === undefined) {
-            return null;
+            return sharedMessage;
         }
 
         const report = await this.prepareShadow(home, expandHome(account.shadowHome, this.env));
@@ -777,6 +847,44 @@ export class ProviderAccountsService implements AccountLaunches {
         }
 
         return report.unshared.length > 0 ? `Not shared with ${home}: ${report.unshared.join(', ')}` : null;
+    }
+
+    /* Links and seeds an account that shares the default account's setup; a failure is said and never keeps the account from starting. */
+    private async prepareShared(id: string, kind: AgentKind): Promise<string | null> {
+        const provider = this.providers.get(kind);
+        const share = provider.home?.share;
+
+        // A flag on an account of a CLI that shares nothing is kept in the file and ignored here.
+        if (share === undefined) {
+            return null;
+        }
+
+        const from = defaultFolder(provider, this.env);
+
+        // The check began with an account as it was then; a person may have turned sharing off since, so the flag is read when it is this one's turn.
+        return this.shares.run(async () => {
+            const live = this.accounts[id];
+
+            if (live?.home === undefined) {
+                return null;
+            }
+
+            const home = expandHome(live.home, this.env);
+
+            if (live.shareConfig !== true) {
+                return null;
+            }
+
+            try {
+                const report = await this.applyShared(from, home, share, this.ownsSettings);
+
+                return report.unshared.length > 0 ? `Not shared with ${from}: ${report.unshared.join(', ')}` : null;
+            } catch (e) {
+                console.error(`Could not share the setup of ${from} with ${home}:`, errorText(e));
+
+                return `Could not share the setup of ${from}: ${errorText(e)}`;
+            }
+        });
     }
 
     private emit(): void {

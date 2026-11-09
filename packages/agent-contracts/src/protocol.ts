@@ -62,7 +62,8 @@ import {
     ProviderAccountWatchLoginPayloadSchema,
     ProviderAccountsReorderPayloadSchema,
     ProviderAccountsSavePayloadSchema,
-    ProviderAccountsSchema
+    ProviderAccountsSchema,
+    ProviderAccountsShareConfigPayloadSchema
 } from './provider-accounts.ts';
 import { UsageChangedEventSchema, UsageLimitsSnapshotSchema, UsageSummaryPayloadSchema, UsageSummaryResultSchema } from './usage.ts';
 
@@ -116,6 +117,7 @@ export const AGENT_REQUEST_SCHEMAS = {
     // Answers at once; what the CLI says arrives as `accounts.changed`.
     'accounts.watchLogin': { payload: ProviderAccountWatchLoginPayloadSchema, result: EmptySchema },
     'accounts.reorder': { payload: ProviderAccountsReorderPayloadSchema, result: ProviderAccountsSchema },
+    'accounts.shareConfig': { payload: ProviderAccountsShareConfigPayloadSchema, result: ProviderAccountsSchema },
     'usage.summary': { payload: UsageSummaryPayloadSchema, result: UsageSummaryResultSchema },
     'usage.subscribe': { payload: EmptySchema, result: EmptySchema },
     'usage.unsubscribe': { payload: EmptySchema, result: EmptySchema },

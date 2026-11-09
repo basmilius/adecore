@@ -56,6 +56,7 @@ import type {
     EditorBlock,
     EditorChangeKind,
     EditorChangeMark,
+    EditorChangeMarkHover,
     EditorCodeBlockOptions,
     EditorFindQuery,
     EditorFindState,
@@ -259,6 +260,7 @@ export class EditorView {
     private changeCache: {
         version: number;
         lines: Map<number, EditorChangeKind>;
+        owners: Map<number, { kind: EditorChangeKind; layer: string; index: number }>;
         runs: { kind: EditorChangeKind; start: number; end: number }[];
     } | null = null;
 
@@ -270,6 +272,9 @@ export class EditorView {
     private readonly lineActions = new Map<string, { id: string; at: number; render: (container: HTMLElement) => void }[]>();
     private readonly actionElements = new Map<string, HTMLElement>();
     private readonly attributionListeners = new Set<(hover: { id: string; rect: EditorRect } | null) => void>();
+    private readonly changeListeners = new Set<(hover: EditorChangeMarkHover | null) => void>();
+    private changeHover: EditorChangeMarkHover | null = null;
+    private changePointer: { x: number; y: number } | null = null;
     private attributionHover: { id: string; rect: EditorRect } | null = null;
     /* Where the pointer is in the gutter, so the bar under it is found again after the view scrolled or the text moved. */
     private attributionPointer: { x: number; y: number } | null = null;
@@ -1392,6 +1397,12 @@ export class EditorView {
             collapsed: this.foldRanges.filter((range) => this.isCollapsed(range)).map(lines),
             custom: this.foldRanges.filter((range) => range.kind === 'custom').map(lines)
         };
+    }
+
+    /* Puts these folds in place of every fold there is, the ones a person made included, which `getFolds` hands back later. */
+    replaceFolds(state: { collapsed: readonly { startLine: number; endLine: number }[]; custom: readonly { startLine: number; endLine: number }[] }): void {
+        this.collapsed.clear();
+        this.restoreFolds(state);
     }
 
     /*
@@ -2522,6 +2533,10 @@ export class EditorView {
                 this.refreshAttributionHover();
             }
 
+            if (this.changePointer !== null) {
+                this.refreshChangeHover();
+            }
+
             this.announceScope();
             this.announceView();
             this.colorAhead();
@@ -2770,29 +2785,35 @@ export class EditorView {
      * How every marked line differs. The layer that last became non-empty wins a shared line for every kind; inside one
      * layer a removal never covers a line that was added or changed, as its mark sits on the line after the removed text.
      */
-    private resolvedChanges(): { lines: Map<number, EditorChangeKind>; runs: { kind: EditorChangeKind; start: number; end: number }[] } {
+    private resolvedChanges(): {
+        lines: Map<number, EditorChangeKind>;
+        owners: Map<number, { kind: EditorChangeKind; layer: string; index: number }>;
+        runs: { kind: EditorChangeKind; start: number; end: number }[];
+    } {
         if (this.changeCache?.version === this.changeVersion) {
             return this.changeCache;
         }
 
         const lines = new Map<number, EditorChangeKind>();
+        const owners = new Map<number, { kind: EditorChangeKind; layer: string; index: number }>();
 
-        for (const marks of this.changeLayers.values()) {
-            const layer = new Map<number, EditorChangeKind>();
+        for (const [name, marks] of this.changeLayers) {
+            const layer = new Map<number, { kind: EditorChangeKind; layer: string; index: number }>();
 
-            for (const mark of marks) {
+            for (const [index, mark] of marks.entries()) {
                 const start = this.model.positionAt(mark.from).line;
                 const end = mark.kind === 'deleted' ? start : this.model.positionAt(Math.max(mark.from, mark.to)).line;
 
                 for (let line = start; line <= end; line++) {
                     if (mark.kind !== 'deleted' || !layer.has(line)) {
-                        layer.set(line, mark.kind);
+                        layer.set(line, { kind: mark.kind, layer: name, index });
                     }
                 }
             }
 
-            for (const [line, kind] of layer) {
-                lines.set(line, kind);
+            for (const [line, owner] of layer) {
+                lines.set(line, owner.kind);
+                owners.set(line, owner);
             }
         }
 
@@ -2809,7 +2830,7 @@ export class EditorView {
             }
         }
 
-        this.changeCache = { version: this.changeVersion, lines, runs };
+        this.changeCache = { version: this.changeVersion, lines, owners, runs };
 
         return this.changeCache;
     }
@@ -3000,6 +3021,10 @@ export class EditorView {
         );
     }
 
+    onChangeMarkHover(listener: (hover: EditorChangeMarkHover | null) => void): () => void {
+        return subscribe(this.changeListeners, listener);
+    }
+
     onAttributionHover(listener: (hover: { id: string; rect: EditorRect } | null) => void): () => void {
         return subscribe(this.attributionListeners, listener);
     }
@@ -3009,11 +3034,15 @@ export class EditorView {
         this.gutter.addEventListener('pointermove', (event) => {
             this.attributionPointer = { x: event.clientX, y: event.clientY };
             this.refreshAttributionHover();
+            this.changePointer = event.pointerType === 'touch' ? null : { x: event.clientX, y: event.clientY };
+            this.refreshChangeHover();
         });
 
         this.gutter.addEventListener('pointerleave', () => {
             this.attributionPointer = null;
             this.refreshAttributionHover();
+            this.changePointer = null;
+            this.refreshChangeHover();
         });
     }
 
@@ -3027,6 +3056,97 @@ export class EditorView {
 
         this.attributionHover = next;
         emit(this.attributionListeners, next);
+    }
+
+    private refreshChangeHover(): void {
+        const next = this.changePointer === null ? null : this.changeUnder(this.changePointer.x, this.changePointer.y);
+        const before = this.changeHover;
+
+        if (
+            before === next ||
+            (before !== null &&
+                next !== null &&
+                before.layer === next.layer &&
+                before.line === next.line &&
+                before.mark.kind === next.mark.kind &&
+                before.mark.startLine === next.mark.startLine &&
+                before.mark.endLine === next.mark.endLine &&
+                sameRect(before.rect, next.rect))
+        ) {
+            return;
+        }
+
+        this.changeHover = next;
+        emit(this.changeListeners, next);
+    }
+
+    private changeUnder(clientX: number, clientY: number): EditorChangeMarkHover | null {
+        if (this.changeLayers.size === 0) {
+            return null;
+        }
+
+        const point = this.contentPoint(clientX, clientY);
+        const fromEdge = this.viewport.scrollLeft - point.x;
+
+        if (fromEdge < -ATTRIBUTION_REACH || fromEdge > ATTRIBUTION_REACH + 5 || point.y < 0 || point.y > this.layout.height) {
+            return null;
+        }
+
+        const { owners } = this.resolvedChanges();
+        const under = this.layout.rowAt(point.y);
+        const rows = [under, this.layout.rowAt(Math.max(0, point.y - 8)), this.layout.rowAt(Math.min(this.layout.height, point.y + 8))];
+        let picked: { hover: EditorChangeMarkHover; distance: number } | null = null;
+        const origin = this.viewport.getBoundingClientRect?.();
+        const scale = origin ? this.screenScale(origin) : { x: 1, y: 1 };
+        const right = (origin?.left ?? 0) + this.gutterWidth * scale.x;
+
+        for (const row of rows) {
+            if (row.kind !== 'text') {
+                continue;
+            }
+
+            const owner = owners.get(row.line);
+
+            if (owner === undefined || this.runLines(this.highlights, row.line, row.line).get(row.line)?.bar !== undefined) {
+                continue;
+            }
+
+            const mark = this.changeLayers.get(owner.layer)?.[owner.index];
+
+            if (mark === undefined) {
+                continue;
+            }
+
+            const deleted = mark.kind === 'deleted';
+            const boundary = this.layout.rowForLine(row.line).top;
+            const distance = Math.abs(point.y - (deleted ? boundary : row.top + row.height / 2));
+
+            // A removal straddles the row boundary; its upper half belongs to the preceding row's space.
+            if (deleted ? distance > 4 + ATTRIBUTION_REACH : row !== under) {
+                continue;
+            }
+
+            if (picked !== null && picked.distance <= distance) {
+                continue;
+            }
+
+            const top = (origin?.top ?? 0) + ((deleted ? boundary - 4 : row.top) - this.viewport.scrollTop) * scale.y;
+            picked = {
+                distance,
+                hover: {
+                    layer: owner.layer,
+                    line: row.line + 1,
+                    mark: {
+                        kind: mark.kind,
+                        startLine: this.model.positionAt(mark.from).line + 1,
+                        endLine: this.model.positionAt(Math.max(mark.from, mark.to)).line + 1
+                    },
+                    rect: { left: right - (deleted ? 5 : ATTRIBUTION_WIDTH) * scale.x, right, top, bottom: top + (deleted ? 8 : row.height) * scale.y }
+                }
+            };
+        }
+
+        return picked?.hover ?? null;
     }
 
     private attributionUnder(clientX: number, clientY: number): { id: string; rect: EditorRect } | null {
@@ -3407,6 +3527,7 @@ export class EditorView {
         this.attribution.clear();
         this.highlights.clear();
         this.attributionListeners.clear();
+        this.changeListeners.clear();
         this.painter.clear();
         this.root.remove();
     }

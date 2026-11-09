@@ -27,8 +27,9 @@ import type { EditorView } from './view.ts';
 import { WheelZoom } from './zoom.ts';
 
 export interface ControllerOptions {
-    keymap?: Keymap;
-    handBack: readonly KeyChord[];
+    /* Read on every key press, so a rebind reaches an editor that is already open. */
+    keymap(): Keymap | undefined;
+    handBack(): readonly KeyChord[];
     apple: boolean;
     save(): void;
     blur(): void;
@@ -956,11 +957,11 @@ export class InputController {
         }
 
         // The app's own shortcuts stay the app's, also where the editor has a binding for the same key.
-        if (this.options.handBack.some((chord) => chordMatches(chord, event, this.options.apple))) {
+        if (this.options.handBack().some((chord) => chordMatches(chord, event, this.options.apple))) {
             return;
         }
 
-        const action = keyAction(event, this.options.apple, this.options.keymap);
+        const action = keyAction(event, this.options.apple, this.options.keymap());
 
         if (action) {
             this.run(action, event);

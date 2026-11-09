@@ -8,6 +8,8 @@ import { isRecord } from '@adecore/utils/record';
 import type {
     CanUseTool,
     EffortLevel,
+    HookInput,
+    HookJSONOutput,
     McpServerConfig,
     Options,
     PermissionMode,
@@ -208,6 +210,7 @@ export class ClaudeBackend implements ChatBackend {
     // What the process runs on now, which `reconfigure` moves on from the launch.
     private selection: ModelSelection;
     private runtimeMode: RuntimeMode;
+    private workdir: string | null = null;
 
     constructor(launch: BackendLaunch, host: BackendHost, options: ClaudeBackendOptions = {}) {
         this.launch = launch;
@@ -454,6 +457,8 @@ export class ClaudeBackend implements ChatBackend {
             systemPrompt: { type: 'preset', preset: 'claude_code', ...(instructions === null ? {} : { append: instructions }) },
             includePartialMessages: true,
             canUseTool: (toolName, input, permission) => this.askPermission(toolName, input, permission),
+            // EnterWorktree moves the CLI without a `CwdChanged` hook (Claude Code 2.1.317), but every later hook carries the new `cwd`.
+            hooks: { PostToolUse: [{ hooks: [async (input) => this.followWorkdir(input)] }] },
             // The echo of a message is what acknowledges a steer, and the SDK leaves the flag out.
             extraArgs: { 'replay-user-messages': null }
         };
@@ -614,6 +619,16 @@ export class ClaudeBackend implements ChatBackend {
 
             this.host.onEvent(event);
         }
+    }
+
+    /* A subagent's hooks carry its own folder, which says nothing of where the chat works. */
+    private followWorkdir(input: HookInput): HookJSONOutput {
+        if (input.agent_id === undefined && input.cwd !== this.workdir) {
+            this.workdir = input.cwd;
+            this.host.onEvent({ type: 'workdir', path: input.cwd });
+        }
+
+        return {};
     }
 
     private askPermission(toolName: string, input: Record<string, unknown>, options: PermissionOptions): Promise<PermissionResult> {

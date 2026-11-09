@@ -110,7 +110,7 @@ export const GridRowView = memo(function GridRowView({ row, index, selected, foc
                 data-ranged={ranged ? '' : undefined}
                 className={clsx(
                     CODE_TEXT,
-                    'flex h-full shrink-0 items-center overflow-hidden px-3 whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent',
+                    'flex h-full shrink-0 items-center overflow-hidden px-3 whitespace-nowrap outline-0 select-none data-[focused]:outline-1 data-[focused]:-outline-offset-1 data-[focused]:outline-border-strong group-focus-within/grid:data-[focused]:outline-accent-on-surface',
                     position === order.length - 1 ? 'border-r-0' : 'border-r',
                     view.align === 'end' ? 'justify-end tabular-nums' : 'justify-start',
                     pinned

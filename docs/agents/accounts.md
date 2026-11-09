@@ -14,6 +14,14 @@ A provider reads who is signed in with its own `askAccount(command, env)`: Claud
 
 `accounts.create` makes a folder for the new account under the data folder. For Codex it is a shadow home with its own `auth.json` and links to the shared home's sessions, skills and rules, so accounts continue each other's threads. A file already in the way is reported as not shared. This needs Codex to keep its login in a file, not the keychain.
 
+## Sharing the default account's setup
+
+A provider whose `home` has a `share` (`ProviderShare`) lets an extra account read the setup of the default account. Claude Code does: `CLAUDE.md`, `rules`, `skills`, `agents` and `commands` become links to the default folder's entries, and `settings.json` is written once with only the keys `permissions`, `hooks`, `model`, `statusLine` and `outputStyle`. The list is closed. A login, `env`, `apiKeyHelper`, history, projects and plugins are never named, so they are never shared.
+
+A person turns it on per account with `accounts.shareConfig`, which sets `shareConfig` on the account. `sharedConfigKinds` in the snapshot names the kinds that offer it. The service applies it in `prepare`, before the host's `install`, when it creates the account and on every check, so an entry the default account gained later is linked. An entry the account already holds stays and is named in the status message. Turning it off removes only links that point at the default folder's entry of that name; real files and the copied `settings.json` stay.
+
+A settings file is replaced by the copy only when it is missing or when the host's `ownsSettings(config)` option (an `OwnsSettings`) says it holds nothing but what the host wrote there, such as its hooks. `config` is the parsed file, or `undefined` when it is not JSON. Without `ownsSettings` the host owns nothing, so an existing file always stays and only a missing one is written.
+
 ## The types behind it
 
 - `ProviderAccountsOptions` are the options of the service: the data folder, the `AccountsHost`, the providers, the environment and the `secrets`.

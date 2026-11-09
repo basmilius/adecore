@@ -105,6 +105,7 @@ export default {
         used: '{{tokens}} used',
         percentUsed: '{{percent}} used',
         estimate: '≈{{tokens}}',
+        pending: 'Size known after the next reply',
         parts: {
             toolOutput: 'Tool output',
             filesRead: 'Files read',
@@ -157,6 +158,8 @@ export default {
         compaction: {
             plain: 'Context compacted',
             from: 'Context compacted from {{tokens}} tokens',
+            to: 'Context compacted to {{tokens}} tokens',
+            fromTo: 'Context compacted from {{from}} to {{to}} tokens',
             summary: 'Everything above reaches the agent only as a summary'
         },
         selectionSwitch: {
@@ -385,7 +388,9 @@ export default {
             here: 'Files in this folder',
             files: 'Files',
             noMatch: 'No files match',
-            empty: 'No files here'
+            empty: 'No files here',
+            models: 'Models',
+            accounts: 'Accounts'
         },
         references: {
             canvas: 'On this canvas',
@@ -420,7 +425,18 @@ export default {
             goToSource: 'Go to reply'
         },
         removeAttachment: 'Remove {{name}}',
-        attach: 'Attach files',
+        plus: {
+            label: 'Add to the message',
+            attach: 'Attach files…',
+            stash: 'Stash this prompt',
+            mention: 'Mention a file',
+            reference: 'Reference a view or node',
+            skill: 'Use a skill',
+            commands: 'Commands'
+        },
+        status: {
+            label: 'Where this chat works'
+        },
         tooLong: 'characters, too long to send',
         stop: 'Stop. Shift-click stops sub-agents too',
         queueButton: 'Queue',
@@ -479,8 +495,7 @@ export default {
         noAnswer: 'The machine did not answer',
         stopFailed: 'Could not stop sub-agent',
         info: {
-            label: 'About this sub-agent',
-            tokens: '{{tokens}} tokens'
+            label: 'About this sub-agent'
         }
     },
     modes: {

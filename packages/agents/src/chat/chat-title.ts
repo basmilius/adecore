@@ -1,5 +1,5 @@
 import type { AgentKind } from '@adecore/agent-contracts';
-import { cliExecutable } from '../providers/provider.ts';
+import { cliExecutable, runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { runProcess } from '../run-process.ts';
 import { cleanTitle } from '../title-file.ts';
@@ -14,6 +14,10 @@ export interface ChatTitleInput {
     cwd: string;
     prompt: string;
     answer: string;
+    // The account the chat runs under; absent for the default account.
+    account?: string;
+    // The environment the chat's own CLI runs with under that account; it applies to that CLI alone.
+    env?: Record<string, string>;
 }
 
 function cap(text: string, limit: number): string {
@@ -69,9 +73,23 @@ export function parseTitle(output: string): string | null {
 }
 
 /*
+ * Claude Code names its own chats. Any other CLI with a one-shot mode gets a name from that mode, and
+ * one without gets none, so a title never runs on another provider's plan.
+ */
+export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneShotArgs'>): boolean {
+    return !runsClaudeCode(provider) && provider.oneShotArgs !== undefined;
+}
+
+/*
  * A title for a chat whose CLI names nothing itself, from the agent CLI the host already has in
  * its one-shot print mode. Null when no CLI here answers a single prompt, when it fails or when it
  * takes too long: the name the client derived from the prompt then stays.
+ *
+ * The chat's own CLI runs under the chat's account (`env`, else `input.env`), so the first prompt and
+ * answer go to the plan the chat itself runs on. When that CLI cannot answer, another installed one
+ * may name a chat of the default account, without the account environment, which belongs to the
+ * chat's CLI alone. A chat on an extra account is named by its own CLI or by none: another CLI would
+ * send the conversation to a plan the person did not pick for it.
  */
 export async function suggestChatTitle(
     registry: ProviderRegistry,
@@ -86,8 +104,20 @@ export async function suggestChatTitle(
         return null;
     }
 
+    const own = provider.kind === preferred;
+
+    if (!own && input.account !== undefined) {
+        return null;
+    }
+
+    const accountEnv = own ? (env ?? input.env) : undefined;
+
     try {
-        const result = await runProcess([cliExecutable(provider), ...args], { cwd: input.cwd, timeoutMs: TIMEOUT_MS, ...(env === undefined ? {} : { env }) });
+        const result = await runProcess([cliExecutable(provider), ...args], {
+            cwd: input.cwd,
+            timeoutMs: TIMEOUT_MS,
+            ...(accountEnv === undefined ? {} : { env: accountEnv })
+        });
 
         return result.exitCode === 0 ? parseTitle(result.stdout) : null;
     } catch {

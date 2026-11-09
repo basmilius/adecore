@@ -61,6 +61,17 @@ describe('ThreadProjector', () => {
         expect(thread.info).toMatchObject({ agentSessionId: 'sid', model: 'sonnet' });
     });
 
+    test('a workdir event names the folder the CLI moved to, and coming back to cwd clears it', () => {
+        const { thread, project } = setup();
+
+        expect(project({ type: 'workdir', path: '/' })).toEqual([]);
+        project({ type: 'workdir', path: '/.claude/worktrees/probe' });
+        expect(thread.info.workdir).toBe('/.claude/worktrees/probe');
+        expect(project({ type: 'workdir', path: '/.claude/worktrees/probe' })).toEqual([]);
+        project({ type: 'workdir', path: '/' });
+        expect(thread.info.workdir).toBeUndefined();
+    });
+
     test('text streams into one item per ref and the generation keeps a resumed process apart', () => {
         const { thread, project } = setup();
 
@@ -282,6 +293,41 @@ describe('ThreadProjector', () => {
         project({ type: 'compaction', preTokens: 30_000 });
         project({ type: 'usage', contextTokens: 8000 });
         expect(thread.info.usage.breakdown).toEqual({ filesRead: 0, toolOutput: 0, conversation: 0, system: 8000 });
+    });
+
+    test('a compaction with a size moves the meter to it at once, estimated from after the marker', () => {
+        const { thread, project } = setup();
+        project({ type: 'tool.started', ref: 'toolu_1', name: 'Read', input: { file_path: 'a.ts' }, parentRef: null });
+        project({ type: 'tool.done', ref: 'toolu_1', output: 'x'.repeat(40_000), state: 'done' });
+        project({ type: 'usage', contextTokens: 30_000, contextWindow: 200_000 });
+        const events = project({ type: 'compaction', preTokens: 30_000, postTokens: 8000 });
+
+        expect(events.map((event) => event.type)).toEqual(['item', 'info']);
+        expect(thread.list().at(-1)).toMatchObject({ kind: 'compaction', preTokens: 30_000, postTokens: 8000 });
+        expect(thread.info.usage).toMatchObject({
+            contextTokens: 8000,
+            contextWindow: 200_000,
+            breakdown: { filesRead: 0, toolOutput: 0, conversation: 0, system: 8000 }
+        });
+        expect(thread.info.usage.contextPending).toBeUndefined();
+    });
+
+    test('a compaction without a size says the size is unknown until the next count', () => {
+        const { thread, project } = setup();
+        project({ type: 'usage', contextTokens: 30_000, contextWindow: 200_000 });
+        project({ type: 'compaction', preTokens: 30_000 });
+
+        expect(thread.list().at(-1)).not.toHaveProperty('postTokens');
+        expect(thread.info.usage).toMatchObject({ contextTokens: 0, contextPending: true });
+        expect(thread.info.usage.breakdown).toBeUndefined();
+
+        project({ type: 'usage', contextTokens: 0, costUsd: 0.01 });
+        expect(thread.info.usage).toMatchObject({ contextTokens: 0, contextPending: true, costUsd: 0.01 });
+
+        const counted = project({ type: 'usage', contextTokens: 9000 });
+        expect(counted.map((event) => event.type)).toEqual(['info']);
+        expect(thread.info.usage).toMatchObject({ contextTokens: 9000 });
+        expect(thread.info.usage.contextPending).toBeUndefined();
     });
 
     test('turn.done closes the turn with what it cost, settles what was open and counts the turn', () => {

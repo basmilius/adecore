@@ -57,7 +57,7 @@ export function deliverMessageHandler(deps: DeliverMessageDeps) {
         // No note and no preamble on the thread: a person read the message as it landed (`showNotices`),
         // and the label on the turn names who it came from.
         chat.wake({
-            text: deps.words.prompt(waiting.length),
+            text: deps.words.prompt(waiting.length, waiting),
             label: deps.words.label(waiting),
             taskIds: [],
             messageFrom: [...new Set(waiting.map((notice) => notice.from))],

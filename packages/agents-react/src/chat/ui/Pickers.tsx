@@ -1,6 +1,6 @@
 import { inPickerOrder, separatesGroups, type AgentKind, type ModelSelection, type ProviderInfo, type UsageProvider } from '@adecore/agent-contracts';
 import { Button, Icon, IconButton, Menu, Popover, ScrollArea, Tooltip } from '@adecore/ui';
-import { Bookmark, ChevronDown, ChevronRight, Search, Star, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, Star } from 'lucide-react';
 import { useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AgentIcon } from '../../agents/AgentIcon';
@@ -13,7 +13,6 @@ import { ChatScopeContext } from '../../scope';
 import { useReportedModels } from '../../state/chats';
 import { pickerEntriesOf, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
-import { forgetStashed, STASH_SHORTCUT, useStash, type StashedPrompt } from '../stash';
 import { ModelMarks } from './ModelMarks';
 
 const triggerClass =
@@ -337,55 +336,6 @@ export function ModelPicker({
                     })}
                 </ScrollArea>
                 {footer !== undefined && <div className="border-t border-border-soft px-3 py-2 text-xs text-text-faint">{footer}</div>}
-            </Popover.Popup>
-        </Popover.Root>
-    );
-}
-
-/*
- * Prompts put aside with Cmd+S, on a shelf the whole app shares, since a stashed prompt usually moves
- * to another chat. A draft's files are named on the row but not kept: their bytes never go to storage.
- */
-export function StashPicker({ onRestore }: { onRestore(prompt: StashedPrompt): void }) {
-    const { t } = useTranslation('agent-chat');
-    const prompts = useStash((s) => s.prompts);
-
-    if (prompts.length === 0) {
-        return null;
-    }
-
-    return (
-        <Popover.Root>
-            <Tooltip label={t('pickers.stash.title')} kbd={STASH_SHORTCUT}>
-                <Popover.Trigger className={triggerClass}>
-                    <Icon icon={Bookmark} size={12} />
-                    <span className="tabular-nums">{prompts.length}</span>
-                </Popover.Trigger>
-            </Tooltip>
-            <Popover.Popup variant="picker" side="top" className="w-80">
-                <ScrollArea className="max-h-72" viewportClassName="p-1">
-                    {prompts.map((prompt) => (
-                        <div key={prompt.id} className="group/stash flex items-start gap-1">
-                            <Popover.Close
-                                className="flex min-w-0 grow flex-col gap-0.5 rounded-md px-2 py-1.5 text-left text-xs text-text-muted hover:bg-surface-hover hover:text-text"
-                                onClick={() => onRestore(prompt)}
-                            >
-                                <span className="line-clamp-2 whitespace-pre-wrap">{prompt.text || prompt.quote?.text || t('pickers.stash.noText')}</span>
-                                {prompt.attachments.length > 0 && (
-                                    <span className="text-text-faint">{t('pickers.stash.files', { count: prompt.attachments.length })}</span>
-                                )}
-                                {prompt.chats.length > 0 && <span className="text-text-faint">{t('pickers.stash.chats', { count: prompt.chats.length })}</span>}
-                            </Popover.Close>
-                            <IconButton
-                                icon={Trash2}
-                                size="xs"
-                                label={t('common.action.delete')}
-                                className="mt-1 opacity-0 group-hover/stash:opacity-100 focus-visible:opacity-100"
-                                onClick={() => forgetStashed(prompt.id)}
-                            />
-                        </div>
-                    ))}
-                </ScrollArea>
             </Popover.Popup>
         </Popover.Root>
     );

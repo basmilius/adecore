@@ -32,7 +32,13 @@ const LSP_IDS: Readonly<Record<string, string>> = {
     docker: 'dockerfile',
     twig: 'twig',
     sql: 'sql',
-    rust: 'rust'
+    rust: 'rust',
+    markdown: 'markdown',
+    toml: 'toml',
+    lua: 'lua',
+    go: 'go',
+    swift: 'swift',
+    zig: 'zig'
 };
 
 /* The LSP id of a language, or null when no language server here knows it. */

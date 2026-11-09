@@ -149,7 +149,12 @@ export default {
             confirm: 'Account verwijderen'
         },
         saveFailed: 'Kon het account niet opslaan',
-        reorderFailed: 'Kon de volgorde van de accounts niet wijzigen'
+        reorderFailed: 'Kon de volgorde van de accounts niet wijzigen',
+        shareConfigFailed: 'Kon niet wijzigen wat dit account deelt',
+        shareConfig: {
+            label: 'De opzet van het standaardaccount gebruiken',
+            description: "Instructies, skills, agents en commando's komen van het standaardaccount van {{provider}}. Inloggen en geschiedenis blijven apart."
+        }
     },
     add: {
         title: '{{provider}}-account toevoegen',

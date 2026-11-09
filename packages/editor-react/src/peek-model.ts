@@ -126,6 +126,25 @@ export function definitionSnippetOf(text: string, line: number, declaration: Ran
     return { startLine, text: lines.slice(startLine, end + 1).join('\n'), active: line - startLine, name: columnsOf(range, line, (lines[line] ?? '').length) };
 }
 
+const HIGHLIGHTED_LINE = /^<span class="line">([\s\S]*)<\/span>$/;
+
+/*
+ * The markup of each line out of highlighted code, which puts every line in a `span.line` and separates them
+ * with a newline. Null when the code does not come back as `count` such lines, so a caller draws plain text
+ * instead of lines that belong to other code.
+ */
+export function highlightedLinesOf(html: string, count: number): string[] | null {
+    const code = /<code[^>]*>([\s\S]*)<\/code>/.exec(html)?.[1];
+
+    if (code === undefined) {
+        return null;
+    }
+
+    const lines = code.split('\n').map((line) => HIGHLIGHTED_LINE.exec(line)?.[1]);
+
+    return lines.length === count && lines.every((line) => line !== undefined) ? (lines as string[]) : null;
+}
+
 /*
  * For each path, the trailing folders that tell it from the other paths with the same file name, as few
  * as it takes; empty for a file whose name is its own.

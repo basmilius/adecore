@@ -356,6 +356,8 @@ export {
     type ProviderAccountWatchLoginPayload,
     ProviderAccountsReorderPayloadSchema,
     type ProviderAccountsReorderPayload,
+    ProviderAccountsShareConfigPayloadSchema,
+    type ProviderAccountsShareConfigPayload,
     orderedAccountIds,
     topAccountOf
 } from './provider-accounts.ts';

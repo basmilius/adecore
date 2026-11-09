@@ -7,6 +7,17 @@ import type { AccountReading } from './accounts/status.ts';
 import type { ModelCatalog } from './catalog.ts';
 import type { CliDetection } from './detect.ts';
 
+/*
+ * What an extra account may take from the default account of its CLI. A closed list: nothing the CLI
+ * keeps for a login, a history or a plugin is ever named here, so none of it can be shared by accident.
+ */
+export interface ProviderShare {
+    // Entries of the config folder an extra account links to the default folder's entry of that name.
+    readonly links: readonly string[];
+    // A settings file copied once, by the keys listed; every other key stays behind, whatever it holds.
+    readonly seed: { readonly file: string; readonly keys: readonly string[] };
+}
+
 export interface ProviderHome {
     // The variable the CLI reads its config folder from.
     readonly env: string;
@@ -19,6 +30,8 @@ export interface ProviderHome {
     readonly loginCommand?: string;
     // True when an account of this CLI is a shadow home over the CLI's own folder, so its threads go on under the other.
     readonly shadow?: boolean;
+    // What an extra account can share with the default one; absent on a CLI that shares nothing this way.
+    readonly share?: ProviderShare;
 }
 
 export interface ClaudeCodeRuntime {
@@ -88,8 +101,6 @@ export interface ChatProvider {
     readonly subagentSource?: SubagentSource;
     /* Set on a CLI that keeps a chat in threads of an app-server, which can then be listed and forked without a chat running. */
     readonly threads?: ProviderThreads;
-    /* True on a CLI that writes no name for its threads, so the host asks a one-shot CLI for one. */
-    readonly titleFromOneShot?: boolean;
     /* How a person installs this CLI and signs it in, for a page that shows it while the CLI is missing. */
     readonly install?: ProviderInstall;
     /* How a terminal starts this CLI; absent on a CLI that only runs as a chat. */

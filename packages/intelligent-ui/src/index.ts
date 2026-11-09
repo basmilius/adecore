@@ -30,6 +30,7 @@ export {
 export { evaluateUiBlock, UiState, uiInputValues, resolveUiChoice, uiChoiceLabel, type UiChoiceSelection } from './runtime.ts';
 export { type UiBinding, type UiEvaluation, type UiViewNode } from './model.ts';
 export { uiValidatedState, uiQueryArguments, uiQueryFallback } from './query.ts';
+export { uiNodeQueries } from './node-queries.ts';
 export { UiNodeSchema, UiDiagnosticSchema, UiQuerySchema, UiBlockSchema, UiBlocksSchema, type UiBlock, type UiNode, type UiQuery } from './protocol.ts';
 export {
     uiCompactCatalog,

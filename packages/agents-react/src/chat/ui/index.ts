@@ -61,6 +61,7 @@ export type {
     UiAnswer,
     UiLiveStatus,
     UiLiveValue,
+    UiLiveNodeState,
     UiRenderer,
     UiRenderers
 } from './intelligent-ui/render-context';

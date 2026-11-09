@@ -64,8 +64,7 @@ function LivePart({ live }: { live: UiLiveStatus }) {
               ? t('blocks.live.refused', { source })
               : t('blocks.live.label');
 
-    const reason = live.state === 'failed' || live.state === 'refused' ? uiReasonText(t, live.code, live.reason) : undefined;
-    const hint = reason !== undefined ? reason : live.sources.length > 0 ? t('blocks.live.sources', { sources: live.sources.join(', ') }) : null;
+    const hint = live.sources.length > 0 ? t('blocks.live.sources', { sources: live.sources.join(', ') }) : null;
 
     const body = (
         <span tabIndex={hint === null ? undefined : 0} className="flex items-center gap-1.5">
@@ -101,6 +100,9 @@ function UiBlockFooter({ live = null, answered = null, fixes = NO_FIXES, shownAs
         return null;
     }
 
+    // On its own line rather than in a tooltip, since the value above stays dimmed until it no longer holds.
+    const reason = live !== null && (live.state === 'failed' || live.state === 'refused') ? uiReasonText(t, live.code, live.reason) : undefined;
+
     return (
         <div className="flex flex-col gap-1.5 text-2xs text-text-faint">
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -132,6 +134,7 @@ function UiBlockFooter({ live = null, answered = null, fixes = NO_FIXES, shownAs
                     </span>
                 )}
             </div>
+            {reason !== undefined && reason !== '' && <p data-ui-live-reason>{reason}</p>}
             {fixes.length > 0 && (
                 <ul id={listId} hidden={!fixesOpen} className="flex flex-col gap-0.5 text-text-muted">
                     {fixes.map((fix, index) => (

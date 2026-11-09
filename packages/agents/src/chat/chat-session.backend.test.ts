@@ -452,6 +452,28 @@ describe('backend replacement with live work', () => {
         await ended.session.dispose();
     });
 
+    for (const [name, provider] of [
+        ['a CLI that compacts with its slash command', claudeProvider],
+        ['a CLI that compacts with a call of its own', codexProvider]
+    ] as const) {
+        test(`compacting on ${name} opens a turn without a message of the person`, async () => {
+            const run = replacementRig(provider);
+            run.session.send('start');
+            await flush();
+            run.done();
+            run.session.compact();
+            await flush();
+
+            const items = run.session.thread.list();
+
+            expect(items.filter((item) => item.kind === 'user')).toHaveLength(1);
+            expect(items.filter((item) => item.kind === 'turn')).toHaveLength(2);
+            expect(run.instances.flatMap((instance) => instance.sent.map((input) => input.text))).toEqual(['start']);
+            expect(run.session.info.activeTurnId).not.toBeNull();
+            await run.session.dispose();
+        });
+    }
+
     test('native compaction refuses a settings replacement without opening a turn', async () => {
         const run = replacementRig(codexProvider);
         run.session.send('start');

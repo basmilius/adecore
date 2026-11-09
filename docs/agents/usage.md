@@ -20,7 +20,7 @@ Prices come from LiteLLM's price table at `LITELLM_URL`, or from the bundled sna
 
 A provider that can be asked has a `probeLimits(command, env)`, which `createClaudeProvider` and `createCodexProvider` set; the monitor reads the plan of every CLI whose provider has one, and of every provider the host answers for through `plans`.
 
-The default account of every CLI is read every five minutes. Another account is read once after `start()`, and after that only while a chat or terminal used it in the last day, since every read starts its CLI. With `file`, the monitor keeps the last numbers of every account there and shows them after a restart until its own read replaces them. `limitsFileIn(dataDir)` is the path `wireAgents` uses. `stop()` resolves once the last numbers are written.
+The default account of every CLI is read every five minutes. Another account is read only while a chat or terminal used it in the last day since `start()`, or while a usage page is open: `watch(clientId)` and `unwatch(clientId)`, which `usage.subscribe` and `usage.unsubscribe` call and a client that goes releases. The first page to open reads those accounts at once, as far as their clock and backoff allow. Every read starts a CLI, so an account nobody uses is not read on the clock alone. With `file`, the monitor keeps the last numbers of every account there and shows them after a restart until its own read replaces them. `limitsFileIn(dataDir)` is the path `wireAgents` uses. `stop()` resolves once the last numbers are written.
 
 For a provider with no CLI to ask, such as a subscription API the host calls with its own key, the host answers through `plans` with a `ProbeResult`, using `fraction` for each window's share. A plan function gets the `LimitAccount` it reads.
 

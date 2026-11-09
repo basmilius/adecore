@@ -25,6 +25,6 @@ export function treeRowStyle(selector: string, selected = 'data-selected'): stri
         ${selector}[${selected}="true"] { background: var(--surface-active); color: var(--text); }
         ${selector}[data-joined-start="true"] { border-start-start-radius: 0; border-start-end-radius: 0; }
         ${selector}[data-joined-end="true"] { border-end-start-radius: 0; border-end-end-radius: 0; }
-        ${selector}:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+        ${selector}:focus-visible { outline: 2px solid var(--accent-on-surface); outline-offset: -2px; }
     `;
 }

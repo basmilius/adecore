@@ -65,9 +65,11 @@ export function Workspace() {
 | `useReferableChats()`              | No chats in the `#` picker                         | Other chats a message may point at, as `{ id, title }`.                                                |
 | `useReferables(scopeId, chatId)`   | The chats of `useReferableChats`                   | What a message may point at with `#`, as `Referables`: `items` of `Referable` (`id`, `name`, a `ReferableKind`, `detail?`, `group` of `canvas` or `views`) and `chatsOnly`. A reply that writes `#Name` exactly draws a chip too; an ambiguous name stays text. |
 | `ReferenceIcon`                    | The mark of the reference's kind (`REFERENCE_ICONS`) | A component that draws the mark of a `#` reference from `ReferenceIconProps` (`id`, `kind`, `size`, `className?`), such as an icon a person picked. The composer draws it outside the provider, so it reads no context. |
+| `outsideReference(scopeId, id)`    | The chip reads as gone                             | What a chip's id still stands for when it is no `Referable`, such as a sender from outside, as an `OutsideReference`: an `icon` and an `open` callback, or `null` to open nothing. The chip keeps the name its message gave. |
 | `openLogin(scopeId, kind, accountId, name)` | No log in button                          | Runs a CLI's own login somewhere a command can run, such as a terminal.                                |
 | `useLoginBlocked(scopeId)`         | Login is always possible                           | Why a login cannot start right now, or `null`.                                                         |
 | `useCanReorderAccounts(scopeId)`   | The host keeps the order                           | Whether the host answers `accounts.reorder`, which shows the drag handles in Providers.                |
+| `useCanShareAccountConfig(scopeId)` | No switch to share the default account's setup    | Whether the host answers `accounts.shareConfig`, which shows the switch on an extra account of a CLI in `sharedConfigKinds`. Left out, the switch stays hidden. |
 | `useAccountRule(scopeId, chatId)`  | Every account that is on is offered                | Per CLI, the account a chat's project starts on and the accounts it never offers.                      |
 | `runProviderCommand(scopeId, kind, command)` | Install page offers Copy only     | Runs an install or sign-in command where a person sees it, such as a terminal on the scope's machine. |
 | `useMachinePlatform(scopeId)`      | The system of the page                             | `darwin`, `linux` or `win32` of the scope's machine, whose install command the install page shows first. |
@@ -88,6 +90,7 @@ export function Workspace() {
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
 | `ComposerHeaderSlot`               | Nothing                                            | A bar of your own at the top of the composer's card, above the text.                                   |
 | `useComposerSendActions(scopeId, chatId)` | Send alone                                  | Actions of your own behind a chevron on the send button. See [Slots and cards](#slots-and-cards).      |
+| `useComposerStatus(scopeId, chatId)` | No line                                         | Items of your own on a line under the composer's card, such as a branch. See [Slots and cards](#slots-and-cards). |
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
 | `useReplyAuthor(scopeId, chatId)`  | The agent is named for screen readers only         | A header over each reply: `{ name, mark? }`.                                                           |
@@ -169,6 +172,21 @@ import type { ChatHost, ComposerSendAction } from '@adecore/agents-react';
 const REPEAT: readonly ComposerSendAction[] = [{ id: 'repeat', label: 'Repeat…', icon: Repeat, run: (draft) => openRoutineDialog(draft.chatId, draft.text) }];
 
 const CHAT_HOST: Partial<ChatHost> = { useComposerSendActions: () => REPEAT };
+```
+
+`useComposerStatus` returns `ComposerStatusItem`s (`{ id, icon, label, tooltip?, side?, details? }`) for a line under the composer's card, lined up with the text in the box. Without items there is no line. An item with `side: 'end'` stands at the right. An item with `details` is a button that opens a popover with one row per `ComposerStatusDetail` (`{ icon, label, detail?, hint?, mono?, muted? }`).
+
+```tsx
+import { GitBranch } from 'lucide-react';
+import type { ChatHost, ComposerStatusItem } from '@adecore/agents-react';
+
+function useBranchStatus(scopeId: string, chatId: string): readonly ComposerStatusItem[] {
+    const branch = useBranchOf(scopeId, chatId);
+
+    return branch === null ? [] : [{ id: 'branch', icon: GitBranch, label: branch, details: [{ icon: GitBranch, label: branch, mono: true }] }];
+}
+
+const CHAT_HOST: Partial<ChatHost> = { useComposerStatus: useBranchStatus };
 ```
 
 ## Visuals

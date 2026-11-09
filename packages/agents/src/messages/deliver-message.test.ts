@@ -19,7 +19,7 @@ function notice(from: string, fromTitle: string): Notice {
 }
 
 const words = {
-    prompt: (count: number): string => `${count} messages above`,
+    prompt: (count: number, notices: readonly Notice[]): string => `${count} messages above, ${notices.length} named`,
     label: (notices: readonly Notice[]): string => `From ${notices.map((one) => one.fromTitle).join(', ')}`
 };
 
@@ -50,7 +50,9 @@ describe('deliverMessageHandler', () => {
     test('opens one turn for everything waiting, with the senders on it and the words of the host', async () => {
         const { woken, handler } = fixture([notice('chat-1', 'Lead'), notice('chat-3', 'Builder'), notice('chat-1', 'Lead')]);
         expect(await handler(entry)).toBeUndefined();
-        expect(woken).toEqual([{ text: '3 messages above', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'], messageHop: 0 }]);
+        expect(woken).toEqual([
+            { text: '3 messages above, 3 named', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'], messageHop: 0 }
+        ]);
     });
 
     test('waits while the chat is being moved to another folder, and wakes nobody yet', async () => {

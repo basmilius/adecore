@@ -431,7 +431,12 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
 
                 break;
             case 'compaction':
-                rows.push({ kind: 'compaction', id: item.id, preTokens: item.preTokens });
+                rows.push({
+                    kind: 'compaction',
+                    id: item.id,
+                    preTokens: item.preTokens,
+                    ...(item.postTokens === undefined ? {} : { postTokens: item.postTokens })
+                });
 
                 break;
             case 'turn':

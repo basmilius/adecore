@@ -10,7 +10,7 @@ const packages: { directory: string; options: DesignOptions }[] = [
         directory: 'packages/ui/src',
         options: {
             // These observe modality and held modifiers without binding a shortcut.
-            keyListeners: ['ShortcutHints.tsx', 'modality.ts'],
+            keyListeners: ['ShortcutHints.tsx', 'ShortcutInput.tsx', 'modality.ts'],
             // The rules themselves name the utilities they forbid.
             pageExclusions: ['design-conventions.ts'],
             formatterDirectory: 'format/',

@@ -250,6 +250,10 @@ export class CodexProtocol {
     private ownThreadId: string | null = null;
     // Per agent thread, the ref of the row that stands for it and whether that row has settled.
     private readonly agentRows = new Map<string, { ref: string; label: string; settled: boolean; interaction?: string }>();
+    // The context the last token usage named, so a compaction knows what it folded.
+    private contextTokens = 0;
+    // While a compaction runs: the size it started from, and the usage Codex 0.166.0 sends just before the item completes.
+    private compacting: { preTokens: number; postTokens: number; contextWindow: number } | null = null;
 
     constructor(generation: number) {
         this.generation = generation;
@@ -418,10 +422,20 @@ export class CodexProtocol {
                 const usage = isRecord(params.tokenUsage) ? params.tokenUsage : {};
                 const last = isRecord(usage.last) ? usage.last : {};
                 const contextWindow = num(usage.modelContextWindow);
+                const contextTokens = num(last.totalTokens);
 
+                // Ahead of the marker it would read as the size before the fold, so it waits for the item to complete.
+                if (this.compacting !== null) {
+                    this.compacting.postTokens = contextTokens;
+                    this.compacting.contextWindow = contextWindow;
+
+                    break;
+                }
+
+                this.contextTokens = contextTokens;
                 events.push({
                     type: 'usage',
-                    contextTokens: num(last.totalTokens),
+                    contextTokens,
                     ...(contextWindow > 0 ? { contextWindow } : {})
                 });
 
@@ -950,9 +964,7 @@ export class CodexProtocol {
 
                 return;
             case 'contextCompaction':
-                if (completed) {
-                    events.push({ type: 'compaction', preTokens: null });
-                }
+                this.compaction(completed, events);
 
                 return;
             default:
@@ -960,7 +972,47 @@ export class CodexProtocol {
         }
     }
 
+    /* The fold as one marker: the size it started from, and what Codex counted once it was done. */
+    private compaction(completed: boolean, events: BackendEvent[]): void {
+        if (!completed) {
+            this.compacting = { preTokens: this.contextTokens, postTokens: 0, contextWindow: 0 };
+
+            return;
+        }
+
+        const held = this.compacting ?? { preTokens: this.contextTokens, postTokens: 0, contextWindow: 0 };
+        this.compacting = null;
+
+        events.push({
+            type: 'compaction',
+            preTokens: held.preTokens > 0 ? held.preTokens : null,
+            ...(held.postTokens > 0 ? { postTokens: held.postTokens } : {})
+        });
+
+        if (held.postTokens > 0) {
+            this.contextTokens = held.postTokens;
+        }
+
+        if (held.contextWindow > 0) {
+            events.push({ type: 'usage', contextWindow: held.contextWindow });
+        }
+    }
+
+    /* A compaction that ended without its item completing lets the usage it held go as an ordinary count. */
+    private releaseCompaction(events: BackendEvent[]): void {
+        const held = this.compacting;
+        this.compacting = null;
+
+        if (held === null || held.postTokens === 0) {
+            return;
+        }
+
+        this.contextTokens = held.postTokens;
+        events.push({ type: 'usage', contextTokens: held.postTokens, ...(held.contextWindow > 0 ? { contextWindow: held.contextWindow } : {}) });
+    }
+
     private handleTurnCompleted(params: Frame, events: BackendEvent[]): void {
+        this.releaseCompaction(events);
         const turn = isRecord(params.turn) ? params.turn : {};
         const status = str(turn.status);
         const error = isRecord(turn.error) ? str(turn.error.message) : null;

@@ -68,6 +68,7 @@ import {
 } from '../timeline-scroll';
 import { BookmarkMarker } from './BookmarkMarker';
 import { ChatEmptyScene } from './ChatEmptyScene';
+import { CoveredBottomContext } from './covered-bottom';
 import { FileLinkContext } from './file-links';
 import { FindRevealContext } from './find-reveal';
 import { MessageActions } from './MessageActions';
@@ -210,8 +211,9 @@ const ThreadRow = memo(function ThreadRow({ row, previous, index, top, measure, 
 });
 
 /*
- * `overlay` stands in the thread's place and ends where the composer starts, so the thread keeps
- * where it was underneath and the composer stays in reach for the prompts it answers.
+ * `overlay` stands in the thread's place and runs on under the composer as the thread does
+ * (`CoveredBottomContext`), so the thread keeps where it was underneath and the composer stays in
+ * reach for the prompts it answers.
  * `onContentHeight` hears what the thread's rows and its padding take, without the composer, once
  * the rows in view are laid out at their real heights, for a host that sizes its frame to the thread.
  * Rows out of view still count at an estimate, so a frame up to the viewport's height gets it exact.
@@ -248,6 +250,7 @@ export function Timeline({
     const fullItems = () => useChats.getState().byKey[keyOf(chatId)]?.items;
 
     const scrollRef = useRef<HTMLDivElement>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
     const threadRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<HTMLDivElement>(null);
     const quoteTakerRef = useRef<QuoteTaker | null>(null);
@@ -433,18 +436,19 @@ export function Timeline({
     coveredHeightRef.current = coveredHeight;
 
     // The composer pages through the thread with PageUp and PageDown; this is the element it moves.
-    useEffect(
-        () =>
-            registerTimeline(
-                chatId,
-                scrollRef.current,
-                (enabled) => {
-                    followRef.current = enabled;
-                },
-                () => coveredHeightRef.current
-            ),
-        [chatId]
-    );
+    useEffect(() => {
+        const unregister = registerTimeline(
+            chatId,
+            scrollRef.current,
+            (enabled) => {
+                followRef.current = enabled;
+            },
+            () => coveredHeightRef.current
+        );
+        setTimelineAtEnd(chatId, followRef.current);
+
+        return unregister;
+    }, [chatId]);
 
     const [measuredThread, setMeasuredThread] = useState<string | null>(null);
     const initialLayout = measuredThread !== keyOf(chatId);
@@ -1056,12 +1060,15 @@ export function Timeline({
                                   : { position: 'absolute', insetInline: 0, bottom: 0 }
                         }
                         onWheel={(e) => {
-                            const scroller = scrollRef.current;
+                            // A sub-agent's conversation scrolls under the composer too, in a scroller of its own.
+                            const scroller = overlay ? (overlayRef.current?.querySelector<HTMLElement>('.chat-thread') ?? null) : scrollRef.current;
 
                             // A wheel over the composer moves the thread it lies over, as it did inside the scroller.
+                            // A popup of the composer is portaled elsewhere, but its wheel still bubbles here through React.
                             if (
                                 scroller === null ||
                                 coveredHeight === 0 ||
+                                !e.currentTarget.contains(e.target as Node) ||
                                 e.ctrlKey ||
                                 scrollsWithin(e.target as Element, e.currentTarget, e.deltaX, e.deltaY)
                             ) {
@@ -1107,8 +1114,8 @@ export function Timeline({
                     </div>
                 )}
                 {overlay && (
-                    <div className="absolute inset-0 z-5 flex flex-col bg-surface" style={{ paddingBottom: coveredHeight }}>
-                        {overlay}
+                    <div ref={overlayRef} className="absolute inset-0 z-5 flex flex-col bg-surface">
+                        <CoveredBottomContext value={coveredHeight}>{overlay}</CoveredBottomContext>
                     </div>
                 )}
             </div>

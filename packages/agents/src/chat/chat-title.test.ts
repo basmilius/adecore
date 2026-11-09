@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { SUGGESTED_TITLE_LIMIT } from '@adecore/agent-contracts';
+import { createGrokProvider } from '../providers/acp-vendors.ts';
 import type { ChatProvider } from '../providers/provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
-import { buildTitlePrompt, parseTitle, suggestChatTitle } from './chat-title.ts';
+import { buildTitlePrompt, namedByOneShot, parseTitle, suggestChatTitle } from './chat-title.ts';
 
 describe('parseTitle', () => {
     test('takes the title out of the last object, around whatever the CLI printed', () => {
@@ -32,6 +33,16 @@ describe('buildTitlePrompt', () => {
         const prompt = buildTitlePrompt('p'.repeat(10_000), 'a'.repeat(10_000));
         expect(prompt.length).toBeLessThan(4_500);
         expect(buildTitlePrompt('hello', '')).toContain('(nothing yet)');
+    });
+});
+
+describe('namedByOneShot', () => {
+    test('names Codex and an ACP agent by their own one-shot mode, and neither Claude Code nor a CLI without one', () => {
+        const registry = registryWith([]);
+        expect(namedByOneShot(registry.get('codex'))).toBe(true);
+        expect(namedByOneShot(createGrokProvider())).toBe(true);
+        expect(namedByOneShot(registry.get('claude'))).toBe(false);
+        expect(namedByOneShot({ oneShotArgs: undefined })).toBe(false);
     });
 });
 

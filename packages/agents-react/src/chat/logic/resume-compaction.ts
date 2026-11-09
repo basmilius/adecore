@@ -62,8 +62,8 @@ function offerableTurn({ info, compaction, items, dismissedTurnId }: OfferInput)
         return null;
     }
 
-    // `contextTokens` keeps the old number until the next request, so the offer would return right after
-    // a compaction. A native one is a turn without a message of the person, hence the look at the turn.
+    // A host from before compactions moved the meter, or a CLI whose estimate after the fold stays large,
+    // would bring the offer back right after a compaction. That is a turn without a message of the person, hence the look at the turn.
     if (items.some((item) => item.kind === 'compaction' && item.turnId === turn.id)) {
         return null;
     }
