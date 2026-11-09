@@ -1758,18 +1758,20 @@ export class ChatSession {
         }
 
         const lost = this.runningBackgroundRows();
-        this.settleRows(lost.map((row) => ({ ...row, status: 'failed', finishedAt: Date.now() })));
+        const items = this.thread.list();
         const restart = this.lostOnRestart ?? { turnId: null, resumed: false, commands: [], work: [] };
         this.lostOnRestart = null;
-        const work = [...restart.work, ...lost];
+        const work = [...restart.work, ...lost.filter((row) => !toldLost(items, row.id))];
         let told: LostWork | null = null;
 
         if (restart.commands.length > 0 || work.length > 0) {
             told = { ...restart, work, noteId: lostWorkNoteId(restart.commands, work) };
-            const text = lostWorkNote(told, this.thread.list());
+            const text = lostWorkNote(told, items);
             this.deliverNote({ noteId: told.noteId, note: text, preamble: text });
         }
 
+        // Settled only once the note is written, so a restart in between finds the rows running again.
+        this.settleRows(lost.map((row) => ({ ...row, status: 'failed', finishedAt: Date.now() })));
         const events = this.settleWithNote.map((item) => this.thread.upsert(item));
         this.settleWithNote = [];
 

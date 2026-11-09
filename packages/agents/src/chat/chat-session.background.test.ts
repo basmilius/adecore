@@ -285,6 +285,31 @@ describe('background work recovered from a stored chat', () => {
         await run.session.dispose();
     });
 
+    test('a lost subagent is marked failed only after the note about it is written', async () => {
+        const run = rig({ items: [main, row] });
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: null, reason: null });
+        const upsert = spyOn(run.session.thread, 'upsert');
+        await run.session.settleOrphanedSubagents();
+
+        const written = upsert.mock.calls.map(([item]) => `${item.id}:${'status' in item ? item.status : item.kind}`);
+
+        expect(written.indexOf('lost:worker:note')).toBeGreaterThanOrEqual(0);
+        expect(written.indexOf('lost:worker:note')).toBeLessThan(written.indexOf('worker:failed'));
+        upsert.mockRestore();
+        await run.session.dispose();
+    });
+
+    test('a subagent a note already told about is marked failed without a second note', async () => {
+        const told = { id: 'lost:worker', kind: 'note' as const, createdAt: 1, turnId: null, level: 'warning' as const, text: 'the worker was lost' };
+        const run = rig({ items: [main, row, told] });
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: null, reason: null });
+        const lost = await run.session.settleOrphanedSubagents();
+
+        expect(lost).toBeNull();
+        expect(run.session.thread.get('worker')).toMatchObject({ status: 'failed' });
+        await run.session.dispose();
+    });
+
     test('a command an older note per command already told is not told again', async () => {
         const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
         const told = { id: 'lost-command-b1', kind: 'note' as const, createdAt: 1, turnId: null, level: 'warning' as const, text: 'gh run watch was lost' };
