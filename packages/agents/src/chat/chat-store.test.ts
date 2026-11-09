@@ -159,6 +159,10 @@ describe('ChatStore', () => {
         expect(await store.settled('chat')).toBe(false);
         await store.write('chat', info({ resumeAt: 5 }), []);
         expect(await store.settled('chat')).toBe(false);
+        await store.write('chat', info({ background: [{ id: 'b1', kind: 'shell', description: '', command: 'gh run watch', startedAt: 1 }] }), []);
+        expect(await store.settled('chat')).toBe(false);
+        await store.write('chat', info({ background: [] }), []);
+        expect(await store.settled('chat')).toBe(true);
     });
 
     test('leaves a chat to a full read when its log says more or its record starts otherwise', async () => {

@@ -101,6 +101,7 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. |
 | `clearing`, `cleared`, `forgotten`, `deleted`, `removed`, `broadcasted` | What goes along with a clear, with the record of a chat nobody loaded (`deleted`) or a removal, and a look at every event. |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |
+| `lostWork(chatId, lost)`                                       | Background work a restart took from a chat that no resumed turn tells; see [Restarts](/agents/chats#restarts). |
 
 No hook knows the client. Checking who asks belongs on the wire.
 

@@ -74,6 +74,7 @@ export { recentChatMessages, recentSubagentMessages } from './recent-messages';
 export { RUNTIME_MODES, runtimeModeLabel, runtimeModeHint } from './runtime-modes';
 export { CHAT_SEND_KEYS, SEND_AND_NEW_SHORTCUT, sendKeyLabel, sendKeyHint } from './send-key';
 export { subagentTitle, summaryWordOf, stopOf, type SubagentStop } from './subagent-list';
+export { waitingOnOf, waitingOnLabel, type WaitingChild, type WaitingOn, type WaitingOnInput } from './waiting-on';
 export { useSubagentSupport } from './subagent-support';
 
 export {

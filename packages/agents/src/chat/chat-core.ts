@@ -68,6 +68,7 @@ import type { ChatRecord, ChatRecordExtras, ChatStore } from './chat-store.ts';
 import { namedByOneShot, type ChatTitleInput } from './chat-title.ts';
 import { ComposerPreferences } from './composer-preferences.ts';
 import { DeltaCoalescer } from './delta-coalescer.ts';
+import { toldLost, type LostWork } from './lost-work.ts';
 import { SubagentReader, type SubagentReaderOptions } from './subagent-reader.ts';
 import { clearedTaskIdsOf, clearedTasksExtras, DEFAULT_TASK_REMOVED_REASON, taskRowItems } from './task-rows.ts';
 import { ChatUiQueries, type ChatUiHost } from './ui-queries.ts';
@@ -160,6 +161,13 @@ export interface ChatCoreHooks {
     referencesFor?(chatId: string): ChatReferences | undefined;
     /* The environment of this chat's CLI before its account adds its own. */
     envFor?(chatId: string, base: Record<string, string>): Record<string, string | undefined>;
+    /*
+     * A chat loaded after a restart lost background work, and no turn of it is taken up again to say so.
+     * The note is in the thread already; a host that wants the agent to hear it now owes a turn, which
+     * `ChatSession.owesRestartWake` says is still owed. It runs while the chat still loads: owe the
+     * turn and return, never await a request on this chat.
+     */
+    lostWork?(chatId: string, lost: LostWork): Promise<void>;
     /* A chat just loaded or made, its stored turns settled; whatever the host lays down in it goes here. */
     opened?(session: ChatSession, stored: ChatRecord | null): Promise<void>;
     recordExtras?(chatId: string): ChatRecordExtras;
@@ -660,7 +668,16 @@ export class ChatCore {
         if (stored) {
             session.settleStored(selection, resume);
             session.settleOwedResume();
-            await session.settleOrphanedSubagents();
+            const lost = await session.settleOrphanedSubagents();
+
+            // Only tells the host; a host that fails to hear it must not leave the chat half loaded.
+            if (lost !== null && !lost.resumed) {
+                try {
+                    await this.hooks.lostWork?.(session.id, lost);
+                } catch (e) {
+                    console.error(`Reporting the lost work of chat ${session.id} failed:`, errorText(e));
+                }
+            }
         }
 
         this.clearedTasks.set(session.id, new Set(clearedTaskIdsOf(stored?.extras ?? {})));
@@ -680,10 +697,7 @@ export class ChatCore {
         const record = await this.store?.read(chatId);
         const items = record?.items ?? [];
 
-        const background = items.filter(
-            (item): item is BackgroundWork =>
-                isBackgroundWork(item) && (runsInBackground(item) || items.some((note) => note.id === `lost-background-${item.id}`))
-        );
+        const background = items.filter((item): item is BackgroundWork => isBackgroundWork(item) && (runsInBackground(item) || toldLost(items, item.id)));
 
         const last = items.findLast((item) => item.kind === 'turn');
 
@@ -1757,9 +1771,9 @@ export class ChatCore {
     }
 
     /*
-     * Loads every stored chat whose turn was running when the host went down, or that shows a resume
-     * after a limit nobody owes, so `create` decides what becomes of it without waiting for a client to
-     * open it. One file at a time: it runs beside the host answering, not in front of it.
+     * Loads every stored chat whose turn was running when the host went down, that ran commands in
+     * the background then, or that shows a resume after a limit nobody owes, so `create` decides what
+     * becomes of it without waiting for a client to open it. One file at a time: it runs beside the host answering, not in front of it.
      */
     async recoverInterrupted(): Promise<void> {
         if (!this.store) {
@@ -1778,8 +1792,10 @@ export class ChatCore {
 
             const record = await this.store.read(chatId).catch(() => null);
             const unowed = record?.info.resumeAt !== undefined && this.limitResume?.owed(chatId) === false;
+            // Commands that ran in the background went down with the host, which the chat tells its agent once loaded.
+            const lostCommands = (record?.info.background?.length ?? 0) > 0;
 
-            if (record !== null && (interruptedTurn(record) !== null || unowed)) {
+            if (record !== null && (interruptedTurn(record) !== null || unowed || lostCommands)) {
                 await this.create({ chatId }).catch((e: unknown) => console.error(`Loading chat ${chatId} after a restart failed:`, errorText(e)));
             }
         }

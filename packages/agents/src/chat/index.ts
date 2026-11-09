@@ -27,6 +27,7 @@ export type { ComposerPreference } from './composer-preferences.ts';
 export { type ChatErrorCode, ChatError } from '../chat-error.ts';
 export { type SessionFs, type ExternalSession, listClaudeSessions, listCodexSessions, nodeSessionFs } from './external-sessions.ts';
 export { limitedTurn, limitResumeAt } from './limit-resume.ts';
+export type { LostWork } from './lost-work.ts';
 export { readableAssistantText } from '../readable-text.ts';
 export { searchThreadItems } from './thread-search.ts';
 export { ChatThread } from './thread.ts';

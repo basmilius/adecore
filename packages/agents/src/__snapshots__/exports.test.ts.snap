@@ -80,6 +80,7 @@ exports[`the public API ./chat exports these names 1`] = `
   "type ExternalSession",
   "type ForkKept",
   "type InterruptedRun",
+  "type LostWork",
   "type PromptNotes",
   "type ResumeWords",
   "type SessionFs",

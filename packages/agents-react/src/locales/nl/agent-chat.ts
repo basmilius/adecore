@@ -478,6 +478,18 @@ export default {
         stop: 'Stoppen',
         stopFailed: 'Kon de taak niet stoppen'
     },
+    waitingOn: {
+        needsYou_one: 'Een sub-agent vraagt aandacht',
+        needsYou_other: '{{count}} sub-agents vragen aandacht',
+        paused: 'Een sub-agent is gepauzeerd',
+        pausedUntil: 'Een sub-agent is gepauzeerd tot {{time}}',
+        command: '{{command}} · {{age}}',
+        background: 'Bezig op de achtergrond',
+        subagents_one: '{{count}} sub-agent op de achtergrond',
+        subagents_other: '{{count}} sub-agents op de achtergrond',
+        workflows_one: '{{count}} workflow',
+        workflows_other: '{{count}} workflows'
+    },
     subagents: {
         stop: {
             task: 'Taak stoppen',

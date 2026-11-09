@@ -80,3 +80,68 @@ test('a start reads in full only the chats whose turn was running, also when onl
         await rm(home, { recursive: true, force: true });
     }
 });
+
+test('a start loads an idle chat that ran commands in the background and tells the host what it lost', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'adecore-recover-'));
+    const store = new ChatStore(home);
+    const background = [{ id: 'b1', kind: 'shell' as const, description: 'Watch CI', command: 'gh run watch 42 --exit-status', startedAt: 1 }];
+    await store.write('watching', info('watching', home, { background }), [{ id: 'u1', kind: 'user', createdAt: 1, turnId: 't1', text: 'watch the run' }]);
+    const told: Array<{ chatId: string; noteId: string; commands: string[] }> = [];
+
+    const manager = new ChatCore({
+        attachments: new AttachmentStore(home),
+        store,
+        providers,
+        hooks: {
+            lostWork: async (chatId, lost) => {
+                told.push({ chatId, noteId: lost.noteId, commands: lost.commands.map((command) => command.command ?? '') });
+            }
+        }
+    });
+
+    try {
+        await manager.recoverInterrupted();
+        const chat = manager.get('watching')!;
+        expect(told).toEqual([{ chatId: 'watching', noteId: 'lost:b1', commands: ['gh run watch 42 --exit-status'] }]);
+        expect(chat.info.background).toEqual([]);
+        expect(chat.thread.get('lost:b1')).toMatchObject({ kind: 'note', text: expect.stringContaining('"gh run watch 42 --exit-status"') });
+        expect(chat.owesRestartWake('lost:b1')).toBe(true);
+    } finally {
+        await manager.shutdown();
+        await rm(home, { recursive: true, force: true });
+    }
+});
+
+test('a host that throws on hearing the lost work still gets the chat loaded and opened', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'adecore-recover-'));
+    const store = new ChatStore(home);
+    const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
+    await store.write('watching', info('watching', home, { background }), []);
+    const opened: string[] = [];
+    const logged = spyOn(console, 'error').mockImplementation(() => {});
+
+    const manager = new ChatCore({
+        attachments: new AttachmentStore(home),
+        store,
+        providers,
+        hooks: {
+            lostWork: () => {
+                throw new Error('the host is down');
+            },
+            opened: async (session) => {
+                opened.push(session.id);
+            }
+        }
+    });
+
+    try {
+        await manager.recoverInterrupted();
+        expect(opened).toEqual(['watching']);
+        expect(manager.get('watching')?.thread.get('lost:b1')).toBeDefined();
+        expect(logged).toHaveBeenCalled();
+    } finally {
+        logged.mockRestore();
+        await manager.shutdown();
+        await rm(home, { recursive: true, force: true });
+    }
+});

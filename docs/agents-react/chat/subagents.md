@@ -42,6 +42,18 @@ For a view of a workflow outside the thread, the helpers in `@adecore/agents-rea
 
 `progressOf(states)` counts finished delegated work, which the activity chip shows. A child waiting on a person shows a question mark.
 
+## What a chat waits on
+
+`waitingOnOf(input)` picks the one thing a chat waits on from what a client already holds, in this order:
+
+1. a delegated task whose child needs the person
+2. a child paused until a time
+3. the oldest command or monitor in the background
+4. background subagents and workflows
+5. the status line of the chat's plan
+
+A `WaitingOnInput` takes each of these as optional fields: `children` as `WaitingChild` entries, `background` from the info, counted `subagents` and `workflows` or only `delegating`, and `planStatus`. It returns a `WaitingOn`, or `null` when the chat waits on none of them. `waitingOnLabel(waiting, now)` writes it as one line in the `agent-chat` words, such as `gh run watch · 12m`. The background chip over the composer shows that line for its commands. A canvas or a list can show the same line beside a chat that runs no turn.
+
 ## Stopping
 
 A subagent's stop button draws only when it can stop. `stopOf(item, turnRunning)` returns a `SubagentStop` (`task`, `native` or `mark`), or `null`:

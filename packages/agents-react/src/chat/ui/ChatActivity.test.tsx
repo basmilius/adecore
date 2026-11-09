@@ -1,4 +1,4 @@
-import { expect, test } from 'bun:test';
+import { expect, setSystemTime, test } from 'bun:test';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act, type ReactNode } from 'react';
@@ -136,6 +136,27 @@ test('a running workflow draws a pill with its name and how many of its agents a
     await onPage(noTasks, <ChatActivity chatId="chat" />, async (page) => {
         expect(page.host.textContent).toContain('Review the branch · 1/2');
     });
+});
+
+test('the background chip names its oldest command and how long it has run', async () => {
+    setSystemTime(new Date(13 * 60_000));
+    const info = {
+        ...infoOf('chat', 'idle'),
+        background: [
+            { id: 'b2', kind: 'monitor', description: 'Tail the log', command: null, startedAt: 10 * 60_000 },
+            { id: 'b1', kind: 'shell', description: 'Watch CI', command: 'gh run watch', startedAt: 60_000 }
+        ]
+    } as ChatInfo;
+
+    useChats.getState().reset(scope.keyOf('chat'), info, []);
+
+    try {
+        await onPage(noTasks, <ChatActivity chatId="chat" />, async (page) => {
+            expect(page.host.textContent).toBe('gh run watch · 12m');
+        });
+    } finally {
+        setSystemTime();
+    }
 });
 
 test('an app that shows workflows elsewhere draws no pill for them', async () => {

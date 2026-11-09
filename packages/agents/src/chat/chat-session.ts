@@ -33,9 +33,10 @@ import { errorText } from '../error-text.ts';
 import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 import { readableAssistantText } from '../readable-text.ts';
 import { cleanTitle } from '../title-file.ts';
-import { commandLabel, isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
+import { isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
+import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-work.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
@@ -268,6 +269,12 @@ export class ChatSession {
     private readonly stopping = new Map<string, string>();
     // Background subagents a load found running whose transcript did not show an end yet; no CLI here will report them.
     private readonly orphans = new Set<string>();
+    // What `settleStored` found the restart took, until `settleOrphanedSubagents` adds its own and tells the agent.
+    private lostOnRestart: Omit<LostWork, 'noteId'> | null = null;
+    // The settled form of that work, written once the note is.
+    private settleWithNote: ChatItem[] = [];
+    // A person's stop since this load, after which a restart's wake is no longer owed.
+    private stoppedSinceLoad = false;
     private pendingPreambles: readonly string[];
     // Preambles about something that may pass before the next prompt, asked again then. In memory only: a restart
     // settles every request they are about, and a chat that holds one stays loaded.
@@ -932,6 +939,7 @@ export class ChatSession {
     }
 
     cancel(advanceQueue = false): void {
+        this.stoppedSinceLoad = true;
         this.sendAfterStop = advanceQueue;
         this.sendAfterReplacement = false;
         this.pauseQueue(true);
@@ -1126,6 +1134,9 @@ export class ChatSession {
         const now = Date.now();
 
         const items = this.thread.list();
+        const activeTurnId = this.thread.info.activeTurnId;
+        const interrupted = items.find((item) => item.kind === 'turn' && item.state === 'running' && (activeTurnId === null || item.id === activeTurnId));
+        const lostWork: BackgroundWork[] = [];
 
         for (const item of items) {
             const settled = settleStoredItem(item, resumeTurnId, items);
@@ -1134,8 +1145,11 @@ export class ChatSession {
                 continue;
             }
 
-            if (isBackgroundWork(item)) {
-                this.recordLostBackground(item);
+            // Work the restart took stays running on disk until the note about it is written, so a restart in between finds it again.
+            if (isBackgroundWork(item) && !toldLost(items, item.id)) {
+                lostWork.push(item);
+                this.settleWithNote.push(settled);
+                continue;
             }
 
             events.push(this.thread.upsert(settled));
@@ -1160,15 +1174,14 @@ export class ChatSession {
             permissionMode: undefined
         };
 
-        // No process of the host that went down is left to run what it kept in the background.
-        if (info.background?.length) {
-            for (const command of info.background) {
-                const text = `The machine restarted while background command "${commandLabel(command)}" was running. It will not send a result. Do not wait for it.`;
-                this.deliverNote({ noteId: `lost-command-${command.id}`, note: text, preamble: text });
-            }
-
-            patch.background = [];
-        }
+        // No process of the host that went down is left to run what it kept in the background. `background` stays stored until
+        // `settleOrphanedSubagents` writes the note, so a restart in between still finds every command.
+        this.lostOnRestart = {
+            turnId: resumeTurnId ?? interrupted?.id ?? null,
+            resumed: resumeTurnId !== null,
+            commands: (info.background ?? []).filter((command) => !toldLost(items, command.id)),
+            work: lostWork
+        };
 
         // The window stored is whatever the session that went left behind; the next CLI starts on the pick.
         const contextWindow = this.options.provider.catalog.contextWindowFor(selection);
@@ -1183,7 +1196,6 @@ export class ChatSession {
             info.running ||
             info.effectiveRuntimeMode !== undefined ||
             info.permissionMode !== undefined ||
-            patch.background !== undefined ||
             info.status !== patch.status ||
             info.activeTurnId !== resumeTurnId
         ) {
@@ -1763,8 +1775,11 @@ export class ChatSession {
         return backend?.running === true && backend.listThreadItems ? backend.listThreadItems(params) : null;
     }
 
-    /* A completed transcript survives the process; unfinished work cannot send a result after a restart. */
-    async settleOrphanedSubagents(): Promise<void> {
+    /*
+     * A completed transcript survives the process; unfinished work cannot send a result after a restart.
+     * Runs after `settleStored`, and tells the agent in one note what the restart took, which it returns.
+     */
+    async settleOrphanedSubagents(): Promise<LostWork | null> {
         const rows = this.runningBackgroundRows();
 
         if (runsClaudeCode(this.options.provider)) {
@@ -1776,18 +1791,48 @@ export class ChatSession {
         }
 
         const lost = this.runningBackgroundRows();
+        const items = this.thread.list();
+        const restart = this.lostOnRestart ?? { turnId: null, resumed: false, commands: [], work: [] };
+        this.lostOnRestart = null;
+        const work = [...restart.work, ...lost.filter((row) => !toldLost(items, row.id))];
+        let told: LostWork | null = null;
 
-        for (const row of lost) {
-            this.recordLostBackground(row);
+        if (restart.commands.length > 0 || work.length > 0) {
+            told = { ...restart, work, noteId: lostWorkNoteId(restart.commands, work) };
+            const text = lostWorkNote(told, items);
+            this.deliverNote({ noteId: told.noteId, note: text, preamble: text });
         }
 
+        // Settled only once the note is written, so a restart in between finds the rows running again.
         this.settleRows(lost.map((row) => ({ ...row, status: 'failed', finishedAt: Date.now() })));
+        const events = this.settleWithNote.map((item) => this.thread.upsert(item));
+        this.settleWithNote = [];
+
+        if (this.thread.info.background?.length) {
+            events.push(this.thread.patchInfo({ background: [] }));
+        }
+
+        if (events.length > 0) {
+            this.emit(events);
+        }
+
+        return told;
     }
 
-    private recordLostBackground(item: BackgroundWork): void {
-        const label = item.kind === 'subagent' ? item.description || item.subagentType || item.toolUseId : item.name;
-        const text = `The machine restarted before background work "${label}" completed. It will not send a result. Do not wait for it.`;
-        this.deliverNote({ noteId: `lost-background-${item.id}`, note: text, preamble: text });
+    /*
+     * Whether the turn that tells the agent what a restart took (the note `noteId`) is still owed: false
+     * once the note is gone with a clear, once any turn opened after it, or once a person stopped the chat.
+     * A host that ended the CLI itself (`ChatCore.stop`) decides on its own whether the wake still holds.
+     */
+    owesRestartWake(noteId: string): boolean {
+        const items = this.thread.list();
+        const note = items.find((item) => item.id === noteId);
+
+        if (note === undefined || this.stoppedSinceLoad) {
+            return false;
+        }
+
+        return !items.some((item) => item.kind === 'turn' && item.createdAt >= note.createdAt);
     }
 
     /*
