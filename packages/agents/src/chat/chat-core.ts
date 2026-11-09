@@ -644,9 +644,11 @@ export class ChatCore {
 
             // Only tells the host; a host that fails to hear it must not leave the chat half loaded.
             if (lost !== null && !lost.resumed) {
-                await this.hooks
-                    .lostWork?.(session.id, lost)
-                    ?.catch((e: unknown) => console.error(`Reporting the lost work of chat ${session.id} failed:`, errorText(e)));
+                try {
+                    await this.hooks.lostWork?.(session.id, lost);
+                } catch (e) {
+                    console.error(`Reporting the lost work of chat ${session.id} failed:`, errorText(e));
+                }
             }
         }
 

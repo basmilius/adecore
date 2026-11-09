@@ -254,6 +254,8 @@ export class ChatSession {
     private readonly orphans = new Set<string>();
     // What `settleStored` found the restart took, until `settleOrphanedSubagents` adds its own and tells the agent.
     private lostOnRestart: Omit<LostWork, 'noteId'> | null = null;
+    // The settled form of that work, written once the note is.
+    private settleWithNote: ChatItem[] = [];
     // A person's stop since this load, after which a restart's wake is no longer owed.
     private stoppedSinceLoad = false;
     private pendingPreambles: readonly string[];
@@ -1113,8 +1115,11 @@ export class ChatSession {
                 continue;
             }
 
-            if (isBackgroundWork(item)) {
+            // Work the restart took stays running on disk until the note about it is written, so a restart in between finds it again.
+            if (isBackgroundWork(item) && !toldLost(items, item.id)) {
                 lostWork.push(item);
+                this.settleWithNote.push(settled);
+                continue;
             }
 
             events.push(this.thread.upsert(settled));
@@ -1765,8 +1770,15 @@ export class ChatSession {
             this.deliverNote({ noteId: told.noteId, note: text, preamble: text });
         }
 
+        const events = this.settleWithNote.map((item) => this.thread.upsert(item));
+        this.settleWithNote = [];
+
         if (this.thread.info.background?.length) {
-            this.emit([this.thread.patchInfo({ background: [] })]);
+            events.push(this.thread.patchInfo({ background: [] }));
+        }
+
+        if (events.length > 0) {
+            this.emit(events);
         }
 
         return told;
@@ -1775,6 +1787,7 @@ export class ChatSession {
     /*
      * Whether the turn that tells the agent what a restart took (the note `noteId`) is still owed: false
      * once the note is gone with a clear, once any turn opened after it, or once a person stopped the chat.
+     * A host that ended the CLI itself (`ChatCore.stop`) decides on its own whether the wake still holds.
      */
     owesRestartWake(noteId: string): boolean {
         const items = this.thread.list();

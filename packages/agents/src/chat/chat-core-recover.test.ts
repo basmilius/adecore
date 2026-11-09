@@ -111,3 +111,37 @@ test('a start loads an idle chat that ran commands in the background and tells t
         await rm(home, { recursive: true, force: true });
     }
 });
+
+test('a host that throws on hearing the lost work still gets the chat loaded and opened', async () => {
+    const home = await mkdtemp(join(tmpdir(), 'adecore-recover-'));
+    const store = new ChatStore(home);
+    const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
+    await store.write('watching', info('watching', home, { background }), []);
+    const opened: string[] = [];
+    const logged = spyOn(console, 'error').mockImplementation(() => {});
+
+    const manager = new ChatCore({
+        attachments: new AttachmentStore(home),
+        store,
+        providers,
+        hooks: {
+            lostWork: () => {
+                throw new Error('the host is down');
+            },
+            opened: async (session) => {
+                opened.push(session.id);
+            }
+        }
+    });
+
+    try {
+        await manager.recoverInterrupted();
+        expect(opened).toEqual(['watching']);
+        expect(manager.get('watching')?.thread.get('lost:b1')).toBeDefined();
+        expect(logged).toHaveBeenCalled();
+    } finally {
+        logged.mockRestore();
+        await manager.shutdown();
+        await rm(home, { recursive: true, force: true });
+    }
+});

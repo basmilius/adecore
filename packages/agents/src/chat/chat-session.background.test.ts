@@ -258,6 +258,33 @@ describe('background work recovered from a stored chat', () => {
         await run.session.dispose();
     });
 
+    test('a workflow the restart took stays running on disk until the note about it is written', async () => {
+        const workflow = {
+            id: 'wf',
+            turnId: 'main',
+            kind: 'tool' as const,
+            createdAt: 1,
+            toolUseId: 'workflow',
+            name: 'Workflow',
+            input: {},
+            output: 'launched',
+            state: 'running' as const,
+            parentToolUseId: null,
+            workflow: { name: 'Build', phases: [], agents: [] }
+        };
+
+        const run = rig({ items: [main, workflow] });
+        run.session.settleStored(run.session.info.selection, { resumeTurnId: null, reason: null });
+
+        expect(run.session.thread.get('wf')).toMatchObject({ state: 'running' });
+
+        const lost = await run.session.settleOrphanedSubagents();
+
+        expect(lost).toMatchObject({ noteId: 'lost:wf' });
+        expect(run.session.thread.get('wf')).not.toMatchObject({ state: 'running' });
+        await run.session.dispose();
+    });
+
     test('a command an older note per command already told is not told again', async () => {
         const background = [{ id: 'b1', kind: 'shell' as const, description: '', command: 'gh run watch', startedAt: 1 }];
         const told = { id: 'lost-command-b1', kind: 'note' as const, createdAt: 1, turnId: null, level: 'warning' as const, text: 'gh run watch was lost' };
