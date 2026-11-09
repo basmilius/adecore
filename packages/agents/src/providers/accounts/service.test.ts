@@ -1057,4 +1057,16 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
     test('names the CLIs whose login nothing notices', async () => {
         expect((await make()).snapshot().silentLogins).toEqual(['silent']);
     });
+
+    test('says by its kind that a CLI without a reader cannot say who is signed in to an account', async () => {
+        const service = await make();
+
+        await service.save({ silent_work: { kind: 'silent', home: '~/.silent_work' } });
+        await service.refresh();
+
+        expect(service.snapshot().statuses.find((status) => status.id === 'silent_work')).toMatchObject({
+            state: 'failed',
+            message: 'silent cannot say who is signed in'
+        });
+    });
 });

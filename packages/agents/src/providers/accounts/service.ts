@@ -797,7 +797,7 @@ export class ProviderAccountsService implements AccountLaunches {
 
             const env = accountEnv(id, account, provider, this.env, values);
             if (provider.askAccount === undefined) {
-                throw new Error(`${provider.name} cannot say who is signed in`);
+                throw new Error(`${kind} cannot say who is signed in`);
             }
 
             const reading = await provider.askAccount(provider.command, env);
