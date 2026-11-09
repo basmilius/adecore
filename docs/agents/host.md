@@ -97,7 +97,7 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `envFor(chatId, base)`                                         | The environment of the chat's CLI before its account adds its own.                        |
 | `promptNotesFor`, `referencesFor`                              | Notes in front of the next prompt, and how chats a message points at are named to the agent. |
 | `hiddenFor(chatId)`                                            | Leaves the chat out of every list.                                                         |
-| `opened`, `recordExtras`                                       | What the host lays down in a loaded chat, and keeps in its record beside the thread.     |
+| `openingNotes`, `opened`, `recordExtras`                       | What the host lays down in a loaded chat above its task rows and below them, and keeps in its record beside the thread. |
 | `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. |
 | `clearing`, `cleared`, `forgotten`, `deleted`, `removed`, `broadcasted` | What goes along with a clear, with the record of a chat nobody loaded (`deleted`) or a removal, and a look at every event. |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |

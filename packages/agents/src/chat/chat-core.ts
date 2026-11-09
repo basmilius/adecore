@@ -168,7 +168,9 @@ export interface ChatCoreHooks {
      * turn and return, never await a request on this chat.
      */
     lostWork?(chatId: string, lost: LostWork): Promise<void>;
-    /* A chat just loaded or made, its stored turns settled; whatever the host lays down in it goes here. */
+    /* A chat just loaded or made, its stored turns settled: what the host lays down in it above the task rows. */
+    openingNotes?(session: ChatSession, stored: ChatRecord | null): void;
+    /* A chat just loaded or made, its task rows laid; whatever else the host lays down in it goes here. */
     opened?(session: ChatSession, stored: ChatRecord | null): Promise<void>;
     recordExtras?(chatId: string): ChatRecordExtras;
     /*
@@ -681,6 +683,7 @@ export class ChatCore {
         }
 
         this.clearedTasks.set(session.id, new Set(clearedTaskIdsOf(stored?.extras ?? {})));
+        this.hooks.openingNotes?.(session, stored ?? null);
 
         for (const task of this.hooks.taskRows?.(session.id) ?? []) {
             this.upsertTaskRow(session, task);

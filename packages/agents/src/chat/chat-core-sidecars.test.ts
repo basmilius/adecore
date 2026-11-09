@@ -197,6 +197,23 @@ describe('the task rows of ChatCore', () => {
         expect(rowsOf(again, 'parent').map((row) => row.id)).toEqual(['task-t2']);
     });
 
+    test('lie below the notes the host opens a chat with and above what it lays down once opened', async () => {
+        const chats = open({
+            hooks: {
+                ...hooksFor(() => [taskOf('t1')]),
+                openingNotes: (session) => void session.addNote('info', 'above'),
+                opened: async (session) => void session.addNote('info', 'below')
+            }
+        });
+        await chats.create({ chatId: 'parent', cwd: home });
+
+        const thread = chats
+            .get('parent')!
+            .thread.list()
+            .map((item: ChatItem) => (item.kind === 'note' ? item.text : item.id));
+        expect(thread).toEqual(['above', 'task-t1', 'below']);
+    });
+
     test('keep the extras of the host beside the hidden ones', async () => {
         const chats = open({ hooks: { ...hooksFor(() => [taskOf('t1')]), recordExtras: () => ({ pinned: true }) } });
         await chats.create({ chatId: 'parent', cwd: home });
