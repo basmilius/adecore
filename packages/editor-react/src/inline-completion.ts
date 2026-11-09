@@ -144,6 +144,7 @@ export class InlineCompletionFeature {
     private index = 0;
     private manual = false;
     private timer: unknown = null;
+    private timerSource: InlineSuggestionSource | null = null;
     private pending: {
         readonly controller: AbortController;
         readonly source: InlineSuggestionSource;
@@ -200,6 +201,10 @@ export class InlineCompletionFeature {
 
             if (at !== -1) {
                 this.sources.splice(at, 1);
+            }
+            if (this.timerSource === source) {
+                this.timers.clear(this.timer);
+                this.timerSource = null;
             }
             if (this.uses(source)) {
                 this.hide();
@@ -276,6 +281,9 @@ export class InlineCompletionFeature {
         const rest = suggestion.rest.slice(word.length);
         source.cleared?.();
         this.suggestions = rest.trim() === '' ? [] : [{ ...suggestion, range: { start: next, end: next }, text: rest, rest }];
+        if (this.suggestions.length === 0) {
+            this.owner = null;
+        }
         this.index = 0;
         this.draw();
         return true;
@@ -298,7 +306,9 @@ export class InlineCompletionFeature {
             this.suggestions = [];
             this.language.editor.setGhostText(null);
         }
-        this.owner?.cleared?.();
+        const owner = this.owner;
+        this.owner = null;
+        owner?.cleared?.();
     }
 
     /* Tab takes the suggestion on screen before any feature that expands on Tab; without one it is left alone. */
@@ -347,6 +357,7 @@ export class InlineCompletionFeature {
         this.hide();
         const source = this.sources.find((entry) => entry.source.automatic && entry.source.enabled)?.source;
         if (source !== undefined && change.source === 'input') {
+            this.timerSource = source;
             this.timer = this.timers.set(() => void this.ask(source, 2), DELAY_MS);
         }
     }
@@ -373,7 +384,12 @@ export class InlineCompletionFeature {
 
     private async ask(source: InlineSuggestionSource, triggerKind: 1 | 2): Promise<void> {
         const { editor } = this.language;
-        if (!source.enabled || editor.getSelections().length !== 1 || editor.isReadOnly?.() === true) {
+        if (
+            !source.enabled ||
+            !this.sources.some((entry) => entry.source === source) ||
+            editor.getSelections().length !== 1 ||
+            editor.isReadOnly?.() === true
+        ) {
             return;
         }
         this.hide();
