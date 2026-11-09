@@ -257,7 +257,6 @@ export class Outline {
 
 /* Where the rows of the document are, which the pinned headers are placed by. */
 interface StickyRows {
-    /* The top and the bottom of the row a line is drawn in. */
     top(line: number): number;
     bottom(line: number): number;
     /* Whether the line starts a row of its own, which a line a fold hides does not. */
@@ -302,7 +301,6 @@ export function stickyPlacements(blocks: readonly OutlineBlock[], scrollTop: num
     return placements;
 }
 
-/* How far down from the top the pinned headers reach. */
 export function stickyCover(placements: readonly StickyPlacement[], lineHeight: number): number {
     return Math.max(0, ...placements.map((placement) => (placement.depth + 1) * lineHeight + placement.offset));
 }

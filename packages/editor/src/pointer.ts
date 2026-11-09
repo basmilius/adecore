@@ -25,9 +25,7 @@ export interface PointerHost {
     columnMode(): boolean;
     /* The selection a point of the screen is on, for a press that may begin dragging it; null on anything else or when the text cannot be edited. */
     selectionAt(clientX: number, clientY: number): Selection | null;
-    /* The place a drop would land, drawn as a caret; null takes it away. */
     setDropCaret(offset: number | null): void;
-    /* Moves `[from, to)` to `offset`, or copies it there. */
     drop(from: number, to: number, offset: number, copy: boolean): void;
     /* Whether the key that turns a move into a copy is down. */
     copyHeld(event: PointerEvent): boolean;
@@ -62,7 +60,6 @@ interface Drag {
     carry?: Carry;
     /* With shift and alt a dragged box is added to the carets that are there, not put in their place. */
     keep: boolean;
-    /* Whether a drag so far makes a box of columns. */
     box: boolean;
     /* Where the press landed in the content, which a scroll leaves in place. */
     anchorPoint: ContentPoint;

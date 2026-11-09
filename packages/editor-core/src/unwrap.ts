@@ -66,7 +66,6 @@ function wordAt(source: EditSource, at: number): string {
     return source.slice(at, end);
 }
 
-/* The closer of the bracket at `open`. */
 function closerOf(source: EditSource, open: number): number | null {
     const closer = source.charAt(open) === '(' ? ')' : '}';
     const text = source.slice(open + 1, Math.min(source.line(source.lineCount - 1).end, open + 1 + SCAN_LIMIT));

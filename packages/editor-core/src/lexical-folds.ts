@@ -24,7 +24,6 @@ register('python py', 'import|from');
 register('php rust rs perl', 'use');
 register('csharp cs', 'using');
 
-/* Whether a line, without its indentation, brings another file in. */
 export function isImportLine(language: string, trimmed: string): boolean {
     return IMPORT_WORDS.get(language.toLowerCase())?.test(trimmed) ?? false;
 }

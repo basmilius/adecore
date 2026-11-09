@@ -57,7 +57,6 @@ function piece(next: () => number, length: number): string {
     return text;
 }
 
-/* Sorted by where they start, without the ones that overlap one before them. */
 function apart<Edit extends { from: number; to: number }>(edits: Edit[]): Edit[] {
     const kept: Edit[] = [];
 

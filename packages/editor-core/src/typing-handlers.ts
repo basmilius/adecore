@@ -15,7 +15,6 @@ export function isQuote(character: string): boolean {
     return quotes.test(character);
 }
 
-/* Every quote of a body with whether a backslash escapes it. */
 function quotesIn(body: string, selected: string, typed: string): { index: number; escaped: boolean }[] {
     const found: { index: number; escaped: boolean }[] = [];
     let escaped = false;

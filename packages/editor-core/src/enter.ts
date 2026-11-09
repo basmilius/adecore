@@ -561,7 +561,6 @@ class Enter {
     }
 }
 
-/* Where one Enter puts its break and caret, as a replacement of text around the caret. */
 export function planEnter(source: EditSource, from: number, to: number, options: EnterOptions): EnterPlan {
     return new Enter(source, options).plan(from, to);
 }

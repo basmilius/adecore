@@ -110,7 +110,6 @@ class Planner {
         return indentWidth(this.source.line(line).text, this.options.tabSize);
     }
 
-    /* The lines of the statements a selection touches. */
     unitOf(selection: Selection): LineRange {
         const from = Math.min(selection.anchor, selection.head);
         const to = Math.max(selection.anchor, selection.head);

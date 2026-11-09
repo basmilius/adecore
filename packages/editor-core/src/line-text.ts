@@ -1,7 +1,6 @@
 import type { DocumentLine } from './rope.ts';
 import type { Selection } from './types.ts';
 
-/* The spaces and tabs a line starts with. */
 export function whitespaceOf(text: string): string {
     return /^[\t ]*/.exec(text)![0];
 }

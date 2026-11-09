@@ -9,7 +9,6 @@ interface PasteOptions {
     insertSpaces: boolean;
     /* The text was copied from a caret with nothing selected. A caret with nothing selected takes it as lines above its own. */
     wholeLines: boolean;
-    /* Moves a pasted block to the indentation of the place it lands on. */
     reindent: boolean;
 }
 
@@ -18,7 +17,6 @@ function linesOf(text: string): string[] {
     return text.replace(/\r?\n$/, '').split(/\r?\n/);
 }
 
-/* One line of the text for each caret, when there are as many lines as carets. */
 function perCaretLines(text: string, carets: number): string[] | null {
     if (carets < 2) {
         return null;

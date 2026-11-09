@@ -10,7 +10,6 @@ export interface EditSource {
     lineAt(offset: number): number;
     lineCount: number;
     line(index: number): DocumentLine;
-    /* The line break of a line. */
     newline(index: number): string;
     context(offset: number): TypingContext;
     region(line: number): VueRegion | null;

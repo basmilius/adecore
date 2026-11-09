@@ -3,12 +3,10 @@ import { lineContinues } from './enter.ts';
 import type { FoldingRange } from './fold-types.ts';
 import { isBlank, whitespaceOf } from './line-text.ts';
 
-/* The indentation of a line text in columns, tabs taken to their stops. */
 export function indentWidth(text: string, tabSize: number): number {
     return visualWidth(whitespaceOf(text), tabSize);
 }
 
-/* The width in columns of a text that starts a line, tabs taken to their stops. */
 export function visualWidth(text: string, tabSize: number): number {
     let width = 0;
 
@@ -38,7 +36,6 @@ export function enclosingBraces(source: EditSource, offset: number): number[] {
     return braces;
 }
 
-/* The innermost `{` around the offset, or null. */
 export function enclosingBrace(source: EditSource, offset: number): number | null {
     return enclosingBraces(source, offset)[0] ?? null;
 }
@@ -187,7 +184,6 @@ interface StatementRange {
     last: number;
 }
 
-/* The doc comment a line is part of, as the lines it spans. */
 function docCommentAt(source: EditSource, line: number): { first: number; last: number } | null {
     let first = line;
 

@@ -485,7 +485,6 @@ for (const wrap of [false, true]) {
     });
 }
 
-/* Sorted by where they start, without the ones that overlap one before them. */
 function apart<Edit extends { from: number; to: number }>(edits: Edit[]): Edit[] {
     const kept: Edit[] = [];
 

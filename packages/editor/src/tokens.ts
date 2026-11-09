@@ -229,7 +229,6 @@ export class TokenCache {
         this.pivotLine = -1;
     }
 
-    /* Whether lines through `line` are colored for the text as it is now. */
     covers(line: number): boolean {
         return this.frontier > line || this.frontier >= this.source.getLineCount();
     }

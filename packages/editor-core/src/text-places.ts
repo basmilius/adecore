@@ -95,7 +95,6 @@ function phpLanguage(context: TypingContext): string {
     return context.markup === 'raw' && context.element === 'style' ? 'css' : 'html';
 }
 
-/* What the text at an offset is written in and whether it is code, a comment or a string. */
 export function placeAt(source: EditSource, offset: number, language: string): TextPlace {
     const id = language.toLowerCase();
 

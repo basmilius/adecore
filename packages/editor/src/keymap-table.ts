@@ -10,7 +10,6 @@ export interface KeyChord {
 }
 
 export interface TakenKey {
-    /* The chord the platform binds on the platform this entry is for. */
     readonly platform: string;
     /* The host command that owns the chord. */
     readonly by: string;
@@ -216,7 +215,6 @@ export function resolveKeymap(overrides: KeymapOverrides = {}): Keymap {
     return Object.fromEntries(KEYMAP_IDS.map((id) => [id, { ...KEYMAP[id], ...overrides[id] }])) as unknown as Keymap;
 }
 
-/* The chord of a command on a platform, or null when the platform has none. */
 export function chordOf(id: KeymapId, apple: boolean, keymap: Keymap = KEYMAP): string | null {
     return (keymap[id] ?? KEYMAP[id])[apple ? 'mac' : 'other'];
 }

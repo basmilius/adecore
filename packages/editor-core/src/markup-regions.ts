@@ -410,7 +410,6 @@ class JsxScanner {
     }
 }
 
-/* The offsets of the JSX elements of a script, outermost first and in order. */
 export function jsxRanges(text: string): { from: number; to: number }[] {
     const scanner = new JsxScanner(text);
     scanner.scan();

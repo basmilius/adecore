@@ -83,7 +83,6 @@ export interface FoldState {
 interface RowBase {
     key: string;
     index: number;
-    /* The first document line the row stands for. */
     line: number;
     top: number;
     height: number;
@@ -233,7 +232,6 @@ export function wrapStops(text: string, offsets: readonly number[], metrics: Lay
     return wrapRows(text, offsets, metrics, limit).breaks;
 }
 
-/* A line of text laid out against its metrics; wrapped at `limit` pixels unless that is null. */
 export function scanDenseLine(
     line: { start: number; end: number; text: string; next?: number },
     metrics: LayoutMetrics,
@@ -420,7 +418,6 @@ class LineRow implements TextRow {
     }
 }
 
-/* Sorted, with the ranges that overlap or touch joined. */
 function mergeRanges(ranges: LineRange[]): LineRange[] {
     ranges.sort((left, right) => left.first - right.first);
     const merged: LineRange[] = [];
@@ -933,7 +930,6 @@ export class EditorLayout {
         return Math.min(bounds.end, Math.max(bounds.start, offset));
     }
 
-    /* The tops of the rows from `from` on. */
     private reflow(from: number): void {
         const previous = this.rows[from - 1];
         let top = previous === undefined ? 0 : previous.top + previous.height;
@@ -947,7 +943,6 @@ export class EditorLayout {
         this.height = top + BOTTOM_PADDING;
     }
 
-    /* The row of a widget, a replacement or a line by its key. */
     rowByKey(key: string): LayoutRow | undefined {
         if (key.startsWith('line:')) {
             const row = this.rowForLine(Number(key.slice(5)));
@@ -958,7 +953,6 @@ export class EditorLayout {
         return this.keyed.get(key);
     }
 
-    /* A widget's measured height. Returns whether it moved anything. */
     setMeasuredHeight(key: string, height: number): boolean {
         const row = this.rowByKey(key);
         const next = Math.max(1, Math.round(height));

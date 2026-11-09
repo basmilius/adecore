@@ -44,7 +44,6 @@ export interface EditorZoom {
     readonly wheel?: boolean;
 }
 
-/* Everything `runCommand` runs. */
 export type EditorRunCommand = EditorCommand | EditorViewCommand;
 
 /* Lines to fold, zero-based. */
@@ -114,7 +113,6 @@ export interface EditorOptions {
     readonly zoom?: EditorZoom;
 }
 
-/* The few sentences the editor says on its own. */
 export interface EditorMessages {
     /* Select next occurrence went past the last one. */
     readonly noMoreOccurrences: string;
@@ -223,7 +221,6 @@ export interface EditorRemoteCursor {
     readonly id: string;
     /* A line past the end is the last one, a character past the end of its line is the end of it. */
     readonly position: EditorPosition;
-    /* What the label says, such as the agent's name. */
     readonly name: string;
     readonly color: EditorMarkColor;
 }
@@ -678,7 +675,6 @@ export interface Editor {
     /* An offset past the end, or a character past the end of its line, lands on the end. */
     positionAt(offset: number): EditorPosition;
     offsetAt(position: EditorPosition): number;
-    /* The text of a range, such as the word before the caret. */
     textInRange(range: EditorRange): string;
     /* Mod+S from inside the editor; what happens then is the host's. */
     onSave(listener: () => void): () => void;

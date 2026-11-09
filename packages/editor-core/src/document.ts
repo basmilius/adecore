@@ -351,7 +351,6 @@ function range(first: number, last: number): number[] {
     return Array.from({ length: last - first + 1 }, (_, index) => first + index);
 }
 
-/* Runs of consecutive line numbers, from a sorted list. */
 function blocks(indices: readonly number[]): LineBlock[] {
     const result: LineBlock[] = [];
 
@@ -1026,7 +1025,6 @@ export class DocumentModel {
         return this.applyEdits(plan.edits, { source: 'input', selections: plan.selections });
     }
 
-    /* Runs a command on every caret. Returns whether the text or the selection changed. */
     execute(command: EditorCommand, options: CommandOptions = {}): boolean {
         if (command === 'undo') {
             return this.undo();
@@ -1508,7 +1506,6 @@ export class DocumentModel {
         );
     }
 
-    /* The first character on a line that is not a space or a tab, or -1 when there is none. */
     private firstNonSpace(line: DocumentLine): number {
         const found = line.text.search(/[^ \t]/);
 
@@ -1844,7 +1841,6 @@ export class DocumentModel {
         return plan !== null && this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
     }
 
-    /* The lines the carets and selections touch, sorted. */
     private selectedLines(span?: LineSpanOf): number[] {
         const indices = new Set<number>();
 
@@ -2502,7 +2498,6 @@ export class DocumentModel {
         return this.rope.lineBounds(this.rope.lineAt(offset));
     }
 
-    /* Preceded by an odd number of backslashes. */
     private escaped(offset: number): boolean {
         let count = 0;
 

@@ -93,7 +93,6 @@ export class FindController {
         };
     }
 
-    /* The range a search in the selection is held to. */
     get scope(): { from: number; to: number } | null {
         return this.query?.inSelection === true ? this.bounds : null;
     }
@@ -205,7 +204,6 @@ export class FindController {
         this.refresh();
     }
 
-    /* The text of a search in the selection moved with an edit. */
     mapBounds(changes: readonly DocumentChange[]): void {
         if (this.pendingAnchor !== undefined) {
             this.pendingAnchor = mapOffset(this.pendingAnchor, changes);

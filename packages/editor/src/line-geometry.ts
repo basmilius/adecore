@@ -32,7 +32,6 @@ interface TextRun {
     from: number;
     to: number;
     x: number;
-    /* The visual line of the document line the run is on. */
     subRow: number;
     text: string;
 }
@@ -55,7 +54,6 @@ export interface LineGeometry {
     /* The x of each stop before and after the inlays that sit on it. */
     before: number[];
     after: number[];
-    /* The visual line each stop is on. */
     rowOf: number[];
     /* The stop each visual line starts at. */
     rowStarts: number[];

@@ -296,7 +296,6 @@ export class FakeEditor implements Editor {
         emit(this.saves);
     }
 
-    /* The focus leaving the editor. */
     blur(): void {
         this.assertLive();
         this.focused = false;
@@ -419,7 +418,6 @@ export class FakeEditor implements Editor {
         return true;
     }
 
-    /* Tells the caret listeners where the primary caret is, when it moved since they last heard. */
     private announceCaret(): void {
         const head = this.selections.at(-1)!.head;
 
@@ -591,7 +589,6 @@ export class FakeEditor implements Editor {
         }
     }
 
-    /* The tinted lines the host set last. */
     lineHighlights: readonly EditorLineHighlight[] = [];
 
     setLineHighlights(highlights: readonly EditorLineHighlight[]): void {
@@ -614,7 +611,6 @@ export class FakeEditor implements Editor {
         this.lineLabels = labels;
     }
 
-    /* What the input points at, as the last call left it. */
     inputPopup: EditorInputPopup | null = null;
 
     setInputPopup(popup: EditorInputPopup | null): void {
@@ -642,14 +638,12 @@ export class FakeEditor implements Editor {
         this.codeBlocks.push({ container, text, options });
     }
 
-    /* The cursors of agents the host set last. */
     remoteCursors: readonly EditorRemoteCursor[] = [];
 
     setRemoteCursors(cursors: readonly EditorRemoteCursor[]): void {
         this.remoteCursors = cursors;
     }
 
-    /* What the host marked as written by an agent last. */
     attributionMarks: readonly EditorAttributionMark[] = [];
     private readonly attributionHovers = new Set<(hover: EditorAttributionHover | null) => void>();
 
@@ -685,7 +679,6 @@ export class FakeEditor implements Editor {
         emit(this.attributionHovers, hover);
     }
 
-    /* What each owner put next to lines of the text last. */
     readonly widgetsByOwner = new Map<string, readonly EditorWidget[]>();
 
     /* The default owner's rows. */
@@ -736,14 +729,12 @@ export class FakeEditor implements Editor {
         }
     }
 
-    /* The code vision rows the host set last. */
     codeVision: readonly EditorCodeVision[] = [];
 
     setCodeVision(rows: readonly EditorCodeVision[]): void {
         this.codeVision = rows;
     }
 
-    /* The button the host set in the gutter last. */
     gutterAction: EditorGutterAction | null = null;
     private readonly gutterActionListeners = new Set<(line: number) => void>();
 
@@ -755,7 +746,6 @@ export class FakeEditor implements Editor {
         return subscribe(this.gutterActionListeners, listener);
     }
 
-    /* What each owner put in the gutter last. */
     readonly gutterMarkersByOwner = new Map<string, readonly EditorGutterMarker[]>();
     private readonly gutterMarkerListeners = new Set<(id: string) => void>();
 
@@ -771,12 +761,10 @@ export class FakeEditor implements Editor {
         return subscribe(this.gutterMarkerListeners, listener);
     }
 
-    /* A press on a gutter marker. */
     pressGutterMarker(id: string): void {
         emit(this.gutterMarkerListeners, id);
     }
 
-    /* A press on the gutter button, if there is one. */
     pressGutterAction(): void {
         if (this.gutterAction !== null) {
             emit(this.gutterActionListeners, this.gutterAction.line);
@@ -874,7 +862,6 @@ export class FakeEditor implements Editor {
         emit(this.copies, { text, wholeLines, cut });
     }
 
-    /* Every paste a host asked for, with its options. */
     readonly pastes: Array<{ text: string; options: EditorPasteOptions | undefined }> = [];
 
     /* Puts the text at every caret, one line per caret when the lines are as many as the carets, and leaves the carets behind it. */
@@ -922,7 +909,6 @@ export class FakeEditor implements Editor {
         this.indentation = indentation;
     }
 
-    /* What the host marked and highlighted last. */
     markers: readonly EditorMarker[] = [];
     highlights: readonly EditorHighlight[] = [];
     /* Where `rectAt` puts a position, which a test can move to simulate scrolling. */
@@ -961,7 +947,6 @@ export class FakeEditor implements Editor {
         return subscribe(this.inlayHovers, listener);
     }
 
-    /* The pointer resting on a hint or a part of one, or leaving them. */
     hoverInlay(id: string | null, part: number | null = null): void {
         emit(this.inlayHovers, id === null ? null : { id, part, rect: { left: 0, top: 0, right: 40, bottom: 20 } });
     }
@@ -988,14 +973,12 @@ export class FakeEditor implements Editor {
         this.ghost = ghost;
     }
 
-    /* What the host classified last. */
     semanticTokens: readonly EditorSemanticToken[] | null = null;
 
     setSemanticTokens(tokens: readonly EditorSemanticToken[] | null): void {
         this.semanticTokens = tokens;
     }
 
-    /* What the host drew as a link last. */
     link: EditorRange | null = null;
 
     setLink(range: EditorRange | null): void {
@@ -1020,7 +1003,6 @@ export class FakeEditor implements Editor {
         this.selections = [...this.selections.slice(0, -1), { anchor: offset, head: offset }];
     }
 
-    /* The folds the host asked to keep. */
     folds: EditorFolds = { collapsed: [], custom: [] };
 
     getFolds(): EditorFolds {
@@ -1077,7 +1059,6 @@ export class FakeEditor implements Editor {
         return rangeIn(this.text, this.selections.at(-1)!);
     }
 
-    /* The other carets of the editor, which a test sets. */
     get otherCarets(): EditorPosition[] {
         return this.selections.slice(0, -1).map((selection) => positionIn(this.text, selection.head));
     }
@@ -1137,7 +1118,6 @@ export class FakeEditor implements Editor {
         return subscribe(this.hovers, listener);
     }
 
-    /* The pointer resting on a position, or leaving the text. */
     hover(position: EditorPosition | null): void {
         const hover = position === null ? null : { position, rect: this.rectAt(position)! };
         emit(this.hovers, hover);
@@ -1197,7 +1177,6 @@ export class FakeEditor implements Editor {
         return [...this.clickHandlers].some((handler) => handler(click));
     }
 
-    /* The context menu asked for at a position. */
     openContextMenu(menu: EditorContextMenu): void {
         emit(this.contextListeners, menu);
     }

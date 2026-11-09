@@ -110,16 +110,11 @@ export interface ViewSettings {
     smartKeys: EditorSmartKeys;
     messages: Partial<EditorMessages>;
     label: string;
-    /* A line at each indentation level, and the one of the scope around the caret stronger. */
     guides: boolean;
-    /* Spaces drawn as dots and tabs as arrows. */
     whitespace: boolean;
-    /* The column a line is held to, drawn as a line; null for none. */
     rightMargin: number | null;
-    /* When the arrow that folds a block shows in the gutter. */
     foldOutline: 'off' | 'hover' | 'always';
     folding?: boolean;
-    /* The headers of the blocks scrolled out of sight stay pinned on top; on unless false. */
     stickyScroll?: boolean;
     /* The words that mark a TODO comment; the default ones without them, none drawn with an empty list. */
     todoWords?: readonly string[];
@@ -309,7 +304,6 @@ export class EditorView {
     private activeGuideCache: { key: string; guide: { column: number; first: number; last: number } | null } | undefined;
     /* Column mode: a drag or Shift with the arrows selects a box of columns, as Alt does for a drag. */
     columnMode = false;
-    /* A scroll on its way: where it started and ends, when, and the frame that moves it. */
     private scrollRun: { frame: number; from: { x: number; y: number }; to: { x: number; y: number }; start: number | null; duration: number } | null = null;
     private selectionOccurrenceCache: { key: string; ranges: readonly { from: number; to: number }[] } = { key: '', ranges: [] };
     private link: { from: number; to: number } | null = null;
@@ -507,7 +501,6 @@ export class EditorView {
         this.refreshFont();
     }
 
-    /* The size the code is drawn at, in pixels. */
     getFontSize(): number {
         return this.font.size;
     }
@@ -1659,7 +1652,6 @@ export class EditorView {
         return candidates.find((at) => at >= 0 && /[()[\]{}]/.test(this.model.slice(at, at + 1)));
     }
 
-    /* The offset a bracket at the caret pairs with, if it is one. */
     matchingBracket(selection: { anchor: number; head: number }): { at: number; mate: number | undefined } | null {
         const at = this.bracketAt(selection);
 
@@ -1859,7 +1851,6 @@ export class EditorView {
         };
     }
 
-    /* The arrows of the soft wraps in the rows on screen. */
     private wrapSigns(rows: readonly LayoutRow[]): WrapSign[] {
         if (!this.layout.wrapping) {
             return [];
@@ -2052,7 +2043,6 @@ export class EditorView {
         return { plain, active: marked };
     }
 
-    /* The selection under a point of the screen, which a press there may drag away. */
     selectionAtPoint(clientX: number, clientY: number): EditorSelection | null {
         const point = this.contentPoint(clientX, clientY);
         const rows = this.layout.visibleRows(this.viewport.scrollTop, this.viewportHeight, 0);
@@ -2077,7 +2067,6 @@ export class EditorView {
         this.root.dataset.column = String(on);
     }
 
-    /* Where text being carried would land, drawn as a caret of its own. */
     setDropCaret(offset: number | null): void {
         this.dropCaret = offset;
         this.render();
@@ -2107,7 +2096,6 @@ export class EditorView {
         return { id: element.dataset.inlayId, part: part === null ? null : Number(part.dataset.part), element: part ?? element };
     }
 
-    /* Says which hint the pointer is on, or that it left them all. */
     setInlayHover(target: EventTarget | null): void {
         const found = this.inlayAt(target);
 
@@ -2320,7 +2308,6 @@ export class EditorView {
         this.revealOffset(this.model.getPrimary().head, kind);
     }
 
-    /* What a regular expression replacement writes for the match the find is on, drawn under that match; null takes it away. */
     setReplacePreview(replacement: string | null, preserveCase = false): void {
         this.replacePreview = replacement === null ? null : { text: replacement, preserveCase };
         this.find.setPreview(replacement !== null);
@@ -3010,7 +2997,6 @@ export class EditorView {
         ];
     }
 
-    /* Code that is not in the document, drawn in the editor's own face and colors. */
     renderCode(container: HTMLElement, text: string, options: EditorCodeBlockOptions): void {
         renderCodeBlock(
             container,
@@ -3289,7 +3275,6 @@ export class EditorView {
         paintOverview(this.overview, overviewTicks(spans, this.layout.height, trackHeight));
     }
 
-    /* The blocks sticky scroll and the breadcrumb go by; null goes back to the editor's own reading. */
     setBlocks(blocks: readonly EditorBlock[] | null): void {
         this.outline.setProvided(blocks, this.model);
         this.render();
@@ -3481,7 +3466,6 @@ export class EditorView {
         emit(this.gutterActionListeners, line);
     }
 
-    /* The line a fold control in the gutter folds. */
     foldLineOf(target: EventTarget | null): number | null {
         const button = closestElement(target, '[data-fold-line]');
 

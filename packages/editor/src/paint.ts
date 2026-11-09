@@ -502,15 +502,11 @@ interface GutterPaint {
     attribution: ReadonlyMap<number, AttributedLines>;
     /* The line highlights of the host, whose sign stands in the gutter. */
     highlights: ReadonlyMap<number, AttributedLines>;
-    /* Lines a fold can start at, and whether each is collapsed. */
     foldable: ReadonlyMap<number, boolean>;
-    /* What the fold control of a line is called, from its line and whether it is collapsed. */
     foldName(line: number, collapsed: boolean): string;
     /* A sentence read with the line, which then stands in for the drawn number and sign. */
     lineLabel(line: number): string | null;
-    /* The line that carries the host's button, and what it is called. */
     action: { line: number; label: string } | null;
-    /* The host's markers by line. */
     markers: ReadonlyMap<number, { id: string; label: string; icon?: EditorGutterIcon; pressed?: boolean }>;
 }
 
@@ -524,7 +520,6 @@ function gutterButton(document: Document, className: string, label: string): HTM
     return button;
 }
 
-/* The line numbers of the visible rows, and the fold control of the lines that have one. */
 export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: readonly LayoutRow[], paint: GutterPaint): void {
     const document = container.ownerDocument;
     const fragment = document.createDocumentFragment();
@@ -817,7 +812,6 @@ function arrowSign(document: Document, width: number, lineHeight: number, classN
     return svg as SVGSVGElement;
 }
 
-/* An arrow over each tab of a line. */
 function appendTabSigns(element: HTMLElement, geometry: LineGeometry, lineHeight: number, band: SubRowBand): void {
     if (geometry.uniform !== undefined) {
         return;
