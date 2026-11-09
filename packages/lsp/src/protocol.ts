@@ -11,13 +11,13 @@ export interface RpcRequest {
     params?: unknown;
 }
 
-interface RpcNotification {
+export interface RpcNotification {
     jsonrpc: '2.0';
     method: string;
     params?: unknown;
 }
 
-interface RpcResponse {
+export interface RpcResponse {
     jsonrpc: '2.0';
     id: RequestId | null;
     result?: unknown;
@@ -91,7 +91,7 @@ export interface ContentChange {
     text: string;
 }
 
-interface InsertReplaceEdit {
+export interface InsertReplaceEdit {
     newText: string;
     insert: Range;
     replace: Range;
@@ -238,7 +238,7 @@ export interface CallHierarchyOutgoingCall {
 export type DocumentSymbolResult = DocumentSymbol[] | SymbolInformation[] | null;
 export type WorkspaceSymbolResult = SymbolInformation[] | WorkspaceSymbol[] | null;
 
-interface ParameterInformation {
+export interface ParameterInformation {
     label: string | [number, number];
     documentation?: string | MarkupContent;
 }
@@ -265,7 +265,7 @@ export interface SignatureHelpContext {
 
 export type PrepareRenameResult = Range | { range: Range; placeholder: string } | { defaultBehavior: boolean } | null;
 
-interface TextDocumentEdit {
+export interface TextDocumentEdit {
     textDocument: { uri: string; version: number | null };
     edits: TextEdit[];
 }
@@ -285,7 +285,7 @@ export interface RenameFile {
     annotationId?: string;
 }
 
-interface DeleteFile {
+export interface DeleteFile {
     kind: 'delete';
     uri: string;
     options?: { recursive?: boolean; ignoreIfNotExists?: boolean };
@@ -419,7 +419,7 @@ export type DocumentDiagnosticReport =
     | { kind: 'full'; resultId?: string; items: Diagnostic[]; relatedDocuments?: Record<string, DocumentDiagnosticReport> }
     | { kind: 'unchanged'; resultId: string; relatedDocuments?: Record<string, DocumentDiagnosticReport> };
 
-interface DocumentFilter {
+export interface DocumentFilter {
     language?: string;
     scheme?: string;
     pattern?: string;
@@ -635,8 +635,8 @@ export interface LinkedEditingRanges {
     wordPattern?: string;
 }
 
-type UniquenessLevel = 'document' | 'project' | 'group' | 'scheme' | 'global';
-type MonikerKind = 'import' | 'export' | 'local';
+export type UniquenessLevel = 'document' | 'project' | 'group' | 'scheme' | 'global';
+export type MonikerKind = 'import' | 'export' | 'local';
 
 export interface Moniker {
     scheme: string;
@@ -683,7 +683,7 @@ export interface InlineCompletionItem {
 
 export type InlineCompletionResult = InlineCompletionItem[] | { items: InlineCompletionItem[] } | null;
 
-type WorkspaceDocumentDiagnosticReport =
+export type WorkspaceDocumentDiagnosticReport =
     | { kind: 'full'; uri: string; version: number | null; resultId?: string; items: Diagnostic[] }
     | { kind: 'unchanged'; uri: string; version: number | null; resultId: string };
 
@@ -701,7 +701,7 @@ export interface TextDocumentContentResult {
     text: string;
 }
 
-interface NotebookCell {
+export interface NotebookCell {
     /* 1 markup, 2 code. */
     kind: 1 | 2;
     document: string;
@@ -717,7 +717,7 @@ export interface NotebookDocument {
     cells: NotebookCell[];
 }
 
-interface NotebookCellArrayChange {
+export interface NotebookCellArrayChange {
     start: number;
     deleteCount: number;
     cells?: NotebookCell[];
@@ -732,13 +732,13 @@ export interface NotebookDocumentChangeEvent {
     };
 }
 
-interface NotebookDocumentFilter {
+export interface NotebookDocumentFilter {
     notebookType?: string;
     scheme?: string;
     pattern?: string;
 }
 
-interface NotebookDocumentSyncOptions {
+export interface NotebookDocumentSyncOptions {
     notebookSelector: { notebook?: string | NotebookDocumentFilter; cells?: { language: string }[] }[];
     save?: boolean;
 }
