@@ -5,7 +5,6 @@
 export class SingleFlight<T> {
     private readonly flights = new Map<string, Promise<T>>();
 
-    /* The run in flight for `key`, if any. */
     get(key: string): Promise<T> | undefined {
         return this.flights.get(key);
     }
@@ -14,7 +13,6 @@ export class SingleFlight<T> {
         return this.flights.has(key);
     }
 
-    /* The keys with a run in flight. */
     keys(): IterableIterator<string> {
         return this.flights.keys();
     }
