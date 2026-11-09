@@ -10,7 +10,6 @@ import { ApprovalReview } from '../../ui/diff/ApprovalReview';
 import { reviewEntries } from '../../ui/diff/review-plan';
 import { isPrimaryKey } from '../logic/keys';
 
-/* A command in the sunken box a person reads before allowing it, with the folder it runs in when that is known. */
 function CommandBox({ command, cwd }: { command: string; cwd?: string }) {
     return (
         <TextMenu className="rounded-xl bg-surface-sunken p-3">

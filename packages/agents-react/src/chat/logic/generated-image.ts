@@ -18,7 +18,6 @@ export function isImageGeneration(tool: ChatToolItem): boolean {
     return tool.name === IMAGE_GENERATION_TOOL;
 }
 
-/* What the row of an image generation draws, from the tool call alone. */
 export function generatedImageView(tool: ChatToolItem): GeneratedImageView {
     if (tool.state === 'running') {
         return { state: 'generating' };
@@ -49,7 +48,6 @@ export function generatedImageView(tool: ChatToolItem): GeneratedImageView {
     return { state: 'ready', attachment, prompt: input.revisedPrompt?.trim() || null, transparent: input.transparentBackground === true };
 }
 
-/* Width over height, when the attachment carries both. */
 export function attachmentAspect(attachment: ChatAttachment): number | undefined {
     return attachment.width !== undefined && attachment.height !== undefined ? attachment.width / attachment.height : undefined;
 }

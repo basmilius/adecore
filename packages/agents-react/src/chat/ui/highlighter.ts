@@ -166,7 +166,6 @@ export function codeHighlighter(source?: () => Promise<Highlighter>): CodeHighli
     return highlighter;
 }
 
-/* The code highlighter of the host this is rendered under. */
 export function useCodeHighlighter(): CodeHighlighter {
     return codeHighlighter(useChatHost().code.highlighter);
 }

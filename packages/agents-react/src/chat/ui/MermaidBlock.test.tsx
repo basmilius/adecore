@@ -138,7 +138,6 @@ afterEach(async () => {
     });
 });
 
-/* Lets Pele finish what it was asked for. */
 async function settle(): Promise<void> {
     await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));

@@ -236,7 +236,6 @@ function PlainImage({ src, alt }: { src?: string; alt?: string }) {
     return <DisplayImage src={src} alt={alt} />;
 }
 
-/* A ```mermaid fence, which draws what it says. */
 function Diagram({ code }: { code: string }) {
     const { t } = useTranslation('agent-chat');
 

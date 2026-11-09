@@ -33,7 +33,6 @@ export function pastedTextName(taken: string[]): string {
 
 export interface PromptGuard {
     count: number;
-    // Whether the counter is worth drawing at all.
     visible: boolean;
     tooLong: boolean;
 }
@@ -80,7 +79,6 @@ const TUI_ONLY = new Set([
     'vim'
 ]);
 
-/* The commands of the CLI's list that mean something in a chat node. */
 export function usableSlashCommands(names: string[]): string[] {
     return names.filter((name) => !TUI_ONLY.has(name));
 }

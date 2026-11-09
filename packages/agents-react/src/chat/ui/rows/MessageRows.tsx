@@ -105,7 +105,6 @@ function AttachmentLink({ chatId, attachment }: { chatId: string; attachment: Ch
     );
 }
 
-/* A picture attached to a message, which opens large. */
 function AttachmentThumb({ chatId, attachment }: { chatId: string; attachment: ChatAttachment }) {
     const { id } = useChatScope();
     const source = useHostAttachmentUrl(id, chatId, attachment.id);

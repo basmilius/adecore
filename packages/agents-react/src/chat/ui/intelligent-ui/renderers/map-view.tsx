@@ -22,7 +22,6 @@ export interface MapMarker extends MapPoint {
 export interface MapViewProps {
     markers: readonly MapMarker[];
     source: UiMapSource;
-    /* The id of the marker drawn as picked. */
     selected: string | null;
     /* Called with a marker's id when it is clicked; null where the places cannot be picked. */
     onPick: ((id: string) => void) | null;

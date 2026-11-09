@@ -20,7 +20,6 @@ import { clampVisualHeight, visualContentHeight } from './logic/visual-height';
  */
 const SILENCE_MS = 3000;
 
-/* The window of a visual's frame, as the bridge posts into it. */
 export interface VisualFrameWindow {
     postMessage(message: unknown, targetOrigin: string): void;
 }
@@ -192,7 +191,6 @@ export class VisualBridge {
         }
     }
 
-    /* The frame fired `load`. */
     loaded(): void {
         if (this.suspended) {
             this.loadedWhileSuspended = true;

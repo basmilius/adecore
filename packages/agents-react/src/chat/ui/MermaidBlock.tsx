@@ -39,7 +39,6 @@ function resolveColor(element: HTMLElement, token: string, ground: string): stri
     return `#${[red, green, blue].map((channel) => channel!.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/* What a diagram reads of the theme where it stands. */
 interface DiagramLook {
     colors: Record<string, string>;
     font: DiagramFont;

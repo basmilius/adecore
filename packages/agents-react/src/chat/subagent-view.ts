@@ -73,7 +73,6 @@ export function subagentOf(structure: Readonly<Record<string, ChatItem>>, toolUs
     return Object.values(structure).find((item): item is ChatSubagentItem => item.kind === 'subagent' && item.toolUseId === toolUseId) ?? null;
 }
 
-/* The subagents a chat can open, in the order the thread has them. */
 export function openableSubagents(order: readonly string[], structure: Record<string, ChatItem>, machineRefused: boolean): ChatSubagentItem[] {
     return order.flatMap((id) => {
         const item = structure[id];

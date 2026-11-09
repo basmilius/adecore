@@ -9,7 +9,6 @@ import { type PromptAnswer } from '../../../host/prompts';
 import { answerFieldKey, choiceKey, stepIndex } from '../logic/keys';
 import { pickPromptChoice } from '../logic/prompts';
 
-/* One question of a request: its choices, "Something else…", or a written answer when it offers no choices. */
 export function QuestionBody({
     question,
     answer,

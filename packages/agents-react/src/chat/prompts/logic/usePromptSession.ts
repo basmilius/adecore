@@ -14,7 +14,6 @@ interface PromptSessionOptions<T> {
 interface PromptSession<T> {
     active: T | null;
     activeId: string | null;
-    /* Where the active prompt stands among the waiting ones. */
     index: number;
     /* The prompts not answered yet from this card, in the order they came in. */
     waiting: readonly T[];

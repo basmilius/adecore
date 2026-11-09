@@ -49,7 +49,6 @@ export function toolSummary(name: string, input: unknown): string {
     return '';
 }
 
-// The input keys whose value is a file a call is about.
 const PATH_KEYS = new Set(['file_path', 'notebook_path']);
 
 /* Whether the one line of a call is the path of a file, which a row cuts in the middle so the name stays. */
@@ -65,7 +64,6 @@ export function toolSummaryIsPath(name: string, input: unknown): boolean {
     return key !== undefined && PATH_KEYS.has(key);
 }
 
-/* The command of a shell call, as it was run; null for any other call or one without a command. */
 export function shellCommand(name: string, input: unknown): string | null {
     if (toolEntry(name)?.shell !== true || !isRecord(input)) {
         return null;
@@ -78,7 +76,6 @@ export function shellCommand(name: string, input: unknown): string | null {
 
 /* What a call was asked to do, as the lines its opened row shows. */
 interface ToolCallLines {
-    /* The command of a shell call, whole. */
     readonly command: string | null;
     /* The rest of the input as key and value: a string as it is, anything else as compact JSON. */
     readonly args: ReadonlyArray<readonly [key: string, value: string]>;
@@ -122,12 +119,10 @@ export function exitCodeOf(output: string): { code: number | null; rest: string 
     return { code: Number(match[1]), rest: output.slice(match[0].length) };
 }
 
-/* Whether an output says anything; whitespace alone does not. */
 export function hasOutput(output: string | null): output is string {
     return output !== null && output.trim() !== '';
 }
 
-/* Whether opening a call shows anything: a diff, the input it was given or what it answered. */
 export function hasToolBody(tool: ChatToolItem): boolean {
     if (hasFileChanges(tool) || hasOutput(tool.output)) {
         return true;
@@ -141,7 +136,6 @@ export function hasToolBody(tool: ChatToolItem): boolean {
 // What `GET /fs/file` will serve; a path with another suffix is not worth asking the host about.
 const IMAGE_SUFFIXES = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
 
-/* The image file a tool call looked at, so the row can draw it; null for every other call. */
 export function readImagePath(name: string, input: unknown): string | null {
     if (toolEntry(name)?.readsImage !== true) {
         return null;
@@ -158,7 +152,6 @@ export function readImagePath(name: string, input: unknown): string | null {
     return IMAGE_SUFFIXES.some((suffix) => lowered.endsWith(suffix)) ? path : null;
 }
 
-/* The before and after text of a file-changing tool call, so the thread can show it as a diff. */
 export function fileChanges(name: string, input: unknown): FileChange[] {
     const edit = toolFileEdit(name, input);
 

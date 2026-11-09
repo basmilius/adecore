@@ -185,7 +185,6 @@ interface ThreadRowProps extends Omit<RowProps, 'openConversation'> {
     index: number;
     top: number;
     measure: (element: HTMLDivElement | null) => void;
-    /* The nonce of the flash on this row, or null when it has none. */
     flashNonce: number | null;
     bookmark: ChatBookmark | null;
     openConversation(step: SubagentStep): void;

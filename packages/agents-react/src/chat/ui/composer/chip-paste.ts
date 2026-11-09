@@ -41,7 +41,6 @@ export function pastedChipsIn(text: string, from: number, to: number, code: read
     );
 }
 
-/* Whether a plain paste could make a chip at all, before it goes in as text. */
 export function mayHoldChips(text: string): boolean {
     return /(^|[\s([{"'“‘])[$#]\p{L}/u.test(text);
 }

@@ -2,7 +2,6 @@ import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, Mode
 import i18next from 'i18next';
 import type { TimelineRow } from '../../host/timeline-row';
 
-/* What a host answered about its CLIs, and whether it answered yet. */
 interface HostProviders {
     readonly providers: readonly ProviderInfo[];
     readonly loaded: boolean;
@@ -60,7 +59,6 @@ export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined, h
     return null;
 }
 
-/* Why a fork cannot write a summary for its original right now, or null when it can. */
 export function summaryRefusal(state: { busy: boolean; originalPresent: boolean }): string | null {
     if (!state.originalPresent) {
         return i18next.t('agent-chat:fork.refusal.originalGone');
@@ -73,7 +71,6 @@ export function summaryRefusal(state: { busy: boolean; originalPresent: boolean 
     return null;
 }
 
-/* The forks this client knows of that went on after this turn of this chat, in the order it holds them. */
 export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: string): string[] {
     const ids: string[] = [];
 
@@ -86,7 +83,6 @@ export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: 
     return ids;
 }
 
-/* The turns of this chat that at least one fork this client knows of went on after. */
 export function forkedTurnIds(infos: Iterable<ChatInfo>, chatId: string): Set<string> {
     const turns = new Set<string>();
 
@@ -219,7 +215,6 @@ export function forkPayload(input: {
     };
 }
 
-/* Why a branch cannot be the fork's, or null when it can. */
 export function branchRefusal(branch: string, taken: readonly string[]): string | null {
     const name = branch.trim();
 

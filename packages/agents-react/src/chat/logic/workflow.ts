@@ -200,7 +200,6 @@ export function liveWorkflowPhase(phases: WorkflowPhaseView[], workflowRunning: 
 const META_START = /export\s+const\s+meta\s*=\s*\{/;
 const DESCRIPTION = /\bdescription\s*:\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/;
 
-/* The literal from its opening brace to the one that closes it, skipping braces inside strings. */
 function metaLiteral(script: string): string | null {
     const start = META_START.exec(script);
 

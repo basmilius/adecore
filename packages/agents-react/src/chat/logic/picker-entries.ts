@@ -18,7 +18,6 @@ interface PickerCurrent {
     model: string;
 }
 
-/* The models a person starred, per CLI. */
 type FavoritesOf = (kind: AgentKind) => ReadonlySet<string>;
 
 const NO_FAVORITES: FavoritesOf = () => new Set();
@@ -51,7 +50,6 @@ function modelsByVendor(models: ModelInfo[]): ModelInfo[] {
     });
 }
 
-/* The starred models first, in the order they came, then the rest by maker. */
 export function favoritesFirst(models: ModelInfo[], favorites: ReadonlySet<string>): ModelInfo[] {
     if (favorites.size === 0) {
         return modelsByVendor(models);

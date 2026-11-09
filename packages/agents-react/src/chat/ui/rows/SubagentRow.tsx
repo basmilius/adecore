@@ -78,7 +78,6 @@ function StatusPill({ item, task }: { item: ChatSubagentItem; task: SubagentTask
     );
 }
 
-/* What the sub-agent did, live: its own tool calls and the text it wrote, as ordinary rows. */
 function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubagentItem; work: ChatItem[] }) {
     const { t } = useTranslation('agent-chat');
     const { id } = useChatScope();

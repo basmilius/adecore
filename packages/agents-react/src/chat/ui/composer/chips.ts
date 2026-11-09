@@ -36,7 +36,6 @@ const referenceMark = Decoration.mark({ class: `${REFERENCE_TONE} ${CHIP_IN_EDIT
 
 const roots = new WeakMap<HTMLElement, Root>();
 
-/* The reference's mark in place of the `#`, the way a sent message draws it. */
 class ReferenceIcon extends WidgetType {
     readonly id: string;
     readonly kind: ReferableKind;

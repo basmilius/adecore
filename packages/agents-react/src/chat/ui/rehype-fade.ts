@@ -27,7 +27,6 @@ const SKIPPED = new Set(['code', 'pre']);
 
 const WHITESPACE = /^\s+$/;
 
-/* A text cut into its words and the whitespace between them, in order. */
 export function wordSegments(text: string): string[] {
     return text.split(/(\s+)/).filter((segment) => segment !== '');
 }

@@ -47,7 +47,6 @@ const UnifiedDiff = lazyNamed(() => import('../UnifiedDiff'), 'default');
 
 const OUTPUT_LIMIT = 4000;
 
-/* The line that says how much of a text past the limit is left out; empty for a text within it. */
 function clipNotice(text: string): string {
     return text.length > OUTPUT_LIMIT ? `\n${i18next.t('agent-chat:work.moreCharacters', { count: text.length - OUTPUT_LIMIT })}` : '';
 }
@@ -58,7 +57,6 @@ function clip(text: string): string {
 
 const BRAND = 'font-semibold';
 
-/* `text` with `brand` in semibold where it names it, as a sentence about a look does. */
 function withBrand(text: string, brands: readonly string[]): ReactNode {
     for (const brand of brands) {
         const at = brand === '' ? -1 : text.indexOf(brand);
@@ -234,7 +232,6 @@ function DiffSuspense({ children }: { children: ReactNode }) {
     return <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>{children}</LazyBoundary>;
 }
 
-/* A file in a changed files card, which opens its diff under it. */
 function ChangedFileLine({
     path,
     open,
@@ -510,7 +507,6 @@ export function RunningFor({ startedAt }: { startedAt: number }) {
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
-/* The mark of one call: the look it runs under, else what the tool is about. */
 function callIcon(tool: ChatToolItem, commandLooks: readonly CommandLook[] | undefined, toolLooks: readonly ToolLook[] | undefined): ReactNode {
     const run = lookRunOf(tool, commandLooks, toolLooks);
 

@@ -26,7 +26,6 @@ function elementsOf(node: ReactNode): Rendered[] {
     return [...own, ...elementsOf(element.props.children)];
 }
 
-/* Every string under a node, in order. */
 function textOf(node: ReactNode): string {
     if (typeof node === 'string') {
         return node;

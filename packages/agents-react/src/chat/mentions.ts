@@ -102,7 +102,6 @@ export function readClipboardChips(data: Pick<DataTransfer, 'getData'>): Clipboa
 }
 
 export interface MentionQuery {
-    // Index of the sigil in the text.
     start: number;
     query: string;
 }
@@ -190,7 +189,6 @@ export function findReferenceQuery(text: string, caret: number): MentionQuery | 
     return found === null || (found.query !== '' && !/^\p{L}/u.test(found.query)) ? null : found;
 }
 
-/* Replaces the `<sigil>query` under the caret with the chosen token and a space, and says where the caret goes. */
 export function insertToken(text: string, query: MentionQuery, sigil: string, value: string): { text: string; caret: number } {
     const end = query.start + 1 + query.query.length;
     const token = `${sigil}${value} `;

@@ -29,7 +29,6 @@ function recorder() {
     return { calls, clients };
 }
 
-/* One of the app's own prompts, the way it raises one beside a chat's. */
 function hostPrompt(id: string, createdAt: number, blocking = true): HostPrompt {
     return { id, createdAt, blocking, asks: 'approval', data: null };
 }

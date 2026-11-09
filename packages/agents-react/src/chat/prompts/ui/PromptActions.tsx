@@ -65,7 +65,6 @@ export function ApprovalActions({
     );
 }
 
-/* The buttons of a question: back through its questions, dismissing an optional one, and Next until the last becomes Answer. */
 export function QuestionActions({
     index,
     dismissable,

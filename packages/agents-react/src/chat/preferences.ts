@@ -266,7 +266,6 @@ export function toggleFavoriteModel(provider: AgentKind, slug: string): void {
     store(withFavoriteToggled(useChatPreferences.getState(), provider, slug));
 }
 
-/* Back to the CLI's own default for this provider; the other providers keep what they had. */
 export function forgetChatSelection(provider: AgentKind): void {
     const current = useChatPreferences.getState();
     const { [provider]: _dropped, ...rest } = current.selectionByProvider;

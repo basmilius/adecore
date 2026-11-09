@@ -126,7 +126,6 @@ interface TickSlot {
     marked: boolean;
     /* Whether a find hit falls under it, which puts a mark of the find's own color beside it. */
     found: boolean;
-    /* The top of the tick inside the strip. */
     y: number;
 }
 
@@ -187,7 +186,6 @@ export function tickOfRow(ticks: readonly ScrubberTick[], rowIndex: number): num
     );
 }
 
-/* Per tick, whether any of the rows has a find hit in its stretch. */
 export function ticksWithHits(ticks: readonly ScrubberTick[], hitRows: readonly number[]): boolean[] {
     const found = ticks.map(() => false);
 
@@ -277,7 +275,6 @@ function lastIndexAtOrBelow(length: number, valueAt: (index: number) => number, 
 
 type MessageStarts = Pick<readonly number[], 'length' | 'at'>;
 
-/* The last index whose start lies at or above a line, or -1. */
 function lastAtOrAbove(starts: MessageStarts, line: number): number {
     return lastIndexAtOrBelow(starts.length, (index) => starts.at(index)!, line);
 }
@@ -317,7 +314,6 @@ export function messagesInView({ starts, scrollTop, visibleHeight }: ReadingPosi
     return { first, last: Math.max(first, last) };
 }
 
-/* Whether a drawn tick covers any of the messages on screen. */
 export function slotInView(slot: TickSlot, range: MessageRange | null): boolean {
     return range !== null && slot.last >= range.first && slot.first <= range.last;
 }

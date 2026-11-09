@@ -106,7 +106,6 @@ export function pickInMenu(e: KeyboardEvent, menus: ComposerMenus): boolean {
     return false;
 }
 
-/* Enter sends, adds a line, or carries a list on, by the send key and where the caret is. */
 function enter(e: KeyboardEvent, view: EditorView, { host, sendKey, submit }: KeyHandlerInput): boolean {
     const { state } = view;
     const { from, to, head } = state.selection.main;

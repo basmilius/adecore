@@ -8,7 +8,6 @@ import { useCodeTheme } from './code-theme';
 import { tokenStyle, useCodeHighlighter, type CodeHighlighter, type Highlighter } from './highlighter';
 import { ReferenceChip } from './ReferenceChip';
 
-/* One colored run of a command, as offsets into it. */
 interface Run extends CodeToken {
     start: number;
     end: number;
@@ -43,7 +42,6 @@ function runsOf(highlighter: Highlighter, code: string, language: string, theme:
     }));
 }
 
-/* `base` with `[start, end)` cut out of it and `inner` in its place. */
 function overlay(base: readonly Run[], start: number, end: number, inner: readonly Run[]): Run[] {
     const kept: Run[] = [];
 
@@ -112,7 +110,6 @@ function highlight(command: string, extra: readonly EmbeddedCode[], theme: strin
     return runs;
 }
 
-/* `command[from, to)` in its colors, or as it is while there are none. */
 function draw(command: string, runs: readonly Run[] | null, from: number, to: number): ReactNode[] {
     if (runs === null) {
         return [command.slice(from, to)];

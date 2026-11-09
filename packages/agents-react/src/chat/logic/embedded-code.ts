@@ -13,7 +13,6 @@ export const EMBEDDED_CODE_LIMIT = 20_000;
 
 const MAX_DEPTH = 3;
 
-/* A stretch of a shell command, as offsets into it. */
 interface ShellSpan {
     readonly start: number;
     readonly end: number;
@@ -57,9 +56,7 @@ interface SimpleCommand {
 
 interface Interpreter {
     readonly language: string;
-    /* Whether a flag says the next argument is the script. */
     script(flag: string): boolean;
-    /* Options that take the next argument as their value. */
     readonly takesValue?: ReadonlySet<string>;
     /* A database client: its arguments name a database, and it reads statements from stdin whatever they are. */
     readonly client?: boolean;
@@ -149,7 +146,6 @@ function programOf(word: string): string {
     return /^python\d*(\.\d+)?$/.test(name) ? 'python' : name;
 }
 
-/* Splits `source[from, to)` into simple commands the way a shell would, enough to find the code in them. */
 function parseCommands(source: string, from: number, to: number): SimpleCommand[] {
     const commands: SimpleCommand[] = [];
     let current: SimpleCommand = { words: [], redirects: [], heredocs: [] };

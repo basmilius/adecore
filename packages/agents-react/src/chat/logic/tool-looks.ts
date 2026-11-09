@@ -3,7 +3,6 @@ import { isRecord } from '@adecore/utils/record';
 import type { ToolLook, ToolLookMatch } from '../../host/host';
 import type { CommandLookWord, LookRun } from './command-looks';
 
-// A value keeps this many characters of what it says.
 const FOLD_LENGTH = 40;
 // An ACP agent titles a call of an MCP tool with the server and the tool, each agent with a separator of its own.
 const TITLE_SEPARATORS = ['__', '_', '-'];
@@ -14,9 +13,7 @@ const ACP_TOOL_ROW = 'Tool';
 /* A call of a tool on an MCP server, the same whichever CLI made it. */
 interface McpCall {
     readonly server: string;
-    /* The tool's name on its server, without the server. */
     readonly tool: string;
-    /* The arguments the tool got. */
     readonly input: Readonly<Record<string, unknown>>;
     /* What the tool answered, out of any envelope the CLI wraps it in. */
     readonly output: string | null;

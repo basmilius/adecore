@@ -86,7 +86,6 @@ export function resumeCompactionDueAt(input: OfferInput): number | null {
     return endedAt === null ? null : dueAtOf(input.info, endedAt);
 }
 
-/* Whether to offer compacting before the next message. */
 export function resumeCompactionOffer(input: OfferInput & { now: number }): ResumeCompactionOffer | null {
     const turn = offerableTurn(input);
 

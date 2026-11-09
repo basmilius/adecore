@@ -334,7 +334,6 @@ function isImageRow(row: TimelineRow): boolean {
     return (row.kind === 'work' || row.kind === 'work-live') && isImageGeneration(row.tool);
 }
 
-/* Rows for a run of items, in order, with tool runs folded and a subagent's work under its own row. */
 function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map<string, ChatItem[]>): TimelineRow[] {
     const rows: TimelineRow[] = [];
     const tools: ChatToolItem[] = [];
@@ -576,7 +575,6 @@ function chunksByTurn(items: ChatItem[]): TurnChunk[] {
     return chunks;
 }
 
-/* Whether every node whose message opened the turn has that message among the rows right above it. */
 function opensUnderItsMessages(turn: ChatTurnItem, rows: readonly TimelineRow[]): boolean {
     const from = turn.messageFrom ?? [];
 

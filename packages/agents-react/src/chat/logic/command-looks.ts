@@ -55,7 +55,6 @@ interface CommandLookRun extends LookRun {
 
 const caches = new WeakMap<readonly CommandLook[], Map<string, CommandLookRun | null>>();
 
-/* The look of a simple command and what it says about it, or null when no look knows it. */
 function lookOf(command: ShellSimpleCommand, looks: readonly CommandLook[]): { look: CommandLook; match: CommandLookMatch } | null {
     const program = command.program;
 
@@ -140,7 +139,6 @@ function detailOf(source: string, command: ShellSimpleCommand, match: CommandLoo
     return { detail, code, words };
 }
 
-/* Whether the shell would fill in a part of this source: a `$` or backtick outside single quotes and not escaped. */
 function expandsInShell(source: string): boolean {
     let quote: "'" | '"' | null = null;
 

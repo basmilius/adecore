@@ -10,7 +10,6 @@ import { approvalButtons } from './subjects';
 
 const command = PROMPT_SAMPLES.find((sample) => sample.label === 'Permission · Command')!.items[0] as ChatApprovalItem;
 
-/* A card with the approval toolbar the chat draws, and which element took the keyboard. */
 function approvalCard() {
     const buttons = approvalButtons({ kind: 'chat', nodeId: 'chat-1', item: command }, '').map(({ action: _action, ...button }) => ({
         ...button,

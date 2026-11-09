@@ -56,7 +56,6 @@ interface ComposerControlsProps {
     insert(text: string): void;
 }
 
-/* The row under the box: the + with attach, the stash and the sigils, the chat's settings, the app's own control, and stop and send. */
 export function ComposerControls({
     chatId,
     info,

@@ -23,7 +23,6 @@ export function modSends(sendKey: ChatSendKey, multiline: boolean): boolean {
     return sendKey === 'mod-enter' || (sendKey === 'mod-enter-multiline' && multiline);
 }
 
-/* The key that sends a message, as a hint prints it. */
 export function sendShortcut(sendKey: ChatSendKey, multiline: boolean): Shortcut {
     return modSends(sendKey, multiline) ? KEY_SHORTCUTS.modEnter : KEY_SHORTCUTS.enter;
 }

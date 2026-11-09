@@ -13,11 +13,9 @@ interface TakeBackInput {
     chatId: string;
     draft: ComposerDraft;
     setNotice(notice: string): void;
-    /* The message is back in the draft. */
     onTaken(): void;
 }
 
-/* Takes a queued message out of the queue and back into the draft, to be edited before it goes. */
 export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, onTaken }: TakeBackInput) {
     const { t } = useTranslation('agent-chat');
     const host = useChatHost();

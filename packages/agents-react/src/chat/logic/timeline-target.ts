@@ -8,11 +8,9 @@ export interface TimelineTarget {
     /* The text selected inside the thread; a selection elsewhere is none of this menu's business. */
     selection: string;
     row: TimelineRow | null;
-    /* The code block under the pointer, when the click landed in one. */
     code: string | null;
     /* The file a mention chip, a changed-files row or a link in an answer names. */
     path: string | null;
-    /* The line that file reference named, where it named one. */
     line: number | null;
     /* Captured at menu opening, before the rendering scope or cwd can change. */
     file?: { ref: FileRef; cwd: string | null; scopeId: string | null } | null;
@@ -44,7 +42,6 @@ export function withCurrentText(rows: TimelineRow[], items: Record<string, ChatI
     });
 }
 
-/* The row a click landed in is the one whose id it sits under; the rest comes from the same walk up. */
 export function readTimelineTarget(element: HTMLElement, scroller: HTMLElement | null, rows: TimelineRow[]): TimelineTarget {
     const id = element.closest<HTMLElement>('[data-item-id]')?.dataset.itemId;
     const file = element.closest<HTMLElement>('[data-file-path]');

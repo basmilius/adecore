@@ -44,8 +44,6 @@ const SEARCH_DEBOUNCE_MS = 80;
 const MENTION_RESULTS = 8;
 const REFERENCE_RESULTS = 20;
 
-/* The text of a prompt and what the person picked in it with `@`, `$` and `#`. */
-
 export type PromptDraft = Pick<ChatDraft, 'text' | 'mentions' | 'skills' | 'chats' | 'references' | 'referenceNames'>;
 
 interface PromptDraftBox<D extends PromptDraft> {
@@ -69,7 +67,6 @@ interface PromptMenusInput<D extends PromptDraft> {
     /* Where `@` searches for files; null offers none. */
     cwd: string | null;
     skills: readonly ChatSkill[];
-    /* What the CLI said it answers after `/`. */
     slashCommands: readonly string[];
     /* Commands the box runs itself, named in `composer.commands`; the rest go to the CLI as text. */
     localCommands?: readonly string[];

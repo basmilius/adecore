@@ -296,7 +296,6 @@ describe('deriveTimelineRows', () => {
         expect(rows.map((row) => row.kind)).toEqual(['turn-start', 'turn-fold', 'assistant']);
         expect(rows[0]).toMatchObject({ label: 'Sub-agent finished: Report written' });
 
-        // While it runs it shows its work and the working row, like any other turn.
         const running: ChatItem[] = [{ ...turn, state: 'running', endedAt: null }, work];
         expect(deriveTimelineRows(running, { ...options, activeTurnId: 'ta' }).map((row) => row.kind)).toEqual(['turn-start', 'work-group', 'working']);
     });

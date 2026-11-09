@@ -132,7 +132,6 @@ test('the last turn is the one that started last, wherever the thread has it', (
     expect(offer({ items: [turn('turn-2', ENDED, 20), turn('turn-1', ENDED, 10)] })?.turnId).toBe('turn-2');
 });
 
-/* A clock whose timers and wakes a test runs by hand. */
 function fakeClock(start: number) {
     let now = start;
     let timer: { run: () => void; at: number } | null = null;

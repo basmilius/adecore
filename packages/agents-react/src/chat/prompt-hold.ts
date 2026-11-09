@@ -10,7 +10,6 @@ export interface HoldInput {
 
 export type HoldRelease = 'pause' | 'send' | 'blur' | 'show';
 
-/* A card waits while the person is composing, or typed less than the pause ago. */
 export function holdsPrompt(input: HoldInput, now: number): boolean {
     if (input.composing) {
         return true;

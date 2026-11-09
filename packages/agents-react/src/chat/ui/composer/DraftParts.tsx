@@ -18,7 +18,6 @@ interface DraftQuoteProps {
     onSourceGone(): void;
 }
 
-/* The quote that goes above the message, as a blockquote. */
 export function DraftQuote({ chatId, quote, source, onRemove, onSourceGone }: DraftQuoteProps) {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();

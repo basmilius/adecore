@@ -1,6 +1,5 @@
 import { Bot, Eye, FolderSearch, Globe, ListTodo, Search, SquarePen, Terminal, Workflow, Zap, type LucideIcon } from 'lucide-react';
 
-/* Everything the thread knows about one tool by name. */
 interface ToolEntry {
     /* The mark in the gutter of the call's row. */
     icon: LucideIcon;
