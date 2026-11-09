@@ -590,6 +590,32 @@ describe('line actions', () => {
         expect(disposed).toEqual(['a', 'b']);
     });
 
+    test('an owner that sets its actions anew from inside a render leaves no element of the old set behind', () => {
+        const { editor, host } = setup({ text });
+        const mounted: string[] = [];
+        const disposed: string[] = [];
+
+        const action = (id: string, line: number, inside?: () => void) => ({
+            id,
+            line,
+            render: (container: HTMLElement) => {
+                container.textContent = id;
+                mounted.push(id);
+                inside?.();
+
+                return () => void disposed.push(id);
+            }
+        });
+
+        editor.setLineActions([action('a', 0, () => editor.setLineActions([action('c', 2)], 'one')), action('b', 1)], 'one');
+
+        expect([...host.querySelectorAll('.se-line-action')].map((element) => element.textContent)).toEqual(['c']);
+        expect(mounted).toEqual(['a', 'c']);
+        expect(disposed).toEqual(['a']);
+        editor.dispose();
+        expect(disposed).toEqual(['a', 'c']);
+    });
+
     test('a press on the element stops at it, so the editor never moves the caret for it', () => {
         const { editor, host, window } = setup({ text });
         editor.setLineActions([{ id: 'a', line: 0, render: (container) => container.append(container.ownerDocument.createElement('button')) }]);

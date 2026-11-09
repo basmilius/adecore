@@ -2918,50 +2918,69 @@ export class EditorView {
     }
 
     private paintLineActions(): void {
+        for (const owner of this.lineActions.keys()) {
+            // An owner that set its actions anew from inside a render is painted once more, with the new ones; a draw never nests.
+            if (!this.paintOwnerActions(owner)) {
+                this.paintOwnerActions(owner);
+            }
+        }
+    }
+
+    /* False when the owner set its actions anew from inside a render, which leaves the rest of the list it was painting stale. */
+    private paintOwnerActions(owner: string): boolean {
         const lineHeight = this.layout.metrics.lineHeight;
         const top = this.scrollTop;
+        const entries = this.lineActions.get(owner) ?? [];
 
-        for (const [owner, entries] of this.lineActions) {
-            for (const entry of entries) {
-                const key = `${owner}\0${entry.id}`;
-                let element = this.actionElements.get(key)?.element;
+        for (const entry of entries) {
+            const key = `${owner}\0${entry.id}`;
+            let element = this.actionElements.get(key)?.element;
 
-                if (element === undefined) {
-                    element = this.document.createElement('div');
-                    element.className = 'se-line-action';
-                    element.addEventListener('pointerdown', (event) => event.stopPropagation());
-                    element.addEventListener('mousedown', (event) => event.stopPropagation());
-                    this.actions.append(element);
-                    const mounted: { element: HTMLElement; dispose: (() => void) | void } = { element, dispose: undefined };
-                    this.actionElements.set(key, mounted);
-                    const dispose = entry.render(element);
+            if (element === undefined) {
+                element = this.document.createElement('div');
+                element.className = 'se-line-action';
+                element.addEventListener('pointerdown', (event) => event.stopPropagation());
+                element.addEventListener('mousedown', (event) => event.stopPropagation());
+                this.actions.append(element);
+                const mounted: { element: HTMLElement; dispose: (() => void) | void } = { element, dispose: undefined };
+                this.actionElements.set(key, mounted);
+                const dispose = entry.render(element);
 
-                    // An owner that took the element away again from inside its own render gets it disposed at once.
-                    if (this.actionElements.get(key) !== mounted) {
-                        dispose?.();
+                // An owner that took the element away again from inside its own render gets it disposed at once.
+                if (this.actionElements.get(key) !== mounted) {
+                    dispose?.();
 
-                        continue;
+                    if (this.lineActions.get(owner) !== entries) {
+                        return false;
                     }
-
-                    mounted.dispose = dispose;
-                }
-
-                const line = this.model.positionAt(entry.at).line;
-                const row = this.layout.rowForLine(line);
-                const place = row.kind === 'text' && row.line === line ? this.layout.caret(this.model.getLine(line).end) : null;
-
-                if (place === null || place.y + lineHeight < top - this.viewportHeight || place.y > top + 2 * this.viewportHeight) {
-                    element.hidden = true;
 
                     continue;
                 }
 
-                element.hidden = false;
-                element.style.left = `${Math.round(place.x) + LINE_ACTION_GAP}px`;
-                element.style.top = `${Math.round(place.y)}px`;
-                element.style.height = `${lineHeight}px`;
+                mounted.dispose = dispose;
+
+                if (this.lineActions.get(owner) !== entries) {
+                    return false;
+                }
             }
+
+            const line = this.model.positionAt(entry.at).line;
+            const row = this.layout.rowForLine(line);
+            const place = row.kind === 'text' && row.line === line ? this.layout.caret(this.model.getLine(line).end) : null;
+
+            if (place === null || place.y + lineHeight < top - this.viewportHeight || place.y > top + 2 * this.viewportHeight) {
+                element.hidden = true;
+
+                continue;
+            }
+
+            element.hidden = false;
+            element.style.left = `${Math.round(place.x) + LINE_ACTION_GAP}px`;
+            element.style.top = `${Math.round(place.y)}px`;
+            element.style.height = `${lineHeight}px`;
         }
+
+        return true;
     }
 
     /* Bars in the gutter for runs of lines, which follow their text through edits until the host sets them again. */
