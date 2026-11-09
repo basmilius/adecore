@@ -256,14 +256,12 @@ export class CallHierarchyFeature {
         }
     }
 
-    /* Asks again for the calls of a node whose last try failed. */
     retry(id: string): void {
         if (this.nodes.get(id)?.load === 'failed') {
             void this.load(id);
         }
     }
 
-    /* Brings the next stretch of calls of a level. */
     showMore(parent: string): void {
         const node = this.nodes.get(parent);
 
@@ -281,7 +279,6 @@ export class CallHierarchyFeature {
         }
     }
 
-    /* Makes a row the active one and shows the code of its call. */
     select(id: string, site = 0): void {
         const view = this.language.popups.slot('callHierarchy').get();
         const node = this.nodes.get(id);
@@ -299,7 +296,6 @@ export class CallHierarchyFeature {
         }
     }
 
-    /* Steps through the places a call is made from when the active one has more than one. */
     stepSite(direction: 1 | -1): void {
         const view = this.language.popups.slot('callHierarchy').get();
 

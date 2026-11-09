@@ -77,7 +77,6 @@ export class MarkupFeature {
         });
     }
 
-    /* Whether the language of the document is markup this feature writes. */
     get supported(): boolean {
         return this.syntax !== null;
     }

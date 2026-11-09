@@ -4,7 +4,6 @@ import type { LanguageContext } from './language-context.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/linkedEditingRange';
-/* How long the caret rests before the ranges around it are asked. */
 const DELAY_MS = 100;
 
 interface Span {
@@ -64,7 +63,6 @@ export class LinkedEditingFeature {
         return this.enabled && service.linkedEditingRanges !== undefined && service.supports(METHOD, this.language.uri);
     }
 
-    /* Whether ranges are linked now. */
     get isActive(): boolean {
         return this.session !== null;
     }

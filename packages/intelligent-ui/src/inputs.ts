@@ -24,7 +24,6 @@ export function eachDrawnNode(nodes: readonly UiViewNode[], visit: (node: UiView
     }
 }
 
-/* Whether a control's value is one its own visible options offer. */
 function offered(node: UiViewNode): boolean {
     if (node.type === 'Segmented' || node.type === 'Select') {
         return node.children.some((option) => option.type === 'Option' && !option.error && option.props.value === node.props.value);

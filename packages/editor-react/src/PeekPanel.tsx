@@ -153,7 +153,6 @@ function useHighlightedPlaces(files: readonly PeekFile[]): ReadonlyMap<string, s
 
 const NO_LINES: ReadonlyMap<string, string> = new Map();
 
-/* A line of code in the colors of its syntax with the name marked, or with its name in the text color and the rest muted while no colors are at hand. */
 function PlaceText({ place, html }: { place: PeekPlace; html: string | undefined }) {
     if (place.text === '') {
         return <span className="min-w-0 truncate text-text-muted">{`:${place.line + 1}`}</span>;

@@ -168,7 +168,6 @@ export class InlayHintsFeature {
     private readonly timers: Timers;
     private readonly refresher: Refresher;
 
-    /* The lines the hints on screen were asked for. */
     private asked: EditorRange | null = null;
 
     private readonly entries = new Map<string, Entry>();

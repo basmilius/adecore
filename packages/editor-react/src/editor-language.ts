@@ -41,7 +41,6 @@ import { SymbolPickerFeature } from './symbol-picker.ts';
 import { SymbolsFeature } from './symbols.ts';
 import { realTimers, type Timers } from './timers.ts';
 
-/* How long the edits servers want before a save are waited for. */
 const SAVE_PARTICIPANT_MS = 1_000;
 
 /* What an app tunes about the features of one editor. */
@@ -292,7 +291,6 @@ export class EditorLanguage<App extends object = {}> implements LanguageContext 
         }
     }
 
-    /* Runs `dispose` when the editor lets go of its document. */
     onDispose(dispose: () => void): void {
         this.disposers.push(dispose);
     }

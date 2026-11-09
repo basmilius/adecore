@@ -31,7 +31,6 @@ interface CustomKey {
     readonly expand: (() => boolean) | null;
 }
 
-/* Sorts the rows of a list of templates by group, then key. */
 function grouped(template: LiveTemplate): string {
     return `${template.group ?? template.languages[0]}\u0000${template.key}`;
 }

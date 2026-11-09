@@ -65,7 +65,6 @@ export class SymbolPickerFeature {
         }
     }
 
-    /* Puts the caret on a symbol of the file. */
     goTo(entry: SymbolEntry): void {
         this.close();
         this.language.jump({ line: entry.line, character: entry.character });

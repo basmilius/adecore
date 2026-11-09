@@ -103,7 +103,6 @@ export interface LocalCompletionItem {
     accept(): void;
 }
 
-/** What a source is asked for when the list is requested. */
 interface CompletionRequest {
     readonly position: EditorPosition;
 
@@ -591,7 +590,6 @@ export class CompletionFeature {
         editor.setSelections(selections);
     }
 
-    /* The lines above the insertion down to where it starts, and the rest of the line past what it replaces. */
     private surroundings(insertion: Insertion, caret: EditorPosition, lineAfter: string): { before: string; rest: string } {
         const { editor } = this.language;
         const { start, end } = insertion.range;

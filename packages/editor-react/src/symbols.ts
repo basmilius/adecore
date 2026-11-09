@@ -27,7 +27,6 @@ interface SymbolSpan {
     readonly name: string;
     readonly kind: number;
     readonly range: Range;
-    /* The line of the name, when the server says where the name is. */
     readonly nameLine?: number;
 }
 

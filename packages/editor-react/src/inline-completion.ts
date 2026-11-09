@@ -8,7 +8,6 @@ import { parseSnippet } from './snippet.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/inlineCompletion';
-/* How long typing rests before a suggestion is asked. */
 const DELAY_MS = 300;
 
 /* A suggestion as the text it inserts at the caret: what follows what was already typed of it. */
@@ -41,7 +40,6 @@ export interface InlineSuggestionSource {
     /* Whether it is asked when typing stops, and not only when a person asks. */
     readonly automatic: boolean;
     suggest(request: InlineSuggestionRequest): Promise<readonly InlineSuggestion[]>;
-    /* The suggestion was taken into the text. */
     accepted?(suggestion: InlineSuggestion): void;
     /* The suggestions it gave are no longer drawn, for a source that mounted something with them. */
     cleared?(): void;
@@ -178,12 +176,10 @@ export class InlineCompletionFeature {
         return this.servers.enabledByHost;
     }
 
-    /* The suggestion drawn now, or null. */
     get current(): InlineSuggestion | null {
         return this.suggestions[this.index] ?? null;
     }
 
-    /* Whether the suggestion drawn now came from this source. */
     holds(source: InlineSuggestionSource): boolean {
         return this.current !== null && this.owner === source;
     }
@@ -275,7 +271,6 @@ export class InlineCompletionFeature {
         return true;
     }
 
-    /* Steps to the next or the previous suggestion. */
     cycle(step: 1 | -1): void {
         if (this.suggestions.length > 1) {
             this.index = (this.index + step + this.suggestions.length) % this.suggestions.length;

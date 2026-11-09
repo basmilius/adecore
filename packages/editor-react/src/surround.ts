@@ -31,7 +31,6 @@ interface Subject {
     readonly expression: boolean;
 }
 
-/* A row of the list and what it does. */
 interface Entry {
     readonly row: PickRow;
 
@@ -422,7 +421,6 @@ export class SurroundFeature {
         editor.focus();
     }
 
-    /* The lines of the construct before and after its edits. */
     private unwrapPreview(text: string, row: UnwrapRow): PickPreview {
         const edits = row.edits;
         const from = lineStartOf(text, Math.min(row.from, ...edits.map((edit) => edit.from)));

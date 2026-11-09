@@ -70,7 +70,6 @@ function sameFields<T extends object>(left: T | undefined, right: T | undefined)
     return [...keys].every((key) => left[key] === right[key]);
 }
 
-/* Hands the editor the settings that changed by value, so a new options object with the same values costs nothing. */
 function applyChangedOptions(editor: Editor, before: EditorOptions, after: EditorOptions): void {
     if (before.theme !== after.theme) {
         editor.setTheme(after.theme);

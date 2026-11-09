@@ -47,7 +47,6 @@ export function uniquePlaces(result: NavigationResult): { location: Location; ta
     );
 }
 
-/* The places of a result, each once. */
 function uniqueLocations(result: NavigationResult): Location[] {
     return uniquePlaces(result).map(({ location }) => location);
 }

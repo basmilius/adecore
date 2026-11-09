@@ -485,7 +485,6 @@ export class SnippetFeature {
         }
     }
 
-    /* Says which field the caret moved to, with the number of choices when the field is a list. */
     private announceField(frame: Frame, index: number): void {
         const i18n = this.language.project?.i18n;
 

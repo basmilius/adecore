@@ -161,7 +161,6 @@ export class RenameFeature {
         }
     }
 
-    /* Applies the edit the preview showed. */
     async confirm(): Promise<void> {
         const session = this.session;
 

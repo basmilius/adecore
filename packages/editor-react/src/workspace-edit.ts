@@ -348,9 +348,7 @@ export async function applyWorkspaceEdit(edit: WorkspaceEdit, host: WorkspaceEdi
     return { applied: true };
 }
 
-/* What the steps share while they run. */
 interface Running {
-    /* The steps still to run after the current one. */
     ahead: readonly WorkspaceEditStep[];
     readonly reads: Reads;
     /* A rename is in the edit, so the files it edits are saved in order instead of staged as drafts. */
@@ -375,7 +373,6 @@ function driftOf(step: PlannedTextStep, host: WorkspaceEditHost, uri: string, ed
     return readOnlyAt(host, uri, editor) ? `${step.uri} is read only` : null;
 }
 
-/* Does one step; the reason it could not, or null. */
 async function run(step: WorkspaceEditStep, host: WorkspaceEditHost, running: Running): Promise<string | null> {
     const files = host.files!;
 

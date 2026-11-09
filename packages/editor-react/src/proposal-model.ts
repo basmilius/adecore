@@ -158,7 +158,6 @@ export function fitReplacement(selected: string, replacement: string): string {
     return breaks === '\n' ? fitted : fitted.replace(/\n/g, breaks);
 }
 
-/* One stretch of the proposal as the card draws it. */
 export interface DiffSegment {
     readonly kind: 'same' | 'added' | 'removed';
     readonly text: string;

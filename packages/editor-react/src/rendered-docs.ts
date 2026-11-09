@@ -267,7 +267,6 @@ export class RenderedDocsFeature {
         return this.language.service.supports('workspace/symbol', uri);
     }
 
-    /* Goes to what a link in a comment names. */
     follow(name: string, comment: DocComment): void {
         const member = name.split(/::|[#.\\]/).filter((part) => part !== '');
         const target = (member.at(-1) ?? name).replace(/\(\)$/, '');

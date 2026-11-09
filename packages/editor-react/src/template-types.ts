@@ -1,7 +1,6 @@
 /* The families of language a live template belongs to; a family also matches the languages that build on it. */
 export type TemplateLanguage = 'javascript' | 'typescript' | 'php' | 'css' | 'html' | 'xml' | 'other';
 
-/* What the text at the caret is: code, a comment or a string. */
 export type TemplatePlace = 'code' | 'comment' | 'string';
 
 /* A text that Tab expands after its key, in the syntax of a snippet. */

@@ -56,6 +56,5 @@ export interface LanguageContext {
     /* Lets the servers in before the host writes the file. */
     prepareSave(reason?: TextDocumentSaveReason): Promise<void>;
 
-    /* Runs `dispose` when the editor lets go of its document. */
     onDispose(dispose: () => void): void;
 }

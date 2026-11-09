@@ -228,7 +228,6 @@ export class ProjectLanguage<Service extends LanguageService = LanguageService> 
         return this.service.willCreateFiles?.(filesOf(targets)) ?? Promise.resolve(null);
     }
 
-    /* Tells the servers that files were made, once they are. */
     didCreateFiles(targets: readonly FileOperationTarget[]): Promise<void> {
         return this.service.didCreateFiles?.(filesOf(targets)) ?? Promise.resolve();
     }
@@ -238,7 +237,6 @@ export class ProjectLanguage<Service extends LanguageService = LanguageService> 
         return this.service.willDeleteFiles?.(filesOf(targets)) ?? Promise.resolve(null);
     }
 
-    /* Tells the servers that files were deleted, once they are. */
     didDeleteFiles(targets: readonly FileOperationTarget[]): Promise<void> {
         const files = filesOf(targets);
 

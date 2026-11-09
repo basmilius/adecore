@@ -61,7 +61,6 @@ export class PickFeature {
     private previewTimer: unknown;
     private controller: AbortController | null = null;
 
-    /* The rows that said why they cannot be taken, by id. */
     private refusals = new Map<string, string>();
 
     private attempting = false;
@@ -148,7 +147,6 @@ export class PickFeature {
         this.settle(id);
     }
 
-    /* Makes `id` the only row the list is on. */
     private settle(id: string): void {
         const hadChosen = this.chosen.length > 0;
 

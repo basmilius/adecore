@@ -29,7 +29,6 @@ interface SetupOptions {
 
 async function setup(names: string[], options: SetupOptions = {}) {
     const service = new FakeLanguageService();
-    /* The names references were asked for, in order. */
     const asked: string[] = [];
     /* How many places each name has; a name that is not there has none. */
     const places = new Map<string, number>();

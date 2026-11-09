@@ -282,7 +282,6 @@ describe('call hierarchy', () => {
 
         expect(rows(language)).toEqual(['run', 'callee']);
         expect(calls(service, 'textDocument/prepareCallHierarchy')).toHaveLength(1);
-        // The shortcut that opened the tree flips it.
         expect(editor.press({ key: 'h', code: 'KeyH', ctrlKey: true, altKey: true })).toBe(true);
 
         await settle();

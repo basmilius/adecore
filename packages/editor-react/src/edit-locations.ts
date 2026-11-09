@@ -57,7 +57,6 @@ export class EditLocations {
         return this.entries;
     }
 
-    /* An edit left the carets here. */
     record(place: EditPlace): void {
         const last = this.entries.at(-1);
 
@@ -131,7 +130,6 @@ export class EditLocations {
         });
     }
 
-    /* Drops the places of files that are gone. */
     forget(matches: (uri: string) => boolean): void {
         this.entries = this.entries.filter((entry) => !matches(entry.uri));
         this.index = this.entries.length;

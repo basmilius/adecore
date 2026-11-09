@@ -99,11 +99,8 @@ export interface EditPreview {
     readonly hiddenLines: number;
     /* The other files the edit edits, apart from the ones it makes. */
     readonly otherFiles: number;
-    /* The files it moves. */
     readonly moves: number;
-    /* The files it makes. */
     readonly creates?: number;
-    /* The files it deletes. */
     readonly deletes?: number;
 }
 

@@ -10,7 +10,6 @@ interface Props {
     onCommit(height: number): void;
 }
 
-/* The bottom edge of a panel: a drag, or the arrow keys, change the height of its body. */
 export function PanelResizeHandle({ container, height, onHeight, onCommit }: Props) {
     const { t } = useTranslation('editor');
     const drag = useRef<{ startY: number; startHeight: number; lastY: number } | null>(null);

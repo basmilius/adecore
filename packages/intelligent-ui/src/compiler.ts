@@ -71,7 +71,6 @@ function isQuery(expression: UiExpression): expression is Extract<UiExpression, 
     return expression.kind === 'call' && expression.name === 'Query';
 }
 
-/* Throws when a query argument reads anything but declared local state. */
 function checkQueryReferences(part: unknown, defaults: Readonly<Record<string, UiValue>>): void {
     if (!part || typeof part !== 'object') {
         return;

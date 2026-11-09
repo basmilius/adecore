@@ -62,7 +62,6 @@ export function hoverTextOf(hover: Hover): HoverText {
     return contents.kind === 'plaintext' ? { signatures: [], markdown: escapeMarkdown(contents.value).trim() } : splitSignatures(contents.value);
 }
 
-/* Plain text as markdown that reads the same, its markdown characters escaped. */
 export function escapeMarkdown(text: string): string {
     return text.replace(/([\\`*_{}[\]()#+\-.!|<>~])/g, '\\$1');
 }

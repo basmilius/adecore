@@ -58,7 +58,6 @@ export class FormatOnTypeFeature {
         return this.enabled;
     }
 
-    /* Whether the server of this document formats on type and the service can ask it. */
     get supported(): boolean {
         const { uri } = this.language;
 
@@ -73,7 +72,6 @@ export class FormatOnTypeFeature {
         }
     }
 
-    /* The characters that ask the server, the first one and the more. */
     triggerCharacters(): readonly string[] {
         const options = this.language.service.providerOptions(METHOD, this.language.uri);
 

@@ -41,12 +41,10 @@ interface Draft {
     parsed: ParsedSnippet;
 }
 
-/* Each line's leading tabs become the editor's own indentation unit. */
 export function bodyWithIndentUnit(body: string, unit: string): string {
     return unit === '\t' ? body : body.replace(/^\t+/gm, (tabs) => unit.repeat(tabs.length));
 }
 
-/* One level of the editor's indentation: spaces for a tab size, or a tab. */
 export function indentUnitOf(editor: Editor): string {
     const { tabSize, insertSpaces } = editor.getIndentation();
 
@@ -244,7 +242,6 @@ async function transformVariables(
     });
 }
 
-/* Starts the session on the tab stops, or puts the caret after the primary insertion when there are none. */
 function place(language: LanguageContext, snippets: InsertingSnippets, drafts: readonly Draft[], starts: readonly EditorPosition[], nested: boolean): void {
     const { editor } = language;
     const primary = drafts.at(-1)!.parsed;

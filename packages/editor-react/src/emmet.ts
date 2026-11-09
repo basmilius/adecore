@@ -6,7 +6,6 @@ import type { MarkupSyntax } from './markup-context.ts';
 
 interface AbbreviationOptions {
     readonly syntax: MarkupSyntax;
-    /* One level of indentation inside the expansion. */
     readonly indent: string;
     /* Lines the abbreviation wraps; a repeated element without a count takes one line each. */
     readonly wrap?: readonly string[];

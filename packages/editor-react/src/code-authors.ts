@@ -43,7 +43,6 @@ export interface CodeAuthorship {
     readonly uncommittedLines: number;
     /* Whether any line of the range, a blank one too, is changed since the commit it came from. */
     readonly modified: boolean;
-    /* The newest commit that wrote a line of the range. */
     readonly latest: GitBlameCommit | null;
 }
 

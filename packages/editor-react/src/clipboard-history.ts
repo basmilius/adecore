@@ -3,7 +3,6 @@ export interface ClipboardHost {
     readonly clipboard?: ClipboardHistory;
 }
 
-/* One copy or cut, as the editors of a project made it. */
 export interface ClipboardEntry {
     readonly text: string;
     /* The copy took the lines of bare carets, which paste back above the lines of bare carets. */
@@ -87,7 +86,6 @@ export class ClipboardHistory {
         this.listeners.forEach((listener) => listener());
     }
 
-    /* Keeps the newest entries that fit the limit and the total length. */
     private trimmed(entries: readonly ClipboardEntry[]): readonly ClipboardEntry[] {
         const kept: ClipboardEntry[] = [];
         let length = 0;

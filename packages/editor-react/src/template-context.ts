@@ -3,7 +3,6 @@ import { lspLanguageId } from '@adecore/lsp';
 import type { LanguageContext } from './language-context.ts';
 import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './template-types.ts';
 
-/* The completion item kind of a snippet. */
 export const SNIPPET_KIND = 15;
 
 /* Sorts a template row after the rows of the same score that a service answers. */
@@ -52,7 +51,6 @@ export function templateContextAt(language: LanguageContext, position: EditorPos
     return place === undefined ? { families: familiesOf(language.languageId), place: 'code' } : { families: familiesOf(place.language), place: place.kind };
 }
 
-/* Whether a template shares a family with the context and applies to its place. */
 export function templateApplies(template: LiveTemplate, context: TemplateContext): boolean {
     return template.languages.some((family) => context.families.includes(family)) && (template.places ?? ['code']).includes(context.place);
 }

@@ -121,7 +121,6 @@ export class CodeVisionFeature {
         });
     }
 
-    /* Which rows to draw, from the settings of the client. */
     configure(settings: CodeVisionSettings): void {
         if (settings.usages === this.settings.usages && settings.authors === this.settings.authors) {
             return;
@@ -132,7 +131,6 @@ export class CodeVisionFeature {
         this.plan();
     }
 
-    /* What git says about the file, from the client that asked it. */
     setBlame(blame: BlameSource | null): void {
         this.blame = blame;
         this.mapped = null;
@@ -161,7 +159,6 @@ export class CodeVisionFeature {
         return this.settings.usages && this.language.service.supports(REFERENCES, this.language.uri);
     }
 
-    /* Queues the declarations in view whose count is not from the current text, nearest the top of the view first. */
     private plan(): void {
         if (this.disposed || this.edited || !this.canCount) {
             return;

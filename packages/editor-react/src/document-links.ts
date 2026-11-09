@@ -7,7 +7,6 @@ import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/documentLink';
 const RESOLVE = 'documentLink/resolve';
-/* How long after the last edit the links are asked again. */
 const DELAY_MS = 500;
 /* `#L12`, `#12` or `#L12,4`: a line, from one, and a column, from one, the form editors write into a link. */
 const LINE_FRAGMENT = /^#L?(\d+)(?:[,:C](\d+))?$/i;

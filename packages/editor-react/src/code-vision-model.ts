@@ -259,7 +259,6 @@ export function declarationsOf(result: DocumentSymbolResult, source: Declaration
     return declarations;
 }
 
-/* "No usages", "1 usage" and "N usages". */
 export function usagesText(count: number, i18n: i18n): string {
     return count === 0
         ? i18n.t('editor:language.codeVision.usagesNone')

@@ -49,7 +49,6 @@ export const BUILT_IN_LIVE_TEMPLATES: readonly LiveTemplate[] = [
     live('xml', 'CD', ['xml'], body('<![CDATA[', '$TM_SELECTED_TEXT', ']]>'), 'Surround with CDATA section')
 ];
 
-/* A block statement around the expression, with the caret inside it. */
 function block(head: string): string {
     return body(`${head} {`, '\t$0', '}');
 }

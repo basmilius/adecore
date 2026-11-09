@@ -76,7 +76,6 @@ interface LabelShape {
     readonly lower: string;
     /* Where each word of the label starts: after an underscore, a dollar sign, a space or a hyphen, and at each capital. */
     readonly offsets: readonly number[];
-    /* The lowercased first letter of each word. */
     readonly initials: string;
 }
 
@@ -226,7 +225,6 @@ export function prefixFor(item: CompletionItem, caret: EditorPosition, lineBefor
 export interface Ranked {
     readonly item: CompletionItem;
     readonly score: number;
-    /* What was typed of the item, which its matched characters are found against. */
     readonly prefix: string;
 }
 

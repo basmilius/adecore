@@ -12,7 +12,6 @@ import { filterEntries, groupEntries, letterOfKind, modeOf, toneOfKind, type Sym
 
 const SEARCH_DELAY_MS = 200;
 
-/* The letter badge of a symbol kind, tinted by what the symbol is. */
 export function SymbolBadge({ kind }: { kind: number }) {
     return (
         <span className={`grid size-4 shrink-0 place-items-center rounded-sm font-mono text-xs font-semibold ${TONE_CLASSES[toneOfKind(kind)]}`}>

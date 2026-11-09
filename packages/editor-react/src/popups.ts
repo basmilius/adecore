@@ -51,7 +51,6 @@ export interface CompletionView {
     readonly anchor: EditorPosition;
     readonly rows: readonly CompletionRow[];
     readonly active: number;
-    /* Whether the documentation of the active row is shown beside the list. */
     readonly detailsOpen: boolean;
     readonly docs: CompletionDocs | null;
     readonly server: string;

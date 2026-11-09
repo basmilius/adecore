@@ -34,7 +34,6 @@ function hexOf(color: Color): string {
     return `#${part(color.red)}${part(color.green)}${part(color.blue)}`;
 }
 
-/* The edits a presentation makes: its own text edit, or its label over the color, and the edits that come with it. */
 function presentationEdits(presentation: ColorPresentation, information: ColorInformation): TextEdit[] {
     return [presentation.textEdit ?? { range: information.range, newText: presentation.label }, ...(presentation.additionalTextEdits ?? [])];
 }

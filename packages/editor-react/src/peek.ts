@@ -161,7 +161,6 @@ export class PeekFeature {
         editor.focus();
     }
 
-    /* The definition of the name at the caret, as its source between the lines of the file. */
     openDefinition(position: EditorPosition = this.language.editor.getCaret()): Promise<void> {
         return this.open(position, 'definitions');
     }
@@ -192,7 +191,6 @@ export class PeekFeature {
         this.language.editor.focus();
     }
 
-    /* Shows the code around a place. */
     select(id: string): void {
         const view = this.language.popups.slot('peek').get();
         const location = this.places.get(id);
@@ -214,7 +212,6 @@ export class PeekFeature {
         this.language.popups.slot('peek').set({ ...view, active: id, preview: snippet === null ? null : { ...snippet, uri: location.uri } });
     }
 
-    /* Folds the places of a file away from the list, or brings them back. */
     toggleFile(uri: string): void {
         const view = this.language.popups.slot('peek').get();
 

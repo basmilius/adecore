@@ -14,7 +14,6 @@ interface TagAt {
     readonly name: string;
     readonly nameFrom: number;
     readonly nameTo: number;
-    /* The offset is inside a quoted attribute value. */
     readonly inValue: boolean;
 }
 
@@ -258,7 +257,6 @@ class MarkupScanner {
         }
     }
 
-    /* The elements still open at the end of the text. */
     unclosed(): EnclosingElement[] {
         return this.open.map((element) => ({ name: element.name, open: element.tag, close: null }));
     }
@@ -279,7 +277,6 @@ export function enclosingElements(text: string, offset: number, syntax: MarkupSy
         .sort((left, right) => right.open.from - left.open.from);
 }
 
-/* A replacement of the text from one offset up to another. */
 export interface TextReplacement {
     readonly from: number;
     readonly to: number;

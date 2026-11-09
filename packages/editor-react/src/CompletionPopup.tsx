@@ -12,7 +12,6 @@ import { placeBeside, placePopup } from './popup-placement.ts';
 import type { CompletionView } from './popups.ts';
 import { TONE_CLASSES } from './symbol-picker-model.ts';
 
-/* The label with the characters that match what was typed set apart. */
 function MarkedLabel({ label, matches }: { label: string; matches: readonly number[] }) {
     if (matches.length === 0) {
         return <>{label}</>;
@@ -54,7 +53,6 @@ const VISIBLE_ROWS = 8;
 /* Rows drawn past the visible ones on each side, so a wheel turn lands on rows that exist. */
 const OVERSCAN_ROWS = 6;
 
-/* The padding the listbox has around its rows. */
 const LIST_PADDING = 4;
 
 /* What a row takes besides its name and namespace: padding, the kind badge and the gaps. */

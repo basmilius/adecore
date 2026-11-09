@@ -86,7 +86,6 @@ export class DiagnosticsFeature {
         return true;
     }
 
-    /* Puts the caret on the first problem of the file. */
     goToFirst(): boolean {
         const target = neighborProblem(this.list, { line: -1, character: 0 }, 1);
 
