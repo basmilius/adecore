@@ -12,7 +12,7 @@ export const RESUME_COMPACTION_IDLE_MS = 70 * 60_000;
 /* `cache-expired` when the CLI named when its prompt cache goes cold, `idle` when only the silence says so. */
 export type ResumeCompactionReason = 'cache-expired' | 'idle';
 
-interface ResumeCompactionOffer {
+export interface ResumeCompactionOffer {
     /* The turn the offer is about, and the key "Keep full history" is remembered under. */
     turnId: string;
     tokens: number;
