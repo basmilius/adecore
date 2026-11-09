@@ -56,7 +56,6 @@ export interface Definition {
     readonly tail: string;
 }
 
-/* Splits a `CREATE TABLE` into its definitions and its table options, or `null` when it holds no parenthesis. */
 export const definitionOf = (ddl: string | null): Definition | null => {
     if (ddl === null) {
         return null;
@@ -94,7 +93,6 @@ export const definitionOf = (ddl: string | null): Definition | null => {
     };
 };
 
-/* The name a definition starts with, unquoted. */
 const leadingName = (item: string): string | null => {
     const mark = item[0];
 
@@ -116,7 +114,6 @@ const leadingName = (item: string): string | null => {
 const AS_OPEN = /\b(?:GENERATED\s+ALWAYS\s+)?AS\s*\(/i;
 const AS_SUFFIX = /^\s*(?:VIRTUAL|STORED|PERSISTENT)\b/i;
 
-/* The `GENERATED ALWAYS AS (...) STORED` clause of a column definition, or `null` when it has none. */
 const generatedClauseOf = (item: string): string | null => {
     // A default or a comment may hold the words, so the strings are blanked before the search.
     const masked = item.replace(/'(?:[^']|'')*'/g, (text) => ' '.repeat(text.length));
@@ -146,7 +143,6 @@ const generatedClauseOf = (item: string): string | null => {
     return item.slice(start.index, end + (suffix?.[0].length ?? 0)).trim();
 };
 
-/* The generated clause of every generated column in a table's DDL, by column name. */
 export const generatedClausesOf = (ddl: string | null): ReadonlyMap<string, string> => {
     const clauses = new Map<string, string>();
 

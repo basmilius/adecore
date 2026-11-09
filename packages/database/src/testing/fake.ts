@@ -28,7 +28,6 @@ export interface FakeTable {
     readonly columns: readonly ColumnInfo[];
     /* Also the row key. A table without one is read only. */
     readonly primaryKey?: readonly string[];
-    /* One row per entry, its values in the order of `columns`. */
     readonly rows: readonly (readonly Value[])[];
     readonly indexes?: readonly IndexInfo[];
     readonly foreignKeys?: readonly ForeignKeyInfo[];
@@ -50,7 +49,6 @@ export interface FakeDatabaseTransportOptions {
     readonly latencyMs?: number;
     /* What every `open` and `test` reports. Derived from the engine when left out. */
     readonly server?: ServerInfo;
-    /* What `discover` lists. Nothing when left out. */
     readonly containers?: readonly DockerContainer[];
 }
 
@@ -140,7 +138,6 @@ const findTable = (session: Session, schema: string, name: string): Table => {
     return table;
 };
 
-/* The columns that pick out one row: the primary key, or else the first unique index over columns that cannot be null. */
 const rowKeyOf = (table: Table): string[] | null => {
     if (table.primaryKey.length > 0) {
         return table.primaryKey;
@@ -215,7 +212,6 @@ const toRowsResult = (table: Table, rows: readonly (readonly Value[])[], offset:
     return { columns: toResultColumns(table), rows: page, hasMore: rows.length > offset + limit, elapsedMs: 0 };
 };
 
-/* Evaluates the default of a column for a row an insert or an update leaves it out of. */
 const defaultOf = (column: ColumnInfo, table: Table): Value => {
     if (column.autoIncrement) {
         const index = table.columns.indexOf(column);
@@ -358,7 +354,6 @@ const runStatement = (session: Session, sql: string, limit: number, cellLimit: n
     }
 };
 
-/* Makes a schema the selected one, as a call that names `schema` does. */
 const selectSchema = (session: Session, schema: string | undefined): void => {
     if (schema === undefined) {
         return;

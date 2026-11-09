@@ -307,7 +307,6 @@ describe('owners', () => {
         expect((await first).ok).toBe(true);
         helpers[0]!.held.length = 0;
         expect((await host.handle(open('same'), 'b')).ok).toBe(true);
-        // The id is free again once the request is answered.
         const again = host.handle(rows('same', session), 'a');
         await tick();
         helpers[0]!.reply(helpers[0]!.held[0]!.id, null);

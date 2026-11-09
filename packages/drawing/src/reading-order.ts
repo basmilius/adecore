@@ -5,7 +5,6 @@ import type { DrawingElement } from './protocol.ts';
 /* Two texts within this many units of each other are on the same line and read left to right. */
 const ROW_TOLERANCE = 24;
 
-/* How far from an arrow's end a label may sit and still be what the arrow points at. */
 const LABEL_REACH = 48;
 
 function labelOf(element: DrawingElement): string | null {

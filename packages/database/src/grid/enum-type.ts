@@ -70,7 +70,6 @@ export const parseEnumType = (type: string): EnumType | null => {
 const tidy = (kind: string, values: string[]): EnumType | null =>
     values.length === 0 ? null : { kind: kind.toLowerCase() === 'set' ? 'set' : 'enum', values };
 
-/* The members a SET value holds: the text split on commas, empty for the empty set. */
 export const membersOf = (value: string): string[] => (value === '' ? [] : value.split(','));
 
 /* A SET value in the order of the column's values, which is the order the server writes it in. */

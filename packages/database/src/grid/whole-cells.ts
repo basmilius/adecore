@@ -9,7 +9,6 @@ const PARALLEL_LOADS = 4;
 
 interface WholeCells {
     readonly rows: readonly (readonly Shown[])[];
-    /* The cells that are still previews. */
     readonly previews: number;
     /* Whether the previews stayed because the whole values are larger than `WHOLE_COPY_LIMIT`, rather than because they could not be loaded. */
     readonly tooLarge: boolean;

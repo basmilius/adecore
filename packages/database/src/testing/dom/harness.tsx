@@ -13,11 +13,8 @@ import type { DatabaseMethod, DatabaseParams, DatabaseRequest, DatabaseResponse,
 export interface RecordedTransport {
     readonly transport: DatabaseTransport;
     readonly requests: DatabaseRequest[];
-    /* The requests of one method, in order. */
     of<M extends DatabaseMethod>(method: M): DatabaseRequest<M>[];
-    /* The SQL of every `execute`, in order. */
     executed(): string[];
-    /* Answers a method from now on instead of the inner transport; `null` goes back to it. */
     respond<M extends DatabaseMethod>(method: M, answer: ((params: DatabaseParams<M>) => DatabaseResult<M>) | null): void;
     /* Answers every `execute` with these results; by default the inner transport, which only reads. */
     onExecute(answer: ((sql: string) => readonly StatementResult[]) | null): void;
@@ -84,7 +81,6 @@ export const createI18n = async () => {
 
 export const clientOver = (transport: DatabaseTransport): DatabaseClient => createDatabaseClient(transport);
 
-/* A memory-backed storage, like `localStorage` without the globals. */
 export const memoryStorage = (): DatabaseStorage & { readonly entries: Map<string, string> } => {
     const entries = new Map<string, string>();
 
@@ -143,7 +139,6 @@ export const mount = async (node: ReactNode, { client, actions, notices, storage
     };
 };
 
-/* Lets pending promises and timers of zero delay finish, with their renders. */
 export const settle = async (): Promise<void> => {
     await act(flush);
 };
@@ -155,14 +150,12 @@ const flush = async (): Promise<void> => {
     }
 };
 
-/* Runs a change and waits for what it sets off, all inside one act. */
 export const perform = (change: () => void): Promise<void> =>
     act(async () => {
         change();
         await flush();
     });
 
-/* Waits until the check passes, or fails with the last error. */
 export const waitFor = async <T,>(check: () => T, timeoutMs = 2000): Promise<T> => {
     const started = Date.now();
 
@@ -181,7 +174,6 @@ export const waitFor = async <T,>(check: () => T, timeoutMs = 2000): Promise<T> 
 
 const everywhere = (): HTMLElement => document.body;
 
-/* The only element that matches, or a failure that says what was there. */
 export const find = (selector: string, within: ParentNode = everywhere()): HTMLElement => {
     const found = [...within.querySelectorAll<HTMLElement>(selector)];
 
@@ -196,7 +188,6 @@ export const findAll = (selector: string, within: ParentNode = everywhere()): HT
 
 const textOf = (element: Element): string => (element.textContent ?? '').replace(/\s+/g, ' ').trim();
 
-/* The only element of a kind whose own text matches. */
 export const byText = (selector: string, text: string | RegExp, within: ParentNode = everywhere()): HTMLElement => {
     const matches = (element: Element): boolean => (typeof text === 'string' ? textOf(element) === text : text.test(textOf(element)));
 
@@ -231,14 +222,12 @@ export const contextMenu = (element: Element): Promise<void> =>
         element.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 20, clientY: 20, button: 2 }));
     });
 
-/* Puts the caret, or a selection, in a text field. */
 export const select = (field: HTMLTextAreaElement | HTMLInputElement, start: number, end = start): Promise<void> =>
     perform(() => {
         field.focus();
         field.setSelectionRange(start, end);
     });
 
-/* The modifier `Mod+` means on the platform the tests run on. */
 export const MOD: KeyboardEventInit = isApplePlatform() ? { metaKey: true } : { ctrlKey: true };
 
 export const press = (element: Element, key: string, init: KeyboardEventInit = {}): Promise<void> =>

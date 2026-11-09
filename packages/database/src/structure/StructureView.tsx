@@ -37,7 +37,6 @@ interface Answer {
 const TH = 'sticky top-0 h-7 bg-surface px-3 text-left text-xs font-medium whitespace-nowrap text-text-faint';
 const TD = 'h-7 border-t border-border-soft px-3 text-xs whitespace-nowrap text-text select-text';
 
-/* The columns, indexes, foreign keys and DDL of one table or view. */
 export function StructureView({ connection, schema, table, toolbarStart, className, ref }: StructureViewProps) {
     const { t } = useTranslation('database');
     const client = useDatabaseClient();

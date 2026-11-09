@@ -376,7 +376,6 @@ describe('DatabaseExplorer in a DOM', () => {
 
         expect(labels()).not.toContain('orders');
         expect(recorded.of('schemas').length).toBeGreaterThan(1);
-        // The open table asks for its columns again.
         await waitFor(() => expect(recorded.of('structure').length).toBeGreaterThan(1));
     });
 

@@ -22,7 +22,6 @@ interface NumericAggregates {
 }
 
 export interface Aggregates {
-    /* Every cell of the block. */
     readonly count: number;
     /* `null` when no cell of the block held a number. */
     readonly numeric: NumericAggregates | null;

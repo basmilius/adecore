@@ -9,7 +9,6 @@ import { PAGE_SIZES } from './paging.ts';
  */
 const LAYOUT_VERSION = 1;
 
-/* What is remembered of one table's view between visits. */
 export interface StoredLayout extends GridLayout {
     readonly pageSize: number | null;
     readonly where: string;

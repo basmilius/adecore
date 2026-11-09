@@ -26,7 +26,6 @@ import { PAGE_SIZES, type PageBounds } from './paging.ts';
 
 /* The menu of export and import; present only when the app can show file dialogs. */
 interface TransferMenu {
-    /* An export is running. */
     busy: boolean;
     onExport(format: FileFormat): void;
     /* Left out where rows cannot be added. */
@@ -40,7 +39,6 @@ export interface TableToolbarProps {
     /* Why rows cannot be added, changed or deleted, or `null` when they can. */
     readOnlyReason: string | null;
     hasSelection: boolean;
-    /* Whether any selected row has a change to take back. */
     canRevertSelection: boolean;
     /* The record view replaces the grid with the focused row as a list of fields. */
     recordViewOpen?: boolean;
@@ -49,11 +47,9 @@ export interface TableToolbarProps {
     submitting: boolean;
     engine: Engine;
     chips: readonly Chip[];
-    /* The columns the command field suggests. */
     columns: readonly CommandColumn[];
     pageSize: number;
     bounds: PageBounds;
-    /* The text input of the command field, for the owner to focus. */
     commandRef?: Ref<HTMLInputElement>;
     onChipsChange(next: Chip[]): void;
     onJumpToColumn(name: string): void;
@@ -73,7 +69,6 @@ export interface TableToolbarProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* The command field for filtering, sorting and jumping to a column, refresh, add row, the submit of pending changes, and a menu of the rest. */
 export function TableToolbar({
     start,
     refreshing,

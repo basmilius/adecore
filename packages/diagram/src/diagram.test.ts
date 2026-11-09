@@ -6,7 +6,6 @@ import { readingOrder } from './reading-order.ts';
 import { shapePaths, textLinesOf } from './shapes.ts';
 import { toSvg } from './svg.ts';
 
-/* The example from the design report. */
 const example: DiagramDocument = {
     version: 1,
     rev: 7,
@@ -135,7 +134,6 @@ function randomGraphs(count: number): DiagramDocument[] {
     });
 }
 
-/* The promises every layout keeps, checked on one document. */
 function expectReadable(document: DiagramDocument): void {
     const layout = layoutOf(document);
     const boxes = new Map(layout.nodes.map((box) => [box.id, box]));

@@ -77,7 +77,6 @@ const rebuildSql = (dialect: Dialect, schema: string, original: TableDraft, draf
     return statements;
 };
 
-/* `ALTER TABLE` where SQLite has one, a rebuild of the table for every other change. */
 export const sqliteAlterSql = (dialect: Dialect, schema: string, original: TableDraft, draft: TableDraft, diff: TableDiff): string[] => {
     if (needsRebuild(dialect, original, diff)) {
         return rebuildSql(dialect, schema, original, draft, diff);

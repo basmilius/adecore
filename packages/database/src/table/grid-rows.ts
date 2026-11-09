@@ -29,7 +29,6 @@ interface GridRowsInput {
     readonly offset: number;
 }
 
-/* The loaded rows with their pending edits laid over them, then the rows waiting to be inserted. */
 export const buildGridRows = ({ structure, loaded, pending, offset }: GridRowsInput): GridRow[] => {
     const rows = loaded.rows.map((cells, index): GridRow => {
         const edits = pending.edits[index];

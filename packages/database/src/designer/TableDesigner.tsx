@@ -25,7 +25,6 @@ export interface TableDesignerProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* What the designer starts from. */
 interface Snapshot {
     readonly dialect: Dialect;
     /* `null` for a table that does not exist yet. */
@@ -86,7 +85,6 @@ export function TableDesigner({ connection, schema, table, toolbarStart, classNa
         }
     });
 
-    // A new snapshot, after a load or an apply, starts a fresh draft.
     if (snapshot !== null && editing.snapshot !== snapshot) {
         const baseline = snapshot.structure === null ? emptyDraft() : draftOf(snapshot.structure);
         setEditing({ snapshot, baseline, draft: baseline });

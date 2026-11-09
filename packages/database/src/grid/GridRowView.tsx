@@ -49,7 +49,6 @@ export interface RowLook {
     readonly gutter: number;
     readonly notation: NumberNotation;
     readonly enumTypes: readonly (EnumType | null)[];
-    /* Column indexes picked whole. */
     readonly picked: ReadonlySet<number>;
     readonly loadingLabel: string;
 }
@@ -76,7 +75,6 @@ interface GridRowViewProps {
     /* The drawn positions a cell range covers in this row, or -1 for both when it covers none. */
     rangeStart: number;
     rangeEnd: number;
-    /* The edit under way when it is in this row. */
     editing: CellEdit | null;
     look: RowLook;
     actions: RowActions;

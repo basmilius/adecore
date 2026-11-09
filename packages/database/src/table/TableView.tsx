@@ -88,7 +88,6 @@ export interface TableViewProps {
     /* The filters the view starts with, such as the condition of a jump along a foreign key. They win over the ones remembered. */
     defaultWhere?: string;
     defaultOrderBy?: string;
-    /* Told whether the view holds changes that are not submitted, whenever that changes. */
     onDirtyChange?(dirty: boolean): void;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -117,7 +116,6 @@ const readOnlyReasonOf = (connection: Connection, structure: TableStructure | nu
     return null;
 };
 
-/* What the strip over the table, or the app's notice, says of an export or an import. */
 const transferText = (found: TransferNotice, t: TFunction<'database'>): string => {
     switch (found.kind) {
         case 'exporting':

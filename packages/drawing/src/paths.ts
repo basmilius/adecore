@@ -17,7 +17,6 @@ export interface ElementPath {
     /* `stroke` outlines in the stroke color, `fill` fills in the fill color, `ink` fills in the stroke color. */
     role: 'stroke' | 'fill' | 'ink';
     strokeWidth: number;
-    /* Whole units on and off, or null for a solid line. */
     dash: number[] | null;
 }
 

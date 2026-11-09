@@ -261,7 +261,6 @@ export function arrowHead(tip: Point, from: Point, size: number): [Point, Point]
     ];
 }
 
-/* How long an arrow head is for a given stroke: heavier lines carry a bigger head. */
 export function arrowHeadSize(strokeWidth: number): number {
     return 12 + strokeWidth * 4;
 }

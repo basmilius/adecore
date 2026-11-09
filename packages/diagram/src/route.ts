@@ -24,7 +24,6 @@ export interface ChannelLabel {
     edge: number;
     /* The hop it belongs to, whose own line never counts against it. */
     hop: number;
-    /* The line it sits beside. */
     y: number;
     along: number;
     across: number;
@@ -92,7 +91,6 @@ function conflictsOf(left: readonly Point[], right: readonly Point[]): number {
     return total;
 }
 
-/* A hop drawn on a track in a channel of unit tracks, only to compare two orders of the tracks. */
 function sketchOf(hop: ChannelHop, track: number): Point[] {
     return [
         { x: 0, y: hop.ya },

@@ -3,7 +3,6 @@ import { valueOfCell, type Cell, type EditValue, type RowChange, type RowKey, ty
 interface InsertedRow {
     /* Unique among the inserted rows; the grid keys the row by it. */
     readonly id: number;
-    /* The columns a person filled in; the others take their default. */
     readonly values: Readonly<Record<string, EditValue>>;
 }
 
@@ -47,7 +46,6 @@ export const setEdit = (pending: PendingChanges, row: number, column: string, va
     return { ...pending, edits: Object.keys(next).length === 0 ? others : { ...others, [row]: next } };
 };
 
-/* A new row to insert, filled in with `values`. */
 export const addInsertWith = (pending: PendingChanges, values: Readonly<Record<string, EditValue>>): PendingChanges => ({
     ...pending,
     inserts: [...pending.inserts, { id: pending.inserts.reduce((highest, row) => Math.max(highest, row.id), 0) + 1, values }]
@@ -67,7 +65,6 @@ export const markDeleted = (pending: PendingChanges, rows: readonly number[]): P
     deletes: new Set([...pending.deletes, ...rows])
 });
 
-/* Takes back every change to one loaded row: its edits and its deletion. */
 export const revertRow = (pending: PendingChanges, row: number): PendingChanges => {
     const { [row]: _dropped, ...edits } = pending.edits;
     const deletes = new Set(pending.deletes);
@@ -76,20 +73,17 @@ export const revertRow = (pending: PendingChanges, row: number): PendingChanges 
     return { ...pending, edits, deletes };
 };
 
-/* Rows of a page, by the index of the loaded ones and the id of the inserted ones. */
 export interface RowSelectionRefs {
     readonly loaded: readonly number[];
     readonly inserted: readonly number[];
 }
 
-/* Takes back every change to the given rows: the edits and deletion marks of the loaded ones, and the inserted ones altogether. */
 export const revertRows = (pending: PendingChanges, rows: RowSelectionRefs): PendingChanges => {
     const reverted = rows.loaded.reduce(revertRow, pending);
 
     return { ...reverted, inserts: reverted.inserts.filter((row) => !rows.inserted.includes(row.id)) };
 };
 
-/* Whether any of the given rows has something to take back. */
 export const hasRowChanges = (pending: PendingChanges, rows: RowSelectionRefs): boolean =>
     rows.loaded.some((row) => pending.edits[row] !== undefined || pending.deletes.has(row)) || pending.inserts.some((row) => rows.inserted.includes(row.id));
 
@@ -159,7 +153,6 @@ const keyValueText = (value: Value): string => {
     return typeof value === 'string' ? `'${value}'` : String(value);
 };
 
-/* A key as a person would write it in a WHERE: `id = 5, tenant = 'a'`. */
 export const describeKey = (key: RowKey): string =>
     Object.entries(key)
         .map(([column, value]) => `${column} = ${keyValueText(value)}`)

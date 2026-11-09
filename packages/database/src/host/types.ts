@@ -2,7 +2,6 @@ import type { ConnectionConfig, DatabaseResponse } from '../protocol/index.ts';
 
 /* A running helper as the host sees it: lines in, lines out. `spawnHelper` makes one from a path. */
 export interface HelperProcess {
-    /* One message, without its line break. */
     write(line: string): void;
     onLine(listener: (line: string) => void): void;
     onExit(listener: (code: number | null, signal?: string | null) => void): void;
@@ -39,8 +38,6 @@ export interface DatabaseHostOptions {
 export interface DatabaseHost {
     /* Takes what came over the channel as it is, and checks its shape before anything reaches the helper. */
     handle(request: unknown, owner: string): Promise<DatabaseResponse>;
-    /* Closes every session of an owner that went away. */
     release(owner: string): Promise<void>;
-    /* Closes every session and stops the helper. */
     dispose(): Promise<void>;
 }

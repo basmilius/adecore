@@ -152,7 +152,6 @@ export interface DatabaseMethods {
         };
         result: { readonly rows: number; readonly elapsedMs: number };
     };
-    /* The running containers that look like database servers. */
     discover: { params: { readonly kind: 'docker'; readonly context?: string }; result: { readonly containers: readonly DockerContainer[] } };
     /*
      * Stops the request with this id. Answers whether it was still running. The request itself fails with

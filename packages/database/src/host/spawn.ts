@@ -5,7 +5,6 @@ export interface SpawnHelperOptions {
     readonly args?: readonly string[];
     /* Added over the environment of this process. */
     readonly env?: Readonly<Record<string, string>>;
-    /* Receives each line the helper writes to stderr. */
     readonly onLog?: (line: string) => void;
 }
 
@@ -50,7 +49,6 @@ const createLineSplitter = (onLine: (line: string) => void) => {
     };
 };
 
-/* Runs the helper binary at `path`, speaking one JSON message per line over stdin and stdout. */
 export const spawnHelper = (path: string, options: SpawnHelperOptions = {}): HelperProcess => {
     const lineListeners: ((line: string) => void)[] = [];
     const exitListeners: ((code: number | null, signal: string | null) => void)[] = [];

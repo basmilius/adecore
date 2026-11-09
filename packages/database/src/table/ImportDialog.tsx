@@ -6,20 +6,16 @@ import { useTranslation } from 'react-i18next';
 import type { ColumnInfo } from '../protocol/index.ts';
 import { hasMapping } from './import-mapping.ts';
 
-/* What a file's first lines look like, as the client samples them. */
 export interface ImportSample {
     readonly columns: readonly string[];
     readonly rows: readonly (readonly string[])[];
 }
 
-/* How many of the sampled rows the preview shows. */
 const PREVIEW_ROWS = 8;
 const SKIP = '-1';
 
 export interface ImportFormProps {
-    /* The file's path, which the person confirms the import of. */
     path: string;
-    /* The columns of the table a file column can go to. */
     tableColumns: readonly ColumnInfo[];
     /* `null` while a new sample is read. */
     sample: ImportSample | null;
@@ -36,7 +32,6 @@ export interface ImportFormProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* The body of the import dialog: how the file's columns map onto the table's, and a look at the rows. */
 export function ImportForm({
     path,
     tableColumns,
@@ -156,7 +151,6 @@ interface ImportDialogProps extends ImportFormProps {
     onOpenChange(open: boolean): void;
 }
 
-/* The import of a file into the table: pick how the columns map, look at the rows, confirm. */
 export function ImportDialog({ open, onOpenChange, ...form }: ImportDialogProps) {
     const { t } = useTranslation('database');
 

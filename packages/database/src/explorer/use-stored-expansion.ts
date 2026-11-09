@@ -7,7 +7,6 @@ import { expansionKey, parseExpansion, serializeExpansion, type Expansion } from
 type Update = (current: ReadonlySet<string>) => ReadonlySet<string>;
 
 interface Loaded extends Expansion {
-    /* The connections whose stored state is in the sets. */
     readonly loaded: ReadonlySet<string>;
 }
 

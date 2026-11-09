@@ -5,7 +5,6 @@ export type ImportFormat = 'csv' | 'tsv';
 /* The columns an import can fill. The server computes a generated column. */
 export const importableColumns = (columns: readonly ColumnInfo[]): ColumnInfo[] => columns.filter((column) => !column.generated);
 
-/* CSV or TSV by the extension of the path; CSV when it says neither. */
 export const formatOfPath = (path: string): ImportFormat => (/\.(tsv|tab)$/i.test(path) ? 'tsv' : 'csv');
 
 /*
@@ -37,6 +36,5 @@ export const matchColumns = (fileColumns: readonly string[], tableColumns: reado
 /* Whether anything is mapped, since an import of nothing is no import. */
 export const hasMapping = (mapping: readonly (string | null)[]): boolean => mapping.some((column) => column !== null);
 
-/* Maps a file column to a table column, taking the table column from any other file column that had it. */
 export const mapColumn = (mapping: readonly (string | null)[], fileColumn: number, tableColumn: string | null): (string | null)[] =>
     mapping.map((current, index) => (index === fileColumn ? tableColumn : tableColumn !== null && current === tableColumn ? null : current));

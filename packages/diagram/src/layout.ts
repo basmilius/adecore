@@ -21,7 +21,6 @@ export interface NodeBox extends Rect {
 
 export interface GroupBox extends Rect {
     id: string;
-    /* Where the group's label is drawn, estimated like every other text. */
     labelBox: Rect;
 }
 
@@ -36,7 +35,6 @@ export interface EdgeRoute {
     to: string;
     /* Whole-number corners, first to last, with the head at the last one. */
     points: Point[];
-    /* Where the label goes, or null for an edge without one. */
     label: EdgeLabelBox | null;
 }
 
@@ -59,12 +57,10 @@ const TEXT_MAX_WIDTH = NODE_MAX_WIDTH - NODE_PADDING_X * 2;
 /* A diamond holds its text in the middle of its box, so its lines are shorter and the box is twice their size. */
 const DIAMOND_TEXT_MAX_WIDTH = 160;
 const DIAMOND_MIN = { w: 168, h: 72 };
-/* The extra height of a cylinder, for the lid its text stays under. */
 export const CYLINDER_LID = 10;
 const EDGE_LABEL_MAX_WIDTH = 160;
 export const EDGE_LABEL_PADDING = { x: 4, y: 2 };
 const GROUP_PADDING = 20;
-/* The band on top of a group where its label sits. */
 export const GROUP_LABEL_BAND = 24;
 /* A group's outline is thin and dashed, so it reads as a region and not as a node. */
 export const GROUP_LINE_WIDTH = 1;
@@ -96,7 +92,6 @@ interface NodeSize {
     sub: string[];
 }
 
-/* The size of a node's box, from what it says wrapped to the widest a box gets, and the shape it wears. */
 export function sizeOfNode(node: Pick<DiagramNode, 'label' | 'sub' | 'shape'>): NodeSize {
     const diamond = node.shape === 'diamond';
     const maxWidth = diamond ? DIAMOND_TEXT_MAX_WIDTH : TEXT_MAX_WIDTH;
@@ -121,7 +116,6 @@ export function sizeOfNode(node: Pick<DiagramNode, 'label' | 'sub' | 'shape'>): 
     return { w: even(Math.max(NODE_MIN_WIDTH, textWidth + paddingX * 2)), h: even(h), label, sub };
 }
 
-/* The box of an edge's label before it is placed: wrapped narrower than a node, on a padding of its own. */
 function sizeOfEdgeLabel(text: string): { w: number; h: number; lines: string[] } {
     const lines = wrapText(text, SUB_SIZE, false, EDGE_LABEL_MAX_WIDTH);
 
@@ -256,7 +250,6 @@ function unionOf(rects: readonly Rect[]): Rect {
     return { x: left, y: top, w: right - left, h: bottom - top };
 }
 
-/* Drops repeated corners and corners in the middle of a straight run. */
 function simplify(points: readonly Point[]): Point[] {
     const unique = points.filter((point, index) => index === 0 || point.x !== points[index - 1]!.x || point.y !== points[index - 1]!.y);
 
@@ -407,7 +400,6 @@ interface Ports {
 
 type LabelSize = ReturnType<typeof sizeOfEdgeLabel>;
 
-/* Every node that is not pinned is a unit, sized in the right-running frame. */
 function unitsOf(nodes: readonly DiagramNode[], layers: ReadonlyMap<string, number>, sizes: readonly NodeSize[], down: boolean) {
     const units: Unit[] = [];
     const unitOf = new Map<string, number>();
@@ -477,7 +469,6 @@ function bandsOf(groups: readonly DiagramGroup[], units: Unit[], unitOf: Readonl
     return { bands, bandOfGroup };
 }
 
-/* Splits every edge between two units into hops of one layer each, adding a point to `units` for every layer it skips. */
 function edgesOf(edges: readonly DiagramEdge[], units: Unit[], unitOf: ReadonlyMap<string, number>, knownIds: ReadonlySet<string>): Edges {
     const hops: Hop[] = [];
     const chains: Chain[] = [];
@@ -547,7 +538,6 @@ function edgesOf(edges: readonly DiagramEdge[], units: Unit[], unitOf: ReadonlyM
     return { hops, chains, loops, loose, lines };
 }
 
-/* The top-level entries of every layer, with the members of each band filled in and its height measured. */
 function itemsOf(units: readonly Unit[], bands: readonly Band[], layerCount: number, down: boolean): number[][] {
     const items: number[][] = Array.from({ length: layerCount }, () => []);
 
@@ -664,11 +654,9 @@ interface Columns {
     unitX: number[];
     /* Per hop that bends, where its run across the flow sits in the channel after its layer. */
     trackX: Map<number, number>;
-    /* Per edge, its label in the right-running frame. */
     frameLabels: Map<number, Rect>;
 }
 
-/* Places the layers along the flow, each followed by the channel its hops and labels are routed through. */
 function placeAlong(layering: Layering, edges: Edges, ports: Ports, labelSizes: readonly (LabelSize | null)[], layerCount: number, down: boolean): Columns {
     const { units, bands } = layering;
     const { hops, chains, loops } = edges;

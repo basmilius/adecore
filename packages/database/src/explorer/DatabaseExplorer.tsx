@@ -514,7 +514,6 @@ function ColumnIcon(keys: ColumnKeys) {
     );
 }
 
-/* A key, a foreign key, an index, a check or a trigger of a table: its name, and what it covers in the quiet color of a column's type. */
 function EntryContent({ row }: { row: EntryRow }) {
     const { t } = useTranslation('database');
     const { entry } = row;

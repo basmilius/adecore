@@ -16,7 +16,6 @@ class Failure extends Error {
     }
 }
 
-/* One helper process, from its start to its end. */
 interface Run {
     readonly process: HelperProcess;
     readonly ready: Promise<void>;
@@ -27,7 +26,6 @@ interface Run {
     state: 'starting' | 'ready' | 'dead';
 }
 
-/* A request of an owner as the host tracks it, from the moment it arrives until it is answered. */
 interface Entry {
     /* The id toward the helper; `null` while the request waits for the app's check or for the helper. */
     helperId: string | null;
@@ -40,7 +38,6 @@ const failure = (id: string, code: DatabaseErrorCode, message: string): Database
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
-/* `undefined` for a line that is not JSON. */
 const parseLine = (line: string): unknown => {
     try {
         return JSON.parse(line);
@@ -64,7 +61,6 @@ const settleWithin = async (promises: readonly Promise<unknown>[]): Promise<void
     }
 };
 
-/* Reads what the helper wrote for a request; anything that is not a response of the protocol becomes an `internal` error. */
 const normalize = (id: string, message: Record<string, unknown>): DatabaseResponse => {
     if (message.ok === true) {
         return { id, ok: true, result: message.result ?? null } as DatabaseResponse;
@@ -210,7 +206,6 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
         return run;
     };
 
-    /* Sends a message under a helper id of the host's own; the promise never rejects. */
     const dispatch = (run: Run, method: string, params: unknown): { readonly id: string; readonly response: Promise<DatabaseResponse> } => {
         const id = `h${++counter}`;
 
@@ -323,7 +318,6 @@ export const createDatabaseHost = (options: DatabaseHostOptions): DatabaseHost =
         return { ...sent, id: request.id } as DatabaseResponse;
     };
 
-    /* Remembers what a response changed about the sessions, then hands it back under the caller's id. */
     const settle = (request: DatabaseRequest, owner: string, entry: Entry, run: Run, response: DatabaseResponse): DatabaseResponse => {
         if (request.method === 'close') {
             sessions.delete(request.params.session);

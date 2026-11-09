@@ -22,7 +22,6 @@ export interface ValuePanelProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* The whole value of the focused cell beside the grid, to read and edit what a cell is too small for. */
 export function ValuePanel({ column, value, loading, editable, onCommit, onClose, className, ref }: ValuePanelProps) {
     const { t } = useTranslation('database');
     const ready = column !== null && !loading && value !== undefined;

@@ -47,5 +47,4 @@ export const selectColumn = (current: ColumnSelection, order: readonly number[],
     return { columns: new Set([index]), anchor: index };
 };
 
-/* The picked columns that are drawn, in the order they are drawn. */
 export const shownSelection = (current: ColumnSelection, order: readonly number[]): number[] => order.filter((index) => current.columns.has(index));

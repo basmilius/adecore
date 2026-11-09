@@ -45,7 +45,6 @@ export type Suggestion =
     | { readonly kind: 'filter' | 'sort' | 'jump'; readonly column: CommandColumn }
     | { readonly kind: 'sql'; readonly chip: FilterChip };
 
-/* How many columns the suggestions list for what is typed. */
 const SUGGESTED_COLUMNS = 4;
 
 const OR = /\bor\b/i;
@@ -100,10 +99,8 @@ export const chipsToOrderBy = (engine: Engine, chips: readonly Chip[]): string =
 
 export const sortsOf = (chips: readonly Chip[]): ColumnSort[] => chips.filter(isSort).map(({ column, direction }) => ({ column, direction }));
 
-/* The sorts of a header menu replace every sort and raw ORDER BY, keeping the filters where they are. */
 export const withSorts = (chips: readonly Chip[], sorts: readonly ColumnSort[]): Chip[] => [...chips.filter(isFilter), ...sorts.map(sortChip)];
 
-/* A column that is not sorted joins as ascending; one that is flips its direction where it stands. */
 export const toggleSort = (chips: readonly Chip[], column: string): Chip[] => {
     if (!chips.some((chip) => isSort(chip) && chip.column === column)) {
         return [...chips, { kind: 'sort', column, direction: 'asc' }];
@@ -112,13 +109,11 @@ export const toggleSort = (chips: readonly Chip[], column: string): Chip[] => {
     return chips.map((chip) => (isSort(chip) && chip.column === column ? { ...chip, direction: chip.direction === 'asc' ? 'desc' : 'asc' } : chip));
 };
 
-/* The same list when the chip is already in it. */
 export const addChip = (chips: readonly Chip[], chip: Chip): Chip[] =>
     chips.some((other) => chipKey(other) === chipKey(chip)) ? [...chips] : [...chips, chip];
 
 export const removeChipAt = (chips: readonly Chip[], index: number): Chip[] => chips.filter((_, at) => at !== index);
 
-/* Puts the chip where another stood, dropping it if an equal one is already elsewhere in the list. */
 export const replaceChipAt = (chips: readonly Chip[], index: number, chip: Chip): Chip[] => {
     const duplicate = chips.some((other, at) => at !== index && chipKey(other) === chipKey(chip));
 
@@ -164,7 +159,6 @@ export const chipsFromQuery = (engine: Engine, { where, orderBy, remembered }: C
     ...sortChipsOf(engine, orderBy)
 ];
 
-/* Whether quotes and parentheses close, outside of which an operand would swallow the rest of the text. */
 const isClosed = (operand: string): boolean => {
     let quote: string | null = null;
     let depth = 0;
@@ -190,7 +184,6 @@ const isClosed = (operand: string): boolean => {
 
 const upper = (keyword: string): string => keyword.replace(/\s+/g, ' ').toUpperCase();
 
-/* The operator and operands of a condition in the form the chip shows, or `null` when the text does not read as one. */
 const readOperation = (rest: string): string | null => {
     const compare = COMPARE.exec(rest);
 
@@ -246,7 +239,6 @@ export const cellChip = (engine: Engine, column: string, value: LiteralValue, ki
     return { kind: 'filter', text, sql: exclude ? notEqualsCondition(engine, column, value, kind) : equalsCondition(engine, column, value, kind) };
 };
 
-/* Cuts a long text for a label, ending in an ellipsis. */
 export const shorten = (text: string, limit: number): string => (text.length > limit ? `${text.slice(0, limit - 1)}…` : text);
 
 /* How well a name matches what is typed: 0 is the name itself, then its start, a word of it, anywhere in it; `null` is no match. */
@@ -268,7 +260,6 @@ const rankOf = (name: string, token: string): number | null => {
     return lower.includes(token) ? 3 : null;
 };
 
-/* The columns that match a typed name, the closest first and in table order among equals. */
 export const matchColumns = (columns: readonly CommandColumn[], typed: string, limit = SUGGESTED_COLUMNS): CommandColumn[] => {
     const token = typed.trim().replace(/^[`"]/, '').replace(/[`"]$/, '').toLowerCase();
 

@@ -36,7 +36,6 @@ export const bytesOf = (hex: string): Uint8Array => {
 /* Bytes that are not valid UTF-8 become replacement characters rather than an error. */
 export const decodeUtf8 = (hex: string): string => new TextDecoder('utf-8').decode(bytesOf(hex));
 
-/* A UUID is exactly 16 bytes; anything else has no UUID form. */
 export const formatUuid = (hex: string): string | null => {
     if (hex.length !== UUID_BYTES * 2) {
         return null;

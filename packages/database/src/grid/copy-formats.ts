@@ -15,7 +15,6 @@ export interface CopyInput {
     readonly columns: readonly CopyColumn[];
     /* One array per row, one cell per column. A preview copies as the preview. */
     readonly rows: readonly (readonly Shown[])[];
-    /* Needed for `sql`. */
     readonly target?: SqlTarget;
 }
 

@@ -14,7 +14,6 @@ export interface ScenePath {
     stroke: SceneColor | null;
     fill: SceneColor | null;
     strokeWidth: number;
-    /* Whole units on and off, or null for a solid line. */
     dash: number[] | null;
 }
 

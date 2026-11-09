@@ -285,7 +285,6 @@ describe('DataGrid without a connection', () => {
         { key: '2', number: 3, cells: ['Zwolle', 'NL'] }
     ];
 
-    /* Sorts the rows itself, the way an app with all of its rows at hand does. */
     function FileGrid() {
         const [sorts, setSorts] = useState<readonly GridSort[]>([]);
         const sorted = sorts.length === 0 ? fileRows : [...fileRows].sort((left, right) => compareRows(left, right, sorts[0]!));

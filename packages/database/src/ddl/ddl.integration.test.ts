@@ -91,7 +91,6 @@ interface Target {
 }
 
 /* MariaDB reports RESTRICT where MySQL reports no action, a display width on an integer and writes `current_timestamp()`; all say what was asked for. */
-/* What of a draft the server has to report back the same, whichever statements got it there. */
 const shapeOf = (dialect: Dialect, draft: TableDraft) => ({
     name: draft.name,
     columns: draft.columns.map((column) => ({
@@ -126,7 +125,6 @@ const IMPLICIT_INDEXES = ['fk_notes_author', 'fk_notes_editor'];
 
 const column = (name: string, type: string, extra: Partial<ColumnDraft> = {}): ColumnDraft => ({ ...emptyColumn(name), type, ...extra });
 
-/* The rows of a table by column name, keyed on `id`. */
 type Snapshot = ReadonlyMap<string, readonly Cell[]>;
 
 function defineSuite(label: string, open: () => Promise<Target>, close: (target: Target) => Promise<void>): void {
@@ -167,7 +165,6 @@ function defineSuite(label: string, open: () => Promise<Target>, close: (target:
             return new Map(names.map((name, at) => [name, page.rows.map((row) => row[wanted[at]!] ?? null)]));
         };
 
-        /* Applies a change the way the designer does and checks that the server ended up with the draft and kept the rows. */
         const change = async (next: TableDraft, expectStatements?: (statements: string[]) => void): Promise<string[]> => {
             const before = await snapshot();
             const statements = alterTableSql(target.dialect, target.schema, current, next);

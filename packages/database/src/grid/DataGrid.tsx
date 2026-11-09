@@ -62,7 +62,6 @@ import { loadWholeCells } from './whole-cells.ts';
 export interface DataGridProps {
     columns: readonly GridColumn[];
     rows: readonly GridRow[];
-    /* The accessible name of the grid. */
     label: string;
     /* Lets a cell be edited in place; the rows that are `locked` stay as they are. */
     editable?: boolean;
@@ -79,7 +78,6 @@ export interface DataGridProps {
     sorts?: readonly GridSort[];
     /* A header's menu picked a sort. The grid draws `rows` in the order given, so the handler orders them and passes `sorts` back. */
     onSortsChange?(sorts: readonly GridSort[]): void;
-    /* The cell that holds the focus changed, or lost it. */
     onFocusedCellChange?(cell: FocusedCell | null): void;
     /* Delete or Backspace with rows selected. */
     onDeleteSelected?(): void;
@@ -515,7 +513,6 @@ export function DataGrid({
         }
     };
 
-    /* The cells from row `top` to `bottom` in the given columns, with the whole value of every preview `loadValue` can fetch. */
     const wholeCellsOf = async (top: number, bottom: number, indexes: readonly number[]): Promise<readonly (readonly Shown[])[]> => {
         const shown = rows.slice(top, bottom + 1);
 

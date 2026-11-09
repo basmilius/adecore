@@ -8,9 +8,7 @@ const VALUE_PANEL_MIN_WIDTH = 240;
 
 interface ValueDockProps {
     open: boolean;
-    /* Drawn on the right of the children while the dock is open. */
     panel: ReactNode;
-    /* The grid and whatever shares its column. */
     children: ReactNode;
     /* The width of the panel, when the owner keeps it; without it the dock keeps it itself. */
     width?: number;
@@ -19,7 +17,6 @@ interface ValueDockProps {
     ref?: Ref<HTMLDivElement>;
 }
 
-/* A grid with a panel along its right edge that a person can widen by its left edge. */
 export function ValueDock({ open, panel, children, width: given, onWidthChange, className, ref }: ValueDockProps) {
     const root = useRef<HTMLDivElement | null>(null);
     const dock = useRef<HTMLDivElement>(null);

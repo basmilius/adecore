@@ -24,7 +24,6 @@ interface ColumnSqlOptions {
     readonly inlinePrimaryKey?: boolean;
 }
 
-/* A column's definition without its name: `varchar(255) NOT NULL DEFAULT 'x'`. */
 export const columnSpecSql = (dialect: Dialect, column: ColumnDraft, { inlinePrimaryKey = false }: ColumnSqlOptions = {}): string => {
     const mysql = dialect.engine === 'mysql';
     const parts: string[] = [];

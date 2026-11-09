@@ -14,7 +14,6 @@ interface Entry {
 
 interface Loads {
     readonly entries: ReadonlyMap<string, Entry>;
-    /* The version each server reported, by connection. */
     readonly versions: ReadonlyMap<string, string>;
 }
 
@@ -32,7 +31,6 @@ interface ExplorerLoads {
     reset(target: LoadTarget): void;
 }
 
-/* Whether a load belongs to what a reset names: the same connection, and the same schema or table when the reset names one. */
 const within = (reset: LoadTarget, target: LoadTarget): boolean =>
     reset.connectionId === target.connectionId &&
     (reset.schema === undefined || reset.schema === target.schema) &&
@@ -42,7 +40,6 @@ const within = (reset: LoadTarget, target: LoadTarget): boolean =>
 const touches = (change: SchemaChange, target: LoadTarget): boolean =>
     change.connectionId === target.connectionId && (change.schema === undefined || target.schema === undefined || change.schema === target.schema);
 
-/* The schemas, tables and column lists the explorer has asked a session for, by connection, schema and table. */
 export function useExplorerLoads(connections: readonly Connection[]): ExplorerLoads {
     const client = useDatabaseClient();
     const [loads, setLoads] = useState<Loads>(EMPTY);

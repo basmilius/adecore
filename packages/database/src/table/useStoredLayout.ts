@@ -6,9 +6,7 @@ import { EMPTY_LAYOUT, parseStoredLayout, serializeLayout, type StoredLayout } f
 const STORE_DELAY_MS = 500;
 
 interface StoredLayoutHandle {
-    /* What was stored when the view mounted, or `null` when nothing usable was. */
     readonly stored: StoredLayout | null;
-    /* Merges a change into what is remembered and writes it after a pause. Does nothing without storage. */
     remember(change: Partial<StoredLayout>): void;
 }
 

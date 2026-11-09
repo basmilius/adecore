@@ -7,7 +7,6 @@ import { DEFAULT_FONT_STACKS, approximateMeasure, fontOf, lineAnchorX, lineBasel
 export interface SvgOptions {
     /* What every palette name is in the theme this export is made in; without it the light theme's colors are used. */
     palette?: Record<DrawingColor, string>;
-    /* The paper behind the drawing, or null for a transparent one. */
     background?: string | null;
     /* World units around the drawing, so nothing touches the edge. */
     margin?: number;

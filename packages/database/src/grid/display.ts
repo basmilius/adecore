@@ -20,14 +20,12 @@ export interface CellView {
 /* A cell never draws more than this, however long the text, so the DOM stays small. The cell is one line anyway. */
 export const DISPLAY_LIMIT = 200;
 
-/* How many bytes of a binary value the cell spells out. */
 export const BINARY_PREVIEW_BYTES = 8;
 
 const ELLIPSIS = '…';
 
 const isObject = (cell: Shown): cell is Exclude<Shown, null | boolean | number | string> => cell !== null && typeof cell === 'object';
 
-/* Whether a cell is only the start of its value, so editing it needs the whole value first. */
 export const isPreview = (cell: Shown): boolean => {
     if (!isObject(cell)) {
         return false;
@@ -40,7 +38,6 @@ export const isPreview = (cell: Shown): boolean => {
     return cell.kind === 'binary' && cell.hex.length < cell.length * 2;
 };
 
-/* A numeral in the notation asked for; text that is no numeral stays as it is. */
 export const numeralText = (numeral: string | number, notation: NumberNotation): string => {
     if (notation === 'database') {
         return String(numeral);
@@ -100,7 +97,6 @@ export const cellView = (cell: Shown, kind: ValueKind, notation: NumberNotation 
     }
 };
 
-/* The text a copy puts on the clipboard: the value as the cell has it, a preview as far as it goes. */
 export const copyTextOf = (cell: Shown): string => {
     if (cell === null) {
         return 'NULL';
@@ -120,7 +116,6 @@ export const copyTextOf = (cell: Shown): string => {
     }
 };
 
-/* An edit as a cell, so the grid draws a pending value the way it draws a loaded one. */
 export const shownOfEdit = (value: EditValue): Shown => {
     if (value !== null && typeof value === 'object' && value.kind === 'binary') {
         return { kind: 'binary', hex: value.hex, length: value.hex.length / 2 };

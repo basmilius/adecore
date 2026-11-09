@@ -3,7 +3,6 @@ import { connectionOfKey, startsOpen } from './tree.ts';
 const VERSION = 1;
 
 export interface Expansion {
-    /* Connections, schemas, tables and the folders of a table the person opened. */
     readonly expanded: ReadonlySet<string>;
     /* What starts open and the person closed: the folders of a schema and the columns of a table. */
     readonly collapsed: ReadonlySet<string>;

@@ -30,11 +30,9 @@ export interface SshTunnel {
  */
 export interface DockerTunnel {
     readonly kind: 'docker';
-    /* The name or id of the container. */
     readonly container: string;
     /* The port inside the container; the engine's default when left out. */
     readonly port?: number;
-    /* A Docker context other than the current one. */
     readonly context?: string;
 }
 

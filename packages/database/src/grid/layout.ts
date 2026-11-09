@@ -7,13 +7,11 @@ export const MAX_COLUMN_WIDTH = 320;
 /* How far a drag may widen a column; the estimate stops at `MAX_COLUMN_WIDTH`, a person may go further. */
 export const MAX_RESIZED_WIDTH = 1200;
 
-/* How wide fitting a column to its content may make it. */
 export const MAX_FIT_WIDTH = 640;
 
 /* The window of drawn rows moves in blocks of this many rows, so a scroll within a block draws nothing. */
 export const ROW_BLOCK = 16;
 
-/* Two presses on a resize handle this close are a double click. */
 const DOUBLE_CLICK_MS = 350;
 
 /* What a viewport is taken to be until it is measured, so a first paint already holds rows. */
@@ -30,13 +28,10 @@ const SAMPLE_ROWS = 50;
 const SORT_ROOM = 24;
 
 interface VisibleRange {
-    /* Index of the first row to draw. */
     readonly start: number;
-    /* One past the last row to draw. */
     readonly end: number;
 }
 
-/* The block the top of the viewport is in, for a viewport `top` pixels into the rows. */
 export const scrollBlock = (top: number): number => Math.floor(Math.max(0, top) / (ROW_BLOCK * ROW_HEIGHT));
 
 /*
@@ -73,7 +68,6 @@ export const scrollToReveal = (start: number, size: number, scroll: number, view
     return scroll;
 };
 
-/* The left edge of every column, counted from the first one. */
 export const columnOffsets = (widths: readonly number[]): number[] => {
     let offset = 0;
 
@@ -85,21 +79,17 @@ export const columnOffsets = (widths: readonly number[]): number[] => {
     });
 };
 
-/* Wide enough for the largest row number, never narrower than `GUTTER_MIN_WIDTH`. */
 export const gutterWidth = (rowCount: number): number => Math.max(GUTTER_MIN_WIDTH, String(Math.max(rowCount, 1)).length * CHARACTER_WIDTH + CELL_PADDING);
 
 export const clampColumnWidth = (width: number): number => Math.max(MIN_COLUMN_WIDTH, Math.min(Math.ceil(width), MAX_COLUMN_WIDTH));
 
 const bodyWidth = (texts: readonly string[]): number => texts.reduce((longest, text) => Math.max(longest, text.length), 0) * CHARACTER_WIDTH;
 
-/* `keyed` makes room for the key icon in front of the name. */
 const headerWidth = (header: string, keyed: boolean): number => header.length * CHARACTER_WIDTH + (keyed ? KEY_ICON_ROOM : 0) + SORT_ROOM;
 
-/* From the longest text among the header and the first rows. */
 export const estimateColumnWidth = (header: string, samples: readonly string[], keyed: boolean): number =>
     clampColumnWidth(Math.max(bodyWidth(samples.slice(0, SAMPLE_ROWS)), headerWidth(header, keyed)) + CELL_PADDING);
 
-/* Wide enough for the header and every text of the column, up to `MAX_FIT_WIDTH`. */
 export const fitColumnWidth = (header: string, texts: readonly string[], keyed: boolean): number =>
     Math.max(MIN_COLUMN_WIDTH, Math.min(Math.ceil(Math.max(bodyWidth(texts), headerWidth(header, keyed)) + CELL_PADDING), MAX_FIT_WIDTH));
 

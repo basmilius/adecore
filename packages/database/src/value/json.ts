@@ -21,7 +21,6 @@ export const isJsonDocument = (text: string): boolean => {
     return (start === '{' || start === '[') && checkJson(text).ok;
 };
 
-/* The text laid out with two spaces per level, or `null` when it is not JSON. */
 export const prettyJson = (text: string): string | null => {
     if (!checkJson(text).ok) {
         return null;

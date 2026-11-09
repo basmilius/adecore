@@ -14,7 +14,6 @@ interface CellEditorProps {
     onCancel(): void;
 }
 
-/* The input a cell turns into while it is edited. It takes the focus and selects its text when it appears. */
 export function CellEditor({ value, label, onValueChange, onCommit, onCancel }: CellEditorProps) {
     const input = useRef<HTMLInputElement>(null);
 

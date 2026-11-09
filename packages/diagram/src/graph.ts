@@ -21,7 +21,6 @@ export interface Unit {
     down: number[];
 }
 
-/* One stretch of an edge, from a unit in one layer to a unit in the next. */
 export interface Hop {
     edge: number;
     from: number;
@@ -30,7 +29,6 @@ export interface Hop {
 
 /* A group seen across the flow: one block per layer it spans, at the same place in every one of them. */
 export interface Band {
-    /* The index of the group in the file. */
     group: number;
     first: number;
     last: number;
@@ -50,7 +48,6 @@ export interface Layering {
     units: Unit[];
     hops: Hop[];
     bands: Band[];
-    /* The points of every long edge, first to last. */
     lines: number[][];
     /* Per layer the top-level entries in order: a unit, or `bandCode(band)` for the block of a group. */
     items: number[][];

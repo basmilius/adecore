@@ -44,14 +44,11 @@ interface RecordViewProps {
     onCommit?(rowKey: string, column: number, value: EditValue): void;
     /* The whole value of a field that is only a preview. Resolves `undefined` when it cannot be had. */
     loadValue?(rowKey: string, column: number): Promise<Value | undefined>;
-    /* A field took the focus. */
     onFocusedCellChange?(cell: FocusedCell): void;
     onFollow?(cell: FocusedCell): void;
     canFollow?(cell: FocusedCell): boolean;
     onClose(): void;
-    /* The accessible name of the list of fields. */
     label: string;
-    /* Drawn while there is no row. */
     empty?: string;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -386,7 +383,6 @@ export function RecordView({
     );
 }
 
-/* A field opened up to its whole value, fetched with `loadValue` when the row holds only a preview. */
 function WholeValue({
     row,
     column,

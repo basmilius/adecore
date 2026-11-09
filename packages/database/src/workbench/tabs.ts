@@ -5,7 +5,6 @@ type TableViewMode = 'data' | 'structure';
 export type WorkbenchTab =
     | { readonly id: string; readonly kind: 'table'; readonly ref: TableRef; readonly view: TableViewMode; readonly where?: string }
     | { readonly id: string; readonly kind: 'console'; readonly connectionId: string; readonly schema?: string; readonly sql: string; readonly number: number }
-    /* Without `table` the designer makes a new table. */
     | { readonly id: string; readonly kind: 'designer'; readonly connectionId: string; readonly schema: string; readonly table?: string };
 
 interface WorkbenchState {
@@ -13,7 +12,6 @@ interface WorkbenchState {
     readonly activeId: string | null;
     /* The next number for an id that is not derived from what the tab shows. Never reused, so a restored tab cannot clash with a new one. */
     readonly serial: number;
-    /* The number the last console got, for its title. */
     readonly consoles: number;
 }
 
@@ -92,7 +90,6 @@ export const setTableView = (state: WorkbenchState, id: string, view: TableViewM
 export const setConsoleSql = (state: WorkbenchState, id: string, sql: string): WorkbenchState =>
     update(state, id, (tab) => (tab.kind === 'console' && tab.sql !== sql ? { ...tab, sql } : tab));
 
-/* The designer of a new table became the designer of that table, in the same tab. Closes any other designer of it. */
 export const setDesignerTable = (state: WorkbenchState, id: string, table: string): WorkbenchState => {
     const subject = state.tabs.find((tab) => tab.id === id);
 
@@ -105,7 +102,6 @@ export const setDesignerTable = (state: WorkbenchState, id: string, table: strin
     return update({ ...state, tabs }, id, (tab) => (tab.kind === 'designer' ? { ...tab, table } : tab));
 };
 
-/* The tab next to the closed one comes forward when the closed one was in front. */
 export const closeTab = (state: WorkbenchState, id: string): WorkbenchState => {
     const at = state.tabs.findIndex((tab) => tab.id === id);
 
@@ -118,7 +114,6 @@ export const closeTab = (state: WorkbenchState, id: string): WorkbenchState => {
     return { ...state, tabs, activeId: state.activeId === id ? (tabs[Math.min(at, tabs.length - 1)]?.id ?? null) : state.activeId };
 };
 
-/* Drops the tabs of connections that are gone. */
 export const pruneTabs = (state: WorkbenchState, connectionIds: ReadonlySet<string>): WorkbenchState => {
     const tabs = state.tabs.filter((tab) => connectionIds.has(connectionIdOf(tab)));
 

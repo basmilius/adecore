@@ -6,17 +6,14 @@ import type { FileFormat, TableStructure } from '../protocol/index.ts';
 import { formatOfPath, importableColumns, mapColumn, matchColumns, type ImportFormat } from './import-mapping.ts';
 import type { ImportSample } from './ImportDialog.tsx';
 
-/* What the strip over the table says about an export or an import. */
 export type TransferNotice =
     | { readonly kind: 'exporting'; readonly format: FileFormat }
     | { readonly kind: 'exported'; readonly rows: number }
     | { readonly kind: 'imported'; readonly rows: number }
     | { readonly kind: 'failed'; readonly during: 'export' | 'import'; readonly message: string };
 
-/* How long a finished export or import stays on the strip. */
 const NOTICE_MS = 8000;
 
-/* The import a person is setting up. */
 interface ImportDraft {
     readonly path: string;
     readonly format: ImportFormat;
@@ -39,7 +36,6 @@ interface TableTransferInput {
     /* The filters as applied, which an export respects. */
     readonly where: string;
     readonly orderBy: string;
-    /* Rows were added; the table reloads. */
     readonly onImported: () => void;
     /* Takes what finished or failed off the strip, for the app to show; the strip keeps only a running export. */
     readonly report?: (notice: TransferNotice) => void;
@@ -58,7 +54,6 @@ interface TableTransfer {
     closeImport(): void;
 }
 
-/* Export of the table as filtered, and import of a file into it, with the state both need between the dialogs and the strip. */
 export function useTableTransfer({ client, session, files, schema, table, structure, where, orderBy, onImported, report }: TableTransferInput): TableTransfer {
     const [notice, setNotice] = useState<TransferNotice | null>(null);
     const [importDraft, setImportDraft] = useState<ImportDraft | null>(null);

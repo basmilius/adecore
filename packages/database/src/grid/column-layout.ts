@@ -47,7 +47,6 @@ export const restoreLayout = (columns: readonly { readonly name: string }[], lay
     return { resized, view: { hidden: hidden.size >= columns.length ? new Set() : hidden, pinned } };
 };
 
-/* The layout of a grid's state, with the columns by name. */
 export const captureLayout = (columns: readonly { readonly name: string }[], state: ColumnState): GridLayout => {
     const widths: Record<string, number> = {};
 

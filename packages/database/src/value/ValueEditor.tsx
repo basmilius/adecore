@@ -37,10 +37,6 @@ interface ValueEditorProps {
     onCommit?(value: EditValue): void;
 }
 
-/*
- * The whole of one value, to read and change what a cell is too small for: Text, Formatted for JSON, or
- * Hex, Text and UUID for binary, with the checks of JSON and hex before a change is taken.
- */
 export function ValueEditor({ column, value, editable, onCommit }: ValueEditorProps) {
     const { t } = useTranslation('database');
     const { name, type, kind } = column;

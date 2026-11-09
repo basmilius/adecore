@@ -11,7 +11,6 @@ import type { EditorProps } from './editor-props.ts';
 const TH = 'sticky top-0 z-10 h-7 bg-surface px-2 text-left text-xs font-medium whitespace-nowrap text-text-faint';
 const TD = 'border-t border-border-soft px-2 py-1 align-middle';
 
-/* The columns of the table as rows to edit: name, type, null, default, key, comment and where each one sits. */
 export function ColumnsEditor({ draft, dialect, disabled, onChange, className, ref }: EditorProps) {
     const { t } = useTranslation('database');
     const listId = useId();
@@ -96,7 +95,6 @@ interface ColumnRowProps extends Pick<EditorProps, 'draft' | 'disabled' | 'onCha
     column: ColumnDraft;
     at: number;
     mysql: boolean;
-    /* The id of the datalist with the suggested types. */
     listId: string;
 }
 
