@@ -302,6 +302,35 @@ describe('keys and positions', () => {
     });
 });
 
+describe('the caret', () => {
+    const shown = (host: HTMLElement): number => host.querySelectorAll('.se-caret').length;
+
+    // The test page moves no focus by itself, so the input is made the focused element by hand.
+    const focus = ({ page, input }: ReturnType<typeof setup>): void => {
+        Object.defineProperty(page.document, 'activeElement', { get: () => input, configurable: true });
+        input.dispatchEvent(new page.window.Event('focus'));
+    };
+
+    test('shows only while typing would land: focused, editable, in a window that is in front', () => {
+        const mounted = setup();
+
+        focus(mounted);
+        expect(shown(mounted.host)).toBe(1);
+
+        // A window that goes to the back blurs the input but keeps it the active element.
+        Object.defineProperty(mounted.page.document, 'hasFocus', { value: () => false, configurable: true });
+        mounted.input.dispatchEvent(new mounted.page.window.Event('blur'));
+        expect(shown(mounted.host)).toBe(0);
+    });
+
+    test('never shows in a read-only text', () => {
+        const mounted = setup({ readOnly: true });
+
+        focus(mounted);
+        expect(shown(mounted.host)).toBe(0);
+    });
+});
+
 describe('setRemoteCursors', () => {
     const text = Array.from({ length: 12 }, (_, i) => `line ${i}`).join('\n');
 

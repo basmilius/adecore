@@ -2719,11 +2719,13 @@ export class EditorView {
 
         const top = this.scrollTop;
 
-        const caretRects = focused
-            ? selections
-                  .map((selection) => ({ ...this.caretOf(selection.head), primary: selection === selections.at(-1) }))
-                  .filter((rect) => rect.y + rect.height >= top - rect.height && rect.y <= top + this.viewportHeight)
-            : [];
+        // Only where typing would land: a read-only text, or a window that is not in front, takes no caret.
+        const caretRects =
+            focused && !this.settings.readOnly && this.document.hasFocus?.() !== false
+                ? selections
+                      .map((selection) => ({ ...this.caretOf(selection.head), primary: selection === selections.at(-1) }))
+                      .filter((rect) => rect.y + rect.height >= top - rect.height && rect.y <= top + this.viewportHeight)
+                : [];
 
         const caretKey = caretRects.map((rect) => `${rect.x},${rect.y}`).join(' ');
 
