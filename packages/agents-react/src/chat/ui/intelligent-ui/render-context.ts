@@ -9,6 +9,8 @@ export interface UiLink {
     state: 'chip' | 'plain';
     /* What the host calls the target, such as the title of a node or the subject of a commit. */
     label?: string;
+    /* A second line under the label where the link stands as a row, such as a cited Source. */
+    detail?: string;
     /* Why a plain link is not a chip, in its tooltip. */
     reason?: string;
     /* The stable code of that reason, which a client words itself where it knows it. */

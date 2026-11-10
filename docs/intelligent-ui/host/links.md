@@ -20,7 +20,7 @@ A `UiLinkTarget` is one of:
 | `{ type: 'File', path, line? }`     | `<File path line>`       |
 | `{ type: 'Diff', path }`            | `<Diff path>`            |
 | `{ type: 'Commit', sha }`           | `<Commit sha>`           |
-| `{ type: 'Node', id }`              | `<Node id>`              |
+| `{ type: 'Node', id }`              | `<Node id>`, `<Source node>` |
 
 `UiLinkTargetSchema` validates one. A path is at most 4,096 characters and a sha 7 to 64 hexadecimal characters.
 
@@ -33,6 +33,7 @@ The host answers a target with a `UiLinkResolution`, which `UiLinkResolutionSche
 | `state`         | `chip` when a person can open it, `plain` when not                   |
 | `target`        | The canonical target, such as a path made relative; required for a chip |
 | `label`         | What the host calls it, such as a node's title or a commit's subject |
+| `detail`        | A second line under the label where the link stands as a row, such as a cited message's sender and date |
 | `cwd`, `relativePath`, `viewId`, `projectId` | Where the host opens it                 |
 | `staged`, `conflicted` | The state of a changed file                                   |
 | `code`, `reason`| Why a link is plain: a stable code and words                         |

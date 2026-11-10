@@ -177,6 +177,25 @@ test('a checklist, a list of sources and a table each have a name', () => {
     expect(uiUrlDomain('https://www.adecore.dev/guide')).toBe('adecore.dev');
 });
 
+test('a source that cites a host node reads as the host names it, and opens only as a chip', () => {
+    const source = '<Sources><Source title="Re: Q1 roadmap" node="mail:roadmap"/></Sources>';
+    const chip = markup(source, {
+        link: (target) =>
+            target.type === 'Node' && target.id === 'mail:roadmap'
+                ? { state: 'chip', label: 'Re: Q1 roadmap planning', detail: 'Jan Dekker, Tue' }
+                : { state: 'plain' },
+        openLink: () => undefined
+    });
+
+    expect(chip).toContain('Re: Q1 roadmap planning');
+    expect(chip).toContain('Jan Dekker, Tue');
+    expect(chip).toMatch(/<button type="button"[^>]*>.*Re: Q1 roadmap planning/);
+
+    const plain = markup(source, { link: () => ({ state: 'plain' }), openLink: () => undefined });
+    expect(plain).toContain('Re: Q1 roadmap');
+    expect(plain).not.toMatch(/<button type="button"[^>]*>.*Re: Q1 roadmap/);
+});
+
 test('page memory forgets the value used longest ago past its limit', () => {
     const memory = new UiPageMemory<number>(2);
     memory.set('a', 1);

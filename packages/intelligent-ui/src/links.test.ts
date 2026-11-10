@@ -19,6 +19,23 @@ test('link targets come only from visible complete supported nodes', () => {
     ]);
 });
 
+test('a source that cites a host node links that node, and one with an address links nothing', () => {
+    const block = compileUiBlock('<Sources><Source title="Re: Q1 roadmap" node="mail:roadmap"/><Source title="Docs" url="https://adecore.dev"/></Sources>', {
+        id: 'b',
+        final: true
+    });
+
+    expect(Object.values(uiLinkTargets(block))).toEqual([{ type: 'Node', id: 'mail:roadmap' }]);
+});
+
+test('a source names an address or a node, never both and never neither', () => {
+    const failed = (markup: string) => compileUiBlock(`<Sources>${markup}</Sources>`, { id: 'b', final: true }).diagnostics.length > 0;
+
+    expect(failed('<Source title="Mail" node="mail:1"/>')).toBe(false);
+    expect(failed('<Source title="Mail" node="mail:1" url="https://adecore.dev"/>')).toBe(true);
+    expect(failed('<Source title="Mail"/>')).toBe(true);
+});
+
 test('a resolution keeps no closed object, so a reader that validates its JSON Schema takes a later optional field', () => {
     const schema = JSON.stringify(z.toJSONSchema(UiLinkResolutionSchema, { io: 'input' }));
     const later = { state: 'chip', target: { type: 'File', path: 'a.md', column: 4 } };

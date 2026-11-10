@@ -172,9 +172,12 @@ export const UI_CATALOG = {
     Sources: { group: 'content', description: 'Numbered sources without preloading.', schema: empty, children: ['Source'] },
     Source: {
         group: 'content',
-        description: 'An HTTP or HTTPS source.',
-        schema: z.strictObject({ title: text, url: text.regex(/^https?:\/\//i) }),
-        parent: 'Sources'
+        description: 'An HTTP or HTTPS source by url, or a host node by its id; exactly one.',
+        schema: z
+            .strictObject({ title: text, url: text.regex(/^https?:\/\//i).optional(), node: name.optional() })
+            .refine((props) => (props.url === undefined) !== (props.node === undefined), 'Give url or node, exclusively.'),
+        parent: 'Sources',
+        needs: 'title url|node'
     },
     File: {
         group: 'links',

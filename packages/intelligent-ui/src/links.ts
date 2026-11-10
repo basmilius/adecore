@@ -25,6 +25,8 @@ export const UiLinkResolutionSchema = z.object({
     conflicted: z.boolean().optional(),
     relativePath: z.string().optional(),
     label: z.string().optional(),
+    // A second line under the label where a link stands as a row, such as the sender and date of a cited message.
+    detail: z.string().optional(),
     // A code that names the reason across versions; open, so a new one fails nobody.
     code: z.string().optional(),
     reason: z.string().optional()
@@ -41,7 +43,10 @@ export function uiLinkTargets(
     const targets: Record<string, UiLinkTarget> = Object.create(null);
 
     eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
-        const checked = UiLinkTargetSchema.safeParse({ type: node.type, ...node.props });
+        // A Source that cites a host node links it as a Node would, so the host checks and opens it the same way.
+        const candidate =
+            node.type === 'Source' && typeof node.props.node === 'string' ? { type: 'Node', id: node.props.node } : { type: node.type, ...node.props };
+        const checked = UiLinkTargetSchema.safeParse(candidate);
 
         if (checked.success) {
             targets[node.id] = checked.data;

@@ -32,7 +32,7 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
             return `${uiPlainText(label)}: ${uiPlainText(props.value)}${unit}${previous}\n`;
         }
         case 'Source':
-            return `${uiPlainText(label)}: ${uiPlainText(props.url)}\n`;
+            return `${uiPlainText(label)}: ${uiPlainText(props.url ?? props.node)}\n`;
         case 'Column':
             return `${uiPlainText(props.title ?? props.key)}${given(props.unit) ? ` (${uiPlainText(props.unit)})` : ''}\n`;
         case 'Table': {

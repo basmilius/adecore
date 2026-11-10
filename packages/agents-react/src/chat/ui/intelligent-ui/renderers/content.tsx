@@ -282,7 +282,8 @@ interface UiSourceCitationProps {
     /* The number of the Source, as its row in the list counts it. */
     number: number;
     title: string;
-    url: string;
+    /* Absent for a source that cites a host node, which shows its title alone. */
+    url?: string;
     /* Shows the Source row the number stands for. Without it the number is no button. */
     onReveal?: () => void;
     className?: string;
@@ -314,10 +315,32 @@ export function UiSourceCitation({ number, title, url, onReveal, className }: Ui
             </PreviewCard.Trigger>
             <PreviewCard.Popup side="top" align="center" sideOffset={4} className="flex max-w-72 flex-col px-2.5 py-1.5 text-xs">
                 <span className="line-clamp-2 text-text">{title}</span>
-                <span className="truncate text-text-faint">{uiUrlDomain(url)}</span>
+                {url !== undefined && <span className="truncate text-text-faint">{uiUrlDomain(url)}</span>}
             </PreviewCard.Popup>
         </PreviewCard.Root>
     );
+}
+
+/* Where a Source points and how its row reads: an address by its domain, a host node by what the host calls it. */
+function sourceFace(props: UiProps<'Source'>, context: UiRendererProps<UiProps<'Source'>>['context']) {
+    const { title, url, node } = props;
+
+    if (url !== undefined) {
+        const { openUrl } = context;
+
+        return { title, detail: uiUrlDomain(url), whole: url, open: openUrl === undefined ? undefined : () => openUrl(url) };
+    }
+
+    const target = { type: 'Node' as const, id: node ?? '' };
+    const link = context.link?.(target);
+    const { openLink } = context;
+
+    return {
+        title: link?.label ?? title,
+        detail: link?.detail,
+        whole: link?.detail,
+        open: link?.state === 'chip' && openLink !== undefined ? () => openLink(target) : undefined
+    };
 }
 
 /*
@@ -326,8 +349,7 @@ export function UiSourceCitation({ number, title, url, onReveal, className }: Ui
  */
 export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Source'>>) {
     const number = useContext(SourceNumbers).get(node.id);
-    const { title, url } = node.props;
-    const { openUrl } = context;
+    const { title, detail, whole, open } = sourceFace(node.props, context);
     const [measureDomain, domainCut] = useTruncated<HTMLSpanElement>();
 
     const face = (
@@ -335,9 +357,11 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
             <span className="grid size-5 shrink-0 place-items-center rounded-md bg-ui-inset text-2xs font-semibold text-text tabular-nums">{number}</span>
             <span className="flex min-w-0 grow flex-col">
                 <span className="font-medium wrap-anywhere text-text">{title}</span>
-                <span ref={measureDomain} className="truncate text-text-muted">
-                    {uiUrlDomain(url)}
-                </span>
+                {detail !== undefined && (
+                    <span ref={measureDomain} className="truncate text-text-muted">
+                        {detail}
+                    </span>
+                )}
             </span>
         </>
     );
@@ -349,11 +373,11 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
                 label={
                     <>
                         <span className="block">{title}</span>
-                        <span className="block text-text-muted">{url}</span>
+                        {whole !== undefined && <span className="block text-text-muted">{whole}</span>}
                     </>
                 }
             >
-                {openUrl === undefined ? (
+                {open === undefined ? (
                     <span
                         tabIndex={domainCut ? 0 : undefined}
                         className="chat-ui-flat-inner flex min-h-8 items-start gap-2.5 rounded-lg px-1.5 py-1.5 text-2xs"
@@ -364,7 +388,7 @@ export function SourceRenderer({ node, context }: UiRendererProps<UiProps<'Sourc
                     <button
                         type="button"
                         className="chat-ui-flat-inner flex min-h-8 w-full items-start gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-2xs hover:bg-text/4"
-                        onClick={() => openUrl(url)}
+                        onClick={open}
                     >
                         {face}
                     </button>

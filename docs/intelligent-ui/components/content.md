@@ -82,9 +82,20 @@ The host draws the model; the catalog knows no file format. A host without a mod
 
 Numbered sources, which prose in the block can cite as `[1]`. `Sources` has no props and holds only `Source`. A `Source` stands only inside `Sources` and has no children.
 
-| Prop    | Type   | Required | Notes                                  |
-| ------- | ------ | -------- | -------------------------------------- |
-| `title` | string | Yes      |                                        |
-| `url`   | string | Yes      | Starts with `http://` or `https://`    |
+| Prop    | Type   | Required | Notes                                         |
+| ------- | ------ | -------- | --------------------------------------------- |
+| `title` | string | Yes      |                                               |
+| `url`   | string | One of   | Starts with `http://` or `https://`           |
+| `node`  | string | One of   | The id of a host node, such as a cited message |
 
-A renderer never preloads a source; it opens one through the host on click. A truncated domain reads whole in the row's tooltip.
+A source gives `url` or `node`, never both. A renderer never preloads a source; it opens one through the host on click. A truncated domain reads whole in the row's tooltip.
+
+A `node` source is a link target like [`Node`](/intelligent-ui/components/links#node): the host checks it and opens it through `link` and `openLink`. Its row shows the host's `label` in place of the title and the host's `detail` as a second line, where the host gives them.
+
+```ui
+Three conversations wait for your reply [1] [2].
+<Sources>
+<Source title="Review requested: new onboarding flow" node="mail:onboarding"/>
+<Source title="Re: Q1 roadmap planning" node="mail:roadmap"/>
+</Sources>
+```

@@ -159,7 +159,8 @@ function remarkCitations() {
 interface CitationTarget {
     id: string;
     title: string;
-    url: string;
+    /* Absent for a source that cites a host node. */
+    url?: string;
     ancestors: string[];
 }
 
