@@ -157,6 +157,11 @@ export default function SettingsDialogDemo() {
                 Open settings
             </Button>
             <SettingsDialog
+                heading={
+                    <span className="grid size-5 place-items-center rounded-md bg-accent text-accent-text">
+                        <Icon icon={Sparkles} size={12} />
+                    </span>
+                }
                 open={open}
                 onOpenChange={setOpen}
                 section={section}

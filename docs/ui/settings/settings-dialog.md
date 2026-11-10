@@ -28,6 +28,14 @@ Escape clears the query first and closes the dialog only from an empty field. En
 
 `account` adds one more section under the footer, with a tab you draw yourself, such as an avatar and a name. The tab is a Base UI `Tabs.Tab` (from `@base-ui/react/tabs`) with the section's id as value.
 
+## A mark beside the title
+
+`heading` draws before the title of the navigation, such as the app's mark at 16 or 20 pixels. A screen reader skips it and reads the title alone.
+
+```tsx
+<SettingsDialog heading={<AppMark size={16} />} open={open} onOpenChange={setOpen} ... />
+```
+
 ## Narrow windows
 
 The dialog is 1200 by 760 pixels and shrinks with the viewport. Under 960 pixels the navigation narrows; under 640 it becomes a select above the pane.
@@ -43,6 +51,7 @@ The dialog is 1200 by 760 pixels and shrinks with the viewport. Under 960 pixels
 | `groups` | `readonly SettingsGroupEntry[]` | | Required. `{ label: string \| null; sections }` |
 | `footer` | `readonly SettingsSectionEntry[]` | `[]` | |
 | `account` | `{ section: SettingsSectionEntry; tab: ReactNode }` | | |
+| `heading` | `ReactNode` | | Before the title. |
 | `search` | `SettingsSearch` | | `{ find(query), hint?, focusAt? }` |
 | `target` | `string \| null` | `null` | The row a search result jumped to. |
 | `onTargetShown` | `() => void` | | |
