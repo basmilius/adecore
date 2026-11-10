@@ -33,11 +33,10 @@ An app shell puts three parts around the content: a top row with the project, a 
 | Prop | Type | |
 | --- | --- | --- |
 | `title` | `ReactNode` | Required. A glyph and a name, or a `TabStrip` with `tabs`. |
-| `tabs` | `boolean` | The title is a strip of tabs, which takes the bar's room. |
+| `tabs` | `boolean` | The title is a strip of tabs, which takes the bar's room. `accessory`, `actions` and `trailing` stand at the end of the strip while they hold at most three controls (two and an overflow menu), and get a bar of their own under it once they hold more. |
 | `actions` | `ReactNode` | The pane's own controls. Once the title has shrunk to its glyph and they still do not fit, they fold into a "More actions" popover. |
-| `compactActions` | `boolean` | Keeps the actions of a pane with tabs in the bar. Otherwise they get a bar of their own under it. |
 | `separated` | `boolean` | A separator between the title and the actions. |
-| `accessory`, `trailing` | `ReactNode` | After the title, and before the close button. |
+| `accessory`, `trailing` | `ReactNode` | Before and after the actions. |
 | `focused` | `boolean` | The pane has the focus; an unfocused bar is drawn on `--surface-idle`. |
 | `onClose`, `closeLabel`, `closeShortcut` | | The close button, drawn only with `onClose`. |
 | `menu` | `ReactNode` | The items of the bar's context menu. |

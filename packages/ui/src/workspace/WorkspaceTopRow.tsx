@@ -25,7 +25,7 @@ export function WorkspaceTopRow({ leading, children, slotless = false, className
         <header
             {...props}
             className={clsx(
-                'ade-workspace-top-row relative flex h-[47px] shrink-0 items-center gap-2 bg-surface pr-1.5 pl-2 text-xs text-text-muted',
+                'ade-workspace-top-row relative flex h-[47px] shrink-0 items-center gap-2 bg-surface pr-2.5 pl-2 text-xs text-text-muted',
                 className
             )}
         >

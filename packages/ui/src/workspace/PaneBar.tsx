@@ -1,6 +1,6 @@
 import clsx from 'clsx';
 import { MoreHorizontal } from 'lucide-react';
-import { useEffect, useRef, useState, type ComponentProps, type DragEvent, type ReactNode, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ComponentProps, type DragEvent, type ReactNode, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { CloseButton } from '../CloseButton.tsx';
@@ -15,6 +15,45 @@ const CONTROLS = 'input, textarea, select, button, a, [contenteditable=""], [con
 
 /* Without this margin, a bar right at the fold point would fold and unfold on every pixel of a splitter drag. */
 const UNFOLD_MARGIN = 24;
+
+/* Two controls and an overflow menu stand at the end of a strip of tabs; more get a bar of their own under it. */
+const CONTROLS_BESIDE_TABS = 3;
+
+/* The controls a person can reach, not counting one inside another, such as the button of a field. */
+function countControls(element: HTMLElement): number {
+    return Array.from(element.querySelectorAll(CONTROLS)).filter((control) => {
+        const outer = control.parentElement?.closest(CONTROLS);
+
+        return outer === null || outer === undefined || !element.contains(outer);
+    }).length;
+}
+
+/*
+ * Whether what a pane with tabs brings fits beside its tabs. Counted again whenever it changes, as when
+ * the tab in front portals other controls in, wherever it stands at the time.
+ */
+function useBesideTabs(part: RefObject<HTMLElement | null>, enabled: boolean): boolean {
+    const [beside, setBeside] = useState(true);
+
+    useLayoutEffect(() => {
+        const element = part.current;
+
+        if (!enabled || element === null || typeof MutationObserver === 'undefined') {
+            return;
+        }
+
+        const measure = (): void => setBeside(countControls(element) <= CONTROLS_BESIDE_TABS);
+        const observer = new MutationObserver(measure);
+
+        observer.observe(element, { childList: true, subtree: true });
+        measure();
+
+        return () => observer.disconnect();
+        // Again on every move: the part is a new element in its new place.
+    }, [part, enabled, beside]);
+
+    return beside;
+}
 
 /*
  * Whether the actions are folded into the overflow menu: only once the title has shrunk to its glyph and
@@ -62,18 +101,23 @@ function useFolded(bar: RefObject<HTMLElement | null>, actions: RefObject<HTMLEl
     return enabled && foldedAt !== null;
 }
 
+function hasNode(node: ReactNode): boolean {
+    return node !== undefined && node !== null && node !== false;
+}
+
 export interface PaneBarProps extends Omit<ComponentProps<'header'>, 'title' | 'children' | 'onDragStart' | 'onDragEnd'> {
     /** What the pane is: a glyph and a name, or a `TabStrip` when `tabs` is set. */
     title: ReactNode;
 
-    /** The title is a strip of tabs, which takes the bar's room and keeps the bar whatever tab is in front. */
+    /**
+     * The title is a strip of tabs, which takes the bar's room and keeps the bar whatever tab is in front.
+     * `accessory`, the actions and `trailing` stand at the end of the strip while they hold at most three
+     * controls (two and an overflow menu), and in a bar of their own under it once they hold more.
+     */
     tabs?: boolean;
 
     /** The pane's own controls. They fold into a "More actions" popover once the title has given way and they still do not fit. */
     actions?: ReactNode;
-
-    /** Keeps the actions in the bar of a pane with tabs, rather than in a bar of their own under it. */
-    compactActions?: boolean;
 
     /** A separator between the title and the actions of a pane without tabs. */
     separated?: boolean;
@@ -81,7 +125,7 @@ export interface PaneBarProps extends Omit<ComponentProps<'header'>, 'title' | '
     /** Between the title and the actions, such as a mark that lives on the line over the body. */
     accessory?: ReactNode;
 
-    /** Before the close button, such as a sign that the pane fills the view. */
+    /** After the actions, such as a sign that the pane fills the view. */
     trailing?: ReactNode;
 
     focused?: boolean;
@@ -115,7 +159,6 @@ export function PaneBar({
     title,
     tabs = false,
     actions,
-    compactActions = false,
     separated = false,
     accessory,
     trailing,
@@ -140,9 +183,12 @@ export function PaneBar({
     const bar = useRef<HTMLElement>(null);
     const actionsBar = useRef<HTMLDivElement>(null);
     const actionsRef = useRef<HTMLSpanElement>(null);
-    const hasActions = actions !== undefined && actions !== null && actions !== false;
-    const separate = tabs && !compactActions;
-    const folded = useFolded(separate ? actionsBar : bar, actionsRef, hasActions);
+    const partRef = useRef<HTMLSpanElement>(null);
+    const hasActions = hasNode(actions);
+    const hasPart = hasActions || hasNode(accessory) || hasNode(trailing);
+    const beside = useBesideTabs(partRef, tabs && hasPart);
+    // Beside the tabs nothing folds: what does not fit there has a bar of its own.
+    const folded = useFolded(tabs ? actionsBar : bar, actionsRef, hasActions && !(tabs && beside));
     const inContainer = container !== null;
     const draggable = onDragStart !== undefined;
 
@@ -152,7 +198,7 @@ export function PaneBar({
                 <>
                     {!tabs && separated && <Separator />}
                     {/* The controls keep their minimum width so overflow can trigger folding. */}
-                    <span ref={actionsRef} className={clsx('flex min-w-min items-center', tabs && compactActions ? 'shrink-0' : 'grow')}>
+                    <span ref={actionsRef} className="flex min-w-min grow items-center">
                         {actions}
                     </span>
                 </>
@@ -179,6 +225,23 @@ export function PaneBar({
                 </span>
             )}
         </>
+    );
+
+    const part = tabs && hasPart && (
+        <span
+            ref={partRef}
+            data-pane-part=""
+            className={clsx(
+                'flex items-center gap-2 empty:hidden',
+                beside ? 'shrink-0' : 'min-w-0 grow',
+                // Without actions that grow, nothing else would push the rest to the end.
+                !beside && (folded || !hasActions) && 'justify-end'
+            )}
+        >
+            {accessory}
+            {actionsPart}
+            {trailing}
+        </span>
     );
 
     const header = (
@@ -220,17 +283,26 @@ export function PaneBar({
                     /* In a container the first text stands as far after the separator as the text before it
                        stands before it: 16 pixels, of which the gap brings 8 and a tab 12 of its own. */
                     inContainer ? (tabs ? '-ml-1' : 'pl-2') : !tabs && 'pl-1',
+                    // The separator after the title stands as far from it as the one before it does.
+                    inContainer && !tabs && separated && hasActions && !folded && 'pr-2',
                     // A weight rather than `shrink`, since controls whose labels truncate shrink as well.
                     !inContainer && (tabs || folded || !hasActions) ? 'grow' : 'shrink-100'
                 )}
             >
                 {title}
             </span>
-            {accessory}
-            {!separate && actionsPart}
+            {!tabs && (
+                <>
+                    {accessory}
+                    {actionsPart}
+                </>
+            )}
             {/* The room the title leaves in a container, which the window drags by. */}
             {inContainer && (tabs || folded || !hasActions) && <span aria-hidden="true" className="grow self-stretch" />}
-            {trailing}
+            {!tabs && trailing}
+            {beside && part}
+            {/* Sets the close button of the pane apart from what the tab in front brings; gone with a part that draws nothing. */}
+            {beside && part && onClose && <Separator className="[[data-pane-part]:empty+&]:hidden" />}
             {onClose && (
                 <CloseButton label={closeLabel ?? t('workspace.closePane')} kbd={closeShortcut} size="sm" className="cursor-default" onClick={onClose} />
             )}
@@ -258,17 +330,16 @@ export function PaneBar({
                       container
                   )
                 : placed}
-            {separate && hasActions && (
+            {part && !beside && (
                 <div
                     ref={actionsBar}
                     data-pane-actions=""
                     className={clsx(
-                        'flex h-10 shrink-0 items-center gap-2 overflow-hidden border-b border-border px-2 text-xs',
-                        folded && 'justify-end',
+                        'flex h-10 shrink-0 items-center overflow-hidden border-b border-border px-2 text-xs',
                         focused ? 'bg-surface text-text' : 'bg-surface-idle text-text-muted'
                     )}
                 >
-                    {actionsPart}
+                    {part}
                 </div>
             )}
         </>
