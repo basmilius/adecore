@@ -25,7 +25,6 @@ interface OpenFence {
 }
 
 interface TopFence {
-    // Where the opening marker stands in the text.
     from: number;
     marker: string;
     info: string;
@@ -446,7 +445,6 @@ function openingFence(content: string): Pick<TopFence, 'marker' | 'info' | 'inde
     return { marker, info, indent: columns(content), direct: !/[\\&]/.test(info.split(/[ \t]/, 1)[0]!) };
 }
 
-/* A line without the carriage return of a CRLF line ending. */
 function withoutReturn(line: string): string {
     return line.endsWith('\r') ? line.slice(0, -1) : line;
 }

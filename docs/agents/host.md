@@ -13,7 +13,7 @@ const disconnect = host.connect(port);
 
 ## Options
 
-The options are `AgentHostOptions`. `wireAgents` takes the same, as `AgentWiringOptions`, without `background`.
+`AgentHost.open` takes these options. `wireAgents` takes the same, without `background`.
 
 | Option                                       |                                                                                                       |
 | -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
@@ -56,18 +56,18 @@ const result = await wiring.handlers['chat.send'](payload, clientId);
 
 `wiring.handlers` has a `(payload, clientId) => result` handler for every agent request. `connect(clientId, send)` streams one client its events until you call the returned function. A handler checks nothing itself, so your wire must validate the frame and payload and check who asks. Load the accounts before the first request. `start()` runs the periodic checks and `stop()` ends everything. `chatHandlers`, `accountHandlers` and `usageHandlers` are the three parts of `handlers`. `ClientSinks` is the per-client fan-out behind `connect`, and `WatchedSinks` the same for events that only go to clients that called `watch`.
 
-`wireAgents` returns an `AgentWiring`. Its `handlers` are `AgentHandlers`, one `AgentHandler` per request, typed from `AgentRequestMap`, which pairs every request name with its payload and result. `ChatRequestType` names the requests `chatHandlers` answers: every request but the `accounts.*` and `usage.*` ones. The `send` of `connect` has the shape of an `AgentSink`. It receives an `AgentEvent`, the `{ event, payload }` before framing, with the payload typed from `AgentEventMap`.
+`wireAgents` returns an `AgentWiring`. Its `handlers` are `AgentHandlers`, one `AgentHandler` per request, with the payload and the result typed from the request's name. `chatHandlers` answers every request but the `accounts.*` and `usage.*` ones. The `send` of `connect` receives an `AgentEvent`, the `{ event, payload }` before framing, with the payload typed from the event's name.
 
 ## ChatCore
 
-The chats are a `ChatCore`. A host adds what it knows through `ChatCoreOptions.hooks`, a `ChatCoreHooks` with every hook optional, and passes a factory as `core`:
+The chats are a `ChatCore`. A host adds what it knows through `ChatCoreOptions.hooks`, an object with every hook optional, and passes a factory as `core`:
 
 ```ts
 import { resolve } from 'node:path';
-import { ChatCore, type ChatCoreHooks, ChatError } from '@adecore/agents/chat';
+import { ChatCore, type ChatCoreOptions, ChatError } from '@adecore/agents/chat';
 import { narrowerMode } from '@adecore/agents/providers';
 
-function projectHooks(folders: ReadonlySet<string>): ChatCoreHooks {
+function projectHooks(folders: ReadonlySet<string>): NonNullable<ChatCoreOptions['hooks']> {
     return {
         admit: async (_chatId, cwd) => {
             if (!folders.has(resolve(cwd))) {
@@ -86,6 +86,8 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | Hook                                                           | What the host adds                                                                        |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
 | `admit(chatId, cwd)`                                           | Throws for a folder the chat may not work in.                                             |
+| `admitUi(chatId, clientId)`                                    | Throws for a client that may not have this chat's UI blocks resolved, before a link or a query is read. |
+| `opening(payload)`                                             | The start of a chat as the host planned it before the client asked; the core reads what it returns. |
 | `runtimeModeFor(chatId, mode)`                                 | Narrows the mode a chat runs in, whatever its record or its client says.                  |
 | `openingSelection(chatId, kind)`                               | The model a new chat starts on.                                                           |
 | `openingAccount(chatId, kind, named)`                          | The account a new chat starts on, given the one its start named; throw an `AccountError` to refuse it. Undefined leaves it to the order of the accounts. |
@@ -95,14 +97,15 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `envFor(chatId, base)`                                         | The environment of the chat's CLI before its account adds its own.                        |
 | `promptNotesFor`, `referencesFor`                              | Notes in front of the next prompt, and how chats a message points at are named to the agent. |
 | `hiddenFor(chatId)`                                            | Leaves the chat out of every list.                                                         |
-| `opened`, `recordExtras`                                       | What the host lays down in a loaded chat, and keeps in its record beside the thread.     |
-| `clearing`, `cleared`, `forgotten`, `removed`, `broadcasted`   | What goes along with a clear or a removal, and a look at every event.                     |
+| `openingNotes`, `opened`, `recordExtras`                       | What the host lays down in a loaded chat above its task rows and below them, and keeps in its record beside the thread. |
+| `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. |
+| `clearing`, `cleared`, `forgotten`, `deleted`, `removed`, `broadcasted` | What goes along with a clear, with the record of a chat nobody loaded (`deleted`) or a removal, and a look at every event. |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |
 | `lostWork(chatId, lost)`                                       | Background work a restart took from a chat that no resumed turn tells; see [Restarts](/agents/chats#restarts). |
 
 No hook knows the client. Checking who asks belongs on the wire.
 
-A subclass of `ChatCore` can add host methods and pass its hooks to `super` as arrow functions over its members. Threads, clients and writes stay private. A subclass uses the public methods:
+A host holds a `ChatCore` and gives it its hooks; it does not subclass it. What the host adds beside the core is its own object over `core`, and the state of threads, clients and writes stays private. `ChatCoreOptions.codexSideCommand` is the command of the app-server opened beside a chat to read or fork a thread, for a host whose chats run Codex with more on its command line. The host calls the public methods:
 
 | Method                                          | What a host does with it                                                                    |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------- |
@@ -112,8 +115,14 @@ A subclass of `ChatCore` can add host methods and pass its hooks to `super` as a
 | `writeRecord(chatId, info, items, preambles?)`  | Writes the whole record of a chat nobody loaded, such as a fork, with its files copied over. |
 | `deleteRecord(chatId)`                          | Removes what a chat nobody loaded keeps on disk; false for a loaded one, which `kill` removes. |
 | `sendTo(clientId, event)`                       | Sends one client an event of the host's own.                                                |
+| `loaded(chatId)`, `require(chatId)`             | Waits for a create under way, and returns the loaded chat or throws `chat-not-found`.       |
+| `switchAccount(session, account)`               | Moves a chat to another account, under the rules of an account switch.                      |
+| `findAttachment(chatId, id)`                    | The file behind an attachment id, also of a chat nobody loaded: its thread, its queue or a visual's page. |
+| `copySidecars(from, to, kept)`                  | Gives a fork what every [sidecar](/agents/chats#sidecars) keeps of the original; `kept` says which messages and visuals went along. |
+| `syncTaskRow(task)`                             | Writes the [row](/agents/chats#task-rows) of a task into the chat that gave it, when that chat is loaded. |
+| `uiFence`                                       | The fence name the core compiles replies under, for the note that teaches an agent the UI language. |
 
-`ChatCoreOptions` also takes `checkpoints`, `skills`, `onInterruptedRun` and `limitResume`. `checkpoints` is a `TurnCheckpoints` with `take`, `diff` and `settle` for a tree per turn. Its optional `head` records the commit at turn start and end, so a card can show that the branch moved. Without `checkpoints` a turn has none. The package runs no git itself.
+`ChatCoreOptions` also takes `checkpoints`, `skills`, `onInterruptedRun`, `limitResume`, `sidecars` and `taskRemovedReason`. `checkpoints` is an object with `take`, `diff` and `settle` for a tree per turn. Its optional `head` records the commit at turn start and end, so a card can show that the branch moved. Without `checkpoints` a turn has none. The package runs no git itself.
 
 ## Electron
 

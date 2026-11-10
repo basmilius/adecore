@@ -1,16 +1,13 @@
 import type { ColumnInfo, ResultColumn } from '../protocol/index.ts';
 import type { Shown } from './display.ts';
 
-/* A column of a result, with what the grid draws from its table when it comes from one. */
 export interface GridColumn extends ResultColumn {
     readonly primaryKey?: boolean;
-    /* A column of a foreign key of its table. */
     readonly foreignKey?: boolean;
     /* `false` makes Set NULL unavailable; unknown (an expression) leaves it open. */
     readonly nullable?: boolean;
     /* A column no cell of which can be edited, such as a generated one. */
     readonly readOnly?: boolean;
-    /* The default as an SQL expression, for the hint on the header. */
     readonly defaultValue?: string | null;
     /* A cloned row leaves this column to the server. */
     readonly autoIncrement?: boolean;
@@ -26,13 +23,11 @@ export interface GridRow {
     /* One per column, in the order of the columns. A `null` draws as a faint NULL, so an empty text is `''`. */
     readonly cells: readonly Shown[];
     readonly state?: GridRowState;
-    /* Indexes of the cells with a pending edit. */
     readonly edited?: ReadonlySet<number>;
     /* A row that cannot be edited even though the grid can, such as one whose key is only a preview. */
     readonly locked?: boolean;
 }
 
-/* Builds the column of a table from the result column, the structure's column of the same name and the columns of its keys. */
 export const gridColumnOf = (
     column: ResultColumn,
     info: ColumnInfo | undefined,

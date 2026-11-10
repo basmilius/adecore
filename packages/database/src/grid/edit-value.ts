@@ -6,7 +6,6 @@ const EMPTY_IS_NULL: ReadonlySet<ValueKind> = new Set(['integer', 'decimal', 'fl
 const INTEGER = /^[+-]?\d+$/;
 const HEX = /^0x([0-9a-f]*)$/i;
 
-/* The text an editor starts with for a value that is whole (a preview has to be loaded first). */
 export const draftOf = (value: Cell | Value | { readonly kind: 'default' }): string => {
     if (value === null) {
         return '';

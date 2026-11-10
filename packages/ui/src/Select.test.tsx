@@ -2,7 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import i18next from 'i18next';
 import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { Select, type SelectProps } from './Select.tsx';
+import type { SelectProps } from './select-shared.ts';
+import { Select } from './Select.tsx';
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();

@@ -13,7 +13,7 @@ import { UsageScanner, type ScanReport, type UsageScannerOptions } from './scann
 /* A scan this fresh answers the question the page is asking, so nothing is opened for it. */
 const SCAN_TTL_MS = 60_000;
 
-export interface UsageServiceOptions {
+interface UsageServiceOptions {
     home: string;
     /* Off, the bundled table prices everything and no rate is asked for. */
     allowPriceFetch?: boolean;

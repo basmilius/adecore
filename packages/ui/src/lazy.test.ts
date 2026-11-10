@@ -2,7 +2,6 @@ import { describe, expect, spyOn, test } from 'bun:test';
 import { Suspense, createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { LoadedComponent, lazyNamed, onLazyOpenError } from './lazy.tsx';
-import { LazyBoundary } from './LazyBoundary.tsx';
 import { prefetcher, type Loader } from './prefetch.ts';
 
 describe('LoadedComponent', () => {
@@ -83,6 +82,39 @@ describe('a failed open', () => {
     });
 });
 
+describe('prefetch: false', () => {
+    test('keeps a fallback module out of the prefetcher and still opens it on first render', async () => {
+        const register = spyOn(prefetcher, 'register');
+        let opens = 0;
+        let opened!: () => void;
+
+        const ready = new Promise<void>((resolve) => {
+            opened = resolve;
+        });
+
+        const Surface = lazyNamed(
+            async () => {
+                opens++;
+                opened();
+
+                return { Surface: () => createElement('p', null, 'Fallback') };
+            },
+            'Surface',
+            { prefetch: false }
+        );
+
+        expect(register).not.toHaveBeenCalled();
+        register.mockRestore();
+        expect(opens).toBe(0);
+        renderToStaticMarkup(createElement(Suspense, { fallback: null }, createElement(Surface)));
+        await ready;
+        await Promise.resolve();
+
+        expect(opens).toBe(1);
+        expect(renderToStaticMarkup(createElement(Surface))).toBe('<p>Fallback</p>');
+    });
+});
+
 describe('preload', () => {
     test('has the module before the first render, which then draws without its fallback', async () => {
         const Surface = lazyNamed(async () => ({ Surface: () => createElement('p', null, 'here') }), 'Surface');
@@ -90,53 +122,5 @@ describe('preload', () => {
         await Surface.preload();
 
         expect(renderToStaticMarkup(createElement(Suspense, { fallback: 'waiting' }, createElement(Surface)))).toBe('<p>here</p>');
-    });
-});
-
-// Runs with the DOM preload: `bun test --preload ./packages/ui/src/file-tree/testing/preload.ts packages/ui/src/lazy.test.ts`.
-describe.skipIf(typeof document === 'undefined')('a lazy boundary', () => {
-    test('shows the module as soon as it lands, where React would hold a retry back until 300 ms after the fallback', async () => {
-        const { createRoot } = await import('react-dom/client');
-        const scope = globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean };
-        const acting = scope.IS_REACT_ACT_ENVIRONMENT;
-        // Under `act` React never throttles, so the boundary is drawn the way a page draws it.
-        scope.IS_REACT_ACT_ENVIRONMENT = false;
-        let land!: () => void;
-
-        const landed = new Promise<void>((resolve) => {
-            land = resolve;
-        });
-
-        const Surface = lazyNamed(async () => {
-            await landed;
-
-            return { Surface: () => createElement('p', null, 'here') };
-        }, 'Surface');
-
-        const container = document.createElement('div');
-        const root = createRoot(container);
-
-        const tick = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
-
-        try {
-            root.render(createElement(LazyBoundary, { fallback: 'waiting' }, createElement(Surface)));
-
-            for (let i = 0; i < 20 && container.textContent !== 'waiting'; i++) {
-                await tick();
-            }
-
-            expect(container.textContent).toBe('waiting');
-
-            land();
-
-            for (let i = 0; i < 20 && container.textContent !== 'here'; i++) {
-                await tick();
-            }
-
-            expect(container.textContent).toBe('here');
-        } finally {
-            root.unmount();
-            scope.IS_REACT_ACT_ENVIRONMENT = acting;
-        }
     });
 });

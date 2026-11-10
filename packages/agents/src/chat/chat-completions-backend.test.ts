@@ -3,9 +3,9 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { RuntimeMode } from '@adecore/agent-contracts';
+import type { BackendEvent, BackendLaunch, TurnInput } from '../backends/backend.ts';
 import type { ApiHostTools, ToolRounds } from './api-chat.ts';
 import { API_TOOLS, type ExecuteApiTool } from './api-tools.ts';
-import type { BackendEvent, BackendLaunch, TurnInput } from './backend.ts';
 import { ChatCompletionsBackend, type ChatCompletionsSpec, type ChatCompletionsUsage } from './chat-completions-backend.ts';
 
 const URL = 'https://api.example.test/v1';

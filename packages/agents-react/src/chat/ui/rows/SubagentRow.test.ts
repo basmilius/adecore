@@ -3,7 +3,7 @@ import type { ChatItem, ChatSubagentItem, ChatToolItem } from '@adecore/agent-co
 import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider } from '../../../host';
+import { ChatHostProvider } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { SubagentRow } from './SubagentRow';
 

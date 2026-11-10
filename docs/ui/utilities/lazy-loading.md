@@ -10,7 +10,7 @@ import { LazyBoundary, lazyDialog, lazyNamed, onLazyOpenError, prefetcher } from
 
 ## lazyNamed
 
-`lazyNamed(load, name)` is `React.lazy` for a module that exports its component by name, `default` included. Unlike `React.lazy`, it draws at once when the module is already loaded, without flashing the fallback.
+`lazyNamed(load, name, options?)` is `React.lazy` for a module that exports its component by name, `default` included. Unlike `React.lazy`, it draws at once when the module is already loaded, without flashing the fallback.
 
 ```tsx
 const HistoryPanel = lazyNamed(() => import('./HistoryPanel'), 'HistoryPanel');
@@ -42,7 +42,7 @@ const SettingsWindow = lazyDialog(() => import('./SettingsWindow'), 'SettingsWin
 
 ## The prefetcher
 
-Every module loaded through `lazyNamed` or `lazyDialog` registers with `prefetcher`. Call `prefetcher.prefetchEverything()` once the app has drawn its first screen; it loads every registered module, one per idle moment. Modules registered later join the queue. `prefetcher.prefetch(load)` loads one module ahead of the rest.
+Every module loaded through `lazyNamed` or `lazyDialog` registers with `prefetcher`, the ones the chat of `@adecore/agents-react` loads included. `lazyNamed(load, name, { prefetch: false })` keeps a fallback module out of it. Call `prefetcher.prefetchEverything()` once the app has drawn its first screen; it loads every registered module, one per idle moment. Modules registered later join the queue. `prefetcher.prefetch(load)` loads one module ahead of the rest.
 
 The prefetcher does nothing while the browser asks to save data. A failed prefetch reports nothing, and the first real use tries again. `prefetcher.busy` is true while a prefetch waits on its chunk, so a chunk failure the app hears of elsewhere may be the prefetch's.
 

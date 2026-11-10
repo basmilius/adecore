@@ -6,7 +6,7 @@ import type { TFunction } from 'i18next';
 import { Target } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { errorMessage } from '../../transport';

@@ -4,10 +4,9 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { ErrorCodes, LspError, type CodeAction, type Diagnostic } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification } from './host-types.ts';
+import type { ProjectFiles } from './host-types.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers, type LanguageCall } from './testing.ts';
-import type { ProjectFiles } from './workspace-edit.ts';
+import { FakeLanguageService, ManualTimers, keyOf, settle, type LanguageCall } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const at = (line: number, character: number) => ({ line, character });
@@ -159,7 +158,10 @@ describe('a problem elsewhere on the line', () => {
         expect(contextOf(asked[0])).toMatchObject({ range: range(0, 14, 14), context: { diagnostics: [] } });
         expect(contextOf(asked[1])).toMatchObject({ range: range(0, 4, 10), context: { diagnostics: [diagnostic], only: ['quickfix'] } });
 
-        const rows = language.popups.getState().pick!.groups.flatMap((group) => group.rows.map((row) => row.label));
+        const rows = language.popups
+            .slot('pick')
+            .get()!
+            .groups.flatMap((group) => group.rows.map((row) => row.label));
 
         expect(rows).toEqual(["Change spelling to 'salaryMin'", 'Extract to constant', 'Organize imports']);
     });
@@ -209,7 +211,7 @@ describe('the list', () => {
         expect(editor.press(keyOf(language.shortcuts.codeActions))).toBe(true);
 
         await settle();
-        const view = language.popups.getState().pick!;
+        const view = language.popups.slot('pick').get()!;
 
         expect(view.groups.map((group) => [group.title, group.rows.map((row) => row.label)])).toEqual([
             ['Quick fix', ["Change spelling to 'salaryMin'"]],
@@ -221,14 +223,14 @@ describe('the list', () => {
         timers.advance(120);
         await settle();
 
-        expect(language.popups.getState().pick?.preview).toEqual({ removed: ['let salary = 1;'], added: ['let salaryMin = 1;'], note: null });
+        expect(language.popups.slot('pick').get()?.preview).toEqual({ removed: ['let salary = 1;'], added: ['let salaryMin = 1;'], note: null });
 
         editor.press({ key: 'ArrowDown' });
         timers.advance(120);
         await settle();
 
         // A refactor has no edit until it is resolved, which the preview asks for.
-        expect(language.popups.getState().pick?.preview?.added).toEqual(['const salary = 1;']);
+        expect(language.popups.slot('pick').get()?.preview?.added).toEqual(['const salary = 1;']);
     });
 
     test('applies the chosen action as one edit and closes on Escape', async () => {
@@ -237,14 +239,14 @@ describe('the list', () => {
         await language.codeActions.open();
 
         expect(editor.press({ key: 'Escape' })).toBe(true);
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
 
         await language.codeActions.open();
         editor.press({ key: 'Enter' });
         await settle();
 
         expect(editor.getText()).toBe('let salaryMin = 1;');
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
     });
 
     test('resolves an action that has no edit before it is applied, then runs its command', async () => {
@@ -282,7 +284,7 @@ describe('the list', () => {
             range: diagnostic.range,
             context: { only: ['quickfix'], diagnostics: [diagnostic], triggerKind: 1 }
         });
-        expect(language.popups.getState().pick?.groups).toHaveLength(1);
+        expect(language.popups.slot('pick').get()?.groups).toHaveLength(1);
     });
 });
 
@@ -323,7 +325,12 @@ describe('Refactor This', () => {
         await settle();
 
         expect(contextOf(requests()[0])).toMatchObject({ context: { only: ['refactor'] } });
-        expect(language.popups.getState().pick!.groups.map((group) => [group.title, group.rows.map((row) => row.label)])).toEqual([
+        expect(
+            language.popups
+                .slot('pick')
+                .get()!
+                .groups.map((group) => [group.title, group.rows.map((row) => row.label)])
+        ).toEqual([
             ['Extract', ['Extract to constant']],
             ['Inline', ['Inline variable']],
             ['Move', ['Move class to namespace App\\Domain']],
@@ -335,7 +342,7 @@ describe('Refactor This', () => {
         const { language } = await setup({ actions: everything });
         await language.codeActions.refactorThis();
 
-        expect(language.popups.getState().pick?.groups).toHaveLength(4);
+        expect(language.popups.slot('pick').get()?.groups).toHaveLength(4);
     });
 
     test('the list under the caret puts the fixes first, then the rewrites, then the refactorings', async () => {
@@ -344,7 +351,12 @@ describe('Refactor This', () => {
         editor.press(keyOf(language.shortcuts.codeActions));
         await settle();
 
-        expect(language.popups.getState().pick!.groups.map((group) => group.title)).toEqual(['Quick fix', 'Rewrite', 'Extract', 'Inline', 'Move', 'Source']);
+        expect(
+            language.popups
+                .slot('pick')
+                .get()!
+                .groups.map((group) => group.title)
+        ).toEqual(['Quick fix', 'Rewrite', 'Extract', 'Inline', 'Move', 'Source']);
     });
 
     test('the menu lists the refactorings in the same order', async () => {
@@ -368,7 +380,7 @@ describe('a refactor the server refuses', () => {
         timers.advance(120);
         await settle();
 
-        expect(language.popups.getState().pick?.preview).toEqual({ removed: [], added: [], note: null, refusal: REASON });
+        expect(language.popups.slot('pick').get()?.preview).toEqual({ removed: [], added: [], note: null, refusal: REASON });
         expect(editor.getText()).toBe('let salary = 1;');
         expect(notices).toEqual([]);
     });
@@ -379,13 +391,13 @@ describe('a refactor the server refuses', () => {
         editor.press({ key: 'Enter' });
         await settle();
 
-        expect(language.popups.getState().pick?.preview?.refusal).toBe(REASON);
+        expect(language.popups.slot('pick').get()?.preview?.refusal).toBe(REASON);
         expect(editor.getText()).toBe('let salary = 1;');
         expect(notices).toEqual([]);
 
         editor.press({ key: 'Escape' });
 
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
     });
 
     test('is told to the person when it is asked for from a menu that has no list to stay in', async () => {
@@ -423,7 +435,7 @@ describe('the rename after an extraction', () => {
         expect(editor.getText()).toBe('const salary = 1;');
         expect(requests('workspace/executeCommand')).toHaveLength(0);
         expect(editor.getCaret()).toEqual(at(0, 8));
-        expect(language.popups.getState().rename).toMatchObject({ phase: 'input', original: 'salary', placeholder: 'salary', range: range(0, 6, 12) });
+        expect(language.popups.slot('rename').get()).toMatchObject({ phase: 'input', original: 'salary', placeholder: 'salary', range: range(0, 6, 12) });
     });
 
     test('leaves a command for another document alone', async () => {
@@ -433,7 +445,7 @@ describe('the rename after an extraction', () => {
         editor.press({ key: 'Enter' });
         await settle();
 
-        expect(language.popups.getState().rename).toBeNull();
+        expect(language.popups.slot('rename').get()).toBeNull();
     });
 });
 
@@ -475,7 +487,7 @@ describe('an action that moves a file', () => {
         timers.advance(120);
         await settle();
 
-        expect(language.popups.getState().pick?.preview).toMatchObject({ note: 'moves 1 file' });
+        expect(language.popups.slot('pick').get()?.preview).toMatchObject({ note: 'moves 1 file' });
 
         const [entry] = (await language.codeActions.list(['refactor']))!;
         await language.codeActions.apply(entry!);

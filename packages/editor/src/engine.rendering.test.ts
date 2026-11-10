@@ -540,7 +540,19 @@ describe('line actions', () => {
     test('draws the host element once after the last character of its line and keeps it through an edit above', () => {
         const { editor, host } = setup({ text });
         let renders = 0;
-        editor.setLineActions([{ id: 'keep', line: 1, render: (container) => ((container.textContent = 'Keep'), renders++) }], 'review');
+        editor.setLineActions(
+            [
+                {
+                    id: 'keep',
+                    line: 1,
+                    render: (container) => {
+                        container.textContent = 'Keep';
+                        renders++;
+                    }
+                }
+            ],
+            'review'
+        );
 
         const element = () => host.querySelector('.se-line-action') as HTMLElement;
 
@@ -554,11 +566,54 @@ describe('line actions', () => {
 
     test('keeps one owner apart from another and takes the elements of an owner away with an empty set', () => {
         const { editor, host } = setup({ text });
-        editor.setLineActions([{ id: 'a', line: 0, render: (container) => (container.textContent = 'a') }], 'one');
-        editor.setLineActions([{ id: 'b', line: 1, render: (container) => (container.textContent = 'b') }], 'two');
+        const disposed: string[] = [];
+
+        const action = (id: string, line: number) => ({
+            id,
+            line,
+            render: (container: HTMLElement) => {
+                container.textContent = id;
+
+                return () => void disposed.push(id);
+            }
+        });
+
+        editor.setLineActions([action('a', 0)], 'one');
+        editor.setLineActions([action('b', 1)], 'two');
         expect([...host.querySelectorAll('.se-line-action')].map((element) => element.textContent)).toEqual(['a', 'b']);
         editor.setLineActions([], 'one');
         expect([...host.querySelectorAll('.se-line-action')].map((element) => element.textContent)).toEqual(['b']);
+        expect(disposed).toEqual(['a']);
+        editor.setLineActions([action('b', 1)], 'two');
+        expect(disposed).toEqual(['a']);
+        editor.dispose();
+        expect(disposed).toEqual(['a', 'b']);
+    });
+
+    test('an owner that sets its actions anew from inside a render leaves no element of the old set behind', () => {
+        const { editor, host } = setup({ text });
+        const mounted: string[] = [];
+        const disposed: string[] = [];
+
+        const action = (id: string, line: number, inside?: () => void) => ({
+            id,
+            line,
+            render: (container: HTMLElement) => {
+                container.textContent = id;
+                mounted.push(id);
+                inside?.();
+
+                return () => void disposed.push(id);
+            }
+        });
+
+        editor.setLineActions([action('a', 0, () => editor.setLineActions([action('c', 2)], 'one')), action('b', 1)], 'one');
+
+        expect([...host.querySelectorAll('.se-line-action')].map((element) => element.textContent)).toEqual(['c']);
+        expect(mounted).toEqual(['a', 'c']);
+        expect(disposed).toEqual(['a']);
+        editor.dispose();
+        expect(disposed).toEqual(['a', 'c']);
     });
 
     test('a press on the element stops at it, so the editor never moves the caret for it', () => {

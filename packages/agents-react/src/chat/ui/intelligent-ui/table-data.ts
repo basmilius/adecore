@@ -1,7 +1,7 @@
 import type { UiProps, UiViewNode } from '@adecore/intelligent-ui';
 import { uiChildrenOf } from './node-text';
 
-export type UiColumnKind = NonNullable<UiProps<'Column'>['as']>;
+type UiColumnKind = NonNullable<UiProps<'Column'>['as']>;
 
 export interface UiTableColumn {
     key: string;

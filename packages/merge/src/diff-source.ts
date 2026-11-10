@@ -37,7 +37,6 @@ function removedLineOf(rows: readonly DiffLineRow[], line: number, hunks: readon
 
     const previous = newNumberIn(rows, line, -1, row.hunk);
     const hunk = row.hunk === undefined ? undefined : hunks[row.hunk];
-    // The lines of the new file before the removed one.
     const before = previous ?? hunk?.newStart;
 
     if (before === undefined) {

@@ -5,7 +5,6 @@ export interface AppIpc {
     handle<Args extends unknown[]>(channel: string, handler: (event: IpcMainInvokeEvent, ...args: Args) => unknown): void;
     on<Args extends unknown[]>(channel: string, listener: (event: IpcMainEvent, ...args: Args) => void): void;
 
-    /* The app window whose page sent it. */
     senderWindow(event: { sender: WebContents }): BrowserWindow | null;
 }
 

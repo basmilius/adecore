@@ -13,9 +13,9 @@ import { chatRequests, deliverWaitingHandler, WaitingObserver, type ChatRequests
 import { oweWake, wakeParentHandler } from './wake-parent.ts';
 
 /* What tasks need of the chats of a host; a `ChatCore` has all of it. */
-export type TaskChats = Pick<ChatCore, 'get' | 'observe' | 'hasStored' | 'create' | 'answer' | 'deliverNote' | 'isLoading' | 'storedBackground' | 'save'>;
+type TaskChats = Pick<ChatCore, 'get' | 'observe' | 'hasStored' | 'create' | 'answer' | 'deliverNote' | 'isLoading' | 'storedBackground' | 'save'>;
 
-export interface TaskRecord {
+interface TaskRecord {
     projectId: string;
     parentId: string;
     childId: string;

@@ -15,7 +15,6 @@ import type {
 import { qualifiedName } from '../sql.ts';
 import type { ExplorerFolder, ExplorerItem } from './folders.ts';
 
-/* Where a lazy list stands: not asked for yet, on its way, failed, or here. */
 export type Load<T> =
     | { readonly status: 'idle' }
     | { readonly status: 'loading' }
@@ -24,7 +23,6 @@ export type Load<T> =
 
 export const IDLE: Load<never> = { status: 'idle' };
 
-/* What a load fetches: the schemas of a connection, the tables of one schema, or the structure of one table. */
 export interface LoadTarget {
     readonly connectionId: string;
     readonly schema?: string;
@@ -42,8 +40,7 @@ export const folderKey = (connectionId: string, schema: string, group: TableKind
 
 export const tableKey = (ref: TableRef): string => `t:${ref.connectionId}${SEPARATOR}${ref.schema}${SEPARATOR}${ref.table}`;
 
-/* The folders of a table, in the order they come under it. */
-export const PARTS = ['columns', 'keys', 'foreignKeys', 'indexes', 'checks', 'triggers'] as const;
+const PARTS = ['columns', 'keys', 'foreignKeys', 'indexes', 'checks', 'triggers'] as const;
 
 export type TablePart = (typeof PARTS)[number];
 
@@ -52,7 +49,6 @@ export const partKey = (ref: TableRef, part: TablePart): string => `p:${ref.conn
 /* A folder of a schema, and the columns of a table, are open until the person closes them; everything else is closed until they open it. */
 export const startsOpen = (key: string): boolean => key.startsWith('f:') || (key.startsWith('p:') && key.endsWith(`${SEPARATOR}columns`));
 
-/* The connection a key of a connection, schema, folder or table belongs to. */
 export const connectionOfKey = (key: string): string => {
     const rest = key.slice(2);
     const end = rest.indexOf(SEPARATOR);
@@ -62,7 +58,6 @@ export const connectionOfKey = (key: string): string => {
 
 export const columnKey = (ref: TableRef, column: string): string => `${tableKey(ref)}${SEPARATOR}${column}`;
 
-/* A folder of the app's own under a connection, and an item in it. */
 export const appFolderKey = (connectionId: string, folder: string): string => `x:${connectionId}${SEPARATOR}${folder}`;
 
 const appItemKey = (connectionId: string, folder: string, item: string): string => `${appFolderKey(connectionId, folder)}${SEPARATOR}${item}`;
@@ -79,7 +74,6 @@ export const loadKey = (target: LoadTarget): string => {
         : tableKey({ connectionId: target.connectionId, schema: target.schema, table: target.table });
 };
 
-/* The kinds of table a schema lists, in the order of its folders. */
 export const GROUPS: readonly TableKind[] = ['table', 'view'];
 
 interface RowBase {
@@ -93,7 +87,7 @@ interface RowBase {
     readonly focusable: boolean;
 }
 
-export interface ConnectionRow extends RowBase {
+interface ConnectionRow extends RowBase {
     readonly kind: 'connection';
     readonly connection: Connection;
     readonly expanded: boolean;
@@ -103,7 +97,7 @@ export interface ConnectionRow extends RowBase {
     readonly schemaCount: { readonly shown: number; readonly total: number } | null;
 }
 
-export interface SchemaRow extends RowBase {
+interface SchemaRow extends RowBase {
     readonly kind: 'schema';
     readonly connection: Connection;
     readonly schema: string;
@@ -111,7 +105,7 @@ export interface SchemaRow extends RowBase {
 }
 
 /* The "Tables" or the "Views" of a schema; it exists only when the schema has some. */
-export interface FolderRow extends RowBase {
+interface FolderRow extends RowBase {
     readonly kind: 'folder';
     readonly connection: Connection;
     readonly schema: string;
@@ -138,7 +132,7 @@ export interface ColumnRow extends RowBase {
 }
 
 /* One of the folders a table opens into, which exists only when it holds something. */
-export interface PartRow extends RowBase {
+interface PartRow extends RowBase {
     readonly kind: 'part';
     readonly ref: TableRef;
     readonly part: TablePart;
@@ -146,8 +140,7 @@ export interface PartRow extends RowBase {
     readonly count: number;
 }
 
-/* What a folder of a table holds besides its columns. */
-export type TableEntry =
+type TableEntry =
     | { readonly type: 'key'; readonly name: string | null; readonly columns: readonly string[]; readonly primary: boolean }
     | { readonly type: 'foreignKey'; readonly foreignKey: ForeignKeyInfo }
     | { readonly type: 'index'; readonly index: IndexInfo }
@@ -160,7 +153,7 @@ export interface EntryRow extends RowBase {
     readonly entry: TableEntry;
 }
 
-export interface LoadingRow extends RowBase {
+interface LoadingRow extends RowBase {
     readonly kind: 'loading';
 }
 
@@ -170,8 +163,7 @@ export interface ErrorRow extends RowBase {
     readonly retry: LoadTarget;
 }
 
-/* A folder of the app's own under a connection. */
-export interface AppFolderRow extends RowBase {
+interface AppFolderRow extends RowBase {
     readonly kind: 'appFolder';
     readonly connection: Connection;
     readonly folder: ExplorerFolder;
@@ -180,14 +172,14 @@ export interface AppFolderRow extends RowBase {
     readonly count: number;
 }
 
-export interface AppItemRow extends RowBase {
+interface AppItemRow extends RowBase {
     readonly kind: 'appItem';
     readonly connection: Connection;
     readonly item: ExplorerItem;
 }
 
 /* A connection without schemas, a schema without tables or a table without columns. */
-export interface EmptyRow extends RowBase {
+interface EmptyRow extends RowBase {
     readonly kind: 'empty';
     readonly of: 'schemas' | 'tables' | 'columns';
 }
@@ -211,7 +203,6 @@ export type ExpandableRow = ConnectionRow | SchemaRow | FolderRow | TableRow | P
 export const isExpandable = (row: TreeRow): row is ExpandableRow =>
     row.kind === 'connection' || row.kind === 'schema' || row.kind === 'folder' || row.kind === 'table' || row.kind === 'part' || row.kind === 'appFolder';
 
-/* The table a row stands for, when it stands for one. */
 export const tableOf = (row: TreeRow): TableRef | null => (row.kind === 'table' || row.kind === 'column' || row.kind === 'entry' ? row.ref : null);
 
 /* The table activating a row opens: its own, or for a foreign key the table it references. */
@@ -245,7 +236,6 @@ export const selectionOf = (row: TreeRow): ExplorerSelection | null => {
 /* The key of the row a selection points at: its table, else its schema, else its connection. */
 export const selectionKey = (selection: ExplorerSelection): string => loadKey(selection);
 
-/* Whether a row has a menu: the rows of a connection, a schema, a table or a column, an item the app gave one, and none of the rows that only report. */
 export const hasMenu = (row: TreeRow): boolean =>
     row.kind === 'connection' ||
     row.kind === 'schema' ||
@@ -271,11 +261,10 @@ export interface TreeInput {
     tables(connectionId: string, schema: string): Load<readonly TableInfo[]>;
     structures(connectionId: string, schema: string, table: string): Load<TableStructure>;
     versions(connectionId: string): string | null;
-    /* The app's own folders under a connection. */
     folders?(connectionId: string): readonly ExplorerFolder[];
 }
 
-export const visibleSchemas = (schemas: readonly SchemaInfo[], showSystemSchemas: boolean): readonly SchemaInfo[] =>
+const visibleSchemas = (schemas: readonly SchemaInfo[], showSystemSchemas: boolean): readonly SchemaInfo[] =>
     showSystemSchemas ? schemas : schemas.filter((schema) => !schema.system);
 
 /* One schema is no level worth a row, so its folders hang straight under the connection. */
@@ -292,7 +281,6 @@ interface Draft {
     readonly below: readonly TreeRow[];
 }
 
-/* Gives the drafts of one parent their place among each other, and lays them out depth first. */
 const settle = (drafts: readonly Draft[]): TreeRow[] => drafts.flatMap((draft, i) => [draft.make({ posInSet: i + 1, setSize: drafts.length }), ...draft.below]);
 
 type StatusRow = { kind: 'loading' } | { kind: 'empty'; of: EmptyRow['of'] } | { kind: 'error'; message: string; retry: LoadTarget };
@@ -302,14 +290,12 @@ const statusDraft = (row: StatusRow, level: number, parent: string, focusable: b
     below: []
 });
 
-/* The row of a load that is not ready: its error, which can be retried and so takes the focus, or that it is loading. */
 const pendingDraft = (load: Exclude<Load<unknown>, { status: 'ready' }>, retry: LoadTarget, level: number, parent: string): Draft =>
     statusDraft(load.status === 'error' ? { kind: 'error', message: load.message, retry } : { kind: 'loading' }, level, parent, load.status === 'error');
 
 const matches = (name: string, query: string): boolean => name.toLowerCase().includes(query);
 
-/* What each folder of a table besides its columns holds: the primary key and the unique keys, the foreign keys, the other indexes, the checks and the triggers. */
-export const tableEntries = (structure: TableStructure): Readonly<Record<Exclude<TablePart, 'columns'>, readonly TableEntry[]>> => {
+const tableEntries = (structure: TableStructure): Readonly<Record<Exclude<TablePart, 'columns'>, readonly TableEntry[]>> => {
     const primaryIndex = structure.indexes.find((index) => index.primary);
 
     const primary: TableEntry[] =
@@ -423,7 +409,6 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         };
     };
 
-    /* The folders under a schema (or under a connection with only that schema), and how many tables they hold. */
     const folderDrafts = (connection: Connection, schema: string, level: number, parent: string): { drafts: Draft[]; tables: number } => {
         const load = input.tables(connection.id, schema);
 
@@ -491,7 +476,6 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
         };
     };
 
-    /* The app's folders under a connection, each while it holds items; with a filter only the items that match, in folders that count as open. */
     const appFolderDrafts = (connection: Connection, level: number, parent: string): Draft[] =>
         (input.folders?.(connection.id) ?? []).flatMap((folder): Draft[] => {
             const items = filtering ? folder.items.filter((item) => matches(item.label, query)) : folder.items;
@@ -581,7 +565,6 @@ export const flattenTree = (input: TreeInput): TreeRow[] => {
     return settle(input.connections.flatMap((connection) => connectionDraft(connection) ?? []));
 };
 
-/* The loads an open node is waiting for and nobody has asked for yet. */
 export const neededLoads = (input: Omit<TreeInput, 'filter'>): LoadTarget[] => {
     const needed: LoadTarget[] = [];
 
@@ -633,14 +616,13 @@ export const neededLoads = (input: Omit<TreeInput, 'filter'>): LoadTarget[] => {
     return needed;
 };
 
-export type TreeAction =
+type TreeAction =
     | { readonly type: 'focus'; readonly key: string }
     | { readonly type: 'expand'; readonly key: string }
     | { readonly type: 'collapse'; readonly key: string }
     /* Enter or Space: opens a table (or the table of a column), toggles a node, retries a failed load. */
     | { readonly type: 'activate'; readonly key: string };
 
-/* What a key does to the row that has the focus, or `null` when it does nothing there. */
 export const navigate = (rows: readonly TreeRow[], activeKey: string | null, pressed: string): TreeAction | null => {
     const stops = rows.filter((row) => row.focusable);
 

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Markdown } from '../Markdown';
 
 /* Why a part is drawn as its text: a component this version does not know, or one it could not draw. */
-export type UiFallbackProblem = { kind: 'unknown'; component: string } | { kind: 'failed' };
+type UiFallbackProblem = { kind: 'unknown'; component: string } | { kind: 'failed' };
 
 /*
  * One part of a block as the markdown it stands for, on a card in a quiet tile under a line that says why.

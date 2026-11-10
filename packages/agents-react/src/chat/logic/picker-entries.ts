@@ -1,23 +1,11 @@
-import { pickerGroupsOf, providerGroupOf, type AgentKind, type ModelInfo, type ProviderInfo } from '@adecore/agent-contracts';
+import type { AgentKind, ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
 import { nameCollator } from '@adecore/ui/format';
-
-/* The providers in the order a picker lists them: the frontier labs, the rest, then the API providers, each by name. */
-export function inPickerOrder<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): T[] {
-    const groups = pickerGroupsOf(providers);
-
-    return [...groups.frontier, ...groups.others, ...groups.api];
-}
-
-/* Whether a separator goes between two providers next to each other in that order: where one group ends. */
-export function separatesGroups(previous: AgentKind | undefined, kind: AgentKind): boolean {
-    return previous !== undefined && providerGroupOf(previous) !== providerGroupOf(kind);
-}
 
 /*
  * A provider with more live models than this keeps the list short: the model that is picked and the default,
  * with the rest behind one row that opens all of them. A list of three hundred models is not one to scroll.
  */
-export const COMPACT_MODEL_LIMIT = 8;
+const COMPACT_MODEL_LIMIT = 8;
 
 /* A model row, or a row that folds more models open: one provider's models, or the legacy ones. All of them take a turn in the arrow keys. */
 export type PickerEntry =
@@ -25,13 +13,12 @@ export type PickerEntry =
     | { kind: 'legacy'; count: number }
     | { kind: 'all'; provider: ProviderInfo; count: number; open: boolean };
 
-export interface PickerCurrent {
+interface PickerCurrent {
     provider: AgentKind;
     model: string;
 }
 
-/* The models a person starred, per CLI. */
-export type FavoritesOf = (kind: AgentKind) => ReadonlySet<string>;
+type FavoritesOf = (kind: AgentKind) => ReadonlySet<string>;
 
 const NO_FAVORITES: FavoritesOf = () => new Set();
 
@@ -46,7 +33,7 @@ function matches(model: ModelInfo, query: string): boolean {
  * By maker, then by name, when the provider says who made its models; a list with no makers keeps the order
  * it came in. A model with no maker goes last, so the ones that have one read as groups.
  */
-export function modelsByVendor(models: ModelInfo[]): ModelInfo[] {
+function modelsByVendor(models: ModelInfo[]): ModelInfo[] {
     if (!models.some((model) => model.vendor !== undefined)) {
         return models;
     }
@@ -63,7 +50,6 @@ export function modelsByVendor(models: ModelInfo[]): ModelInfo[] {
     });
 }
 
-/* The starred models first, in the order they came, then the rest by maker. */
 export function favoritesFirst(models: ModelInfo[], favorites: ReadonlySet<string>): ModelInfo[] {
     if (favorites.size === 0) {
         return modelsByVendor(models);

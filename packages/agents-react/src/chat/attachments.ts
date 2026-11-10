@@ -44,7 +44,6 @@ export function formatBytes(bytes: number): string {
     return bytesOf(bytes, bytes < 1024 * 1024);
 }
 
-/* Which of the incoming files fit next to what the composer already holds, and why the rest do not. */
 export function checkAttachmentLimits<T extends IncomingFile>(current: number, incoming: T[], currentBytes = 0): AttachmentCheck<T> {
     const accepted: T[] = [];
     const rejected: Array<{ name: string; reason: string }> = [];
@@ -123,7 +122,6 @@ export async function readAttachments(files: File[]): Promise<ChatAttachmentUplo
     );
 }
 
-/* Files the host already stored for a chat, back as uploads the composer can hold again. */
 export async function readStoredAttachments(
     read: (attachment: ChatAttachment) => Promise<Blob>,
     stored: readonly ChatAttachment[]

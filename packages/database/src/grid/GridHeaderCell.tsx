@@ -53,7 +53,6 @@ export interface GridHeaderCellProps {
 
 type MenuProps = Pick<GridHeaderCellProps, 'column' | 'index' | 'sortable' | 'hasSorts' | 'pinned' | 'hasHidden' | 'canHide' | 'actions'>;
 
-/* The items of the menu a header opens, from its button and from a right click. */
 function HeaderMenuItems({ column, index, sortable, hasSorts, pinned, hasHidden, canHide, actions }: MenuProps) {
     const { t } = useTranslation('database');
 
@@ -99,7 +98,6 @@ function HeaderMenuItems({ column, index, sortable, hasSorts, pinned, hasHidden,
     );
 }
 
-/* The facts about a table column that a tooltip can carry: its type, whether it takes NULL, its default. */
 function ColumnFacts({ column }: { column: GridColumn }) {
     const { t } = useTranslation('database');
     const keys = { primaryKey: column.primaryKey === true, foreignKey: column.foreignKey === true };
@@ -120,7 +118,6 @@ function ColumnFacts({ column }: { column: GridColumn }) {
     );
 }
 
-/* One column's head: its name, the sort it carries, the key of a key column, a menu and the strip that resizes it. Numbers sit against the end, like their cells. */
 export function GridHeaderCell({
     column,
     index,

@@ -455,7 +455,6 @@ export interface ProviderOptions {
     watchers?: FileSystemWatcher[];
     codeActionKinds?: string[];
     legend?: SemanticTokensLegend;
-    /* Of a file operation registration. */
     filters?: FileOperationFilter[];
     range?: boolean | object;
     full?: boolean | { delta?: boolean };

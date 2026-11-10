@@ -115,6 +115,7 @@ exports[`the public API . exports these names 1`] = `
   "sameDropPreview",
   "selectAllWithin",
   "selectionWithin",
+  "setApplePlatform",
   "setFileIconOverride",
   "shortcut",
   "shortcutFromEvent",
@@ -127,6 +128,7 @@ exports[`the public API . exports these names 1`] = `
   "tabGapAt",
   "tintStyle",
   "type AccentSwatchesProps",
+  "type ApplePlatformSource",
   "type AsyncAction",
   "type BannerProps",
   "type BannerTone",
@@ -412,6 +414,8 @@ exports[`the public API ./testing exports these names 1`] = `
 `;
 
 exports[`the public API ./testing/dedupe exports these names 1`] = `[]`;
+
+exports[`the public API ./design-conventions exports these names 1`] = `[]`;
 
 exports[`the public API the compound components have these parts 1`] = `
 {

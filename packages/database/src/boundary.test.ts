@@ -101,7 +101,7 @@ describe('the public API', () => {
     });
 
     test('the host exports these names', async () => {
-        expect(await names('./host/index.ts')).toEqual(['createDatabaseHost', 'helperPath', 'parseRequest', 'spawnHelper']);
+        expect(await names('./host/index.ts')).toEqual(['createDatabaseHost', 'helperFileName', 'helperPath', 'parseRequest', 'spawnHelper']);
     });
 
     test('the client exports these names', async () => {

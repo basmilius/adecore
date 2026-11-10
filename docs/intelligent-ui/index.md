@@ -15,7 +15,7 @@ $selected = ["links"]
 </Choices>
 ```
 
-The agent writes this in a fenced code block. [`UiReply`](/agents-react/chat/intelligent-ui) draws it:
+The agent writes this in a fenced code block. The [chat timeline](/agents-react/chat/intelligent-ui) draws it:
 
 <Demo src="agents/intelligent-ui" />
 

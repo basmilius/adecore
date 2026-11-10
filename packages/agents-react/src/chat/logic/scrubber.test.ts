@@ -159,7 +159,6 @@ describe('layoutTicks', () => {
         expect(layout.slots).toHaveLength(50);
         expect(layout.slots[0]).toMatchObject({ first: 0, last: 19 });
         expect(layout.slots[49]).toMatchObject({ first: 980, last: 999 });
-        // Every message is under exactly one tick.
         const covered = layout.slots.reduce((sum, slot) => sum + slot.last - slot.first + 1, 0);
         expect(covered).toBe(1000);
     });

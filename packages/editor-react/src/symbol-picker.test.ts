@@ -5,8 +5,7 @@ import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification } from './host-types.ts';
 import type { Place } from './navigation-history.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const bus = 'file:///work/app/src/bus.ts';
@@ -54,7 +53,7 @@ describe('go to symbol', () => {
         expect(editor.press(keyOf(language.shortcuts.goToSymbol))).toBe(true);
 
         await settle();
-        const view = language.popups.getState().symbols!;
+        const view = language.popups.slot('symbols').get()!;
 
         expect(view.file).toBe('a.ts');
         expect(view.entries.map((entry) => entry.name)).toEqual(['score', 'DEFAULT']);
@@ -62,7 +61,7 @@ describe('go to symbol', () => {
         language.symbolPicker.goTo(view.entries[0]!);
 
         expect(editor.getCaret()).toEqual(at(2, 9));
-        expect(language.popups.getState().symbols).toBeNull();
+        expect(language.popups.slot('symbols').get()).toBeNull();
         expect(editor.focused).toBe(true);
     });
 
@@ -72,7 +71,7 @@ describe('go to symbol', () => {
         language.symbolPicker.goToLine(3);
 
         expect(editor.getCaret()).toEqual(at(2, 0));
-        expect(language.popups.getState().symbols).toBeNull();
+        expect(language.popups.slot('symbols').get()).toBeNull();
 
         const found = await language.symbolPicker.search('Bus', new AbortController().signal);
 
@@ -100,7 +99,7 @@ describe('go to symbol', () => {
         const { language, notices } = await setup([]);
         await language.symbolPicker.open();
 
-        expect(language.popups.getState().symbols).toBeNull();
+        expect(language.popups.slot('symbols').get()).toBeNull();
         expect(notices.map((notice) => notice.title)).toEqual(['Symbols unavailable in this file']);
     });
 
@@ -108,10 +107,10 @@ describe('go to symbol', () => {
         const { language } = await setup();
         await language.symbolPicker.open();
 
-        expect(language.popups.getState().symbols).not.toBeNull();
+        expect(language.popups.slot('symbols').get()).not.toBeNull();
 
         language.dispose();
 
-        expect(language.popups.getState().symbols).toBeNull();
+        expect(language.popups.slot('symbols').get()).toBeNull();
     });
 });

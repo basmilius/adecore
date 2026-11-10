@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
 import type { ChatAssistantItem, ChatEvent, ChatInfo } from '@adecore/agent-contracts';
-import { claudeProvider } from '../providers/claude-provider.ts';
 import { ManualClock } from '../testing/manual-clock.ts';
+import { claudeProvider } from '../testing/providers.ts';
 import { ChatThread } from './thread.ts';
 import { UiReplies } from './ui-replies.ts';
 

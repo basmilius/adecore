@@ -1,8 +1,8 @@
 import type { EditorPosition } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
-import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './templates.ts';
+import { lspLanguageId } from '@adecore/lsp';
+import type { LanguageContext } from './language-context.ts';
+import type { LiveTemplate, TemplateLanguage, TemplatePlace } from './template-types.ts';
 
-/* The completion item kind of a snippet. */
 export const SNIPPET_KIND = 15;
 
 /* Sorts a template row after the rows of the same score that a service answers. */
@@ -12,19 +12,11 @@ export function sortAfterServer(key: string): string {
 
 /* The families a language id counts as; TypeScript builds on JavaScript. */
 export function familiesOf(languageId: string): readonly TemplateLanguage[] {
-    switch (languageId) {
+    switch (lspLanguageId(languageId)) {
         case 'javascript':
-        case 'js':
-        case 'mjs':
-        case 'cjs':
-        case 'jsx':
         case 'javascriptreact':
             return ['javascript'];
         case 'typescript':
-        case 'ts':
-        case 'mts':
-        case 'cts':
-        case 'tsx':
         case 'typescriptreact':
             return ['javascript', 'typescript'];
         case 'php':
@@ -53,13 +45,12 @@ export interface TemplateContext {
 }
 
 /* The families and the place at a position; an editor that cannot tell has the language of the document, in code. */
-export function templateContextAt(language: EditorLanguage, position: EditorPosition): TemplateContext {
+export function templateContextAt(language: LanguageContext, position: EditorPosition): TemplateContext {
     const place = language.editor.placeAt?.(position);
 
     return place === undefined ? { families: familiesOf(language.languageId), place: 'code' } : { families: familiesOf(place.language), place: place.kind };
 }
 
-/* Whether a template shares a family with the context and applies to its place. */
 export function templateApplies(template: LiveTemplate, context: TemplateContext): boolean {
     return template.languages.some((family) => context.families.includes(family)) && (template.places ?? ['code']).includes(context.place);
 }

@@ -47,13 +47,13 @@ import { createRoot } from 'react-dom/client';
 import { UIProvider } from '@adecore/ui';
 
 createRoot(document.getElementById('root')!).render(
-    <UIProvider i18n={i18next} formatSource={formatSource}>
+    <UIProvider i18n={i18next}>
         <App />
     </UIProvider>
 );
 ```
 
-It adds the library's words to your i18next instance, hands the formatters your `formatSource`, mounts the shared tooltip provider and writes `data-modality` on `<html>`. To wire the format source yourself, call `setFormatSource`. See [UIProvider](/ui/utilities/ui-provider).
+It adds the library's words to your i18next instance, mounts the shared tooltip provider and writes `data-modality` on `<html>`. Hand the formatters their source with `setFormatSource` before the first render. See [UIProvider](/ui/utilities/ui-provider).
 
 ## Words and languages
 
@@ -65,10 +65,10 @@ The library's words ("Cancel", "Zoom in") live in the `ui` namespace (`UI_NAMESP
 
 The formatters in `@adecore/ui/format` take two settings. The language writes the words (`Sep` or `sep`). The region writes the order, separators and clock (`9/19/2026, 8:05 AM` or `19-9-2026 08:05`). English with a Dutch notation is a common pair.
 
-A `FormatSource` hands both over:
+A `FormatSource` hands both over. Pass it to `setFormatSource` before the first render:
 
 ```ts
-import { FORMAT_LANGUAGE, type FormatSource } from '@adecore/ui/format';
+import { FORMAT_LANGUAGE, setFormatSource, type FormatSource } from '@adecore/ui/format';
 
 const formatSource: FormatSource = {
     language: () => settings.language,
@@ -78,6 +78,8 @@ const formatSource: FormatSource = {
     systemLocale: () => desktopShell?.systemLocale,
     subscribe: (onChange) => settings.subscribe(onChange)
 };
+
+setFormatSource(formatSource);
 ```
 
 Without one, the formatters write English. [Format source](/ui/formatting/) explains how the region resolves.
@@ -91,7 +93,7 @@ Mount [`<ShortcutHints />`](/ui/display/shortcut-hints) once to print every visi
 - The CSS imports Tailwind, then `@adecore/ui/theme.css`, and has an `@source` for the library.
 - `<html>` carries `data-theme="light"` or `data-theme="dark"`.
 - The app sets its own [accent](/ui/guide/theme#your-own-accent), or keeps the neutral blue.
-- `UIProvider` sits once above every component, with the app's i18next and a format source.
+- `UIProvider` sits once above every component, with the app's i18next, and `setFormatSource` ran before the first render.
 
 ## Working on a local checkout
 

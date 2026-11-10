@@ -32,7 +32,6 @@ export interface HunkHeader {
     readonly section: string;
 }
 
-/* Reads one `@@ -a,b +c,d @@ section` line without its line ending; undefined when it is not a hunk header. */
 export function parseHunkHeader(line: string): HunkHeader | undefined {
     const match = HEADER.exec(line);
 

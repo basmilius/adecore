@@ -1,0 +1,45 @@
+import type { ChatQuestion, ChatQuestionItem } from '@adecore/agent-contracts';
+import type { PendingPrompt, PromptAnswer, PromptDraft } from '../../../host/prompts';
+import { toggleChoice } from '../../logic/answers';
+
+export function emptyPromptDraft(): PromptDraft {
+    return { index: 0, answers: {}, reason: '', showReason: false };
+}
+
+export function answerValue(answer: PromptAnswer): string {
+    return answer.custom ? answer.text.trim() : answer.choices.join(', ');
+}
+
+export function questionAnswer(draft: PromptDraft, question: ChatQuestion): PromptAnswer {
+    return draft.answers[question.id] ?? { choices: [], text: '', custom: question.choices.length === 0 };
+}
+
+export function pickPromptChoice(answer: PromptAnswer, question: ChatQuestion, label: string): PromptAnswer {
+    return { ...answer, custom: false, choices: question.multiSelect ? toggleChoice(answer.choices, label) : [label] };
+}
+
+/* An optional question never stands in front of a request that holds the agent up. */
+export function isBlockingPrompt(item: PendingPrompt): boolean {
+    return item.kind === 'approval' || !item.async;
+}
+
+/* Blocking prompts first and optional ones after, each oldest first. The chat and a canvas's stack both follow it. */
+export function orderPrompts<T>(prompts: readonly T[], blocking: (prompt: T) => boolean, createdAt: (prompt: T) => number): T[] {
+    return [...prompts].sort((a, b) => Number(blocking(b)) - Number(blocking(a)) || createdAt(a) - createdAt(b));
+}
+
+export function nextPrompt(items: readonly PendingPrompt[], activeId: string | null): PendingPrompt | null {
+    const active = items.find((item) => item.requestId === activeId);
+
+    if (active) {
+        return active;
+    }
+
+    return orderPrompts(items, isBlockingPrompt, (item) => item.createdAt)[0] ?? null;
+}
+
+export function promptAnswers(item: ChatQuestionItem, draft: PromptDraft): Record<string, string> | null {
+    const answers = Object.fromEntries(item.questions.map((question) => [question.id, answerValue(questionAnswer(draft, question))]));
+
+    return Object.values(answers).every((answer) => answer !== '') ? answers : null;
+}

@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatItem, ChatToolItem, ChatVisual } from '@adecore/agent-contracts';
-import type { ThreadCard } from '../../host';
+import type { ThreadCard } from '../../host/host';
+import { type TimelineRow } from '../../host/timeline-row';
 import { cardRows, timedRowsOf, withTimedRows } from './thread-cards';
-import { deriveTimelineRows, type TimelineRow } from './timeline';
+import { deriveTimelineRows } from './timeline';
 
 function tool(id: string, createdAt: number, turnId: string, state: ChatToolItem['state'] = 'done'): ChatToolItem {
     return {

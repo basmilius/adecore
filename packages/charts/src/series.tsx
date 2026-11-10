@@ -200,7 +200,7 @@ export function ChartLine<Row>({ value, label, tone, icon, curve = 'linear', das
         valueLabels: false
     });
 
-    if (chart.horizontal) {
+    if (!chart.plane.draws('line')) {
         return null;
     }
 
@@ -261,7 +261,7 @@ export function ChartPoint<Row>({ value, label, tone, icon, className, ref }: Ch
 
     const fallback = chart.colors.get(id) ?? seriesColor(0);
 
-    if (chart.horizontal) {
+    if (!chart.plane.draws('point')) {
         return null;
     }
 
@@ -322,7 +322,7 @@ export function ChartArea<Row>({
         valueLabels: false
     });
 
-    if (chart.horizontal) {
+    if (!chart.plane.draws('area')) {
         return null;
     }
 

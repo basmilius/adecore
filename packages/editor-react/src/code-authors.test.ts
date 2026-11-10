@@ -3,7 +3,7 @@ import './test-setup.ts';
 import i18next from 'i18next';
 import { UNCOMMITTED, authorsText, authorshipOf, mapBlame, shortName } from './code-authors.ts';
 import type { GitBlameCommit } from './host-types.ts';
-import dutchWords from './locales/nl.json';
+import dutchWords from './locales/nl.ts';
 
 const commit = (author: string, at: number, summary = 'Change'): GitBlameCommit => ({
     hash: `${author}${at}`.padEnd(40, '0'),

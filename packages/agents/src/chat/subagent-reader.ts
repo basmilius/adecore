@@ -1,9 +1,12 @@
 import { basename, dirname } from 'node:path';
 import { workflowAgentIdOf, type ChatInfo, type ChatItem, type ChatSubagentChangedEvent, type ChatSubagentResult } from '@adecore/agent-contracts';
+import { parseThreadItemsPage } from '../backends/codex-threads.ts';
+import type { ProviderThreads, ThreadItemsParams, ThreadProcess } from '../backends/threads.ts';
+import { ChatError } from '../chat-error.ts';
+import type { SubagentSource } from '../providers/provider.ts';
 import { SYSTEM_WATCH, type DirectoryWatcher, type WatchSeams } from '../watch-seam.ts';
 import { findSubagentsDir, findWorkflowAgent, readSubagentMetas, TranscriptProjection, type SubagentMeta } from './claude-transcript.ts';
-import { listThreadItemsOnce, parseThreadItemsPage, projectCodexItems, type CodexProcessSpec, type ThreadItemsParams } from './codex-thread.ts';
-import { ChatError } from './errors.ts';
+import { projectCodexItems } from './codex-thread.ts';
 import { readSubagentSettlement, type SubagentSettlement } from './subagent-settlement.ts';
 
 const DEFAULT_PAGE = 60;
@@ -38,15 +41,13 @@ export interface SubagentReaderOptions {
     claudeProjectsDir: string;
     /* Where it keeps those of a chat: of its account, or of its provider's own configuration folder. */
     claudeProjectsDirOf?(info: ChatInfo): string;
-    /* Whether a chat runs Claude Code, under any provider kind; absent is a chat of kind `claude`. */
-    runsClaudeCode?(info: ChatInfo): boolean;
-    /* How a Codex app-server is started for a chat whose own is not running. */
-    codexProcess(info: ChatInfo): CodexProcessSpec;
-    /* Tells one client that a conversation it holds has more in it. */
+    /* Where the conversations of a chat's subagents are kept, by its provider; undefined for a CLI that keeps none. */
+    sourceOf(info: ChatInfo): SubagentSource | undefined;
+    /* The threads of a chat's provider, and how its app-server is started for a chat whose own is not running. */
+    threadsOf(info: ChatInfo): { threads: ProviderThreads; process: ThreadProcess } | undefined;
     notify(clientId: string, event: ChatSubagentChangedEvent): void;
     seams?: WatchSeams;
     now?(): number;
-    listOnce?(spec: CodexProcessSpec, params: ThreadItemsParams): Promise<unknown>;
 }
 
 interface ClaudeFile {
@@ -89,7 +90,6 @@ export class SubagentReader {
     private readonly options: SubagentReaderOptions;
     private readonly seams: WatchSeams;
     private readonly now: () => number;
-    private readonly listOnce: (spec: CodexProcessSpec, params: ThreadItemsParams) => Promise<unknown>;
     private readonly claudeFiles = new Map<string, ClaudeFile>();
     // Keyed on the transcript path, with the chat it was read for so a grandchild's status can be found.
     private readonly projections = new Map<string, { chatId: string; projection: TranscriptProjection }>();
@@ -107,20 +107,19 @@ export class SubagentReader {
         this.options = options;
         this.seams = options.seams ?? SYSTEM_WATCH;
         this.now = options.now ?? Date.now;
-        this.listOnce = options.listOnce ?? listThreadItemsOnce;
     }
 
     async read(chatId: string, toolUseId: string, cursor?: string, limit = DEFAULT_PAGE): Promise<ChatSubagentResult> {
         const chat = this.require(chatId);
 
-        return chat.info.provider === 'codex' ? this.readCodex(chat, toolUseId, cursor, limit) : this.readClaude(chat, toolUseId, cursor, limit);
+        return this.sourceOf(chat) === 'codex-thread' ? this.readCodex(chat, toolUseId, cursor, limit) : this.readClaude(chat, toolUseId, cursor, limit);
     }
 
     /* Every item, for an agent reading the conversation as text; a Codex thread is paged through to its start. */
     async readAll(chatId: string, toolUseId: string): Promise<ChatItem[]> {
         const chat = this.require(chatId);
 
-        if (chat.info.provider !== 'codex') {
+        if (this.sourceOf(chat) !== 'codex-thread') {
             return (await this.claudeProjection(chat, toolUseId)).items();
         }
 
@@ -143,7 +142,7 @@ export class SubagentReader {
     async claudeSettlement(chatId: string, toolUseId: string): Promise<SubagentSettlement | null> {
         const chat = this.options.chat(chatId);
 
-        if (!chat || !(this.options.runsClaudeCode?.(chat.info) ?? chat.info.provider === 'claude')) {
+        if (!chat || this.sourceOf(chat) !== 'claude-transcript') {
             return null;
         }
 
@@ -171,7 +170,7 @@ export class SubagentReader {
             return;
         }
 
-        const stop = chat.info.provider === 'codex' ? this.pollCodex(key, chatId, toolUseId) : this.watchClaude(key);
+        const stop = this.sourceOf(chat) === 'codex-thread' ? this.pollCodex(key, chatId, toolUseId) : this.watchClaude(key);
         this.holds.set(key, { chatId, toolUseId, clients: new Set([clientId]), stop });
     }
 
@@ -196,7 +195,6 @@ export class SubagentReader {
         }
     }
 
-    /* Forgets everything about a chat that is gone. */
     releaseChat(chatId: string): void {
         const ofChat = (key: string): boolean => key.startsWith(`${chatId}\n`);
 
@@ -225,6 +223,10 @@ export class SubagentReader {
     /* How many clients hold something, for a test that checks a socket let go of everything. */
     get holdCount(): number {
         return this.holds.size;
+    }
+
+    private sourceOf(chat: SubagentChat): SubagentSource | undefined {
+        return this.options.sourceOf(chat.info);
     }
 
     private require(chatId: string): SubagentChat {
@@ -430,7 +432,13 @@ export class SubagentReader {
             return cached.result;
         }
 
-        const result = await this.listOnce(this.options.codexProcess(chat.info), params);
+        const asked = this.options.threadsOf(chat.info);
+
+        if (asked === undefined) {
+            throw new ChatError('subagent-not-found', 'This CLI keeps no threads to read a subagent from');
+        }
+
+        const result = await asked.threads.listItems(asked.process, params);
 
         for (const [stale, entry] of [...this.codexCache]) {
             if (now - entry.at >= CODEX_CACHE_MS) {

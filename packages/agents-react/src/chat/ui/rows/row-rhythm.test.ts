@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatAssistantItem, ChatToolItem, ChatTurnItem, ChatUserItem, ChatVisual } from '@adecore/agent-contracts';
-import type { TimelineRow } from '../../logic/timeline';
+import type { TimelineRow } from '../../../host/timeline-row';
 import { replyHeader, rowRhythm, saidToChat } from './row-rhythm';
 
 function user(id: string, createdAt = 0): TimelineRow {

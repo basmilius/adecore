@@ -4,7 +4,6 @@ import { latency } from '../shared/chart-data.ts';
 const p95 = latency();
 const BUDGET = 300;
 
-/* A latency budget across the plot, drawn by the app on the chart's own scale. */
 function Budget() {
     const { plot, y } = useChart();
     const pixel = y(BUDGET);

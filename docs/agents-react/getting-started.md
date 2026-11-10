@@ -44,7 +44,7 @@ Import `terminal.css` of [`@adecore/terminal`](/terminal/) to give tool output, 
 
 ## Words
 
-Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`, each an `AgentsNamespace`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
+Four namespaces hold the words, in English and Dutch: `agent-chat`, `agent-prompts`, `agent-providers` and `agent-usage` (`AGENTS_NAMESPACES`). `AGENTS_LOCALES.en()` and `AGENTS_LOCALES.nl()` load all four of a language. `@adecore/agents-react/locales/<language>/<namespace>` exports one namespace as its default.
 
 Some helpers call the default `i18next` instance directly. Add the words to that instance and pass it to `UIProvider`:
 
@@ -71,9 +71,9 @@ import { configureChatStorage } from '@adecore/agents-react';
 configureChatStorage({ namespace: 'my-app' });
 ```
 
-An agent kind your app adds gets its mark once with `configureAgentMarks`. See [Agent marks](/agents-react/providers/marks#a-mark-for-a-kind-the-host-adds).
+An agent kind your app adds gets its mark through the `agentMarks` member of the host. See [Agent marks](/agents-react/providers/marks#a-mark-for-a-kind-the-host-adds).
 
-A `ChatHostProvider` hands the views what only your app can decide. Keep the object in a constant. A field you leave out leaves its part out. See [Host adapters](/agents-react/guide/host).
+A `ChatHostProvider` hands the views what only your app can decide. Keep the object in a constant. A field you leave out leaves its part out. A provider inside another keeps what the outer one handed and replaces what it hands itself; a part that is a bundle on both sides, such as `attachments`, is merged one level down. See [Host adapters](/agents-react/guide/host).
 
 ```tsx
 import { ChatHostProvider, type ChatHost } from '@adecore/agents-react';

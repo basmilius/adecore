@@ -79,7 +79,6 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
     const [width, setWidth] = useState(DEFAULT_WIDTH);
     const [managing, setManaging] = useState(false);
     const [managed, setManaged] = useState<string | null>(null);
-    /* Ids of the table tabs that hold changes nobody submitted, and the tab a person asked to close while it does. */
     const [dirty, setDirty] = useState<ReadonlySet<string>>(() => new Set());
     const [closing, setClosing] = useState<string | null>(null);
     const { startResize } = useColumnResize(column, { size: width, min: MIN_WIDTH, from: 'left', max: () => window.innerWidth / 2, onSize: setWidth });
@@ -181,7 +180,6 @@ export function DatabaseWorkbench({ connections, onConnectionsChange, className,
         setState((current) => closeTab(current, id));
     }
 
-    /* A table tab with changes that are not submitted asks first. */
     function requestClose(id: string): void {
         if (dirty.has(id)) {
             setClosing(id);

@@ -1,4 +1,4 @@
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export function scriptSource(text: string, start: number, complete: boolean, context: (offset: number) => TypingContext | null): string | undefined {
     const events = /<\?(?:php\b|=)|\?>|<\/script(?=[\s/>]|$)/gi;

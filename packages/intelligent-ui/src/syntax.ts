@@ -1,16 +1,9 @@
 import { safeKey, UiBudget, UiFailure } from './budget.ts';
 import { parseUiExpression, type UiExpression } from './expression.ts';
+import type { UiDiagnostic } from './protocol.ts';
 import { rethrowBudget } from './rethrow.ts';
 
-export interface UiDiagnostic {
-    code: string;
-    message: string;
-    start: number;
-    end: number;
-    nodeId?: string;
-    // A warning leaves the part it names drawn. Absent means an error, a part that could not be drawn.
-    severity?: 'warning';
-}
+export type { UiDiagnostic };
 
 export interface UiSyntaxNode {
     id: string;

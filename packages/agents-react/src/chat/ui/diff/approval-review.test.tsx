@@ -1,13 +1,13 @@
 import { expect, test } from 'bun:test';
 import { createSmartEditorEngine } from '@adecore/editor';
-import editorWords from '@adecore/editor-react/locales/en.json';
+import editorWords from '@adecore/editor-react/locales/en';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createPage, press } from '@adecore/editor/testing';
 import i18next from 'i18next';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../../host';
-import { PromptCard } from '../../../prompts/ui/PromptCard';
+import { ChatHostProvider, type ChatHost } from '../../../host/host';
+import { PromptCard } from '../../prompts/ui/PromptCard';
 import { ApprovalReview } from './ApprovalReview';
 import { reviewEntries } from './review-plan';
 // Loaded up front: through the compile preload a lazy module lands only after the act that drew it.

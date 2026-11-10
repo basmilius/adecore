@@ -12,7 +12,6 @@ export interface ChartFrontierProps {
     readonly lowerX?: boolean;
     /* A high value is the better one; false for a lower value, such as a time. */
     readonly higherY?: boolean;
-    /* The width of the band in pixels. */
     readonly width?: number;
     /* `--border` by default, an alpha over what is behind it. */
     readonly tone?: ChartColor;

@@ -1,22 +1,4 @@
-export {
-    type Point,
-    type Rect,
-    RESIZE_HANDLES,
-    type ResizeHandle,
-    boundsOf,
-    centerOf,
-    roundPoint,
-    rotatePoint,
-    unionOf,
-    boundsOfElements,
-    intersects,
-    rectFromPoints,
-    elementAt,
-    elementsIn,
-    handlePoint,
-    resizeRect,
-    scaleElement
-} from './geometry.ts';
+export { RESIZE_HANDLES, type ResizeHandle, boundsOf, boundsOfElements, elementAt, elementsIn, handlePoint, resizeRect, scaleElement } from './geometry.ts';
 export {
     DRAWING_EDIT_LIMITS,
     NewDrawingElementSchema,
@@ -33,6 +15,7 @@ export {
 export { type ElementPath, pathsOfElement } from './paths.ts';
 export { type DrawingRebase, rebaseDrawingElements } from './rebase.ts';
 export { readingOrder } from './reading-order.ts';
+export { type Scene, type SceneColor, type SceneElement, type ScenePath, type SceneText, drawingScene, sceneColor } from './scene.ts';
 export { type SvgOptions, DEFAULT_SVG_MARGIN, DEFAULT_PALETTE, DEFAULT_PAPER, DEFAULT_EDGE, escapeXml, toSvg } from './svg.ts';
 export {
     LINE_HEIGHT,

@@ -2,10 +2,9 @@ import type { DocumentChange, Position } from '@adecore/editor-core';
 import { BIDI_COLUMNS, bidiControl, visibleBidi } from './bidi.ts';
 import { offsetOfStop, rowOfStop, stopAtOffset, stopCount, xOfStop } from './geometry-stops.ts';
 import { lineChangeMapper } from './layout-changes.ts';
+import type { Affinity, Inlay, LayoutMetrics, LineGeometry } from './line-geometry.ts';
 import { offsetMapper } from './offsets.ts';
 import { uniformGeometry } from './uniform-geometry.ts';
-
-export type Affinity = 'before' | 'after';
 
 export interface VerticalWindow {
     top: number;
@@ -27,37 +26,10 @@ export function subRowBand(top: number, subRows: number, lineHeight: number, win
     };
 }
 
-export interface LayoutDocument {
+interface LayoutDocument {
     getLineCount(): number;
     getLine(line: number): { start: number; end: number; next: number; text: string };
     positionAt(offset: number): Position;
-}
-
-export interface LayoutMetrics {
-    lineHeight: number;
-    charWidth: number;
-    tabSize: number;
-    measureText(text: string): number;
-    measureInlay(text: string): number;
-}
-
-/* Text drawn between two characters of a line, without being part of the document. */
-export interface Inlay {
-    id: string;
-    at: number;
-    text: string;
-    tooltip?: string;
-    /* The text cut into pieces drawn as elements of their own; they add up to `text`. */
-    parts?: readonly string[];
-    /* Pixels of space kept clear before and after the pill. */
-    gapLeft?: number;
-    gapRight?: number;
-    /* What an input method has composed: drawn as text in the code face, with no padding, so what stands around it does not move. */
-    composition?: boolean;
-    /* A suggestion the host drew after the caret: text in the code face with no padding, which the caret stays in front of. */
-    ghost?: boolean;
-    /* A square of this CSS color in place of the text, such as the color a literal in the code stands for. */
-    swatch?: string;
 }
 
 /* The side of a swatch in pixels, without its gaps. */
@@ -111,7 +83,6 @@ export interface FoldState {
 interface RowBase {
     key: string;
     index: number;
-    /* The first document line the row stands for. */
     line: number;
     top: number;
     height: number;
@@ -131,55 +102,12 @@ export interface TextRow extends RowBase {
     replacement?: BlockReplacement;
 }
 
-export interface BlockRow extends RowBase {
+interface BlockRow extends RowBase {
     kind: 'block';
     widget: BlockWidget;
 }
 
 export type LayoutRow = TextRow | BlockRow;
-
-export interface TextRun {
-    /* Line-relative offsets let preceding edits move a line without rewriting its runs. */
-    from: number;
-    to: number;
-    x: number;
-    /* The visual line of the document line the run is on. */
-    subRow: number;
-    text: string;
-}
-
-export interface InlineBox {
-    inlay: Inlay;
-    x: number;
-    width: number;
-    subRow: number;
-}
-
-/* Where every character of one document line is, relative to the line's own origin. */
-export interface LineGeometry {
-    start: number;
-    end: number;
-    next: number;
-    text: string;
-    /* Uniform ASCII rows share x prefixes instead of allocating these four arrays per character. */
-    offsets: number[];
-    /* The x of each stop before and after the inlays that sit on it. */
-    before: number[];
-    after: number[];
-    /* The visual line each stop is on. */
-    rowOf: number[];
-    /* The stop each visual line starts at. */
-    rowStarts: number[];
-    /* The x each visual line ends at. */
-    rowEnds: number[];
-    /* The furthest stop a greedy wrap decision read, including its lookahead. */
-    rowTriggers: number[];
-    uniform?: { first: readonly number[]; continuation: readonly number[] };
-    runs: TextRun[];
-    inlays: InlineBox[];
-    subRows: number;
-    width: number;
-}
 
 export interface LayoutRect {
     x: number;
@@ -189,7 +117,7 @@ export interface LayoutRect {
 }
 
 export const TEXT_PADDING = 0;
-export const BOTTOM_PADDING = 8;
+const BOTTOM_PADDING = 8;
 export const RIGHT_PADDING = 16;
 /* The room the platform keeps past the widest line, in columns of a space. */
 const ADDITIONAL_COLUMNS = 3;
@@ -304,7 +232,6 @@ export function wrapStops(text: string, offsets: readonly number[], metrics: Lay
     return wrapRows(text, offsets, metrics, limit).breaks;
 }
 
-/* A line of text laid out against its metrics; wrapped at `limit` pixels unless that is null. */
 export function scanDenseLine(
     line: { start: number; end: number; text: string; next?: number },
     metrics: LayoutMetrics,
@@ -491,7 +418,6 @@ class LineRow implements TextRow {
     }
 }
 
-/* Sorted, with the ranges that overlap or touch joined. */
 function mergeRanges(ranges: LineRange[]): LineRange[] {
     ranges.sort((left, right) => left.first - right.first);
     const merged: LineRange[] = [];
@@ -1004,7 +930,6 @@ export class EditorLayout {
         return Math.min(bounds.end, Math.max(bounds.start, offset));
     }
 
-    /* The tops of the rows from `from` on. */
     private reflow(from: number): void {
         const previous = this.rows[from - 1];
         let top = previous === undefined ? 0 : previous.top + previous.height;
@@ -1018,7 +943,6 @@ export class EditorLayout {
         this.height = top + BOTTOM_PADDING;
     }
 
-    /* The row of a widget, a replacement or a line by its key. */
     rowByKey(key: string): LayoutRow | undefined {
         if (key.startsWith('line:')) {
             const row = this.rowForLine(Number(key.slice(5)));
@@ -1029,7 +953,6 @@ export class EditorLayout {
         return this.keyed.get(key);
     }
 
-    /* A widget's measured height. Returns whether it moved anything. */
     setMeasuredHeight(key: string, height: number): boolean {
         const row = this.rowByKey(key);
         const next = Math.max(1, Math.round(height));

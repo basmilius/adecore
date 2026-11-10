@@ -5,7 +5,7 @@ import { fakeFormatSource } from '@adecore/ui/testing';
 import i18next from 'i18next';
 import { createElement, Fragment, type ComponentType, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost, type UiModelViewProps } from '../../../host';
+import { ChatHostProvider, type ChatHost, type UiModelViewProps } from '../../../host/host';
 import { UiPageMemory } from './block-local';
 import { uiChartAxis, uiChartCharacter, uiChartData, uiChartRange, uiChartText, uiChartTextWidth, niceCeiling, UI_CHART_SERIES } from './chart-data';
 import { uiBlockHead, uiEventTime, uiLiveChoiceReason, uiNodeLabel, uiNodeText, uiReasonText, uiUrlDomain, uiWithUnit } from './node-text';

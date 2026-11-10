@@ -1,5 +1,5 @@
 import { isAbsolute, join, resolve } from 'node:path';
-import { KNOWN_AGENT_KINDS, ProviderAccountSchema, type AgentKind, type ProviderAccount, type ProviderAccountMap } from '@adecore/agent-contracts';
+import { ProviderAccountSchema, type AgentKind, type ProviderAccount, type ProviderAccountMap } from '@adecore/agent-contracts';
 import { homeFolder } from '../../home-folder.ts';
 import type { ChatProvider } from '../provider.ts';
 import { DEFAULT_ACCOUNTS_HOST, variablesProblem, type AccountsHost, type ReservedVariables } from './variables.ts';
@@ -52,8 +52,8 @@ export function accountProblem(
     account: ProviderAccount,
     provider: ChatProvider,
     env: Env,
-    reserved: ReservedVariables = { host: DEFAULT_ACCOUNTS_HOST, folderVariables: [] },
-    kinds: readonly AgentKind[] = KNOWN_AGENT_KINDS
+    kinds: readonly AgentKind[],
+    reserved: ReservedVariables = { host: DEFAULT_ACCOUNTS_HOST, folderVariables: [] }
 ): string | null {
     if (isOfferedKind(id, kinds) && id !== account.kind) {
         return `"${id}" is the id of the default ${id} account`;
@@ -85,8 +85,8 @@ export function accountProblem(
         return null;
     }
 
-    if (account.kind !== 'codex') {
-        return 'Only a Codex account has a shadow home';
+    if (provider.home.shadow !== true) {
+        return `${provider.name} has no shadow home`;
     }
 
     if (!isRootedPath(account.shadowHome)) {
@@ -176,7 +176,7 @@ export function accountEnv(id: string, account: ProviderAccount, provider: ChatP
     return withVariables(env);
 }
 
-export interface NamedAccount {
+interface NamedAccount {
     id: string;
     account: ProviderAccount;
 }
@@ -223,7 +223,7 @@ export function readAccount(id: string, raw: unknown, providers: AccountProvider
     const parsed = ProviderAccountSchema.safeParse(raw);
     const reserved = { host, folderVariables: folderVariablesOf(providers) };
 
-    if (!parsed.success || accountProblem(id, parsed.data, providers.get(kind), env, reserved, providers.kinds) !== null) {
+    if (!parsed.success || accountProblem(id, parsed.data, providers.get(kind), env, providers.kinds, reserved) !== null) {
         return null;
     }
 

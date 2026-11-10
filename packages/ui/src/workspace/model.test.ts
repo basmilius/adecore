@@ -40,8 +40,8 @@ describe('split layout commands', () => {
     test.each(['right', 'bottom'] as const)('balances visible neighbors after repeated splits to the %s', (side) => {
         const original = apply(
             createSplitLayout(['a'], 'one'),
-            { type: 'split', paneId: 'one', side, newPane: pane('two', 'b'), splitId: 'row' },
-            { type: 'split', paneId: 'two', side, newPane: pane('three', 'c'), splitId: 'nested' }
+            { type: 'split', targetId: 'one', side, newPane: pane('two', 'b'), splitId: 'row' },
+            { type: 'split', targetId: 'two', side, newPane: pane('three', 'c'), splitId: 'nested' }
         );
 
         const dimension = side === 'right' ? 'width' : 'height';
@@ -63,9 +63,9 @@ describe('split layout commands', () => {
     test.each(['left', 'right', 'top', 'bottom'] as const)('merges repeated %s splits while retaining pane order and shares', (side) => {
         const next = apply(
             createSplitLayout(['a'], 'one'),
-            { type: 'split', paneId: 'one', side, newPane: pane('two', 'b'), splitId: 'row' },
+            { type: 'split', targetId: 'one', side, newPane: pane('two', 'b'), splitId: 'row' },
             { type: 'resize', splitId: 'row', sizes: [0.4, 0.6] },
-            { type: 'split', paneId: 'two', side, newPane: pane('three', 'c'), splitId: 'nested' }
+            { type: 'split', targetId: 'two', side, newPane: pane('three', 'c'), splitId: 'nested' }
         );
 
         const before = side === 'left' || side === 'top';
@@ -80,7 +80,7 @@ describe('split layout commands', () => {
     });
 
     test('edge moves join an existing row and keep perpendicular splits nested', () => {
-        const original = updateSplitLayout(initial(), { type: 'split', paneId: 'one', side: 'bottom', newPane: pane('three', 'e'), splitId: 'rows' });
+        const original = updateSplitLayout(initial(), { type: 'split', targetId: 'one', side: 'bottom', newPane: pane('three', 'e'), splitId: 'rows' });
 
         const next = updateSplitLayout(original, {
             type: 'move',
@@ -139,11 +139,11 @@ describe('split layout commands', () => {
 
         const original = apply(
             createSplitLayout(['brief'], 'brief'),
-            { type: 'split', paneId: 'brief', side, newPane: pane('preview', 'preview'), splitId: 'outer' },
-            { type: 'split', paneId: 'preview', side: cross, newPane: pane('output', 'output'), splitId: 'cross-one' },
-            { type: 'split', paneId: 'output', side, newPane: pane('draft-one', 'draft-one'), splitId: 'middle' },
-            { type: 'split', paneId: 'draft-one', side: cross, newPane: pane('draft-two', 'draft-two'), splitId: 'cross-two' },
-            { type: 'split', paneId: 'draft-two', side, newPane: pane('draft-three', 'draft-three'), splitId: 'inner' },
+            { type: 'split', targetId: 'brief', side, newPane: pane('preview', 'preview'), splitId: 'outer' },
+            { type: 'split', targetId: 'preview', side: cross, newPane: pane('output', 'output'), splitId: 'cross-one' },
+            { type: 'split', targetId: 'output', side, newPane: pane('draft-one', 'draft-one'), splitId: 'middle' },
+            { type: 'split', targetId: 'draft-one', side: cross, newPane: pane('draft-two', 'draft-two'), splitId: 'cross-two' },
+            { type: 'split', targetId: 'draft-two', side, newPane: pane('draft-three', 'draft-three'), splitId: 'inner' },
             { type: 'resize', splitId: 'cross-one', sizes: [0.3, 0.7] },
             { type: 'resize', splitId: 'cross-two', sizes: [0.6, 0.4] }
         );
@@ -231,7 +231,7 @@ describe('split layout commands', () => {
     });
 
     test('a center drop can exchange panels across different nesting depths', () => {
-        const original = updateSplitLayout(initial(), { type: 'split', paneId: 'two', side: 'bottom', newPane: pane('three', 'e'), splitId: 'rows' });
+        const original = updateSplitLayout(initial(), { type: 'split', targetId: 'two', side: 'bottom', newPane: pane('three', 'e'), splitId: 'rows' });
         const next = updateSplitLayout(original, { type: 'swap', sourceId: 'one', targetId: 'three' });
         expect(splitPanes(next.root)).toEqual([pane('three', 'e'), pane('two', 'd'), pane('one', 'a', 'b', 'c')]);
         expect((next.root as SplitBranch).children[1]).toMatchObject({ type: 'split', id: 'rows', sizes: [0.5, 0.5] });
@@ -263,6 +263,119 @@ describe('split layout commands', () => {
         expect(updateSplitLayout(closed, { type: 'close', viewId: 'd' }).root).toEqual(pane('two'));
     });
 
+    test('a closed focused pane hands the focus to the sibling after it, else the one before it', () => {
+        const stacked: SplitLayout = {
+            root: {
+                type: 'split',
+                id: 'columns',
+                axis: 'horizontal',
+                sizes: [0.5, 0.5],
+                children: [
+                    { type: 'split', id: 'rows', axis: 'vertical', sizes: [0.5, 0.25, 0.25], children: [pane('a', 'a'), pane('b', 'b'), pane('c', 'c')] },
+                    pane('d', 'd')
+                ]
+            },
+            focused: 'b',
+            maximized: null
+        };
+
+        expect(updateSplitLayout(stacked, { type: 'closePane', paneId: 'b' }).focused).toBe('c');
+        expect(updateSplitLayout({ ...stacked, focused: 'c' }, { type: 'closePane', paneId: 'c' }).focused).toBe('b');
+        expect(updateSplitLayout({ ...stacked, focused: 'c' }, { type: 'close', viewId: 'c' }).focused).toBe('b');
+        expect(updateSplitLayout({ ...stacked, focused: 'd' }, { type: 'close', viewId: 'd' }).focused).toBe('a');
+        expect(updateSplitLayout({ ...stacked, focused: 'a' }, { type: 'closePane', paneId: 'd' }).focused).toBe('a');
+    });
+
+    test('replaces a view in place and refuses a replacement that is already open', () => {
+        const original = initial();
+        const next = updateSplitLayout(original, { type: 'replace', viewId: 'a', replacement: 'z' });
+        expect(splitPanes(next.root)[0]).toEqual({ type: 'pane', id: 'one', views: ['z', 'b', 'c'], active: 'z' });
+        expect((next.root as SplitBranch).sizes).toEqual([0.5, 0.5]);
+        expect(next.focused).toBe('one');
+        expect(splitPanes(updateSplitLayout(original, { type: 'replace', viewId: 'b', replacement: 'z' }).root)[0]!.active).toBe('a');
+        expect(updateSplitLayout(original, { type: 'replace', viewId: 'a', replacement: 'd' })).toBe(original);
+        expect(updateSplitLayout(original, { type: 'replace', viewId: 'gone', replacement: 'z' })).toBe(original);
+    });
+
+    test('a change inside a branch leaves the shares of its siblings exactly as they were', () => {
+        const original: SplitLayout = {
+            root: { type: 'split', id: 'columns', axis: 'horizontal', sizes: [0.2, 0.5, 0.3], children: [pane('a', 'a', 'b'), pane('c', 'c'), pane('d', 'd')] },
+            focused: 'a',
+            maximized: null
+        };
+
+        expect((updateSplitLayout(original, { type: 'activate', paneId: 'a', viewId: 'b' }).root as SplitBranch).sizes).toEqual([0.2, 0.5, 0.3]);
+    });
+
+    describe('dropping beside a whole branch', () => {
+        const stacked = (): SplitLayout => ({
+            root: {
+                type: 'split',
+                id: 'columns',
+                axis: 'horizontal',
+                sizes: [0.5, 0.5],
+                children: [{ type: 'split', id: 'rows', axis: 'vertical', sizes: [0.5, 0.5], children: [pane('a', 'a', 'b'), pane('c', 'c')] }, pane('d', 'd')]
+            },
+            focused: 'a',
+            maximized: null
+        });
+
+        const shape = (layout: SplitLayout): unknown => {
+            const walk = (node: SplitLayout['root']): unknown => (node.type === 'pane' ? node.id : { [node.axis]: node.children.map(walk) });
+
+            return walk(layout.root);
+        };
+
+        test('a new pane stands beside the branch and takes half of its share', () => {
+            const next = updateSplitLayout(stacked(), { type: 'split', targetId: 'rows', side: 'left', newPane: pane('new', 'z'), splitId: 'made' });
+            expect(shape(next)).toEqual({ horizontal: ['new', { vertical: ['a', 'c'] }, 'd'] });
+            expect((next.root as SplitBranch).sizes).toEqual([0.25, 0.25, 0.5]);
+            expect(next.focused).toBe('new');
+        });
+
+        test('a branch that is the root gets a new root around it', () => {
+            const root = (stacked().root as SplitBranch).children[0]!;
+            const next = updateSplitLayout(
+                { root, focused: 'a', maximized: null },
+                { type: 'split', targetId: 'rows', side: 'right', newPane: pane('new', 'z'), splitId: 'made' }
+            );
+            expect(shape(next)).toEqual({ horizontal: [{ vertical: ['a', 'c'] }, 'new'] });
+        });
+
+        test('a tab or a pane of another branch moves beside it', () => {
+            const tab = updateSplitLayout(stacked(), {
+                type: 'move',
+                sourceId: 'a',
+                targetId: 'rows',
+                viewId: 'b',
+                side: 'right',
+                newPaneId: 'new',
+                splitId: 'made'
+            });
+            expect(shape(tab)).toEqual({ horizontal: [{ vertical: ['a', 'c'] }, 'new', 'd'] });
+            const whole = updateSplitLayout(stacked(), { type: 'move', sourceId: 'd', targetId: 'rows', side: 'left', splitId: 'made' });
+            expect(shape(whole)).toEqual({ horizontal: ['d', { vertical: ['a', 'c'] }] });
+        });
+
+        test('a pane leaving the branch it lands beside lands beside what is left of it', () => {
+            const three = stacked();
+            const rows = (three.root as SplitBranch).children[0] as SplitBranch;
+            rows.children.push(pane('e', 'e'));
+            rows.sizes = [1 / 3, 1 / 3, 1 / 3];
+            expect(shape(updateSplitLayout(three, { type: 'move', sourceId: 'e', targetId: 'rows', side: 'right', splitId: 'made' }))).toEqual({
+                horizontal: [{ vertical: ['a', 'c'] }, 'e', 'd']
+            });
+            expect(shape(updateSplitLayout(stacked(), { type: 'move', sourceId: 'c', targetId: 'rows', side: 'left', splitId: 'made' }))).toEqual({
+                horizontal: ['c', 'a', 'd']
+            });
+        });
+
+        test('a branch takes no tabs', () => {
+            const original = stacked();
+            expect(updateSplitLayout(original, { type: 'move', sourceId: 'd', targetId: 'rows', viewId: 'd' })).toBe(original);
+        });
+    });
+
     test('inserting an already open view moves it without duplicating it', () => {
         const next = updateSplitLayout(initial(), { type: 'insert', paneId: 'two', viewId: 'a' });
         expect(splitPanes(next.root).flatMap((item) => item.views)).toEqual(['b', 'c', 'd', 'a']);
@@ -276,7 +389,7 @@ describe('split layout commands', () => {
             { type: 'move', sourceId: 'missing', targetId: 'two' },
             { type: 'move', sourceId: 'one', targetId: 'two', viewId: 'missing' },
             { type: 'move', sourceId: 'one', targetId: 'two', viewId: 'a', side: 'top', newPaneId: 'one', splitId: 'rows' },
-            { type: 'split', paneId: 'one', newPane: pane('new', 'd'), splitId: 'rows', side: 'right' },
+            { type: 'split', targetId: 'one', newPane: pane('new', 'd'), splitId: 'rows', side: 'right' },
             { type: 'resize', splitId: 'columns', sizes: [NaN, 1] },
             { type: 'resize', splitId: 'columns', sizes: [1] },
             { type: 'equalize', splitId: 'columns', index: -1 }
@@ -293,7 +406,7 @@ describe('split layout commands', () => {
         for (let i = 0; i < 20; i++) {
             state = updateSplitLayout(state, {
                 type: 'split',
-                paneId: state.focused,
+                targetId: state.focused,
                 side: i % 2 ? 'right' : 'bottom',
                 newPane: pane(`pane-${i}`, `view-${i}`),
                 splitId: `split-${i}`

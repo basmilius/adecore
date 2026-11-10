@@ -31,8 +31,8 @@ import {
 } from 'lucide-react';
 import { useContext, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host';
-import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host-hooks';
+import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host/host';
+import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import { useChatRow, useCurrentItem } from '../../../state/chats';
 import { useProviders } from '../../../state/providers';
@@ -105,7 +105,6 @@ function AttachmentLink({ chatId, attachment }: { chatId: string; attachment: Ch
     );
 }
 
-/* A picture attached to a message, which opens large. */
 function AttachmentThumb({ chatId, attachment }: { chatId: string; attachment: ChatAttachment }) {
     const { id } = useChatScope();
     const source = useHostAttachmentUrl(id, chatId, attachment.id);

@@ -1,8 +1,8 @@
-import type { UsageWindow } from '@adecore/agent-contracts';
+import { evenPace, type UsageWindow } from '@adecore/agent-contracts';
 import { formatClock, formatPercent, formatWeekdayClock, isSameDay } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { evenPace, paceText } from '../../usage/limit-groups';
+import { paceText } from '../../usage/limit-groups';
 
 /* Red where a window is nearly spent, amber where it is worth knowing, as the usage bars have it. */
 function sessionTone(used: number): { bar: string; text: string } {

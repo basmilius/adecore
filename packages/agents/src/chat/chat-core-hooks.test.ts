@@ -3,11 +3,11 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import type { BackendHost, BackendLaunch } from '../backends/backend.ts';
 import type { AgentEvent } from '../events.ts';
-import { claudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
-import type { BackendHost, BackendLaunch } from './backend.ts';
 import { ChatCore, type ChatCoreHooks } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
 
@@ -265,6 +265,54 @@ describe('the hooks of ChatCore', () => {
             .filter((item) => item.kind === 'note');
 
         expect(notes.map((note) => (note.kind === 'note' ? note.text : ''))).toEqual([expect.stringContaining('no project holds this chat any more')]);
+    });
+});
+
+describe('the hooks that stand in for a subclass', () => {
+    test('opening hands the core the start the host planned, and the explicit payload is only a request', async () => {
+        const chats = open({ opening: (payload) => ({ ...payload, cwd: home, runtimeMode: 'supervised' }) });
+
+        expect(await chats.create({ chatId: 'planned', cwd: '/somewhere/else' })).toMatchObject({ cwd: home, runtimeMode: 'supervised' });
+    });
+
+    test('admitUi lets the host refuse a client before a link or a query is resolved', async () => {
+        const asked: string[] = [];
+        const chats = open({
+            admitUi: async (chatId, clientId) => {
+                asked.push(`${chatId}:${clientId}`);
+                throw new Error('not here');
+            }
+        });
+        await chats.create({ chatId: 'chat-1', cwd: home });
+
+        await expect(chats.linkUi({ chatId: 'chat-1' } as never, 'client-1')).rejects.toThrow('not here');
+        await expect(chats.queryUi({ chatId: 'chat-1' } as never, 'client-1')).rejects.toThrow('not here');
+        expect(asked).toEqual(['chat-1:client-1', 'chat-1:client-1']);
+    });
+
+    test('deleted runs once a record nobody loaded is gone, and not for a loaded chat', async () => {
+        const deleted: string[] = [];
+        const chats = open({ deleted: async (chatId) => void deleted.push(chatId) });
+        await chats.writeRecord('fork', storedInfo('fork'), [said('copied')]);
+        await chats.create({ chatId: 'loaded', cwd: home });
+
+        expect(await chats.deleteRecord('loaded')).toBe(false);
+        expect(await chats.deleteRecord('fork')).toBe(true);
+        expect(deleted).toEqual(['fork']);
+    });
+
+    test('the app-server opened beside a chat runs the plain command of its provider, without what a launch adds', () => {
+        const decorated = { ...codexProvider, launch: (launch: BackendLaunch) => ({ ...launch, command: [...launch.command, '--with-host'] }) };
+
+        const chats = new ChatCore({
+            providers: new ProviderRegistry({ providers: [decorated] }),
+            store,
+            attachments: new AttachmentStore(home),
+            env: { HOME: home, PATH: '/bin' }
+        });
+        core = chats;
+
+        expect(chats.threadProcess({ cwd: home, account: undefined, provider: 'codex' }).command).toEqual(codexProvider.command);
     });
 });
 

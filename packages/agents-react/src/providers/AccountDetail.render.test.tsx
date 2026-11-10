@@ -4,7 +4,7 @@ import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { AccountEntry } from '../agents/accounts';
-import { ChatHostProvider, type ChatHost } from '../host';
+import { ChatHostProvider, type ChatHost } from '../host/host';
 import { ChatScopeContext, type ChatScope } from '../scope';
 import { useProviderAccountsStore } from '../state/provider-accounts';
 import { ChatTransportError } from '../transport';

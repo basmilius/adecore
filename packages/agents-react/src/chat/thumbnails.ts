@@ -7,10 +7,9 @@ import { imageForDisplay } from './image-display';
 /* The edge of a composer thumbnail: a few times the 56 px it is drawn at, so a sharp screen still gets a sharp one. */
 export const THUMBNAIL_PX = 256;
 
-export interface ThumbnailCrop {
+interface ThumbnailCrop {
     sx: number;
     sy: number;
-    /* The edge of the square taken from the middle of the image. */
     size: number;
     /* The edge the square is drawn at, never larger than it was. */
     out: number;
@@ -98,7 +97,6 @@ function thumbnailOf(upload: ChatAttachmentUpload): Promise<string> {
     return promise;
 }
 
-/* The thumbnail of an image the composer holds, or null while it is being made. */
 export function useUploadThumbnail(upload: ChatAttachmentUpload): string | null {
     const [ready, setReady] = useState<{ upload: ChatAttachmentUpload; url: string } | null>(null);
     const cached = made.get(upload);

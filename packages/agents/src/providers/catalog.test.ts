@@ -1,13 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import { ModelCatalogDataSchema, type ModelCatalogData } from '@adecore/agent-contracts';
+import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from '../backends/claude.ts';
+import { providerFor } from '../testing/providers.ts';
 import antigravityManifest from './antigravity-models.json' with { type: 'json' };
 import { ModelCatalog } from './catalog.ts';
 import claudeManifest from './claude-models.json' with { type: 'json' };
-import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from './claude.ts';
 import codexManifest from './codex-models.json' with { type: 'json' };
 import copilotManifest from './copilot-models.json' with { type: 'json' };
 import grokManifest from './grok-models.json' with { type: 'json' };
-import { providerFor } from './registry.ts';
 
 const catalog = new ModelCatalog();
 

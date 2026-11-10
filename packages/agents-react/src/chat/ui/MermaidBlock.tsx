@@ -2,7 +2,7 @@ import { IconButton, ScrollArea } from '@adecore/ui';
 import { Code, Workflow } from 'lucide-react';
 import { useContext, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostCodeMode } from '../../host-hooks';
+import { useHostCodeMode } from '../../host/host-hooks';
 import { CodeStreamingContext } from './code-streaming';
 import { CodeBlock } from './CodeBlock';
 import { DIAGRAM_TOKENS, GROUND_TOKEN, renderOptions, svgDataUrl, themedSvg, type DiagramFont } from './mermaid';
@@ -39,7 +39,6 @@ function resolveColor(element: HTMLElement, token: string, ground: string): stri
     return `#${[red, green, blue].map((channel) => channel!.toString(16).padStart(2, '0')).join('')}`;
 }
 
-/* What a diagram reads of the theme where it stands. */
 interface DiagramLook {
     colors: Record<string, string>;
     font: DiagramFont;

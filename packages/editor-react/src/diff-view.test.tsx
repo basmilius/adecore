@@ -7,7 +7,8 @@ import { diffDocument, parsePatch, patchOf, type DiffDocument } from '@adecore/m
 import { act, Component, createElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { DiffSourceSide, DiffSourceTokens } from './diff-syntax.ts';
-import { DiffView, type DiffSource } from './DiffView.tsx';
+import type { DiffSource } from './diff-view-props.ts';
+import { DiffView } from './DiffView.tsx';
 
 async function pageTest(run: (page: ReturnType<typeof createPage>, root: ReturnType<typeof createRoot>) => Promise<void>): Promise<void> {
     const page = createPage();

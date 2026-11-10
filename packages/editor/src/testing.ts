@@ -64,7 +64,6 @@ export interface KeyOptions {
     pointerType?: string;
 }
 
-/* Fires a keydown at the element and says whether the editor took the key. */
 export function press(window: Window, target: Element, key: string, options: KeyOptions = {}): boolean {
     const event = createEvent(window, 'keydown');
     Object.assign(event, { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, isComposing: false, ...options });
@@ -73,7 +72,6 @@ export function press(window: Window, target: Element, key: string, options: Key
     return event.defaultPrevented;
 }
 
-/* Fires a keyup at the element, the other half of `press`. */
 export function release(window: Window, target: Element, key: string, options: KeyOptions = {}): void {
     const event = createEvent(window, 'keyup');
     Object.assign(event, { key, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, isComposing: false, ...options });

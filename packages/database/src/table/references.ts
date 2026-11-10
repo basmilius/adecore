@@ -3,7 +3,6 @@ import { wholeValueOf } from '../grid/focused-value.ts';
 import type { Engine, ForeignKeyInfo, ValueKind } from '../protocol/index.ts';
 import { matchCondition, type ColumnMatch } from '../sql.ts';
 
-/* Where a foreign key points for one row: the referenced table and the condition that picks the row out. */
 export interface Reference {
     readonly schema: string;
     readonly table: string;

@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import type { ChatClient } from './chat/chat-client';
+import type { ChatClient } from './chat-client';
 import type { ChatTransport } from './transport';
 
 /*

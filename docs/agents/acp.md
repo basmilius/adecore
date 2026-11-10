@@ -22,7 +22,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 
 ## The spec
 
-`AcpProviderSpec` is `AcpAgentSpec` (what the backend needs) plus the provider fields.
+`createAcpProvider` takes the fields the ACP backend needs plus the provider fields.
 
 | Field | |
 | --- | --- |
@@ -30,29 +30,28 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `command`, `args` | The executable and arguments that start the ACP agent on its stdio. |
 | `catalog` | The models a person picks from. The selection's slug is the agent's model id, unless `model(selection)` maps it. `null` leaves the choice to the agent. |
 | `env` | Variables set over the launch environment. |
-| `modes` | The agent's mode ids per runtime mode, best first (`AcpModeMap`). |
+| `modes` | The agent's mode ids per runtime mode, best first. |
 | `authMethod`, `loginHint` | The method passed to `authenticate` when the agent needs a login, and the error text when there is no method. |
 | `client` | How the host names itself in `initialize` (`AcpClientInfo`). |
-| `onSession(info)` | What each session offers (`AcpSessionInfo`). |
-| `onUsage(report)` | The tokens of every turn that reports them (`AcpUsageReport`), with session, folder and model. |
+| `onSession(info)` | What each session offers. See [Models](#models). |
+| `onUsage(report)` | The tokens of every turn that reports them, with session, folder and model. |
 | `usageLog` | A folder to log those turns to. See [Usage](#usage). |
-| `autoAllow(request)` | Answers a permission request without asking, in any runtime mode. See [Calls the host guards](#calls-the-host-guards). |
+| `allowToolsArgs(serverName)` | The arguments put on the agent's line for each server that allows its tools, for an agent whose permission requests name no server (Copilot's `--allow-tool=<server>`). |
+| `executable`, `terminal`, `launch`, `leanOneShotArgs` | What the provider says of its terminal, the host's launch additions and its short one-shot run. See [Providers](./providers#what-a-provider-describes). |
 | `accountProbe` | `false` drops `askAccount`, so the host's own reader checks accounts. |
 | `adoptModels` | `false` keeps `catalog` instead of adopting the models a session reports. |
 | `catalogStore` | Persists what the agent reported, so a restarted host offers it at once (`AcpCatalogStore`). See [Models](#models). |
 | `onCommands(commands)` | The session's slash commands, without the slash, each time the agent lists them. |
 | `adoptTitles` | `true` takes the agent's session titles as the chat's suggested title. Absent leaves naming to the host. |
 | `onContextReport()` | Called once per process, at the first `usage_update` that names the context window. |
-| `capabilities` | Overrides on top of `ACP_CAPABILITIES` and what the agent showed (see [Capabilities](#capabilities)). |
-| `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
-
-A host that builds its `ChatProvider` by hand uses `createAcpBackend(spec)` as its `createBackend`.
+| `capabilities` | Overrides on top of the ACP defaults and what the agent showed (see [Capabilities](#capabilities)). |
+| `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotApart`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
 
 ## A session
 
 `start` runs `initialize` and opens the session before the first turn. The backend accepts only protocol version 1. The client advertises no file system or terminal, so the agent uses its own tools.
 
-Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it.
+Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` or a `tokenVariable` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it. An agent expands no variable in a session request, so a `tokenVariable` becomes an `Authorization: Bearer` header holding the value of that variable in the launch's environment.
 
 A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The backend drops the history a load replays, since the thread already holds it. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
 
@@ -82,17 +81,6 @@ Everything else becomes an approval in the thread.
 A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it. Antigravity marks it in the tool call's `_meta.mcp.server`. Grok puts it in the `<server>__<tool>` name of its `use_tool`, which the backend matches against the launch's own server names, the longest first. A call of a kind other than `other`, or one with `_meta.is_mcp_tool_call: false`, is never an MCP call. The mark of a call holds for the permission request that names only its `toolCallId`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`.
 
 ACP does not tell a client which servers an agent loaded. A server of the agent's own configuration with the same name as one in `mcpServers` gets the same calls allowed, so give a server with `allowTools` a name no configuration uses. The backend refuses the clashes it can see. `start` throws before the agent runs when two servers in `mcpServers` share a name, or when one name is another followed by `__`, since `own__events__delete` could then be a tool of either. A server the agent could not take (see [A session](#a-session)) never counts, so a call to a server of that name asks.
-
-A host that checks some calls itself, such as its own command line tool, passes `autoAllow`. The backend calls it for every permission request the runtime mode leaves open, with an `AcpPermissionRequest`: the tool `kind`, the `title`, in `commands` every text the call may run, and in `mcpServer` the server of an MCP tool where the agent marks it. True answers with allow once (never allow always), and the call shows in the thread without an approval. False or a throw leaves it to the person.
-
-`isOnlyCommands(command, allowed)` from `@adecore/agents/providers` returns true when a command line is only simple commands joined by `&&`, `||`, `;` or newlines, each starting with a word in `allowed`. It reads quotes and escapes as a shell does. Anything it cannot prove simple returns false, such as pipes, redirects, substitutions, subshells, `&`, globs and unbalanced quotes.
-
-```ts
-const spec: AcpProviderSpec = {
-    // ...
-    autoAllow: (request) => request.kind === 'execute' && request.commands.length > 0 && request.commands.every((command) => isOnlyCommands(command, ['my-tool', 'echo']))
-};
-```
 
 ## Turns, approvals and cancels
 
@@ -127,7 +115,7 @@ An approval offers allow, allow always (only when the agent has `allow_always`) 
 Two agents ask questions outside the protocol. Both become a `question.requested`, answered with `respondQuestion` and turned down with `declineRequest`:
 
 - Grok CLI sends `_x.ai/ask_user_question`, with options and `multiSelect` per question.
-- Antigravity asks one question per `session/request_permission`, on a tool call whose id starts with `interaction_`. It takes one choice only. A free-text answer turns the question down with a warning note. No runtime mode or `autoAllow` answers it.
+- Antigravity asks one question per `session/request_permission`, on a tool call whose id starts with `interaction_`. It takes one choice only. A free-text answer turns the question down with a warning note. No runtime mode answers it.
 
 ## Updates
 
@@ -147,9 +135,9 @@ The backend ignores other updates and unknown fields. Agent requests the backend
 
 ## Models
 
-`AcpSessionInfo` names the session, the agent as an `AcpAgentInfo` (name, title and version), its models as an `AcpModelState` and its modes as an `AcpModeState`. Each state lists its options, `AcpModel` or `AcpMode`. Its `configId` names the config option that picks one, or is `null` where the agent takes `session/set_model` or `session/set_mode`.
+What `onSession` gets names the session, the agent (name, title and version), its models and its modes. The models and the modes each list their options, and a `configId` names the config option that picks one, or is `null` where the agent takes `session/set_model` or `session/set_mode`.
 
-`AcpSessionInfo.models` holds the models a session offers, read from a `model` config option or the older `models` field. The backend switches through the option or `session/set_model`. A model the agent does not offer keeps the agent's own, and the thread gets a note. `AcpSessionInfo.thoughtLevel` holds the reasoning effort as an `AcpThoughtLevel` with `AcpChoice` values. After the model, the backend sets the selection's `effort` when the agent offers that value for the model.
+The `models` of that report hold the models a session offers, read from a `model` config option or the older `models` field. The backend switches through the option or `session/set_model`. A model the agent does not offer keeps the agent's own, and the thread gets a note. Its `thoughtLevel` holds the reasoning effort as a list of choices. After the model, the backend sets the selection's `effort` when the agent offers that value for the model.
 
 The provider adopts the models a session reports into its `catalog` (`ModelCatalog.adopt`). The agent's current model becomes the default, the rest follow in the agent's order and names. A reported reasoning effort becomes the profile's `effort` option, with the agent's current value as default. A session without models leaves the catalog as it was. Account checks open sessions too, so the list is usually there before the first chat. Set `adoptModels: false` to keep the host's catalog. `onSession` still sees every session.
 
@@ -166,7 +154,7 @@ const store: AcpCatalogStore = {
 
 ## Capabilities
 
-A provider starts from `ACP_CAPABILITIES` and adds what its agent showed in sessions and account checks. The spec's `capabilities` go on top. `catalogStore` keeps them with the models, and a change calls `onChange`. The object changes in place, so a copy of the provider still reads current values.
+A provider starts from the ACP defaults and adds what its agent showed in sessions and account checks. The spec's `capabilities` go on top. `catalogStore` keeps them with the models, and a change calls `onChange`. The object changes in place, so a copy of the provider still reads current values.
 
 | The agent | Capability |
 | --- | --- |
@@ -178,7 +166,7 @@ An agent that reports a fold in a notification of its own, as Grok's `_x.ai/sess
 
 ## Usage
 
-A `session/prompt` response may carry `usage`, an unstable part of the protocol. The backend reads it into `AcpTurnUsage`, with thought tokens as `reasoning` inside `output`. A cancelled turn still reports what it spent.
+A `session/prompt` response may carry `usage`, an unstable part of the protocol. The backend reads it into the turn's usage, with thought tokens as `reasoning` inside `output`. A cancelled turn still reports what it spent.
 
 Every turn with usage goes to `onUsage`. With `usageLog`, the provider also appends a `hostUsageLine` per turn to a file per session in that folder. The host then adds a usage root for that folder under a provider in `USAGE_PROVIDERS` (such as `copilot`). An agent whose own usage files the scanner already reads (Grok) logs nothing, so no turn counts twice.
 
@@ -186,12 +174,12 @@ An agent without `usage_update` may send the context size in `_meta.totalTokens`
 
 ## Accounts
 
-ACP cannot say who is signed in, so `askAcpAccount` opens a session to find out. It runs `initialize` and `session/new` in the account's environment, in an empty temporary folder. A session means signed in. The "authentication required" code (`-32000`) means signed out. Any other error, an exit or 20 seconds without answer fails the check. The probe never calls `authenticate`, which could start a login. It closes the session when the agent supports `session/close`, otherwise the agent may keep an empty session in its history. The session's offer goes to `onSession` and `onCommands`, as from a chat.
+ACP cannot say who is signed in, so the provider's account check opens a session to find out. It runs `initialize` and `session/new` in the account's environment, in an empty temporary folder. A session means signed in. The "authentication required" code (`-32000`) means signed out. Any other error, an exit or 20 seconds without answer fails the check. The probe never calls `authenticate`, which could start a login. It closes the session when the agent supports `session/close`, otherwise the agent may keep an empty session in its history. The session's offer goes to `onSession` and `onCommands`, as from a chat.
 
-A reading carries no email or plan. `askAcpAccount` also takes a `spawn` and a `timer` (`ProbeTimer`) for tests.
+A reading carries no email or plan.
 
 ## What it leaves out
 
 Plan limits, file system and terminal client capabilities, MCP servers over stdio, `elicitation/create`, notices and compaction updates. `compaction` is `none` unless the agent lists a `compact` command.
 
-`@adecore/agents/testing` has `fakeAcp`, an agent for backend tests, and `fakeAcpWith`, which can also require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does.
+`@adecore/agents/testing` has `fakeAcpWith`, an agent for backend tests that can require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does.

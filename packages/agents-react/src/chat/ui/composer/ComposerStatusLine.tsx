@@ -1,7 +1,7 @@
 import { Icon, Popover, Tooltip } from '@adecore/ui';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import type { ComposerStatusItem } from '../../../host';
+import type { ComposerStatusItem } from '../../../host/host';
 
 const ITEM = 'flex h-6 min-w-0 items-center gap-1.5 rounded-md text-xs text-text-muted';
 

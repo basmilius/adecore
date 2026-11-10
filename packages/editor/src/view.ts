@@ -19,7 +19,6 @@ import {
     type BlockWidget,
     EditorLayout,
     type FoldState,
-    type Inlay,
     type LayoutRect,
     type LayoutRow,
     RIGHT_PADDING,
@@ -27,6 +26,7 @@ import {
     subRowBand,
     type VerticalWindow
 } from './layout.ts';
+import { type Inlay } from './line-geometry.ts';
 import { emit, subscribe } from './listeners.ts';
 import { createMetrics, type EditorFont, readEditorFont } from './metrics.ts';
 import { mapOffset, offsetMapper } from './offsets.ts';
@@ -110,16 +110,11 @@ export interface ViewSettings {
     smartKeys: EditorSmartKeys;
     messages: Partial<EditorMessages>;
     label: string;
-    /* A line at each indentation level, and the one of the scope around the caret stronger. */
     guides: boolean;
-    /* Spaces drawn as dots and tabs as arrows. */
     whitespace: boolean;
-    /* The column a line is held to, drawn as a line; null for none. */
     rightMargin: number | null;
-    /* When the arrow that folds a block shows in the gutter. */
     foldOutline: 'off' | 'hover' | 'always';
     folding?: boolean;
-    /* The headers of the blocks scrolled out of sight stay pinned on top; on unless false. */
     stickyScroll?: boolean;
     /* The words that mark a TODO comment; the default ones without them, none drawn with an empty list. */
     todoWords?: readonly string[];
@@ -159,18 +154,21 @@ const STICKY_MAX_LINES = 5;
 /* A view shows at most this share of its rows as sticky headers, so a small node keeps most of its text. */
 const STICKY_ROW_SHARE = 4;
 
+/* Fills an element of the host's; what it returns runs once, when the element is taken away. */
+type HostMount = (container: HTMLElement) => (() => void) | void;
+
 /* A range of lines that folds: the document's own, or one a person made of a selection. */
-export type ViewFold = Omit<FoldingRange, 'kind'> & { kind: FoldingRange['kind'] | 'custom' };
+type ViewFold = Omit<FoldingRange, 'kind'> & { kind: FoldingRange['kind'] | 'custom' };
 
 /* A mark the host asked for, such as every use of the name under the caret. */
-export interface Occurrence {
+interface Occurrence {
     from: number;
     to: number;
     kind?: EditorHighlightKind;
 }
 
 /* A stretch of text the language servers classified, anchored to offsets that follow the text through edits. */
-export interface ViewSemanticToken {
+interface ViewSemanticToken {
     from: number;
     to: number;
     scopes: readonly string[];
@@ -178,7 +176,7 @@ export interface ViewSemanticToken {
 }
 
 /* A problem the host marked, anchored to offsets that follow the text through edits. */
-export interface GutterMarker {
+interface GutterMarker {
     id: string;
     line: number;
     label: string;
@@ -186,7 +184,7 @@ export interface GutterMarker {
     pressed?: boolean;
 }
 
-export interface ViewMarker {
+interface ViewMarker {
     severity: EditorMarkerSeverity;
     from: number;
     to: number;
@@ -269,8 +267,8 @@ export class EditorView {
     private remoteCarets: { id: string; name: string; color: string; at: number }[] = [];
     private remoteKey: string | null = null;
     /* The host's DOM after the last character of a line, by owner; `at` is the start of its line and follows the text through edits. */
-    private readonly lineActions = new Map<string, { id: string; at: number; render: (container: HTMLElement) => void }[]>();
-    private readonly actionElements = new Map<string, HTMLElement>();
+    private readonly lineActions = new Map<string, { id: string; at: number; render: HostMount }[]>();
+    private readonly actionElements = new Map<string, { element: HTMLElement; dispose: (() => void) | void }>();
     private readonly attributionListeners = new Set<(hover: { id: string; rect: EditorRect } | null) => void>();
     private readonly changeListeners = new Set<(hover: EditorChangeMarkHover | null) => void>();
     private changeHover: EditorChangeMarkHover | null = null;
@@ -309,12 +307,11 @@ export class EditorView {
     private activeGuideCache: { key: string; guide: { column: number; first: number; last: number } | null } | undefined;
     /* Column mode: a drag or Shift with the arrows selects a box of columns, as Alt does for a drag. */
     columnMode = false;
-    /* A scroll on its way: where it started and ends, when, and the frame that moves it. */
     private scrollRun: { frame: number; from: { x: number; y: number }; to: { x: number; y: number }; start: number | null; duration: number } | null = null;
     private selectionOccurrenceCache: { key: string; ranges: readonly { from: number; to: number }[] } = { key: '', ranges: [] };
     private link: { from: number; to: number } | null = null;
     private composition: string | undefined;
-    private ghost: { at: number; text: string; accessory: ((container: HTMLElement) => void) | undefined } | null = null;
+    private ghost: { at: number; text: string; accessory: HostMount | undefined } | null = null;
     private ghostSerial = 0;
     private foldRanges: ViewFold[] = [];
     /* The folds made of a selection, which follow their text through edits. */
@@ -507,7 +504,6 @@ export class EditorView {
         this.refreshFont();
     }
 
-    /* The size the code is drawn at, in pixels. */
     getFontSize(): number {
         return this.font.size;
     }
@@ -1028,7 +1024,7 @@ export class EditorView {
     }
 
     /* A suggestion after the caret: its first line in the text, the rest in rows under the line, and the host's accessory after the first line. */
-    setGhost(ghost: { at: number; text: string; accessory: ((container: HTMLElement) => void) | undefined } | null): void {
+    setGhost(ghost: { at: number; text: string; accessory: HostMount | undefined } | null): void {
         this.ghost = ghost === null || ghost.text === '' ? null : ghost;
         this.layoutGhostParts();
         this.configureText();
@@ -1067,7 +1063,8 @@ export class EditorView {
                           at: ghost.at,
                           render: (container) => {
                               container.classList.add('se-ghost-accessory');
-                              ghost.accessory?.(container);
+
+                              return ghost.accessory?.(container);
                           }
                       }
                   ]
@@ -1659,7 +1656,6 @@ export class EditorView {
         return candidates.find((at) => at >= 0 && /[()[\]{}]/.test(this.model.slice(at, at + 1)));
     }
 
-    /* The offset a bracket at the caret pairs with, if it is one. */
     matchingBracket(selection: { anchor: number; head: number }): { at: number; mate: number | undefined } | null {
         const at = this.bracketAt(selection);
 
@@ -1859,7 +1855,6 @@ export class EditorView {
         };
     }
 
-    /* The arrows of the soft wraps in the rows on screen. */
     private wrapSigns(rows: readonly LayoutRow[]): WrapSign[] {
         if (!this.layout.wrapping) {
             return [];
@@ -2052,7 +2047,6 @@ export class EditorView {
         return { plain, active: marked };
     }
 
-    /* The selection under a point of the screen, which a press there may drag away. */
     selectionAtPoint(clientX: number, clientY: number): EditorSelection | null {
         const point = this.contentPoint(clientX, clientY);
         const rows = this.layout.visibleRows(this.viewport.scrollTop, this.viewportHeight, 0);
@@ -2077,7 +2071,6 @@ export class EditorView {
         this.root.dataset.column = String(on);
     }
 
-    /* Where text being carried would land, drawn as a caret of its own. */
     setDropCaret(offset: number | null): void {
         this.dropCaret = offset;
         this.render();
@@ -2107,7 +2100,6 @@ export class EditorView {
         return { id: element.dataset.inlayId, part: part === null ? null : Number(part.dataset.part), element: part ?? element };
     }
 
-    /* Says which hint the pointer is on, or that it left them all. */
     setInlayHover(target: EventTarget | null): void {
         const found = this.inlayAt(target);
 
@@ -2320,7 +2312,6 @@ export class EditorView {
         this.revealOffset(this.model.getPrimary().head, kind);
     }
 
-    /* What a regular expression replacement writes for the match the find is on, drawn under that match; null takes it away. */
     setReplacePreview(replacement: string | null, preserveCase = false): void {
         this.replacePreview = replacement === null ? null : { text: replacement, preserveCase };
         this.find.setPreview(replacement !== null);
@@ -2891,7 +2882,7 @@ export class EditorView {
     }
 
     /* The host's own DOM after the end of a line, which stays on its line through edits until the owner sets its actions again. */
-    setLineActions(owner: string, actions: readonly { id: string; at: number; render: (container: HTMLElement) => void }[]): void {
+    setLineActions(owner: string, actions: readonly { id: string; at: number; render: HostMount }[]): void {
         if (actions.length === 0) {
             if (!this.lineActions.has(owner)) {
                 return;
@@ -2904,51 +2895,92 @@ export class EditorView {
 
         const wanted = new Set([...this.lineActions].flatMap(([name, entries]) => entries.map((entry) => `${name}\0${entry.id}`)));
 
-        for (const [key, element] of [...this.actionElements]) {
+        for (const key of [...this.actionElements.keys()]) {
             if (!wanted.has(key)) {
-                element.remove();
-                this.actionElements.delete(key);
+                this.removeActionElement(key);
             }
         }
 
         this.render();
     }
 
+    /* Out of the map first, so a disposer that sets actions again finds the element gone. */
+    private removeActionElement(key: string): void {
+        const mounted = this.actionElements.get(key);
+
+        if (mounted === undefined) {
+            return;
+        }
+
+        this.actionElements.delete(key);
+        mounted.element.remove();
+        mounted.dispose?.();
+    }
+
     private paintLineActions(): void {
+        for (const owner of this.lineActions.keys()) {
+            // An owner that set its actions anew from inside a render is painted once more, with the new ones; a draw never nests.
+            if (!this.paintOwnerActions(owner)) {
+                this.paintOwnerActions(owner);
+            }
+        }
+    }
+
+    /* False when the owner set its actions anew from inside a render, which leaves the rest of the list it was painting stale. */
+    private paintOwnerActions(owner: string): boolean {
         const lineHeight = this.layout.metrics.lineHeight;
         const top = this.scrollTop;
+        const entries = this.lineActions.get(owner) ?? [];
 
-        for (const [owner, entries] of this.lineActions) {
-            for (const entry of entries) {
-                const key = `${owner}\0${entry.id}`;
-                let element = this.actionElements.get(key);
+        for (const entry of entries) {
+            const key = `${owner}\0${entry.id}`;
+            let element = this.actionElements.get(key)?.element;
 
-                if (element === undefined) {
-                    element = this.document.createElement('div');
-                    element.className = 'se-line-action';
-                    element.addEventListener('pointerdown', (event) => event.stopPropagation());
-                    element.addEventListener('mousedown', (event) => event.stopPropagation());
-                    this.actions.append(element);
-                    this.actionElements.set(key, element);
-                    entry.render(element);
-                }
+            if (element === undefined) {
+                element = this.document.createElement('div');
+                element.className = 'se-line-action';
+                element.addEventListener('pointerdown', (event) => event.stopPropagation());
+                element.addEventListener('mousedown', (event) => event.stopPropagation());
+                this.actions.append(element);
+                const mounted: { element: HTMLElement; dispose: (() => void) | void } = { element, dispose: undefined };
+                this.actionElements.set(key, mounted);
+                const dispose = entry.render(element);
 
-                const line = this.model.positionAt(entry.at).line;
-                const row = this.layout.rowForLine(line);
-                const place = row.kind === 'text' && row.line === line ? this.layout.caret(this.model.getLine(line).end) : null;
+                // An owner that took the element away again from inside its own render gets it disposed at once.
+                if (this.actionElements.get(key) !== mounted) {
+                    dispose?.();
 
-                if (place === null || place.y + lineHeight < top - this.viewportHeight || place.y > top + 2 * this.viewportHeight) {
-                    element.hidden = true;
+                    if (this.lineActions.get(owner) !== entries) {
+                        return false;
+                    }
 
                     continue;
                 }
 
-                element.hidden = false;
-                element.style.left = `${Math.round(place.x) + LINE_ACTION_GAP}px`;
-                element.style.top = `${Math.round(place.y)}px`;
-                element.style.height = `${lineHeight}px`;
+                mounted.dispose = dispose;
+
+                if (this.lineActions.get(owner) !== entries) {
+                    return false;
+                }
             }
+
+            const line = this.model.positionAt(entry.at).line;
+            const row = this.layout.rowForLine(line);
+            const place = row.kind === 'text' && row.line === line ? this.layout.caret(this.model.getLine(line).end) : null;
+
+            if (place === null || place.y + lineHeight < top - this.viewportHeight || place.y > top + 2 * this.viewportHeight) {
+                element.hidden = true;
+
+                continue;
+            }
+
+            element.hidden = false;
+            element.style.left = `${Math.round(place.x) + LINE_ACTION_GAP}px`;
+            element.style.top = `${Math.round(place.y)}px`;
+            element.style.height = `${lineHeight}px`;
         }
+
+        return true;
     }
 
     /* Bars in the gutter for runs of lines, which follow their text through edits until the host sets them again. */
@@ -3010,7 +3042,6 @@ export class EditorView {
         ];
     }
 
-    /* Code that is not in the document, drawn in the editor's own face and colors. */
     renderCode(container: HTMLElement, text: string, options: EditorCodeBlockOptions): void {
         renderCodeBlock(
             container,
@@ -3289,7 +3320,6 @@ export class EditorView {
         paintOverview(this.overview, overviewTicks(spans, this.layout.height, trackHeight));
     }
 
-    /* The blocks sticky scroll and the breadcrumb go by; null goes back to the editor's own reading. */
     setBlocks(blocks: readonly EditorBlock[] | null): void {
         this.outline.setProvided(blocks, this.model);
         this.render();
@@ -3481,7 +3511,6 @@ export class EditorView {
         emit(this.gutterActionListeners, line);
     }
 
-    /* The line a fold control in the gutter folds. */
     foldLineOf(target: EventTarget | null): number | null {
         const button = closestElement(target, '[data-fold-line]');
 
@@ -3523,7 +3552,11 @@ export class EditorView {
         this.tracked.clear();
         this.remoteCarets = [];
         this.lineActions.clear();
-        this.actionElements.clear();
+
+        for (const key of [...this.actionElements.keys()]) {
+            this.removeActionElement(key);
+        }
+
         this.attribution.clear();
         this.highlights.clear();
         this.attributionListeners.clear();

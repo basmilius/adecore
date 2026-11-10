@@ -2,7 +2,7 @@ import type { ModelCatalogData, ModelCatalogProfile, ModelInfo, ModelOptionDescr
 import manifest from './claude-models.json' with { type: 'json' };
 
 // What a host builds a catalog from; one that is never replaced needs no date.
-export type ModelCatalogInput = Omit<ModelCatalogData, 'updatedAt'> & { updatedAt?: string };
+type ModelCatalogInput = Omit<ModelCatalogData, 'updatedAt'> & { updatedAt?: string };
 
 const ADOPTED_PROFILE = 'agent';
 

@@ -1,4 +1,4 @@
-import type { Affinity, LineGeometry } from './layout.ts';
+import type { Affinity, LineGeometry } from './line-geometry.ts';
 
 export function stopCount(geometry: LineGeometry): number {
     return geometry.uniform === undefined ? geometry.offsets.length : geometry.text.length + 1;

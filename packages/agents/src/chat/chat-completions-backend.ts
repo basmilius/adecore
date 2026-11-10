@@ -2,9 +2,9 @@ import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 import type { ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { z } from 'zod';
+import type { ApprovalDecision, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { ApiTools, CONTINUE_MESSAGE, INTERRUPTED, apiInstructions, endTurn, readThread, writeThread, type ApiHostTools, type ToolRounds } from './api-chat.ts';
 import { apiEffectiveMode, executeApiTool, type ExecuteApiTool } from './api-tools.ts';
-import type { ApprovalDecision, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { readChatCompletionsStream, type ChatCompletionsAnswer, type ChatCompletionsTokens } from './chat-completions-stream.ts';
 
 const MessageSchema = z.object({
@@ -35,7 +35,7 @@ export interface ChatCompletionsUsage extends ChatCompletionsTokens {
 }
 
 /** The sentences a person reads that name what to do in the host, beside the ones the backend writes itself. */
-export interface ChatCompletionsWords {
+interface ChatCompletionsWords {
     /** Why a chat does not start without a key. */
     noKey: string;
 
@@ -84,7 +84,6 @@ export interface ChatCompletionsSpec {
     /** The tokens of every request that reported them, awaited before a stop can end the turn. */
     onUsage?(usage: ChatCompletionsUsage): Promise<void>;
 
-    /** Tools the host offers beside the project tools; null offers none. */
     hostTools?(launch: BackendLaunch, host: BackendHost): ApiHostTools | null;
 
     words: ChatCompletionsWords;

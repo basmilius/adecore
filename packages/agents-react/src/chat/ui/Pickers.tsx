@@ -1,4 +1,4 @@
-import type { AgentKind, ModelSelection, ProviderInfo, UsageProvider } from '@adecore/agent-contracts';
+import { inPickerOrder, separatesGroups, type AgentKind, type ModelSelection, type ProviderInfo, type UsageProvider } from '@adecore/agent-contracts';
 import { Button, Icon, IconButton, Menu, Popover, ScrollArea, Tooltip } from '@adecore/ui';
 import { ChevronDown, ChevronRight, Search, Star } from 'lucide-react';
 import { useContext, useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
@@ -7,11 +7,11 @@ import { AgentIcon } from '../../agents/AgentIcon';
 import { agentChipOf, modelName } from '../../agents/model-name';
 import { modelRequirementOf } from '../../agents/model-requirement';
 import { ProviderLogo } from '../../agents/ProviderLogo';
-import { useChatHost } from '../../host';
-import { useHostMachineLabel } from '../../host-hooks';
+import { useChatHost } from '../../host/host';
+import { useHostMachineLabel } from '../../host/host-hooks';
 import { ChatScopeContext } from '../../scope';
 import { useReportedModels } from '../../state/chats';
-import { inPickerOrder, pickerEntriesOf, separatesGroups, type PickerEntry } from '../logic/picker-entries';
+import { pickerEntriesOf, type PickerEntry } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { ModelMarks } from './ModelMarks';
 

@@ -17,7 +17,6 @@ export interface ScrollRequest {
     readonly target: { readonly x: number; readonly y: number };
     /* What is in view now: the text area, without the gutter. */
     readonly view: { readonly x: number; readonly y: number; readonly width: number; readonly height: number };
-    /* How much there is to scroll over. */
     readonly content: { readonly width: number; readonly height: number };
     readonly lineHeight: number;
     readonly charWidth: number;
@@ -96,7 +95,6 @@ function horizontalPosition(request: ScrollRequest, kind: ScrollKind): number {
     return clamp(position, content.width - width);
 }
 
-/* The scroll position that shows the target the way `kind` asks. */
 export function scrollPosition(request: ScrollRequest, kind: ScrollKind): { x: number; y: number } {
     const { target, view } = request;
     const inView = target.x >= view.x && target.x < view.x + view.width && target.y >= view.y && target.y < view.y + view.height;

@@ -12,7 +12,6 @@ import { ValuesBox } from './ValuesBox.tsx';
 
 export type HeatmapCell = HeatCell;
 
-/* A row or a column of a heatmap. */
 export interface HeatmapAxisItem {
     readonly key: string | number;
     /* What the tooltip, the live region and the table call it, such as "Monday" or "09:00". */

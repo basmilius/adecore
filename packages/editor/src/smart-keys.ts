@@ -13,7 +13,6 @@ export const DEFAULT_SMART_KEYS: EditorSmartKeys = {
     camelHumps: false
 };
 
-/* The keys with what a host left out filled in from the defaults. */
 export function resolveSmartKeys(keys: Partial<EditorSmartKeys> | undefined): EditorSmartKeys {
     return { ...DEFAULT_SMART_KEYS, ...keys };
 }

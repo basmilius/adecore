@@ -50,7 +50,7 @@ export function Signature({ code, language, onName }: { code: string; language: 
 }
 
 /* A docblock's tags as rows: the tag once beside each run of the same tag, so a list of parameters reads as one. */
-export function DocTags({ tags }: { tags: readonly DocTag[] }) {
+function DocTags({ tags }: { tags: readonly DocTag[] }) {
     return (
         <div className="grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-xs/[18px] select-text">
             {tags.map((tag, index) => (
@@ -66,7 +66,7 @@ export function DocTags({ tags }: { tags: readonly DocTag[] }) {
 }
 
 /* One symbol: its qualified name muted, its signature, the prose and examples as compact blocks, and its tags as rows. Names in the signature are links only where `onName` says what a press does. */
-export function SymbolSection({ section, onName }: { section: HoverSection; onName?: (name: string, declared: string | null) => void }) {
+function SymbolSection({ section, onName }: { section: HoverSection; onName?: (name: string, declared: string | null) => void }) {
     const declared = declaredNameOf(section.signatures[0]?.code ?? '');
     const follow = onName === undefined ? undefined : (name: string): void => onName(name, declared);
 

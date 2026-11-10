@@ -1,8 +1,11 @@
 import './test-setup.ts';
 import { afterEach, expect, test } from 'bun:test';
+import type { Editor, EditorKeyHandler } from '@adecore/editor';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { mountEditor } from '@adecore/editor/testing';
 import { EditorLanguage } from './editor-language.ts';
+import { KeyDispatcher } from './key-priority.ts';
+import { Popups } from './popups.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { signatureViewOf } from './signature-model.ts';
 import { SnippetFeature } from './snippet-session.ts';
@@ -17,9 +20,25 @@ afterEach(() => {
     }
 });
 
+/* A choice list these tests never look at. */
+const UNSEEN_CHOICES = { pick: { open: () => undefined, close: () => undefined } };
+
+/* What an editor's language hands its snippets without a project: its keys through the key dispatcher, and its popups. */
+function hostOf(editor: Editor) {
+    const keys = new KeyDispatcher();
+    cleanup.push(editor.onKeyDown((event) => keys.dispatch(event)));
+
+    return {
+        editor,
+        popups: new Popups(),
+        onKey: (handler: EditorKeyHandler, priority = 0) => keys.add(handler, priority),
+        onDispose: (dispose: () => void) => void cleanup.push(dispose)
+    };
+}
+
 function snippet(source: string) {
     const mounted = mountEditor({ text: '' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature(hostOf(mounted.editor), UNSEEN_CHOICES);
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet(source);
     mounted.editor.applyEdits([{ range: { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }, text: parsed.text }]);
@@ -239,7 +258,7 @@ test('native textarea replacement also commits all mirrors', () => {
 
 test('a caret outside the insertion ends the session after text ranges have settled', async () => {
     const mounted = mountEditor({ text: 'prefix foo suffix' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature(hostOf(mounted.editor), UNSEEN_CHOICES);
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet('${1:foo}');
     feature.begin({ line: 0, character: 7 }, parsed.text, tabOrder(parsed), parsed.fields);
@@ -290,7 +309,7 @@ test('replacing a parent keeps independent occurrences of a nested field', () =>
 
 test('Tab after replacing a parent in touching instances follows the primary instance', () => {
     const mounted = mountEditor({ text: '' });
-    const feature = new SnippetFeature({ editor: mounted.editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature(hostOf(mounted.editor), UNSEEN_CHOICES);
     cleanup.push(() => mounted.editor.dispose());
     const parsed = parseSnippet('${1:new ${2:Foo}()}');
     mounted.editor.setText(parsed.text + parsed.text);
@@ -322,13 +341,11 @@ test('Escape closes the signature card before ending a snippet', async () => {
     await new Promise<void>((resolve) => setImmediate(resolve));
     await language.completion.accept(false);
 
-    language.popups.setState({
-        signature: { anchor: { line: 0, character: 4 }, model: signatureViewOf({ signatures: [{ label: 'f(x)' }] })! }
-    });
+    language.popups.slot('signature').set({ anchor: { line: 0, character: 4 }, model: signatureViewOf({ signatures: [{ label: 'f(x)' }] })! });
 
     press('Escape');
 
-    expect(language.popups.getState().signature).toBeNull();
+    expect(language.popups.slot('signature').get()).toBeNull();
     expect(language.snippets.isActive).toBe(true);
 
     press('Escape');
@@ -494,13 +511,18 @@ async function completeWithin(mounted: Awaited<ReturnType<typeof languageSnippet
 test('choosing a value edits all mirrors and retains the active field', async () => {
     const { editor, language, press } = await languageSnippet('${1|a,b,c|} $1 ${2:end}$0');
 
-    expect(language.popups.getState().pick?.groups[0]?.rows.map((row) => row.label)).toEqual(['a', 'b', 'c']);
+    expect(
+        language.popups
+            .slot('pick')
+            .get()
+            ?.groups[0]?.rows.map((row) => row.label)
+    ).toEqual(['a', 'b', 'c']);
 
     press('ArrowDown');
     press('Enter');
 
     expect(editor.getText()).toBe('b b end');
-    expect(language.popups.getState().pick).toBeNull();
+    expect(language.popups.slot('pick').get()).toBeNull();
     expect(language.snippets.isActive).toBe(true);
     expect(editor.getSelections().map((range) => editor.textInRange(range))).toEqual(['b', 'b']);
 
@@ -518,14 +540,14 @@ test('choice Tab advances, Escape dismisses before ending, and typing closes the
     const first = await languageSnippet('${1|a,b|} $1 ${2:end}$0');
     first.press('Tab');
 
-    expect(first.language.popups.getState().pick).toBeNull();
+    expect(first.language.popups.slot('pick').get()).toBeNull();
     expect(first.editor.textInRange(first.editor.getSelection())).toBe('end');
 
     const second = await languageSnippet('${1|a,b|} $1');
     second.press('Escape');
 
     expect(second.language.snippets.isActive).toBe(true);
-    expect(second.language.popups.getState().pick).toBeNull();
+    expect(second.language.popups.slot('pick').get()).toBeNull();
 
     second.press('Escape');
 
@@ -535,14 +557,14 @@ test('choice Tab advances, Escape dismisses before ending, and typing closes the
     const third = await languageSnippet('${1|a,b|} $1');
     third.type('typed');
 
-    expect(third.language.popups.getState().pick).toBeNull();
+    expect(third.language.popups.slot('pick').get()).toBeNull();
     expect(third.editor.getText()).toBe('typed typed');
     expect(third.language.snippets.isActive).toBe(true);
 });
 
 test('a choice applies to every original caret instance', async () => {
     const { editor, language } = await languageSnippet('${1|a,b|} $1 $0', 2);
-    const id = language.popups.getState().pick!.groups[0]!.rows[1]!.id;
+    const id = language.popups.slot('pick').get()!.groups[0]!.rows[1]!.id;
     language.pick.choose(id);
 
     expect(editor.getText()).toBe('b b \nb b ');
@@ -957,7 +979,7 @@ test('a touching parent does not consume the next occurrences indentation', asyn
 
 test('snippet tracking metadata stays out of the public editor selections', () => {
     const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'foo foo z', theme: 'light' });
-    const feature = new SnippetFeature({ editor, onDispose: (dispose) => cleanup.push(dispose) });
+    const feature = new SnippetFeature(hostOf(editor), UNSEEN_CHOICES);
     cleanup.push(() => editor.dispose());
     const parsed = parseSnippet('${1:foo} ${1/(.*)/$1/} ${2:z}$0');
     feature.begin({ line: 0, character: 0 }, parsed.text, tabOrder(parsed), parsed.fields);

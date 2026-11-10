@@ -36,7 +36,6 @@ function columnsOf(range: Range, line: number, length: number): NameRange | null
     return range.start.character < end ? { start: range.start.character, end } : null;
 }
 
-/* The name of a place within its line once the indentation is cut off. */
 function trimmedNameOf(raw: string, range: Range, line: number): NameRange | null {
     const leading = raw.length - raw.trimStart().length;
     const columns = columnsOf(range, line, raw.length);

@@ -1,6 +1,5 @@
 const WORD_START = /[\s\-_./:]/;
 
-/* Whether `query` starts the text or one of its words. */
 const startsWord = (text: string, query: string): boolean => {
     let at = text.indexOf(query);
 

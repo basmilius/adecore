@@ -3,7 +3,7 @@ import type { Ref } from 'react';
 import type { Engine } from '../protocol/index.ts';
 import { ENGINE_ICONS } from './engine-icons.ts';
 
-export interface EngineIconProps {
+interface EngineIconProps {
     engine: Engine;
     /* 12, 14, 16 or 20. */
     size?: number;

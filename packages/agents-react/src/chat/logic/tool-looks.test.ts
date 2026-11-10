@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatToolItem } from '@adecore/agent-contracts';
-import type { ToolLook } from '../../host';
+import type { ToolLook } from '../../host/host';
 import { lookRunOf, sentMessageOf } from './command-looks';
 import { matchToolLook, mcpCallOf } from './tool-looks';
 

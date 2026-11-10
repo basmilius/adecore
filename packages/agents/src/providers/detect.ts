@@ -1,4 +1,4 @@
-import { spawnChatProcess, type SpawnChatProcess } from '../chat/chat-process.ts';
+import { spawnChatProcess, type SpawnChatProcess } from '../chat-process.ts';
 import { definedEnv } from './accounts/launch.ts';
 
 export interface CliDetection {

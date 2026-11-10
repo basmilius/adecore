@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { menuGroupsOf } from './context-menu-rows.ts';
-import en from './locales/en.json';
-import nl from './locales/nl.json';
+import en from './locales/en.ts';
+import nl from './locales/nl.ts';
 
 const ids = (rows: readonly { id: string }[]): string[] => rows.map((row) => row.id);
 

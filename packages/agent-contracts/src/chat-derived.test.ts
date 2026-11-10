@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { activeSubagents, outlineItems, type ChatItem, type ChatSubagentItem } from './chat.ts';
+import { activeSubagents, HOST_TASK_ORIGIN, outlineItems, taskIdOfRow, taskRowId, type ChatItem, type ChatSubagentItem } from './chat.ts';
 
 function subagent(id: string, turnId: string | null, status: 'running' | 'done', finishedAt: number | null): ChatSubagentItem {
     return { id, kind: 'subagent', createdAt: 1, turnId, status, finishedAt } as ChatSubagentItem;
@@ -48,5 +48,15 @@ describe('the chat outline', () => {
         expect(outline[1]).not.toHaveProperty('checkpointDiff');
         expect(outline[2]).toEqual({ id: 'reply', kind: 'assistant', createdAt: 4, turnId: 'turn', text: 'x'.repeat(280), streaming: false });
         expect(items).toEqual(original);
+    });
+});
+
+describe('the row of a host task', () => {
+    test('is named after its task and read back only from a row the host wrote', () => {
+        expect(taskRowId('t1')).toBe('task-t1');
+        expect(taskIdOfRow({ id: taskRowId('t1'), origin: HOST_TASK_ORIGIN })).toBe('t1');
+        expect(taskIdOfRow({ id: 'task-t1', origin: 'native' })).toBeNull();
+        expect(taskIdOfRow({ id: 'task-t1' })).toBeNull();
+        expect(taskIdOfRow({ id: 'toolu_1', origin: HOST_TASK_ORIGIN })).toBeNull();
     });
 });

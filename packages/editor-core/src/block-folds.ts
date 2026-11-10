@@ -1,6 +1,6 @@
+import type { FoldingRange } from './fold-types.ts';
 import { rangeOf } from './lexical-folds.ts';
 import type { DocumentLine } from './rope.ts';
-import type { FoldingRange } from './structure.ts';
 
 const MARKDOWN = /^(markdown|md|mdx)$/i;
 const HEADING = /^(#{1,6})\s+\S/;

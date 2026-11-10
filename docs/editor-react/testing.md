@@ -48,3 +48,16 @@ An answer for a document whose text changed while pending rejects with `StaleRes
 ## ManualTimers
 
 The features wait before they ask: 80 ms before suggestions, 300 ms before a hover card. Pass `ManualTimers` as the `timers` argument of `EditorLanguage` to control the clock; `realTimers`, on `setTimeout`, is the default. `advance(ms)` runs what is due, and the test awaits the requests that started.
+
+## Keys and turns
+
+`keyOf(shortcut, apple?)` is the keydown a person pressing a shortcut sends, in the shape `FakeEditor.press` takes. It reads a `KeyShortcut`, a key chord of the editor keymap or of `@adecore/ui`, and maps `Space` and the punctuation keys to their `code`. `mod` becomes Meta on an Apple platform and Ctrl elsewhere: the platform the shortcut names, else `apple`, else the page's. A `null` shortcut throws, so a test fails when the keymap has no key for a command.
+
+`settle()` waits six turns of the event loop, which drains the promise chains of the fake service. Await it after a keypress or a refresh before asserting on what the features did.
+
+```ts
+import { keyOf, settle } from '@adecore/editor-react/testing';
+
+editor.press(keyOf(language.shortcuts.rename));
+await settle();
+```

@@ -1,6 +1,6 @@
 import type { EditorBlock, EditorPosition } from '@adecore/editor';
 import type { DocumentSymbol, DocumentSymbolResult, Range, SymbolInformation } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 import { Refresher } from './refresher.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -23,11 +23,10 @@ const KINDS: Record<number, string> = {
     23: 'struct'
 };
 
-export interface SymbolSpan {
+interface SymbolSpan {
     readonly name: string;
     readonly kind: number;
     readonly range: Range;
-    /* The line of the name, when the server says where the name is. */
     readonly nameLine?: number;
 }
 
@@ -143,7 +142,7 @@ export class SymbolsFeature {
     private readonly refresher: Refresher;
     private readonly listeners = new Set<(result: DocumentSymbolResult) => void>();
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         const { editor, uri } = language;
 
         this.refresher = new Refresher(

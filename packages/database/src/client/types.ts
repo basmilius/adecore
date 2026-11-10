@@ -148,12 +148,10 @@ export interface DatabaseClient {
      * changed gets a new one, and the old one closes.
      */
     session(connection: Connection, channel?: string): DatabaseSession;
-    /* Closes every channel of the connection. */
     disconnect(connectionId: string): Promise<void>;
     dispose(): Promise<void>;
 }
 
-/* A request that failed, with the code of the protocol. */
 export class DatabaseRequestError extends Error {
     readonly code: DatabaseErrorCode;
     readonly sqlState: string | undefined;

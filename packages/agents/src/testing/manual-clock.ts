@@ -1,7 +1,7 @@
-import type { OutboxClock } from '../outbox/outbox-worker.ts';
+import type { Clock } from '../clock.ts';
 
 /* A clock a test moves by hand. A timer fires only inside `advance`, never on its own. */
-export class ManualClock implements OutboxClock {
+export class ManualClock implements Clock {
     private time = 1_000_000;
     private timers: Array<{ at: number; run: () => void; id: number }> = [];
     private nextId = 1;

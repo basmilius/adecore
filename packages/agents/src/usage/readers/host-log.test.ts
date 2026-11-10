@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { hostLogMightCarryUsage, hostUsageLine, parseHostUsageLine } from './host-log.ts';
+import { hostUsageLine } from '../../host-usage-line.ts';
+import { hostLogMightCarryUsage, parseHostUsageLine } from './host-log.ts';
 
 const entry = {
     at: Date.parse('2026-10-20T09:00:00.000Z'),

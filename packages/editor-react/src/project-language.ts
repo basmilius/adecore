@@ -14,14 +14,24 @@ import {
 import i18next, { type i18n } from 'i18next';
 import { ClipboardHistory } from './clipboard-history.ts';
 import { EditLocations } from './edit-locations.ts';
-import type { LanguageHost } from './host-types.ts';
+import type { LanguageHost, ProjectFiles } from './host-types.ts';
 import { NavigationHistory, type Place } from './navigation-history.ts';
 import { PANEL_BODY_HEIGHT } from './panel-size.ts';
 import { relativeTo } from './paths.ts';
 import { ProjectProblems, serviceProblems } from './project-problems.ts';
-import { disposeSnippetTransforms } from './snippet-transform-queue.ts';
+import { SnippetTransforms, type SnippetTransformLease } from './snippet-transform-queue.ts';
 import { TemplateRegistry } from './templates.ts';
-import { applyWorkspaceEdit, type ProjectFiles } from './workspace-edit.ts';
+import { realTimers, type Timers } from './timers.ts';
+import { applyWorkspaceEdit } from './workspace-edit.ts';
+
+/*
+ * Builds the service of a project that needs what the project knows: the text of the editor that holds a
+ * document, and the way an edit a server asks for is applied. Called once by the constructor; both are
+ * methods of the project, so the service may keep them and call them later.
+ */
+export type LanguageServiceFactory<Service extends LanguageService = LanguageService> = (
+    project: Pick<ProjectLanguage, 'openTextOf' | 'applyWorkspaceEdit'>
+) => Service;
 
 export interface LanguageDocumentHandle {
     readonly uri: string;
@@ -120,8 +130,8 @@ function filesOf(targets: readonly FileOperationTarget[]): Array<{ uri: string; 
  * A shared language service and document ownership for the editors of a project. Two editors on the same
  * file hold one document, and only the first one sends changes, since both would report the same edit.
  */
-export class ProjectLanguage {
-    readonly service: LanguageService;
+export class ProjectLanguage<Service extends LanguageService = LanguageService> {
+    readonly service: Service;
     readonly host: LanguageHost;
     readonly i18n: i18n;
     readonly folder: string;
@@ -132,6 +142,7 @@ export class ProjectLanguage {
     readonly templates: TemplateRegistry;
     private readonly holders = new Map<string, Holder>();
     private readonly files: ProjectFiles | null;
+    private snippetQueue: SnippetTransforms | null = null;
 
     /* The body height of the peek and call hierarchy panels, shared by the editors of the project. */
     panelBodyHeight: number;
@@ -141,23 +152,34 @@ export class ProjectLanguage {
     private lastPlace: Place | null = null;
     private disposed = false;
     private readonly subscriptions: readonly Disposable[];
+    private readonly disposers: Array<() => void> = [];
     /* The result id the server gave each document in its last workspace report, which the next asks with. */
     private readonly workspaceResults = new Map<string, string>();
 
-    constructor(service: LanguageService, host: LanguageHost = {}) {
-        this.service = service;
+    constructor(service: Service | LanguageServiceFactory<Service>, host: LanguageHost = {}) {
         this.host = host;
         this.i18n = host.i18n ?? i18next;
         this.folder = host.folder ?? '';
         this.files = host.files ?? null;
+        this.service = typeof service === 'function' ? service(this) : service;
         this.edits = new EditLocations(host.editHistoryLimit);
         this.clipboard = host.clipboard ?? new ClipboardHistory();
         this.templates = host.templates ?? new TemplateRegistry();
         this.panelBodyHeight = host.panelBodyHeight ?? PANEL_BODY_HEIGHT;
-        this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(service, (uri) => this.pathOfLocation(uri) ?? uri));
-        const shows = service.onShowDocument?.((params) => this.showDocument(params));
-        const messages = host.onServerMessage === undefined ? undefined : service.onServerMessage?.((message) => host.onServerMessage!(message));
+        this.problems = new ProjectProblems(host.problemSource ?? serviceProblems(this.service, (uri) => this.pathOfLocation(uri) ?? uri));
+        const shows = this.service.onShowDocument?.((params) => this.showDocument(params));
+        const messages = host.onServerMessage === undefined ? undefined : this.service.onServerMessage?.((message) => host.onServerMessage!(message));
         this.subscriptions = [shows, messages].flatMap((subscription) => (subscription === undefined ? [] : [subscription]));
+    }
+
+    /* Runs `dispose` when the project is disposed, after the editors' documents are closed. */
+    onDispose(dispose: () => void): void {
+        this.disposers.push(dispose);
+    }
+
+    /* The text of the editor that holds a document first, or undefined when no editor holds it. */
+    openTextOf(uri: string): string | undefined {
+        return this.holders.get(uri)?.editors[0]?.getText();
     }
 
     /* Open panels of other editors of the project follow a resize. */
@@ -206,7 +228,6 @@ export class ProjectLanguage {
         return this.service.willCreateFiles?.(filesOf(targets)) ?? Promise.resolve(null);
     }
 
-    /* Tells the servers that files were made, once they are. */
     didCreateFiles(targets: readonly FileOperationTarget[]): Promise<void> {
         return this.service.didCreateFiles?.(filesOf(targets)) ?? Promise.resolve();
     }
@@ -216,7 +237,6 @@ export class ProjectLanguage {
         return this.service.willDeleteFiles?.(filesOf(targets)) ?? Promise.resolve(null);
     }
 
-    /* Tells the servers that files were deleted, once they are. */
     didDeleteFiles(targets: readonly FileOperationTarget[]): Promise<void> {
         const files = filesOf(targets);
 
@@ -230,7 +250,7 @@ export class ProjectLanguage {
      * text file. A document of a scheme a server owns, such as a decompiled class, is read from that server.
      */
     async readText(uri: string): Promise<string | null> {
-        const open = this.holders.get(uri)?.editors[0]?.getText();
+        const open = this.openTextOf(uri);
 
         if (open !== undefined) {
             return open;
@@ -249,6 +269,10 @@ export class ProjectLanguage {
      * offers workspace diagnostics. A file the server reports as unchanged keeps what it had. False when no server offers them.
      */
     async pullWorkspaceProblems(uri: string, options: { readonly signal?: AbortSignal } = {}): Promise<boolean> {
+        if (this.host.pullWorkspaceProblems !== undefined) {
+            return this.host.pullWorkspaceProblems(uri, options);
+        }
+
         const { service } = this;
         if (service.workspaceDiagnostics === undefined || !service.supports('workspace/diagnostic', uri)) {
             return false;
@@ -321,6 +345,27 @@ export class ProjectLanguage {
         this.pendingCaret = null;
 
         return pending.position;
+    }
+
+    /* A lease on the project's one snippet transform queue, which runs one job at a time for every editor; null when the host brought no worker. The queue keeps the clock of the first editor that asked. */
+    acquireSnippetTransforms(timers: Timers = realTimers): SnippetTransformLease | null {
+        const factory = this.host.snippetTransformWorker;
+
+        if (factory === undefined) {
+            return null;
+        }
+
+        if (this.snippetQueue === null) {
+            const queue = new SnippetTransforms(factory, timers, () => {
+                if (this.snippetQueue === queue) {
+                    this.snippetQueue = null;
+                }
+            });
+
+            this.snippetQueue = queue;
+        }
+
+        return this.snippetQueue.acquire();
     }
 
     /* Whether the editor is the first to hold the document, the one whose changes stand for the document's. */
@@ -423,7 +468,7 @@ export class ProjectLanguage {
         for (const subscription of this.subscriptions) {
             subscription.dispose();
         }
-        disposeSnippetTransforms(this);
+        this.snippetQueue?.dispose();
 
         for (const [uri, holder] of this.holders) {
             if (holder.sync === null) {
@@ -440,5 +485,9 @@ export class ProjectLanguage {
 
         this.holders.clear();
         this.problems.dispose();
+
+        for (const dispose of this.disposers.splice(0).reverse()) {
+            dispose();
+        }
     }
 }

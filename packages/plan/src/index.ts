@@ -17,8 +17,9 @@ export {
     type PlanCreateOptions,
     createPlan
 } from './apply.ts';
-export { planToMarkdown, parsePlanMarkdown } from './markdown.ts';
+export { planToMarkdown, stepToMarkdown, parsePlanMarkdown } from './markdown.ts';
 export { type PlanVerdict, canApply, canDeletePlan } from './permissions.ts';
+export { PLAN_PERSON_STATES, PLAN_TEST_OUTCOMES, asksForNote } from './states.ts';
 export { PLAN_STATE_MARKERS, PLAN_LEGEND, type PlanTextOptions, progressText, renderPlanText } from './text.ts';
 export {
     type PlanRefusalCode,

@@ -1,7 +1,7 @@
 import type { ChatAttachmentUpload, ChatQueuedMessage } from '@adecore/agent-contracts';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { errorCode, errorMessage } from '../../../transport';
 import { useChatActions } from '../../actions';
@@ -13,11 +13,9 @@ interface TakeBackInput {
     chatId: string;
     draft: ComposerDraft;
     setNotice(notice: string): void;
-    /* The message is back in the draft. */
     onTaken(): void;
 }
 
-/* Takes a queued message out of the queue and back into the draft, to be edited before it goes. */
 export function useTakeBack({ chatId, draft: { latest, setDraft }, setNotice, onTaken }: TakeBackInput) {
     const { t } = useTranslation('agent-chat');
     const host = useChatHost();

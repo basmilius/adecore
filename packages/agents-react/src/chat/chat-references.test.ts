@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import { referablesOfChats, referenceSuggestions, referenceTokens, type Referable, type Referables } from './chat-references';
+import { referablesOfChats, type Referable, type Referables } from '../host/references';
+import { referenceSuggestions, referenceTokens } from './chat-references';
 
 const ITEMS: Referable[] = [
     { id: 'view-research', name: 'Research Q3', kind: 'chat', group: 'views' },

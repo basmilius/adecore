@@ -23,8 +23,8 @@ const money = useMoney();
 - `UsageTiles` are the tokens processed, uncached and cached input, cache writes, output, and what the cache saved.
 - `UsageBreakdown` cuts the period three ways behind tabs: by model, by folder and by day.
 
-`deriveUsage` returns a `DerivedUsage`: the chart's `slots`, the totals per CLI (`providers`), the CLIs with activity (`active`), and the period's totals, cost and cache savings. A slot is a `ChartSlot`, one bar with what each CLI put in it and the height of the stack. A total per CLI is a `ProviderTotal`, one row of the legend. `deriveDays(summary)` is the table by day, newest first. `enumerateSlots` and `niceScale` build the axis.
+`deriveUsage` returns the chart's `slots`, the totals per CLI (`providers`), the CLIs with activity (`active`), and the period's totals, cost and cache savings. A slot is one bar with what each CLI put in it and the height of the stack. A total per CLI is a `ProviderTotal`, one row of the legend. `deriveDays(summary)` is the table by day, newest first. `enumerateSlots` and `niceScale` build the axis.
 
 ## Money and numbers
 
-Every price is in dollars. `useMoney()` returns the formatter of the chosen currency at the summary's rate; `moneyFormat(currency, rate)` works outside React. `formatCount`, `formatTokens`, `formatClock`, `formatDate`, `slotLabel`, `slotAxisLabel` and `shortPath` write the rest. `PROVIDER_LABELS` and `PROVIDER_COLORS` name and color each CLI.
+Every price is in dollars. `useMoney()` returns the formatter of the chosen currency at the summary's rate; `moneyFormat(currency, rate)` works outside React. `formatCount`, `formatTokens`, `formatDate`, `slotLabel`, `slotAxisLabel` and `shortPath` write the rest. `PROVIDER_LABELS` and `PROVIDER_COLORS` name and color each CLI.

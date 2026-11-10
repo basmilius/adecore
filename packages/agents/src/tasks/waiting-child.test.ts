@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import type { ChatQuestionItem } from '@adecore/agent-contracts';
 import { flush, info, rig } from '../chat/chat-session.fixture.test.ts';
 import { ChatSession } from '../chat/chat-session.ts';
-import { claudeProvider } from '../providers/claude-provider.ts';
+import { claudeProvider } from '../testing/providers.ts';
 import type { DeliverWaitingEntry } from './task-work.ts';
 import { deliverWaitingHandler, waitingNoteId, waitingTexts } from './waiting-child.ts';
 
@@ -83,7 +83,6 @@ test('the note names the waiting child and opens no turn in its parent', async (
             createdAt: 1
         },
         provider: claudeProvider,
-        command: ['unused'],
         env: () => ({}),
         emit: () => undefined,
         persist: () => undefined,

@@ -7,7 +7,6 @@ type DocumentChange = NonNullable<WorkspaceEdit['documentChanges']>[number];
 /* The resource operations of the protocol; a host declares the ones it can carry out. */
 export type ResourceOperationKind = 'create' | 'rename' | 'delete';
 
-/* A text file as the host has it right now. */
 export interface WorkspaceEditText {
     readonly text: string;
     /* The version the language servers hold the document at; null when the host cannot tell. */
@@ -33,7 +32,6 @@ export interface WorkspaceEditSource {
     readonly operations: readonly ResourceOperationKind[];
 }
 
-/* Text edits to one file, with the text before and after. */
 export interface PlannedTextStep {
     readonly kind: 'edits';
     /* The URI the edit names, which is where the file stands once the earlier steps ran. */
@@ -61,7 +59,6 @@ export interface PlannedRenameStep {
     readonly kind: 'rename';
     readonly oldUri: string;
     readonly newUri: string;
-    /* The target is there and is replaced. */
     readonly overwrite: boolean;
 }
 

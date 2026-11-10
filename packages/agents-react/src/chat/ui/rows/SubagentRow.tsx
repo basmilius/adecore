@@ -1,17 +1,17 @@
-import type { ChatAssistantItem, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import { HOST_TASK_ORIGIN, taskIdOfRow, type ChatAssistantItem, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, ScrollArea, useNow } from '@adecore/ui';
 import { formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { Bot, ChevronDown } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type SubagentTask } from '../../../host';
-import { useHostHidesToolCalls, useHostTask } from '../../../host-hooks';
+import { type SubagentTask } from '../../../host/host';
+import { useHostHidesToolCalls, useHostTask } from '../../../host/host-hooks';
+import type { SubagentBranch } from '../../../host/timeline-row';
 import { useChatScope } from '../../../scope';
 import { useCurrentItem } from '../../../state/chats';
 import { isImageGeneration } from '../../logic/generated-image';
-import type { SubagentBranch } from '../../logic/timeline';
-import { entryTimeOf, statusWordOf, taskIdOf } from '../../subagent-list';
+import { entryTimeOf, statusWordOf } from '../../subagent-list';
 import { useSubagentSupport } from '../../subagent-support';
 import { canOpenSubagent, crumbOf, type SubagentStep } from '../../subagent-view';
 import { useOpenForFind } from '../find-reveal';
@@ -78,7 +78,6 @@ function StatusPill({ item, task }: { item: ChatSubagentItem; task: SubagentTask
     );
 }
 
-/* What the sub-agent did, live: its own tool calls and the text it wrote, as ordinary rows. */
 function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubagentItem; work: ChatItem[] }) {
     const { t } = useTranslation('agent-chat');
     const { id } = useChatScope();
@@ -159,7 +158,7 @@ export function SubagentRow({
 }) {
     const { t } = useTranslation('agent-chat');
     const { id } = useChatScope();
-    const taskId = taskIdOf(item);
+    const taskId = taskIdOfRow(item);
     const task = useHostTask(id, taskId);
     // A task paused on its child's limit is still a running row on the wire, but nothing is at work.
     const running = item.status === 'running' && statusWordOf(item, task) !== 'paused';
@@ -170,7 +169,7 @@ export function SubagentRow({
 
     return (
         <div data-find-item={item.id}>
-            {item.origin === 'ruimte' ? (
+            {item.origin === HOST_TASK_ORIGIN ? (
                 <TaskRow item={item} task={task} open={expanded} onPress={press} />
             ) : (
                 <ToggleLine

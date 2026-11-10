@@ -1,7 +1,7 @@
 import type { Engine } from './protocol/index.ts';
 
 /* One piece of SQL text. Whitespace is no token; every other character is part of one. */
-export interface SqlToken {
+interface SqlToken {
     readonly kind: 'word' | 'quoted' | 'comment' | 'punct' | 'semicolon';
     /* Offsets into the text, `end` exclusive. */
     readonly start: number;
@@ -9,7 +9,7 @@ export interface SqlToken {
 }
 
 /* A statement of a script, trimmed. `start` and `end` are offsets into the script, `end` exclusive and before the semicolon. */
-export interface SqlStatement {
+interface SqlStatement {
     readonly text: string;
     readonly start: number;
     readonly end: number;

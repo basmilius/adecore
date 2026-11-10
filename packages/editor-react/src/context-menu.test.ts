@@ -3,8 +3,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const at = (line: number, character: number) => ({ line, character });
@@ -44,11 +43,16 @@ describe('the context menu', () => {
         editor.openContextMenu({ position: at(1, 2), inSelection: false, x: 120, y: 80 });
 
         expect(editor.getCaret()).toEqual(at(1, 2));
-        expect(language.popups.getState().menu).toEqual({ x: 120, y: 80, refactors: [] });
+        expect(language.popups.slot('menu').get()).toEqual({ x: 120, y: 80, refactors: [] });
 
         await settle();
 
-        expect(language.popups.getState().menu?.refactors.map((entry) => entry.action.title)).toEqual(['Extract to constant']);
+        expect(
+            language.popups
+                .slot('menu')
+                .get()
+                ?.refactors.map((entry) => entry.action.title)
+        ).toEqual(['Extract to constant']);
         expect(asked()[0]).toMatchObject({ context: { only: ['refactor'] } });
     });
 
@@ -61,7 +65,7 @@ describe('the context menu', () => {
 
         language.contextMenu.close();
 
-        expect(language.popups.getState().menu).toBeNull();
+        expect(language.popups.slot('menu').get()).toBeNull();
     });
 
     test('drops a late answer for a menu that has closed', async () => {
@@ -70,7 +74,7 @@ describe('the context menu', () => {
         language.contextMenu.close();
         await settle();
 
-        expect(language.popups.getState().menu).toBeNull();
+        expect(language.popups.slot('menu').get()).toBeNull();
     });
 
     test('opens without refactors when no server offers code actions', async () => {
@@ -78,7 +82,7 @@ describe('the context menu', () => {
         editor.openContextMenu({ position: at(0, 1), inSelection: false, x: 5, y: 6 });
         await settle();
 
-        expect(language.popups.getState().menu).toEqual({ x: 5, y: 6, refactors: [] });
+        expect(language.popups.slot('menu').get()).toEqual({ x: 5, y: 6, refactors: [] });
         expect(asked()).toEqual([]);
     });
 
@@ -87,6 +91,6 @@ describe('the context menu', () => {
         editor.openContextMenu({ position: at(0, 1), inSelection: false, x: 1, y: 1 });
         language.dispose();
 
-        expect(language.popups.getState().menu).toBeNull();
+        expect(language.popups.slot('menu').get()).toBeNull();
     });
 });

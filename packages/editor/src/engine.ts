@@ -76,7 +76,6 @@ const DEFAULT_WIDGET_OWNER = 'default';
 /* The space a hint's padding keeps clear; a whole pixel count so the pill stays on the pixel grid. */
 const INLAY_GAP = 4;
 
-/* A value an app hands over as it is, or as a function the editor asks again each time it needs it. */
 function live<T>(source: T | (() => T)): () => T {
     return typeof source === 'function' ? (source as () => T) : () => source;
 }
@@ -186,7 +185,6 @@ class SmartEditor implements Editor {
         this.placeCursor(options);
     }
 
-    /* Where the editor opens: on a line and column, scrolled to a position, or with that line in view. */
     private placeCursor(options: EditorOptions): void {
         if (options.line !== undefined) {
             const line = this.clampLine(options.line);
@@ -321,7 +319,6 @@ class SmartEditor implements Editor {
         return this.model.getSelections().map((selection) => this.rangeOf(selection));
     }
 
-    /* A selection as a range, start before end. */
     private rangeOf({ anchor, head }: { anchor: number; head: number }): EditorRange {
         return { start: this.positionAt(Math.min(anchor, head)), end: this.positionAt(Math.max(anchor, head)) };
     }

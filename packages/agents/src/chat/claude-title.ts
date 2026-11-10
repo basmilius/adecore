@@ -1,7 +1,7 @@
 import { stat } from 'node:fs/promises';
 import { isRecord } from '@adecore/utils/record';
 import { cleanTitle, readLines } from '../title-file.ts';
-import { usageRoots } from '../usage/roots.ts';
+import { defaultClaudeProjectsDir } from '../usage/roots.ts';
 import { findClaudeSession } from './claude-transcript.ts';
 
 interface Progress {
@@ -25,7 +25,7 @@ export class ClaudeTitleReader {
     private readonly projectsDir: string;
     private readonly chunkBytes: number;
 
-    constructor(projectsDir: string = usageRoots().find((root) => root.provider === 'claude')?.path ?? '', chunkBytes = 4 * 1024 * 1024) {
+    constructor(projectsDir: string = defaultClaudeProjectsDir(), chunkBytes = 4 * 1024 * 1024) {
         this.projectsDir = projectsDir;
         this.chunkBytes = chunkBytes;
     }

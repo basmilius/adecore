@@ -11,7 +11,6 @@ import type { PickPreview, PickView } from './popups.ts';
 const CARD =
     'fixed top-0 left-0 z-(--z-popup) flex w-[420px] flex-col overflow-hidden rounded-lg border border-border bg-surface-raised text-text shadow-(--float-shadow)';
 
-/* The label with the part a query matched marked, whatever the case. */
 function MatchedLabel({ label, query }: { label: string; query: string | null }) {
     const start = query === null || query === '' ? -1 : label.toLowerCase().indexOf(query.toLowerCase());
 

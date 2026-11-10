@@ -3,12 +3,12 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ProviderAccountMap } from '@adecore/agent-contracts';
-import { claudeProvider, createClaudeProvider } from '../providers/claude-provider.ts';
-import { codexProvider } from '../providers/codex-provider.ts';
+import type { BackendHost, BackendLaunch, ChatBackend } from '../backends/backend.ts';
+import { createClaudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { testAccounts } from '../testing/accounts.ts';
+import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
-import type { BackendHost, BackendLaunch, ChatBackend } from './backend.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
 

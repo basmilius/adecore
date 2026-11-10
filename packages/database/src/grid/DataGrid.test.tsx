@@ -7,8 +7,8 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { DatabaseClient } from '../client/types.ts';
 import { DatabaseProvider } from '../DatabaseProvider.tsx';
+import type { NumberNotation } from '../number-notation.ts';
 import { DataGrid } from './DataGrid.tsx';
-import type { NumberNotation } from './display.ts';
 import type { GridColumn, GridRow } from './types.ts';
 
 const i18n = i18next.createInstance();
@@ -228,7 +228,7 @@ describe('DataGrid numbers in a Dutch region', () => {
 
     const renderIn = (numberNotation: NumberNotation): string =>
         renderToStaticMarkup(
-            <UIProvider i18n={i18n} formatSource={source}>
+            <UIProvider i18n={i18n}>
                 <DatabaseProvider client={client} numberNotation={numberNotation}>
                     <DataGrid label="Prices" columns={numbers} rows={values} />
                 </DatabaseProvider>
@@ -255,7 +255,7 @@ describe('DataGrid numbers in a Dutch region', () => {
         ];
 
         const markup = renderToStaticMarkup(
-            <UIProvider i18n={i18n} formatSource={source}>
+            <UIProvider i18n={i18n}>
                 <DatabaseProvider client={client} numberNotation="region">
                     <DataGrid label="Identifiers" columns={identifierColumns} rows={[{ key: 'row', number: 1, cells: identifierColumns.map(() => 1234567) }]} />
                 </DatabaseProvider>

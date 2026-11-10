@@ -29,6 +29,7 @@ Writes to one file still need an order of their own. Run them through a [`Serial
 The steps are exported for code that needs one of them alone:
 
 - `tempNameFor(target)` gives the temporary name. The write opens that file exclusively, so it never writes through a link someone put on that name.
+- `isTempName(name)` says whether a file name is one of those, so a sweep of the writes a crash left behind never spells the format itself.
 - `replaceSync(temp, target, rename)` is the rename on its own. `rename` defaults to `renameSync` and lets a test refuse it.
 - `syncDirectory(path)` flushes a folder. It does nothing on Windows, which cannot open a folder for it and journals the rename itself.
 

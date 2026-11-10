@@ -1,6 +1,8 @@
 import type { EditorPosition } from '@adecore/editor';
-import type { EditorLanguage } from './editor-language.ts';
+import { fileUriToPath, type Location } from '@adecore/lsp';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import { basenameOf } from './paths.ts';
 import type { PickGroup, PickPreview } from './popups.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -41,7 +43,7 @@ export interface PickSpec {
  * Escape, typing, a click elsewhere or a change of the text close it.
  */
 export class PickFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private spec: PickSpec | null = null;
 
@@ -59,12 +61,11 @@ export class PickFeature {
     private previewTimer: unknown;
     private controller: AbortController | null = null;
 
-    /* The rows that said why they cannot be taken, by id. */
     private refusals = new Map<string, string>();
 
     private attempting = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
@@ -109,6 +110,13 @@ export class PickFeature {
         this.schedulePreview();
     }
 
+    /* Lists the places of a result under a position to choose from; choosing one goes there. */
+    locations(places: readonly Location[], anchor: EditorPosition, title: string): void {
+        const rows = places.map((place, index) => ({ id: String(index), ...locationRow(place, this.language.project.pathOfLocation(place.uri)) }));
+
+        this.open({ anchor, title, groups: [{ title: null, rows }], accept: (id) => this.language.goTo(places[Number(id)]!) });
+    }
+
     close(): void {
         if (this.spec === null) {
             return;
@@ -118,7 +126,7 @@ export class PickFeature {
         this.timers.clear(this.previewTimer);
         this.controller?.abort();
         this.controller = null;
-        this.language.popups.setState({ pick: null });
+        this.language.popups.slot('pick').set(null);
     }
 
     /* Moves the active row; with `extend`, in a list of several choices, the rows between where the move began and the new row are chosen. */
@@ -139,7 +147,6 @@ export class PickFeature {
         this.settle(id);
     }
 
-    /* Makes `id` the only row the list is on. */
     private settle(id: string): void {
         const hadChosen = this.chosen.length > 0;
 
@@ -427,16 +434,23 @@ export class PickFeature {
         const refusal = this.refusals.get(this.active);
         const shown = refusal === undefined ? preview : { removed: [], added: [], note: null, refusal };
 
-        this.language.popups.setState({
-            pick: {
-                anchor: spec.anchor,
-                groups: this.visibleGroups(),
-                active: this.active,
-                preview: shown,
-                title: spec.title ?? null,
-                query: spec.filter === true ? this.query : null,
-                chosen: this.chosen
-            }
+        this.language.popups.slot('pick').set({
+            anchor: spec.anchor,
+            groups: this.visibleGroups(),
+            active: this.active,
+            preview: shown,
+            title: spec.title ?? null,
+            query: spec.filter === true ? this.query : null,
+            chosen: this.chosen
         });
     }
+}
+
+/* How a place reads in a list: the file and the line, with the folder it is in. */
+function locationRow(location: Location, stored: string | null): { label: string; detail: string; path: true } {
+    const path = stored ?? fileUriToPath(location.uri) ?? location.uri;
+    const name = basenameOf(path);
+    const folder = path.slice(0, Math.max(0, path.length - name.length)).replace(/\/$/, '');
+
+    return { label: `${name}:${location.range.start.line + 1}`, detail: folder, path: true };
 }

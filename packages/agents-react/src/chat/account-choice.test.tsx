@@ -69,7 +69,6 @@ describe('the hooks of an account choice', () => {
         useProvidersStore.getState().forget(SCOPE);
     });
 
-    // Renders both hooks on the scope's machine and hands back what they answered last.
     async function rendered(
         kind: string,
         account: string | undefined,

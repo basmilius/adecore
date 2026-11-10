@@ -7,7 +7,7 @@ import {
     type ChatWorkflow,
     type ChatWorkflowAgent
 } from '@adecore/agent-contracts';
-import { readableAssistantText } from '../chat/readable-text.ts';
+import { readableAssistantText } from '../readable-text.ts';
 
 /* The first line of a subagent's report that says something, which is all a line about it has room for. */
 function firstLine(text: string | null): string {

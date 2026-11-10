@@ -4,9 +4,9 @@ export const CONTEXT_OPTION = 'contextWindow';
 
 export type ContextPart = keyof ChatContextBreakdown;
 
-export const CONTEXT_PARTS: readonly ContextPart[] = ['toolOutput', 'filesRead', 'conversation', 'system'];
+const CONTEXT_PARTS: readonly ContextPart[] = ['toolOutput', 'filesRead', 'conversation', 'system'];
 
-export interface ContextSegment {
+interface ContextSegment {
     part: ContextPart;
     tokens: number;
     /* Of the window, so the segments together fill the bar as far as the context is full. */

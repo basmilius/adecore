@@ -84,7 +84,7 @@ function initialLayout(): SplitLayout {
 
     const columns = updateSplitLayout(chats, {
         type: 'split',
-        paneId: 'chats',
+        targetId: 'chats',
         side: 'right',
         newPane: { type: 'pane', id: 'files', views: ['editor'], active: 'editor' },
         splitId: 'columns'
@@ -92,7 +92,7 @@ function initialLayout(): SplitLayout {
 
     const rows = updateSplitLayout(columns, {
         type: 'split',
-        paneId: 'files',
+        targetId: 'files',
         side: 'bottom',
         newPane: { type: 'pane', id: 'shell', views: ['terminal'], active: 'terminal' },
         splitId: 'rows'

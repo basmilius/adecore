@@ -6,7 +6,7 @@ import { whitespaceOf } from './line-text.ts';
 import { hasJsx, isJsxAttributeValue } from './markup-regions.ts';
 import type { DocumentLine } from './rope.ts';
 import { indentationColumn } from './structure.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export interface EnterOptions {
     language: string;
@@ -561,7 +561,6 @@ class Enter {
     }
 }
 
-/* Where one Enter puts its break and caret, as a replacement of text around the caret. */
 export function planEnter(source: EditSource, from: number, to: number, options: EnterOptions): EnterPlan {
     return new Enter(source, options).plan(from, to);
 }

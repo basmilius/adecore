@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { CommandLook } from '../../host';
+import type { CommandLook } from '../../host/host';
 import { matchCommandLook } from './command-looks';
 import { EMBEDDED_CODE_LIMIT } from './embedded-code';
 

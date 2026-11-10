@@ -52,7 +52,7 @@ async function setup(hints: InlayHint[], options: Options = {}) {
     const pressHint = (element: Element, options: Record<string, unknown> = {}): void => pointer(mounted.page.window, element, 'pointerdown', 0, 0, options);
     const hover = (element: Element): void => pointer(mounted.page.window, element, 'pointermove', 0, 0, { buttons: 0 } as never);
     const calls = (method: string): LanguageCall[] => service.calls.filter((call) => call.method === method);
-    const card = () => language.popups.getState().hover;
+    const card = () => language.popups.slot('hover').get();
 
     return { ...mounted, service, language, timers, pills, part, pressHint, hover, calls, card, notices, project };
 }

@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 
 export type TransactionMode = 'auto' | 'manual';
 
-export interface TransactionControlsProps {
+interface TransactionControlsProps {
     mode: TransactionMode;
     onModeChange(mode: TransactionMode): void;
     /* Whether a transaction is open on the session, whichever mode began it. */

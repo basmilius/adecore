@@ -7,20 +7,18 @@ import { CODE_TEXT } from '../code-text.ts';
 import type { DraftProblem } from '../ddl/index.ts';
 import { scriptOf, type Plan } from './plan.ts';
 
-export interface SqlPreviewProps {
+interface SqlPreviewProps {
     plan: Plan;
     className?: string;
     ref?: Ref<HTMLDivElement>;
 }
 
-/* The sentence a problem of the draft is read as. */
 function ProblemText({ problem }: { problem: DraftProblem }) {
     const { t } = useTranslation('database');
 
     return <>{t(`ddl.problem.${problem.code}`, { subject: problem.subject })}</>;
 }
 
-/* What Apply would run, as a person reads it: monospace, read only, and copyable. */
 export function SqlPreview({ plan, className, ref }: SqlPreviewProps) {
     const { t } = useTranslation('database');
     const script = scriptOf(plan.statements);

@@ -2,7 +2,7 @@
 
 Every name each entry point exports, read from its source. Anything not listed is internal and may change in any release.
 
-Two entry points hold no code. `@adecore/editor-react/editor-react.css` holds the styles of the cards; see [Getting started](/editor-react/getting-started#styles). `@adecore/editor-react/locales/en.json` and `nl.json` hold the words of the `editor` namespace, which an app adds to its i18next instance; see [Words](/editor-react/getting-started#words).
+Two entry points hold no code. `@adecore/editor-react/editor-react.css` holds the styles of the cards; see [Getting started](/editor-react/getting-started#styles). `@adecore/editor-react/locales/en` and `nl` hold the words of the `editor` namespace, which an app adds to its i18next instance; see [Words](/editor-react/getting-started#words).
 
 ## `@adecore/editor-react`
 

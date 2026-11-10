@@ -1,4 +1,4 @@
-import type { ChatProcess, ChatSpawnOptions, SpawnChatProcess } from '../chat/chat-process.ts';
+import type { ChatProcess, ChatSpawnOptions, SpawnChatProcess } from '../chat-process.ts';
 
 /* What a fake CLI has instead of `process`, so the same fake runs in a test and as a child process. */
 export interface FakeIo {
@@ -20,7 +20,7 @@ export interface FakeProgram {
 
 export type FakeCli = (io: FakeIo) => FakeProgram;
 
-export interface StartedFake {
+interface StartedFake {
     readonly argv: string[];
     // Runs what the fake put off with `later`, in the order it was put off.
     runLater(): void;

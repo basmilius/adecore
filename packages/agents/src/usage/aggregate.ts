@@ -13,7 +13,7 @@ import { cacheSavingsOf, costOf, type ModelPrice, type PriceBook, type PriceLook
 import { ProjectResolver, type KnownProject } from './projects.ts';
 import type { UsageRecord } from './record.ts';
 
-export interface Aggregation {
+interface Aggregation {
     buckets: UsageBucket[];
     models: UsageModel[];
     projects: UsageProject[];

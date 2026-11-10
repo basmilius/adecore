@@ -1,11 +1,8 @@
 // Public API: exports.test.ts snapshots this list, so a name added or dropped here is an API change.
 export {
-    KNOWN_AGENT_KINDS,
-    type KnownAgentKind,
     AGENT_KIND_MAX_LENGTH,
     AgentKindSchema,
     type AgentKind,
-    isKnownAgentKind,
     AgentStatusSchema,
     type AgentStatus,
     SUGGESTED_TITLE_LIMIT,
@@ -117,6 +114,8 @@ export {
     ChatSubagentUsageSchema,
     type ChatSubagentUsage,
     HOST_TASK_ORIGIN,
+    taskRowId,
+    taskIdOfRow,
     ChatSubagentItemSchema,
     ChatApprovalDecisionSchema,
     type ChatApprovalDecision,
@@ -267,7 +266,9 @@ export {
     GeneratedImageInputSchema,
     type GeneratedImageInput,
     generatedImageAttachment,
-    holdsConversation
+    holdsConversation,
+    chatActivity,
+    type ChatActivity
 } from './chat.ts';
 export {
     ErrorSchema,
@@ -322,6 +323,8 @@ export {
     type ProviderPickerGroups,
     providerGroupOf,
     pickerGroupsOf,
+    inPickerOrder,
+    separatesGroups,
     ProviderListResultSchema,
     type ProviderListResult,
     resumeCommandFor
@@ -369,6 +372,7 @@ export {
     type TaskChangedEvent
 } from './task.ts';
 export { clipText, TOOL_OUTPUT_TAIL, appendToolOutput } from './text.ts';
+export { type ToolFileEdit, type ToolFileEditPiece, toolFileEdit } from './tool-edits.ts';
 export {
     UsageProviderSchema,
     type UsageProvider,
@@ -417,6 +421,7 @@ export {
 export {
     VISUAL_LIMITS,
     VISUAL_MEASURE_WIDTHS,
+    REPLY_COLUMN_WIDTH,
     VisualHeightSchema,
     type VisualHeight,
     VisualLayoutSchema,

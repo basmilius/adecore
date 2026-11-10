@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { ChatAssistantItem, ChatUserItem } from '@adecore/agent-contracts';
-import type { Referables } from '../chat-references';
+import type { Referables } from '../../host/references';
 import { rowClipboardChips } from './chip-clipboard';
 
 const items: Referables['items'] = [{ id: 'view-sketch', name: 'Sketch', kind: 'drawing', group: 'views' }];

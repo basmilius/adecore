@@ -131,16 +131,17 @@ Node ids are unique within a layout, and a view id sits in one pane at most. To 
 | `focus` | `paneId`: focuses the pane and keeps its active view. |
 | `maximize` | `paneId`, or `null` to restore. Every view stays mounted. |
 | `insert` | `paneId`, `viewId`, optional `index`: adds a new view, or moves one that is open elsewhere. |
-| `split` | `paneId`, `side`, `newPane`, `splitId`: adds a pane beside the target, at any depth. |
-| `move` | `sourceId`, `targetId`, optional `viewId`, `side`, `index`, `newPaneId`, `splitId`: moves one tab, or the whole pane without `viewId`. A drop on an edge needs a new `splitId`, and a single tab dropped on an edge also a new `newPaneId`. |
+| `replace` | `viewId`, `replacement`: puts a view that is not open yet in the place of an open one, which leaves the layout. |
+| `split` | `targetId`, `side`, `newPane`, `splitId`: adds a pane beside the target, a pane or a whole branch, at any depth. |
+| `move` | `sourceId`, `targetId`, optional `viewId`, `side`, `index`, `newPaneId`, `splitId`: moves one tab, or the whole pane without `viewId`. A drop on an edge needs a new `splitId`, and a single tab dropped on an edge also a new `newPaneId`. With a `side` the target may be a branch, so a pane lands beside a whole stack of panes. |
 | `swap` | `sourceId`, `targetId`, optional `viewId`: trades two whole panes, or one tab with the target's active tab. A tab that is alone in its pane takes the pane with it. |
 | `close` | `viewId`: closes the view, and its pane when that is left empty, unless it is the last pane. |
-| `closePane` | `paneId`: closes the whole group. The last pane is left empty instead. |
+| `closePane` | `paneId`: closes the whole group. The last pane is left empty instead. A focused pane that closes hands the focus to the sibling after it, else the one before it. |
 | `resize` | `splitId`, `sizes`: sets new positive shares. |
 | `equalize` | `splitId`, optional `index`: balances the two children beside a divider, or every child without `index`. |
 | `equalizeAxis` | `axis`, optional `length` and `gap`: spreads the tracks of the whole layout evenly in one direction, nested splits included. |
 
-`SplitSide` is `'left' | 'right' | 'top' | 'bottom'`. A `move` without a side adds the tab to the target's group. No command drops a view. The `index` of an insertion is a gap in the tab order before the move. A whole pane moved to an edge keeps its id. Redundant branches collapse, and two splits along the same axis share one branch. The `splitId` you pass is used only when a new branch is needed.
+`SplitSide` is `'left' | 'right' | 'top' | 'bottom'`. A `move` without a side adds the tab to the target's group. Only `close`, `closePane` and `replace` take a view out of the layout. The `index` of an insertion is a gap in the tab order before the move. A whole pane moved to an edge keeps its id. Redundant branches collapse, and two splits along the same axis share one branch. The `splitId` you pass is used only when a new branch is needed.
 
 `equalizeAxis` counts tracks across nested splits: a panel above three columns spans three tracks. `SplitView` passes `length` and `gap` in pixels; without them the command spreads shares. Pane minimums still hold.
 

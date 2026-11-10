@@ -67,7 +67,7 @@ A chat's `PromptSubject` is `{ kind: 'chat', nodeId, item }`, where `nodeId` is 
 
 ## Keys
 
-Arrows, Home and End move through the choices and Space picks; Enter on a single choice picks and answers. Mod+Enter is the card's main action, and Mod+Shift+Left and Right page through a stack (`PROMPT_SHORTCUTS`). A request that arrives while a person types puts the focus on its heading, not a button. `focusPromptStart` and `useFocusAfterAnswer` do the same for a stack of your own. The hook returns a `FocusAfterAnswer` with `hold()`, called before the front card changes, and `release()`, for a card that stays after all. `pageKey(event, apple, typing)` reads a `PromptKeyEvent` and returns `-1` or `1` for a key that pages through the stack, or `null`.
+Arrows, Home and End move through the choices and Space picks; Enter on a single choice picks and answers. Mod+Enter is the card's main action, and Mod+Shift+Left and Right page through a stack (`PROMPT_SHORTCUTS`). A request that arrives while a person types puts the focus on its heading, not a button. `focusPromptStart` and `useFocusAfterAnswer` do the same for a stack of your own. The hook returns `hold()`, called before the front card changes, and `release()`, for a card that stays after all. `pageKey(event, apple, typing)` reads a keyboard event and returns `-1` or `1` for a key that pages through the stack, or `null`.
 
 ## Prompts of your own
 
@@ -92,9 +92,9 @@ A `HostPrompt` is `{ id, createdAt, blocking, asks, data }`: a stable id, whethe
 The types of those parts:
 
 - `PromptViewProps` is what a card gets to draw, the chat's and the app's alike: the subject, its draft, `onDraft`, `onAction` and the rest of the props in the example above.
-- `PromptAction` is what a card asks for: `approve` with a decision and an optional message, `answer` with the answers, `dismiss`, or `choose` for a terminal's permission request. `PromptAnswer` is the draft of one question: the picked choices, the written text and whether it is a custom answer.
-- `PromptSession` is what `usePromptSession` returns. `PendingPrompt` is a waiting approval or question item, and `ChatPromptClients` the requests a chat's own prompts are answered with: `approve`, `answer` and `dismiss`.
-- `PromptCardKind` is the mark of a `PromptCard`: `approval`, `question` or `waiting`.
-- `approvalButtons` returns an `ApprovalButtonSpec` per button of a chat's permission request, and `ApprovalActions` draws `ApprovalButton`s.
+- `PromptAction` is what a card asks for: `approve` with a decision and an optional message, `answer` with the answers, `dismiss`, or `choose` for a terminal's permission request. The draft of one question holds the picked choices, the written text and whether it is a custom answer.
+- `usePromptSession` returns the session of a chat's prompts. `PendingPrompt` is a waiting approval or question item, and `ChatPromptClients` the requests a chat's own prompts are answered with: `approve`, `answer` and `dismiss`.
+- A `PromptCard` is marked `approval`, `question` or `waiting`.
+- `approvalButtons` returns an `ApprovalButtonSpec` per button of a chat's permission request, and `ApprovalActions` draws them.
 
 `PROMPT_SAMPLES` from `@adecore/agents-react/testing` holds prompts in every state, labeled, for a preview or a test. They never enter the chat store or the transport.

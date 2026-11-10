@@ -8,7 +8,7 @@ export interface ContentPoint {
 }
 
 /* The cell of a monospaced grid an x falls in, which stands in for the visual column since a tab is a whole number of cells. */
-export function cellAt(layout: EditorLayout, x: number): number {
+function cellAt(layout: EditorLayout, x: number): number {
     return Math.max(0, Math.round((x - TEXT_PADDING) / layout.metrics.charWidth));
 }
 

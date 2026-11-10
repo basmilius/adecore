@@ -1,14 +1,12 @@
 import type { EditSource } from './edit-source.ts';
 import { lineContinues } from './enter.ts';
+import type { FoldingRange } from './fold-types.ts';
 import { isBlank, whitespaceOf } from './line-text.ts';
-import type { FoldingRange } from './structure.ts';
 
-/* The indentation of a line text in columns, tabs taken to their stops. */
 export function indentWidth(text: string, tabSize: number): number {
     return visualWidth(whitespaceOf(text), tabSize);
 }
 
-/* The width in columns of a text that starts a line, tabs taken to their stops. */
 export function visualWidth(text: string, tabSize: number): number {
     let width = 0;
 
@@ -38,12 +36,11 @@ export function enclosingBraces(source: EditSource, offset: number): number[] {
     return braces;
 }
 
-/* The innermost `{` around the offset, or null. */
 export function enclosingBrace(source: EditSource, offset: number): number | null {
     return enclosingBraces(source, offset)[0] ?? null;
 }
 
-export interface IndentGuide {
+interface IndentGuide {
     /* The line the guide starts on: the header, at the guide's own indent. */
     startLine: number;
     /* The first later line at or above the guide's indent, or the line count when the text ends first. */
@@ -179,7 +176,7 @@ export function declarationBody(source: EditSource, offset: number): 'interface'
     return /\b(?:class|enum|trait|impl|struct|object|record|namespace)\b/.test(header) ? 'other' : null;
 }
 
-export interface StatementRange {
+interface StatementRange {
     /* The first line, counting the doc comment and the attributes above the code. */
     first: number;
     /* The first line of the code itself. */
@@ -187,7 +184,6 @@ export interface StatementRange {
     last: number;
 }
 
-/* The doc comment a line is part of, as the lines it spans. */
 function docCommentAt(source: EditSource, line: number): { first: number; last: number } | null {
     let first = line;
 

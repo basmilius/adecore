@@ -20,7 +20,7 @@ const digit = /\p{Nd}/u;
 const letterOrDigit = /[\p{L}\p{Nd}]/u;
 
 /* A string, or anything that reads like one, such as the rope. */
-export type WordText = string | { readonly length: number; charAt(offset: number): string };
+type WordText = string | { readonly length: number; charAt(offset: number): string };
 
 function characterAt(text: WordText, offset: number): string {
     return offset >= 0 && offset < text.length ? text.charAt(offset) : '\0';

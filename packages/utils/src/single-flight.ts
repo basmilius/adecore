@@ -5,13 +5,25 @@
 export class SingleFlight<T> {
     private readonly flights = new Map<string, Promise<T>>();
 
-    /* The run in flight for `key`, if any. */
     get(key: string): Promise<T> | undefined {
         return this.flights.get(key);
     }
 
     has(key: string): boolean {
         return this.flights.has(key);
+    }
+
+    keys(): IterableIterator<string> {
+        return this.flights.keys();
+    }
+
+    /* Lets the next caller of `key` start a run of its own. The run in flight carries on for the callers that hold it. */
+    forget(key: string): void {
+        this.flights.delete(key);
+    }
+
+    clear(): void {
+        this.flights.clear();
     }
 
     run(key: string, work: () => Promise<T>): Promise<T> {

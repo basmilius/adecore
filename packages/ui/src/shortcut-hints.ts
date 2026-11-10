@@ -3,7 +3,7 @@ import type { Shortcut } from './shortcut.ts';
 /* How long the modifier has to be held on its own before every shortcut shows. */
 export const HINT_DELAY_MS = 500;
 
-export interface HintTarget {
+interface HintTarget {
     id: number;
     shortcut: Shortcut;
 }
@@ -81,14 +81,14 @@ export class ModifierHold {
     }
 }
 
-export interface HintRect {
+interface HintRect {
     left: number;
     right: number;
     top: number;
     bottom: number;
 }
 
-export interface HintPlacement {
+interface HintPlacement {
     left?: number;
     right?: number;
     top: number;

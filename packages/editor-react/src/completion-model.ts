@@ -1,12 +1,19 @@
 import type { EditorContentChange, EditorPosition, EditorRange } from '@adecore/editor';
 import { applyCompletionDefaults, type CompletionItem, type CompletionResult, type MarkupContent } from '@adecore/lsp';
 import { labelCollator } from '@adecore/ui/format';
-import { comparePositions, sameRange } from './diagnostics-model.ts';
 import { escapeMarkdown, isEmptyHover, splitSignatures, type HoverText } from './hover-content.ts';
-import type { CompletionDocs } from './popups.ts';
+import { comparePositions, sameRange } from './positions.ts';
 import { indentSnippet } from './snippet-indent.ts';
 import type { SnippetTransformJob } from './snippet-transform-protocol.ts';
 import { compileSnippet, parseSnippet, tabOrder, type SnippetField, type SnippetStop, type SnippetTemplate, type SnippetVariableResolver } from './snippet.ts';
+
+/* What is said about the active suggestion beside the list. */
+export interface CompletionDocs {
+    /* Where it comes from, such as `use Raxos\\Orm\\Property` or `Auto import from './lib.ts'`; one line, empty when the server says nothing. */
+    readonly source: string;
+    /* The signature, prose and tags the same way a hover has them. */
+    readonly text: HoverText;
+}
 
 const IDENTIFIER_CHARACTER = /[\p{L}\p{N}\p{M}_$]/u;
 
@@ -69,7 +76,6 @@ interface LabelShape {
     readonly lower: string;
     /* Where each word of the label starts: after an underscore, a dollar sign, a space or a hyphen, and at each capital. */
     readonly offsets: readonly number[];
-    /* The lowercased first letter of each word. */
     readonly initials: string;
 }
 
@@ -219,7 +225,6 @@ export function prefixFor(item: CompletionItem, caret: EditorPosition, lineBefor
 export interface Ranked {
     readonly item: CompletionItem;
     readonly score: number;
-    /* What was typed of the item, which its matched characters are found against. */
     readonly prefix: string;
 }
 
@@ -304,9 +309,9 @@ export function snippetToText(snippet: string): string {
     return parseSnippet(snippet).text;
 }
 
-export const METHOD_KIND = 2;
-export const FUNCTION_KIND = 3;
-export const CONSTRUCTOR_KIND = 4;
+const METHOD_KIND = 2;
+const FUNCTION_KIND = 3;
+const CONSTRUCTOR_KIND = 4;
 export const CLASS_KIND = 7;
 export const SNIPPET_FORMAT = 2;
 

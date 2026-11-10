@@ -1,6 +1,7 @@
 import type { ChatBookmark, ChatItem } from '@adecore/agent-contracts';
+import { type TimelineRow } from '../../host/timeline-row';
 import { DEFAULT_READING_WIDTH, readingMeasure } from '../reading-width';
-import { agentTurnLabel, type TimelineRow } from './timeline';
+import { agentTurnLabel } from './timeline';
 
 // The strip of ticks at the left edge of a chat view, as numbers; the component only draws what comes out of here.
 
@@ -117,7 +118,7 @@ export function ticksOf(
 }
 
 /* One drawn tick: a message, or a run of messages merged once the height has fewer pixels than they need. */
-export interface TickSlot {
+interface TickSlot {
     first: number;
     last: number;
     kind: TickKind;
@@ -125,11 +126,10 @@ export interface TickSlot {
     marked: boolean;
     /* Whether a find hit falls under it, which puts a mark of the find's own color beside it. */
     found: boolean;
-    /* The top of the tick inside the strip. */
     y: number;
 }
 
-export interface ScrubberLayout {
+interface ScrubberLayout {
     top: number;
     pitch: number;
     count: number;
@@ -186,7 +186,6 @@ export function tickOfRow(ticks: readonly ScrubberTick[], rowIndex: number): num
     );
 }
 
-/* Per tick, whether any of the rows has a find hit in its stretch. */
 export function ticksWithHits(ticks: readonly ScrubberTick[], hitRows: readonly number[]): boolean[] {
     const found = ticks.map(() => false);
 
@@ -276,12 +275,11 @@ function lastIndexAtOrBelow(length: number, valueAt: (index: number) => number, 
 
 type MessageStarts = Pick<readonly number[], 'length' | 'at'>;
 
-/* The last index whose start lies at or above a line, or -1. */
 function lastAtOrAbove(starts: MessageStarts, line: number): number {
     return lastIndexAtOrBelow(starts.length, (index) => starts.at(index)!, line);
 }
 
-export interface ReadingPosition {
+interface ReadingPosition {
     /* Where each message's row starts in the thread, in the virtualizer's measurements. */
     starts: MessageStarts;
     scrollTop: number;
@@ -289,7 +287,7 @@ export interface ReadingPosition {
     visibleHeight: number;
 }
 
-export interface MessageRange {
+interface MessageRange {
     first: number;
     last: number;
 }
@@ -316,7 +314,6 @@ export function messagesInView({ starts, scrollTop, visibleHeight }: ReadingPosi
     return { first, last: Math.max(first, last) };
 }
 
-/* Whether a drawn tick covers any of the messages on screen. */
 export function slotInView(slot: TickSlot, range: MessageRange | null): boolean {
     return range !== null && slot.last >= range.first && slot.first <= range.last;
 }

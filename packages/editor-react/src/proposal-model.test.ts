@@ -1,6 +1,6 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
-import { endOfInsertion } from './diagnostics-model.ts';
+import { endOfInsertion } from './positions.ts';
 import {
     diffSegments,
     emphasisOf,

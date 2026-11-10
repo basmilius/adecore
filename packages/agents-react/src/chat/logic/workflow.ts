@@ -121,7 +121,7 @@ export function workflowCounts(phases: WorkflowPhaseView[]): WorkflowCounts {
 /* `running` while an agent of it is at work, `waiting` before any started, and once none can move again `failed` when one did not finish. */
 export type WorkflowPhaseStateKind = 'running' | 'waiting' | 'done' | 'failed';
 
-export interface WorkflowPhaseState {
+interface WorkflowPhaseState {
     state: WorkflowPhaseStateKind;
     /* The agents of the phase that are no longer at work or waiting, of all it started so far. */
     settled: number;
@@ -146,7 +146,7 @@ export function workflowPhaseState(phase: WorkflowPhaseView): WorkflowPhaseState
     return { state: phase.agents.every((view) => view.state === 'done') ? 'done' : 'failed', settled, total };
 }
 
-export interface WorkflowPhaseTime {
+interface WorkflowPhaseTime {
     startedAt: number;
     /* Null while an agent of it is still at work, so the time counts on from `startedAt`. */
     endedAt: number | null;
@@ -200,7 +200,6 @@ export function liveWorkflowPhase(phases: WorkflowPhaseView[], workflowRunning: 
 const META_START = /export\s+const\s+meta\s*=\s*\{/;
 const DESCRIPTION = /\bdescription\s*:\s*(['"`])((?:\\.|(?!\1)[^\\])*)\1/;
 
-/* The literal from its opening brace to the one that closes it, skipping braces inside strings. */
 function metaLiteral(script: string): string | null {
     const start = META_START.exec(script);
 

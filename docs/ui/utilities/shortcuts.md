@@ -24,7 +24,7 @@ The key is a letter, a digit, one of ``, . / ; ' ` \ [ ]``, `+`, `-`, `=`, a nam
 
 `isModHeld(event, apple)` says whether the platform's modifier is down during a pointer gesture, such as a Cmd-click.
 
-`isApplePlatform()` says whether the keyboard is a Mac's, for both matching and printing.
+`isApplePlatform()` says whether the keyboard is a Mac's, for both matching and printing. It reads the page, unless the app handed over its own answer with `setApplePlatform(source)`. A `source` is an `ApplePlatformSource`, a function that answers `true` or `false`, or `undefined` to leave the answer to the page. A desktop shell does this, since it knows its platform where a page can only guess. `setApplePlatform` returns the source it replaced, and `null` takes the app's answer away.
 
 ## Printing
 

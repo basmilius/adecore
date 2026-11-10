@@ -1,12 +1,19 @@
-import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, ModelSelection } from '@adecore/agent-contracts';
+import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, ModelSelection, ProviderInfo } from '@adecore/agent-contracts';
 import i18next from 'i18next';
-import type { TimelineRow } from './timeline';
+import type { TimelineRow } from '../../host/timeline-row';
 
-/* The providers whose chat a machine can fork, and go on with in a fork, are the ones with a conversation the CLI keeps. */
-export const FORKABLE_PROVIDERS: ReadonlySet<string> = new Set(['claude', 'codex']);
+interface HostProviders {
+    readonly providers: readonly ProviderInfo[];
+    readonly loaded: boolean;
+}
+
+/* Whether a CLI keeps a conversation the host can fork, and go on with in a fork: its `fork` capability. */
+export function canForkWith(provider: Pick<ProviderInfo, 'capabilities'>): boolean {
+    return provider.capabilities.fork === true;
+}
 
 /* Where a fork goes on after, as the dialog words it. */
-export interface ForkPoint {
+interface ForkPoint {
     turnId: string;
     number: number;
     total: number;
@@ -27,14 +34,21 @@ function turnsOf(items: Record<string, ChatItem>, order: readonly string[]): Cha
 
 /*
  * Why a chat cannot be forked after this turn right now, or null when it can. A turn still running,
- * or any turn in the chat, is a transcript that grows while it would be copied.
+ * or any turn in the chat, is a transcript that grows while it would be copied. Until the host named its
+ * CLIs, no CLI is known to fork.
  */
-export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined): string | null {
+export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined, host: HostProviders): string | null {
     if (info === null || turn?.kind !== 'turn') {
         return i18next.t('agent-chat:fork.refusal.notInConversation');
     }
 
-    if (!FORKABLE_PROVIDERS.has(info.provider)) {
+    if (!host.loaded) {
+        return i18next.t('agent-chat:fork.refusal.agentsLoading');
+    }
+
+    const provider = host.providers.find((entry) => entry.kind === info.provider);
+
+    if (provider === undefined || !canForkWith(provider)) {
         return i18next.t('agent-chat:fork.refusal.cliCannotFork');
     }
 
@@ -49,7 +63,6 @@ export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined): 
     return null;
 }
 
-/* Why a fork cannot write a summary for its original right now, or null when it can. */
 export function summaryRefusal(state: { busy: boolean; originalPresent: boolean }): string | null {
     if (!state.originalPresent) {
         return i18next.t('agent-chat:fork.refusal.originalGone');
@@ -62,7 +75,6 @@ export function summaryRefusal(state: { busy: boolean; originalPresent: boolean 
     return null;
 }
 
-/* The forks this client knows of that went on after this turn of this chat, in the order it holds them. */
 export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: string): string[] {
     const ids: string[] = [];
 
@@ -75,7 +87,6 @@ export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: 
     return ids;
 }
 
-/* The turns of this chat that at least one fork this client knows of went on after. */
 export function forkedTurnIds(infos: Iterable<ChatInfo>, chatId: string): Set<string> {
     const turns = new Set<string>();
 
@@ -170,7 +181,7 @@ export function forkShapes(origin: ForkShape): ForkShape[] {
 }
 
 /* A worktree the fork works in, on this branch, with or without the files as they were after the turn. */
-export interface ForkWorktreeChoice {
+interface ForkWorktreeChoice {
     branch: string;
     filesAfterTurn: boolean;
 }
@@ -208,7 +219,6 @@ export function forkPayload(input: {
     };
 }
 
-/* Why a branch cannot be the fork's, or null when it can. */
 export function branchRefusal(branch: string, taken: readonly string[]): string | null {
     const name = branch.trim();
 

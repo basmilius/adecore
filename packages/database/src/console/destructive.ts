@@ -11,7 +11,6 @@ export interface DestructiveStatement {
 
 interface Word {
     readonly word: string;
-    /* How many parentheses are open at the word. */
     readonly depth: number;
 }
 

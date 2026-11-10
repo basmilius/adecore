@@ -118,7 +118,6 @@ function setNote(step: PlanStep, text: string): void {
     }
 }
 
-/* The array a new or moved item goes into and where, or a refusal. */
 function placeFor(
     plan: Plan,
     type: PlanItem['type'],
@@ -438,7 +437,7 @@ export const PlanDraftSectionSchema = z.strictObject({
 });
 export type PlanDraftSection = z.infer<typeof PlanDraftSectionSchema>;
 
-export const PlanDraftItemSchema = z.discriminatedUnion('type', [PlanDraftSectionSchema, PlanDraftTextSchema, PlanDraftStepSchema]);
+const PlanDraftItemSchema = z.discriminatedUnion('type', [PlanDraftSectionSchema, PlanDraftTextSchema, PlanDraftStepSchema]);
 export type PlanDraftItem = z.infer<typeof PlanDraftItemSchema>;
 
 export const PlanDraftMetaSchema = z.strictObject({
@@ -448,9 +447,8 @@ export const PlanDraftMetaSchema = z.strictObject({
     status: PlanMetaSchema.shape.status,
     checks: PlanChecksSchema.optional()
 });
-export type PlanDraftMeta = z.infer<typeof PlanDraftMetaSchema>;
 
-export const PlanDraftSchema = z.strictObject({
+const PlanDraftSchema = z.strictObject({
     meta: PlanDraftMetaSchema.optional(),
     items: z.array(PlanDraftItemSchema)
 });

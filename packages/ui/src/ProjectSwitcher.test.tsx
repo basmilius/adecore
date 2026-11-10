@@ -4,7 +4,8 @@ import type { ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import * as Menu from './menu/index.parts.ts';
 import { ProjectSwitcherRow } from './project-switcher-row.tsx';
-import { ProjectSwitcher, ProjectSwitcherGroups, type ProjectSwitcherItem, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';
+import type { ProjectSwitcherItem } from './project-switcher-row.tsx';
+import { ProjectSwitcher, ProjectSwitcherGroups, type ProjectSwitcherProps } from './ProjectSwitcher.tsx';
 import { UIProvider } from './UIProvider.tsx';
 
 const i18n = i18next.createInstance();

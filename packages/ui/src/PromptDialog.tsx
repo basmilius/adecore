@@ -57,7 +57,6 @@ export interface PromptDialogProps {
     /* Only ever told `false`: the dialog never closes itself. */
     onOpenChange(open: boolean): void;
 
-    /* On the popup. */
     className?: string;
 
     ref?: Ref<HTMLDivElement>;

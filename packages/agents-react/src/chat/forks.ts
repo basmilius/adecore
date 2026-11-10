@@ -3,7 +3,6 @@ import { useChatScope } from '../scope';
 import { useChats, type ChatStatuses } from '../state/chats';
 import { forkIdsAfter, forkedTurnIds } from './logic/fork';
 
-/* The chats this client holds of one host, which is where the forks it knows of are. */
 function* forkInfosOn(statuses: ChatStatuses, owns: (key: string) => boolean): Generator<ChatInfo> {
     for (const [key, state] of Object.entries(statuses)) {
         if (state.info.forkOf !== undefined && owns(key)) {
@@ -47,7 +46,6 @@ export function useForkedTurns(chatId: string): ReadonlySet<string> {
     return new Set(splitIds(joined));
 }
 
-/* The forks that went on after this turn of this chat. */
 export function useForkIdsAfter(chatId: string, turnId: string): string[] {
     const { owns } = useChatScope();
     const select = joinedForks(owns, (infos) => forkIdsAfter(infos, chatId, turnId));

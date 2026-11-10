@@ -1,7 +1,7 @@
 import type { VueRegion } from './languages.ts';
 import type { DocumentLine } from './rope.ts';
 import type { Selection, TextEdit } from './types.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 /* What the editing features that go by the lines around a caret read from the document. */
 export interface EditSource {
@@ -10,7 +10,6 @@ export interface EditSource {
     lineAt(offset: number): number;
     lineCount: number;
     line(index: number): DocumentLine;
-    /* The line break of a line. */
     newline(index: number): string;
     context(offset: number): TypingContext;
     region(line: number): VueRegion | null;

@@ -1,6 +1,6 @@
 # Utils
 
-`@adecore/utils` holds small helpers that several packages and apps wrote for themselves: waiting and deadlines, reading thrown values, atomic file writes and path checks. The package has no dependencies.
+`@adecore/utils` holds small helpers that several packages and apps wrote for themselves: waiting and deadlines, reading thrown values, points and boxes, atomic file writes and path checks. The package has no dependencies.
 
 ```sh
 bun add @adecore/utils
@@ -14,6 +14,7 @@ Every entry point is a subpath, and there is no root import. A page never loads 
 | --- | --- | --- |
 | [`@adecore/utils/async`](/utils/async) | a page or Node | waits, deadlines, timers and the order of async work |
 | [`@adecore/utils/errors`](/utils/errors) | a page or Node | reading a thrown value |
+| [`@adecore/utils/geometry`](/utils/geometry) | a page or Node | points and boxes: union, center, overlap, rotation |
 | [`@adecore/utils/record`](/utils/record) | a page or Node | the guard for an object that is not an array |
 | [`@adecore/utils/text`](/utils/text) | a page or Node | the halves of a UTF-16 surrogate pair |
 | [`@adecore/utils/fs`](/utils/fs) | Node or Bun | atomic writes and small file checks |

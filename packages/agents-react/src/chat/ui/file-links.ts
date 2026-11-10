@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { useChatHost, type FileRef } from '../../host';
+import { useChatHost, type FileRef } from '../../host/host';
 import { ChatScopeContext } from '../../scope';
 
 /*
@@ -26,7 +26,6 @@ export function useFileLinkTarget(text: string): FileRef | null {
     return fileLinks?.target(text, cwd, scopeId) ?? null;
 }
 
-/* Follows a reference the way the app opens a file or a folder. */
 export function useOpenFileLink(): (cwd: string | null, ref: FileRef, scopeId?: string | null) => void {
     const { fileLinks } = useChatHost();
 

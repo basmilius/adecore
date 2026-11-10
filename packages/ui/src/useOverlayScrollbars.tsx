@@ -4,7 +4,6 @@ import { overflows, pageToward, scrollAfterDrag, thumbOf, type ScrollMetrics } f
 export type ScrollAreaAxis = 'y' | 'x' | 'both';
 
 export interface OverlayScrollbarsOptions {
-    /* The directions that get a bar. */
     axis?: ScrollAreaAxis;
 }
 

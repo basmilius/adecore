@@ -6,7 +6,7 @@ import { colorOfHex, cssColorOf } from './document-colors.ts';
 import { linkPosition } from './document-links.ts';
 import { EditorLanguage } from './editor-language.ts';
 import type { LanguageHost } from './host-types.ts';
-import { suggestionOf } from './inline-completion.ts';
+import { firstWord, suggestionOf, type InlineSuggestionSource } from './inline-completion.ts';
 import type { Place } from './navigation-history.ts';
 import { ProjectLanguage } from './project-language.ts';
 import { FakeLanguageService, ManualTimers, type LanguageCall } from './testing.ts';
@@ -133,7 +133,7 @@ describe('document colors', () => {
         expect(editor.inlayHints).toHaveLength(2);
         expect(editor.clickInlay({ id: 'color-0' })).toBe(true);
         await settle();
-        const pick = language.popups.getState().pick;
+        const pick = language.popups.slot('pick').get();
         expect(pick?.groups[0]?.rows.map((row) => row.label)).toEqual(['#f00', 'rgb(255 0 0)']);
         language.pick.choose('1');
         await settle();
@@ -192,8 +192,8 @@ describe('type hierarchy', () => {
         });
         await language.callHierarchy.open(undefined, 'supertypes');
         await settle();
-        const names = (): string[] => (language.popups.getState().callHierarchy?.rows ?? []).flatMap((row) => (row.kind === 'node' ? [row.item.name] : []));
-        expect(language.popups.getState().callHierarchy?.direction).toBe('supertypes');
+        const names = (): string[] => (language.popups.slot('callHierarchy').get()?.rows ?? []).flatMap((row) => (row.kind === 'node' ? [row.item.name] : []));
+        expect(language.popups.slot('callHierarchy').get()?.direction).toBe('supertypes');
         expect(names()).toEqual(['B', 'A']);
         language.callHierarchy.setDirection('subtypes');
         await settle();
@@ -247,6 +247,221 @@ describe('inline completion', () => {
         editor.press({ key: 'Escape' });
         expect(editor.ghost).toBeNull();
         timers.advance(1000);
+    });
+});
+
+describe('firstWord', () => {
+    test('takes the whitespace before a word with it, and a run of punctuation as one word', () => {
+        expect(firstWord('  const x = 1;')).toBe('  const');
+        expect(firstWord(' = 1;')).toBe(' =');
+        expect(firstWord('\n    return a;')).toBe('\n    return');
+        expect(firstWord('')).toBe('');
+    });
+});
+
+describe('inline completion with a source of the app', () => {
+    const sourceOf = (text: string, calls: number[] = []): InlineSuggestionSource => ({
+        enabled: true,
+        automatic: false,
+        suggest: async ({ caret, triggerKind }) => {
+            calls.push(triggerKind);
+            return [{ text, range: { start: caret, end: caret }, rest: text, words: true }];
+        }
+    });
+
+    test('a person asking gets the source of the highest priority, and the servers are not asked', async () => {
+        const { editor, language, service } = await setup('', { 'textDocument/inlineCompletion': () => [{ insertText: 'server' }] });
+        language.inlineCompletion.configure({ enabled: true });
+        language.inlineCompletion.addSource(sourceOf('mine'), 10);
+        expect(language.inlineCompletion.trigger()).toBe(true);
+        await settle();
+        expect(editor.ghost?.text).toBe('mine');
+        expect(service.calls.some((call) => call.method === 'textDocument/inlineCompletion')).toBe(false);
+    });
+
+    test('is not asked while typing stops, and gives the key back when no source is enabled', async () => {
+        const calls: number[] = [];
+        const { editor, language, timers } = await setup('');
+        language.inlineCompletion.addSource(sourceOf('mine', calls), 10);
+        editor.type('a');
+        timers.advance(300);
+        await settle();
+        expect(calls).toEqual([]);
+        const off = await setup('');
+        expect(off.language.inlineCompletion.trigger()).toBe(false);
+    });
+
+    test('one Tab takes the suggestion, and a typed character puts it away without the source clearing the other', async () => {
+        const { editor, language } = await setup('');
+        language.inlineCompletion.addSource(sourceOf('mine'), 10);
+        language.inlineCompletion.trigger();
+        await settle();
+        expect(editor.press({ key: 'Tab' })).toBe(true);
+        expect(editor.getText()).toBe('mine');
+        expect(editor.getCaret()).toEqual({ line: 0, character: 4 });
+        expect(editor.ghost).toBeNull();
+    });
+
+    test('takes a word of a suggestion that allows it and keeps the rest drawn after the caret', async () => {
+        const { editor, language } = await setup('');
+        language.inlineCompletion.addSource(sourceOf('return pool;'), 10);
+        language.inlineCompletion.trigger();
+        await settle();
+        expect(language.inlineCompletion.acceptWord()).toBe(true);
+        expect(editor.getText()).toBe('return');
+        expect(editor.ghost).toMatchObject({ position: { line: 0, character: 6 }, text: ' pool;' });
+    });
+
+    test('Escape ends a request a person asked for that is still out', async () => {
+        const { editor, language } = await setup('');
+        let aborted = false;
+        language.inlineCompletion.addSource(
+            {
+                enabled: true,
+                automatic: false,
+                suggest: ({ signal }) =>
+                    new Promise((resolve) => {
+                        signal.addEventListener('abort', () => {
+                            aborted = true;
+                            resolve([]);
+                        });
+                    })
+            },
+            10
+        );
+        language.inlineCompletion.trigger();
+        expect(editor.press({ key: 'Escape' })).toBe(true);
+        expect(aborted).toBe(true);
+    });
+
+    /* A source whose request stays out until the test answers it. */
+    function pendingSource() {
+        const state = {
+            aborted: false,
+            enabled: true,
+            answer: (): void => undefined
+        };
+        const source: InlineSuggestionSource = {
+            get enabled() {
+                return state.enabled;
+            },
+            automatic: false,
+            suggest: ({ caret, signal }) =>
+                new Promise((resolve) => {
+                    signal.addEventListener('abort', () => {
+                        state.aborted = true;
+                    });
+                    state.answer = () => resolve([{ text: 'late', range: { start: caret, end: caret }, rest: 'late' }]);
+                })
+        };
+
+        return { state, source };
+    }
+
+    test('turning the language servers off ends a request of theirs that is still out', async () => {
+        let answer: () => void = () => undefined;
+        const { editor, language, service } = await setup('', {
+            'textDocument/inlineCompletion': () =>
+                new Promise((resolve) => {
+                    answer = () => resolve([{ insertText: 'late' }]);
+                })
+        });
+        language.inlineCompletion.configure({ enabled: true });
+        language.inlineCompletion.trigger();
+        await settle();
+        const signal = service.calls.find((call) => call.method === 'textDocument/inlineCompletion')?.options.signal;
+        expect(signal?.aborted).toBe(false);
+        language.inlineCompletion.configure({ enabled: false });
+        expect(signal?.aborted).toBe(true);
+        answer();
+        await settle();
+        expect(editor.ghost).toBeNull();
+    });
+
+    test('removing a source ends a request of its that is still out', async () => {
+        const { editor, language } = await setup('');
+        const { state, source } = pendingSource();
+        const remove = language.inlineCompletion.addSource(source, 10);
+        language.inlineCompletion.trigger();
+        expect(state.aborted).toBe(false);
+        remove();
+        expect(state.aborted).toBe(true);
+        state.answer();
+        await settle();
+        expect(editor.ghost).toBeNull();
+        expect(language.inlineCompletion.current).toBeNull();
+    });
+
+    test('draws no answer of a source that was turned off by the app while its request was out', async () => {
+        const { editor, language } = await setup('');
+        const { state, source } = pendingSource();
+        language.inlineCompletion.addSource(source, 10);
+        language.inlineCompletion.trigger();
+        state.enabled = false;
+        state.answer();
+        await settle();
+        expect(editor.ghost).toBeNull();
+        expect(language.inlineCompletion.current).toBeNull();
+    });
+
+    test('a suggestion that came by itself gives Tab to an open completion list', async () => {
+        const { editor, language, timers } = await setup('', { 'textDocument/inlineCompletion': () => [{ insertText: 'abc' }] });
+        language.inlineCompletion.configure({ enabled: true });
+        editor.type('a');
+        timers.advance(300);
+        await settle();
+        expect(editor.ghost?.text).toBe('abc');
+        language.popups.slot('completion').set({} as never);
+        editor.press({ key: 'Tab' });
+        expect(editor.getText()).toBe('a');
+    });
+});
+
+describe('features of the app', () => {
+    test('are built after the shared ones and come back as app', async () => {
+        const service = new FakeLanguageService();
+        const project = new ProjectLanguage(service);
+        const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: '', theme: 'light' });
+        const language = new EditorLanguage(project, editor, uri, 'typescript', new ManualTimers(), {
+            features: (built) => ({ sawHover: built.hover !== undefined, uri: built.uri })
+        });
+        expect(language.app).toEqual({ sawHover: true, uri });
+        language.dispose();
+        project.dispose();
+    });
+
+    test('a key for a served document never reaches a document no server serves', async () => {
+        const service = new FakeLanguageService();
+        const project = new ProjectLanguage(service);
+        const pressed: string[] = [];
+        for (const serve of [true, false]) {
+            const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: '', theme: 'light' });
+            const language = new EditorLanguage(project, editor, `${uri}?${serve}`, 'typescript', new ManualTimers(), { serve });
+            language.onServedKey((event) => {
+                pressed.push(`${serve}:${event.key}`);
+                return true;
+            });
+            editor.press({ key: 'F9' });
+            language.dispose();
+        }
+        project.dispose();
+        expect(pressed).toEqual(['true:F9']);
+    });
+
+    test('a service is built from the project and reads the text of the editor that holds a document', async () => {
+        const base = new FakeLanguageService();
+        let text: string | undefined;
+        const project = new ProjectLanguage((owner) => {
+            text = owner.openTextOf(uri);
+            return base;
+        });
+        expect(text).toBeUndefined();
+        const editor = new FakeEditorEngine().mount({} as HTMLElement, { text: 'let a;', theme: 'light' });
+        const handle = project.acquire(uri, 'typescript', editor);
+        expect(project.openTextOf(uri)).toBe('let a;');
+        handle.release();
+        expect(project.openTextOf(uri)).toBeUndefined();
+        project.dispose();
     });
 });
 

@@ -1,4 +1,4 @@
-import type { ChatBackgroundTask, ChatSubagentItem } from '@adecore/agent-contracts';
+import { taskIdOfRow, type ChatBackgroundTask, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
 import { formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -7,16 +7,15 @@ import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/shallow';
 import { statusLookOf, type StatusWord } from '../../agents/status-look';
-import { useChatHost } from '../../host';
-import { useHostTask, useHostTasks } from '../../host-hooks';
+import { useChatHost } from '../../host/host';
+import { useHostTask, useHostTasks } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
 import { useChatActions } from '../actions';
 import { backgroundCounts } from '../activity';
-import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskIdOf, taskRowStateOf } from '../subagent-list';
+import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
-import { waitingOnLabel, waitingOnOf } from '../waiting-on';
 import { flyoutWorkflows, workflowPillOf, type WorkflowCall, type WorkflowWord } from '../workflow-list';
 import { WorkflowRow } from './rows/WorkflowRow';
 import { SubagentStopButton } from './SubagentStopButton';
@@ -47,14 +46,14 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
 
     const progress = progressOf(
         subagents.map((item, index) => {
-            const taskId = taskIdOf(item);
+            const taskId = taskIdOfRow(item);
 
             return taskRowStateOf(item, taskId === null ? null : (tasks?.[taskId] ?? null), children[index]);
         })
     );
 
     const words = subagents.map((item) => {
-        const taskId = taskIdOf(item);
+        const taskId = taskIdOfRow(item);
 
         return statusWordOf(item, taskId === null ? null : (tasks?.[taskId] ?? null));
     });
@@ -99,8 +98,7 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
             {background.length > 0 && (
                 <Flyout
                     icon={<Icon icon={shells > 0 ? SquareTerminal : Activity} size={14} />}
-                    label={<BackgroundLabel tasks={background} />}
-                    heading={[shells > 0 && t('activity.shells', { count: shells }), monitors > 0 && t('activity.monitors', { count: monitors })]
+                    label={[shells > 0 && t('activity.shells', { count: shells }), monitors > 0 && t('activity.monitors', { count: monitors })]
                         .filter(Boolean)
                         .join(' · ')}
                 >
@@ -134,14 +132,6 @@ function Flyout({ icon, label, heading = label, children }: { icon: ReactNode; l
             </Popover.Popup>
         </Popover.Root>
     );
-}
-
-/* What the background chip says: the oldest command or monitor and how long it has run, on a clock of its own. */
-function BackgroundLabel({ tasks }: { tasks: readonly ChatBackgroundTask[] }) {
-    const now = useNow(1000);
-    const waiting = waitingOnOf({ background: tasks });
-
-    return <span className="truncate">{waiting === null ? null : waitingOnLabel(waiting, now)}</span>;
 }
 
 function WorkflowIcon({ word }: { word: WorkflowWord }) {
@@ -238,7 +228,7 @@ function SubagentEntry({ chatId, item, now }: { chatId: string; item: ChatSubage
     const { t } = useTranslation('agent-chat');
     const { id, keyOf } = useChatScope();
     const refused = useSubagentSupport((s) => s.unsupported[id] === true);
-    const task = useHostTask(id, taskIdOf(item));
+    const task = useHostTask(id, taskIdOfRow(item));
     const { show } = useSubagentTrail(chatId);
     const child = useChats((s) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info));
     const word = statusWordOf(item, task);

@@ -28,7 +28,7 @@ const CHANGES: readonly MenuRowSpec[] = [
     { id: 'codeActions', method: 'textDocument/codeAction', shortcut: 'codeActions' }
 ];
 
-export interface MenuGroups {
+interface MenuGroups {
     readonly goTo: readonly MenuRowSpec[];
     readonly references: readonly MenuRowSpec[];
     readonly changes: readonly MenuRowSpec[];

@@ -3,7 +3,7 @@ import { field } from '../context/refusal.ts';
 import { orNote, ToolRefusal } from '../context/tool.ts';
 import type { ChatRequests, WaitingRequest } from './waiting-child.ts';
 
-export interface QuestionAnswer {
+interface QuestionAnswer {
     /* The answer to a request of one question. */
     answer: string | null;
 
@@ -12,7 +12,7 @@ export interface QuestionAnswer {
 }
 
 /* How the call names its two inputs, so a refusal tells the caller what to type: `answer`, or `--answer` for a command. */
-export interface AnswerFieldNames {
+interface AnswerFieldNames {
     answer: string;
     answers: string;
 }

@@ -2,7 +2,7 @@ import { afterEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { BackendEvent, BackendLaunch } from '../chat/backend.ts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageService } from '../usage/usage-service.ts';
@@ -42,7 +42,6 @@ async function newHome(): Promise<string> {
 
 const GROK_SESSION_MODES = ['default', 'plan', 'ask'];
 
-/* A chat backend of the provider on the fake ACP agent, the events it raised and the arguments it started with. */
 function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial<BackendLaunch> = {}) {
     const events: BackendEvent[] = [];
     const methods: string[] = [];
@@ -66,31 +65,30 @@ function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial
         };
     });
 
-    const backend = provider.createBackend(
-        {
-            command: provider.command,
-            cwd: '/tmp',
-            env: {},
-            selection: provider.catalog.normalize(undefined),
-            modelName: provider.catalog.nameOf(provider.catalog.defaultModel),
-            runtimeMode: 'supervised',
-            resume: null,
-            generation: 1,
-            instructions: null,
-            resumeNote: null,
-            spawn: fake.spawn,
-            ...overrides
-        },
-        {
-            onEvent: (event) => {
-                events.push(event);
+    const plain: BackendLaunch = {
+        command: provider.command,
+        cwd: '/tmp',
+        env: {},
+        selection: provider.catalog.normalize(undefined),
+        modelName: provider.catalog.nameOf(provider.catalog.defaultModel),
+        runtimeMode: 'supervised',
+        resume: null,
+        generation: 1,
+        instructions: null,
+        resumeNote: null,
+        spawn: fake.spawn,
+        ...overrides
+    };
 
-                if (event.type === 'turn.done') {
-                    done.resolve();
-                }
+    const backend = provider.createBackend(provider.launch?.(plain) ?? plain, {
+        onEvent: (event) => {
+            events.push(event);
+
+            if (event.type === 'turn.done') {
+                done.resolve();
             }
         }
-    );
+    });
 
     return { backend, events, methods, requests, fake, turnDone: done.promise };
 }
@@ -262,11 +260,10 @@ describe('grok models', () => {
 });
 
 describe('Copilot', () => {
-    test('runs its ACP server over stdio beside its terminal, with the arguments the host adds last', () => {
-        const copilot = createCopilotProvider({ args: ['--allow-tool=host'] });
+    test('runs its ACP server over stdio beside its terminal', () => {
+        const copilot = createCopilotProvider();
 
-        expect(copilot.command).toEqual(['copilot', '--acp', '--stdio', '--no-auto-update', '--allow-tool=host']);
-        expect(createCopilotProvider().command).toEqual(['copilot', '--acp', '--stdio', '--no-auto-update']);
+        expect(copilot.command).toEqual(['copilot', '--acp', '--stdio', '--no-auto-update']);
         expect(copilot.capabilities.chat).toBe(true);
         expect(copilot.capabilities.terminal).toBe(true);
         expect(copilot.firstPromptArgs('go')).toEqual(['-i', 'go']);

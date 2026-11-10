@@ -3,7 +3,6 @@ import i18next from 'i18next';
 
 const NAME = /^[A-Za-z_][A-Za-z0-9_]{0,127}$/;
 
-/* One variable as the person edits it, before it is saved. */
 export interface VariableDraft {
     /* Keeps a row in place while its name is typed. */
     key: string;
@@ -88,7 +87,6 @@ export function variablesOf(drafts: readonly VariableDraft[]): ProviderAccountVa
     });
 }
 
-/* Whether the drafts say something other than what the machine holds. */
 export function variablesChanged(drafts: readonly VariableDraft[], env: readonly ProviderAccountVariable[] | undefined): boolean {
     return (
         JSON.stringify(variablesOf(drafts)) !==

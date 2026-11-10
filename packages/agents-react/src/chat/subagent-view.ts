@@ -14,7 +14,7 @@ export interface SubagentStep {
 /* From the chat down to what is on screen, which is the last step; empty is the main agent. */
 export type SubagentTrail = readonly SubagentStep[];
 
-export interface BreadcrumbStep {
+interface BreadcrumbStep {
     label: string;
     /* How many steps of the trail stay when this crumb is picked; the chat's own title is 0. */
     depth: number;
@@ -73,7 +73,6 @@ export function subagentOf(structure: Readonly<Record<string, ChatItem>>, toolUs
     return Object.values(structure).find((item): item is ChatSubagentItem => item.kind === 'subagent' && item.toolUseId === toolUseId) ?? null;
 }
 
-/* The subagents a chat can open, in the order the thread has them. */
 export function openableSubagents(order: readonly string[], structure: Record<string, ChatItem>, machineRefused: boolean): ChatSubagentItem[] {
     return order.flatMap((id) => {
         const item = structure[id];

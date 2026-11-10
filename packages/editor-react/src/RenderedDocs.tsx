@@ -28,12 +28,10 @@ const KNOWN = new Set([
     'author'
 ]);
 
-/* Code in the editor's face, with a type fainter than a name. */
 function Code({ children, faint = false }: { children: string; faint?: boolean }) {
     return <code className={`font-mono text-code break-words ${faint ? 'text-text-faint' : 'text-text'}`}>{children}</code>;
 }
 
-/* Markdown prose and fenced code as the hover draws them: the blocks in the code face, the rest muted. */
 function Prose({ text, language, linkable, compact = false }: { text: string; language: string; linkable: boolean; compact?: boolean }) {
     const plain = linkable ? text : text.replace(LINK, '$1');
 

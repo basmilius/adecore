@@ -3,7 +3,7 @@ import { VISUAL_BRIDGE_METHODS, visualProxyReadyMessage, visualSizeChangedMessag
 import { createPage } from '@adecore/editor/testing';
 import { Activity, act } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider } from '../../host';
+import { ChatHostProvider } from '../../host/host';
 import { VisualPageFrame } from './VisualFrame';
 
 async function withVisual(

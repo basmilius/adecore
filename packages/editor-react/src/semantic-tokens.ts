@@ -1,7 +1,7 @@
 import type { EditorRange, EditorSemanticToken } from '@adecore/editor';
 import { StaleResultError, type SemanticTokens, type SemanticTokensDelta, type SemanticTokensLegend } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { covers, withMargin } from './inlay-hints.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import { Refresher } from './refresher.ts';
 import { applySemanticEdits } from './semantic-delta.ts';
@@ -15,9 +15,9 @@ const PAUSE_MS = 200;
 const SCROLL_PAUSE_MS = 100;
 
 /* A document with more lines or characters than this is first asked for what is in view, when the server answers ranges. */
-export const DEFAULT_RANGE_LINES = 5000;
+const DEFAULT_RANGE_LINES = 5000;
 
-export const DEFAULT_RANGE_CHARACTERS = 500_000;
+const DEFAULT_RANGE_CHARACTERS = 500_000;
 
 /* What decides when a document is too large to wait for in full. */
 export interface SemanticTokensOptions {
@@ -42,7 +42,7 @@ interface Held {
 export class SemanticTokensFeature {
     private readonly refresher: Refresher;
     private readonly scrolled: Refresher;
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly options: SemanticTokensOptions;
     private held: Held | null = null;
     private heldLegend = '';
@@ -56,7 +56,7 @@ export class SemanticTokensFeature {
     private drawn: EditorSemanticToken[] = [];
     private epoch = 0;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers, options: SemanticTokensOptions = {}) {
+    constructor(language: LanguageContext, timers: Timers = realTimers, options: SemanticTokensOptions = {}) {
         const { editor } = language;
         this.language = language;
         this.options = options;

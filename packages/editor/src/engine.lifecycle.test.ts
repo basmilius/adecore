@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from 'bun:test';
 import { setup } from './engine.fixture.test.ts';
 import { parseChord, resolveKeymap } from './keymap-table.ts';
-import type { KeyChord } from './types.ts';
+import type { KeyChord } from './keymap-table.ts';
 import { EditorView } from './view.ts';
 
 describe('messages', () => {

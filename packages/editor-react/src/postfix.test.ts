@@ -3,7 +3,8 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mountEditor } from '@adecore/editor/testing';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { BUILT_IN_POSTFIX_TEMPLATES, checkTemplate, TemplateRegistry, type LiveTemplate, type PostfixTemplate, type TemplateSettings } from './templates.ts';
+import { type LiveTemplate, type PostfixTemplate } from './template-types.ts';
+import { BUILT_IN_POSTFIX_TEMPLATES, checkTemplate, TemplateRegistry, type TemplateSettings } from './templates.ts';
 import { FakeLanguageService, ManualTimers } from './testing.ts';
 
 async function settle(): Promise<void> {
@@ -69,7 +70,7 @@ async function setup(marked: string, options: Options = {}) {
         }
     };
 
-    const chooser = () => language.popups.getState().pick;
+    const chooser = () => language.popups.slot('pick').get();
 
     return { ...mounted, language, templates, shown, tab, typeKeys, chooser };
 }
@@ -199,7 +200,12 @@ describe('Tab', () => {
         const { language, editor } = await setup('x.dup|', { postfix });
 
         expect(language.templates.expand()).toBe(true);
-        expect(language.popups.getState().completion?.rows.map((row) => row.label)).toEqual(['dup', 'dup']);
+        expect(
+            language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label)
+        ).toEqual(['dup', 'dup']);
 
         await language.completion.accept(false, 1);
         await settle();
@@ -214,7 +220,7 @@ describe('completion rows', () => {
 
         await typeKeys('.i');
 
-        const rows = language.popups.getState().completion?.rows ?? [];
+        const rows = language.popups.slot('completion').get()?.rows ?? [];
 
         expect(rows.map((row) => row.label)).toContain('if');
 
@@ -232,7 +238,12 @@ describe('completion rows', () => {
 
         await typeKeys('.i');
 
-        expect(language.popups.getState().completion?.rows.map((row) => row.label) ?? []).not.toContain('if');
+        expect(
+            language.popups
+                .slot('completion')
+                .get()
+                ?.rows.map((row) => row.label) ?? []
+        ).not.toContain('if');
     });
 
     test('are left out when either setting is off', async () => {
@@ -241,7 +252,12 @@ describe('completion rows', () => {
 
             await typeKeys('.i');
 
-            return language.popups.getState().completion?.rows.map((row) => row.label) ?? [];
+            return (
+                language.popups
+                    .slot('completion')
+                    .get()
+                    ?.rows.map((row) => row.label) ?? []
+            );
         };
 
         expect(await rowsOf({ postfix: false })).not.toContain('if');

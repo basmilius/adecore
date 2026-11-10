@@ -5,6 +5,7 @@ import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic } from '@adecore/utils/fs';
 import { isRecord } from '@adecore/utils/record';
 import type { z } from 'zod';
+import type { ApprovalDecision, BackendHost, BackendLaunch } from '../backends/backend.ts';
 import { errorText } from '../error-text.ts';
 import {
     API_TOOL_NAMES,
@@ -17,7 +18,6 @@ import {
     type ApiToolDefinition,
     type ExecuteApiTool
 } from './api-tools.ts';
-import type { ApprovalDecision, BackendHost, BackendLaunch } from './backend.ts';
 
 /**
  * A run of tool rounds is cut at a number the model cannot argue with, since a loop that never ends spends
@@ -29,8 +29,7 @@ export interface ToolRounds {
     runs: number;
 }
 
-/** What a tool call answers the model. */
-export interface ApiToolOutcome {
+interface ApiToolOutcome {
     output: string;
     failed: boolean;
 }
@@ -121,7 +120,6 @@ interface ApiToolsOptions {
     hostTools: ApiHostTools | null;
 }
 
-/* The project tools of one chat, with the approval and question cards a person answers, and the tools of its host. */
 export class ApiTools {
     private readonly pending = new Map<string, (decision: ApprovalDecision | null) => void>();
     private readonly questions = new Map<string, (answer: string | null) => void>();
@@ -132,7 +130,6 @@ export class ApiTools {
         this.options = options;
     }
 
-    /* Every tool the model is offered, the project tools first. */
     async definitions(): Promise<ApiToolDefinition[]> {
         const own = (await this.options.hostTools?.definitions()) ?? [];
         const taken = own.find((tool) => Object.hasOwn(API_TOOL_NAMES, tool.name));

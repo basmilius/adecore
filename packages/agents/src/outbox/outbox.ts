@@ -19,10 +19,10 @@ const OutboxEntryFieldsSchema = z.object({
     notBefore: z.number()
 });
 
-export type OutboxEntryFields = z.infer<typeof OutboxEntryFieldsSchema>;
+type OutboxEntryFields = z.infer<typeof OutboxEntryFieldsSchema>;
 export type OutboxEntryOf<Work extends OutboxWorkShape> = Work & OutboxEntryFields;
 
-export interface OutboxStoreOptions<Work extends OutboxWorkShape> {
+interface OutboxStoreOptions<Work extends OutboxWorkShape> {
     /* The entries go in `outbox` under it. */
     dataDir: string;
     work: z.ZodType<Work>;

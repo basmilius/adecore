@@ -7,13 +7,13 @@ import { parseSync, type Program } from 'oxc-parser';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(HERE, '..');
 
-/* Every entry point by its subpath, and the file behind it. */
 const ENTRIES: Record<string, string> = {
     '.': 'index.ts',
     './settings': 'settings/index.ts',
     './format': 'format/index.ts',
     './testing': 'testing/index.ts',
-    './testing/dedupe': 'testing/dedupe.ts'
+    './testing/dedupe': 'testing/dedupe.ts',
+    './design-conventions': 'design-conventions.ts'
 };
 
 /* Loaded with the file, so compiling every module of the package through the test preload counts against no test's timeout. */

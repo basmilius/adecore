@@ -15,8 +15,8 @@ import { KeyedSerializer } from '@adecore/utils/async';
 import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic } from '@adecore/utils/fs';
 import { z } from 'zod';
+import { ChatError } from '../chat-error.ts';
 import type { AttachmentStore } from './attachment-store.ts';
-import { ChatError } from './errors.ts';
 
 const SUFFIX = '.visuals.json';
 
@@ -43,12 +43,12 @@ export interface VisualInput {
     turnId?: string;
 }
 
-export interface VisualStoreOptions {
+interface VisualStoreOptions {
     // The clock `at` is stamped with, which has to be the one the thread's `createdAt` comes from.
     now?: () => number;
 }
 
-export type VisualListener = (chatId: string, visuals: ChatVisual[]) => void;
+type VisualListener = (chatId: string, visuals: ChatVisual[]) => void;
 
 const MIB = 1024 * 1024;
 

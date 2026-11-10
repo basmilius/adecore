@@ -3,7 +3,7 @@ import { createPage } from '@adecore/editor/testing';
 import { renderAsync } from 'pele/lazy';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../host';
+import { ChatHostProvider, type ChatHost } from '../../host/host';
 import type { Highlighter } from './highlighter';
 import { MermaidBlock } from './MermaidBlock';
 
@@ -138,7 +138,6 @@ afterEach(async () => {
     });
 });
 
-/* Lets Pele finish what it was asked for. */
 async function settle(): Promise<void> {
     await act(async () => {
         await new Promise((resolve) => setTimeout(resolve, 0));

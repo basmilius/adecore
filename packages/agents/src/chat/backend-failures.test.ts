@@ -1,14 +1,14 @@
 import { afterEach, expect, jest, test } from 'bun:test';
-import { claudeProvider } from '../providers/claude-provider.ts';
-import { codexProvider } from '../providers/codex-provider.ts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
+import { CodexBackend } from '../backends/codex-backend.ts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
+import { CodexTransport } from '../backends/codex-transport.ts';
+import { MAX_LINE_LENGTH, type ChatProcess, type ChatSpawnOptions } from '../chat-process.ts';
 import { inProcess, type FakeIo, type FakeCli } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
-import type { BackendEvent, BackendLaunch } from './backend.ts';
-import { MAX_LINE_LENGTH, type ChatProcess, type ChatSpawnOptions } from './chat-process.ts';
+import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { info } from './chat-session.fixture.test.ts';
 import { ChatSession } from './chat-session.ts';
-import { CodexBackend } from './codex-backend.ts';
-import { CodexTransport } from './codex-transport.ts';
 
 // The in-process transport only reads memory streams; one event-loop turn drains their readers.
 async function flush(): Promise<void> {
@@ -154,7 +154,8 @@ test('Codex acknowledges its submitted prompt and rejects an undelivered approva
 
     const backend = new CodexBackend(
         { ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn },
-        { onEvent: (event) => events.push(event) }
+        { onEvent: (event) => events.push(event) },
+        { client: DEFAULT_CODEX_CLIENT }
     );
 
     await backend.start();
@@ -196,7 +197,11 @@ test('Codex sends native steering with the exact active turn id', async () => {
         };
     });
 
-    const backend = new CodexBackend({ ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn }, { onEvent: () => undefined });
+    const backend = new CodexBackend(
+        { ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn },
+        { onEvent: () => undefined },
+        { client: DEFAULT_CODEX_CLIENT }
+    );
     await backend.start();
     backend.sendTurn({ text: 'slow', preamble: null, attachments: [], mentions: [], skills: [] });
     await flush();
@@ -228,7 +233,11 @@ test('Codex leaves a steer it refuses during a compact turn to wait, instead of 
         };
     });
 
-    const backend = new CodexBackend({ ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn }, { onEvent: () => undefined });
+    const backend = new CodexBackend(
+        { ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn },
+        { onEvent: () => undefined },
+        { client: DEFAULT_CODEX_CLIENT }
+    );
     await backend.start();
     backend.sendTurn({ text: 'slow', preamble: null, attachments: [], mentions: [], skills: [] });
     await flush();
@@ -241,7 +250,11 @@ test('Codex leaves a steer it refuses during a compact turn to wait, instead of 
 test('Codex gives up on an app-server that never answers its handshake, and ends it', async () => {
     jest.useFakeTimers();
     const fake = inProcess(() => ({ onLine: () => undefined }));
-    const backend = new CodexBackend({ ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn }, { onEvent: () => undefined });
+    const backend = new CodexBackend(
+        { ...launch, selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn },
+        { onEvent: () => undefined },
+        { client: DEFAULT_CODEX_CLIENT }
+    );
     const started = backend.start().catch((error: Error) => error);
     jest.advanceTimersByTime(59_999);
     expect(backend.running).toBe(true);
@@ -258,7 +271,6 @@ test('a Codex chat whose app-server never answers fails its turn within a minute
     const session = new ChatSession({
         info: { ...info(), provider: 'codex', selection: codexProvider.catalog.normalize(undefined) },
         provider: codexProvider,
-        command: ['codex'],
         env: () => ({}),
         spawn: fake.spawn,
         emit: () => undefined,
@@ -296,7 +308,8 @@ test('Codex keeps a thread it could not resume in time instead of starting anoth
 
     const backend = new CodexBackend(
         { ...launch, resume: 'thread-1', selection: codexProvider.catalog.normalize(undefined), spawn: fake.spawn },
-        { onEvent: (event) => events.push(event) }
+        { onEvent: (event) => events.push(event) },
+        { client: DEFAULT_CODEX_CLIENT }
     );
 
     const started = backend.start().catch((error: Error) => error);

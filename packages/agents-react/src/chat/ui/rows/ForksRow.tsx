@@ -1,7 +1,7 @@
 import { Icon, Menu } from '@adecore/ui';
 import { ChevronRight, GitFork } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useHostChatPlace } from '../../../host-hooks';
+import { useHostChatPlace } from '../../../host/host-hooks';
 import { useForkIdsAfter } from '../../forks';
 import { ROW_GUTTER } from '../icons';
 

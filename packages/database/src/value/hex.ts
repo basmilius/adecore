@@ -2,9 +2,9 @@
 
 export type HexProblem = 'characters' | 'odd';
 
-export type ParsedHex = { readonly ok: true; readonly hex: string } | { readonly ok: false; readonly problem: HexProblem };
+type ParsedHex = { readonly ok: true; readonly hex: string } | { readonly ok: false; readonly problem: HexProblem };
 
-export const BYTES_PER_LINE = 16;
+const BYTES_PER_LINE = 16;
 
 const GROUP = 8;
 const GROUP_WIDTH = GROUP * 3 - 1;
@@ -36,7 +36,6 @@ export const bytesOf = (hex: string): Uint8Array => {
 /* Bytes that are not valid UTF-8 become replacement characters rather than an error. */
 export const decodeUtf8 = (hex: string): string => new TextDecoder('utf-8').decode(bytesOf(hex));
 
-/* A UUID is exactly 16 bytes; anything else has no UUID form. */
 export const formatUuid = (hex: string): string | null => {
     if (hex.length !== UUID_BYTES * 2) {
         return null;

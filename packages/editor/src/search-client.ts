@@ -13,7 +13,7 @@ import {
     type EditorSearchResult,
     type EditorSearchSnapshot
 } from './search-protocol.ts';
-import type { EditorFindQuery } from './types.ts';
+import type { EditorFindQuery, EditorSearchWorkerFactory } from './types.ts';
 import { createWorkerRequestClient, WorkerRequestError } from './worker-client.ts';
 
 export type EditorSearchErrorKind = 'timeout' | 'superseded' | 'unavailable' | 'syntax' | 'range' | 'snapshot' | 'error' | 'disposed';
@@ -29,7 +29,7 @@ export class EditorSearchError extends Error {
 }
 
 export interface EditorSearchClientOptions {
-    readonly workerFactory: () => Pick<Worker, 'addEventListener' | 'removeEventListener' | 'postMessage' | 'terminate'>;
+    readonly workerFactory: EditorSearchWorkerFactory;
     /* Milliseconds, starting when the request is posted, including worker startup. Defaults to 1,500. */
     readonly deadline?: number;
     readonly schedule?: (callback: () => void, delay: number) => () => void;

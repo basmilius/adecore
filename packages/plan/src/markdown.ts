@@ -43,6 +43,22 @@ function dropEscape(line: string): string {
     return line.trimStart().startsWith('\\') ? line.replace('\\', '') : line;
 }
 
+function noteLines(step: PlanStep, indent: string): string[] {
+    return (step.note?.split('\n') ?? []).map((line) => `${indent}> ${line}`);
+}
+
+/*
+ * One step as a line of plain GFM, for a clipboard that is not read back: the box is checked for
+ * `done` only, and any other state but open is said in words after the title, as `describe` words it
+ * (a client words it in its reader's language). Sub-steps and the description stay out.
+ */
+export function stepToMarkdown(step: PlanStep, describe: (state: PlanStepState) => string): string {
+    const state = stepState(step);
+    const label = state === 'open' || state === 'done' ? '' : ` (${describe(state)})`;
+
+    return [`- ${state === 'done' ? '[x]' : '[ ]'} ${step.title}${label}`, ...noteLines(step, INDENT)].join('\n');
+}
+
 /*
  * A plan as a GFM task list: `#` the title, `##` a section, `> **Title**` a text block, `- [ ]` a
  * step with its sub-steps indented under it. Beyond `[ ]` and `[x]` a step carries the markers of
@@ -65,9 +81,7 @@ export function planToMarkdown(plan: Plan): string {
             lines.push(line === '' ? '' : `${inner}${escapeLine(line)}`);
         }
 
-        for (const line of step.note?.split('\n') ?? []) {
-            lines.push(`${inner}> ${line}`);
-        }
+        lines.push(...noteLines(step, inner));
 
         for (const child of step.steps ?? []) {
             lines.push(...stepLines(child, depth + 1));

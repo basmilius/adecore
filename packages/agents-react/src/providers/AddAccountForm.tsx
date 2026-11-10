@@ -6,7 +6,7 @@ import { ChevronRight } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { freeAccountColor, mintAccountId, type AccountEntry, type AccountLogin } from '../agents/accounts';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { useChatScope } from '../scope';
 import { providerAccountsOf } from '../state/provider-accounts';
 import { errorMessage } from '../transport';

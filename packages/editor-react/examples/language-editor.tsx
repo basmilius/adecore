@@ -1,6 +1,6 @@
 import { createSmartEditorEngine } from '@adecore/editor';
 import { EditorLanguage, LanguagePopups, ProjectLanguage, createHolder } from '@adecore/editor-react';
-import en from '@adecore/editor-react/locales/en.json';
+import en from '@adecore/editor-react/locales/en';
 import { FakeLanguageService } from '@adecore/editor-react/testing';
 import { createInstance } from 'i18next';
 import { useLayoutEffect, useMemo, useRef, useSyncExternalStore } from 'react';

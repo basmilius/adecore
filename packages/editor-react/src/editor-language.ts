@@ -18,15 +18,16 @@ import { HoverFeature } from './hover.ts';
 import { InlayHintsFeature } from './inlay-hints.ts';
 import { InlineCompletionFeature } from './inline-completion.ts';
 import { KeyDispatcher } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { LinkedEditingFeature } from './linked-editing.ts';
 import { TemplatesFeature } from './live-templates.ts';
 import { MarkupFeature } from './markup.ts';
 import type { Place } from './navigation-history.ts';
-import { NavigationFeature, locationRow } from './navigation.ts';
+import { NavigationFeature } from './navigation.ts';
 import { PasteHistoryFeature } from './paste-history.ts';
 import { PeekFeature } from './peek.ts';
 import { PickFeature } from './pick.ts';
-import { createPopupStore } from './popups.ts';
+import { Popups } from './popups.ts';
 import type { LanguageDocumentHandle, ProjectLanguage } from './project-language.ts';
 import { RenameFeature } from './rename.ts';
 import { RenderedDocsFeature } from './rendered-docs.ts';
@@ -40,26 +41,29 @@ import { SymbolPickerFeature } from './symbol-picker.ts';
 import { SymbolsFeature } from './symbols.ts';
 import { realTimers, type Timers } from './timers.ts';
 
-/* How long the edits servers want before a save are waited for. */
 const SAVE_PARTICIPANT_MS = 1_000;
 
 /* What an app tunes about the features of one editor. */
-export interface EditorLanguageOptions {
+export interface EditorLanguageOptions<App extends object = {}> {
     /* Where a document counts as large for semantic tokens. */
     semanticTokens?: SemanticTokensOptions;
     /* False for a document no server serves: it counts as open in the project and the features stay inert. True by default. */
     serve?: boolean;
+    /*
+     * The app's own features for this editor, built once the shared ones are, so it may use every one of them. They
+     * come back as `language.app`, which is not set yet while this runs. An app that drives the editor's keys does so
+     * through `onKey` and `onServedKey`, and one that suggests code adds a source to `inlineCompletion`.
+     */
+    features?(language: EditorLanguage): App;
 }
 
 /*
  * The one place that connects an editor to the language servers: it opens the file's document for
  * the editor and lets go of it again. Every language feature of the editor hangs off this object.
  */
-export class EditorLanguage {
+export class EditorLanguage<App extends object = {}> implements LanguageContext {
     readonly editor: Editor;
     readonly apple: boolean;
-    readonly keymap: Keymap;
-    readonly shortcuts: ReturnType<typeof shortcutsOf>;
     readonly project: ProjectLanguage;
     readonly document: LanguageDocumentHandle;
     readonly languageId: string;
@@ -68,7 +72,7 @@ export class EditorLanguage {
     readonly served: boolean;
 
     /* What the features of this editor have open over it: the hover card, the suggestions, the signature. */
-    readonly popups = createPopupStore();
+    readonly popups = new Popups();
 
     readonly diagnostics: DiagnosticsFeature;
     readonly hover: HoverFeature;
@@ -99,55 +103,72 @@ export class EditorLanguage {
     readonly colors: DocumentColorsFeature;
     readonly linkedEditing: LinkedEditingFeature;
     readonly inlineCompletion: InlineCompletionFeature;
+
+    /* What the `features` option of the app built. */
+    readonly app: App;
     private readonly disposers: Array<() => void> = [];
     private readonly keys = new KeyDispatcher();
     private readonly timers: Timers;
     private disposed = false;
+    private resolvedShortcuts: { readonly keymap: Keymap; readonly shortcuts: ReturnType<typeof shortcutsOf> } | null = null;
 
-    constructor(project: ProjectLanguage, editor: Editor, uri: string, languageId: string, timers: Timers = realTimers, options: EditorLanguageOptions = {}) {
+    constructor(
+        project: ProjectLanguage,
+        editor: Editor,
+        uri: string,
+        languageId: string,
+        timers: Timers = realTimers,
+        options: EditorLanguageOptions<App> = {}
+    ) {
         this.editor = editor;
         this.apple = project.host.apple ?? false;
-        this.keymap = project.host.keymap ?? KEYMAP;
-        this.shortcuts = shortcutsOf(this.keymap, this.apple);
         this.project = project;
         this.languageId = languageId;
         this.served = options.serve ?? true;
         this.document = project.acquire(uri, languageId, editor, { serve: this.served });
         this.timers = timers;
         this.onDispose(editor.onKeyDown((event) => this.keys.dispatch(event)));
+        // A feature declares the siblings it drives as its `peers` and reads them when it acts; only a constructor that
+        // subscribes to one (code actions to diagnostics, templates to completion) needs that sibling built above it.
         this.pick = new PickFeature(this, timers);
-        this.diagnostics = new DiagnosticsFeature(this);
-        this.hover = new HoverFeature(this, timers);
-        this.completion = new CompletionFeature(this, timers);
-        this.snippets = new SnippetFeature(this, timers);
-        this.markup = new MarkupFeature(this);
-        this.templates = new TemplatesFeature(this);
-        this.surround = new SurroundFeature(this);
+        this.diagnostics = new DiagnosticsFeature(this, this);
+        this.hover = new HoverFeature(this, this, timers);
+        this.completion = new CompletionFeature(this, this, timers);
+        this.snippets = new SnippetFeature(this, this, timers);
+        this.markup = new MarkupFeature(this, this);
+        this.templates = new TemplatesFeature(this, this);
+        this.surround = new SurroundFeature(this, this);
         this.signature = new SignatureFeature(this, timers);
         this.highlights = new HighlightsFeature(this, timers);
         this.symbols = new SymbolsFeature(this, timers);
         new SelectionRangesFeature(this);
         new SemanticTokensFeature(this, timers, options.semanticTokens);
-        this.inlayHints = new InlayHintsFeature(this, timers);
-        this.codeActions = new CodeActionsFeature(this, timers);
+        this.inlayHints = new InlayHintsFeature(this, this, timers);
+        this.codeActions = new CodeActionsFeature(this, this, timers);
         this.rename = new RenameFeature(this);
         // Before navigation, whose Mod+click goes to a definition: a link under the pointer goes first.
         this.links = new DocumentLinksFeature(this, timers);
-        this.colors = new DocumentColorsFeature(this, timers);
+        this.colors = new DocumentColorsFeature(this, this, timers);
         this.linkedEditing = new LinkedEditingFeature(this, timers);
         this.inlineCompletion = new InlineCompletionFeature(this, timers);
-        this.navigation = new NavigationFeature(this);
-        this.peek = new PeekFeature(this, timers);
-        this.callHierarchy = new CallHierarchyFeature(this, timers);
+        this.navigation = new NavigationFeature(this, this);
+        this.peek = new PeekFeature(this, this, timers);
+        this.callHierarchy = new CallHierarchyFeature(this, this, timers);
         this.symbolPicker = new SymbolPickerFeature(this);
-        this.contextMenu = new ContextMenuFeature(this);
-        this.history = new HistoryFeature(this);
-        this.definitionLink = new DefinitionLinkFeature(this);
-        this.codeVision = new CodeVisionFeature(this, (listener) => this.symbols.onResult(listener), timers);
-        this.formatOnType = new FormatOnTypeFeature(this);
-        this.renderedDocs = new RenderedDocsFeature(this, timers);
-        this.pasteHistory = new PasteHistoryFeature(this);
+        this.contextMenu = new ContextMenuFeature(this, this);
+        this.history = new HistoryFeature(this, this);
+        this.definitionLink = new DefinitionLinkFeature(this, this);
+        this.codeVision = new CodeVisionFeature(
+            this,
+            { onSymbols: (listener) => this.symbols.onResult(listener), peek: { open: (position) => this.peek.open(position) } },
+            timers
+        );
+        this.formatOnType = new FormatOnTypeFeature(this, this);
+        this.renderedDocs = new RenderedDocsFeature(this, this, timers);
+        this.pasteHistory = new PasteHistoryFeature(this, this);
         new FoldingFeature(this, (listener) => this.symbols.onResult(listener), timers);
+        // Without `features` the app has nothing to hold, and `App` is the empty object it defaults to.
+        this.app = options.features?.(this) ?? ({} as App);
 
         const copies = editor.onCopy?.((copy) => project.clipboard.add(copy.text, { wholeLines: copy.wholeLines }));
 
@@ -159,6 +180,22 @@ export class EditorLanguage {
         this.onDispose(() => editor.setWordSources?.(null));
         this.placeOpenedCaret(editor.getCaret());
         this.onDispose(editor.onCaret((position) => this.placeOpenedCaret(position)));
+    }
+
+    /* Read from the host on every use, so a rebound key reaches an editor that is already open. */
+    get keymap(): Keymap {
+        return this.project.host.keymap ?? KEYMAP;
+    }
+
+    /* The keymap's shortcuts, resolved again only when the host hands a new keymap. */
+    get shortcuts(): ReturnType<typeof shortcutsOf> {
+        const keymap = this.keymap;
+
+        if (this.resolvedShortcuts?.keymap !== keymap) {
+            this.resolvedShortcuts = { keymap, shortcuts: shortcutsOf(keymap, this.apple) };
+        }
+
+        return this.resolvedShortcuts.shortcuts;
     }
 
     get uri(): string {
@@ -200,12 +237,6 @@ export class EditorLanguage {
         }
     }
 
-    /* Lists places under a position to choose from; choosing one goes there. */
-    locations(places: readonly Location[], anchor: EditorPosition, title: string): void {
-        const rows = places.map((place, index) => ({ id: String(index), ...locationRow(place, this.project.pathOfLocation(place.uri)) }));
-        this.pick.open({ anchor, title, groups: [{ title: null, rows }], accept: (id) => this.goTo(places[Number(id)]!) });
-    }
-
     /*
      * Runs `listener` once the document is open and again whenever the service says what it can ask for
      * this document changed. A service that is ready before the document opens never says so, so the
@@ -243,6 +274,11 @@ export class EditorLanguage {
         return this.keys.add(handler, priority);
     }
 
+    /* Like `onKey`, for a feature that needs a server behind the document: the editor of a document no server serves never gives it a key. */
+    onServedKey(handler: EditorKeyHandler, priority = 0): () => void {
+        return this.onKey((event) => this.served && handler(event), priority);
+    }
+
     /*
      * Lets the servers in before the host writes the file: tells them a save is coming and applies the edits they
      * want made first, such as organized imports. A server that has not answered within a second is passed over,
@@ -268,7 +304,6 @@ export class EditorLanguage {
         }
     }
 
-    /* Runs `dispose` when the editor lets go of its document. */
     onDispose(dispose: () => void): void {
         this.disposers.push(dispose);
     }

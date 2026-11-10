@@ -14,9 +14,8 @@ export interface GestureEvent {
     shiftKey: boolean;
 }
 
-export type GestureAction = 'above' | 'below';
+type GestureAction = 'above' | 'below';
 
-/* How long the taps may be apart. */
 const TAP_MS = 300;
 /* A first tap this old is forgotten even by a press that comes after the slower rule. */
 const FORGET_MS = 500;

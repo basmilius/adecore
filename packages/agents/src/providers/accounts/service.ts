@@ -2,7 +2,6 @@ import { existsSync, statSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
-    KNOWN_AGENT_KINDS,
     topAccountOf,
     type AgentKind,
     type ProviderAccount,
@@ -15,7 +14,6 @@ import {
     type ProviderInfo
 } from '@adecore/agent-contracts';
 import { Serializer } from '@adecore/utils/async';
-import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../../chat/codex-transport.ts';
 import { ClientSinks } from '../../client-sinks.ts';
 import { errorText } from '../../error-text.ts';
 import type { AgentEvent, AgentSink } from '../../events.ts';
@@ -35,7 +33,6 @@ import {
 import { AccountError, isDefaultAccountOf, type AccountLaunches } from './launch.ts';
 import { prepareShadowHome, type ShadowHomeReport } from './shadow-home.ts';
 import { applySharedConfig, removeSharedConfig, type OwnsSettings } from './shared-config.ts';
-import { ASKED_KINDS, askAccountAs, type AskAccount } from './status.ts';
 import {
     acceptAccounts,
     accountsPath,
@@ -59,13 +56,9 @@ export interface ProviderAccountsOptions {
     // The data folder: `providers.json`, and a folder per account the host makes.
     home: string;
     host?: AccountsHost;
-    // How the host names itself to an app-server it asks who is signed in.
-    client?: CodexClientInfo;
-    // `kinds` are the CLIs that get a default account; absent, every kind this version knows.
-    providers: { list(): Promise<ProviderInfo[]>; get(kind: AgentKind): ChatProvider; enabled?(kind: AgentKind): boolean; kinds?(): readonly AgentKind[] };
+    // `kinds` are the CLIs that get a default account, in catalog order.
+    providers: { list(): Promise<ProviderInfo[]>; get(kind: AgentKind): ChatProvider; enabled?(kind: AgentKind): boolean; kinds(): readonly AgentKind[] };
     env?: Env;
-    // How to ask a CLI who is signed in, for every kind whose provider has no reader of its own.
-    ask?: AskAccount;
     prepareShadow?: (home: string, shadow: string) => Promise<ShadowHomeReport>;
     folderExists?: (path: string) => boolean;
     // What the host puts in a config folder of an account (its hooks); absent puts nothing there.
@@ -81,7 +74,6 @@ export interface ProviderAccountsOptions {
     // Where sensitive values are kept; null on a machine without a keychain. Absent is the platform's own.
     secrets?: SecretStore | null;
     now?: () => number;
-    // How a login watch waits between two checks.
     sleep?: (ms: number) => Promise<void>;
 }
 
@@ -149,9 +141,6 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly host: AccountsHost;
     private readonly providers: ProviderAccountsOptions['providers'];
     private readonly env: Env;
-    private readonly ask: AskAccount;
-    // A host's own `ask` is taken to answer for every kind; the default only for `ASKED_KINDS`.
-    private readonly asksEveryKind: boolean;
     private readonly prepareShadow: NonNullable<ProviderAccountsOptions['prepareShadow']>;
     private readonly folderExists: NonNullable<ProviderAccountsOptions['folderExists']>;
     private readonly install: ProviderAccountsOptions['install'];
@@ -184,8 +173,6 @@ export class ProviderAccountsService implements AccountLaunches {
         this.host = options.host ?? DEFAULT_ACCOUNTS_HOST;
         this.providers = options.providers;
         this.env = options.env ?? process.env;
-        this.ask = options.ask ?? askAccountAs(options.client ?? DEFAULT_CODEX_CLIENT);
-        this.asksEveryKind = options.ask !== undefined;
         this.prepareShadow = options.prepareShadow ?? prepareShadowHome;
         this.folderExists = options.folderExists ?? isFolder;
         this.install = options.install;
@@ -225,7 +212,7 @@ export class ProviderAccountsService implements AccountLaunches {
             if (home?.loginCommand !== undefined) {
                 loginCommands[kind] = home.loginCommand;
 
-                if (provider.askAccount === undefined && !this.asksEveryKind && !ASKED_KINDS.includes(kind)) {
+                if (provider.askAccount === undefined) {
                     silentLogins.push(kind);
                 }
             } else if (home !== undefined) {
@@ -446,7 +433,7 @@ export class ProviderAccountsService implements AccountLaunches {
             const folder = join(this.accountsFolder(), id);
             await mkdir(this.accountsFolder(), { recursive: true, mode: 0o700 });
             await mkdir(folder, { mode: 0o700 });
-            const folders = kind === 'codex' ? { home: defaultFolder(provider, this.env), shadowHome: folder } : { home: folder };
+            const folders = provider.home.shadow === true ? { home: defaultFolder(provider, this.env), shadowHome: folder } : { home: folder };
             const account: ProviderAccount = { kind, label, ...(color === undefined ? {} : { color }), ...folders };
             await this.prepare(id, kind, account);
             const snapshot = await this.commit({ ...this.accounts, [id]: account }, (path) => path === folder || this.folderExists(path));
@@ -481,7 +468,6 @@ export class ProviderAccountsService implements AccountLaunches {
         return watch.done;
     }
 
-    /* Asks every CLI again, and answers once they all did. */
     async refresh(): Promise<ProviderAccounts> {
         await this.queue(true);
 
@@ -516,7 +502,7 @@ export class ProviderAccountsService implements AccountLaunches {
     }
 
     private kinds(): readonly AgentKind[] {
-        return this.providers.kinds?.() ?? KNOWN_AGENT_KINDS;
+        return this.providers.kinds();
     }
 
     private accountProviders(): AccountProviders {
@@ -810,7 +796,11 @@ export class ProviderAccountsService implements AccountLaunches {
             }
 
             const env = accountEnv(id, account, provider, this.env, values);
-            const reading = await (provider.askAccount ? provider.askAccount(provider.command, env) : this.ask(kind, provider.command, env));
+            if (provider.askAccount === undefined) {
+                throw new Error(`${kind} cannot say who is signed in`);
+            }
+
+            const reading = await provider.askAccount(provider.command, env);
 
             return this.status(id, account, reading.signedIn ? 'ready' : 'signed-out', {
                 email: reading.email,
@@ -839,6 +829,10 @@ export class ProviderAccountsService implements AccountLaunches {
         // Before the hooks, so a settings file the copy writes is one the hooks are then merged into.
         const sharedMessage = await this.prepareShared(id, kind);
         await this.install?.(kind, home).catch((e: unknown) => console.error(`Could not install hooks in ${home}:`, errorText(e)));
+        await this.providers
+            .get(kind)
+            .prepareHome?.(home)
+            .catch((e: unknown) => console.error(`Could not prepare ${home}:`, errorText(e)));
 
         if (account.shadowHome === undefined) {
             return sharedMessage;

@@ -33,14 +33,16 @@ async function setup(marked: string, languageId = 'typescript') {
 
     const labels = () =>
         language.popups
-            .getState()
-            .pick?.groups.flatMap((group) => group.rows)
+            .slot('pick')
+            .get()
+            ?.groups.flatMap((group) => group.rows)
             .map((row) => row.label) ?? [];
 
     const choose = async (label: string): Promise<void> => {
         const row = language.popups
-            .getState()
-            .pick?.groups.flatMap((group) => group.rows)
+            .slot('pick')
+            .get()
+            ?.groups.flatMap((group) => group.rows)
             .find((candidate) => candidate.label === label);
 
         language.pick.choose(row!.id);
@@ -64,7 +66,7 @@ describe('Unwrap/Remove', () => {
         expect(language.surround.unwrap()).toBe(true);
 
         expect(labels()).toEqual(["Unwrap 'if...'"]);
-        expect(language.popups.getState().pick?.title).toBe('Choose the statement to unwrap or remove');
+        expect(language.popups.slot('pick').get()?.title).toBe('Choose the statement to unwrap or remove');
 
         await choose("Unwrap 'if...'");
 
@@ -170,7 +172,7 @@ describe('Unwrap/Remove', () => {
         timers.advance(120);
         await settle();
 
-        expect(language.popups.getState().pick?.preview).toEqual({ removed: ['    <p>a</p>'], added: ['    a'], note: null });
+        expect(language.popups.slot('pick').get()?.preview).toEqual({ removed: ['    <p>a</p>'], added: ['    a'], note: null });
 
         press('d');
 

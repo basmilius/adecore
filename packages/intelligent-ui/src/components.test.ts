@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
 import { UI_CATALOG } from './catalog.ts';
 import { compileUiBlock } from './compiler.ts';
-import { uiPlaceQueries } from './places.ts';
 import { evaluateUiBlock, resolveUiChoice, UiState } from './runtime.ts';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.
@@ -386,30 +385,5 @@ describe('Map and Place', () => {
         expect(resolveUiChoice(compiled, choice.id, { $picked: 'dom' }).context).toBe('Plan around dom');
         expect(resolveUiChoice(compiled, choice.id, { $picked: '' }).context).toBe('Plan around ');
         expect(() => resolveUiChoice(compiled, choice.id, { $picked: 'elsewhere' })).toThrow('outside the visible control');
-    });
-});
-
-describe('the places a host looks up', () => {
-    test('names each place that gives an address, also one with coordinates, with its name', () => {
-        const compiled = block(
-            '<Map><Place lat={52} lon={5} address="Utrecht">Known</Place><Place address="  Domplein 1, Utrecht ">Dom   <Tag>tower</Tag></Place>' +
-                '<Place address="Oudegracht 245">Gracht</Place></Map>'
-        );
-
-        const [known, dom, gracht] = evaluateUiBlock(compiled).nodes[0].children;
-
-        expect(uiPlaceQueries(compiled)).toEqual({
-            [known.id]: { address: 'Utrecht', name: 'Known' },
-            [dom.id]: { address: 'Domplein 1, Utrecht', name: 'Dom tower' },
-            [gracht.id]: { address: 'Oudegracht 245', name: 'Gracht' }
-        });
-        expect(uiPlaceQueries(block('<Map><Place lat={52} lon={5}>Known</Place></Map>'))).toEqual({});
-    });
-
-    test('follows an Each, and skips a place that failed, and refuses a block that is still being written', () => {
-        const each = block('$rows = ["A 1", "B 2"]\n<Map><Each items={$rows} as="row"><Place address={row}>Stop</Place></Each></Map>');
-        expect(Object.values(uiPlaceQueries(each)).map((query) => query.address)).toEqual(['A 1', 'B 2']);
-        expect(uiPlaceQueries(block('<Map><Place address="">Empty</Place><Place lat={500} lon={5} address="X">Bad</Place></Map>'))).toEqual({});
-        expect(() => uiPlaceQueries(block('<Map><Place address="Domplein 1">Dom', false))).toThrow('completed');
     });
 });

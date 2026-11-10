@@ -1,7 +1,7 @@
 import { UsageProviderSchema, type AgentKind, type ProviderAccounts, type ProviderInfo } from '@adecore/agent-contracts';
 import { useContext } from 'react';
 import { accountColor, accountName, accountsOfKind, topAccountEntry } from '../../agents/accounts';
-import { useChatHost, type AccentChoice } from '../../host';
+import { useChatHost, type AccentChoice } from '../../host/host';
 import { ChatScopeContext } from '../../scope';
 import { useProviderAccountsStore } from '../../state/provider-accounts';
 import { useProvidersStore } from '../../state/providers';

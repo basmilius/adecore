@@ -23,6 +23,7 @@ import { seriesColor } from './color.ts';
 import { ChartContext, GroupContext, type ChartContextValue } from './context.ts';
 import { containingIndex, keyIndexOf, moveIndex, nearestIndex, snapIndex } from './cursor.ts';
 import { useAlignedAxes } from './group-axes.ts';
+import { COLUMNS, ROWS } from './plane.ts';
 import { movePoint, nearestPoint, type PlacedPoint } from './points.ts';
 import { bucketStepOf, continuousXScale, extentOf, pointXScale, stackSeries, tickCount, yScaleOf } from './scale.ts';
 import { createChartStore } from './store.ts';
@@ -199,11 +200,11 @@ export function ChartRoot<Row>({
     const points = rows === 'points';
     const band = xScale === 'band' && !points;
     const horizontal = orientation === 'horizontal' && band;
-    // Only columns turn into rows; a line, a point, a marker or a band across rows would read nothing a bar does not.
-    const series = horizontal ? new Map([...allSeries].filter(([, entry]) => entry.kind === 'bar')) : allSeries;
-    const markers = horizontal ? NO_ENTRIES : allMarkers;
-    const bands = horizontal ? NO_ENTRIES : allBands;
-    const dropped = horizontal && (series.size < allSeries.size || allMarkers.size > 0 || allBands.size > 0);
+    const plane = horizontal ? ROWS : COLUMNS;
+    const series = horizontal ? new Map([...allSeries].filter(([, entry]) => plane.draws(entry.kind))) : allSeries;
+    const markers = plane.draws('marker') ? allMarkers : NO_ENTRIES;
+    const bands = plane.draws('band') ? allBands : NO_ENTRIES;
+    const dropped = series.size < allSeries.size || markers.size < allMarkers.size || bands.size < allBands.size;
 
     useEffect(() => {
         if (orientation === 'horizontal' && !band) {
@@ -679,6 +680,7 @@ export function ChartRoot<Row>({
         band: layout,
         continuous,
         horizontal,
+        plane,
         valueRoom,
         y: scaleY,
         yStep,

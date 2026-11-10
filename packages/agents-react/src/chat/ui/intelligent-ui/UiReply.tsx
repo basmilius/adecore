@@ -26,7 +26,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import ReactMarkdown, { type Components } from 'react-markdown';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { ReplyMarkdown } from '../Markdown';
 import { rehypeFadeWords } from '../rehype-fade';
 import { UiReplyNavigationContext } from '../reply-context';

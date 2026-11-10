@@ -21,7 +21,6 @@ export const BIDI_COLUMNS = 3;
 
 export const BIDI_PATTERN = /[‪-‮⁦-⁩‎‏؜]/g;
 
-/* The placeholder of a bidirectional control character, or null for any other text. */
 export function bidiControl(character: string): (typeof BIDI_CONTROLS)[BidiControl] | null {
     return character.length === 1 ? ((BIDI_CONTROLS as Record<string, (typeof BIDI_CONTROLS)[BidiControl]>)[character] ?? null) : null;
 }

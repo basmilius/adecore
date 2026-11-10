@@ -82,7 +82,6 @@ export function attachmentImageMime({ name, mime }: { name: string; mime: string
     return dot < 0 ? null : (IMAGE_MIME_BY_EXTENSION.get(name.slice(dot + 1).toLowerCase()) ?? null);
 }
 
-// What the composer hands the daemon: the bytes, plus what the file is called and what it is.
 export const ChatAttachmentUploadSchema = z.object({
     name: z.string().min(1).max(255),
     mime: z.string().min(1).max(255),
@@ -325,6 +324,39 @@ export function holdsConversation(info: Pick<ChatInfo, 'agentSessionId' | 'activ
     return info.agentSessionId !== null || info.activeTurnId !== null;
 }
 
+/*
+ * What a chat is doing, which every "is it busy" question answers from:
+ * - `waiting`: a person is asked (`needs-you`).
+ * - `working`: a turn is open and nobody is asked.
+ * - `delegating`: no turn, but a subagent or workflow of the CLI still works.
+ * - `background`: only commands the CLI started in the background run.
+ * - `holding`: nothing runs, yet the chat is not at rest: a request is open, a goal is active or messages are queued.
+ * - `settled`: none of the above.
+ */
+export type ChatActivity = 'waiting' | 'working' | 'delegating' | 'background' | 'holding' | 'settled';
+
+export function chatActivity(
+    info: Pick<ChatInfo, 'status' | 'delegating' | 'background' | 'requests' | 'goal' | 'queue'> & Partial<Pick<ChatInfo, 'activeTurnId'>>
+): ChatActivity {
+    if (info.status === 'needs-you') {
+        return 'waiting';
+    }
+
+    if (info.status === 'running' || (info.activeTurnId ?? null) !== null) {
+        return 'working';
+    }
+
+    if (info.delegating === true) {
+        return 'delegating';
+    }
+
+    if ((info.background ?? []).length > 0) {
+        return 'background';
+    }
+
+    return (info.requests ?? []).length > 0 || info.goal?.status === 'active' || (info.queue ?? []).length > 0 ? 'holding' : 'settled';
+}
+
 // Where a skill was found: the person's own folder, the chat's folder, or a plugin.
 export const ChatSkillSourceSchema = z.enum(['user', 'project', 'plugin']);
 export type ChatSkillSource = z.infer<typeof ChatSkillSourceSchema>;
@@ -554,6 +586,18 @@ export type ChatSubagentUsage = z.infer<typeof ChatSubagentUsageSchema>;
 
 // The `origin` of a subagent row a host opened with a task of its own rather than the CLI with its tool; a legacy spelling that stored threads carry.
 export const HOST_TASK_ORIGIN = 'ruimte';
+
+const TASK_ROW_PREFIX = 'task-';
+
+/* The id of the subagent row a host writes for a task of its own, which is also the row's `toolUseId`. */
+export function taskRowId(taskId: string): string {
+    return `${TASK_ROW_PREFIX}${taskId}`;
+}
+
+/* The id of the task a subagent row stands for; null for a row the CLI opened with its own tool. */
+export function taskIdOfRow(row: { id: string; origin?: string }): string | null {
+    return row.origin === HOST_TASK_ORIGIN && row.id.startsWith(TASK_ROW_PREFIX) ? row.id.slice(TASK_ROW_PREFIX.length) || null : null;
+}
 
 /*
  * One agent the agent delegated to, foreground or background. Its own work stays in the thread as

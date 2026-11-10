@@ -1,13 +1,13 @@
 import { create, type StateCreator, type StoreApi, type UseBoundStore } from 'zustand';
 
-export type ChatStorageRecord = 'drafts' | 'preferences' | 'stash' | 'usage';
+type ChatStorageRecord = 'drafts' | 'preferences' | 'stash' | 'usage';
 
-export interface ChatStorageAdapter {
+interface ChatStorageAdapter {
     getItem(key: string): string | null;
     setItem(key: string, value: string): void;
 }
 
-export interface ChatStorageOptions {
+interface ChatStorageOptions {
     namespace?: string;
     keys?: Partial<Record<ChatStorageRecord, string>>;
     legacyNamespaces?: readonly string[];

@@ -1,7 +1,7 @@
 import type { ChatItem } from '@adecore/agent-contracts';
 
 /* One message of a thread that holds the query, cut to a line around the match. */
-export interface ThreadHit {
+interface ThreadHit {
     itemId: string;
     author: 'person' | 'agent';
     snippet: string;
@@ -12,11 +12,10 @@ export interface ThreadHit {
     turnId: string | null;
 }
 
-export interface ThreadSearchOptions {
+interface ThreadSearchOptions {
     limit: number;
 }
 
-// Characters kept on each side of the match.
 const CONTEXT = 60;
 
 // Emphasis and code markers carry no meaning in a one-line snippet, where they only read as noise.

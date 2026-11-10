@@ -2,7 +2,7 @@ import { expect, test } from 'bun:test';
 import { mkdtemp, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { BackendEvent, BackendLaunch } from '../chat/backend.ts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { fakeAcp, fakeAcpWith } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageScanner } from '../usage/scanner.ts';
@@ -170,7 +170,6 @@ test('reads its accounts over ACP unless the spec opts out', () => {
 
 const TURN_USAGE = { totalTokens: 1500, inputTokens: 1100, outputTokens: 400, cachedReadTokens: 1000 };
 
-/* One turn of a provider on a fake agent that reports `TURN_USAGE`. */
 async function oneTurn(provider: ReturnType<typeof createAcpProvider>): Promise<void> {
     const fake = inProcess(fakeAcpWith({ turnUsage: TURN_USAGE }));
 
@@ -226,7 +225,6 @@ test('logs nothing for an agent whose own usage files are read', async () => {
     }
 });
 
-/* A store in memory, as a host keeps one in a file. */
 function memoryStore(initial?: unknown): { load(): unknown; save(value: unknown): void; saved: unknown[] } {
     const saved: unknown[] = initial === undefined ? [] : [initial];
 

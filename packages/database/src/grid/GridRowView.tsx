@@ -3,9 +3,10 @@ import { formatNumber } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { memo, type MouseEvent, type PointerEvent } from 'react';
 import { CODE_TEXT } from '../code-text.ts';
+import { type NumberNotation } from '../number-notation.ts';
 import { cellIdOf } from './cell-id.ts';
 import { CellEditor, type EditMove } from './CellEditor.tsx';
-import { columnNotation, cellView, type CellView, type NumberNotation } from './display.ts';
+import { columnNotation, cellView, type CellView } from './display.ts';
 import type { EnumType } from './enum-type.ts';
 import { EnumPicker } from './EnumPicker.tsx';
 import { ROW_HEIGHT } from './layout.ts';
@@ -48,7 +49,6 @@ export interface RowLook {
     readonly gutter: number;
     readonly notation: NumberNotation;
     readonly enumTypes: readonly (EnumType | null)[];
-    /* Column indexes picked whole. */
     readonly picked: ReadonlySet<number>;
     readonly loadingLabel: string;
 }
@@ -66,7 +66,7 @@ export interface RowActions {
     changeDraft(draft: string): void;
 }
 
-export interface GridRowViewProps {
+interface GridRowViewProps {
     row: GridRow;
     index: number;
     selected: boolean;
@@ -75,7 +75,6 @@ export interface GridRowViewProps {
     /* The drawn positions a cell range covers in this row, or -1 for both when it covers none. */
     rangeStart: number;
     rangeEnd: number;
-    /* The edit under way when it is in this row. */
     editing: CellEdit | null;
     look: RowLook;
     actions: RowActions;

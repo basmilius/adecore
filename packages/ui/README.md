@@ -25,14 +25,14 @@ Import the theme right after Tailwind and let Tailwind scan the library for the 
 @source "../node_modules/@adecore/ui/dist";
 ```
 
-Wrap the app in `UIProvider` once, above the first component of the library. It adds the library's words to the app's i18next (English and Dutch ship with it), hands the formatters their [format source](https://adecore.dev/ui/formatting/) and mounts the tooltip provider.
+Wrap the app in `UIProvider` once, above the first component of the library. It adds the library's words to the app's i18next (English and Dutch ship with it) and mounts the tooltip provider. Hand the formatters their [format source](https://adecore.dev/ui/formatting/) with `setFormatSource` before the first render.
 
 ```tsx
 import i18next from 'i18next';
 import { UIProvider } from '@adecore/ui';
 
 createRoot(root).render(
-    <UIProvider i18n={i18next} formatSource={formatSource}>
+    <UIProvider i18n={i18next}>
         <App />
     </UIProvider>
 );

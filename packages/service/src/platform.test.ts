@@ -4,10 +4,9 @@ import { platformServiceManager, serviceDefinition, type PlatformServiceOptions 
 
 const options: PlatformServiceOptions = {
     launchd: {
-        label: 'com.example.worker',
+        service: { label: 'com.example.worker', logFile: '/var/log/example/worker.log' },
         uid: 501,
         home: '/Users/ada',
-        logFile: '/var/log/example/worker.log',
         run: () => ({ code: 0, stdout: '', stderr: '' }),
         files: { read: () => null, write() {}, remove() {}, makeDirectory() {} },
         sleep: async () => {}
@@ -47,9 +46,8 @@ describe('platform selection', () => {
         const manager = platformServiceManager('win32', {
             ...options,
             taskScheduler: {
-                taskName: 'Example Worker',
+                service: { label: 'Example Worker', logFile: 'C:\\Users\\ada\\AppData\\Local\\Example\\worker.log' },
                 definitionFile: 'C:\\Users\\ada\\AppData\\Local\\Example\\worker.xml',
-                logFile: 'C:\\Users\\ada\\AppData\\Local\\Example\\worker.log',
                 run: () => ({ code: 0, stdout: '', stderr: '' }),
                 files: { read: () => null, write() {}, remove() {}, makeDirectory() {} },
                 sleep: async () => {}

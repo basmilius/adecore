@@ -10,6 +10,7 @@ exports[`the public API . exports these names 1`] = `
   "SUB_SIZE",
   "arrowHeadPath",
   "dashOf",
+  "diagramScene",
   "edgeLabelLinesOf",
   "edgePath",
   "layoutOf",

@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { placePopup, type PlaceOptions } from './popup-placement.ts';
 
-export interface AnchoredPopupProps {
+interface AnchoredPopupProps {
     /* The character the popup belongs to, in the page's pixels. */
     rect: EditorRect;
     className?: string;

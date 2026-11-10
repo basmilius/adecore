@@ -9,7 +9,7 @@ export interface RangeBlock {
     readonly columns: readonly number[];
 }
 
-export interface NumericAggregates {
+interface NumericAggregates {
     /* The cells that held a number; NULLs and the cells of other columns do not count. */
     readonly count: number;
     readonly sum: number;
@@ -22,7 +22,6 @@ export interface NumericAggregates {
 }
 
 export interface Aggregates {
-    /* Every cell of the block. */
     readonly count: number;
     /* `null` when no cell of the block held a number. */
     readonly numeric: NumericAggregates | null;

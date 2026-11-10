@@ -61,7 +61,6 @@ export interface TableDraft {
 
 let counter = 0;
 
-/* A key no other item of this page has. */
 export const nextKey = (): string => `new-${++counter}`;
 
 export const emptyColumn = (name = ''): ColumnDraft => ({
@@ -102,7 +101,6 @@ const foreignKeyDraftOf = (foreignKey: ForeignKeyInfo, at: number): ForeignKeyDr
     onDelete: foreignKey.onDelete
 });
 
-/* The draft that changes nothing: what a structure already says. */
 export const draftOf = (structure: TableStructure): TableDraft => {
     const clauses = generatedClausesOf(structure.ddl);
 

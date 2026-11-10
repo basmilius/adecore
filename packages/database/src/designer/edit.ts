@@ -1,7 +1,5 @@
 import { emptyColumn, nextKey, type ColumnDraft, type ForeignKeyDraft, type IndexDraft, type TableDraft, type TableOptions } from '../ddl/index.ts';
 
-/* The editing steps of a draft. Each returns a new draft and leaves the one it was given alone. */
-
 const replaceAt = <T extends { readonly key: string }>(items: readonly T[], key: string, change: (item: T) => T): T[] =>
     items.map((item) => (item.key === key ? change(item) : item));
 

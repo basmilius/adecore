@@ -4,7 +4,7 @@ import { compileUi } from '@adecore/intelligent-ui';
 import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider } from '../../../host';
+import { ChatHostProvider } from '../../../host/host';
 import { UiReply } from './UiReply';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.

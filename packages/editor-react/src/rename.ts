@@ -1,8 +1,8 @@
 import type { EditorRange } from '@adecore/editor';
 import { StaleResultError, type Location, type PrepareRenameResult, type WorkspaceEdit } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import type { RenameView } from './popups.ts';
 import { occurrencesOf, renameKindOf, renamePreviewOf, renameTargetOf, wordRangeAt, type RenameTarget } from './rename-model.ts';
@@ -33,10 +33,10 @@ interface Session {
  * Edits to other files land as unsaved drafts (`applyWorkspaceEdit`), so nothing is written to disk here.
  */
 export class RenameFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private session: Session | null = null;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext) {
         this.language = language;
         const { editor } = language;
 
@@ -161,7 +161,6 @@ export class RenameFeature {
         }
     }
 
-    /* Applies the edit the preview showed. */
     async confirm(): Promise<void> {
         const session = this.session;
 
@@ -180,7 +179,7 @@ export class RenameFeature {
 
     /* The name was changed, which answers the failure under it. */
     edited(): void {
-        if (this.language.popups.getState().rename?.error != null) {
+        if (this.language.popups.slot('rename').get()?.error != null) {
             this.publish({ error: null });
         }
     }
@@ -211,7 +210,7 @@ export class RenameFeature {
         this.session?.names.abort();
         this.session = null;
         const { editor, popups } = this.language;
-        popups.setState({ rename: null });
+        popups.slot('rename').set(null);
         editor.setHighlights([]);
         editor.focus();
     }
@@ -326,24 +325,22 @@ export class RenameFeature {
         }
 
         const { popups } = this.language;
-        const current = popups.getState().rename;
+        const current = popups.slot('rename').get();
 
-        popups.setState({
-            rename: {
-                phase: 'input',
-                range: session.target.range,
-                original: session.original,
-                placeholder: session.target.placeholder,
-                occurrences: null,
-                busy: false,
-                error: null,
-                name: session.target.placeholder,
-                files: [],
-                operations: [],
-                suggestions: [],
-                ...current,
-                ...patch
-            }
+        popups.slot('rename').set({
+            phase: 'input',
+            range: session.target.range,
+            original: session.original,
+            placeholder: session.target.placeholder,
+            occurrences: null,
+            busy: false,
+            error: null,
+            name: session.target.placeholder,
+            files: [],
+            operations: [],
+            suggestions: [],
+            ...current,
+            ...patch
         });
     }
 

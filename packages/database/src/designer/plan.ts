@@ -1,7 +1,6 @@
 import { alterTableSql, createTableSql, dropsColumns, draftOf, validateDraft, type Dialect, type DraftProblem, type TableDraft } from '../ddl/index.ts';
 import type { TableStructure } from '../protocol/index.ts';
 
-/* What applying a draft would do. */
 export interface Plan {
     readonly problems: readonly DraftProblem[];
     /* Empty while there are problems, since a draft that does not hold together has no SQL. */
@@ -24,5 +23,4 @@ export const planOf = (dialect: Dialect, schema: string, structure: TableStructu
     return { problems, statements: alterTableSql(dialect, schema, structure, draft), destructive: dropsColumns(draftOf(structure), draft) };
 };
 
-/* The statements as a person reads them and as a script runs them. */
 export const scriptOf = (statements: readonly string[]): string => statements.map((statement) => `${statement};`).join('\n');

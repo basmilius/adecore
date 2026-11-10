@@ -34,16 +34,3 @@ export interface ParsedRefusal {
     message: string;
     lines: string[];
 }
-
-/* Reads either form back. Null when the text is no refusal at all, which is not the same as one without advice. */
-export function parseRefusalBody(text: string): ParsedRefusal | null {
-    const [first = '', ...lines] = text.split('\n').filter((line) => line.trim() !== '');
-    const parts = first.split('\t');
-    const [code, message] = parts[0] === 'refused' ? parts.slice(1) : parts;
-
-    if (!code || !message) {
-        return null;
-    }
-
-    return { code, message, lines };
-}

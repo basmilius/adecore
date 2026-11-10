@@ -18,10 +18,12 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useModelName } from '../../agents/model-name';
-import { useChatHost, type TimelineFindOptions } from '../../host';
-import { useHostContextSources, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host-hooks';
+import { useChatHost, type TimelineFindOptions } from '../../host/host';
+import { useHostContextSources, useHostHidesToolCalls, useHostThreadCards, useHostTimelineFind, useHostWelcome } from '../../host/host-hooks';
+import { type TimelineRow } from '../../host/timeline-row';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
+import { providersOf } from '../../state/providers';
 import { useForkedTurns } from '../forks';
 import { bookmarkRows } from '../logic/bookmarks';
 import { forkRefusal } from '../logic/fork';
@@ -39,7 +41,7 @@ import {
     EARLIER_ROW
 } from '../logic/scrubber';
 import { timedRowsOf, withTimedRows } from '../logic/thread-cards';
-import { deriveTimelineRows, findSubagentBranch, type TimelineRow } from '../logic/timeline';
+import { deriveTimelineRows, findSubagentBranch } from '../logic/timeline';
 import {
     EMPTY_TARGET,
     readTimelineTarget,
@@ -183,7 +185,6 @@ interface ThreadRowProps extends Omit<RowProps, 'openConversation'> {
     index: number;
     top: number;
     measure: (element: HTMLDivElement | null) => void;
-    /* The nonce of the flash on this row, or null when it has none. */
     flashNonce: number | null;
     bookmark: ChatBookmark | null;
     openConversation(step: SubagentStep): void;
@@ -877,11 +878,11 @@ export function Timeline({
 
                 const row = useChats.getState().byKey[keyOf(chatId)];
 
-                return forkRefusal(row?.info ?? null, row?.structure[turnId]) === null;
+                return forkRefusal(row?.info ?? null, row?.structure[turnId], providersOf(scopeId)) === null;
             },
             fork: (turnId) => fork?.(chatId, turnId)
         }),
-        [keyOf, chatId, fork]
+        [keyOf, scopeId, chatId, fork]
     );
 
     const stepRef = useRef<(direction: -1 | 1) => boolean>(() => false);

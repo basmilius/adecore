@@ -1,3 +1,11 @@
+/* The size of the peek and call hierarchy panels, which a person drags. */
+export interface PanelsHost {
+    /* The height in pixels of the list-and-preview area of the peek and the call hierarchy, so a person's drag outlives the panel; 180 without one. */
+    readonly panelBodyHeight?: number;
+    /* A person finished resizing a peek or call hierarchy panel; the height is already within what the editor allows. */
+    onPanelResize?(height: number): void;
+}
+
 /* The height of the list-and-preview area of a peek or a call hierarchy, which is what a person drags; the bands and the title bar around it stay. */
 export const PANEL_BODY_HEIGHT = 180;
 

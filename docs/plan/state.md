@@ -17,6 +17,10 @@ A step without sub-steps carries its own `state`, and an absent state is `open`:
 
 The markers are the ones [Markdown](/plan/markdown) and the [text for an agent](/plan/agent-text) use. Several steps may be active at once.
 
+## What a person picks
+
+A person sets every state but `active`, which is the agent's word for where it works. `PLAN_PERSON_STATES` lists those in the order a menu shows them. A step of a `test` plan offers `PLAN_TEST_OUTCOMES`, which is the same list without `open`. `asksForNote(state)` is true for `failed`, `warning` and `info`, the states that are only worth something with a line about what happened, so a client opens the note when a person picks one.
+
 ## A parent's state
 
 A step with sub-steps has no state of its own. `stepState(step)` derives it from its children, by the first row that matches:

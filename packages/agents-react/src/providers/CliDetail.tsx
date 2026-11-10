@@ -9,8 +9,8 @@ import { carryOptions } from '../agents/model-options';
 import { ModelOptionControl } from '../agents/ModelOptionControl';
 import { optionWord } from '../agents/option-words';
 import { accountFor, forgetChatSelection, rememberChatAccount, rememberChatSelection, selectionFor, useChatPreferences } from '../chat/preferences';
-import { useChatHost } from '../host';
-import { useHostCanReorderAccounts } from '../host-hooks';
+import { useChatHost } from '../host/host';
+import { useHostCanReorderAccounts } from '../host/host-hooks';
 import { useChatScope } from '../scope';
 import { knownAccounts, useProviderAccounts } from '../state/provider-accounts';
 import { reorderAccounts } from './account-actions';
@@ -51,7 +51,6 @@ interface CliDetailProps {
     onPickAccount(id: string): void;
 }
 
-/* One CLI: what it is, what a new chat of it starts with unless `defaults` is off, and its accounts. */
 export function CliDetail({ provider, entries, defaults, login, onAddAccount, onPickAccount }: CliDetailProps) {
     const { t } = useTranslation('agent-providers');
     const scope = useChatScope();

@@ -1,3 +1,4 @@
+import type { KeyChord } from '@adecore/editor';
 import {
     applyContentChanges,
     ErrorCodes,
@@ -57,8 +58,59 @@ import {
     type TypeHierarchyItem,
     type WorkspaceDiagnosticReport
 } from '@adecore/lsp';
+import { isApplePlatform } from '@adecore/ui';
 
 export { ManualTimers } from './timers.ts';
+
+/* The build has no Node types, and a turn of the event loop is what the fake service needs. */
+declare function setImmediate(callback: () => void): unknown;
+
+/* A shortcut as a keymap or a shortcut table gives it; `apple` says which platform's modifier `mod` stands for. */
+export type KeyShortcut = KeyChord & { readonly apple?: boolean };
+
+const KEY_CODES: Readonly<Record<string, string>> = {
+    ',': 'Comma',
+    '.': 'Period',
+    '/': 'Slash',
+    ';': 'Semicolon',
+    "'": 'Quote',
+    '`': 'Backquote',
+    '\\': 'Backslash',
+    '[': 'BracketLeft',
+    ']': 'BracketRight',
+    '-': 'Minus',
+    '=': 'Equal'
+};
+
+/*
+ * The keydown a person pressing the shortcut sends, as `FakeEditor.press` takes it. `mod` is Meta on an Apple
+ * platform and Ctrl elsewhere: the platform of the shortcut, else the one given, else the page's.
+ */
+export function keyOf(shortcut: KeyShortcut | null, apple?: boolean): Pick<KeyboardEvent, 'key' | 'code' | 'ctrlKey' | 'metaKey' | 'altKey' | 'shiftKey'> {
+    if (shortcut === null) {
+        throw new Error('The keymap has no shortcut for this');
+    }
+
+    const { key } = shortcut;
+    const onApple = shortcut.apple ?? apple ?? isApplePlatform();
+    const letter = /^[A-Z]$/.test(key);
+
+    return {
+        key: letter ? key.toLowerCase() : key === 'Space' ? ' ' : key,
+        code: letter ? `Key${key}` : /^[0-9]$/.test(key) ? `Digit${key}` : (KEY_CODES[key] ?? key),
+        ctrlKey: shortcut.ctrl || (shortcut.mod && !onApple),
+        metaKey: shortcut.meta || (shortcut.mod && onApple),
+        altKey: shortcut.alt,
+        shiftKey: shortcut.shift
+    };
+}
+
+/* The fake language service has no I/O; a few event-loop turns drain its promise chains. */
+export async function settle(): Promise<void> {
+    for (let i = 0; i < 6; i++) {
+        await new Promise<void>((resolve) => setImmediate(resolve));
+    }
+}
 
 export interface LanguageCall {
     method: string;

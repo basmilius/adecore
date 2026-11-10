@@ -12,7 +12,6 @@ export function climbsOut(rel: string): boolean {
     return rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel);
 }
 
-/* Whether `path` is `folder` or lies below it. */
 export function isWithin(folder: string, path: string): boolean {
     return !climbsOut(relative(folder, path));
 }

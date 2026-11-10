@@ -3,7 +3,7 @@ import { formatNumber } from '@adecore/ui/format';
 import type { i18n } from 'i18next';
 
 /* Past this many declarations in one file the rows are left out, since that many rows would be noise. */
-export const MAX_DECLARATIONS = 3000;
+const MAX_DECLARATIONS = 3000;
 
 /* LSP's SymbolKind: the kinds a row is drawn for and the ones whose children can be declarations too. */
 const CLASS = 5;
@@ -259,7 +259,6 @@ export function declarationsOf(result: DocumentSymbolResult, source: Declaration
     return declarations;
 }
 
-/* "No usages", "1 usage" and "N usages". */
 export function usagesText(count: number, i18n: i18n): string {
     return count === 0
         ? i18n.t('editor:language.codeVision.usagesNone')

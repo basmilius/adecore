@@ -23,7 +23,6 @@ import { useDatabaseAction, useDatabaseClient, useDatabaseFiles, useDatabaseNoti
 import { DatabaseRequestError, type Connection } from '../client/types.ts';
 import { aggregateBlock, blockSize, type RangeBlock } from '../grid/aggregates.ts';
 import { DataGrid } from '../grid/DataGrid.tsx';
-import { RecordView } from '../grid/RecordView.tsx';
 import type { GridSort } from '../grid/sort.ts';
 import type { ColumnRequest, FocusedCell, FocusRequest, GridMenuContext } from '../grid/types.ts';
 import { ValueDock } from '../grid/ValueDock.tsx';
@@ -68,6 +67,7 @@ import {
     type PendingChanges,
     type RowSelectionRefs
 } from './pending.ts';
+import { RecordView } from './RecordView.tsx';
 import { foreignKeyOf, referenceOf, type Reference } from './references.ts';
 import { TableStatusBar } from './TableStatusBar.tsx';
 import { TableToolbar } from './TableToolbar.tsx';
@@ -76,7 +76,7 @@ import { useStoredLayout } from './useStoredLayout.ts';
 import { useTableTransfer, type TransferNotice } from './useTableTransfer.ts';
 
 /* Where the width of the record view is kept, in pixels, for every table. */
-export const RECORD_WIDTH_KEY = 'database:record-view';
+const RECORD_WIDTH_KEY = 'database:record-view';
 const RECORD_WIDTH = 360;
 
 export interface TableViewProps {
@@ -88,7 +88,6 @@ export interface TableViewProps {
     /* The filters the view starts with, such as the condition of a jump along a foreign key. They win over the ones remembered. */
     defaultWhere?: string;
     defaultOrderBy?: string;
-    /* Told whether the view holds changes that are not submitted, whenever that changes. */
     onDirtyChange?(dirty: boolean): void;
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -117,7 +116,6 @@ const readOnlyReasonOf = (connection: Connection, structure: TableStructure | nu
     return null;
 };
 
-/* What the strip over the table, or the app's notice, says of an export or an import. */
 const transferText = (found: TransferNotice, t: TFunction<'database'>): string => {
     switch (found.kind) {
         case 'exporting':

@@ -7,7 +7,7 @@ import { useEffect, useSyncExternalStore } from 'react';
  */
 export const MAX_LIVE_MAPS = 4;
 
-export type MapSlotState = 'idle' | 'granted' | 'queued';
+type MapSlotState = 'idle' | 'granted' | 'queued';
 
 /*
  * Who may draw a map right now. A map in view asks for a slot and gets one while there are fewer than
@@ -92,7 +92,7 @@ export class MapSlots {
 let page: MapSlots | null = null;
 
 /* The one budget of the page, made on first use. */
-export function pageMapSlots(): MapSlots {
+function pageMapSlots(): MapSlots {
     page ??= new MapSlots(MAX_LIVE_MAPS);
 
     return page;

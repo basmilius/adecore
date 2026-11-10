@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { SUGGESTED_TITLE_LIMIT } from '@adecore/agent-contracts';
-import { createGrokProvider } from '../providers/acp-vendors.ts';
+import { createAntigravityProvider, createCopilotProvider, createGrokProvider } from '../providers/acp-vendors.ts';
 import type { ChatProvider } from '../providers/provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { buildTitlePrompt, namedByOneShot, parseTitle, suggestChatTitle } from './chat-title.ts';
@@ -44,6 +44,10 @@ describe('namedByOneShot', () => {
         expect(namedByOneShot(registry.get('claude'))).toBe(false);
         expect(namedByOneShot({ oneShotArgs: undefined })).toBe(false);
     });
+
+    test('names no Antigravity chat, whose single prompt runs apart from its chats', () => {
+        expect(namedByOneShot(createAntigravityProvider())).toBe(false);
+    });
 });
 
 function registryWith(installed: string[], providers?: ChatProvider[]): ProviderRegistry {
@@ -61,5 +65,14 @@ describe('suggestChatTitle', () => {
         expect((await registryWith(['claude', 'codex']).oneShotProvider('codex'))?.kind).toBe('codex');
         expect(await registryWith([]).oneShotProvider('codex')).toBeNull();
         expect(await suggestChatTitle(registryWith([]), 'codex', input)).toBeNull();
+    });
+
+    test('Antigravity answers first only for its own kind, and after every other CLI otherwise', async () => {
+        const providers = [createAntigravityProvider(), createCopilotProvider(), createGrokProvider()];
+        const everything = registryWith(['agy', 'copilot', 'grok'], providers);
+        expect((await everything.oneShotProvider())?.kind).toBe('copilot');
+        expect((await everything.oneShotProvider('grok'))?.kind).toBe('grok');
+        expect((await everything.oneShotProvider('antigravity'))?.kind).toBe('antigravity');
+        expect((await registryWith(['agy'], providers).oneShotProvider('grok'))?.kind).toBe('antigravity');
     });
 });

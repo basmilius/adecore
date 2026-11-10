@@ -378,7 +378,6 @@ describe('versioned language documents', () => {
         expect(transport.request('callHierarchy/outgoingCalls').params).toEqual({ item });
         transport.respond('callHierarchy/outgoingCalls', [{ to: item, fromRanges: [] }]);
         expect(await outgoing).toEqual([{ to: item, fromRanges: [] }]);
-        // Both caller requests are alive: the second did not cancel the first.
         const asked = transport.sent.filter((message) => 'method' in message && message.method === 'callHierarchy/incomingCalls') as { id: number }[];
         expect(asked).toHaveLength(2);
         transport.emit({ jsonrpc: '2.0', id: asked[0]!.id, result: [{ from: item, fromRanges: [] }] });

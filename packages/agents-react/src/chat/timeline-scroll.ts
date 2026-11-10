@@ -154,9 +154,7 @@ function waitingJumps<T>(): { register(key: string, jump: (target: T) => void): 
     };
 }
 
-/* What a jump to an item may ask beyond scrolling to it. */
 export interface ItemJumpOptions {
-    /* Lights the row up once it is in view. */
     flash?: boolean;
     /* Runs when the item is nowhere in the thread, after every earlier page has been tried. */
     onMissing?(): void;

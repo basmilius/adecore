@@ -1,48 +1,16 @@
-import type { Editor, EditorEngine, EditorLineHighlight, EditorTheme } from '@adecore/editor';
+import type { EditorLineHighlight } from '@adecore/editor';
 import { parseChord } from '@adecore/editor/keymap';
-import { diffDisplay, diffSplit, sourceLineOf, type DiffDocument, type DiffDisplay, type DiffSourceLine } from '@adecore/merge';
+import { diffDisplay, diffSplit, sourceLineOf, type DiffDocument, type DiffDisplay } from '@adecore/merge';
 import { useOverlayScrollbars } from '@adecore/ui';
-import { useLayoutEffect, useRef, useState, type Ref } from 'react';
+import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DEFAULT_UNFOLD_LIMITS, expandDiff, type DiffLimits } from './diff-expansion.ts';
+import { DEFAULT_UNFOLD_LIMITS, expandDiff } from './diff-expansion.ts';
 import { DiffOverlays, type MountedDiff } from './diff-overlays.tsx';
-import { repaintOnTokens, type DiffSourceTokens } from './diff-syntax.ts';
+import { repaintOnTokens } from './diff-syntax.ts';
+import type { DiffViewProps } from './diff-view-props.ts';
 import { wordMarks } from './diff-wordmarks.ts';
 import { LineActionHost, RowHost } from './row-host.ts';
 import { SplitDiffView } from './SplitDiffView.tsx';
-
-export interface DiffViewProps {
-    engine: EditorEngine;
-    document: DiffDocument;
-    theme: EditorTheme;
-    tokens?: DiffSourceTokens;
-    wrap?: boolean;
-    layout?: 'unified' | 'split';
-    /* Above this many displayed unified rows, split uses fixed line heights. Defaults to 2000. */
-    splitWrapLimit?: number;
-    /* A fixed-height host supplies the height; otherwise the view grows with its rows. */
-    fill?: boolean;
-    /* Positive pixels; taller content scrolls inside the editor. Ignored with fill. */
-    maxHeight?: number;
-    /* Total visible source-text budgets after unfolding; changed rows are always retained. */
-    unfoldLimits?: DiffLimits;
-    label: string;
-    /* False draws no line numbers, for a fragment whose place in its file is not known. Defaults to true. */
-    numbered?: boolean;
-    className?: string;
-    ref?: Ref<HTMLDivElement>;
-    onMount?(editor: Editor, side?: 'old' | 'new'): void | (() => void);
-    /* Runs per editor like `onMount`, with a way to ask where its caret stands in the new file, for a host that opens the file there. */
-    onSource?(source: DiffSource): void | (() => void);
-}
-
-export interface DiffSource {
-    readonly editor: Editor;
-    /* `old` or `new` in split, absent in unified. */
-    readonly side?: 'old' | 'new';
-    /* The line and column of the new file under the caret, or null where the new file has none. */
-    at(): DiffSourceLine | null;
-}
 
 interface UnifiedViewProps extends DiffViewProps {
     display: DiffDisplay;

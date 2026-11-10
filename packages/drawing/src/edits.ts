@@ -85,7 +85,6 @@ export const DrawingElementPatchSchema = z.strictObject({
 });
 export type DrawingElementPatch = z.infer<typeof DrawingElementPatchSchema>;
 
-/* Elements to add on top, changes by id and ids to take away, in one step. */
 export const DrawingEditSchema = z.strictObject({
     add: z.array(NewDrawingElementSchema).optional(),
     update: z.array(DrawingElementPatchSchema).optional(),
@@ -93,7 +92,6 @@ export const DrawingEditSchema = z.strictObject({
 });
 export type DrawingEdit = z.infer<typeof DrawingEditSchema>;
 
-/* Where an edit went wrong, as the path into the edit and what is wrong there. */
 export interface DrawingEditProblem {
     path: (string | number)[];
     message: string;
@@ -111,7 +109,6 @@ function touched(edit: DrawingEdit): number {
     return (edit.add?.length ?? 0) + (edit.update?.length ?? 0) + (edit.remove?.length ?? 0);
 }
 
-/* The problems of the ids an update or a remove names: unknown, locked, or named twice. */
 function idProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEdit): DrawingEditProblem[] {
     const problems: DrawingEditProblem[] = [];
     const named = new Set<string>();
@@ -136,7 +133,6 @@ function idProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEdit
     return problems;
 }
 
-/* The problems of fields a patch sets that its element's kind does not have. */
 function kindProblems(byId: ReadonlyMap<string, DrawingElement>, edit: DrawingEdit): DrawingEditProblem[] {
     const shared = new Set(Object.keys(placed));
 

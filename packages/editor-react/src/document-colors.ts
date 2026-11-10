@@ -1,7 +1,8 @@
 import type { EditorContentChange, EditorInlayClick, EditorInlayHint } from '@adecore/editor';
 import type { Color, ColorInformation, ColorPresentation, TextEdit } from '@adecore/lsp';
 import { DocumentQuery } from './document-query.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
+import type { PickFeature } from './pick.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/documentColor';
@@ -33,9 +34,13 @@ function hexOf(color: Color): string {
     return `#${part(color.red)}${part(color.green)}${part(color.blue)}`;
 }
 
-/* The edits a presentation makes: its own text edit, or its label over the color, and the edits that come with it. */
-export function presentationEdits(presentation: ColorPresentation, information: ColorInformation): TextEdit[] {
+function presentationEdits(presentation: ColorPresentation, information: ColorInformation): TextEdit[] {
     return [presentation.textEdit ?? { range: information.range, newText: presentation.label }, ...(presentation.additionalTextEdits ?? [])];
+}
+
+/* The sibling features DocumentColorsFeature drives, which the editor language hands over. */
+interface DocumentColorsPeers {
+    readonly pick: Pick<PickFeature, 'open'>;
 }
 
 /*
@@ -44,13 +49,15 @@ export function presentationEdits(presentation: ColorPresentation, information: 
  * platform's picker, which keeps the way the color was written when the server offers it.
  */
 export class DocumentColorsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: DocumentColorsPeers;
     private colors: readonly ColorInformation[] = [];
     private readonly query: DocumentQuery<ColorInformation[]>;
     private enabled = true;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: DocumentColorsPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.query = new DocumentQuery(
             language,
             timers,
@@ -136,7 +143,8 @@ export class DocumentColorsFeature {
         if (!this.colors.includes(information)) {
             return;
         }
-        const { pick, project } = this.language;
+        const { project } = this.language;
+        const { pick } = this.peers;
         const rows = presentations.map((presentation, index) => ({ id: String(index), label: presentation.label, detail: '' }));
         pick.open({
             anchor: information.range.start,

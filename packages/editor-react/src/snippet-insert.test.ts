@@ -34,7 +34,7 @@ describe('insertSnippet', () => {
     test('replaces the range with the snippet and starts a session on its tab stops', async () => {
         const { editor, language, range, caret } = await setup('log');
 
-        expect(await insertSnippet(language, 'console.log(${1:value});$0', [{ range: range(0, 3) }])).toBe(true);
+        expect(await insertSnippet(language, language.snippets, 'console.log(${1:value});$0', [{ range: range(0, 3) }])).toBe(true);
         expect(editor.getText()).toBe('console.log(value);');
         expect(language.snippets.isActive).toBe(true);
         expect(editor.getSelection()).toEqual(range(12, 17));
@@ -47,7 +47,7 @@ describe('insertSnippet', () => {
     test('puts the caret after the insertion when the snippet has no stops', async () => {
         const { editor, language, range, caret } = await setup('x;');
 
-        expect(await insertSnippet(language, 'one\ntwo', [{ range: range(0, 1) }])).toBe(true);
+        expect(await insertSnippet(language, language.snippets, 'one\ntwo', [{ range: range(0, 1) }])).toBe(true);
         expect(editor.getText()).toBe('one\ntwo;');
         expect(language.snippets.isActive).toBe(false);
         expect(caret()).toBe(7);
@@ -57,7 +57,7 @@ describe('insertSnippet', () => {
         const { editor, language, range } = await setup('function f() {\n    if\n}');
         const at = editor.getText().indexOf('if');
 
-        await insertSnippet(language, 'if ($1) {\n    $0\n}', [{ range: range(at, at + 2) }]);
+        await insertSnippet(language, language.snippets, 'if ($1) {\n    $0\n}', [{ range: range(at, at + 2) }]);
 
         expect(editor.getText()).toBe('function f() {\n    if () {\n        \n    }\n}');
     });
@@ -65,8 +65,12 @@ describe('insertSnippet', () => {
     test('gives the selected text its lines indentation, and lets the extra variables go first', async () => {
         const { editor, language, range } = await setup('a();\nb();');
 
-        await insertSnippet(language, 'if ($1) {\n\t$TM_SELECTED_TEXT\n}\n// $NAME', [{ range: range(0, 9), selectedText: 'a();\nb();' }], (name) =>
-            name === 'NAME' ? 'extra' : undefined
+        await insertSnippet(
+            language,
+            language.snippets,
+            'if ($1) {\n\t$TM_SELECTED_TEXT\n}\n// $NAME',
+            [{ range: range(0, 9), selectedText: 'a();\nb();' }],
+            (name) => (name === 'NAME' ? 'extra' : undefined)
         );
 
         expect(editor.getText()).toBe('if () {\n\ta();\n\tb();\n}\n// extra');
@@ -75,7 +79,7 @@ describe('insertSnippet', () => {
     test('resolves the variables for each placement, and puts a session on every one', async () => {
         const { editor, language, range } = await setup('a\nb');
 
-        await insertSnippet(language, '[${1:x}]$TM_LINE_NUMBER', [{ range: range(0, 1) }, { range: range(2, 3) }]);
+        await insertSnippet(language, language.snippets, '[${1:x}]$TM_LINE_NUMBER', [{ range: range(0, 1) }, { range: range(2, 3) }]);
 
         expect(editor.getText()).toBe('[x]1\n[x]2');
         expect(editor.getSelections()).toEqual([range(1, 2), range(6, 7)]);
@@ -86,11 +90,11 @@ describe('insertSnippet', () => {
     test('goes on in a running session, which takes it as a nested one', async () => {
         const { editor, language, range } = await setup('a b');
 
-        await insertSnippet(language, '(${1:one}) ${2:two}', [{ range: range(0, 1) }]);
+        await insertSnippet(language, language.snippets, '(${1:one}) ${2:two}', [{ range: range(0, 1) }]);
 
         expect(editor.getText()).toBe('(one) two b');
 
-        await insertSnippet(language, '<${1:inner}>', [{ range: editor.getSelection() }]);
+        await insertSnippet(language, language.snippets, '<${1:inner}>', [{ range: editor.getSelection() }]);
 
         expect(editor.getText()).toBe('(<inner>) two b');
         expect(language.snippets.isActive).toBe(true);
@@ -101,9 +105,12 @@ describe('insertSnippet', () => {
     test('refuses a snippet that is too large and tells the person', async () => {
         const { editor, language, range, notifications } = await setup('x');
 
-        expect(await insertSnippet(language, 'x'.repeat(90_000), [{ range: range(0, 1) }, ...Array.from({ length: 30 }, () => ({ range: range(0, 1) }))])).toBe(
-            false
-        );
+        expect(
+            await insertSnippet(language, language.snippets, 'x'.repeat(90_000), [
+                { range: range(0, 1) },
+                ...Array.from({ length: 30 }, () => ({ range: range(0, 1) }))
+            ])
+        ).toBe(false);
         expect(editor.getText()).toBe('x');
         expect(notifications.map((notification) => notification.title)).toEqual(['Too large to insert']);
     });
@@ -111,14 +118,14 @@ describe('insertSnippet', () => {
     test('does nothing in a read-only editor or without placements', async () => {
         const { editor, language, range } = await setup('x', { readOnly: true });
 
-        expect(await insertSnippet(language, 'y', [{ range: range(0, 1) }])).toBe(false);
-        expect(await insertSnippet(language, 'y', [])).toBe(false);
+        expect(await insertSnippet(language, language.snippets, 'y', [{ range: range(0, 1) }])).toBe(false);
+        expect(await insertSnippet(language, language.snippets, 'y', [])).toBe(false);
         expect(editor.getText()).toBe('x');
     });
 
     test('drops an insertion when the text changed while it waited', async () => {
         const { editor, language, range } = await setup('x');
-        const inserting = insertSnippet(language, 'y', [{ range: range(0, 1) }]);
+        const inserting = insertSnippet(language, language.snippets, 'y', [{ range: range(0, 1) }]);
 
         editor.setText('z');
 

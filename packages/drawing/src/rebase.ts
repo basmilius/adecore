@@ -23,7 +23,6 @@ function byId(elements: readonly DrawingElement[]): Map<string, { element: Drawi
     return new Map(elements.map((element) => [element.id, { element, text: canonical(element) }]));
 }
 
-/* Whether a side stacked the elements it shares with the base in another order. */
 function restacked(base: readonly DrawingElement[], side: readonly DrawingElement[]): boolean {
     const shared = new Set(base.map((element) => element.id));
     const order = side.map((element) => element.id).filter((id) => shared.has(id));

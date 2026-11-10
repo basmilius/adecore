@@ -8,7 +8,7 @@ import { CHAT_PAYLOAD_INLINE_BYTES, ChatCheckpointDiffSchema, type ChatCheckpoin
 import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic, writeAtomicSync } from '@adecore/utils/fs';
 import { isHighSurrogate } from '@adecore/utils/text';
-import { ChatError } from './errors.ts';
+import { ChatError } from '../chat-error.ts';
 
 /* How much of a value stored apart the item keeps: what a timeline shows before anyone asks for the rest. */
 export const PAYLOAD_PREVIEW_BYTES = 2 * 1024;
@@ -24,7 +24,7 @@ const gunzipAsync = promisify(gunzip);
 /* What a thread needs on disk beside its record: each payload by id, with its text when this process still holds it. */
 export type PayloadSources = Map<string, (() => string) | null>;
 
-export interface CompactedItems {
+interface CompactedItems {
     items: ChatItem[];
     payloads: PayloadSources;
 }
@@ -38,7 +38,7 @@ interface Compacted {
 const compactedItems = new WeakMap<ChatItem, Compacted>();
 
 /* The folder of a chat's payloads beside its record, which `ChatStore.list` passes over since it is no JSON. */
-export function payloadFolderName(chatId: string): string {
+function payloadFolderName(chatId: string): string {
     return `${encodeURIComponent(chatId)}${FOLDER_SUFFIX}`;
 }
 
@@ -169,20 +169,6 @@ export function compactItems(items: readonly ChatItem[]): CompactedItems {
     });
 
     return { items: compacted, payloads };
-}
-
-export function payloadRefsOf(items: readonly ChatItem[]): Set<string> {
-    const ids = new Set<string>();
-
-    for (const item of items) {
-        if (item.kind === 'tool' && item.outputRef) {
-            ids.add(item.outputRef.id);
-        } else if (item.kind === 'turn' && item.checkpointDiffRef) {
-            ids.add(item.checkpointDiffRef.id);
-        }
-    }
-
-    return ids;
 }
 
 /*

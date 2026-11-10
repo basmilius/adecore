@@ -1,18 +1,8 @@
 import clsx from 'clsx';
-import type { LucideIcon } from 'lucide-react';
 import type { KeyboardEvent, Ref } from 'react';
 import { Icon } from './Icon.tsx';
-import { segmentedStop, segmentedTarget } from './segmented-keys.ts';
+import { segmentedStop, segmentedTarget, type SegmentedOption } from './segmented-keys.ts';
 import { Tooltip } from './Tooltip.tsx';
-
-export interface SegmentedOption<T extends string> {
-    id: T;
-    label: string;
-    icon?: LucideIcon;
-
-    /* Takes the option out of the tab order and the arrow keys; the rest of the group stays usable. */
-    disabled?: boolean;
-}
 
 export interface SegmentedProps<T extends string> {
     value: T;

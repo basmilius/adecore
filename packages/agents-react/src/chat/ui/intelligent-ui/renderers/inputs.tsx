@@ -19,7 +19,6 @@ interface ChecklistState {
 
 const ChecklistContext = createContext<ChecklistState>({ values: [], enabled: false, toggle: () => undefined });
 
-/* The rows of a checklist as one named group. */
 function ChecklistGroup({ pending, children }: { pending: boolean; children: ReactNode }) {
     const { t } = useTranslation('agent-chat');
 

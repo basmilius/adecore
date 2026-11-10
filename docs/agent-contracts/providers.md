@@ -4,16 +4,15 @@ A provider is one agent CLI the host can run. This page covers how a CLI is name
 
 ## Agent kinds
 
-`AgentKindSchema` is open: lowercase letters, digits and hyphens, starting with a letter, at most `AGENT_KIND_MAX_LENGTH` characters. A host can offer its own CLI under a new kind, and older clients still read it. `KNOWN_AGENT_KINDS` lists the kinds this version names (`claude`, `codex`, `gemini`, `copilot`, `apple`), with the type `KnownAgentKind` and the guard `isKnownAgentKind`. `AgentKind` accepts any string and still autocompletes the known ones.
+`AgentKindSchema` is open: lowercase letters, digits and hyphens, starting with a letter, at most `AGENT_KIND_MAX_LENGTH` characters. A host can offer its own CLI under a new kind, and older clients still read it. `AgentKind` is any string. The CLIs a host offers are the providers of its registry, not a list in the contracts.
 
-Whether a CLI opens as a chat, in a terminal or both is a capability of its provider. For a kind without its own mark or color, fall back to the provider's name from `provider.list`, a generic icon and its capabilities. `UsageProviderSchema` stays closed, as every usage provider needs a reader in code.
+Whether a CLI opens as a chat, in a terminal or both is a capability of its provider, and so is whether a chat of it can be forked (`fork`). For a kind without its own mark or color, fall back to the provider's name from `provider.list`, a generic icon and its capabilities. `UsageProviderSchema` stays closed, as every usage provider needs a reader in code.
 
 ```ts
-import { AgentKindSchema, isKnownAgentKind } from '@adecore/agent-contracts/agent';
+import { AgentKindSchema } from '@adecore/agent-contracts/agent';
 
 AgentKindSchema.parse('grok'); // 'grok'
 AgentKindSchema.safeParse('../grok').success; // false
-isKnownAgentKind('grok'); // false
 ```
 
 `AgentStatusSchema` (`AgentStatus`) is a chat's or a terminal session's status: `running`, `needs-you`, `idle`, `error` or `exited`.
@@ -88,13 +87,13 @@ resumeCommandFor('example-cli {flags} --resume {id}', "it's-1", ['--read-only'])
 // example-cli --read-only --resume 'it'\''s-1'
 ```
 
-`pickerGroupsOf(providers)` splits anything with a `kind` and `name` into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with separators between nonempty groups. `FRONTIER_PROVIDER_KINDS` holds the frontier kinds and `API_PROVIDER_KINDS` the providers billed per key. Every other kind goes in `others`. `providerGroupOf(kind)` returns one kind's `ProviderPickerGroup`, for drawing separators in an ordered list.
+`pickerGroupsOf(providers)` splits anything with a `kind` and `name` into `ProviderPickerGroups`, `{ frontier, others, api }`, each sorted by name. A picker lists them in that order, with separators between nonempty groups. `FRONTIER_PROVIDER_KINDS` holds the frontier kinds and `API_PROVIDER_KINDS` the providers billed per key. Every other kind goes in `others`. `providerGroupOf(kind)` returns one kind's `ProviderPickerGroup`, for drawing separators in an ordered list. `inPickerOrder(providers)` returns that list in one array, and `separatesGroups(previous, kind)` says whether a separator goes between two neighbors of it, which is where one group ends.
 
 ```ts
-import { pickerGroupsOf } from '@adecore/agent-contracts/model';
+import { inPickerOrder, separatesGroups } from '@adecore/agent-contracts/model';
 
-const { frontier, others, api } = pickerGroupsOf(providers);
-const ordered = [...frontier, ...others, ...api];
+const ordered = inPickerOrder(providers);
+const rows = ordered.map((provider, i) => ({ provider, separated: separatesGroups(ordered[i - 1]?.kind, provider.kind) }));
 ```
 
 ## Runtime modes

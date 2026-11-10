@@ -3,9 +3,9 @@
 A `ChatHostProvider` hands the views under it what only the app can decide. Render one around everything that draws a chat. Keep its `host` in a constant, because the provider reads it once, on mount. One host may serve several scopes, so a function about one scope gets its `scopeId`.
 
 ```tsx
-import { ChatHostProvider, type ChatHost } from '@adecore/agents-react';
+import { ChatHostProvider, type ChatHostLayer } from '@adecore/agents-react';
 
-const CHAT_HOST: Partial<ChatHost> = {
+const CHAT_HOST: ChatHostLayer = {
     notify: (toast) => showToast(toast),
     useStreaming: () => useSettings((settings) => settings.streaming)
 };
@@ -23,12 +23,12 @@ A field whose name starts with `use` is a React hook. The provider throws when i
 
 ## A part that loads later
 
-A nested provider starts from the host above it and replaces the top-level fields it sets. To change one function of an object field such as `code` or `prompts`, pass the whole object. A part of the app that loads later renders its own provider around what it draws. Views outside it keep the host they mounted with.
+A nested provider starts from the host above it and replaces the fields it sets. A field that is an object on both sides, such as `attachments` or `prompts`, is merged one level down, so a layer sets the one function it changes (a `ChatHostLayer` types that); a layer that sets such a field to `null` replaces the whole object. A part of the app that loads later renders its own provider around what it draws. Views outside it keep the host they mounted with.
 
 ```tsx
-const WORKSPACE_HOST: Partial<ChatHost> = {
+const WORKSPACE_HOST: ChatHostLayer = {
     useTimelineFind,
-    fileLinks: { target: fileTarget, open: openFile }
+    attachments: { actions: saveActions }
 };
 
 export function Workspace() {
@@ -44,7 +44,7 @@ export function Workspace() {
 
 | Field                              | Without it                                         | What it is for                                                                                         |
 | ---------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `notify(toast)`                    | Nothing is shown                                   | A `ChatToast`: errors, successes, and a deletion with an undo `action`.                                |
+| `notify(toast)`                    | Nothing is shown                                   | A toast: errors, successes, and a deletion with an undo `action`.                                      |
 | `actions`                          | Every action is a request on the scope's transport | A `ChatActions` of your own. See [Actions](#actions).                                                  |
 | `searchFiles(scopeId, cwd, query, limit)` | No `@` file picker                          | Relative paths under `cwd` for the composer's picker.                                                  |
 | `attachments`                      | No previews; reading rejects                       | `useUrl` for a URL to an attached file's bytes, `read` for the bytes as a `Blob`.                      |
@@ -78,7 +78,6 @@ export function Workspace() {
 | `useMachineLabel(scopeId)`         | A version requirement names no machine             | The machine's name, for "Requires Claude Code 2.1 or later on &lt;machine&gt;".                       |
 | `useChatPlace(chatId)`             | Links to other chats lead nowhere                  | Where another chat is (`title`, `go()`), for a fork's way back. A `null` title is a chat that is gone. |
 | `useContextSources(chatId)`        | Nothing                                            | What a chat may read besides its folder, named under an empty thread.                                  |
-| `useHidesFolder(chatId)`           | `false`                                            | Hide the working folder under an empty thread.                                                         |
 | `useWelcome(chatId)`               | `false`                                            | Open an empty chat on a greeting with the composer under it.                                           |
 | `tasks`                            | No tasks                                           | `useTasks` and `useTask`: the tasks behind subagent rows your app opened itself.                       |
 | `confirm`                          | Runs at once                                       | `stopSubagents` and `stopTask` get a `run` to call once a person confirmed.                            |
@@ -89,7 +88,6 @@ export function Workspace() {
 | `useComposerPlaceholder(scopeId, chatId)` | The chat's own                              | The first words of an empty composer.                                                                  |
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
 | `ComposerHeaderSlot`               | Nothing                                            | A bar of your own at the top of the composer's card, above the text.                                   |
-| `useComposerSendActions(scopeId, chatId)` | Send alone                                  | Actions of your own behind a chevron on the send button. See [Slots and cards](#slots-and-cards).      |
 | `useComposerStatus(scopeId, chatId)` | No line                                         | Items of your own on a line under the composer's card, such as a branch. See [Slots and cards](#slots-and-cards). |
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
@@ -104,35 +102,18 @@ A default leaves a part out; it is not a policy. A view's `disabled` stops nothi
 Some fields take a type of their own:
 
 - `useTimelineFind` gets `TimelineFindOptions`: the chat, the frame, the thread and its scroller.
-- `dictation` holds a `Textarea` with `TextareaProps` (the props of a `textarea` plus a `buttonClassName`) and a composer control with `ComposerDictationProps`: the editor, the row it sits in and whether it is disabled.
+- `dictation` holds a `Textarea` that takes the props of a `textarea` plus a `buttonClassName`, and a composer control with `ComposerDictationProps`: the editor, the row it sits in and whether it is disabled.
 - `useChatPlace` returns a `ChatPlace`, `{ title, go() }`.
 - `tasks` returns a `SubagentTask` per row: its status, when it started and settled, and `paused` while it waits out a limit.
 - `useThreadCards` returns `ThreadCard`s, and `useReplyAuthor` a `ReplyAuthor`.
-- `accents` lists `AccentChoice`s, `{ id, color }`.
+- `accents` lists choices as `{ id, color }`.
 - `ComposerHeaderSlot` gets `ComposerHeaderSlotProps`, and `SubagentSlot` gets `SubagentSlotProps`.
 
 ## Actions
 
-The views run every action on a chat through a `ChatActions`, from stop and compact to approvals and goals. Without the optional `goal`, the goal row offers no buttons. Without the optional `toolOutput`, a truncated tool output shows only its beginning. With `actions: null`, each action is the request of the same name on the scope's transport (`transportActions(transport)`). `useChatActions()` and `actionsOf(scope, host)` return the set in use.
+The views run every action on a chat through a `ChatActions`, from stop and compact to approvals and goals. Without the optional `goal`, the goal row offers no buttons. Without the optional `toolOutput`, a truncated tool output shows only its beginning. With `actions: null`, each action is the request of the same name on the scope's transport. `useChatActions()` and `actionsOf(scope, host)` return the set in use.
 
-Your own set serves every scope under its provider and gets only chat ids, so it has to know which scope each chat is on. Wrap the requests rather than replace them, and keep the `code` of a refusal:
-
-```ts
-import { transportActions } from '@adecore/agents-react/chat';
-import type { ChatActions, ChatHost } from '@adecore/agents-react';
-
-const base = transportActions(transport);
-
-const actions: ChatActions = {
-    ...base,
-    stopTurn: async (chatId, subagents) => {
-        activityLog.add(`Stopped ${chatId}`);
-        await base.stopTurn(chatId, subagents);
-    }
-};
-
-const CHAT_HOST: Partial<ChatHost> = { actions };
-```
+Your own set serves every scope under its provider and gets only chat ids, so it has to know which scope each chat is on. Send the same requests the transport would, and keep the `code` of a refusal.
 
 ## Slots and cards
 
@@ -161,17 +142,6 @@ function InsertSelection({ disabled, insert }: ComposerSlotProps) {
 }
 
 const CHAT_HOST: Partial<ChatHost> = { ComposerSlot: InsertSelection };
-```
-
-`useComposerSendActions` returns `ComposerSendAction`s (`{ id, label, icon?, disabled?, run(draft) }`) for a menu behind a chevron on the send button. An empty array draws no chevron. A pick calls `run` with a `ComposerSendDraft` (`{ scopeId, chatId, text, provider, selection, runtimeMode }`), where `text` is what Send would send and may be empty. The draft stays in the box. Return the same array while nothing changed.
-
-```tsx
-import { Repeat } from 'lucide-react';
-import type { ChatHost, ComposerSendAction } from '@adecore/agents-react';
-
-const REPEAT: readonly ComposerSendAction[] = [{ id: 'repeat', label: 'Repeat…', icon: Repeat, run: (draft) => openRoutineDialog(draft.chatId, draft.text) }];
-
-const CHAT_HOST: Partial<ChatHost> = { useComposerSendActions: () => REPEAT };
 ```
 
 `useComposerStatus` returns `ComposerStatusItem`s (`{ id, icon, label, tooltip?, side?, details? }`) for a line under the composer's card, lined up with the text in the box. Without items there is no line. An item with `side: 'end'` stands at the right. An item with `details` is a button that opens a popover with one row per `ComposerStatusDetail` (`{ icon, label, detail?, hint?, mono?, muted? }`).
@@ -212,7 +182,7 @@ The frame reads a page's bytes through `attachments.read`; a stored page is an a
 
 ## Lazy modules
 
-The diff views and a few heavy parts load on first use. `setLazyPrefetch(register)` hands every such loader, past and future, to a prefetcher of yours. `onLazyOpenError(listener)` reports a loader that fails during a render and returns an unsubscribe function. `lazyNamed(load, name, options?)` is `React.lazy` for a named export; `{ prefetch: false }` keeps it away from the prefetcher.
+The diff views and a few heavy parts load on first use through `lazyNamed` of `@adecore/ui`, so they register with its `prefetcher` and report a failed open to its `onLazyOpenError`. The app wires those two once, for its own surfaces and the chat's alike. [Lazy loading](/ui/utilities/lazy-loading) covers both.
 
 ## Diff syntax worker
 

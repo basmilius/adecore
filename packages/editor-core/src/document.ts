@@ -10,6 +10,7 @@ import type { EditPlan, EditSource } from './edit-source.ts';
 import { planEnter } from './enter.ts';
 import type { EnterOptions, EnterPlan } from './enter.ts';
 import { applyFoldHints, markFileHeader } from './fold-roles.ts';
+import type { FoldingRange } from './fold-types.ts';
 import { planHippie, type HippieCycle, type HippieOptions } from './hippie.ts';
 import { isPlainText, vueRegionAt } from './languages.ts';
 import { lexicalFolds } from './lexical-folds.ts';
@@ -27,7 +28,7 @@ import { findMatches, findMatchFrom, replacementText, splitsSurrogate } from './
 import type { FindMatch, FindNextOptions, FindOptions } from './search.ts';
 import { planMoveStatement, statementMoveMode } from './statement-move.ts';
 import { dedupeFoldingRanges, deriveFoldingRanges, indentationColumn, scanStructure, tabWidth } from './structure.ts';
-import type { FoldingOptions, FoldingRange, StructureRange } from './structure.ts';
+import type { FoldingOptions, StructureRange } from './structure.ts';
 import { surroundShape, type SurroundShape } from './surround-shape.ts';
 import { placeAt, type TextPlace } from './text-places.ts';
 import { todosInLines, type TodoMatch, type TodoOptions } from './todo.ts';
@@ -39,13 +40,14 @@ import type {
     EditOptions,
     EditorCommand,
     EditorSnapshot,
+    OffsetRange,
     Position,
     Selection,
     TextEdit
 } from './types.ts';
 import { TypingContexts } from './typing-context.ts';
-import type { TypingContext } from './typing-context.ts';
 import { isQuote, replacesComparison, surround, swapQuotes, templateLiteralEdits, templateString } from './typing-handlers.ts';
+import type { TypingContext } from './typing-state.ts';
 import { unwrapTargets, type UnwrapTarget } from './unwrap.ts';
 import { ModifiedStretches, planWhitespaceCleanup, type WhitespaceCleanupOptions } from './whitespace-cleanup.ts';
 import { isHumpBoundary, isWordBoundary } from './words.ts';
@@ -55,11 +57,6 @@ export type { DocumentLine, FindMatch, FindNextOptions, FindOptions, FoldingOpti
 const LINE_ORDERS: Partial<Record<EditorCommand, LineOrder>> = { sortLines: 'sort', reverseLines: 'reverse', uniqueLines: 'unique' };
 /* Where trailing whitespace is part of a string's value, which a cleanup must not change. */
 const STRING_MODES = new Set<TypingContext['mode']>(['quote', 'template', 'heredoc']);
-
-export interface OffsetRange {
-    readonly from: number;
-    readonly to: number;
-}
 
 export interface DocumentEditOptions extends EditOptions {
     /* Positions in the resulting text, committed with the edit and its undo state. */
@@ -142,7 +139,7 @@ interface TypingInput {
 }
 
 /* The row of the screen an offset is on: where it starts and where it ends, which is where the next one starts when the line wraps. */
-export type VisualLineOf = (offset: number) => { start: number; end: number };
+type VisualLineOf = (offset: number) => { start: number; end: number };
 
 /* A caret made by cloning another, with the columns it keeps wherever the lines it crosses are short. */
 interface CaretClone {
@@ -354,7 +351,6 @@ function range(first: number, last: number): number[] {
     return Array.from({ length: last - first + 1 }, (_, index) => first + index);
 }
 
-/* Runs of consecutive line numbers, from a sorted list. */
 function blocks(indices: readonly number[]): LineBlock[] {
     const result: LineBlock[] = [];
 
@@ -1029,7 +1025,6 @@ export class DocumentModel {
         return this.applyEdits(plan.edits, { source: 'input', selections: plan.selections });
     }
 
-    /* Runs a command on every caret. Returns whether the text or the selection changed. */
     execute(command: EditorCommand, options: CommandOptions = {}): boolean {
         if (command === 'undo') {
             return this.undo();
@@ -1511,7 +1506,6 @@ export class DocumentModel {
         );
     }
 
-    /* The first character on a line that is not a space or a tab, or -1 when there is none. */
     private firstNonSpace(line: DocumentLine): number {
         const found = line.text.search(/[^ \t]/);
 
@@ -1847,7 +1841,6 @@ export class DocumentModel {
         return plan !== null && this.applyEdits(plan.edits, { source: 'command', selections: plan.selections });
     }
 
-    /* The lines the carets and selections touch, sorted. */
     private selectedLines(span?: LineSpanOf): number[] {
         const indices = new Set<number>();
 
@@ -2505,7 +2498,6 @@ export class DocumentModel {
         return this.rope.lineBounds(this.rope.lineAt(offset));
     }
 
-    /* Preceded by an odd number of backslashes. */
     private escaped(offset: number): boolean {
         let count = 0;
 

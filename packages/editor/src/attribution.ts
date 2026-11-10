@@ -30,7 +30,6 @@ export function tintValue(color: string): string {
     return `color-mix(in srgb, ${colorValue(color)} 14%, transparent)`;
 }
 
-/* The CSS value of a mark's color: `--agent-1` is the page's custom property of that name, anything else is a color as it stands. */
 export function colorValue(color: string): string {
     return color.startsWith('--') ? `var(${color})` : color;
 }

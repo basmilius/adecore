@@ -2,7 +2,7 @@ import { isModHeld, matchesShortcut } from '@adecore/ui';
 import { indentLess, indentMore, insertNewline } from '@codemirror/commands';
 import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorView } from '@codemirror/view';
-import type { ChatHost } from '../../../host';
+import type { ChatHost } from '../../../host/host';
 import type { ComposerSend } from '../../composer-send';
 import type { ChatSendKey } from '../../send-key';
 import { STASH_SHORTCUT } from '../../stash';
@@ -106,7 +106,6 @@ export function pickInMenu(e: KeyboardEvent, menus: ComposerMenus): boolean {
     return false;
 }
 
-/* Enter sends, adds a line, or carries a list on, by the send key and where the caret is. */
 function enter(e: KeyboardEvent, view: EditorView, { host, sendKey, submit }: KeyHandlerInput): boolean {
     const { state } = view;
     const { from, to, head } = state.selection.main;

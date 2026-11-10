@@ -1,5 +1,4 @@
-import { useEffect, useReducer, type ReactNode } from 'react';
-import { useStore } from 'zustand';
+import { useEffect, useReducer, useSyncExternalStore, type ReactNode } from 'react';
 import { AnchoredPopup } from './AnchoredPopup.tsx';
 import { CallHierarchyPanel } from './CallHierarchyPanel.tsx';
 import { CodeAuthorsCard } from './CodeAuthorsCard.tsx';
@@ -9,12 +8,19 @@ import { EditorContextMenu } from './EditorContextMenu.tsx';
 import { HoverCard } from './HoverCard.tsx';
 import { PeekPanel } from './PeekPanel.tsx';
 import { PickPopup } from './PickPopup.tsx';
-import type { HoverView } from './popups.ts';
+import type { HoverView, PopupSlot } from './popups.ts';
 import { RenameCard } from './RenameCard.tsx';
 import { RenderedDocs } from './RenderedDocs.tsx';
 import { SignatureCard } from './SignatureCard.tsx';
 import { SymbolPicker } from './SymbolPicker.tsx';
 import { WrapCard } from './WrapCard.tsx';
+
+function useSlot<View>(slot: PopupSlot<View>): View | null {
+    return useSyncExternalStore(
+        (listener) => slot.subscribe(listener),
+        () => slot.get()
+    );
+}
 
 export interface LanguagePopupsProps<Language extends EditorLanguage = EditorLanguage> {
     language: Language;
@@ -35,17 +41,17 @@ export function LanguagePopups<Language extends EditorLanguage>({ language, cont
     // The React Compiler would keep each card's place from the render before; it is read from the editor again on every scroll.
     'use no memo';
     const [, redraw] = useReducer((count: number) => count + 1, 0);
-    const hover = useStore(language.popups, (state) => state.hover);
-    const completion = useStore(language.popups, (state) => state.completion);
-    const signature = useStore(language.popups, (state) => state.signature);
-    const pick = useStore(language.popups, (state) => state.pick);
-    const rename = useStore(language.popups, (state) => state.rename);
-    const peek = useStore(language.popups, (state) => state.peek);
-    const callHierarchy = useStore(language.popups, (state) => state.callHierarchy);
-    const symbols = useStore(language.popups, (state) => state.symbols);
-    const menu = useStore(language.popups, (state) => state.menu);
-    const authors = useStore(language.popups, (state) => state.authors);
-    const wrap = useStore(language.popups, (state) => state.wrap);
+    const hover = useSlot(language.popups.slot('hover'));
+    const completion = useSlot(language.popups.slot('completion'));
+    const signature = useSlot(language.popups.slot('signature'));
+    const pick = useSlot(language.popups.slot('pick'));
+    const rename = useSlot(language.popups.slot('rename'));
+    const peek = useSlot(language.popups.slot('peek'));
+    const callHierarchy = useSlot(language.popups.slot('callHierarchy'));
+    const symbols = useSlot(language.popups.slot('symbols'));
+    const menu = useSlot(language.popups.slot('menu'));
+    const authors = useSlot(language.popups.slot('authors'));
+    const wrap = useSlot(language.popups.slot('wrap'));
 
     useEffect(() => language.editor.onViewChange(redraw), [language]);
 

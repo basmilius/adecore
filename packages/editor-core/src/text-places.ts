@@ -1,7 +1,7 @@
 import { editRegions } from './edit-regions.ts';
 import type { EditSource } from './edit-source.ts';
 import { vueRegionAt } from './languages.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export type TextPlaceKind = 'code' | 'comment' | 'string';
 
@@ -95,7 +95,6 @@ function phpLanguage(context: TypingContext): string {
     return context.markup === 'raw' && context.element === 'style' ? 'css' : 'html';
 }
 
-/* What the text at an offset is written in and whether it is code, a comment or a string. */
 export function placeAt(source: EditSource, offset: number, language: string): TextPlace {
     const id = language.toLowerCase();
 

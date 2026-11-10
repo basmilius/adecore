@@ -1,10 +1,10 @@
 import i18next from 'i18next';
-import { useChatHost, type ChatActions, type ChatHost } from '../host';
+import { useChatHost, type ChatActions, type ChatHost } from '../host/host';
 import { useChatScope, type ChatScope } from '../scope';
 import { ChatTransportError, type ChatTransport } from '../transport';
 
 /* Every action as the request a chat host answers, for an app that runs them through nothing of its own. */
-export function transportActions(transport: ChatTransport): ChatActions {
+function transportActions(transport: ChatTransport): ChatActions {
     return {
         clear: async (chatId, force) => {
             await transport.request('chat.clear', { chatId, ...(force ? { force: true } : {}) });

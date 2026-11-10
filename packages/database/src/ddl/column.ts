@@ -19,12 +19,11 @@ export const defaultClause = (expression: string): string => {
     return text.startsWith('(') && text.endsWith(')') ? text : `(${text})`;
 };
 
-export interface ColumnSqlOptions {
+interface ColumnSqlOptions {
     /* SQLite only: the column is the whole primary key, which an `AUTOINCREMENT` has to be declared on. */
     readonly inlinePrimaryKey?: boolean;
 }
 
-/* A column's definition without its name: `varchar(255) NOT NULL DEFAULT 'x'`. */
 export const columnSpecSql = (dialect: Dialect, column: ColumnDraft, { inlinePrimaryKey = false }: ColumnSqlOptions = {}): string => {
     const mysql = dialect.engine === 'mysql';
     const parts: string[] = [];

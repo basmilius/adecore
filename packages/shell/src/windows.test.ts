@@ -157,7 +157,6 @@ const fakeApp = () => {
     return { app, events, beforeQuit, quits: () => quits };
 };
 
-/* A `setTimeout` that runs only when the test says so. */
 const manualTimer = () => {
     const pending: (() => void)[] = [];
 

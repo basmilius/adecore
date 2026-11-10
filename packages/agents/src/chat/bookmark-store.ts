@@ -5,7 +5,7 @@ import { KeyedSerializer } from '@adecore/utils/async';
 import { isNotFound } from '@adecore/utils/errors';
 import { writeAtomic } from '@adecore/utils/fs';
 import { z } from 'zod';
-import { ChatError } from './errors.ts';
+import { ChatError } from '../chat-error.ts';
 
 const SUFFIX = '.bookmarks.json';
 
@@ -20,9 +20,8 @@ export function isBookmarkFileName(name: string): boolean {
     return name.endsWith(SUFFIX);
 }
 
-export type BookmarkListener = (chatId: string, bookmarks: ChatBookmark[]) => void;
+type BookmarkListener = (chatId: string, bookmarks: ChatBookmark[]) => void;
 
-/* A name as it is kept: trimmed, and none at all when nothing is left. */
 function cleanName(name: string | undefined): string | undefined {
     const trimmed = name === undefined ? undefined : clipText(name.trim(), CHAT_BOOKMARK_LIMITS.name);
 

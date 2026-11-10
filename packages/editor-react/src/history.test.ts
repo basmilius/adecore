@@ -4,8 +4,7 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { EditorLanguage } from './editor-language.ts';
 import type { Place } from './navigation-history.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const other = 'file:///work/app/src/b.ts';
@@ -122,7 +121,7 @@ describe('recent locations', () => {
         expect(editor.press(keyOf(language.shortcuts.recentLocations))).toBe(true);
 
         await settle();
-        const view = language.popups.getState().pick!;
+        const view = language.popups.slot('pick').get()!;
 
         expect(view.title).toBe('Recent locations');
         expect(view.groups[0]!.rows.map((row) => row.label)).toEqual(['a.ts:2', 'a.ts:1']);

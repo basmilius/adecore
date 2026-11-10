@@ -38,9 +38,9 @@ A copy from a message or the composer puts the chips as JSON under `application/
 
 When `onSend` returns nothing, the composer clears its draft at once. If a send can fail, return a promise of whether the host took the message. Mod+Alt+Enter sends and, once that promise resolves `true`, calls the host's `openNewChat(scopeId, chatId)`.
 
-`sendFromComposer(key, how)` from `@adecore/agents-react/chat` sends what a composer on screen holds, for a menu row of your own. Pass the scope's `keyOf(chatId)` and a `ComposerSend` (`default`, `alternate` or `and-new`). It returns `false` when that chat has no composer on screen. `SEND_AND_NEW_SHORTCUT` is Mod+Alt+Enter, for a menu to print.
+`sendFromComposer(key, how)` from `@adecore/agents-react/chat` sends what a composer on screen holds, for a menu row of your own. Pass the scope's `keyOf(chatId)` and how to send: `default`, `alternate` or `and-new`. It returns `false` when that chat has no composer on screen. `SEND_AND_NEW_SHORTCUT` is Mod+Alt+Enter, for a menu to print.
 
-`stepEffortFromComposer(key, step)` steps the chat's reasoning effort `up` or `down` (an `EffortStep`) and reports it in the composer's notice line. It also returns `false` without a composer on screen. Bind its key in the host.
+`stepEffortFromComposer(key, step)` steps the chat's reasoning effort `up` or `down` and reports it in the composer's notice line. It also returns `false` without a composer on screen. Bind its key in the host.
 
 Before the first message, picking another CLI's model calls `onRetarget(provider, selection)`, which moves the empty chat. After it, or with `providerFixed`, the picker offers only the chat's own CLI.
 
@@ -76,10 +76,10 @@ A press in the box's empty space puts the caret at the end of the text. Links, b
 
 ## Goals
 
-While the chat has a goal, the composer draws `GoalDock({ chatId, info, goals })` at its top: the goal's state, objective, progress and actions. `goalView(info, goals, canAct)` returns the actions: pause, resume and clear for `goals: 'native'`, clear between turns for `goals: 'command'`, none when the host's actions have no `goal`. `GoalPill({ chatId })` shows a running goal in a header without the thread.
+While the chat has a goal, the composer draws a dock at its top: the goal's state, objective, progress and actions. The actions are pause, resume and clear for `goals: 'native'`, clear between turns for `goals: 'command'`, and none when the host's actions have no `goal`. `GoalPill({ chatId })` shows a running goal in a header without the thread.
 
 ```tsx
-import { GoalDock, GoalPill } from '@adecore/agents-react/chat/ui';
+import { GoalPill } from '@adecore/agents-react/chat/ui';
 ```
 
 ## Pickers and pasting
@@ -98,7 +98,7 @@ A send during a turn queues the message. Option or Alt with Send or Enter steers
 
 ## Holding a prompt card
 
-While a person types, an approval or question card stays out of the way, so a key meant for the text never answers it. The composer shows a Show now bar meanwhile. `holdsPrompt(input)` decides from `HoldInput`, `holdLiftsIn(input)` returns the time left, and `PROMPT_HOLD_PAUSE_MS` is the typing pause that lifts it. A `HoldRelease` of `send` or `blur` lifts it at once.
+While a person types, an approval or question card stays out of the way, so a key meant for the text never answers it. The composer shows a Show now bar meanwhile. `holdsPrompt(input)` decides from `HoldInput`, `holdLiftsIn(input)` returns the time left, and `PROMPT_HOLD_PAUSE_MS` is the typing pause that lifts it. Sending or leaving the box (`send` or `blur`) lifts it at once.
 
 ## Menus for screen readers
 
@@ -106,7 +106,7 @@ While a person types, an approval or question card stays out of the way, so a ke
 
 ## Quoting
 
-`splitQuote` separates a quoted block from the text under it. A quote leads back to its reply with `jumpToTimelineItem`, which takes `ItemJumpOptions` (`flash`, `onMissing`). `StashedQuote` is the quote of a stashed prompt. The thread hands a selected quote to the composer under it through `QuoteTakerContext`; a `QuoteTaker` gets the quote and the id of the reply it came from.
+`splitQuote` separates a quoted block from the text under it. A quote leads back to its reply with `jumpToTimelineItem`, which takes options (`flash`, `onMissing`). A stashed prompt keeps its quote. The thread hands a selected quote to the composer under it through `QuoteTakerContext`; the taker gets the quote and the id of the reply it came from.
 
 ## Props
 
@@ -134,6 +134,6 @@ const input = useRef<ComposerInputHandle>(null);
 <ComposerInput ref={input} value={text} placeholder="Describe the change" disabled={false} tabbable onChange={(value) => setText(value)} />;
 ```
 
-The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown`, `onPaste` and `onCopy` (also for cut) get `(event, view)`, run before the editor's own and return `true` when they handled it. `onChange` and `onSelectionChange` get the text, an `InputSelection` and the editor state. Keep `extensions` and an element `placeholder` stable between renders, since a new one reconfigures the editor. An outside `value` moves the caret to the end and skips the undo history. Such a transaction carries the `externalChange` annotation, so an extension of your own can tell it from typing.
+The handle has `focus()`, `setCaret(pos)` and `insert(text)`. `onKeyDown`, `onPaste` and `onCopy` (also for cut) get `(event, view)`, run before the editor's own and return `true` when they handled it. `onChange` and `onSelectionChange` get the text, the selection and the editor state. Keep `extensions` and an element `placeholder` stable between renders, since a new one reconfigures the editor. An outside `value` moves the caret to the end and skips the undo history. Such a transaction carries the `externalChange` annotation, so an extension of your own can tell it from typing.
 
 `composerEditorExtensions` builds the composer's extensions for an input of your own. `PlainTextarea` is the textarea for a written answer unless the host's `dictation` hands another.

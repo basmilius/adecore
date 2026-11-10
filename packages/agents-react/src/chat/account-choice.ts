@@ -1,15 +1,7 @@
 import type { AgentKind, ProviderAccounts } from '@adecore/agent-contracts';
-import {
-    accountName,
-    accountsOfKind,
-    hasAccountChoice,
-    offeredAccounts,
-    projectDefault,
-    projectOffered,
-    type AccountEntry,
-    type AccountRule
-} from '../agents/accounts';
-import { useHostAccountRule } from '../host-hooks';
+import { accountName, accountsOfKind, hasAccountChoice, offeredAccounts, projectDefault, projectOffered, type AccountEntry } from '../agents/accounts';
+import { type AccountRule } from '../host/host';
+import { useHostAccountRule } from '../host/host-hooks';
 import { useChatScope } from '../scope';
 import { useProviderAccounts, type ProviderAccountsRow } from '../state/provider-accounts';
 import { useProviders } from '../state/providers';

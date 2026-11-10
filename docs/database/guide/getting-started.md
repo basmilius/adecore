@@ -230,7 +230,7 @@ import { createDatabaseClient, DatabaseProvider } from '@adecore/database';
 const client = createDatabaseClient((request) => window.database.request(request));
 
 createRoot(document.getElementById('root')!).render(
-    <UIProvider i18n={i18next} formatSource={formatSource}>
+    <UIProvider i18n={i18next}>
         <DatabaseProvider client={client}>
             <App />
         </DatabaseProvider>
@@ -290,7 +290,7 @@ The views keep JSON under these keys and ignore values they do not recognize:
 
 ### Number notation
 
-`numberNotation` (type `NumberNotation`) sets how cells draw numbers. `'database'` draws the server's text: `12900.50` stays `12900.50`. `'region'` uses the [format source](/ui/formatting/) of `UIProvider` and keeps every digit: `12.900,50` in a Dutch region.
+`numberNotation` (type `NumberNotation`) sets how cells draw numbers. `'database'` draws the server's text: `12900.50` stays `12900.50`. `'region'` uses the [format source](/ui/formatting/) of the app and keeps every digit: `12.900,50` in a Dutch region.
 
 <Demo src="database/number-notation" />
 
@@ -337,7 +337,7 @@ import { DATABASE_NAMESPACE } from '@adecore/database';
 i18next.addResourceBundle('de', DATABASE_NAMESPACE, germanWords);
 ```
 
-Numbers, dates and durations follow the [format source](/ui/formatting/) of `UIProvider`.
+Numbers, dates and durations follow the [format source](/ui/formatting/) of the app.
 
 ## Try it without a server
 

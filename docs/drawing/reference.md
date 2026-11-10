@@ -25,7 +25,7 @@ Every name each entry point exports, read from its source. Anything not listed i
 
 ### `@adecore/drawing`
 
-Edits, rebasing, geometry, paths, the SVG export, text and reading order.
+Edits, rebasing, geometry, paths, the SVG export, scenes, text and reading order.
 
 <ExportTable entry="@adecore/drawing" />
 

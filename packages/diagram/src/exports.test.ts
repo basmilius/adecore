@@ -7,7 +7,6 @@ import { parseSync, type Program } from 'oxc-parser';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(HERE, '..');
 
-/* Every entry point by its subpath, and the file behind it. */
 const ENTRIES: Record<string, string> = {
     '.': 'index.ts',
     './protocol': 'protocol.ts'
@@ -28,7 +27,6 @@ const declaredNames = (declaration: Declaration): string[] => {
     }
 };
 
-/* What an entry file names, values and types alike, from its export lists and its exported declarations. */
 const namesIn = (file: string): string[] => {
     const program = parseSync(file, readFileSync(join(HERE, file), 'utf8')).program;
 

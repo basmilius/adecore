@@ -1,0 +1,356 @@
+export default {
+    language: {
+        hover: {
+            quickFix: 'Quick fix…',
+            quickFixNone: 'No quick fixes',
+            definition: 'Go to definition',
+            references_one: '{{formatted}} reference',
+            references_other: '{{formatted}} references',
+            line: 'Line {{line}}',
+            none: 'No information here'
+        },
+        inlay: {
+            failed: 'Could not run hint action: {{message}}'
+        },
+        edit: {
+            staged_one: '{{count}} unsaved file',
+            staged_other: '{{count}} unsaved files',
+            stagedMore: '{{names}} and {{count}} more',
+            saveAll: 'Save all',
+            notSaved: 'Could not save {{name}}'
+        },
+        actions: {
+            show: 'Show code actions',
+            none: 'No code actions here',
+            unavailable: 'Code actions unavailable here',
+            organized: 'Imports already organized',
+            noFormatter: 'No formatter for this file',
+            readOnly: 'Read-only file',
+            failed: 'Could not apply action: {{message}}',
+            refused: 'Edit refused',
+            moreLines: '{{count}} more lines',
+            otherFiles_one: 'and {{count}} other file',
+            otherFiles_other: 'and {{count}} other files',
+            moves_one: 'moves {{count}} file',
+            moves_other: 'moves {{count}} files',
+            creates_one: 'creates {{count}} file',
+            creates_other: 'creates {{count}} files',
+            deletes_one: 'deletes {{count}} file',
+            deletes_other: 'deletes {{count}} files',
+            groups: {
+                quickfix: 'Quick fix',
+                rewrite: 'Rewrite',
+                extract: 'Extract',
+                inline: 'Inline',
+                move: 'Move',
+                refactor: 'Refactor',
+                source: 'Source',
+                other: 'Other'
+            }
+        },
+        rename: {
+            unavailable: 'Rename unavailable in this file',
+            nothing: 'Nothing to rename here',
+            refused: 'New name refused',
+            stale: 'The text changed before the rename finished. Try again.',
+            failed: 'Could not rename: {{message}}',
+            occurrences_one: '{{formatted}} occurrence',
+            occurrences_other: '{{formatted}} occurrences',
+            occurrencesFiles_one: '{{formatted}} occurrence in {{files}} files',
+            occurrencesFiles_other: '{{formatted}} occurrences in {{files}} files',
+            rename: 'Rename',
+            preview: 'Preview',
+            cancel: 'Cancel',
+            apply: 'Rename',
+            suggestions: 'Suggested names',
+            useSuggestion: 'Use suggestion',
+            operations: {
+                create: 'Creates',
+                rename: 'Moves',
+                delete: 'Deletes'
+            }
+        },
+        markup: {
+            wrap: 'Wrap with abbreviation',
+            placeholder: 'Abbreviation, such as div.card>p',
+            apply: 'Wrap',
+            invalid: 'Not an abbreviation'
+        },
+        navigation: {
+            unavailable: 'Not available here',
+            none: 'Nothing found',
+            failed: 'Could not look it up: {{message}}',
+            titles: {
+                definition: 'Definitions',
+                declaration: 'Declarations',
+                typeDefinition: 'Type definitions',
+                implementation: 'Implementations',
+                symbol: 'Matches'
+            }
+        },
+        panel: {
+            resize: 'Resize panel'
+        },
+        peek: {
+            unavailable: 'References unavailable in this file',
+            none: 'No references found',
+            failed: 'Could not look up references: {{message}}',
+            references_one: '{{formatted}} reference',
+            references_other: '{{formatted}} references',
+            close: 'Close',
+            collapse: 'Collapse',
+            expand: 'Expand',
+            definitions_one: '{{formatted}} definition',
+            definitions_other: '{{formatted}} definitions',
+            noDefinition: 'No definition found',
+            unavailableDefinition: 'Definitions unavailable in this file'
+        },
+        callHierarchy: {
+            unavailable: 'Calls unavailable in this file',
+            none: 'No calls here',
+            failed: 'Could not look up calls: {{message}}',
+            label: 'Call hierarchy',
+            direction: 'Direction',
+            incoming: 'Callers',
+            outgoing: 'Callees',
+            close: 'Close',
+            loading: 'Loading…',
+            noIncoming: 'No callers',
+            noOutgoing: 'No callees',
+            retry: 'Could not load calls: {{message}}. Click to try again',
+            more_one: 'Show {{formatted}} more call ({{hidden}} left)',
+            more_other: 'Show {{formatted}} more calls ({{hidden}} left)',
+            sites_one: '{{formatted}} call',
+            sites_other: '{{formatted}} calls',
+            site: 'Call {{current}} of {{total}}',
+            previousSite: 'Previous call',
+            nextSite: 'Next call',
+            typesUnavailable: 'Type hierarchy unavailable in this file',
+            typesNone: 'No type here',
+            typesFailed: 'Could not look up types: {{message}}',
+            typesLabel: 'Type hierarchy',
+            supertypes: 'Supertypes',
+            subtypes: 'Subtypes',
+            noSupertypes: 'No supertypes',
+            noSubtypes: 'No subtypes',
+            announce: {
+                incoming_one: '{{count}} caller of {{name}}',
+                incoming_other: '{{count}} callers of {{name}}',
+                outgoing_one: '{{count}} callee of {{name}}',
+                outgoing_other: '{{count}} callees of {{name}}',
+                supertypes_one: '{{count}} supertype of {{name}}',
+                supertypes_other: '{{count}} supertypes of {{name}}',
+                subtypes_one: '{{count}} subtype of {{name}}',
+                subtypes_other: '{{count}} subtypes of {{name}}'
+            }
+        },
+        colors: {
+            swatch: 'Color {{color}}',
+            title: 'Color',
+            other: 'Pick another color…'
+        },
+        codeVision: {
+            usagesNone: 'No usages',
+            usages_one: '{{formatted}} usage',
+            usages_other: '{{formatted}} usages',
+            newCode: 'new *',
+            lines_one: '{{formatted}} line',
+            lines_other: '{{formatted}} lines',
+            uncommitted: 'Uncommitted',
+            latest: 'Latest change',
+            showCommit: 'Show commit'
+        },
+        symbols: {
+            unavailable: 'Symbols unavailable in this file',
+            failed: 'Could not read symbols: {{message}}',
+            placeholder: 'Go to symbol in {{file}}',
+            navigate: 'Navigate',
+            open: 'Open',
+            workspace: 'Workspace symbols',
+            line: 'Go to line',
+            none: 'No matching symbols',
+            workspaceHint: 'Type a symbol name',
+            lineHint: 'Type a line number',
+            goToLine: 'Go to line {{line}}',
+            groups: {
+                namespaces: 'Namespaces',
+                classes: 'Classes',
+                interfaces: 'Interfaces',
+                enums: 'Enums',
+                functions: 'Functions',
+                methods: 'Methods',
+                properties: 'Properties',
+                variables: 'Variables',
+                constants: 'Constants',
+                other: 'Other'
+            }
+        },
+        context: {
+            refactor: 'Refactor',
+            cut: 'Cut',
+            copy: 'Copy',
+            paste: 'Paste',
+            renameSymbol: 'Rename symbol…',
+            goTo: {
+                menu: 'Go to',
+                definition: 'Definition',
+                declaration: 'Declaration',
+                typeDefinition: 'Type definition',
+                implementation: 'Implementation'
+            }
+        },
+        snippet: {
+            choices: 'Snippet choice'
+        },
+        completion: {
+            tooLarge: 'Too large to insert',
+            insert: 'Insert',
+            replace: 'Replace',
+            details: 'Details',
+            none: 'No suggestions',
+            transformBusy: 'The snippet is not ready yet. Try again.',
+            transformFailed: 'Could not fill in the snippet',
+            failed: 'Could not insert suggestion: {{message}}'
+        },
+        history: {
+            recent: 'Recent locations'
+        },
+        pasteHistory: {
+            title: 'Choose content to paste',
+            empty: 'Nothing copied yet'
+        },
+        templates: {
+            none: 'No templates defined in this context',
+            selectToSave: 'Select the text to save as a live template'
+        },
+        postfix: {
+            expressions: 'Expressions'
+        },
+        surround: {
+            title: 'Surround with',
+            selectTemplate: 'Select template',
+            liveTemplates: 'Live templates',
+            configure: 'Configure live templates…',
+            comments: '{{construct}} comments',
+            none: 'Surround with has no options here',
+            noTemplates: 'No surround templates defined in this context',
+            unwrap: {
+                title: 'Choose the statement to unwrap or remove',
+                if: "Unwrap 'if...'",
+                else: "Unwrap 'else...'",
+                removeElse: "Remove 'else...'",
+                for: "Unwrap 'for...'",
+                while: "Unwrap 'while...'",
+                do: "Unwrap 'do...'",
+                try: "Unwrap 'try...'",
+                removeCatch: "Remove 'catch...'",
+                removeFinally: "Remove 'finally...'",
+                braces: 'Unwrap braces',
+                tag: 'Remove enclosing tag: {{name}}'
+            }
+        },
+        announce: {
+            problem: '{{severity}}: {{message}}',
+            severity: {
+                error: 'Error',
+                warning: 'Warning',
+                info: 'Information',
+                hint: 'Hint'
+            },
+            field: 'Field {{current}} of {{total}}',
+            fieldChoices_one: 'Field {{current}} of {{total}}, {{count}} choice',
+            fieldChoices_other: 'Field {{current}} of {{total}}, {{count}} choices'
+        },
+        fold: {
+            fold: 'Fold lines {{start}} to {{end}}',
+            unfold: 'Unfold lines {{start}} to {{end}}'
+        },
+        docs: {
+            label: 'Rendered documentation',
+            labelNamed: 'Rendered documentation: {{- summary}}',
+            render: 'Show rendered documentation',
+            showSource: 'Show documentation source',
+            tags: {
+                deprecated: 'Deprecated',
+                template: 'Type parameters',
+                param: 'Parameters',
+                property: 'Properties',
+                type: 'Type',
+                var: 'Variable',
+                return: 'Returns',
+                yield: 'Yields',
+                throws: 'Throws',
+                see: 'See also',
+                example: 'Example',
+                since: 'Since',
+                version: 'Version',
+                author: 'Author'
+            }
+        }
+    },
+    commands: {
+        goToDefinition: 'Go to definition',
+        goToTypeDefinition: 'Go to type definition',
+        goToImplementation: 'Go to implementation',
+        callHierarchy: 'Call hierarchy',
+        typeHierarchy: 'Type hierarchy',
+        peekReferences: 'Peek references',
+        renameSymbol: 'Rename symbol',
+        codeActions: 'Code actions',
+        formatDocument: 'Format document',
+        formatSelection: 'Format selection'
+    },
+    find: {
+        label: 'Find',
+        count: '{{current}} / {{total}}',
+        countLimited: '{{current}} / {{total}}+',
+        none: 'No results',
+        invalid: 'Invalid regular expression',
+        caseSensitive: 'Match case',
+        wholeWord: 'Match whole word',
+        regex: 'Use regular expression',
+        inSelection: 'In selection',
+        noSelection: 'No selection',
+        selectAll: 'Select all matches',
+        previous: 'Previous match',
+        next: 'Next match',
+        close: 'Close',
+        replace: {
+            label: 'Replace with',
+            one: 'Replace',
+            all: 'All',
+            allLabel: 'Replace all',
+            preserveCase: 'Preserve case',
+            toggle: 'Show replace',
+            hide: 'Hide replace',
+            failed: {
+                limit: 'Too much to replace at once (more than {{edits}} matches or {{characters}} characters)',
+                timeout: 'Replace timed out. Nothing changed',
+                unavailable: 'Replace is not available right now',
+                error: 'Could not replace. Nothing changed'
+            }
+        },
+        countMore: '{{total}}+ matches',
+        searching: 'Searching…',
+        large: 'This document is large. Press Enter to search',
+        replaced: 'Replaced {{count}} matches',
+        failed: {
+            timeout: 'Search timed out. Press Enter to try again',
+            unavailable: 'Regex search is unavailable',
+            invalid: 'Invalid regular expression',
+            error: 'Could not finish the search'
+        }
+    },
+    diff: {
+        hidden: 'Show {{count}} hidden lines',
+        contextLimit: 'Context limit reached',
+        oldSide: 'Before',
+        newSide: 'After',
+        noNewline: 'No final newline',
+        added: 'Added, new line {{number}}',
+        removed: 'Removed, old line {{number}}',
+        unchanged: 'Old line {{old}}, new line {{new}}',
+        addedLine: 'Added line',
+        removedLine: 'Removed line'
+    }
+};

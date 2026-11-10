@@ -5,8 +5,7 @@ import { EditorLanguage } from './editor-language.ts';
 import type { PickSpec } from './pick.ts';
 import type { PickPreview } from './popups.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const anchor = { line: 1, character: 2 };
@@ -40,7 +39,7 @@ async function setup() {
             ...spec
         });
 
-    const active = () => language.popups.getState().pick?.active ?? null;
+    const active = () => language.popups.slot('pick').get()?.active ?? null;
 
     return { editor, language, timers, accepted, openPick, active };
 }
@@ -52,7 +51,7 @@ describe('the pick list', () => {
 
         expect(language.pick.isOpen).toBe(true);
 
-        const view = language.popups.getState().pick!;
+        const view = language.popups.slot('pick').get()!;
 
         expect(view.anchor).toEqual(anchor);
         expect(view.title).toBe('Choose');
@@ -77,7 +76,7 @@ describe('the pick list', () => {
         language.pick.open({ anchor, groups: [{ title: null, rows: [] }], accept: () => undefined });
 
         expect(language.pick.isOpen).toBe(false);
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
     });
 
     test('moves through the rows across groups with the arrow keys and stops at either end', async () => {
@@ -127,7 +126,7 @@ describe('the pick list', () => {
 
         openPick({
             accept: (id) => {
-                shownWhenAccepted = language.popups.getState().pick;
+                shownWhenAccepted = language.popups.slot('pick').get();
                 accepted.push(id);
             }
         });
@@ -161,7 +160,7 @@ describe('the pick list', () => {
         openPick();
 
         expect(editor.press({ key: 'Escape' })).toBe(true);
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
         expect(accepted).toEqual([]);
     });
 
@@ -195,7 +194,7 @@ describe('the pick list', () => {
         editor.blur();
 
         expect(language.pick.isOpen).toBe(false);
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
     });
 
     test('ignores a choice of a row it does not have', async () => {
@@ -212,7 +211,7 @@ describe('the pick list', () => {
         openPick();
         language.dispose();
 
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
     });
 });
 
@@ -224,12 +223,12 @@ describe('a row that is attempted first', () => {
         await settle();
 
         expect(accepted).toEqual([]);
-        expect(language.popups.getState().pick?.preview).toEqual({ removed: [], added: [], note: null, refusal: 'Name is taken' });
+        expect(language.popups.slot('pick').get()?.preview).toEqual({ removed: [], added: [], note: null, refusal: 'Name is taken' });
 
         language.pick.move(1);
 
         expect(active()).toBe('b');
-        expect(language.popups.getState().pick?.preview).toBeNull();
+        expect(language.popups.slot('pick').get()?.preview).toBeNull();
 
         language.pick.choose('b');
         await settle();
@@ -292,7 +291,7 @@ describe('the preview of the active row', () => {
         await settle();
 
         expect(asked).toEqual(['a']);
-        expect(language.popups.getState().pick?.preview).toEqual(change);
+        expect(language.popups.slot('pick').get()?.preview).toEqual(change);
     });
 
     test('drops an answer for a row that is no longer active', async () => {
@@ -320,7 +319,7 @@ describe('the preview of the active row', () => {
         await settle();
 
         expect(active()).toBe('b');
-        expect(language.popups.getState().pick?.preview).toBeNull();
+        expect(language.popups.slot('pick').get()?.preview).toBeNull();
     });
 
     test('is not asked for when the list closes before the moment passes', async () => {
@@ -355,7 +354,7 @@ describe('a pick list that filters', () => {
 
         context.openPick({ groups: [{ title: null, rows }], filter: true, ...spec });
 
-        const view = () => context.language.popups.getState().pick!;
+        const view = () => context.language.popups.slot('pick').get()!;
 
         return { ...context, view };
     }
@@ -445,7 +444,7 @@ describe('a pick list of several choices', () => {
 
         context.openPick({ multiple: true, acceptMany: (ids) => many.push([...ids]), ...spec });
 
-        return { ...context, many, view: () => context.language.popups.getState().pick! };
+        return { ...context, many, view: () => context.language.popups.slot('pick').get()! };
     }
 
     test('grows a run of rows from the active one with Shift and the arrows, and shrinks it again', async () => {
@@ -543,8 +542,8 @@ describe('a pick list of several choices', () => {
 
         editor.press({ key: 'ArrowDown', shiftKey: true });
 
-        expect(language.popups.getState().pick!.chosen).toEqual([]);
-        expect(language.popups.getState().pick!.active).toBe('b');
+        expect(language.popups.slot('pick').get()!.chosen).toEqual([]);
+        expect(language.popups.slot('pick').get()!.active).toBe('b');
     });
 });
 
@@ -567,7 +566,7 @@ describe('a pick list whose rows can be removed', () => {
             }
         });
 
-        return { ...context, removed, view: () => context.language.popups.getState().pick! };
+        return { ...context, removed, view: () => context.language.popups.slot('pick').get()! };
     }
 
     test('Delete takes out the active row and lands on the one that took its place', async () => {
@@ -668,6 +667,6 @@ describe('a pick list with mnemonics', () => {
 
         expect(editor.press({ key: '2' })).toBe(true);
         expect(accepted).toEqual([]);
-        expect(language.popups.getState().pick?.query).toBe('2');
+        expect(language.popups.slot('pick').get()?.query).toBe('2');
     });
 });

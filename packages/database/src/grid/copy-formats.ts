@@ -6,7 +6,7 @@ export type CopyFormat = 'tsv' | 'csv' | 'json' | 'sql';
 
 export const COPY_FORMATS: readonly CopyFormat[] = ['tsv', 'csv', 'json', 'sql'];
 
-export interface CopyColumn {
+interface CopyColumn {
     readonly name: string;
     readonly kind: ValueKind;
 }
@@ -15,7 +15,6 @@ export interface CopyInput {
     readonly columns: readonly CopyColumn[];
     /* One array per row, one cell per column. A preview copies as the preview. */
     readonly rows: readonly (readonly Shown[])[];
-    /* Needed for `sql`. */
     readonly target?: SqlTarget;
 }
 

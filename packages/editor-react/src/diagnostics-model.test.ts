@@ -1,7 +1,8 @@
 import './test-setup.ts';
 import { describe, expect, test } from 'bun:test';
 import type { Diagnostic } from '@adecore/lsp';
-import { codeLabelOf, markerOf, neighborProblem, problemsAt, shiftPosition, shiftRange, type Problem } from './diagnostics-model.ts';
+import { codeLabelOf, markerOf, neighborProblem, problemsAt, type Problem } from './diagnostics-model.ts';
+import { shiftPosition, shiftRange } from './positions.ts';
 
 const at = (line: number, character: number) => ({ line, character });
 const range = (line: number, start: number, end: number) => ({ start: at(line, start), end: at(line, end) });

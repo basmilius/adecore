@@ -4,8 +4,8 @@ import { MasterDetail } from '@adecore/ui/settings';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { accountLoginOf, accountsOfKind, type AccountEntry } from '../agents/accounts';
-import { useChatHost } from '../host';
-import { useHostLoginBlocked } from '../host-hooks';
+import { useChatHost } from '../host/host';
+import { useHostLoginBlocked } from '../host/host-hooks';
 import { useChatScope } from '../scope';
 import { useProviderAccounts } from '../state/provider-accounts';
 import { useProviders } from '../state/providers';
@@ -35,7 +35,6 @@ interface ProvidersPaneProps {
     addPage?(added: (kind: AgentKind) => void): ReactNode;
 }
 
-/* The agent CLIs of the host in scope, each with its accounts, beside the detail of what is picked. */
 export function ProvidersPane({ target = null, detailOf, defaults = true, installStepOf, setupStatusOf, sectionsOf, addPage }: ProvidersPaneProps) {
     const { t } = useTranslation('agent-providers');
     const { id: scopeId } = useChatScope();

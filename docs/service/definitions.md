@@ -13,7 +13,7 @@ Every field but `user` and `scriptDirectory` is required, even on platforms that
 
 | Field | Type | |
 | --- | --- | --- |
-| `label` | `string` | The launchd label. Pass the same one to the launchd manager. |
+| `label` | `string` | The launchd label and the name of the scheduled task. |
 | `description` | `string` | The unit's `Description` and the task's. launchd ignores it. |
 | `program` | `string` | The absolute path of the executable. |
 | `args` | `string[]` | The arguments as the program receives them, without shell quoting. |

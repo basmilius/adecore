@@ -8,12 +8,12 @@ const PendingPromptFieldsSchema = z.object({
     createdAt: z.number()
 });
 
-export type PendingPromptFields = z.infer<typeof PendingPromptFieldsSchema>;
+type PendingPromptFields = z.infer<typeof PendingPromptFieldsSchema>;
 
 /* What a host keeps beside the prompt, such as instructions for the first turn. */
-export type PendingPromptExtra = Record<string, unknown>;
+type PendingPromptExtra = Record<string, unknown>;
 
-export interface PendingPromptStoreOptions<Extra extends PendingPromptExtra> {
+interface PendingPromptStoreOptions<Extra extends PendingPromptExtra> {
     /* One file per held prompt. */
     dir: string;
 

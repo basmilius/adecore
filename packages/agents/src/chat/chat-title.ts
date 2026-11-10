@@ -1,5 +1,5 @@
 import type { AgentKind } from '@adecore/agent-contracts';
-import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
+import { cliExecutable, runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { runProcess } from '../run-process.ts';
 import { cleanTitle } from '../title-file.ts';
@@ -73,11 +73,11 @@ export function parseTitle(output: string): string | null {
 }
 
 /*
- * Claude Code names its own chats. Any other CLI with a one-shot mode gets a name from that mode, and
- * one without gets none, so a title never runs on another provider's plan.
+ * Claude Code names its own chats. Any other CLI with a one-shot mode of its chats gets a name from that
+ * mode, and one without gets none, so a title never runs on another provider's plan.
  */
-export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneShotArgs'>): boolean {
-    return !runsClaudeCode(provider) && provider.oneShotArgs !== undefined;
+export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneShotArgs' | 'oneShotApart'>): boolean {
+    return !runsClaudeCode(provider) && provider.oneShotArgs !== undefined && provider.oneShotApart !== true;
 }
 
 /*
@@ -113,7 +113,7 @@ export async function suggestChatTitle(
     const accountEnv = own ? (env ?? input.env) : undefined;
 
     try {
-        const result = await runProcess([provider.command[0]!, ...args], {
+        const result = await runProcess([cliExecutable(provider), ...args], {
             cwd: input.cwd,
             timeoutMs: TIMEOUT_MS,
             ...(accountEnv === undefined ? {} : { env: accountEnv })

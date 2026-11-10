@@ -25,7 +25,7 @@ export const PROVIDER_PATHS: Record<UsageProvider, string> = {
 };
 
 /* The CLIs drawn with the logo of the usage page rather than their agent mark. */
-export function hasProviderLogo(kind: AgentKind): kind is 'claude' | 'codex' | 'anthropic-claude-api' {
+export function hasProviderLogo(kind: AgentKind | null | undefined): kind is 'claude' | 'codex' | 'anthropic-claude-api' {
     return kind === 'claude' || kind === 'codex' || kind === 'anthropic-claude-api';
 }
 

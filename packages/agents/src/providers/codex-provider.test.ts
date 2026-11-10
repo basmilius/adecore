@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { codexServiceTier, codexThreadOptions } from './codex.ts';
+import { codexServiceTier, codexThreadOptions } from '../backends/codex.ts';
 import { ProviderRegistry } from './registry.ts';
 
 describe('codex catalog', () => {

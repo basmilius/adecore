@@ -1,44 +1,17 @@
 import { Select as BaseSelect } from '@base-ui/react/select';
 import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
-import { useState, type Ref } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import { MENU_LABEL } from './menu/parts.tsx';
 import { renderPositioner } from './popup-layer.ts';
 import { RowContent } from './select-row.tsx';
-import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem } from './select-shared.ts';
+import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem, type SelectProps } from './select-shared.ts';
 import { SelectSearch } from './SelectSearch.tsx';
 import { useOverlayScrollbars } from './useOverlayScrollbars.tsx';
 
 export type { SelectGroup, SelectItem };
-
-export interface SelectProps<T extends string> {
-    value: T | null;
-    onValueChange(value: T): void;
-    items: SelectItem<T>[] | SelectGroup<T>[];
-
-    /* The accessible name of the trigger; the row above it usually carries the visible one. */
-    label: string;
-
-    /* What the trigger shows while nothing is picked. */
-    placeholder?: string;
-
-    size?: 'sm' | 'md';
-    variant?: 'outlined' | 'ghost';
-    disabled?: boolean;
-    align?: 'start' | 'end';
-    truncateValue?: boolean;
-
-    /* A search field above the options: `true` always, a number once the list has at least that many options. */
-    searchable?: boolean | number;
-
-    /* What the search field says while it is empty, and its accessible name. */
-    searchPlaceholder?: string;
-
-    className?: string;
-    ref?: Ref<HTMLButtonElement>;
-}
 
 function Row<T extends string>({ item, picked }: { item: SelectItem<T>; picked: boolean }) {
     return (

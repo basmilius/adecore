@@ -1,6 +1,6 @@
 import { ModelOptionDescriptorSchema, type ModelOptionDescriptor, type ProviderCapabilities } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import type { AcpSessionInfo } from '../chat/acp-protocol.ts';
+import type { AcpSessionInfo } from '../backends/acp-protocol.ts';
 import type { ModelCatalog } from './catalog.ts';
 
 /* Where a provider keeps what its agent reported, so a host that starts again offers it before the agent runs. The value is the provider's own. */
@@ -69,7 +69,7 @@ function storedPart<T>(schema: z.ZodType<T>, value: unknown): T | null {
     return parsed.success ? parsed.data : null;
 }
 
-export interface AcpAgentStateOptions {
+interface AcpAgentStateOptions {
     catalog: ModelCatalog;
     adoptModels: boolean;
     store: AcpCatalogStore | null;
@@ -209,7 +209,6 @@ export class AcpAgentState {
         return this.options.catalog.adopt(adopted.models, adopted.defaultModel, adopted.options.map(capitalized));
     }
 
-    /* Saves and tells the listeners once something changed. */
     private settle(changed: boolean): void {
         if (changed) {
             this.save();

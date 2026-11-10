@@ -1,6 +1,7 @@
 export { type MatchDetail, type Ranked, type Insertion, type SnippetInsertionOptions, insertionOf, type KindTone, type RowWindow } from './completion-model.ts';
 export { type CallPlan, type CallSite } from './completion-call.ts';
-export { type Problem, severityOf, endOfInsertion, codeLabelOf } from './diagnostics-model.ts';
+export { type Problem, severityOf, codeLabelOf } from './diagnostics-model.ts';
+export { endOfInsertion } from './positions.ts';
 export { type SignatureBlock, type HoverText, type DocTag, type HoverSection, type BaselineLevel, type Baseline, type MarkdownPart } from './hover-content.ts';
 export { type SignatureViewModel } from './signature-model.ts';
 export { type RenameTarget, type Occurrences, type RenameRow, type RenameFile } from './rename-model.ts';

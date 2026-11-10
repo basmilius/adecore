@@ -7,7 +7,7 @@ import { mapOffset } from './offsets.ts';
 import { indentationColumn } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
 
-export interface CommentOptions {
+interface CommentOptions {
     language: string;
     tabSize: number;
     insertSpaces: boolean;

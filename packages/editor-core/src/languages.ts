@@ -9,7 +9,6 @@ export interface CommentSyntax {
     block: BlockComment | null;
 }
 
-/* The part of a Vue single file component a line sits in. */
 export type VueRegion = 'template' | 'script' | 'style';
 export type EditRegion = VueRegion | 'jsx' | 'mixed';
 

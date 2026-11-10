@@ -4,7 +4,7 @@
  */
 export const MENTION_DRAG_TYPE = 'application/x-adecore-mention';
 export const LEGACY_MENTION_DRAG_TYPE = 'application/x-ruimte-mention';
-export const MENTION_DRAG_TYPES = [MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE] as const;
+const MENTION_DRAG_TYPES = [MENTION_DRAG_TYPE, LEGACY_MENTION_DRAG_TYPE] as const;
 
 export function carriesMentions(types: readonly string[]): boolean {
     return MENTION_DRAG_TYPES.some((type) => types.includes(type));
@@ -102,7 +102,6 @@ export function readClipboardChips(data: Pick<DataTransfer, 'getData'>): Clipboa
 }
 
 export interface MentionQuery {
-    // Index of the sigil in the text.
     start: number;
     query: string;
 }
@@ -190,7 +189,6 @@ export function findReferenceQuery(text: string, caret: number): MentionQuery | 
     return found === null || (found.query !== '' && !/^\p{L}/u.test(found.query)) ? null : found;
 }
 
-/* Replaces the `<sigil>query` under the caret with the chosen token and a space, and says where the caret goes. */
 export function insertToken(text: string, query: MentionQuery, sigil: string, value: string): { text: string; caret: number } {
     const end = query.start + 1 + query.query.length;
     const token = `${sigil}${value} `;
@@ -225,7 +223,7 @@ export interface NamedPick {
     id: string;
 }
 
-export type MentionPick = { kind: 'file'; path: string } | NamedPick;
+type MentionPick = { kind: 'file'; path: string } | NamedPick;
 
 /*
  * What Enter or Tab takes from the `@` list at `index`: `named` first, then the files. Those answer the
@@ -331,7 +329,7 @@ export interface TextRange {
 }
 
 /* `value` is the path, the skill's name, a reference's id or a model's or account's `<cli>/<id>`; the range spans the name. */
-export interface ChipRange extends TextRange {
+interface ChipRange extends TextRange {
     kind: 'mention' | 'skill' | 'reference' | NamedChipKind;
     value: string;
 }

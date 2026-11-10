@@ -22,7 +22,7 @@ The runs follow their text through edits until the app sets them again.
 
 ## Ghost text
 
-`setGhostText(ghost)` draws an `EditorGhostText` suggestion after a position, such as a model's continuation of a line. The first line of `text` appears inline, faint and italic, after the caret. Further lines push the lines below down. `accessory(container)` fills an element after the first line, such as a key hint. `null` removes the suggestion, and so does any text change.
+`setGhostText(ghost)` draws an `EditorGhostText` suggestion after a position, such as a model's continuation of a line. The first line of `text` appears inline, faint and italic, after the caret. Further lines push the lines below down. `accessory(container)` fills an element after the first line, such as a key hint, and may return a function that runs once when that element goes. `null` removes the suggestion, and so does any text change.
 
 The editor never accepts a suggestion. The app binds a key, checks the suggestion still fits and inserts it:
 

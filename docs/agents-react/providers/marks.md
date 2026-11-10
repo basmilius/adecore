@@ -14,17 +14,21 @@ The marks of the agent CLIs and the dot of an account's color.
 
 `size` is in pixels, 14 by default.
 
+`hasProviderLogo(kind)` says whether `ProviderLogo` draws a kind (`claude`, `codex` or `anthropic-claude-api`), and narrows it to a `UsageProvider`. It takes `null` and `undefined` as no. Draw `ProviderLogo` for those and `AgentIcon` for every other kind.
+
 ## A mark for a kind the host adds
 
-A kind of your own, such as one run through [`createAcpProvider`](/agents/acp), gets its mark once with `configureAgentMarks` from `@adecore/agents-react`, before the first render. Every view that draws an agent's mark uses it.
+A kind of your own, such as one run through [`createAcpProvider`](/agents/acp), gets its mark in the `agentMarks` member of the host, which a `ChatHostProvider` hands to every view under it. Every view that draws an agent's mark uses it.
 
 ```ts
-import { configureAgentMarks } from '@adecore/agents-react';
+import type { ChatHost } from '@adecore/agents-react';
 
-configureAgentMarks({
-    acme: { title: 'Acme', path: 'M12 2 2 22h20Z' },
-    orbit: { title: 'Orbit', path: 'M8 1a7 7 0 1 0 0 14A7 7 0 1 0 8 1Z', viewBox: '0 0 16 16' }
-});
+export const CHAT_HOST: Partial<ChatHost> = {
+    agentMarks: {
+        acme: { title: 'Acme', path: 'M12 2 2 22h20Z' },
+        orbit: { title: 'Orbit', path: 'M8 1a7 7 0 1 0 0 14A7 7 0 1 0 8 1Z', viewBox: '0 0 16 16' }
+    }
+};
 ```
 
-An `AgentMark` is one SVG `path` in `currentColor`, with a `title` for screen readers, an optional `viewBox` (`0 0 24 24` by default) and an optional `fillRule`: `evenodd` for a path whose holes are subpaths inside its shape, as the built-in mark of `anthropic-claude-api` is. A mark for a built-in kind replaces it. A later call replaces the whole set.
+An `AgentMark` is one SVG `path` in `currentColor`, with a `title` for screen readers, an optional `viewBox` (`0 0 24 24` by default) and an optional `fillRule`: `evenodd` for a path whose holes are subpaths inside its shape, as the built-in mark of `anthropic-claude-api` is. A mark for a built-in kind replaces it. A provider inside another adds its marks to the ones above it.

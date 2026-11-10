@@ -4,8 +4,7 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { ClipboardHistory } from './clipboard-history.ts';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf } from './testing.ts';
 
 const uri = 'file:///work/a.txt';
 
@@ -25,7 +24,7 @@ function setup(text = 'ab\ncd', options: { readOnly?: boolean; clipboard?: Clipb
     const language = new EditorLanguage(project, editor, uri, 'plaintext', timers, { serve: false });
     open.push(project, language);
 
-    const view = () => language.popups.getState().pick!;
+    const view = () => language.popups.slot('pick').get()!;
     const labels = () => view().groups[0]!.rows.map((row) => row.label);
     const press = (key: string, modifiers: { shiftKey?: boolean } = {}) => editor.press({ key, ...modifiers });
 

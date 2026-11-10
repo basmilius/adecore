@@ -1,11 +1,11 @@
-import type { AgentKind, ModelInfo, ProviderAccounts, ProviderAccountState, ProviderInfo } from '@adecore/agent-contracts';
-import { accountName, accountsOfKind, hasAccountChoice, projectOffered, type AccountEntry, type AccountRule } from '../agents/accounts';
+import { inPickerOrder, type AgentKind, type ModelInfo, type ProviderAccounts, type ProviderAccountState, type ProviderInfo } from '@adecore/agent-contracts';
+import { accountName, accountsOfKind, hasAccountChoice, projectOffered, type AccountEntry } from '../agents/accounts';
 import { modelRequirementOf } from '../agents/model-requirement';
-import { inPickerOrder } from './logic/picker-entries';
+import type { AccountRule } from '../host/host';
 import type { NamedPick } from './mentions';
 
-export const MODEL_SUGGESTIONS = 5;
-export const ACCOUNT_SUGGESTIONS = 3;
+const MODEL_SUGGESTIONS = 5;
+const ACCOUNT_SUGGESTIONS = 3;
 
 export interface ModelSuggestion extends NamedPick {
     kind: 'model';

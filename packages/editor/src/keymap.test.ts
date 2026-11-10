@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { chordOf, KEYMAP, KEYMAP_IDS, parseChord, resolveKeymap } from './keymap-table.ts';
+import type { KeyChord } from './keymap-table.ts';
 import { chordMatches, type KeyLike, keyAction } from './keymap.ts';
-import type { KeyChord } from './types.ts';
 
 function key(name: string, modifiers: Partial<Omit<KeyLike, 'key'>> = {}): KeyLike {
     return { key: name, ctrlKey: false, metaKey: false, altKey: false, shiftKey: false, ...modifiers };

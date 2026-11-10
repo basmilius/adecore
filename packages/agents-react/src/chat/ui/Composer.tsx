@@ -5,14 +5,14 @@ import clsx from 'clsx';
 import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
-import { useHostComposerSendActions, useHostComposerStatus, useHostExtraPrompts, useHostSendDelivery } from '../../host-hooks';
-import { canSteer } from '../../providers/provider-abilities';
+import type { ChatSendExtras } from '../../chat-client';
+import { useChatHost } from '../../host/host';
+import { useHostComposerStatus, useHostExtraPrompts, useHostSendDelivery } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useProviders } from '../../state/providers';
-import type { ChatSendExtras } from '../chat-client';
 import { isEmptyDraft } from '../drafts';
 import { PROMPT_MAX_CHARS, promptGuard } from '../guards';
+import { canSteer } from '../logic/steer';
 import { useChatPreferences } from '../preferences';
 import { withQuote } from '../quote';
 import { dismissResumeCompaction } from '../resume-compaction-dismissals';
@@ -141,7 +141,6 @@ export function Composer({
     // The stopped turn something went out for, since the chat takes a moment to answer and Continue must not stand there meanwhile.
     const [sentFor, setSentFor] = useState<string | null>(null);
     const extraPrompts = useHostExtraPrompts(scope.id, chatId);
-    const sendActions = useHostComposerSendActions(scope.id, chatId);
     const statusItems = useHostComposerStatus(scope.id, chatId);
 
     const { submit, continueTurn, restoreStashed, toggleStash } = useComposerSubmit({
@@ -380,16 +379,7 @@ export function Composer({
                                 onContinue:
                                     continuable !== null && continuable !== sentFor && empty && writable && pending.length === 0 && extraPrompts.length === 0
                                         ? continueTurn
-                                        : null,
-                                actions: sendActions,
-                                draft: {
-                                    scopeId: scope.id,
-                                    chatId,
-                                    text: withQuote(draft.quote, draft.text.trim()),
-                                    provider: info.provider,
-                                    selection: info.selection,
-                                    runtimeMode: info.runtimeMode
-                                }
+                                        : null
                             }}
                             dictationToolbar={setDictationToolbar}
                             onFiles={(picked) => {

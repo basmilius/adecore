@@ -34,7 +34,6 @@ function kindOf(base: readonly string[], ours: readonly string[], theirs: readon
     return 'conflict';
 }
 
-/* How many lines a change adds over what it replaces, which is how far it moves everything after it. */
 function delta(change: Change): number {
     return change.otherEnd - change.otherStart - (change.baseEnd - change.baseStart);
 }

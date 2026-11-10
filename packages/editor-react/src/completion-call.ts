@@ -1,10 +1,10 @@
-import type { CompletionItem } from '@adecore/lsp';
+import { SCRIPT_LANGUAGE_IDS, type CompletionItem } from '@adecore/lsp';
 import { CLASS_KIND, SNIPPET_FORMAT, SOURCE_LINE, isCallableKind, type Insertion } from './completion-model.ts';
 
 /* What the platform's editors send to ask for parameter info once an item is in; the card is ours to open. */
 export const PARAMETER_HINTS_COMMAND = 'editor.action.triggerParameterHints';
 
-const CALL_LANGUAGES = new Set(['typescript', 'typescriptreact', 'javascript', 'javascriptreact', 'vue', 'php', 'python']);
+const CALL_LANGUAGES = new Set<string>([...SCRIPT_LANGUAGE_IDS, 'vue', 'php', 'python']);
 const MARKUP_LANGUAGES = new Set(['typescriptreact', 'javascriptreact', 'vue']);
 
 const IMPORT_BRACE = /\b(?:import|export)(?:\s+type)?(?:\s+[\w$]+\s*,)?\s*$/;

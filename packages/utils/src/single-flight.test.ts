@@ -42,6 +42,28 @@ describe('SingleFlight', () => {
         expect(await flights.run('a', work)).toBe(3);
     });
 
+    test('a forgotten key starts a new run, and the old run leaves the new one in place', async () => {
+        const flights = new SingleFlight<string>();
+        const old = deferred<string>();
+        const fresh = deferred<string>();
+        const first = flights.run('a', () => old.promise);
+        flights.forget('a');
+        const second = flights.run('a', () => fresh.promise);
+        old.resolve('old');
+
+        expect(await first).toBe('old');
+        expect(flights.get('a')).toBe(second);
+        expect([...flights.keys()]).toEqual(['a']);
+
+        flights.clear();
+
+        expect(flights.has('a')).toBe(false);
+
+        fresh.resolve('fresh');
+
+        expect(await second).toBe('fresh');
+    });
+
     test('a failure reaches every caller and frees the key', async () => {
         const flights = new SingleFlight<string>();
         const gate = deferred<string>();

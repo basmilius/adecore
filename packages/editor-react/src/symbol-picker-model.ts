@@ -4,7 +4,7 @@ import type { DocumentSymbol, DocumentSymbolResult, SymbolInformation, Workspace
 export type SymbolGroup = 'namespaces' | 'classes' | 'interfaces' | 'enums' | 'functions' | 'methods' | 'properties' | 'variables' | 'constants' | 'other';
 
 /* The order the groups are listed in: what a file declares, then what those declare. */
-export const SYMBOL_GROUPS: readonly SymbolGroup[] = [
+const SYMBOL_GROUPS: readonly SymbolGroup[] = [
     'namespaces',
     'classes',
     'interfaces',
@@ -55,7 +55,6 @@ const LETTERS: Record<SymbolGroup, string> = {
     other: '·'
 };
 
-/* The letter in the badge in front of a symbol. */
 export function letterOfKind(kind: number): string {
     return kind === ENUM_MEMBER ? 'e' : LETTERS[groupOfKind(kind)];
 }
@@ -87,7 +86,6 @@ export function toneOfKind(kind: number): SymbolTone {
     return TONES[groupOfKind(kind)];
 }
 
-/* One symbol of a file as a row of the picker. */
 export interface SymbolEntry {
     readonly id: string;
     readonly name: string;
@@ -209,7 +207,6 @@ export function modeOf(input: string): PickerMode {
     return { mode: 'symbol', text: input };
 }
 
-/* A symbol of the project as a place to go to. */
 export interface WorkspaceEntry {
     readonly id: string;
     readonly name: string;

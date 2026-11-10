@@ -3,9 +3,9 @@ import { appendFile, cp, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { workflowAgentRef, type ChatInfo, type ChatItem, type ChatSubagentChangedEvent, type ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ThreadItemsParams } from '../backends/threads.ts';
 import { FakeWatch } from '../testing/watch.ts';
 import { claudeProjectSlug } from './claude-transcript.ts';
-import type { ThreadItemsParams } from './codex-thread.ts';
 import { SubagentReader, type SubagentChat } from './subagent-reader.ts';
 
 const FIXTURE = join(import.meta.dir, 'fixtures', 'claude-projects');
@@ -65,11 +65,17 @@ function makeReader(listOnce?: (params: ThreadItemsParams) => Promise<unknown>, 
     return new SubagentReader({
         chat: (chatId) => chats.get(chatId) ?? null,
         claudeProjectsDir: projects,
-        codexProcess: (chatInfo) => ({ command: ['codex', 'app-server'], cwd: chatInfo.cwd, env: {} }),
+        sourceOf: (chatInfo) => (chatInfo.provider === 'codex' ? 'codex-thread' : 'claude-transcript'),
+        threadsOf: (chatInfo) => ({
+            threads: {
+                listItems: (_process, params) => (listOnce ?? (() => Promise.reject(new Error('no thread asked for'))))(params),
+                fork: () => Promise.reject(new Error('no fork asked for'))
+            },
+            process: { command: ['codex', 'app-server'], cwd: chatInfo.cwd, env: {} }
+        }),
         notify: (clientId, event) => told.push({ clientId, event }),
         seams: watch,
-        now,
-        ...(listOnce ? { listOnce: (_spec, params) => listOnce(params) } : {})
+        now
     });
 }
 
@@ -156,7 +162,8 @@ describe('a Claude subagent', () => {
             chat: (chatId) => chats.get(chatId) ?? null,
             chatInfo: async (chatId) => stored.get(chatId) ?? null,
             claudeProjectsDir: projects,
-            codexProcess: (chatInfo) => ({ command: ['codex', 'app-server'], cwd: chatInfo.cwd, env: {} }),
+            sourceOf: () => 'claude-transcript',
+            threadsOf: () => undefined,
             notify: () => undefined,
             seams: watch
         });

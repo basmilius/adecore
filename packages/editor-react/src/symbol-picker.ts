@@ -1,7 +1,7 @@
 import { StaleResultError, type Location } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { basenameOf } from './paths.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { entriesOf, workspaceEntriesOf, type SymbolEntry, type WorkspaceEntry } from './symbol-picker-model.ts';
@@ -14,9 +14,9 @@ const TOAST_ID = 'language-symbols';
  * its own input, so the editor only has to open it.
  */
 export class SymbolPickerFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext) {
         this.language = language;
 
         const off = language.onKey((event) => {
@@ -46,7 +46,7 @@ export class SymbolPickerFeature {
 
         try {
             const entries = entriesOf(await this.language.service.documentSymbols(uri));
-            popups.setState({ symbols: { file: basenameOf(this.language.uri), entries } });
+            popups.slot('symbols').set({ file: basenameOf(this.language.uri), entries });
         } catch (error) {
             if (!(error instanceof StaleResultError)) {
                 this.language.project.host.notify?.({
@@ -59,13 +59,12 @@ export class SymbolPickerFeature {
     }
 
     close(): void {
-        if (this.language.popups.getState().symbols !== null) {
-            this.language.popups.setState({ symbols: null });
+        if (this.language.popups.slot('symbols').get() !== null) {
+            this.language.popups.slot('symbols').set(null);
             this.language.editor.focus();
         }
     }
 
-    /* Puts the caret on a symbol of the file. */
     goTo(entry: SymbolEntry): void {
         this.close();
         this.language.jump({ line: entry.line, character: entry.character });

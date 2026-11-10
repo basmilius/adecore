@@ -4,7 +4,7 @@
  */
 
 /* The longest the view takes to get anywhere. */
-export const SCROLL_DURATION_MS = 100;
+const SCROLL_DURATION_MS = 100;
 
 /* How many lines away the view has to go before it takes any time, and how many before it takes all of it. */
 const FREE_LINES = 1;

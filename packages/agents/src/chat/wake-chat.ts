@@ -9,7 +9,7 @@ import type { ChatSession } from './chat-session.ts';
 export interface WakeChat {
     items(): ChatItem[];
     persist?(): Promise<void>;
-    wake(wake: { text: string; label: string; note?: string; taskIds: string[]; messageFrom?: string[]; messageHop?: number }): boolean;
+    wake(wake: Parameters<ChatSession['wake']>[0]): boolean;
     /* Whether the host is moving the chat to another folder, which turns every wake away until it ends. */
     relocating?(): boolean;
 }
@@ -36,7 +36,6 @@ export async function loadChat(deps: ChatOpenerDeps, chatId: string): Promise<Ch
     return deps.chats.get(chatId) ?? null;
 }
 
-/* The chat a turn is to be opened in. */
 export function chatOpener(deps: ChatOpenerDeps) {
     return async (chatId: string): Promise<WakeChat | null> => {
         const session = await loadChat(deps, chatId);

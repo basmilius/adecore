@@ -10,10 +10,8 @@ export interface BinaryValue {
     readonly hex: string;
 }
 
-/* A whole value, as a key or an edit carries it. */
 export type Value = null | boolean | number | string | BinaryValue;
 
-/* What a cell in an edit is set to: a value, or the column's default. */
 export type EditValue = Value | { readonly kind: 'default' };
 
 /* Bytes in a result. `hex` holds the first bytes only when `length` is larger than `hex.length / 2`. */

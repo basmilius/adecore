@@ -1,6 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
 import type { ChatInfo, ChatSubagentItem } from '@adecore/agent-contracts';
-import type { PromptSubject } from '../prompts/logic/subjects';
+import type { PromptSubject } from '../host/prompts';
 import type { ChatScope } from '../scope';
 import { useChats } from '../state/chats';
 import { PROMPT_SAMPLES } from '../testing/prompts';

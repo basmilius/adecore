@@ -1,10 +1,10 @@
-import type { EditorCodeVision, EditorCodeVisionEntry, EditorRect } from '@adecore/editor';
+import type { EditorCodeVision, EditorCodeVisionEntry, EditorPosition, EditorRect } from '@adecore/editor';
 import type { DocumentSymbolResult, Location } from '@adecore/lsp';
 import { splitLines } from '@adecore/merge';
 import { type CodeAuthorship, authorsText, authorshipOf, mapBlame } from './code-authors.ts';
 import { type CodeVisionDeclaration, declarationsOf, usagesText } from './code-vision-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import type { GitBlameCommit, GitBlameResult } from './host-types.ts';
+import type { LanguageContext } from './language-context.ts';
 import { realTimers, type Timers } from './timers.ts';
 import { placeKey } from './unique.ts';
 
@@ -19,7 +19,7 @@ const MAX_PARALLEL = 3;
 const SCROLL_PAUSE_MS = 150;
 
 /* Past this many lines a file gets no rows at all, which is also what keeps blame and the walk of symbols cheap. */
-export const MAX_LINES = 20_000;
+const MAX_LINES = 20_000;
 
 export interface CodeVisionSettings {
     readonly usages: boolean;
@@ -34,6 +34,13 @@ export type BlameSource =
     | { readonly kind: 'pending' }
     | { readonly kind: 'ready'; readonly blame: GitBlameResult; readonly base: string; openCommit?(hash: string): void };
 
+/* What the code vision feature takes from its sibling features, which the editor language hands over. */
+interface CodeVisionPeers {
+    /* Told whenever the document symbols are read; returns the way to stop listening. */
+    onSymbols(listener: (result: DocumentSymbolResult) => void): () => void;
+    readonly peek: { open(position: EditorPosition): Promise<void> };
+}
+
 /*
  * The rows above declarations: how often each is used and who wrote it. A row holds its height from the
  * first answer on, empty until its entries are in, so the text never moves when they arrive. Counts are
@@ -41,7 +48,8 @@ export type BlameSource =
  * stays on its row until the new one is in.
  */
 export class CodeVisionFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: CodeVisionPeers;
     private readonly timers: Timers;
     private settings: CodeVisionSettings = { usages: false, authors: false };
     private declarations: CodeVisionDeclaration[] = [];
@@ -70,13 +78,14 @@ export class CodeVisionFeature {
     private publishing = false;
     private disposed = false;
 
-    constructor(language: EditorLanguage, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: CodeVisionPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
         const offs = [
-            onSymbols((result) => this.read(result)),
+            peers.onSymbols((result) => this.read(result)),
             editor.onTextChange(() => {
                 this.edited = true;
                 this.closeAuthors();
@@ -112,7 +121,6 @@ export class CodeVisionFeature {
         });
     }
 
-    /* Which rows to draw, from the settings of the client. */
     configure(settings: CodeVisionSettings): void {
         if (settings.usages === this.settings.usages && settings.authors === this.settings.authors) {
             return;
@@ -123,7 +131,6 @@ export class CodeVisionFeature {
         this.plan();
     }
 
-    /* What git says about the file, from the client that asked it. */
     setBlame(blame: BlameSource | null): void {
         this.blame = blame;
         this.mapped = null;
@@ -152,7 +159,6 @@ export class CodeVisionFeature {
         return this.settings.usages && this.language.service.supports(REFERENCES, this.language.uri);
     }
 
-    /* Queues the declarations in view whose count is not from the current text, nearest the top of the view first. */
     private plan(): void {
         if (this.disposed || this.edited || !this.canCount) {
             return;
@@ -243,7 +249,7 @@ export class CodeVisionFeature {
                 entries.push({
                     id: 'usages',
                     text: usagesText(known.count, this.language.project.i18n),
-                    activate: () => void this.language.peek.open(declaration.position)
+                    activate: () => void this.peers.peek.open(declaration.position)
                 });
             }
 
@@ -289,20 +295,18 @@ export class CodeVisionFeature {
         const source = this.blame;
         const openCommit = source?.kind === 'ready' ? source.openCommit : undefined;
 
-        this.language.popups.setState({
-            authors: {
-                anchor,
-                name: declaration.name,
-                authorship,
-                openCommit: openCommit === undefined || authorship.latest === null ? null : () => openCommit(authorship.latest!.hash)
-            }
+        this.language.popups.slot('authors').set({
+            anchor,
+            name: declaration.name,
+            authorship,
+            openCommit: openCommit === undefined || authorship.latest === null ? null : () => openCommit(authorship.latest!.hash)
         });
     }
 
     /* Closes the card of the authors; `restoreFocus` is for a close that came from the keyboard, which gives the editor its keys back. */
     closeAuthors(restoreFocus = false): void {
-        if (this.language.popups.getState().authors !== null) {
-            this.language.popups.setState({ authors: null });
+        if (this.language.popups.slot('authors').get() !== null) {
+            this.language.popups.slot('authors').set(null);
 
             if (restoreFocus) {
                 this.language.editor.focus();

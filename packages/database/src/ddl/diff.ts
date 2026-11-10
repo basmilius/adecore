@@ -4,7 +4,7 @@ import type { Dialect } from './dialect.ts';
 import type { ColumnDraft, ForeignKeyDraft, IndexDraft, TableDraft } from './draft.ts';
 import type { TableOptions } from './parse.ts';
 
-export interface KeptColumn {
+interface KeptColumn {
     readonly original: ColumnDraft;
     readonly column: ColumnDraft;
     readonly renamed: boolean;
@@ -15,14 +15,14 @@ export interface KeptColumn {
     readonly after: string | null;
 }
 
-export interface AddedColumn {
+interface AddedColumn {
     readonly column: ColumnDraft;
     /* Whether a column that stays comes after it, so that it cannot simply go to the end. */
     readonly placed: boolean;
     readonly after: string | null;
 }
 
-export interface RenamedIndex {
+interface RenamedIndex {
     readonly from: IndexDraft;
     readonly to: IndexDraft;
 }
@@ -42,7 +42,6 @@ export interface TableDiff {
     readonly optionsChanged: boolean;
 }
 
-/* The positions of a longest run that already is in order, whose columns can stay where they are. */
 const longestRun = (positions: readonly number[]): ReadonlySet<number> => {
     const length: number[] = [];
     const previous: number[] = [];
@@ -168,7 +167,6 @@ const foreignKeyChanges = (original: TableDraft, draft: TableDraft, project: Pro
     return { droppedForeignKeys, addedForeignKeys };
 };
 
-/* What a draft changes in the table it came from, told apart by the names items kept. */
 export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft): TableDiff => {
     const renames = new Map(draft.columns.filter((column) => column.originalName !== null).map((column) => [column.originalName!, column.name]));
 
@@ -184,6 +182,5 @@ export const diffOf = (dialect: Dialect, original: TableDraft, draft: TableDraft
     };
 };
 
-/* Whether applying the draft removes a column, and with it the data in it. */
 export const dropsColumns = (original: TableDraft, draft: TableDraft): boolean =>
     original.columns.some((column) => !draft.columns.some((kept) => kept.originalName === column.name));

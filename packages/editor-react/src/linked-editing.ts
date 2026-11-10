@@ -1,10 +1,9 @@
 import type { EditorTextChange } from '@adecore/editor';
 import type { LinkedEditingRanges } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 import { realTimers, type Timers } from './timers.ts';
 
 const METHOD = 'textDocument/linkedEditingRange';
-/* How long the caret rests before the ranges around it are asked. */
 const DELAY_MS = 100;
 
 interface Span {
@@ -19,7 +18,7 @@ interface Session {
 }
 
 /* The server's word pattern, anchored, or null when it gave none or one that does not compile. */
-export function wordPatternOf(ranges: LinkedEditingRanges): RegExp | null {
+function wordPatternOf(ranges: LinkedEditingRanges): RegExp | null {
     if (ranges.wordPattern === undefined) {
         return null;
     }
@@ -37,7 +36,7 @@ export function wordPatternOf(ranges: LinkedEditingRanges): RegExp | null {
  * than one caret.
  */
 export class LinkedEditingFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private session: Session | null = null;
     private timer: unknown = null;
@@ -46,7 +45,7 @@ export class LinkedEditingFeature {
     private mirroring = false;
     private enabled = true;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
@@ -64,7 +63,6 @@ export class LinkedEditingFeature {
         return this.enabled && service.linkedEditingRanges !== undefined && service.supports(METHOD, this.language.uri);
     }
 
-    /* Whether ranges are linked now. */
     get isActive(): boolean {
         return this.session !== null;
     }

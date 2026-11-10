@@ -2,7 +2,7 @@ import type { EditSource } from './edit-source.ts';
 import type { TextEdit } from './types.ts';
 
 /* A change of text in one place and where the caret stands in what replaces it. */
-export interface HandlerEdit {
+interface HandlerEdit {
     from: number;
     to: number;
     text: string;
@@ -15,7 +15,6 @@ export function isQuote(character: string): boolean {
     return quotes.test(character);
 }
 
-/* Every quote of a body with whether a backslash escapes it. */
 function quotesIn(body: string, selected: string, typed: string): { index: number; escaped: boolean }[] {
     const found: { index: number; escaped: boolean }[] = [];
     let escaped = false;
@@ -137,7 +136,7 @@ export function replacesComparison(typed: string, selected: string, inCommentOrS
 
 const closerOf: Readonly<Record<string, string>> = { '(': ')', '[': ']', '{': '}', '<': '>', '"': '"', "'": "'", '`': '`' };
 
-export function matchingDelimiter(character: string): string {
+function matchingDelimiter(character: string): string {
     return closerOf[character] ?? character;
 }
 

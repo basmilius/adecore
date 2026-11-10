@@ -95,7 +95,6 @@ export function positionAt(text: string, offset: number): Position {
     return { line, character: offset - lineStart };
 }
 
-/* The position after the last character. */
 export function endPosition(text: string): Position {
     return positionAt(text, text.length);
 }
@@ -228,7 +227,6 @@ export function minimalChange(before: string, after: string): ContentChange {
     };
 }
 
-// The snapshots by `fileUriKey`, each with the URI it was given under, which the plan keeps.
 type KeyedSnapshots = ReadonlyMap<string, { uri: string; snapshot: DocumentSnapshot }>;
 
 function snapshotEdit(uri: string, snapshots: KeyedSnapshots): PlannedDocumentEdit {
@@ -255,7 +253,6 @@ function planCreate(change: CreateFile, snapshots: KeyedSnapshots, planned: Map<
     }
 }
 
-/* The changes of an edit in order, with the older `changes` map read as unversioned text edits. */
 export function documentChangesOf(edit: WorkspaceEdit): NonNullable<WorkspaceEdit['documentChanges']> {
     return edit.documentChanges ?? Object.entries(edit.changes ?? {}).map(([uri, edits]) => ({ textDocument: { uri, version: null }, edits }));
 }

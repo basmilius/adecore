@@ -4,7 +4,7 @@ import { createPage } from '@adecore/editor/testing';
 import { Menu } from '@adecore/ui';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost, type HostMenuAction } from '../../host';
+import { ChatHostProvider, type ChatHost, type HostMenuAction } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { GeneratedImageRow } from './rows/GeneratedImageRow';
 import { VisualRow } from './rows/VisualRow';

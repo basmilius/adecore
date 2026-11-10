@@ -33,10 +33,8 @@ const ALIASES: Readonly<Record<string, string>> = {
     link: 'see'
 };
 
-/* Tags that carry a type before their subject. */
 const TYPED = new Set(['param', 'property', 'return', 'throws', 'var', 'type', 'yield', 'template', 'this']);
 
-/* Tags whose first word is the thing they are about. */
 const SUBJECT_FIRST = new Set(['param', 'property', 'var', 'template']);
 
 const TAG_START = /^@([A-Za-z][\w-]*)(?::[\w-]+)?[ \t]*(.*)$/;

@@ -9,13 +9,12 @@ import type { Aggregates } from '../grid/aggregates.ts';
 import { numeralText } from '../grid/display.ts';
 import type { PageBounds } from './paging.ts';
 
-/* What the selected cells add up to, and which columns they are in. */
 export interface SelectionFigures {
     readonly columns: readonly string[];
     readonly aggregates: Aggregates;
 }
 
-export interface TableStatusBarProps {
+interface TableStatusBarProps {
     elapsedMs: number;
     bounds: PageBounds;
     counting: boolean;
@@ -28,7 +27,6 @@ export interface TableStatusBarProps {
     ref?: Ref<HTMLElement>;
 }
 
-/* Which rows are on the page and how many there are, the way to the other pages, and the figures of the selected cells. */
 export function TableStatusBar({ elapsedMs, bounds, counting, selection, onCount, onPrevious, onNext, className, ref }: TableStatusBarProps) {
     const { t } = useTranslation('database');
 

@@ -226,7 +226,10 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['useNow', '/ui/hooks/use-now'],
         ['useOverlayScrollbars', '/ui/hooks/use-overlay-scrollbars']
     ]),
-    group('Testing', [['Testing', '/ui/utilities/testing']]),
+    group('Testing', [
+        ['Testing', '/ui/utilities/testing'],
+        ['Design checks', '/ui/utilities/design-conventions']
+    ]),
     group('Reference', [['Exports', '/ui/reference']])
 ];
 
@@ -270,6 +273,7 @@ const utils: DefaultTheme.SidebarItem[] = [
     group('Page or Node', [
         ['Async', '/utils/async'],
         ['Errors', '/utils/errors'],
+        ['Geometry', '/utils/geometry'],
         ['Records', '/utils/record'],
         ['Text', '/utils/text']
     ]),

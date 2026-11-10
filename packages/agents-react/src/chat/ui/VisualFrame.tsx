@@ -3,7 +3,7 @@ import { Spinner, useMeasuredWidth } from '@adecore/ui';
 import clsx from 'clsx';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { imageDocumentForDisplay } from '../image-display';
 import { DEFAULT_HEIGHT_PX, initialVisualContentHeight, rememberVisualHeight } from '../logic/visual-height';
@@ -11,7 +11,7 @@ import { VisualBridge } from '../visual-bridge';
 import { VisualViewportController } from '../visual-viewport';
 import { useVisualTheme } from './visual-theme';
 
-export interface VisualFrameProps {
+interface VisualFrameProps {
     chatId: string;
     visual: ChatVisual;
     /* Fills its positioned parent and lets the page scroll inside it, rather than taking the height the page reports. */
@@ -19,7 +19,7 @@ export interface VisualFrameProps {
     className?: string;
 }
 
-export interface VisualPageFrameProps {
+interface VisualPageFrameProps {
     /* Reads the page's HTML each time the frame opens; the frame opens again when this changes, so keep it the same function while the page is. */
     page: () => Promise<string>;
     /* The frame's accessible name. */

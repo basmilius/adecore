@@ -1,7 +1,6 @@
-import { LazyBoundary } from '@adecore/ui';
+import { LazyBoundary, lazyNamed } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
-import { lazyNamed } from '../../lazy';
+import { useChatHost } from '../../host/host';
 import type { UnifiedDiffProps } from './diff/diff-props';
 import { diffSourceBudget, legacyDiffBudget, patchSourceBudget } from './diff/diff-source-budget';
 import { DiffFallbackBoundary } from './diff/DiffFallbackBoundary';

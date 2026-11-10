@@ -143,7 +143,6 @@ function rowPlace(chart: ChartContextValue, placement: ChartTooltipPlacement, ca
     };
 }
 
-/* The swatch of a series: its icon in its color, else a dash for a line and a square for a column. */
 function Swatch({ color, entry, size }: { color: string; entry: SeriesEntry; size: 12 | 14 }) {
     if (entry.icon !== null) {
         return (
@@ -156,7 +155,6 @@ function Swatch({ color, entry, size }: { color: string; entry: SeriesEntry; siz
     return <span className={clsx('shrink-0', entry.kind === 'bar' ? 'size-2 rounded-xs' : 'h-0.5 w-3 rounded-full')} style={{ background: color }} />;
 }
 
-/* A dashed stroke for a marker, a square for a band, in their color. */
 function NoteSwatch({ note }: { note: ChartNote }) {
     return note.kind === 'marker' ? (
         <span className="flex w-2 shrink-0 justify-center">

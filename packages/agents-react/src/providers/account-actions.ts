@@ -1,7 +1,7 @@
 import type { AgentKind, ProviderAccount, ProviderAccountMap } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import { accountFor, readChatPreferences, rememberChatAccount } from '../chat/preferences';
-import type { ChatHost } from '../host';
+import type { ChatHost } from '../host/host';
 import type { ChatScope } from '../scope';
 import { providerAccountsOf, useProviderAccountsStore } from '../state/provider-accounts';
 import { errorMessage, type ChatTransport } from '../transport';
@@ -19,7 +19,7 @@ function linkTo(scope: ChatScope): ChatTransport {
 }
 
 /* The whole map, as `accounts.save` takes it. Answers false when the host refused, which a toast then says. */
-export async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, accounts: ProviderAccountMap): Promise<boolean> {
+async function saveAccounts(scope: ChatScope, host: Pick<ChatHost, 'notify'>, accounts: ProviderAccountMap): Promise<boolean> {
     try {
         useProviderAccountsStore.getState().set(scope.id, await linkTo(scope).request('accounts.save', { accounts }));
 

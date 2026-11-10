@@ -3,22 +3,7 @@ import clsx from 'clsx';
 import { Check, Search } from 'lucide-react';
 import { useId, useState, type ReactNode, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
-import { matchingItems, toggleGroup } from './legend.ts';
-
-export interface SeriesLegendItem {
-    readonly key: string;
-    readonly label: string;
-    /* The full name a screen reader and the hint give, such as with the name of its group; `label` by default. */
-    readonly name?: string;
-    /* The key of the group it is listed under. */
-    readonly group?: string;
-    /* A CSS color of the app's own, such as a variable; the mark and the check take it. */
-    readonly color?: string;
-    /* A series that has nothing to show: listed, but it cannot be turned on. */
-    readonly disabled?: boolean;
-    /* Why the series shows less than it could, such as "Turned off", under its name and in its hint. */
-    readonly status?: string;
-}
+import { matchingItems, toggleGroup, type SeriesLegendItem } from './legend.ts';
 
 export interface SeriesLegendGroup {
     readonly key: string;

@@ -1,13 +1,16 @@
 import { commentSyntax, type EditorContentChange, type EditorRange } from '@adecore/editor';
-import { comparePositions, shiftRange } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf, textBeforeOf } from './line-text.ts';
 import { enclosingElements, lineEndOf, lineStartOf, markupSyntaxOf, removeTagEdits, type TextReplacement } from './markup-context.ts';
+import type { MarkupFeature } from './markup.ts';
+import type { PickFeature } from './pick.ts';
 import type { PickGroup, PickPreview, PickRow } from './popups.ts';
+import { comparePositions, shiftRange } from './positions.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { indentSnippet } from './snippet-indent.ts';
-import { bodyWithIndentUnit, dedentLines, insertSnippet, type SnippetPlacement } from './snippet-insert.ts';
+import { bodyWithIndentUnit, dedentLines, insertSnippet, type InsertingSnippets, type SnippetPlacement } from './snippet-insert.ts';
+import type { SnippetFeature } from './snippet-session.ts';
 import { compileSnippet, snippetVariables } from './snippet.ts';
 import { expressionConstructs, regionConstructs, statementConstructs } from './surround-constructs.ts';
 import { templateApplies, templateContextAt, type TemplateContext } from './template-context.ts';
@@ -28,7 +31,6 @@ interface Subject {
     readonly expression: boolean;
 }
 
-/* A row of the list and what it does. */
 interface Entry {
     readonly row: PickRow;
 
@@ -86,6 +88,13 @@ function mergedRanges(ranges: readonly EditorRange[]): EditorRange[] | null {
     return [...merged.filter((_range, other) => other !== index), merged[index]!];
 }
 
+/* The sibling features SurroundFeature drives, which the editor language hands over. */
+interface SurroundPeers {
+    readonly pick: Pick<PickFeature, 'open'>;
+    readonly markup: Pick<MarkupFeature, 'startWrap' | 'supported'>;
+    readonly snippets: InsertingSnippets & Pick<SnippetFeature, 'end'>;
+}
+
 /*
  * Surround With, Surround with Live Template and Unwrap/Remove, as IntelliJ's handlers offer them. Surround With
  * wraps the selection, or the content of the caret's line, in a statement, an expression, a region comment or a live
@@ -93,10 +102,12 @@ function mergedRanges(ranges: readonly EditorRange[]): EditorRange[] | null {
  * Each is one edit, so one undo step, and nothing happens in a read-only editor.
  */
 export class SurroundFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: SurroundPeers;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: SurroundPeers) {
         this.language = language;
+        this.peers = peers;
 
         language.onDispose(
             language.onKey((event) => {
@@ -125,7 +136,8 @@ export class SurroundFeature {
 
     /* Opens the list of constructs around the caret that can be unwrapped or removed. */
     unwrap(): boolean {
-        const { editor, pick, project } = this.language;
+        const { editor, project } = this.language;
+        const { pick } = this.peers;
 
         if (editor.isReadOnly?.() === true) {
             return true;
@@ -152,7 +164,8 @@ export class SurroundFeature {
     }
 
     private show(templatesOnly: boolean): boolean {
-        const { editor, pick, project } = this.language;
+        const { editor, project } = this.language;
+        const { pick } = this.peers;
 
         if (editor.isReadOnly?.() === true) {
             return true;
@@ -279,7 +292,7 @@ export class SurroundFeature {
         }
 
         const live: Entry[] = [];
-        const markup = this.language.markup;
+        const { markup } = this.peers;
 
         if (markup.supported && (families.includes('html') || families.includes('xml')) && this.language.editor.getSelections().length === 1) {
             live.push({
@@ -320,8 +333,8 @@ export class SurroundFeature {
 
     /* Inserts the snippet around every range; a snippet that still runs ends first, as the previous template does in IntelliJ. */
     private insert(source: string, placements: readonly SnippetPlacement[]): void {
-        this.language.snippets.end();
-        void insertSnippet(this.language, bodyWithIndentUnit(source, this.indentUnit()), placements);
+        this.peers.snippets.end();
+        void insertSnippet(this.language, this.peers.snippets, bodyWithIndentUnit(source, this.indentUnit()), placements);
     }
 
     private indentUnit(): string {
@@ -408,7 +421,6 @@ export class SurroundFeature {
         editor.focus();
     }
 
-    /* The lines of the construct before and after its edits. */
     private unwrapPreview(text: string, row: UnwrapRow): PickPreview {
         const edits = row.edits;
         const from = lineStartOf(text, Math.min(row.from, ...edits.map((edit) => edit.from)));

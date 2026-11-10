@@ -1,14 +1,14 @@
 import { statSync } from 'node:fs';
 import { win32 } from 'node:path';
 
-export interface SpawnTarget {
+interface SpawnTarget {
     file: string;
     args: string[];
     // Set for a batch file: the command line is quoted here, so the spawn must pass it on unchanged.
     windowsVerbatimArguments?: boolean;
 }
 
-export interface SpawnTargetOptions {
+interface SpawnTargetOptions {
     env?: Record<string, string | undefined>;
     platform?: NodeJS.Platform;
     isFile?(path: string): boolean;

@@ -3,11 +3,10 @@ import { isBlank, textStart } from './line-text.ts';
 import { enclosingBraces, indentGuideAt, visualWidth } from './statements.ts';
 import type { Selection } from './types.ts';
 
-export interface CodeBlockOptions {
+interface CodeBlockOptions {
     tabSize: number;
     /* Whether the guides count as blocks too, which is the only block in a language without braces. */
     guides: boolean;
-    /* The offset of the bracket that pairs with the one at an offset. */
     mate(offset: number): number | undefined;
 }
 

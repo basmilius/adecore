@@ -27,7 +27,7 @@ export interface ResultPager {
     onNext(): void;
 }
 
-export interface StatementResultViewProps {
+interface StatementResultViewProps {
     result: StatementResult;
     /* The rows before the first one shown, so a later page counts on from the page before it. */
     offset?: number;

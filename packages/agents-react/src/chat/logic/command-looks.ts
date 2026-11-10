@@ -1,5 +1,6 @@
 import type { ChatToolItem } from '@adecore/agent-contracts';
-import type { CommandLook, CommandLookMatch, CommandLookSent, ToolLook } from '../../host';
+import type { CommandLook, CommandLookMatch, CommandLookSent, ToolLook } from '../../host/host';
+import type { Look } from '../../host/timeline-row';
 import { EMBEDDED_CODE_LIMIT, shellCommands, type EmbeddedCode, type ShellSimpleCommand, type ShellWord } from './embedded-code';
 import { matchToolLook } from './tool-looks';
 import { shellCommand } from './tools';
@@ -18,9 +19,6 @@ export interface CommandLookWord {
     /* The option right before it, whose value it may be; null when it follows none. */
     readonly option: string | null;
 }
-
-/* A look of the host's own: a program in a shell call, or an MCP server. */
-export type Look = CommandLook | ToolLook;
 
 /* A call read as a look's tool, as its row draws it, whether a shell line or an MCP call. */
 export interface LookRun {
@@ -44,7 +42,7 @@ export interface LookRun {
 }
 
 /* A shell call read as a tool of its own: the first command of the line a look knows. */
-export interface CommandLookRun extends LookRun {
+interface CommandLookRun extends LookRun {
     readonly look: CommandLook;
     readonly match: CommandLookMatch;
     /* The words after the program, quotes taken out. */
@@ -57,7 +55,6 @@ export interface CommandLookRun extends LookRun {
 
 const caches = new WeakMap<readonly CommandLook[], Map<string, CommandLookRun | null>>();
 
-/* The look of a simple command and what it says about it, or null when no look knows it. */
 function lookOf(command: ShellSimpleCommand, looks: readonly CommandLook[]): { look: CommandLook; match: CommandLookMatch } | null {
     const program = command.program;
 
@@ -142,7 +139,6 @@ function detailOf(source: string, command: ShellSimpleCommand, match: CommandLoo
     return { detail, code, words };
 }
 
-/* Whether the shell would fill in a part of this source: a `$` or backtick outside single quotes and not escaped. */
 function expandsInShell(source: string): boolean {
     let quote: "'" | '"' | null = null;
 

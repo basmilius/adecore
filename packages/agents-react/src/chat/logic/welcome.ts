@@ -1,5 +1,5 @@
 /* The part of the day a greeting names, on the local clock; the night runs until five. */
-export type DayPart = 'morning' | 'afternoon' | 'evening' | 'night';
+type DayPart = 'morning' | 'afternoon' | 'evening' | 'night';
 
 export function dayPartOf(now: Date): DayPart {
     const hour = now.getHours();

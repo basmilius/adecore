@@ -433,7 +433,6 @@ export function taskRows(): { item: ChatSubagentItem; task: SubagentTask }[] {
     ];
 }
 
-/* The titles of two chats that went on from the first turn, as the app's own list names them. */
 export const FORK_TITLES: Readonly<Record<string, string>> = {
     'chat-fork-jitter': 'Backoff with jitter',
     'chat-fork-codex': 'The same retry in Codex'
@@ -647,7 +646,6 @@ export function generatedImageUrls(): Record<string, string> {
     return { 'image-landscape': url(landscape), 'image-sticker': url(sticker) };
 }
 
-/* An image generation in each of the states its row draws. */
 export function generatedImageTools(): Record<'generating' | 'ready' | 'transparent' | 'missing' | 'failed' | 'tooLarge', ChatToolItem> {
     const tool = (id: string, patch: Partial<ChatToolItem>): ChatToolItem => ({
         id,

@@ -15,7 +15,6 @@ export interface SharedConfigReport {
     linked: string[];
     // Entries of the account in the way of a link: a real file or a link somewhere else. Left alone.
     unshared: string[];
-    // Whether the settings file was written from the keys of the default account.
     seeded: boolean;
 }
 

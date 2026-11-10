@@ -1,5 +1,5 @@
+import type { TimelineRow } from '../../host/timeline-row';
 import { stripAnsi } from './ansi';
-import type { TimelineRow } from './timeline';
 
 /*
  * An answer is markdown on the wire and rendered text on screen, so a copy as text undoes the marks the
@@ -18,14 +18,12 @@ export function stripMarkdown(text: string): string {
         .trim();
 }
 
-/* What a tool call has to show for itself: what it answered, or what it has answered so far. */
 function outputOf(tool: { output: string | null; progress?: { output: string | null } }): string | null {
     const output = tool.output ?? tool.progress?.output ?? null;
 
     return output === null ? null : stripAnsi(output);
 }
 
-/* The whole item under the pointer as plain text, or null for a row that carries no message. */
 export function messageTextOf(row: TimelineRow): string | null {
     switch (row.kind) {
         case 'user':

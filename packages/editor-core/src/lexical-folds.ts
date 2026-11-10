@@ -1,7 +1,7 @@
+import type { FoldRole, FoldingRange } from './fold-types.ts';
 import { commentSyntax } from './languages.ts';
 import { textStart } from './line-text.ts';
 import type { DocumentLine } from './rope.ts';
-import type { FoldRole, FoldingRange } from './structure.ts';
 
 /* The words a line starts with when it brings another file in, by language. A language not listed here has no import list to fold. */
 const IMPORT_WORDS = new Map<string, RegExp>();
@@ -24,7 +24,6 @@ register('python py', 'import|from');
 register('php rust rs perl', 'use');
 register('csharp cs', 'using');
 
-/* Whether a line, without its indentation, brings another file in. */
 export function isImportLine(language: string, trimmed: string): boolean {
     return IMPORT_WORDS.get(language.toLowerCase())?.test(trimmed) ?? false;
 }
@@ -32,7 +31,7 @@ export function isImportLine(language: string, trimmed: string): boolean {
 const REGION_START = /^\s*(?:\/\/|#|<!--|\/\*|--)\s*(?:#\s*)?region\b/;
 const REGION_END = /^\s*(?:\/\/|#|<!--|\/\*|--)\s*(?:#\s*)?endregion\b/;
 
-export interface LexicalFoldOptions {
+interface LexicalFoldOptions {
     /* Each on unless false. */
     imports?: boolean;
     regions?: boolean;

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { lstat, mkdir, mkdtemp, readdir, readFile, readlink, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { claudeProvider } from '../claude-provider.ts';
+import { claudeProvider } from '../../testing/providers.ts';
 import type { ProviderShare } from '../provider.ts';
 import { applySharedConfig, removeSharedConfig } from './shared-config.ts';
 

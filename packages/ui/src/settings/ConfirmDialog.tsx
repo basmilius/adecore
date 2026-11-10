@@ -11,7 +11,6 @@ export interface ConfirmDialogProps {
     /* Closes the dialog once it resolves; a rejection stays on screen as the reason. */
     onConfirm(): Promise<void>;
 
-    /* Extra on the popup. */
     className?: string;
 
     ref?: Ref<HTMLDivElement>;

@@ -54,3 +54,15 @@ The guards:
 
 To apply what a request returns, such as the edits of `formatting` or `rename`, see [Edits](/lsp/edits).
 
+
+## Language ids
+
+A document opens with the LSP id of its language, and the names a client uses for a language differ from it: a highlighter says `tsx` or `docker`, a file extension says `mjs` or `yml`. `lspLanguageId(language)` maps any of those names to the LSP id and returns a name it does not list as it is. `lspLanguageIdOf(language)` answers the same table with `null` for a language it does not list, so a caller can tell that no server here knows it. `documentLanguageId(language, path)` is the id to open a file with: the LSP id, except that a `json` file that allows comments (`tsconfig.json`, `.vscode/*.json`, `*.jsonc`) opens as `jsonc`, since a JSON server reports comments and trailing commas as errors in plain `json`. `SCRIPT_LANGUAGE_IDS` lists the four script ids, `typescript`, `typescriptreact`, `javascript` and `javascriptreact`.
+
+```ts
+import { documentLanguageId, lspLanguageId, lspLanguageIdOf } from '@adecore/lsp';
+
+lspLanguageId('tsx'); // 'typescriptreact'
+lspLanguageIdOf('zig'); // null
+documentLanguageId('json', 'tsconfig.json'); // 'jsonc'
+```

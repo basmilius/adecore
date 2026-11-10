@@ -62,6 +62,8 @@ Bun workspaces: a package per folder in `packages/`, each published from its fol
 ## Scripts and commits
 
 - `bun run check` (typecheck and oxlint, a warning fails), `bun run test`, `bun run build`, `bun run format` (oxfmt).
+- An import cycle between modules (a package plus the first folder under its `src`, tests and `testing/` left out, type-only imports counted) fails `bun run lint` and so `check` (`scripts/check-module-cycles.ts`). It lists each cycle's modules and one way around, with the file, line and import of every hop: cut one of those imports, or move what both sides need into a module neither imports.
+- A test that needs a DOM is named `*.dom.test.ts(x)`, beside the unit tests of the same component. The default run leaves it out (`bunfig.toml`) and `scripts/dom.test.ts` runs each one in a `bun test` of its own with the happy-dom preload (`dom.bunfig.toml`, `scripts/dom-preload.ts`); `bun run test:dom` runs only those, and `bun --config=dom.bunfig.toml test <file>` one of them. No test guards on `document`.
 - `bun run test:perf` runs the `*.perf.test.ts` wall-clock gates, outside `test` and CI. Run it after a change to the editor or the language mirror.
 - Work happens on `main`. Every commit passes check, test and build, plus `bun run --cwd docs build` when the docs changed: an app that links this checkout breaks with it.
 - An issue closes through its commit: `Closes #<n>` in the body, with a line on why this API and not the one proposed. Commit freely; push and release only when Bas asks.
@@ -80,12 +82,12 @@ Bun workspaces: a package per folder in `packages/`, each published from its fol
 - The React Compiler runs over every component and hook of `ui`, `terminal`, `charts`, `agents-react` and `editor-react`, in the build and in `bun run test` (`scripts/test-preload.ts`), so a test sees what `dist` ships. An app that reads `src` compiles it itself (`docs/guide`).
 - No hand-written `useMemo`, `useCallback` or `memo` where the compiler covers it. Keep one where an effect lists the value (the lint asks for it), for a store or holder that must not be made twice, in a function the compiler leaves out, and `memo` on a component an uncompiled parent draws (the thread rows under `Timeline`).
 - What a render reads must be an input of it: props, state, context or a `useSyncExternalStore` snapshot. An object that changes in place draws its old value once compiled; give it a snapshot getter (`RowHost.getContainers`). Where that is not small, start the function with `'use no memo'` and a comment why.
-- Call the hooks a chat host hands in through `agents-react/src/host-hooks.ts` only; the compiler leaves out a component that calls them directly.
+- Call the hooks a chat host hands in through `agents-react/src/host/host-hooks.ts` only; the compiler leaves out a component that calls them directly.
 - The build prints how many functions the compiler left as written. `bun run lint` checks the Rules of React with the compiler's own rules (`.oxlintrc.json`).
 
 ## Design rules
 
-`bun run lint` checks these in UI and database sources (`scripts/check-design-conventions.ts`, rules in `scripts/design-conventions.ts`):
+`bun run lint` checks these in UI and database sources (`scripts/check-design-conventions.ts` with the options of each package; the rules are `src/design-conventions.ts` in `ui`, published as `@adecore/ui/design-conventions` so an app runs them over its own sources):
 
 - Type in the sizes of the theme's scale, never a size in brackets, nothing below 12px.
 - A hint is a `Tooltip`, never a `title`.

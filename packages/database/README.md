@@ -70,7 +70,7 @@ import { createDatabaseClient, DatabaseProvider, TableView } from '@adecore/data
 const client = createDatabaseClient((request) => window.database.request(request));
 
 createRoot(root).render(
-    <UIProvider i18n={i18next} formatSource={formatSource}>
+    <UIProvider i18n={i18next}>
         <DatabaseProvider client={client}>
             <TableView connection={connection} schema="main" table="customers" className="h-full" />
         </DatabaseProvider>

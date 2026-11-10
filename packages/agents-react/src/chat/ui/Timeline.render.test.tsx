@@ -3,7 +3,7 @@ import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { Activity, act, Profiler } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host';
+import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { jumpToTimelineItem, timelineAtEnd } from '../timeline-scroll';
@@ -39,7 +39,6 @@ function infoOf(activeTurnId: string | null): ChatInfo {
     } as unknown as ChatInfo;
 }
 
-/* Three turns of a question and an answer; the last answer is still being written. */
 function threadOf(): ChatItem[] {
     return [1, 2, 3].flatMap((turn): ChatItem[] => [
         { id: `user-${turn}`, kind: 'user', turnId: `turn-${turn}`, createdAt: turn * 10, text: `Question ${turn}` },
@@ -141,7 +140,6 @@ interface Layout {
 
 interface Mounted {
     page: ReturnType<typeof createPage>;
-    /* What rendered in each commit the Profiler around the thread saw. */
     commits: Fiber[][];
     propsOf(name: string): Record<string, unknown> | null;
     /* Gives the row at `index` a new height and tells whoever observes it, as a browser would after a layout. */
@@ -184,7 +182,6 @@ class ManualResizeObserver {
     }
 }
 
-/* What a test draws in place of the thread of three questions, and the host around it. */
 interface Setup {
     items?: ChatItem[];
     host?: Partial<ChatHost>;

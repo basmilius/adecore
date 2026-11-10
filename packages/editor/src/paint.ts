@@ -7,13 +7,13 @@ import {
     type EditorLayout,
     type LayoutRect,
     type LayoutRow,
-    type LineGeometry,
     scanLine,
     subRowBand,
     type SubRowBand,
     type VerticalWindow,
     type TextRow
 } from './layout.ts';
+import { type LineGeometry } from './line-geometry.ts';
 import type { EditorChangeKind, EditorGutterIcon, LineToken } from './types.ts';
 
 const ITALIC = 1;
@@ -135,7 +135,7 @@ function fillRun(
     }
 }
 
-export function lineElement(
+function lineElement(
     document: Document,
     geometry: LineGeometry,
     tokens: readonly LineToken[] | null,
@@ -493,7 +493,7 @@ export class RowPainter {
     }
 }
 
-export interface GutterPaint {
+interface GutterPaint {
     lineNumber(line: number): string | null;
     activeLines: ReadonlySet<number>;
     /* How the lines the host marked differ from what it compares against. */
@@ -502,15 +502,11 @@ export interface GutterPaint {
     attribution: ReadonlyMap<number, AttributedLines>;
     /* The line highlights of the host, whose sign stands in the gutter. */
     highlights: ReadonlyMap<number, AttributedLines>;
-    /* Lines a fold can start at, and whether each is collapsed. */
     foldable: ReadonlyMap<number, boolean>;
-    /* What the fold control of a line is called, from its line and whether it is collapsed. */
     foldName(line: number, collapsed: boolean): string;
     /* A sentence read with the line, which then stands in for the drawn number and sign. */
     lineLabel(line: number): string | null;
-    /* The line that carries the host's button, and what it is called. */
     action: { line: number; label: string } | null;
-    /* The host's markers by line. */
     markers: ReadonlyMap<number, { id: string; label: string; icon?: EditorGutterIcon; pressed?: boolean }>;
 }
 
@@ -524,7 +520,6 @@ function gutterButton(document: Document, className: string, label: string): HTM
     return button;
 }
 
-/* The line numbers of the visible rows, and the fold control of the lines that have one. */
 export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: readonly LayoutRow[], paint: GutterPaint): void {
     const document = container.ownerDocument;
     const fragment = document.createDocumentFragment();
@@ -656,7 +651,7 @@ export function paintGutter(container: HTMLElement, layout: EditorLayout, rows: 
     container.replaceChildren(fragment);
 }
 
-export interface OverlayPaint {
+interface OverlayPaint {
     currentLine: LayoutRect | null;
     selections: readonly LayoutRect[];
     focused: boolean;
@@ -796,7 +791,7 @@ const SVG = 'http://www.w3.org/2000/svg';
  * An arrow as the platform draws a tab or a soft wrap: a line across the middle of half a line's height,
  * ending in a head that points right with a bar behind it, in as much room as it has.
  */
-export function arrowSign(document: Document, width: number, lineHeight: number, className: string): SVGSVGElement {
+function arrowSign(document: Document, width: number, lineHeight: number, className: string): SVGSVGElement {
     const svg = document.createElementNS(SVG, 'svg');
     svg.setAttribute('class', className);
     svg.setAttribute('width', String(Math.max(1, Math.round(width))));
@@ -817,7 +812,6 @@ export function arrowSign(document: Document, width: number, lineHeight: number,
     return svg as SVGSVGElement;
 }
 
-/* An arrow over each tab of a line. */
 function appendTabSigns(element: HTMLElement, geometry: LineGeometry, lineHeight: number, band: SubRowBand): void {
     if (geometry.uniform !== undefined) {
         return;

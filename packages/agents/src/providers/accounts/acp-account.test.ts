@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { existsSync } from 'node:fs';
-import type { AcpSessionInfo } from '../../chat/acp-protocol.ts';
+import type { AcpSessionInfo } from '../../backends/acp-protocol.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../../testing/fake-acp.ts';
 import { inProcess, type FakeCli } from '../../testing/fake-cli.ts';
 import { ManualClock } from '../../testing/manual-clock.ts';
@@ -9,7 +9,6 @@ import { ASK_TIMEOUT_MS } from './status.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 
-/* A fake agent that notes the folder it started in and every frame it was sent. */
 function recorded(cli: FakeCli) {
     const sent: Frame[] = [];
     const folders: string[] = [];

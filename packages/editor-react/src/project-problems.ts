@@ -1,6 +1,7 @@
 import type { Diagnostic, LanguageService } from '@adecore/lsp';
-import { comparePositions, problemCountsOf, severityOf } from './diagnostics-model.ts';
-import type { ProblemCounts } from './diagnostics.ts';
+import { problemCountsOf, severityOf } from './diagnostics-model.ts';
+import type { ProblemCounts } from './diagnostics-model.ts';
+import { comparePositions } from './positions.ts';
 
 /* One problem of a file and the server that reported it. */
 export interface ProblemRow {
@@ -32,6 +33,13 @@ export interface ProblemReport {
 }
 
 /* Hands every report to `listener` until the function it returns runs. */
+export interface ProblemsHost {
+    /* Where `project.problems` reads its reports, such as a machine that also reports files no editor here holds; the service's diagnostics without one. */
+    readonly problemSource?: ProblemSource;
+    /* Asks the servers of `uri` for the problems of every file they know and lists them in `project.problems`; false when none offers them. Without it the service's workspace diagnostics are pulled. */
+    pullWorkspaceProblems?(uri: string, options: { readonly signal?: AbortSignal }): Promise<boolean>;
+}
+
 export type ProblemSource = (listener: (report: ProblemReport) => void) => () => void;
 
 /* The diagnostics a service reports, by the stored path `pathOf` gives each URI. */

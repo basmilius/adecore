@@ -23,7 +23,6 @@ function position(call: LanguageCall): Position {
     return (call.params as { position: Position }).position;
 }
 
-/* The word under a position, with where it starts and ends on its line. */
 function wordAt(text: string, position: Position): { word: string; from: number; to: number } | null {
     const line = text.split('\n')[position.line] ?? '';
 
@@ -36,7 +35,6 @@ function wordAt(text: string, position: Position): { word: string; from: number;
     return null;
 }
 
-/* Every whole-word use of `word` in a text, optionally only between two lines. */
 function usesOf(text: string, word: string, uri: string, first = WHOLE_FILE.first, last = WHOLE_FILE.last): Location[] {
     return text
         .split('\n')

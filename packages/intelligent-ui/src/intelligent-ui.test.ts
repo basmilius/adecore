@@ -6,7 +6,7 @@ import { compileUi, compileUiBlock, uiHasFence, uiMayReferenceHost } from './com
 import { copyUiValue, evaluateUiExpression, parseUiExpression, sameUiValue } from './expression.ts';
 import { UiBlockSchema, UiNodeSchema } from './protocol.ts';
 import { evaluateUiBlock, UiState } from './runtime.ts';
-import { uiCompactCatalog, uiFallbackText, uiGroupReference, uiReferenceText, uiSessionNote } from './text.ts';
+import { uiCompactCatalog, uiFallbackText, uiGroupDescription, uiGroupReference, uiReferenceText, uiSessionNote } from './text.ts';
 
 function expression(source: string, variables = {}): unknown {
     return evaluateUiExpression(parseUiExpression(source), variables);
@@ -189,9 +189,6 @@ describe('streaming compiler', () => {
         expect(uiMayReferenceHost('<Diff path="a.ts"/>')).toBe(true);
         expect(uiMayReferenceHost('<Nodes/>')).toBe(false);
         expect(uiMayReferenceHost('<Map><Place lat={52} lon={5}>Utrecht</Place></Map>')).toBe(false);
-        expect(uiMayReferenceHost('<Place address="Domplein 1, Utrecht">Dom</Place>')).toBe(true);
-        expect(uiMayReferenceHost('<Place detail="a > b" address="Domplein 1">Dom</Place>')).toBe(true);
-        expect(uiMayReferenceHost('<Place lat={52} lon={5} detail="address=">Dom</Place>')).toBe(false);
     });
 
     test('reads only the fence language the host names', () => {
@@ -432,7 +429,7 @@ describe('open wire and agent text', () => {
         const names = uiSessionNote({ catalog: 'names' });
         expect(names).toContain('(text: words between the tags)');
         expect(names).toContain('Event at (text: title)');
-        expect(names).toContain('Place lat lon|address (text: name)');
+        expect(names).toContain('Place lat lon (text: name)');
         expect(names).toContain('TextField value (text: label)');
         expect(names).toContain('Option value (text: label)');
 
@@ -455,6 +452,47 @@ describe('open wire and agent text', () => {
         expect(data).toContain('Stat: A labeled value and optional previous value. Props: label, value, previous?, unit?, tone?.');
         expect(data).not.toContain('Summary:');
         expect(uiReferenceText()).toContain(data);
+    });
+
+    test('tells an agent to give coordinates unless the host looks addresses up', () => {
+        const coordinates = uiGroupDescription('places');
+        expect(coordinates.rules).toBe('Give lat and lon in decimal degrees for every Place. Never a tile or map URL. The host chooses the map.');
+        expect(coordinates.components.find((component) => component.name === 'Place')).toEqual({
+            name: 'Place',
+            description: 'One place by lat and lon. Children are the name.',
+            props: ['lat?', 'lon?', 'detail?', 'value?']
+        });
+
+        const addresses = uiGroupDescription('places', 'addresses');
+        expect(addresses.rules).toBe(
+            'Give lat and lon in decimal degrees, or an address the host looks up. Never a tile or map URL. The host chooses the map.'
+        );
+        expect(addresses.components.find((component) => component.name === 'Place')?.props).toEqual(['lat?', 'lon?', 'address?', 'detail?', 'value?']);
+        expect(uiGroupReference('places', 'addresses')).toContain('Place: One place by lat and lon, or by an address the host looks up');
+        expect(uiSessionNote({ catalog: 'names', places: 'addresses' })).toContain('Place lat lon|address (text: name)');
+        expect(uiSessionNote({ places: 'addresses' })).toContain('Place: lat?,lon?,address?,detail?,value?');
+        expect(uiCatalogText('addresses')).toContain('Place(lat?, lon?, address?, detail?, value?): One place by lat and lon, or by an address');
+
+        for (const text of [uiSessionNote(), uiSessionNote({ catalog: 'names' }), uiReferenceText(), uiCatalogText()]) {
+            expect(text).not.toContain('address');
+        }
+
+        expect(uiReferenceText({ places: 'addresses' })).toContain(addresses.rules);
+    });
+
+    test('compiles and evaluates every example the catalog carries', () => {
+        const examples = Object.entries(UI_CATALOG).flatMap(([name, entry]) => ('example' in entry ? [[name, entry.example] as const] : []));
+        expect(examples.length).toBeGreaterThan(0);
+
+        for (const [name, example] of examples) {
+            const compiled = compileUiBlock(example, { id: `example-${name}`, final: true, now: () => 0 });
+            expect(compiled.diagnostics, name).toEqual([]);
+            expect(compiled.nodes[0]?.type, name).toBe(name);
+
+            const evaluated = evaluateUiBlock(compiled, undefined, { milliseconds: Number.MAX_SAFE_INTEGER });
+            expect(evaluated.diagnostics, name).toEqual([]);
+            expect(evaluated.nodes[0]?.error, name).toBeUndefined();
+        }
     });
 
     test('keeps the catalog at version 1', () => {

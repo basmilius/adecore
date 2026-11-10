@@ -1,12 +1,12 @@
 import type { Editor, EditorInlayClick, EditorInlayHint, EditorPosition, EditorRange } from '@adecore/editor';
 import type { Command, InlayHint, InlayHintLabelPart, Location, MarkupContent, TextEdit } from '@adecore/lsp';
 import { followModKey } from './definition-link.ts';
-import { comparePositions } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { messageOf } from './error-message.ts';
 import { hoverTextOf, isEmptyHover, type HoverText } from './hover-content.ts';
 import { SHOW_DELAY_MS } from './hover.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
+import { comparePositions } from './positions.ts';
 import { Refresher } from './refresher.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -21,16 +21,16 @@ const DOUBLE_PRESS_MS = 500;
 /* Lines asked for above and below what is in view, so a little scrolling stays inside what is already drawn. */
 const MARGIN_LINES = 60;
 
-export function hintLabelOf(hint: InlayHint): string {
+function hintLabelOf(hint: InlayHint): string {
     return typeof hint.label === 'string' ? hint.label : hint.label.map((part) => part.value).join('');
 }
 
-export function drawableHints(hints: readonly InlayHint[]): InlayHint[] {
+function drawableHints(hints: readonly InlayHint[]): InlayHint[] {
     return hints.filter((hint) => hintLabelOf(hint) !== '').sort((left, right) => comparePositions(left.position, right.position));
 }
 
 /* A hint as the editor draws it: a label with parts keeps them apart so each can be pointed at. */
-export function editorHintOf(hint: InlayHint, id: string): EditorInlayHint {
+function editorHintOf(hint: InlayHint, id: string): EditorInlayHint {
     return {
         id,
         position: hint.position,
@@ -53,7 +53,7 @@ export function covers(asked: EditorRange, visible: EditorRange): boolean {
 }
 
 /* The words of a tooltip: plain text is escaped so it reads as typed, Markdown goes through the hover card's own rendering. */
-export function tooltipTextOf(tooltip: string | MarkupContent | undefined): HoverText | null {
+function tooltipTextOf(tooltip: string | MarkupContent | undefined): HoverText | null {
     if (tooltip === undefined) {
         return null;
     }
@@ -80,7 +80,7 @@ export function tooltipOf(hint: InlayHint, index: number | null): HoverText | nu
 }
 
 /* Whether a server could still say more about the hint: nothing in it gives a tooltip, a place or a command yet. */
-export function lacksInfo(hint: InlayHint, index: number | null): boolean {
+function lacksInfo(hint: InlayHint, index: number | null): boolean {
     if (hint.tooltip !== undefined) {
         return false;
     }
@@ -91,7 +91,7 @@ export function lacksInfo(hint: InlayHint, index: number | null): boolean {
 }
 
 /* Whether the edits fit the text as it is now: positions inside it, each range in order, none overlapping the next. */
-export function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
+function editsFit(editor: Editor, edits: readonly TextEdit[]): boolean {
     const end = editor.positionAt(Number.MAX_SAFE_INTEGER);
 
     const inside = (position: EditorPosition): boolean =>
@@ -124,7 +124,7 @@ type Action =
     | { readonly kind: 'insert'; readonly edits: TextEdit[] };
 
 /* What a press does, from what is known of the hint: a double click inserts it and nothing else, Mod+click follows a part's place, a plain click runs its command. */
-export function actionOf(hint: InlayHint, click: Pick<EditorInlayClick, 'part' | 'mod' | 'clicks'>): Action | null {
+function actionOf(hint: InlayHint, click: Pick<EditorInlayClick, 'part' | 'mod' | 'clicks'>): Action | null {
     if (click.clicks === 2) {
         return hint.textEdits !== undefined && hint.textEdits.length > 0 ? { kind: 'insert', edits: hint.textEdits } : null;
     }
@@ -148,6 +148,11 @@ interface Entry {
     answered: boolean;
 }
 
+/* The sibling features InlayHintsFeature drives, which the editor language hands over. */
+interface InlayHintsPeers {
+    readonly hover: { hide(): void; release(): void; showText(position: EditorPosition, text: HoverText): void };
+}
+
 /*
  * Types and parameter names the servers infer, asked for the lines in view and a margin around them. The
  * last ones stay until the answer comes, so nothing blinks while typing.
@@ -158,11 +163,11 @@ interface Entry {
  * shows the tooltip of a hint that sits there.
  */
 export class InlayHintsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: InlayHintsPeers;
     private readonly timers: Timers;
     private readonly refresher: Refresher;
 
-    /* The lines the hints on screen were asked for. */
     private asked: EditorRange | null = null;
 
     private readonly entries = new Map<string, Entry>();
@@ -185,8 +190,9 @@ export class InlayHintsFeature {
     /* Counts what the pointer does, so a tooltip that was waited for is dropped once the pointer has moved on. */
     private request = 0;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: InlayHintsPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor, project, uri } = language;
 
@@ -297,7 +303,7 @@ export class InlayHintsFeature {
 
         if (target === null) {
             if (this.cardOpen()) {
-                this.language.hover.release();
+                this.peers.hover.release();
             }
 
             return;
@@ -319,13 +325,13 @@ export class InlayHintsFeature {
         this.updateLink();
 
         if (this.cardOpen()) {
-            this.language.hover.hide();
+            this.peers.hover.hide();
         }
     }
 
     /* Whether the card up is a tooltip, which is the only kind that has no footer. */
     private cardOpen(): boolean {
-        return this.language.popups.getState().hover?.info?.plain === true;
+        return this.language.popups.slot('hover').get()?.info?.plain === true;
     }
 
     /* The card for a hint or part, once the server has said what it can. Says whether it opened. */
@@ -349,13 +355,13 @@ export class InlayHintsFeature {
 
         if (text === null) {
             if (this.cardOpen()) {
-                this.language.hover.hide();
+                this.peers.hover.hide();
             }
 
             return false;
         }
 
-        this.language.hover.showText(entry.hint.position, text);
+        this.peers.hover.showText(entry.hint.position, text);
 
         return true;
     }

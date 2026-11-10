@@ -10,7 +10,6 @@ const listeners = new Set<() => void>();
 
 let current: Preferences = { language: 'en', region: 'language' };
 
-/* What a person set, the way an app keeps it: a language for the words and a region for the notation. */
 export const preferences = {
     get: (): Preferences => current,
     set(next: Partial<Preferences>): void {

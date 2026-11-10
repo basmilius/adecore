@@ -31,10 +31,9 @@ Every member but `restart` is synchronous. A manager has no queue or lock, so ru
 
 | `LaunchdOptions` | |
 | --- | --- |
-| `label` | The label of the spec. |
+| `service` | The spec of the service, or its `ServiceIdentity` (`label` and `logFile`). `install` creates the folder of the log file. |
 | `uid` | The person's user id. |
 | `home` | Their home folder. |
-| `logFile` | The log file of the spec. `install` creates its folder. |
 | `run` | A `CommandRunner`. |
 | `files` | A `ServiceFiles`. |
 | `sleep(ms)` | Resolves after `ms` milliseconds; `restart` waits with it. |
@@ -65,18 +64,16 @@ A user unit stops when the person's last session ends. `manager.linger?.enabled(
 
 | `TaskSchedulerOptions` | |
 | --- | --- |
-| `taskName` | The name of the task. It must equal the spec's label, which `stop` uses to find the processes. |
+| `service` | The spec of the service, or its `ServiceIdentity` (`label` and `logFile`). The label is the name of the task, which `stop` uses to find the processes. `install` creates the folder of the log file. |
 | `definitionFile` | Where the copy of the definition lives; `path` is this file. |
-| `logFile` | The log file of the spec. `install` creates its folder. |
 | `run` | A `CommandRunner`. |
 | `files` | A `ServiceFiles`. |
 | `sleep(ms)` | Resolves after `ms` milliseconds; `restart` waits with it. |
 
 ```ts
 const manager = taskSchedulerManager({
-    taskName: spec.label,
+    service: spec,
     definitionFile: join(dataFolder, 'service', `${spec.label}.xml`),
-    logFile: spec.logFile,
     run: runCommand,
     files: diskFiles,
     sleep: (ms) => setTimeout(ms)

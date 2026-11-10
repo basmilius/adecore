@@ -3,15 +3,8 @@ import { describe, expect, test } from 'bun:test';
 import { FakeEditorEngine } from '@adecore/editor/fake';
 import type { WorkspaceEdit } from '@adecore/lsp';
 import type { DiskText } from './host-types.ts';
-import {
-    applyWorkspaceEdit,
-    entriesOf,
-    renamesOf,
-    resourceOperationsOf,
-    supportedResourceOperations,
-    type ProjectFiles,
-    type StagedFile
-} from './workspace-edit.ts';
+import { type ProjectFiles, type StagedFile } from './host-types.ts';
+import { applyWorkspaceEdit, entriesOf, renamesOf, resourceOperationsOf, supportedResourceOperations } from './workspace-edit.ts';
 
 const openUri = 'file:///work/app/src/a.ts';
 const closedUri = 'file:///work/app/src/b.ts';

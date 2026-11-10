@@ -71,7 +71,6 @@ export interface WaveformProps {
     marks?: readonly number[];
     label: string;
 
-    /* Its height, which the waveform fills. */
     className?: string;
 
     ref?: Ref<HTMLDivElement>;

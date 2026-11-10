@@ -4,27 +4,7 @@ import type { ComponentProps, MouseEvent, ReactNode, Ref } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import * as Menu from './menu/index.parts.ts';
-import { ProjectSwitcherRow } from './project-switcher-row.tsx';
-
-export interface ProjectSwitcherItem {
-    id: string;
-    name: string;
-    icon?: ReactNode;
-
-    /* The folder or other details, shown in a tooltip so the row stays on one line. */
-    description?: ReactNode;
-
-    /* At the end of the row. */
-    hint?: ReactNode;
-
-    disabled?: boolean;
-
-    /* A person can still pick a stale or disconnected project, to try to open it. */
-    muted?: boolean;
-
-    /* For the submenu beside this project's row. */
-    actions?: ReactNode;
-}
+import { ProjectSwitcherRow, type ProjectSwitcherItem } from './project-switcher-row.tsx';
 
 export interface ProjectSwitcherProps<Item extends ProjectSwitcherItem = ProjectSwitcherItem> {
     current: ProjectSwitcherItem | null;

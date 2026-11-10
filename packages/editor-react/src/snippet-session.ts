@@ -1,13 +1,14 @@
 import type { EditorApplyEditsOptions, EditorContentChange, EditorPosition, EditorRange, EditorTextChange } from '@adecore/editor';
-import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { textBeforeOf } from './line-text.ts';
+import type { PickFeature } from './pick.ts';
+import { comparePositions, endOfInsertion, rangeHolds, sameRange, shiftPosition } from './positions.ts';
 import { SnippetFieldTransforms, type FieldTransformTarget } from './snippet-field-transforms.ts';
 import { compareSnippetOrder, snippetOrderOf } from './snippet-range-order.ts';
 import { SnippetTransformError } from './snippet-transform-client.ts';
 import { MAX_TRANSFORM_CHARACTERS, type SnippetTransformJob } from './snippet-transform-protocol.ts';
-import { acquireSnippetTransforms, type SnippetTransformLease } from './snippet-transform-queue.ts';
+import type { SnippetTransformLease } from './snippet-transform-queue.ts';
 import type { SnippetField, SnippetStop, SnippetTransform } from './snippet.ts';
 import { realTimers, type Timers } from './timers.ts';
 
@@ -76,14 +77,20 @@ interface Frame {
     readonly exits: Map<number, number>;
 }
 
-export interface SnippetInsertion {
+interface SnippetInsertion {
     readonly start: EditorPosition;
     readonly text: string;
     readonly stops: readonly SnippetStop[];
     readonly fields?: readonly SnippetField[];
 }
 
-type SnippetHost = Pick<EditorLanguage, 'editor' | 'onDispose'> & Partial<Pick<EditorLanguage, 'popups' | 'pick' | 'project' | 'onKey'>>;
+// Without a project the snippets run no transforms and choose no words; keys and popups always come as an editor's language gives them.
+type SnippetHost = Pick<LanguageContext, 'editor' | 'onDispose' | 'popups' | 'onKey'> & Partial<Pick<LanguageContext, 'project'>>;
+
+/* The choice list. */
+interface SnippetPeers {
+    readonly pick: Pick<PickFeature, 'close' | 'open'>;
+}
 
 const MAX_FRAMES = 8;
 const MAX_RANGES = 1000;
@@ -185,6 +192,7 @@ function activeOwners(active: readonly SessionRange[], changes: readonly EditorC
 
 export class SnippetFeature {
     private readonly language: SnippetHost;
+    private readonly peers: SnippetPeers;
     private frames: Frame[] = [];
     private placed: SessionRange[] = [];
     private visiting = false;
@@ -202,19 +210,16 @@ export class SnippetFeature {
         map: <Range extends EditorRange>(range: Range, parent?: (target: FieldTransformTarget) => boolean) => Range;
     } | null = null;
 
-    constructor(language: SnippetHost, timers: Timers = realTimers) {
+    constructor(language: SnippetHost, peers: SnippetPeers, timers: Timers = realTimers) {
         this.language = language;
-        this.transforms = language.project === undefined ? null : acquireSnippetTransforms(language.project, timers);
+        this.peers = peers;
+        this.transforms = language.project === undefined ? null : language.project.acquireSnippetTransforms(timers);
         const { editor } = language;
         this.fieldTransforms = new SnippetFieldTransforms(editor, this.transforms, (targets, values) => this.applyFieldTransforms(targets, values));
 
         const key = (event: KeyboardEvent): boolean => this.key(event);
 
-        const offs = [
-            language.onKey === undefined ? editor.onKeyDown(key) : language.onKey(key, KEY_PRIORITY.snippets),
-            editor.onTextChange((change) => this.edited(change)),
-            editor.onCaret(() => this.moved())
-        ];
+        const offs = [language.onKey(key, KEY_PRIORITY.snippets), editor.onTextChange((change) => this.edited(change)), editor.onCaret(() => this.moved())];
 
         language.onDispose(() => {
             this.transforms?.dispose();
@@ -414,10 +419,10 @@ export class SnippetFeature {
     }
 
     private closeChoices(): void {
-        const view = this.language.popups?.getState().pick;
+        const view = this.language.popups.slot('pick').get();
 
         if (this.choicePrefix !== null && view?.groups.some((group) => group.rows.some((row) => row.id.startsWith(this.choicePrefix!)))) {
-            this.language.pick?.close();
+            this.peers.pick.close();
         }
 
         this.choicePrefix = null;
@@ -477,7 +482,6 @@ export class SnippetFeature {
         }
     }
 
-    /* Says which field the caret moved to, with the number of choices when the field is a list. */
     private announceField(frame: Frame, index: number): void {
         const i18n = this.language.project?.i18n;
 
@@ -503,7 +507,7 @@ export class SnippetFeature {
     private openChoices(frame: Frame, activeChoice?: number): void {
         const field = this.fieldOf(frame);
 
-        if (field?.choices === undefined || field.choices.length === 0 || this.language.pick === undefined) {
+        if (field?.choices === undefined || field.choices.length === 0) {
             return;
         }
 
@@ -511,7 +515,7 @@ export class SnippetFeature {
         const prefix = `snippet-${token}-`;
         this.choicePrefix = prefix;
 
-        this.language.pick.open({
+        this.peers.pick.open({
             anchor: field.ranges[field.primary]!.start,
             title: this.language.project?.i18n.t('editor:language.snippet.choices'),
             active: prefix + (activeChoice ?? Math.max(0, field.choices.indexOf(this.language.editor.textInRange(field.ranges[field.primary]!)))),
@@ -571,12 +575,9 @@ export class SnippetFeature {
         }
 
         if (event.key === 'Escape') {
-            const popups = this.language.popups?.getState();
+            const popups = this.language.popups;
 
-            if (
-                popups !== undefined &&
-                [popups.completion, popups.signature, popups.hover, popups.pick, popups.peek, popups.callHierarchy].some((popup) => popup !== null)
-            ) {
+            if ((['completion', 'signature', 'hover', 'pick', 'peek', 'callHierarchy'] as const).some((name) => popups.slot(name).get() !== null)) {
                 return false;
             }
 
@@ -746,7 +747,7 @@ export class SnippetFeature {
         }
 
         const frame = this.frames.at(-1);
-        const pick = this.language.popups?.getState().pick;
+        const pick = this.language.popups.slot('pick').get();
 
         const activeChoice =
             this.choicePrefix !== null && pick?.active.startsWith(this.choicePrefix) ? Number(pick.active.slice(this.choicePrefix.length)) : undefined;
@@ -843,7 +844,7 @@ export class SnippetFeature {
         }
 
         // The generic picker closes on any text edit, including an exit elsewhere in the snippet.
-        if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups?.getState().pick === null) {
+        if (frame !== undefined && frame === this.frames.at(-1) && activeChoice !== undefined && this.language.popups.slot('pick').get() === null) {
             this.openChoices(frame, activeChoice);
         }
     }

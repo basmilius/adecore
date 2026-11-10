@@ -7,9 +7,8 @@ export const WHOLE_COPY_LIMIT = 16 * 1024 * 1024;
 /* The helper runs the requests of a session one after another, so more at once would only wait in its queue. */
 const PARALLEL_LOADS = 4;
 
-export interface WholeCells {
+interface WholeCells {
     readonly rows: readonly (readonly Shown[])[];
-    /* The cells that are still previews. */
     readonly previews: number;
     /* Whether the previews stayed because the whole values are larger than `WHOLE_COPY_LIMIT`, rather than because they could not be loaded. */
     readonly tooLarge: boolean;

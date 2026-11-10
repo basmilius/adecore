@@ -2,7 +2,7 @@ import type { KeyChord } from '@adecore/editor';
 import { chordOf, KEYMAP_IDS, parseChord, type Keymap, typesInsteadOfChord } from '@adecore/editor/keymap';
 import { matchesShortcut } from '@adecore/ui';
 
-export interface LanguageShortcut extends KeyChord {
+interface LanguageShortcut extends KeyChord {
     readonly apple: boolean;
 }
 

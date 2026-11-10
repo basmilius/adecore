@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import type { ChatInfo, ChatItem, ProviderInfo } from '@adecore/agent-contracts';
 import {
     branchRefusal,
     forkedTurnIds,
@@ -41,17 +41,49 @@ const thread: ChatItem[] = [
     { id: 't3', kind: 'turn', createdAt: 4, turnId: 't3', state: 'running', endedAt: null, costUsd: 0 }
 ];
 
+const CAPABILITIES = {
+    chat: true,
+    terminal: false,
+    hooks: false,
+    streamsToolOutput: false,
+    diffs: 'unified',
+    attachments: false,
+    mentions: false,
+    denyReason: false,
+    allowAlways: false,
+    asyncQuestions: false,
+    compaction: 'none',
+    reportsCost: false,
+    reportsContextWindow: false,
+    reportsThinking: false,
+    slashCommands: false
+} as const;
+
+const host = {
+    loaded: true,
+    providers: [
+        { kind: 'claude', capabilities: { ...CAPABILITIES, fork: true } },
+        { kind: 'plain', capabilities: CAPABILITIES }
+    ] as unknown as ProviderInfo[]
+};
+
 const items = Object.fromEntries(thread.map((item) => [item.id, item]));
 const order = thread.map((item) => item.id);
 
 describe('fork', () => {
     test('a settled turn of a chat with a conversation forks; a running one, another CLI or no session says why not', () => {
-        expect(forkRefusal(info(), items.t1)).toBeNull();
-        expect(forkRefusal(info(), items.t3)).toBe('Wait for the turn to end');
-        expect(forkRefusal(info({ activeTurnId: 't3' }), items.t1)).toBe('Wait for the turn to end');
-        expect(forkRefusal(info({ provider: 'gemini' }), items.t1)).not.toBeNull();
-        expect(forkRefusal(info({ agentSessionId: null }), items.t1)).not.toBeNull();
-        expect(forkRefusal(info(), items.u1)).not.toBeNull();
+        expect(forkRefusal(info(), items.t1, host)).toBeNull();
+        expect(forkRefusal(info(), items.t3, host)).toBe('Wait for the turn to end');
+        expect(forkRefusal(info({ activeTurnId: 't3' }), items.t1, host)).toBe('Wait for the turn to end');
+        expect(forkRefusal(info({ provider: 'gemini' }), items.t1, host)).not.toBeNull();
+        expect(forkRefusal(info({ provider: 'plain' }), items.t1, host)).not.toBeNull();
+        expect(forkRefusal(info({ agentSessionId: null }), items.t1, host)).not.toBeNull();
+        expect(forkRefusal(info(), items.u1, host)).not.toBeNull();
+    });
+
+    test('before the host named its CLIs, a settled turn is refused until it did, also of a CLI that forks', () => {
+        expect(forkRefusal(info(), items.t1, { providers: [], loaded: false })).toBe('Wait for the agents to load');
+        expect(forkRefusal(info(), items.t1, { ...host, loaded: false })).toBe('Wait for the agents to load');
     });
 
     test('a row of the thread names the turn it belongs to, and a row outside every turn names none', () => {

@@ -55,6 +55,8 @@ const note = uiSessionNote({ catalog: 'names', detailHint: '`tool help ui <group
 const inputs = uiGroupReference('inputs');
 ```
 
+The instructions ask for `lat` and `lon` on every `Place`. A host that looks addresses up passes `places: 'addresses'` to the note, `uiReferenceText` and `uiGroupReference`, and an address is allowed again; see [Places](/intelligent-ui/components/places#looking-up-an-address).
+
 ## Compile on the backend
 
 `ChatCore` compiles every assistant reply that opens a UI fence:
@@ -89,7 +91,7 @@ Call `update` with the whole text so far, not the newest piece. `finish` cancels
 
 ## The wire
 
-Blocks travel as JSON, validated by `UiBlocksSchema` from `@adecore/intelligent-ui/protocol`. [`@adecore/agent-contracts`](/agent-contracts/conversation) places them in the chat protocol:
+Blocks travel as JSON, validated by `UiBlocksSchema` from `@adecore/intelligent-ui/protocol` (a block holds `UiNodeSchema`, `UiDiagnosticSchema` and `UiQuerySchema` parts). The schemas are the source of the types: `UiBlock`, `UiNode`, `UiQuery` and `UiDiagnostic` are inferred from them, so a field added to a schema reaches the type. Props and expressions are open on the wire, so a block from a newer catalog still parses, and typed as the compiler writes them. [`@adecore/agent-contracts`](/agent-contracts/conversation) places them in the chat protocol:
 
 | Where                     | Field or request  | Schema                                                       |
 | ------------------------- | ----------------- | ------------------------------------------------------------ |
@@ -105,7 +107,7 @@ A client applies a preview only while the item's text is `textLength` long, so a
 
 ## Draw the blocks
 
-The `Timeline` of `@adecore/agents-react` draws an item's `ui` through [`UiReply`](/agents-react/chat/intelligent-ui), between the reply's Markdown. `ChatHost.intelligentUi` decides what a block may do outside itself:
+The `Timeline` of `@adecore/agents-react` draws an item's `ui` [as cards](/agents-react/chat/intelligent-ui), between the reply's Markdown. `ChatHost.intelligentUi` decides what a block may do outside itself:
 
 ```ts
 import type { ChatHost } from '@adecore/agents-react';

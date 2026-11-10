@@ -65,8 +65,8 @@ The stores are Zustand stores shared by every scope.
 - `waitingRequestsOf(chat)` lists every waiting approval and question, also those before the loaded page.
 - `useProviders(select)` and `useProviderAccounts(select)` read the CLIs and accounts of the scope in context; `providersOf(scopeId)` and `providerAccountsOf(scopeId)` do the same outside React. `knownAccounts(row)` is `undefined` until the host answered and `null` for a host without accounts.
 - `applyEvent(state, event)` is the pure step the store takes for an event, for a store of your own.
-- `ChatsById` holds the rows keyed with the scope's `keyOf`, and `ChatStatuses` what each chat is doing without its thread. `ChatPage` is the newest part of a thread as `chat.attach` hands it over, and `ChatHistoryPage` an earlier page.
-- `ProvidersRow` and `ProviderAccountsRow` are a scope's entry in the providers and accounts stores.
+- `ChatsById` holds the rows keyed with the scope's `keyOf`, and `ChatStatuses` what each chat is doing without its thread. `ChatHistoryPage` is an earlier page of a thread than the newest one `chat.attach` hands over.
+- `ProvidersRow` is a scope's entry in the providers store, and the accounts store keeps one per scope too.
 
 ```tsx
 function Title({ chatId }: { chatId: string }) {

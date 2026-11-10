@@ -6,21 +6,9 @@ An agent can answer with a block of components: a summary, a table, a checklist,
 
 ## Drawing a reply
 
-The assistant row draws a reply with UI blocks through `UiReply`. `uiReplyParts` splits the text, so prose stays Markdown and each block becomes a card.
+The assistant row of the `Timeline` draws a reply with UI blocks. It splits the text, so prose stays Markdown and each block becomes a card. A reply item carries its `ui` blocks, its `uiAnswers` and its `uiQueries`.
 
-```tsx
-import { UiReply } from '@adecore/agents-react/chat/ui';
-
-<UiReply
-    text={item.text}
-    blocks={item.ui}
-    context={{ scopeId, chatId, itemId: item.id, phase: item.streaming ? 'streaming' : 'final' }}
-    answers={item.uiAnswers}
-    queries={item.uiQueries}
-/>;
-```
-
-`answers` holds the persisted `ChatUiAnswer` records; an answered block shows its choice and closes its inputs. `queries` holds the first readings of a live block. Input state lasts for the page's lifetime.
+The persisted answers are `ChatUiAnswer` records; an answered block shows its choice and closes its inputs. The queries hold the first readings of a live block. Input state lasts for the page's lifetime.
 
 ## What the host supplies
 
@@ -77,7 +65,7 @@ The view fills a 320px frame across the reply column, with the caption under it;
 
 ## Custom renderers
 
-`UI_RENDERERS` maps every catalog component to a renderer. Its type `UiRenderers` fails the typecheck for a catalog component without an entry. `Show`, `Each`, `Column` and `Option` map to `null`, since their parents handle them.
+`UI_RENDERERS` maps every catalog component to a renderer. The typecheck fails for a catalog component without an entry. `Show`, `Each`, `Column` and `Option` map to `null`, since their parents handle them.
 
 ```tsx
 import { UI_RENDERERS } from '@adecore/agents-react/chat/ui';
@@ -88,14 +76,14 @@ const element = renderer === null ? null : createElement(renderer, { node, conte
 
 A renderer gets `UiRendererProps`: the evaluated `UiViewNode`, its rendered `children` and the block's `UiRenderContext`. The context has the block's `phase` (`streaming` or `final`), its `answer`, and the host callbacks as `link`, `openLink`, `openUrl` and `onChoose`. An input changes state only through `node.bindings.value.onValueChange`, a Button only through `node.onAction()`.
 
-A renderer is a `UiRenderer` for the props of its component. In the context, `link` answers a `UiLink` (a `chip` it can open or `plain` text, with a label), a Place's point is a `UiPlacePoint` in decimal degrees, and `answer` is a `UiAnswer`: the choice and whether it is `sending`, `sent` or `queued`. A live value is a `UiLiveValue`, with the previous reading and whether it changed or went stale. `liveNode` answers a `UiLiveNodeState` for a node that reads live data: `live`, or `stale` while a failed read left its last value. The block dims every stale node itself, so a renderer only lights a value that changed.
+A renderer is a component for the props of its catalog entry. In the context, `link` answers a `chip` it can open or `plain` text, with a label, a Place's point is in decimal degrees, and `answer` is the choice and whether it is `sending`, `sent` or `queued`. A live value comes with the previous reading and whether it changed or went stale. `liveNode` answers a `UiLiveNodeState` for a node that reads live data: `live`, or `stale` while a failed read left its last value. The block dims every stale node itself, so a renderer only lights a value that changed.
 
-`UiBlockFrame` is the card around a block, with a footer for live status, the answer and compiler notes. A part this version cannot draw shows as its Markdown. Its props are `UiBlockFrameProps`. The footer on its own takes `UiBlockFooterProps`: the live status as a `UiLiveStatus` (fresh, reading, failed or refused, what it reads and when), the answer, and the notes as `UiBlockFix` records, `{ code, message }`.
+`UiBlockFrame` is the card around a block, with a footer for live status, the answer and compiler notes. A part this version cannot draw shows as its Markdown. Its props are `UiBlockFrameProps`. The footer takes the live status as a `UiLiveStatus` (fresh, reading, failed or refused, what it reads and when), the answer, and the notes as `UiBlockFix` records, `{ code, message }`.
 
 A few helpers draw the data of a block for a renderer of your own:
 
-- `uiChartData(data, kind)` returns the series a chart can draw as `UiChartData`: the labels, a `UiChartSeries` per numeric key (the first six), and the axis range. It returns `null` without rows or series. `UiChartValues` is the labels and series alone.
-- `uiTableColumns(node)` returns the `UiTableColumn`s a table can draw, each with its key, title, unit and `UiColumnKind`.
+- `uiChartData(data, kind)` returns the series a chart can draw as `UiChartData`: the labels, a series per numeric key (the first six), and the axis range. It returns `null` without rows or series. `UiChartValues` is the labels and series alone.
+- `uiTableColumns(node)` returns the `UiTableColumn`s a table can draw, each with its key, title, unit and kind.
 - `uiNodeLabel(node)` returns a node's text on one line, for a control or a screen reader that needs a string.
 
 The [reference](/agents-react/reference) lists every export.

@@ -16,8 +16,8 @@ import {
     type LucideIcon
 } from 'lucide-react';
 import { createElement, type ComponentType, type ReactNode } from 'react';
-import type { ReferenceIconProps } from '../../host';
-import type { ReferableKind } from '../chat-references';
+import type { ReferenceIconProps } from '../../host/host';
+import type { ReferableKind } from '../../host/references';
 
 /* The mark of what a `#` points at, in the picker and on its chip, when the host draws none of its own. */
 export const REFERENCE_ICONS: Record<ReferableKind, LucideIcon> = {

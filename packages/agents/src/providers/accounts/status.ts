@@ -1,7 +1,6 @@
-import type { AgentKind } from '@adecore/agent-contracts';
 import { withTimeout } from '@adecore/utils/async';
 import { isRecord } from '@adecore/utils/record';
-import { CodexTransport, type CodexClientInfo } from '../../chat/codex-transport.ts';
+import { CodexTransport, type CodexClientInfo } from '../../backends/codex-transport.ts';
 import { filledStr as text } from '../../fields.ts';
 import { runProcess } from '../../run-process.ts';
 
@@ -15,8 +14,6 @@ export interface AccountReading {
     plan: string | null;
     organization: string | null;
 }
-
-export type AskAccount = (kind: AgentKind, command: readonly string[], env: Record<string, string | undefined>) => Promise<AccountReading>;
 
 /* `claude auth status --json`, as Claude Code 2.1.282 prints it: `loggedIn`, `email`, `orgName`, `subscriptionType`. */
 export function readClaudeAuthStatus(output: string): AccountReading {
@@ -59,7 +56,7 @@ export function readCodexAccount(answer: unknown): AccountReading {
     return { signedIn: true, email: text(account.email), plan: text(account.planType), organization: null };
 }
 
-async function askClaude(command: readonly string[], env: Record<string, string | undefined>): Promise<AccountReading> {
+export async function askClaudeAccount(command: readonly string[], env: Record<string, string | undefined>): Promise<AccountReading> {
     const { stdout } = await runProcess([...command, 'auth', 'status', '--json'], {
         env,
         timeoutMs: ASK_TIMEOUT_MS,
@@ -70,7 +67,7 @@ async function askClaude(command: readonly string[], env: Record<string, string 
     return readClaudeAuthStatus(stdout);
 }
 
-async function askCodex(command: readonly string[], env: Record<string, string | undefined>, client: CodexClientInfo): Promise<AccountReading> {
+export async function askCodexAccount(command: readonly string[], env: Record<string, string | undefined>, client: CodexClientInfo): Promise<AccountReading> {
     const transport = new CodexTransport({
         command: [...command],
         cwd: process.cwd(),
@@ -94,22 +91,4 @@ async function askCodex(command: readonly string[], env: Record<string, string |
         transport.end();
         transport.kill();
     }
-}
-
-/* The kinds `askAccountAs` can ask; a provider with a reader of its own answers for itself. */
-export const ASKED_KINDS: readonly AgentKind[] = ['claude', 'codex'];
-
-/* Starts the CLI in the account's environment and asks it; only Claude Code and Codex can say. */
-export function askAccountAs(client: CodexClientInfo): AskAccount {
-    return (kind, command, env) => {
-        if (kind === 'claude') {
-            return askClaude(command, env);
-        }
-
-        if (kind === 'codex') {
-            return askCodex(command, env, client);
-        }
-
-        return Promise.reject(new Error(`${kind} cannot say who is signed in`));
-    };
 }

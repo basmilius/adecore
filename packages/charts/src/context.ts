@@ -1,11 +1,12 @@
 import { createContext, useContext } from 'react';
 import type { BandLayout } from './band.ts';
 import type { AxisWidths } from './group-axes.ts';
+import type { ChartPlane } from './plane.ts';
 import type { ContinuousXScale, Stacked, YAxisScale } from './scale.ts';
 import type { BandEntry, ChartStore, MarkerEntry, SeriesEntry } from './store.ts';
 import type { ChartNote, ChartRect, ChartX, ChartXScale } from './types.ts';
 
-export interface ChartSlots {
+interface ChartSlots {
     readonly legend: HTMLElement | null;
     readonly table: HTMLElement | null;
     readonly tooltip: HTMLElement | null;
@@ -29,6 +30,8 @@ export interface ChartContextValue {
      * `x`, so `centerOf` and `bucketAt` measure down and `pixelOfY` across.
      */
     readonly horizontal: boolean;
+    /* What the orientation changes for the parts that draw lines, labels and annotations; `horizontal` stays for the ones that lay out bars and axes. */
+    readonly plane: ChartPlane;
     /* The room right of the plot of a horizontal chart that its value labels take. */
     readonly valueRoom: number;
     readonly height: number;
@@ -85,7 +88,6 @@ export interface ChartContextValue {
     readonly positions: readonly (readonly [number, number] | null)[];
     /* The series of a point chart, in the order they first appear, each with its rows in the order of the data. */
     readonly pointGroups: readonly { readonly key: string; readonly indexes: readonly number[] }[];
-    /* The series whose points are all dimmed. */
     readonly dimmedGroups: ReadonlySet<string>;
     /* The categorical color of the series of a row, for a part without a tone of its own. */
     readonly groupColorOf: (index: number) => string;
@@ -98,7 +100,6 @@ export interface ChartContextValue {
     readonly readable: readonly (readonly [string, SeriesEntry])[];
     /* The surface under the chart, which the halo around a label and the ring of a point are drawn in. */
     readonly halo: string;
-    /* The keyboard moved the cursor last, not the pointer. */
     readonly byKeyboard: boolean;
     /* The bucket or point the keyboard is on, apart from one the pointer passes over; -1 for none. */
     readonly keyIndex: number;
@@ -119,7 +120,7 @@ export function useChartContext(part: string): ChartContextValue {
 /* The `Chart.Bars` a `Chart.Bar` is drawn in. */
 export const BarsContext = createContext<{ id: string; stack: boolean } | null>(null);
 
-export interface GroupCursor {
+interface GroupCursor {
     readonly x: ChartX | null;
     /* The chart the pointer or the keyboard is in, the one that shows its tooltip. */
     readonly owner: string | null;

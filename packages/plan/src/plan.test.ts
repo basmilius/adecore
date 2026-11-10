@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import {
+    PLAN_PERSON_STATES,
+    PLAN_TEST_OUTCOMES,
     applyPlanOps,
+    asksForNote,
     canApply,
     canDeletePlan,
     createPlan,
@@ -13,6 +16,7 @@ import {
     randomItemId,
     renderPlanText,
     stepState,
+    stepToMarkdown,
     validatePlan,
     type PlanApplied,
     type PlanDraft,
@@ -1057,5 +1061,36 @@ describe('markdown', () => {
                 ''
             ].join('\n')
         );
+    });
+});
+
+describe('the states a person picks', () => {
+    const ALL: PlanStepState[] = ['open', 'active', 'done', 'failed', 'skipped', 'blocked', 'warning', 'info'];
+
+    test('every state but active is one a person picks, and a test step has no open', () => {
+        expect(new Set([...PLAN_PERSON_STATES, 'active'])).toEqual(new Set(ALL));
+        expect(new Set([...PLAN_TEST_OUTCOMES, 'open', 'active'])).toEqual(new Set(ALL));
+    });
+
+    test('failed, warning and info ask for a note, the other states do not', () => {
+        expect(ALL.filter(asksForNote)).toEqual(['failed', 'warning', 'info']);
+    });
+});
+
+describe('one step as Markdown', () => {
+    const words = (state: PlanStepState): string => `is ${state}`;
+
+    test('checks the box for done and says any other state but open in words', () => {
+        expect(stepToMarkdown(step('a', { state: 'done' }), words)).toBe('- [x] Step a');
+        expect(stepToMarkdown(step('a'), words)).toBe('- [ ] Step a');
+        expect(stepToMarkdown(step('a', { state: 'failed' }), words)).toBe('- [ ] Step a (is failed)');
+        expect(stepToMarkdown(step('a', { state: 'warning' }), words)).toBe('- [ ] Step a (is warning)');
+    });
+
+    test('quotes the note under the step, and leaves the description and sub-steps out', () => {
+        expect(stepToMarkdown(step('a', { state: 'failed', note: 'First\nSecond', description: 'Why' }), words)).toBe(
+            '- [ ] Step a (is failed)\n    > First\n    > Second'
+        );
+        expect(stepToMarkdown(step('p', { steps: [step('c', { state: 'done' })] }), words)).toBe('- [x] Step p');
     });
 });

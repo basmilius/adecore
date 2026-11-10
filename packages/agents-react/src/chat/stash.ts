@@ -1,9 +1,9 @@
 import { shortcut } from '@adecore/ui';
 import { isRecord } from '@adecore/utils/record';
+import { persistedJson } from '../persisted-json';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore } from '../storage';
 import { uploadBytes } from './attachments';
 import { isEmptyDraft, type ChatDraft } from './drafts';
-import { persistedJson } from './persisted-json';
 import { withQuote } from './quote';
 
 /* Puts the draft away, or takes the last one back on an empty box. */
@@ -15,7 +15,7 @@ const storageKey = (): string => chatStorageKey('stash');
 export const STASH_LIMIT = 20;
 
 /* What was attached when the prompt was put away. The bytes are not kept, only what they were. */
-export interface StashedAttachment {
+interface StashedAttachment {
     name: string;
     mime: string;
     size: number;
@@ -36,7 +36,7 @@ export interface StashedPrompt {
     references: string[];
 }
 
-export interface StashedQuote {
+interface StashedQuote {
     text: string;
     chatId: string;
     itemId: string;

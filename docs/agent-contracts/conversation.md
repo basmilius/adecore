@@ -31,6 +31,8 @@ Read absent optional arrays (`queue`, `background`, `skills`, `requests`) as emp
 
 `holdsConversation(info)` says whether the CLI holds a conversation for the chat: it named a session or a turn is in flight. While it does, the chat cannot switch to a CLI or account that cannot read its transcripts. A clear frees the chat again, although `usage.turns` still counts earlier turns.
 
+`chatActivity(info)` is the one answer to whether a chat is busy, from its `ChatInfo`: `waiting` while a person is asked, `working` while a turn is open, `delegating` while a subagent or workflow still works, `background` while only commands the CLI started run, `holding` while a request is open, a goal is active or messages are queued, and `settled` otherwise. A host picks the levels its question counts: keeping a machine awake counts `working` and `delegating`, a restart waits for `working`, `waiting` and `delegating`, and a step that follows a chat's last turn waits for `settled`. `@adecore/agents/chat` re-exports it.
+
 ## Items
 
 `ChatItemSchema` is a union on `kind`. Every item has an `id`, a `createdAt` in milliseconds and a `turnId`, which is `null` outside a turn.
@@ -57,6 +59,8 @@ The parts of an item have their own types:
 - A question item holds `ChatQuestion`s (`ChatQuestionSchema`): an `id`, a `header`, the `question`, its `choices` and whether more than one may be picked.
 - A turn's `limit` is a `ChatTurnLimit` (`ChatTurnLimitSchema`), see [Limits](#limits).
 - A note may carry the `message` another chat sent this one, a `ChatNoteMessage` (`ChatNoteMessageSchema`) with who sent it, their title and the text.
+
+`toolFileEdit(name, input)` reads the file an `Edit`, `Write` or `MultiEdit` call changes from its `input`, as a `ToolFileEdit`: the `path`, whether the call is a `write` of the whole file, and its `pieces` (`ToolFileEditPiece`, `{ before, after }`, one per edit). It returns `null` for any other tool, for a call without a `file_path` and for a `MultiEdit` without an `edits` list. It does not read the diffs a provider reports in `changes`. The thread's diffs, the summary of an approval and a host that tracks who wrote which line all read their edits through it, and `@adecore/agents/chat` re-exports it.
 
 A running tool's `progress.output` holds only the last `TOOL_OUTPUT_TAIL` UTF-16 units. A tool `delta` carries only the new text, so grow the output with `appendToolOutput(output, text)`, which cuts it as the host does. Once the call settles, `output` replaces the progress.
 

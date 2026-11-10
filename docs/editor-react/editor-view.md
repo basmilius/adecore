@@ -49,19 +49,27 @@ Attach one `EditorLanguage` per editor; `EditorView` already makes one. `languag
 
 ### Keys
 
-The features see keys through `language.onKey(handler, priority?)`, which returns the function that removes the handler. Higher priorities go first, ties in order of adding, and the first handler to return `true` takes the key. `KEY_PRIORITY` holds each feature's priority, from highest to lowest: `pick`, `diagnostics`, `hover`, `completion`, `snippets`, `templates`, `markup`, `signature`, `highlights`, `codeActions`, `rename`, `navigation`, `peek`, `callHierarchy`, `symbolPicker`, `history` and `renderedDocs`. A handler without a priority comes after every feature.
+The features see keys through `language.onKey(handler, priority?)`, which returns the function that removes the handler. Higher priorities go first, ties in order of adding, and the first handler to return `true` takes the key. `KEY_PRIORITY` holds each feature's priority, from highest to lowest: `suggestionAccept` (Tab on a suggestion), `pick`, `diagnostics`, `hover`, `completion`, `snippets`, `templates`, `markup`, `signature`, `highlights`, `codeActions`, `rename`, `navigation`, `peek`, `callHierarchy`, `symbolPicker`, `history`, `renderedDocs`, `pasteHistory` and `inlineCompletion`. A handler without a priority comes after every feature.
 
-To see a key before a feature, a subclass registers after `super()` with a higher priority:
+`language.onServedKey(handler, priority?)` is the same for a feature that needs a server behind the document: an editor whose document no server serves never gives it a key.
+
+To see a key before a feature, register with a higher priority from the `features` option below:
 
 ```ts
-class AssistedLanguage extends EditorLanguage {
-    constructor(project: ProjectLanguage, editor: Editor, uri: string, languageId: string) {
-        super(project, editor, uri, languageId);
-        // Tab accepts the inline suggestion before the suggestion list and the snippet fields see it.
-        this.onKey((event) => event.key === 'Tab' && acceptSuggestion(this), KEY_PRIORITY.pick + 1);
+const language = new EditorLanguage(project, editor, uri, languageId, realTimers, {
+    features: (built) => {
+        // Tab runs the app's own action before the suggestion list and the snippet fields see it.
+        built.onKey((event) => event.key === 'Tab' && runAction(built), KEY_PRIORITY.pick + 1);
+        return { runAction };
     }
-}
+});
 ```
+
+### Features of the app
+
+`EditorLanguageOptions.features(language)` builds the app's own features for one editor, once the shared ones exist, so it may use every one of them. What it returns is `language.app`, typed by `EditorLanguage<App>`; it is not set yet while `features` runs. The app composes instead of subclassing: it wraps `new EditorLanguage` in a function that passes its `features`.
+
+A feature that suggests code adds a source to `language.inlineCompletion` instead of drawing ghost text itself; see [inline completions](/editor-react/language-features#inline-completions).
 
 An `editor.onKeyDown` handler runs before these when added before the `EditorLanguage`, and after them when added later.
 
@@ -73,7 +81,7 @@ An app adds its own parts through `LanguagePopupsProps`:
 
 | Prop               | Type                            | Meaning                                                                                                                                                                                                       |
 | ------------------ | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `language`         | `EditorLanguage` or a subclass  | The editor's features; the callbacks below get the same type back                                                                                                                                             |
+| `language`         | `EditorLanguage<App>`           | The editor's features; the callbacks below get the same type back                                                                                                                                             |
 | `contextMenuItems` | `(language) => ReactNode`       | A group of the app in the [context menu](/editor-react/rename#context-menu)                                                                                                                                   |
 | `hoverFooter`      | `(view, language) => ReactNode` | Sections at the foot of the hover card, such as actions on its problems. `view` is the card's `HoverView`; each top-level element gets a divider, and `null` adds nothing |
 | `children`         | `ReactNode`                     | An app layer over the editor, drawn above the cards and below the rename field, such as an inline prompt                                                                    |
@@ -103,9 +111,9 @@ The cards render through portals, so a provider around `LanguagePopups`, such as
 
 ### Drawing your own cards
 
-The features keep what their cards show in `language.popups`, a `PopupStore` (a zustand store) of a `PopupState`. Each field is a view, or `null` while its card is closed. `LanguagePopups` draws them all; a host that draws one card itself reads that field and leaves the rest to `LanguagePopups`.
+The features keep what their cards show in `language.popups`, a `Popups`. `language.popups.slot(name)` is the `PopupSlot` of one card: `get()` returns its view, or `null` while the card is closed, and `subscribe(listener)` hears every change. Each slot has its own snapshot, so a card draws again only for a change of its own. `LanguagePopups` draws them all; a host that draws one card itself reads that slot and leaves the rest to `LanguagePopups`. The names and views are the `PopupViews`, which an app extends with `declare module '@adecore/editor-react' { interface PopupViews { ... } }` for a slot of its own.
 
-| Field           | View                | What it holds                                                                       |
+| Slot            | View                | What it holds                                                                       |
 | --------------- | ------------------- | ----------------------------------------------------------------------------------- |
 | `hover`         | `HoverView`         | The anchor, the problems there and the `info`, a `HoverInfo` with the text and definition |
 | `completion`    | `CompletionView`    | The `rows` as `CompletionRow`s, the active one and its `docs`, a `CompletionDocs`  |
@@ -120,7 +128,11 @@ The features keep what their cards show in `language.popups`, a `PopupStore` (a 
 | `wrap`          | `WrapView`          | The [Wrap with Abbreviation](/editor-react/markup#wrap-with-an-abbreviation) field  |
 
 ```tsx
-const completion = useSyncExternalStore(language.popups.subscribe, () => language.popups.getState().completion);
+const slot = language.popups.slot('completion');
+const completion = useSyncExternalStore(
+    (listener) => slot.subscribe(listener),
+    () => slot.get()
+);
 ```
 
 The views are read-only; act through the feature, such as `language.completion.accept(false)`.

@@ -6,7 +6,7 @@ export const EFFORT_OPTION = 'effort';
 /* `up` is one choice more effort, `down` one less. */
 export type EffortStep = 'up' | 'down';
 
-export type EffortStepResult =
+type EffortStepResult =
     | { kind: 'stepped'; selection: ModelSelection; choice: ModelOptionChoice }
     /* Already at the end of the model's choices that way, which `choice` names. */
     | { kind: 'edge'; choice: ModelOptionChoice }

@@ -1,6 +1,6 @@
 # @adecore/utils
 
-Small helpers without dependencies: atomic file writes, path containment, the order of async work and reading a thrown value. Each lives at its own subpath. `async`, `errors`, `record` and `text` run in a page; `fs` and `path` need Node or Bun.
+Small helpers without dependencies: atomic file writes, path containment, the order of async work, reading a thrown value and the math on points and boxes. Each lives at its own subpath. `async`, `errors`, `geometry`, `record` and `text` run in a page; `fs` and `path` need Node or Bun.
 
 ```sh
 bun add @adecore/utils

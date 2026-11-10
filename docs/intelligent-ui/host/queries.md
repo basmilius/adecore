@@ -111,7 +111,7 @@ A failed or refused reading, a plain link and a refused choice carry a stable `c
 | `link-unchecked`      | The link has to be checked again                                 |
 | `unreadable`          | The page could not reach the backend                             |
 
-Any other error thrown by `authorize`, `read`, `link` or `place` gets a fixed reason (`This query could not be read.`, or `The place could not be looked up.`), because the reason is frozen into the record. Only a `ChatUiRefusal` chooses its words.
+Any other error thrown by `authorize`, `read` or `link` gets a fixed reason (`This query could not be read.`), because the reason is frozen into the record. Only a `ChatUiRefusal` chooses its words.
 
 `uiReasonText` also words these host codes:
 
@@ -120,28 +120,3 @@ Any other error thrown by `authorize`, `read`, `link` or `place` gets a fixed re
 | `outside-project`    | The source or target lies outside the writer's project       |
 | `target-unavailable` | The file, commit, diff or node a link names is gone          |
 | `no-unique-match`    | A name the source looks up matches nothing, or more than one |
-
-## Places
-
-A `Place` can give an address instead of coordinates. With `ChatUiHost.place`, the host looks each address up once when the reply settles and freezes the point in `uiQueries.blocks[id].places`, by node id. Every client draws the same point, and the fallback's `Places:` line carries the coordinates.
-
-```ts
-import { uiPlaceQueries } from '@adecore/intelligent-ui/places';
-
-const intelligentUi: ChatUiHost = {
-    capture: async () => null,
-    sources: {},
-    // One lookup of one address; `signal` aborts after five seconds.
-    place: async (info, { address, name }, signal) => {
-        const match = await geocode(address, signal);
-
-        return match ? { state: 'found', lat: match.lat, lon: match.lon, label: match.label } : { state: 'missing', code: 'no-match' };
-    }
-};
-```
-
-`uiPlaceQueries(block, input?, queries?)` returns the complete Places with an address as `{ [nodeId]: { address, name } }`, each a `UiPlaceQuery`. The host calls `place` for at most `UI_HOST_LIMITS.places` (50) of them. `uiMayReferenceHost` is true for text with a `<Place` that has `address=`.
-
-Your `place` returns `found` with `lat`, `lon` and an optional `label`, or `missing` with an optional `code` and `reason`; the host adds the trimmed `address`. A reading applies only to a node whose current address matches. A lookup that throws, takes over five seconds or fails the schema freezes as `missing`, and the host never retries it. A block has fifteen seconds for all its lookups; the rest freeze as `missing` with `timed-out`, and `signal` aborts. A reply settled while offline keeps `missing`.
-
-Without `place`, the host freezes no points and a map draws only the places the agent gave coordinates for. Leave it out if the host may not store coordinates.

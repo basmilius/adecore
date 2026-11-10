@@ -5,8 +5,8 @@ import clsx from 'clsx';
 import { Box } from 'lucide-react';
 import { createContext, useContext, useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../../host';
-import { useHostAttachmentUrl } from '../../../../host-hooks';
+import { useChatHost } from '../../../../host/host';
+import { useHostAttachmentUrl } from '../../../../host/host-hooks';
 import { CodeStreamingContext } from '../../code-streaming';
 import { CodeBlock } from '../../CodeBlock';
 import { DisplayImage } from '../../DisplayImage';
@@ -278,7 +278,7 @@ export function SourcesRenderer({ node, children }: UiRendererProps<UiProps<'Sou
     );
 }
 
-export interface UiSourceCitationProps {
+interface UiSourceCitationProps {
     /* The number of the Source, as its row in the list counts it. */
     number: number;
     title: string;

@@ -30,7 +30,6 @@ export interface FindMatch {
 
 const wordCharacter = /[\p{L}\p{N}\p{M}\p{Pc}$]/u;
 
-/* Whether `offset` sits between the two halves of a surrogate pair. */
 export function splitsSurrogate(text: { charAt(offset: number): string }, offset: number): boolean {
     return /[\ud800-\udbff]/.test(text.charAt(offset - 1)) && /[\udc00-\udfff]/.test(text.charAt(offset));
 }

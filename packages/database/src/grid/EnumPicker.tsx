@@ -6,12 +6,11 @@ import { useTranslation } from 'react-i18next';
 import { CODE_TEXT } from '../code-text.ts';
 import { joinMembers, membersOf, type EnumType } from './enum-type.ts';
 
-export interface EnumPickerProps {
+interface EnumPickerProps {
     type: EnumType;
     /* The column's value; `null` is NULL. A set is its members joined by commas. */
     value: string | null;
     nullable: boolean;
-    /* The accessible name of the trigger. */
     label: string;
     /* Opens the menu as it mounts, for a cell that was just put into edit mode. */
     autoOpen?: boolean;

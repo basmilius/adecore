@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { UiReplyTarget } from './logic/timeline-target';
 
 /* The row of a thread a jump landed on: it lights up once, and a card of changes opens when the jump asked for it. */
-export interface TimelineFlash {
+interface TimelineFlash {
     /* The scope's key of the chat, so two chats showing the same row id never light up together. */
     key: string;
     rowId: string;

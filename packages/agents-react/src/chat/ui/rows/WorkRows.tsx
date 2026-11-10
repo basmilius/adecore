@@ -1,20 +1,20 @@
 import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
-import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, useTickingText } from '@adecore/ui';
+import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, lazyNamed, useTickingText } from '@adecore/ui';
 import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
 import i18next from 'i18next';
 import { ChevronRight, FileDiff, X } from 'lucide-react';
 import { Fragment, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type CommandLook, type ToolLook } from '../../../host';
-import { useCommandNames } from '../../../host-hooks';
-import { lazyNamed } from '../../../lazy';
+import { useChatHost, type CommandLook, type ToolLook } from '../../../host/host';
+import { useCommandNames } from '../../../host/host-hooks';
+import { type Look } from '../../../host/timeline-row';
+import type { BaseMoved } from '../../../host/timeline-row';
 import { ChatScopeContext, useChatScope } from '../../../scope';
 import { useAwaitsApproval, useCurrentItem } from '../../../state/chats';
 import { useChatActions } from '../../actions';
 import { formatBytes } from '../../attachments';
-import { lookKey, lookRunOf, type Look, type LookRun } from '../../logic/command-looks';
-import type { BaseMoved } from '../../logic/timeline';
+import { lookKey, lookRunOf, type LookRun } from '../../logic/command-looks';
 import {
     exitCodeOf,
     fileChanges,
@@ -47,7 +47,6 @@ const UnifiedDiff = lazyNamed(() => import('../UnifiedDiff'), 'default');
 
 const OUTPUT_LIMIT = 4000;
 
-/* The line that says how much of a text past the limit is left out; empty for a text within it. */
 function clipNotice(text: string): string {
     return text.length > OUTPUT_LIMIT ? `\n${i18next.t('agent-chat:work.moreCharacters', { count: text.length - OUTPUT_LIMIT })}` : '';
 }
@@ -58,7 +57,6 @@ function clip(text: string): string {
 
 const BRAND = 'font-semibold';
 
-/* `text` with `brand` in semibold where it names it, as a sentence about a look does. */
 function withBrand(text: string, brands: readonly string[]): ReactNode {
     for (const brand of brands) {
         const at = brand === '' ? -1 : text.indexOf(brand);
@@ -234,7 +232,6 @@ function DiffSuspense({ children }: { children: ReactNode }) {
     return <LazyBoundary fallback={<div className="px-3 py-2 text-xs text-text-faint">{t('work.loadingDiff')}</div>}>{children}</LazyBoundary>;
 }
 
-/* A file in a changed files card, which opens its diff under it. */
 function ChangedFileLine({
     path,
     open,
@@ -510,7 +507,6 @@ export function RunningFor({ startedAt }: { startedAt: number }) {
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
-/* The mark of one call: the look it runs under, else what the tool is about. */
 function callIcon(tool: ChatToolItem, commandLooks: readonly CommandLook[] | undefined, toolLooks: readonly ToolLook[] | undefined): ReactNode {
     const run = lookRunOf(tool, commandLooks, toolLooks);
 

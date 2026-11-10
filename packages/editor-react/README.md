@@ -24,7 +24,7 @@ bun add @adecore/editor-react
 @source "../node_modules/@adecore/editor-react/dist";
 ```
 
-Add `@adecore/editor-react/locales/en.json` and `nl.json` to i18next as the `editor` namespace, then:
+Add `@adecore/editor-react/locales/en` and `nl` to i18next as the `editor` namespace, then:
 
 ```tsx
 import { EditorView, ProjectLanguage } from '@adecore/editor-react';
@@ -42,7 +42,7 @@ const project = new ProjectLanguage(service, { folder, keymap, openPlace, files,
 | `@adecore/editor-react/models` | The pure models, without React |
 | `@adecore/editor-react/testing` | `FakeLanguageService` and `ManualTimers` |
 | `@adecore/editor-react/editor-react.css` | The styles of the cards |
-| `@adecore/editor-react/locales/*.json` | The words, in English and Dutch |
+| `@adecore/editor-react/locales/*` | The words, in English and Dutch |
 
 ## Documentation
 

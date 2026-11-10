@@ -10,8 +10,8 @@ import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
 import { FindReplace } from './FindReplace.tsx';
-import en from './locales/en.json';
-import nl from './locales/nl.json';
+import en from './locales/en.ts';
+import nl from './locales/nl.ts';
 
 for (const labels of [
     { language: 'en', input: 'Replace with', one: 'Replace', all: 'Replace all', preserve: 'Preserve case' },

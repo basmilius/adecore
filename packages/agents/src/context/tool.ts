@@ -5,7 +5,6 @@ import { toolInputSchema } from './tool-schema.ts';
 /* A tool said no. The code is for a script, the message for the agent, the lines for what it can pick instead. */
 export class ToolRefusal extends CodedError {}
 
-/* What every call carries, whatever else an app puts in it. */
 export interface ToolCallBase {
     /* The revision of the document the caller read before it decided on this write. */
     expectedRevision?: number;
@@ -14,15 +13,11 @@ export interface ToolCallBase {
 /* The input field a write takes the revision it was decided on in. */
 export const REVISION_FIELD = 'revision';
 
-/* The input field that asks a tool to check everything and change nothing. */
-export const DRY_RUN_FIELD = 'dry_run';
-
 /* Agents dry-run every call before the real one to be safe, which doubles what each costs them. */
 export const DRY_RUN_PREVIEW = 'a refused call makes nothing either, so it is only a preview and never needed for safety';
 
 /* What a client may conclude about a tool before it runs it. */
 export interface ToolAnnotations {
-    /* Changes nothing at all. */
     readOnly?: boolean;
     /* May remove or overwrite what it cannot give back. */
     destructive?: boolean;
@@ -55,7 +50,7 @@ export interface Toolkit<Call extends ToolCallBase = ToolCallBase, Output = stri
     readonly tools: readonly Tool<Call, Output>[];
 }
 
-export interface ToolRegistry<Call extends ToolCallBase = ToolCallBase, Output = string[]> {
+interface ToolRegistry<Call extends ToolCallBase = ToolCallBase, Output = string[]> {
     readonly toolkits: readonly Toolkit<Call, Output>[];
     /* Every tool of every toolkit, in the order of the toolkits. */
     readonly tools: readonly Tool<Call, Output>[];

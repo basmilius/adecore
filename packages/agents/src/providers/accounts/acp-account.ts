@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { withDeadline } from '@adecore/utils/async';
-import { DEFAULT_ACP_CLIENT, type AcpClientInfo } from '../../chat/acp-backend.ts';
+import { DEFAULT_ACP_CLIENT, type AcpClientInfo } from '../../backends/acp-backend.ts';
 import {
     ACP_AUTH_REQUIRED,
     ACP_PROTOCOL_VERSION,
@@ -11,19 +11,18 @@ import {
     sessionIdOf,
     sessionUpdateOf,
     type AcpSessionInfo
-} from '../../chat/acp-protocol.ts';
-import type { SpawnChatProcess } from '../../chat/chat-process.ts';
-import { JsonRpcError, JsonRpcTransport, type JsonRpcFrame } from '../../chat/json-rpc-transport.ts';
+} from '../../backends/acp-protocol.ts';
+import { JsonRpcError, JsonRpcTransport, type JsonRpcFrame } from '../../backends/json-rpc-transport.ts';
+import type { SpawnChatProcess } from '../../chat-process.ts';
 import { definedEnv } from './launch.ts';
 import { ASK_TIMEOUT_MS, type AccountReading } from './status.ts';
 
-/* The clock the probe's deadline runs on. */
-export interface ProbeTimer {
+interface ProbeTimer {
     setTimeout(run: () => void, ms: number): unknown;
     clearTimeout(handle: unknown): void;
 }
 
-export interface AcpAccountProbe {
+interface AcpAccountProbe {
     // The agent as a person reads it, in the error a failed read carries.
     name: string;
     command: readonly string[];

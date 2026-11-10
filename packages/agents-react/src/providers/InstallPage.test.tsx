@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import type { ProviderInfo, ProviderPlatform } from '@adecore/agent-contracts';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost } from '../host';
+import { ChatHostProvider, type ChatHost } from '../host/host';
 import { ChatScopeContext, type ChatScope } from '../scope';
 import { installPlatforms, installStepStates, type ProviderInstallStep } from './install-steps';
 import { InstallPage } from './InstallPage';
@@ -45,7 +45,6 @@ function render(
     );
 }
 
-/* The state of each step, in order, as the page marks it. */
 const statesIn = (markup: string): string[] => [...markup.matchAll(/data-state="(\w+)"/g)].map((match) => match[1]!);
 
 const onMachine = (platform: ProviderPlatform | null): Partial<ChatHost> => ({ useMachinePlatform: () => platform });

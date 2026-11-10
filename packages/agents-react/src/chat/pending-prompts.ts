@@ -1,6 +1,6 @@
 import { CHAT_REQUEST_LIMITS, type ChatInfo } from '@adecore/agent-contracts';
-import type { PendingPrompt } from '../prompts/logic/prompts';
-import type { PromptSubject } from '../prompts/logic/subjects';
+import type { PendingPrompt } from '../host/prompts';
+import type { PromptSubject } from '../host/prompts';
 import type { ChatScope } from '../scope';
 import { useChats, waitingRequestsOf } from '../state/chats';
 import { subagentTitle } from './subagent-list';

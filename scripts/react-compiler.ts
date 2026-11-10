@@ -5,7 +5,6 @@ import { transformAsync, type PluginItem, type PluginObj } from '@babel/core';
 import type { LoggerEvent, PluginOptions } from 'babel-plugin-react-compiler';
 
 export interface ReactCompilerReport {
-    /* Components and hooks the compiler memoized. */
     compiled: number;
     /* Functions it left as written, with why; such a function still works, it only draws again as before. */
     skipped: { file: string; reason: string }[];

@@ -1,6 +1,6 @@
 import type { ChatGoal, ChatGoalAction, ChatInfo, ProviderCapabilities } from '@adecore/agent-contracts';
 
-export interface GoalView {
+interface GoalView {
     goal: ChatGoal;
     // What a person may do to it from the row; empty where the CLI or the host offers nothing.
     actions: ChatGoalAction[];

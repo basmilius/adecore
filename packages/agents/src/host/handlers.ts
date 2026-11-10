@@ -1,20 +1,19 @@
 import type { AGENT_REQUEST_SCHEMAS, AgentRequestType } from '@adecore/agent-contracts';
 import type { z } from 'zod';
+import { ChatError } from '../chat-error.ts';
 import type { ChatCore } from '../chat/chat-core.ts';
-import { ChatError } from '../chat/errors.ts';
 import type { ProviderAccountsService } from '../providers/accounts/service.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import type { UsageMonitor } from '../usage/limits/monitor.ts';
 import type { UsageService } from '../usage/usage-service.ts';
 
-export type AgentRequestMap = {
+type AgentRequestMap = {
     [T in AgentRequestType]: {
         payload: z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['payload']>;
         result: z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['result']>;
     };
 };
 
-/* One request as a host answers it, for the client that asked. */
 export type AgentHandler<T extends AgentRequestType> = (
     payload: AgentRequestMap[T]['payload'],
     clientId: string
@@ -24,7 +23,7 @@ export type AgentHandlers = { [T in AgentRequestType]: AgentHandler<T> };
 
 type AccountRequestType = Extract<AgentRequestType, `accounts.${string}`>;
 type UsageRequestType = Extract<AgentRequestType, `usage.${string}`>;
-export type ChatRequestType = Exclude<AgentRequestType, AccountRequestType | UsageRequestType>;
+type ChatRequestType = Exclude<AgentRequestType, AccountRequestType | UsageRequestType>;
 
 // A fork lands on a canvas and a summary goes back along its line, which a host of chats alone does not have.
 function unsupported(what: string) {

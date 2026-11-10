@@ -23,7 +23,6 @@ export function EditorFrame({ host, toolbar, className = 'h-72' }: { host: RefOb
     );
 }
 
-/* An `EditorView` on the demo file of a project, under a row of controls. */
 export function LanguageFrame({
     project,
     onMount,

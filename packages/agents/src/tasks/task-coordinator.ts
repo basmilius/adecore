@@ -1,9 +1,9 @@
 import type { ChatBackgroundTask, ChatItem, ChatTurnItem, Task, TaskResult } from '@adecore/agent-contracts';
 import { abortedByMachine, clipText } from '@adecore/agent-contracts';
 import { BACKGROUND_COMMAND_LIMIT_MS, commandLabel, isBackgroundWork, runningInBackground, runsInBackground } from '../chat/background-work.ts';
-import { readableAssistantText } from '../chat/readable-text.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';
+import { readableAssistantText } from '../readable-text.ts';
 import type { TaskStore } from './task-store.ts';
 
 export interface TaskCoordinatorDeps {
@@ -87,7 +87,6 @@ function goalLostNote(objective: string): string {
     return `The agent stopped before its goal was met: ${objective}`;
 }
 
-/* What a settled turn of a child makes of its task. */
 export function resultOfTurn(turn: ChatTurnItem, items: readonly ChatItem[], at: number): { status: 'done' | 'failed'; result: TaskResult } {
     if (turn.state === 'done') {
         return { status: 'done', result: { text: answerOf(items, turn.id) ?? 'It ended its turn without an answer.', source: 'turn', at } };

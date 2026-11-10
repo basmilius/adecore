@@ -1,9 +1,11 @@
 import { UsageRateSchema, type UsageLimitsSnapshot, type UsageRate, type UsageSummaryPayload, type UsageSummaryResult } from '@adecore/agent-contracts';
 import { localTimeZone } from '@adecore/ui/format';
-import { persistedJson } from '../chat/persisted-json';
+import { persistedJson } from '../persisted-json';
 import { useChatScope } from '../scope';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore, onChatStorageConfiguration } from '../storage';
-import type { UsageCurrency } from '../usage/format';
+
+/* Dollars are what a price table is in; euros are what the page can be set to. */
+export type UsageCurrency = 'USD' | 'EUR';
 
 export type UsagePeriod = 'today' | '7d' | '30d' | '90d';
 export type UsageMetric = 'cost' | 'tokens';
@@ -95,7 +97,6 @@ interface UsageRow {
     /* The question the summary on screen answers, or null while nothing has come back yet. */
     asked: string | null;
     summary: UsageSummaryResult | null;
-    /* True while the host has not answered the question that is being asked now. */
     loading: boolean;
     /* The last request failed; the summary before it stays on screen under a red line. */
     failed: boolean;
@@ -112,7 +113,6 @@ interface UsageStore extends Preferences {
      * remembered host outlives this client's knowledge of it. It does survive closing the page.
      */
     chosen: string | null;
-    /* Which host's numbers the page shows; null hands it back to the one around it. */
     choose(scopeId: string | null): void;
     setPeriod(period: UsagePeriod): void;
     setMetric(metric: UsageMetric): void;
@@ -186,7 +186,7 @@ export const useUsageStore = createChatStore<UsageStore>(
  * The viewer's preferences over the numbers of the host in scope. The usage page renders its picked
  * host as a scope of its own, so browsing another host's spend never moves the limit bars outside it.
  */
-export type UsageView = Preferences & UsageRow;
+type UsageView = Preferences & UsageRow;
 
 export function useUsage<T>(select: (view: UsageView) => T): T {
     const { id } = useChatScope();

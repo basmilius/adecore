@@ -1,0 +1,798 @@
+import type {
+    AgentKind,
+    ChatAttachment,
+    ChatCheckpointDiff,
+    ChatConfigurePayload,
+    ChatGoalAction,
+    ChatItem,
+    ChatSubagentItem,
+    ChatUiChoicePayload,
+    ChatUiQueryPayload,
+    ChatUiQueryReading,
+    ChatUiLinkPayload,
+    ChatUiLinkReading,
+    ChatVisual,
+    ProviderPlatform
+} from '@adecore/agent-contracts';
+import type { EditorEngine } from '@adecore/editor';
+import { isApplePlatform, syncAnimations } from '@adecore/ui';
+import type { Extension } from '@codemirror/state';
+import type { EditorView } from '@codemirror/view';
+import type { LucideIcon } from 'lucide-react';
+import {
+    createContext,
+    createElement,
+    useContext,
+    useLayoutEffect,
+    useMemo,
+    useState,
+    type ComponentProps,
+    type ComponentType,
+    type ReactNode,
+    type RefObject
+} from 'react';
+import type { Highlighter, ThemeRegistration } from 'shiki';
+import { PlainTextarea } from './PlainTextarea';
+import type { HostPrompt, PromptAction, PromptViewProps } from './prompts';
+import type { ReferableKind, Referables } from './references';
+import type { TimelineRow } from './timeline-row';
+
+/* A color an account may wear, by the name the host stores it under. */
+export interface AccentChoice {
+    id: string;
+    color: string;
+}
+
+/* What a project says about the accounts of each CLI: the one its new chats start on, and those it never offers. */
+export type AccountRule = Partial<Record<string, { default?: string; off?: readonly string[] }>>;
+
+/* The line that always shows, the text of a message, or what shows only once a row is opened. */
+export type ChatFindField = 'summary' | 'text' | 'output';
+
+export interface FindReveal {
+    itemId: string;
+    field: ChatFindField;
+}
+
+export interface ChatToast {
+    /* A toast with the same id replaces the one that is up. */
+    id?: string;
+    title: string;
+    description?: string;
+    /* `deleted` says something went that the action can bring back. */
+    kind: 'success' | 'error' | 'deleted';
+    action?: { label: string; run(): void };
+}
+
+/*
+ * What a person does to a chat from its own views. Without an app's own set, each one is the request
+ * a chat host answers; an app that runs every action through one door (confirmations, voice, an
+ * activity log) hands its own. A refusal throws something with a `code`.
+ */
+export interface ChatActions {
+    clear(chatId: string, force: boolean): Promise<void>;
+    /* With `subagents`, also ends the agents this chat opened. */
+    stopTurn(chatId: string, subagents: boolean): Promise<void>;
+    /* Refused with `request-not-found` when the message already went out. */
+    unqueue(chatId: string, messageId: string): Promise<void>;
+    sendNow(chatId: string, messageId: string): Promise<void>;
+    compact(chatId: string): Promise<void>;
+    configure(chatId: string, patch: Omit<ChatConfigurePayload, 'chatId'>): Promise<void>;
+    continueOn(chatId: string, account: string): Promise<void>;
+    /* Null when the turn has no checkpoint to compare against. */
+    turnDiff(chatId: string, turnId: string): Promise<ChatCheckpointDiff | null>;
+    /* The whole of what a tool call answered, where its item carries only the beginning; without it that beginning is all a person sees. */
+    toolOutput?(chatId: string, itemId: string): Promise<string | null>;
+    stopSubagent(chatId: string, toolUseId: string): Promise<void>;
+    stopTask(chatId: string, taskId: string): Promise<void>;
+    /* Pauses, resumes or clears the chat's goal; absent where the host offers none of it, which leaves the goal row without its buttons. */
+    goal?(chatId: string, action: ChatGoalAction): Promise<void>;
+    approve(chatId: string, requestId: string, decision: 'allow' | 'allow-always' | 'deny', message?: string): Promise<void>;
+    answer(chatId: string, requestId: string, answers: Record<string, string>): Promise<void>;
+    dismiss(chatId: string, itemId: string): Promise<void>;
+}
+
+/* A path an answer names, as it was written: absolute, or relative to the folder the chat works in. */
+export interface FileRef {
+    path: string;
+    /* One-based, when the reference named a line. */
+    line?: number;
+    column?: number;
+    endLine?: number;
+    /* A trailing separator is the only thing that says a reference means a directory. */
+    directory: boolean;
+}
+
+export interface ShellCodeBlockContext {
+    scopeId: string;
+    chatId: string;
+    itemId: string;
+    language: 'sh' | 'bash' | 'zsh';
+    code: string;
+    /* A closed fence in a main reply that has stopped streaming. */
+    complete: boolean;
+}
+
+/* Where another chat stands and how to get there; a null title is a chat that is gone. */
+export interface ChatPlace {
+    title: string | null;
+    go(): void;
+}
+
+/* The task behind a sub-agent row an app opened with a task of its own (`origin` that is not the CLI's). */
+export interface SubagentTask {
+    status: 'open' | 'done' | 'failed' | 'cancelled';
+    createdAt: number;
+    settledAt: number | null;
+    /* Set while the child waits out a limit, with when it lifts. */
+    paused?: { until?: number };
+}
+
+/* What a find in a thread needs of it, and what it hands back to draw. */
+export interface TimelineFindOptions {
+    chatId: string;
+    /* What the find key looks for, and what the bar stands in. */
+    frame: RefObject<HTMLDivElement | null>;
+    /* Where the rows are drawn, which is what gets marked. */
+    thread: RefObject<HTMLDivElement | null>;
+    scroller: RefObject<HTMLDivElement | null>;
+    enabled: boolean;
+    rows: readonly TimelineRow[];
+    structure: Readonly<Record<string, ChatItem>> | undefined;
+    order: readonly string[] | undefined;
+    /* The first row on screen, where a new search starts looking. */
+    firstRowInView(): number;
+    openTurn(turnId: string): void;
+    openGroup(id: string): void;
+    openSubagent(id: string): void;
+    scrollToRow(index: number): void;
+    /* The height of the composer standing over the end of the scroller. */
+    coveredHeight(): number;
+    stopFollowing(): void;
+}
+
+export interface TimelineFind {
+    open: boolean;
+    /* Drawn over the thread while the find is open. */
+    bar: ReactNode;
+    reveal: FindReveal | null;
+    /* The row each hit is shown at, in the order of the hits. */
+    hitRows: readonly number[];
+    currentRow: number | null;
+}
+
+/* The dictation control beside the composer's editor; it takes its text from the editor itself. */
+export interface ComposerDictationProps {
+    targetRef: RefObject<HTMLElement | null>;
+    /* In the composer's row of round controls. */
+    buttonContainer: HTMLElement | null | undefined;
+    disabled: boolean;
+    editor(): EditorView | null;
+}
+
+export type TextareaProps = ComponentProps<'textarea'> & {
+    /* Where a button beside the field sits, such as a negative margin so it does not make a one-line row taller. */
+    buttonClassName?: string;
+};
+
+/* An attached file's bytes, as a URL an image or a link can use; `failure` says why there is none. */
+export interface ResourceUrl {
+    url: string | null;
+    failure: string | null;
+}
+
+/* What an app's own control in the composer's row gets. */
+export interface ComposerSlotProps {
+    scopeId: string;
+    chatId: string;
+    disabled: boolean;
+    /* Puts text in the draft at the caret, a space apart from the words beside it, and gives the editor the focus. */
+    insert(text: string): void;
+}
+
+/* What an app's own mark of a `#` reference gets: what it points at, and the size and class of the mark it stands in for. */
+export interface ReferenceIconProps {
+    id: string;
+    kind: ReferableKind;
+    size: number;
+    className?: string;
+}
+
+/* What a chip of an id that is no view or node still stands for, such as a sender from outside: its mark, and what clicking it opens. */
+export interface OutsideReference {
+    icon: LucideIcon;
+    open: (() => void) | null;
+}
+
+/* What an app's own bar over the composer gets: the chat it stands on, which may be one the bar has nothing for. */
+export interface ComposerHeaderSlotProps {
+    scopeId: string;
+    chatId: string;
+    disabled: boolean;
+    /* Whether this composer has the focus; a bar keeps its controls out of the tab order while it does not, as the editor does. */
+    focused: boolean;
+}
+
+/* A row in the popover a status item opens. */
+export interface ComposerStatusDetail {
+    icon: LucideIcon;
+    label: string;
+    /* A second line under the label, such as a path. */
+    detail?: string;
+    /* A word at the end of the row, such as what the label is. */
+    hint?: string;
+    /* Sets the label in the code font, for a name such as a branch. */
+    mono?: boolean;
+    /* Draws the row faint, for one that is listed but asks for no attention. */
+    muted?: boolean;
+}
+
+/* One item in the line under the composer's card, such as the branch a chat works on. */
+export interface ComposerStatusItem {
+    /* Unique among the items of one composer. */
+    id: string;
+    icon: LucideIcon;
+    label: string;
+    tooltip?: string;
+    /* Where on the line it stands; left out, at the start. */
+    side?: 'start' | 'end';
+    /* Rows a click on the item opens; left out, the item is no button. */
+    details?: readonly ComposerStatusDetail[];
+}
+
+/* What an app's own chips for a chat's sub-agents get, in place of the one flyout over the composer. */
+export interface SubagentSlotProps {
+    chatId: string;
+    /* Never empty: without rows the slot is not drawn. */
+    items: readonly ChatSubagentItem[];
+}
+
+/* A card of the app's own between the messages of a thread. */
+export interface ThreadCard {
+    /* Unique within the chat; the thread keys its row by it, so the same card keeps its place and its measure. */
+    id: string;
+    /* When it happened, in milliseconds on the clock of a chat item's `createdAt`: it follows every row from before then. */
+    at: number;
+    /* Called only while the card is on screen, since the thread draws only the rows in view. */
+    render(): ReactNode;
+}
+
+/* Where the visuals agents publish are drawn: a sandboxed frame on an opaque origin, with no rights over the app. */
+export interface VisualHost {
+    /* The address of the sandbox host page (`VISUAL_HOST_PAGE`), on another origin or on the app's own behind a `sandbox` policy. A frame adds the theme to it as a fragment. */
+    frameUrl: string;
+    /* Opens an http or https link a person followed in a visual, outside the app. */
+    openLink(url: string): void;
+    /* Actions of the app's own in a visual's menu, above Remove; left out, the menu holds Remove alone. */
+    actions?(scopeId: string, chatId: string, visual: ChatVisual): readonly HostMenuAction[];
+}
+
+/* An action of the app's own in the menu of something a chat made, such as keeping a copy somewhere of the app's. */
+export interface HostMenuAction {
+    /* Unique among the actions of one menu. */
+    id: string;
+    label: string;
+    icon?: LucideIcon;
+    disabled?: boolean;
+    /* Runs once a person picks it; the host shows a failure itself. */
+    run(): void;
+}
+
+/* Who writes a chat's replies, as the header over each one names them. */
+export interface ReplyAuthor {
+    name: string;
+    /* Drawn before the name, such as an avatar. */
+    mark?: ReactNode;
+}
+
+/* A name a host gives a word of a command, such as the title of what an id stands for. */
+export interface CommandName {
+    name: string;
+    /* Drawn before the name, at the size of the detail. */
+    icon?: ReactNode;
+    /*
+     * The id of the view, node or chat the word stands for, drawn as the `#` chip a message draws for it and
+     * opened as that chip opens; `name` is then what the chip says once what it stood for is gone.
+     */
+    reference?: string;
+}
+
+/* What one run of a program is about, as its look reads it from the words. */
+export interface CommandLookMatch {
+    /* Drawn where the tool name is, after the brand; empty draws the brand alone. */
+    label: string;
+    /* The word the detail starts at, counted from the first word after the program; the detail is the source from there, as it was typed. */
+    detailFrom: number;
+    /* Calls with the same key read as one sentence in a group or a folded turn. */
+    group?: { key: string; sentence(count: number): string };
+    /* Options whose value the line shortens past 40 characters, such as a prompt. */
+    fold?: readonly string[];
+    /* Options whose value is code, by Shiki language id, such as `{ '--sql': 'sql' }`. */
+    languages?: Readonly<Record<string, string>>;
+}
+
+/* A call of a look's program that may be a message, as `CommandLook.sent` gets it. */
+export interface CommandLookCall {
+    /* The words after the program, quotes taken out. */
+    readonly args: readonly string[];
+    /* The lines a heredoc feeds the command; null without one. */
+    readonly heredoc: string | null;
+    readonly state: 'running' | 'done' | 'error';
+    readonly output: string | null;
+}
+
+/* A message a call sent to another node of the app, drawn as said rather than as a tool line. */
+export interface CommandLookSent {
+    /* The id of the node it went to, for its chip. */
+    readonly to: string;
+    /* What the node was called when the message went, shown once the chip finds no node under `to`. */
+    readonly title?: string;
+    /* On the chip of a node it cannot find; the id `to` when left out. */
+    readonly hint?: string;
+    readonly text: string;
+    readonly state: 'sending' | 'delivered' | 'waiting' | 'failed';
+    /* Why a failed one did not go, in the app's words. */
+    readonly reason?: string;
+}
+
+/* A program the app recognizes inside a shell call and draws as a tool of its own. */
+export interface CommandLook {
+    /* The program as it is run, matched on its last path segment. */
+    program: string;
+    /* Drawn in semibold before every label of this look, such as a product name. */
+    brand?: string;
+    /* The mark in the gutter, drawn in `currentColor` at the size of a tool icon. */
+    Mark: ComponentType<{ size: number }>;
+    /* What one run is about, from its words with the quotes taken out; null leaves it a shell call. */
+    describe(args: readonly string[]): CommandLookMatch | null;
+    /* Calls of this look under different group keys, as one sentence; left out, such a run reads as shell calls. */
+    sentence?(count: number): string;
+    /*
+     * Names for words in the detail, such as ids, as a hook the row calls once. A word it names is drawn as
+     * that name, with the word itself in a tooltip; null leaves the word as it was typed. `option` is the
+     * option the word is the value of, or null for a word that follows none.
+     */
+    useNames?(scopeId: string, chatId: string): (word: string, option: string | null) => CommandName | null;
+    /*
+     * The message a call sent, for a line that holds only this call and nothing the shell fills in; null
+     * leaves it a tool line. Asked again as the call goes on, so it answers from the state and the output.
+     */
+    sent?(call: CommandLookCall): CommandLookSent | null;
+}
+
+/* What one call of a look's MCP server is about, as its look reads it from the tool and its input. */
+export interface ToolLookMatch {
+    /* Drawn where the tool name is, after the brand; empty draws the brand alone. */
+    label: string;
+    /* Words before the input, such as what the tool does. */
+    lead?: string;
+    /* The fields of the input drawn after the lead as `field=value`, in this order; left out, every field in the input's own order. */
+    fields?: readonly string[];
+    /* Calls with the same key read as one sentence in a group or a folded turn. */
+    group?: { key: string; sentence(count: number): string };
+}
+
+/* A call of a look's MCP server that may be a message, as `ToolLook.sent` gets it. */
+export interface ToolLookCall {
+    /* The tool's name on its server, without the server. */
+    readonly tool: string;
+    readonly input: Readonly<Record<string, unknown>>;
+    readonly state: 'running' | 'done' | 'error';
+    /* What the tool answered, out of any envelope the CLI wraps it in. */
+    readonly output: string | null;
+}
+
+/*
+ * An MCP server the app recognizes in a thread and draws as a tool of its own. A call of one of its tools
+ * matches whichever shape the CLI gives it: `mcp__<server>__<tool>`, `<server>/<tool>`, or a generic ACP
+ * call titled `<server>__<tool>`, `<server>_<tool>` or `<server>-<tool>` (`mcpCallOf`).
+ */
+export interface ToolLook {
+    /* The server's name, as the app registers it with the CLIs. */
+    server: string;
+    /* Drawn in semibold before every label of this look, such as a product name. */
+    brand?: string;
+    /* The mark in the gutter, drawn in `currentColor` at the size of a tool icon. */
+    Mark: ComponentType<{ size: number }>;
+    /* What one call is about, from the tool's name on its server and its input; null leaves it the CLI's own tool line. */
+    describe(tool: string, input: Readonly<Record<string, unknown>>): ToolLookMatch | null;
+    /* Calls of this look under different group keys, as one sentence; left out, such a run reads as tool calls. */
+    sentence?(count: number): string;
+    /* Names for values in the detail, as `CommandLook.useNames` names words; `option` is the field the value is of. */
+    useNames?(scopeId: string, chatId: string): (word: string, option: string | null) => CommandName | null;
+    /* The message a call sent; null leaves it a tool line. Asked again as the call goes on. */
+    sent?(call: ToolLookCall): CommandLookSent | null;
+}
+
+/*
+ * Where the tiles of a Map come from. The host owns the service and whatever admits a request to it, so
+ * a chat never knows an address, a key or a vendor: it asks for the style of the theme and lets the host
+ * rewrite every address the map requests. `off` says why there are no tiles, and the map then draws its
+ * built-in outline beside the list of places.
+ */
+export type UiMapSource =
+    | {
+          state: 'tiles';
+          /* The style document of one theme. */
+          styleUrl(theme: 'light' | 'dark'): string;
+          /*
+           * Called for every address the map requests, such as to add a ticket or a header to those of the host's
+           * service. Rewrite only the addresses of your own origin and hand every other back as it came: the style
+           * and the tiles name other hosts too, and a ticket must not travel to them.
+           */
+          transformRequest?(url: string): { url: string; headers?: Record<string, string> };
+          /* The feature property that holds a label in `language` (such as `nl`); without it a label stays as the style writes it. */
+          labelField?(language: string): string;
+          /* The credit the tiles ask for, drawn under the map. */
+          attribution?: string;
+      }
+    | { state: 'off'; reason: 'disabled' | 'signed-out' | 'unavailable' };
+
+/*
+ * What the host's view of a Model block gets. It is drawn only once the attachment has a URL, inside a frame
+ * of fixed height that the block sizes and captions itself, so the view fills its parent and draws no caption.
+ */
+export interface UiModelViewProps {
+    scopeId: string;
+    chatId: string;
+    attachmentId: string;
+    /* The attachment's bytes, as `attachments.useUrl` resolved them. */
+    url: string;
+    /* What the model shows, for a screen reader: the block's alt, its caption, or a word for a 3D model. */
+    label: string;
+    alt?: string;
+    /* The caption as plain text, empty without one. */
+    caption: string;
+}
+
+/*
+ * What the app around the chat decides and the chat cannot, handed to the views by a `ChatHostProvider`.
+ * Whatever an app leaves out keeps the default here, which is the chat without that part. One host may
+ * serve several scopes, so a function that is about one host of chats is told its scope id.
+ */
+/* A CLI's mark, drawn in the current text color. */
+export interface AgentMark {
+    /* Read by a screen reader. */
+    title: string;
+    /* The `d` of one SVG path; several shapes go in one path. */
+    path: string;
+    /* `0 0 24 24` when absent. */
+    viewBox?: string;
+    /* `evenodd` for a path whose holes are subpaths inside its shape; `nonzero` when absent. */
+    fillRule?: 'nonzero' | 'evenodd';
+}
+
+export interface ChatHost {
+    /*
+     * The marks of the kinds the app adds, and any it draws differently. Every place the shared UI draws an agent's
+     * mark reads them; a kind with none keeps the built-in mark or the robot.
+     */
+    agentMarks?: Readonly<Partial<Record<AgentKind, AgentMark>>>;
+
+    /* Commands of the host's own after `/`, which turn into the prompt instead of reaching the CLI. */
+    useExpandingCommands?(): readonly { name: string; hint: string; expand(args: string): Promise<string> }[];
+
+    /* Under an empty thread's own words. */
+    renderEmptyThread?(chatId: string): ReactNode;
+
+    /* Over a tool call's body. */
+    renderToolActions?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
+
+    /* A tool call the host draws itself, under its line; null leaves it to the thread. */
+    renderToolResult?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
+
+    /* Beside a message's own actions. */
+    renderMessageActions?(message: { chatId: string; id: string; kind: 'user' | 'assistant'; text: string }): ReactNode;
+
+    /* A fenced block the host draws itself, by its language; null leaves it to the code block. */
+    renderCodeFence?(language: string | undefined, code: string): ReactNode;
+
+    intelligentUi?: {
+        subscribe?(scopeId: string, chatId: string, changed: () => void): () => void;
+        link?(scopeId: string, payload: ChatUiLinkPayload): Promise<ChatUiLinkReading>;
+        openLink?(scopeId: string, reading: ChatUiLinkReading): void;
+        openUrl?(scopeId: string, url: string): void;
+        query?(scopeId: string, payload: ChatUiQueryPayload): Promise<ChatUiQueryReading>;
+        sendChoice(scopeId: string, payload: ChatUiChoicePayload): Promise<'sent' | 'queued'>;
+    };
+    /* The map tiles of a Map block; left out, a map draws its outline and its list of places only. */
+    maps?: {
+        useSource(scopeId: string): UiMapSource;
+        /*
+         * The address of MapLibre's worker file (`maplibre-gl/dist/maplibre-gl-worker.mjs`) as the app's bundler serves it,
+         * for a bundler that moves this package and breaks the address the map would otherwise work out.
+         */
+        workerUrl?: string;
+    };
+    /* The colors an account may wear in the order a picker offers them, the few it shows first, and their names. */
+    accents: {
+        all: readonly AccentChoice[];
+        featured: readonly string[];
+        label(id: string): string;
+        /* The accent the app is painted in, which an account without a color of its own wears. */
+        current(): string;
+    };
+    isApplePlatform(): boolean;
+    /* A key the app keeps for itself even while the composer has the keyboard, such as the ones that move between views. */
+    isAppShortcut(event: KeyboardEvent): boolean;
+    notify(toast: ChatToast): void;
+    /* The app's own actions; null runs every one as a request on the scope's transport. */
+    actions: ChatActions | null;
+    /* Files under `cwd` for the composer's `@` picker; null offers none. */
+    searchFiles: ((scopeId: string, cwd: string, query: string, limit: number) => Promise<string[]>) | null;
+    /* The bytes of a file attached to a message, where the host keeps them. */
+    attachments: {
+        useUrl(scopeId: string, chatId: string, attachmentId: string): ResourceUrl;
+        read(scopeId: string, chatId: string, attachmentId: string): Promise<Blob>;
+        /* Opens the file outside the chat, such as in the system's own app or as a download named `suggestedName`; left out, a generated image offers no Open. */
+        open?(scopeId: string, chatId: string, attachmentId: string, suggestedName: string): void;
+        /*
+         * Saves a copy into the folder the chat works for, through the host's own dialog, which also shows a failure.
+         * Resolves with the path as a file link opens it, or null when the person cancels; left out, a generated image offers no Save.
+         */
+        saveToProject?(scopeId: string, chatId: string, attachmentId: string, suggestedName: string): Promise<string | null>;
+        /* Actions of the app's own in a generated image's menu, after the chat's own; left out, the menu holds those alone. */
+        actions?(scopeId: string, chatId: string, attachment: ChatAttachment): readonly HostMenuAction[];
+    };
+    /* The image a tool read, drawn under its row; null draws none. */
+    ReadImage: ComponentType<{ path: string }> | null;
+    /* The 3D view of a Model block; left out, a model shows as a row with its name and caption. */
+    ModelView?: ComponentType<UiModelViewProps>;
+    /* An image a reply's markdown names by a path on the host's machine, absolute or under the chat's cwd; left out, the `<img>` stays as written. */
+    MarkdownImage?: ComponentType<{ path: string; alt: string }>;
+    code: {
+        useMode(): 'light' | 'dark';
+        /* The Shiki theme ids code is drawn in, one per mode. */
+        useThemes(): { light: string; dark: string };
+        /*
+         * Themes the app ships itself, found by name; the rest Shiki looks up by id. Read again whenever a theme is
+         * picked, so a getter that answers a longer array draws a theme made later; a name keeps its first theme.
+         */
+        custom: ReadonlyArray<ThemeRegistration & { name: string }>;
+        /* One syntax worker shared by chat diffs and standalone review panes; omitted, tokenize on the page. */
+        syntaxWorker?: () => Worker;
+        /* Starts legacy highlighting with its first diff; an enclosing DiffPool takes precedence. */
+        legacyDiffWorker?: () => Worker;
+        /* Borrow the page highlighter for code blocks and the diff fallback; the host retains ownership. */
+        highlighter?: () => Promise<Highlighter>;
+        /* Opt in to bounded editor reviews; failures show a status, omitted keeps the legacy renderer. */
+        editor?: () => Promise<EditorEngine>;
+    };
+    /* How a reply appears while it streams: a word, a block or the whole of it at a time. */
+    useStreaming(): 'words' | 'blocks' | 'whole';
+    /* How Send handles a running turn; Option or Alt selects the other behavior. */
+    useSendDelivery(): 'queue' | 'steer';
+    /* Whether a thread leaves out its tool lines; a settled turn still says how long it worked. */
+    useHidesToolCalls(scopeId: string, chatId: string): boolean;
+    /* Paths in an answer as links; null leaves them text. */
+    fileLinks: {
+        /* The reference a piece of text names, where the folder it counts from lets it be opened. */
+        target(text: string, cwd: string | null, scopeId?: string | null): FileRef | null;
+        open(cwd: string | null, ref: FileRef, scopeId?: string | null): void;
+    } | null;
+    /* Renders in a main reply's shell block action group. Rendering must not execute an action. */
+    renderShellCodeBlock?: (context: ShellCodeBlockContext) => ReactNode;
+    /* Find in a thread; without one the thread has no find. */
+    useTimelineFind(options: TimelineFindOptions): TimelineFind;
+    dictation: {
+        /* The field a written answer goes in. */
+        Textarea: ComponentType<TextareaProps>;
+        /* What the composer's editor carries for dictated text, and the control beside it. */
+        composer: { extensions: Extension; Control: ComponentType<ComposerDictationProps> } | null;
+    };
+    prompts: {
+        /* Prompts the app raises beside a chat's own requests, answered in the same place. */
+        useExtra(scopeId: string, chatId: string): readonly HostPrompt[];
+        render(prompt: HostPrompt, props: PromptViewProps): ReactNode;
+        answer(prompt: HostPrompt, action: PromptAction): Promise<void>;
+    };
+    /* Other chats a message may point at with `#`, for a host that has no views; `useReferables` takes over where it is given. */
+    useReferableChats(): ReadonlyArray<{ id: string; title: string }>;
+    /* The views and nodes a message of this chat may point at with `#`, under the names they have right now. */
+    useReferables?(scopeId: string, chatId: string): Referables;
+    /*
+     * The mark of a view or node a `#` points at, in the picker, the composer and a sent message, such as the icon
+     * a person chose for it. Drawn in the composer's editor outside this provider, so it reads no context of its
+     * own; left out, every reference wears the mark of its kind.
+     */
+    ReferenceIcon?: ComponentType<ReferenceIconProps> | null;
+    /* Opens a view or zooms to a node a message points at; left out, a chip opens nothing. */
+    openReference?(scopeId: string, id: string): void;
+    /*
+     * What an id among no `useReferables` items stands for, such as a sender from outside, which keeps the name its
+     * message gave it. Null, or left out, draws the chip as gone.
+     */
+    outsideReference?(scopeId: string, id: string): OutsideReference | null;
+    /* Opens the CLI's own login for an account, somewhere the app can run a command; null offers none. */
+    openLogin: ((scopeId: string, kind: AgentKind, accountId: string, name: string) => Promise<void>) | null;
+    /* Why a login cannot start from here right now, or null when it can. */
+    useLoginBlocked(scopeId: string): string | null;
+    /* Whether the machine in scope keeps a person's order of the accounts (`accounts.reorder`); left out, it does. */
+    useCanReorderAccounts?(scopeId: string): boolean;
+    /*
+     * Whether the machine in scope answers `accounts.shareConfig`, which shows a switch on an extra account
+     * to use the default account's instructions, skills, agents and commands. Left out, it does not: a
+     * machine from before the request would refuse it, so only a host that knows it says so.
+     */
+    useCanShareAccountConfig?(scopeId: string): boolean;
+    /*
+     * What the project of a chat says about its accounts: per CLI the account its new chats start on and
+     * the accounts it never offers. Left out, or null, every account that is on is offered.
+     */
+    useAccountRule?(scopeId: string, chatId: string): AccountRule | null;
+    /*
+     * Runs a command a provider's install page shows, its install or its sign-in, where a person sees it run,
+     * such as in a new terminal on the scope's machine; left out, the page offers to copy the command only.
+     */
+    runProviderCommand?(scopeId: string, kind: AgentKind, command: string): void;
+    /* The system of the machine the scope's chats run on, whose install command the page shows first; left out, or null, the system of this page. */
+    useMachinePlatform?(scopeId: string): ProviderPlatform | null;
+    /* A sentence under a key the install page asks for in the environment, such as what the app does with it; left out, or null, none. */
+    providerKeyNote?(variable: string): string | null;
+    /* The name and the mark of a project of the host, for the usage per project; null draws the folder's own. */
+    useProjectLook(scopeId: string, projectId: string | null): { name: string; mark: ReactNode } | null;
+    /* What a person calls the machine the scope's chats run on, or null when it has no name worth saying. */
+    useMachineLabel(scopeId: string): string | null;
+    /* Where another chat of the app stands, for a fork's way back and a note from a fork. */
+    useChatPlace(chatId: string): ChatPlace;
+    /* What a chat may read besides its folder, named under an empty thread. */
+    useContextSources(chatId: string): ReadonlyArray<{ title: string }>;
+    /* Whether a chat before its first message opens on a greeting with the composer under it, rather than an empty thread over a docked composer. */
+    useWelcome(chatId: string): boolean;
+    tasks: {
+        useTasks(scopeId: string): Readonly<Record<string, SubagentTask>> | undefined;
+        /* Null for a row with no task behind it. */
+        useTask(scopeId: string, taskId: string | null): SubagentTask | null;
+    };
+    /* Asked before a stop that ends agents the chat opened; `run` stops. */
+    confirm: {
+        stopSubagents(scopeId: string, chatId: string, run: () => void): void;
+        stopTask(scopeId: string, childId: string, title: string, run: () => void): void;
+    };
+    /* Offers a fork of the chat after one of its turns; null offers none. */
+    fork: ((chatId: string, turnId: string) => void) | null;
+    /*
+     * Opens a new chat beside this one on its CLI, model and settings, with the focus in its composer,
+     * once Mod+Alt+Enter sent a message from it; null leaves that key sending the other way, like Alt+Enter.
+     */
+    openNewChat: ((scopeId: string, chatId: string) => void) | null;
+    openSettings(section: 'providers' | 'agents'): void;
+    /* Whether the host lets a chat go on by itself once a limit it stopped on lifts. */
+    useResumeAtReset(scopeId: string): boolean;
+    /* The words an empty composer opens with, before the keys it hints at; null keeps the chat's own. */
+    useComposerPlaceholder(scopeId: string, chatId: string): string | null;
+    /* The app's own control in the composer's row, after the pickers; null draws none. */
+    ComposerSlot: ComponentType<ComposerSlotProps> | null;
+    /* The app's own bar at the top of the composer, inside its card, such as a switch between chats of one thing; left out, or a slot that renders nothing, draws none. */
+    ComposerHeaderSlot?: ComponentType<ComposerHeaderSlotProps> | null;
+    /* Items of the app's own on a line under the composer's card, such as where the chat works; left out, or none, draws no line. */
+    useComposerStatus?(scopeId: string, chatId: string): readonly ComposerStatusItem[];
+    /* The app's own chips for a chat's sub-agents over the composer; null draws the one flyout. */
+    SubagentSlot: ComponentType<SubagentSlotProps> | null;
+    /* Cards of the app's own in a thread, in any order. Hand back the same array while none changed, or the thread lays out its rows again on every render. */
+    useThreadCards(scopeId: string, chatId: string): readonly ThreadCard[];
+    /* A header over every reply with its author and how long ago it began; null names the agent for a screen reader only. */
+    useReplyAuthor(scopeId: string, chatId: string): ReplyAuthor | null;
+    /* Who speaks in what the host told the agent in front of a prompt, drawn as a message under its name; left out, that stays a note. */
+    saidBy?: ReplyAuthor;
+    /* The pages agents publish, drawn in the thread above their reply; null draws none. */
+    visuals: VisualHost | null;
+    /* Programs drawn as tools of their own; left out, every shell call reads as itself. */
+    commandLooks?: readonly CommandLook[];
+    /* MCP servers whose tools are drawn as tools of their own; left out, every MCP call reads as the CLI names it. */
+    toolLooks?: readonly ToolLook[];
+}
+
+const NO_PROMPTS: readonly HostPrompt[] = [];
+const NO_CHATS: ReadonlyArray<{ id: string; title: string }> = [];
+const NO_ROWS: readonly number[] = [];
+const NO_FIND: TimelineFind = { open: false, bar: null, reveal: null, hitRows: NO_ROWS, currentRow: null };
+const NO_SOURCES: ReadonlyArray<{ title: string }> = [];
+const NO_URL: ResourceUrl = { url: null, failure: null };
+const NOWHERE: ChatPlace = { title: null, go: () => undefined };
+const NO_CARDS: readonly ThreadCard[] = [];
+
+const DEFAULT_HOST: ChatHost = {
+    accents: { all: [], featured: [], label: (id) => id, current: () => '' },
+    isApplePlatform,
+    agentMarks: {},
+    isAppShortcut: () => false,
+    notify: () => undefined,
+    actions: null,
+    searchFiles: null,
+    attachments: { useUrl: () => NO_URL, read: () => Promise.reject(new Error('This app keeps no attached files')) },
+    ReadImage: null,
+    code: { useMode: () => 'light', useThemes: () => ({ light: 'github-light', dark: 'github-dark' }), custom: [] },
+    useStreaming: () => 'words',
+    useSendDelivery: () => 'queue',
+    useHidesToolCalls: () => false,
+    fileLinks: null,
+    useTimelineFind: () => NO_FIND,
+    dictation: { Textarea: PlainTextarea, composer: null },
+    prompts: { useExtra: () => NO_PROMPTS, render: () => null, answer: () => Promise.reject(new Error('This app raises no prompts of its own')) },
+    useReferableChats: () => NO_CHATS,
+    openLogin: null,
+    useLoginBlocked: () => null,
+    useProjectLook: () => null,
+    useMachineLabel: () => null,
+    useChatPlace: () => NOWHERE,
+    useContextSources: () => NO_SOURCES,
+    useWelcome: () => false,
+    tasks: { useTasks: () => undefined, useTask: () => null },
+    confirm: { stopSubagents: (_scopeId, _chatId, run) => run(), stopTask: (_scopeId, _childId, _title, run) => run() },
+    fork: null,
+    openNewChat: null,
+    openSettings: () => undefined,
+    useResumeAtReset: () => true,
+    useComposerPlaceholder: () => null,
+    ComposerSlot: null,
+    SubagentSlot: null,
+    useThreadCards: () => NO_CARDS,
+    useReplyAuthor: () => null,
+    visuals: null
+};
+
+const ChatHostContext = createContext<ChatHost>(DEFAULT_HOST);
+
+type PartOf<Member> = Member extends (...args: never[]) => unknown ? never : Member extends object ? Partial<Member> : never;
+
+/* What a provider hands: any member of the host, and for a member that is a bundle of members, such as `attachments` or `prompts`, only some of its own. */
+export type ChatHostLayer = { [Member in keyof ChatHost]?: ChatHost[Member] | PartOf<ChatHost[Member]> };
+
+function isBundle(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function layered(parent: ChatHost, layer: ChatHostLayer): ChatHost {
+    const merged: Record<string, unknown> = { ...parent };
+
+    for (const [member, value] of Object.entries(layer)) {
+        const before = merged[member];
+        merged[member] = isBundle(before) && isBundle(value) ? { ...before, ...value } : value;
+    }
+
+    return merged as unknown as ChatHost;
+}
+
+/*
+ * Hands the views under it a host: `host` over the one of a provider above it, member by member, and
+ * over the defaults at the top. A member that is a bundle on both sides, such as `attachments`, is merged one
+ * level down, so a layer overrides one of its members without copying the rest. A part of an app that loads later and adds hooks renders a provider of
+ * its own around what it draws, so every view under it calls the same hooks from its first render on.
+ * The host is read once, as the provider mounts, since a hook that changed under a mounted view would
+ * break the order of its hooks: a provider that gets another `host` throws, and a new `key` remounts it.
+ * Only a dev server that replaces modules in place takes another `host`: re-running the module that makes it is
+ * how a change reaches a mounted view, and React Fast Refresh remounts what the new hooks would break.
+ */
+export function ChatHostProvider({ host, children }: { host: ChatHostLayer; children?: ReactNode }) {
+    const parent = useContext(ChatHostContext);
+    const [mounted] = useState(() => host);
+
+    if (mounted !== host && !replacementTaken.on) {
+        throw new Error('A ChatHostProvider reads its host once: hand it the same object on every render, or a new key to mount it with another');
+    }
+
+    // The compiler leaves this call uncached, and a new value on every render would redraw every consumer of the context.
+    const value = useMemo(() => layered(parent, host), [parent, host]);
+
+    // Every shining live row steps on the spinners' clock, so the paints of several rows fall in one frame.
+    useLayoutEffect(() => syncAnimations(['chat-shine']), []);
+
+    return createElement(ChatHostContext.Provider, { value }, children);
+}
+
+/*
+ * Whether the module that makes a host may be replaced while the page runs, which only a dev server does. Vite
+ * leaves `import.meta.hot` in a dev page and drops it from a build, so a production page and a test still throw.
+ */
+const replacementTaken = { on: (import.meta as ImportMeta & { hot?: unknown }).hot !== undefined };
+
+/* For the tests of this package: stands in for a dev server that replaces modules, or for a build. */
+export function takeHostReplacement(on: boolean): void {
+    replacementTaken.on = on;
+}
+
+/* The host of the nearest `ChatHostProvider`, or the defaults outside one. */
+export function useChatHost(): ChatHost {
+    return useContext(ChatHostContext);
+}

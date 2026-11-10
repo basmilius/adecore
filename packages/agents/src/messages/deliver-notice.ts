@@ -1,12 +1,12 @@
-import type { ChatItem, ChatNoteMessage } from '@adecore/agent-contracts';
+import type { ChatNoteMessage } from '@adecore/agent-contracts';
 import type { ChatCore } from '../chat/chat-core.ts';
+import { turnHop } from '../chat/turn-hop.ts';
 import type { Notice, NoticeStore } from './notice-store.ts';
 
 /* The words of a message, which are the host's: it names its app, its nodes and its CLI in them. */
 export interface MessageWords {
     /* What the receiving agent hears of one message: the id to act on, the title to read, and the message itself. */
     heard(notice: Notice): string;
-    /* The line a person reads in the thread about one message. */
     shown(notice: Notice): string;
     /* What the CLI is sent in a turn a message opened, under the messages its preamble carries, so it can name who sent them. */
     prompt(count: number, notices: readonly Notice[]): string;
@@ -28,9 +28,6 @@ export interface ChatNoticeTargets {
  */
 export const MAX_MESSAGE_HOPS = 4;
 
-/* Where a turn from before hops stood: its message and the answer it could still get. */
-const HOP_OF_OLDER_TURN = 2;
-
 /*
  * Where a message for a chat went, and how many now wait for it. Only `wake` owes the chat a turn now,
  * which the host opens through a `deliver-message` entry; `in-turn` is owed one when that turn ends,
@@ -39,37 +36,6 @@ const HOP_OF_OLDER_TURN = 2;
 export interface ChatDelivery {
     outcome: 'wake' | 'no-chat' | 'in-turn' | 'hop-limit';
     waiting: number;
-}
-
-/*
- * How many messages led to the turn a chat is running. It rides on the turn, so it survives a restart.
- * Between turns the last one counts, since work it left running (a background subagent) may still
- * write, and a turn the CLI opened by itself takes the step of the turn before it.
- */
-export function turnHop(items: readonly ChatItem[], activeTurnId: string | null): number {
-    const from = activeTurnId === null ? items.findLastIndex((item) => item.kind === 'turn') : items.findIndex((item) => item.id === activeTurnId);
-
-    for (let i = from; i >= 0; i--) {
-        const turn = items[i]!;
-
-        if (turn.kind !== 'turn') {
-            continue;
-        }
-
-        if (turn.messageHop !== undefined) {
-            return turn.messageHop;
-        }
-
-        if ((turn.messageFrom ?? []).length > 0) {
-            return HOP_OF_OLDER_TURN;
-        }
-
-        if (turn.origin !== 'agent' || turn.taskIds !== undefined || turn.summaryFor !== undefined) {
-            return 0;
-        }
-    }
-
-    return 0;
 }
 
 /* Whether a message may still move a chat. One of an older host has no hop and waits, as it always did. */
@@ -125,7 +91,7 @@ export async function deliverToChat(
 }
 
 /* The chat a message may join while it runs. False when it cannot take one now, which leaves the message waiting. */
-export interface SteerChat {
+interface SteerChat {
     steer(chatId: string, steer: { text: string; preamble: string; messageHop: number }): Promise<boolean>;
 }
 

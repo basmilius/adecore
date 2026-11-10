@@ -4,7 +4,6 @@ import { checkJson, prettyJson } from './json.ts';
 
 export type ViewId = 'text' | 'formatted' | 'hex' | 'utf8' | 'uuid';
 
-/* The views that make sense for this value, the first being the one it opens in. */
 export const viewsOf = (source: Source, draft: Draft): ViewId[] => {
     if (source.binary) {
         const parsed = parseHex(draft.text);
@@ -16,7 +15,6 @@ export const viewsOf = (source: Source, draft: Draft): ViewId[] => {
     return source.json ? ['formatted', 'text'] : ['text'];
 };
 
-/* What a draft is, in bytes for a binary value and in characters for the rest; `null` when there is nothing to measure. */
 export const sizeOf = (source: Source, draft: Draft): { unit: 'bytes' | 'characters'; count: number } | null => {
     if (draft.mode !== 'value') {
         return null;
@@ -32,10 +30,9 @@ export const sizeOf = (source: Source, draft: Draft): { unit: 'bytes' | 'charact
 };
 
 /* A read only view stops its dump here; the text view and a copy are not limited. */
-export const DUMP_LIMIT_BYTES = 16 * 1024;
+const DUMP_LIMIT_BYTES = 16 * 1024;
 
 export type Rendered =
-    /* A NULL or a DEFAULT, which has nothing to lay out. */
     | { readonly kind: 'empty' }
     | { readonly kind: 'text'; readonly text: string; readonly truncated?: { readonly shown: number; readonly total: number } }
     | { readonly kind: 'problem'; readonly problem: DraftProblem };

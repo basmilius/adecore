@@ -1,4 +1,5 @@
-import { UiCompiler, type UiBlock, type UiCompilerOptions } from './compiler.ts';
+import { UiCompiler, type UiCompilerOptions } from './compiler.ts';
+import { type UiBlock } from './compiler.ts';
 
 export const UI_STREAM_INTERVAL_MS = 250;
 

@@ -2,7 +2,7 @@ import type { ChatSubagentItem } from '@adecore/agent-contracts';
 import { IconButton } from '@adecore/ui';
 import { Square } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import { useChatActions } from '../actions';

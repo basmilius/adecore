@@ -51,6 +51,16 @@ planToMarkdown(plan);
 // - [x] Approve the release
 ```
 
+`stepToMarkdown(step, describe)` writes one step as plain GFM for a clipboard that is not read back. The box is checked for `done` only, any other state but `open` follows the title in parentheses as `describe(state)` words it, and the note is quoted below. Sub-steps and the description stay out.
+
+```ts
+import { stepToMarkdown } from '@adecore/plan';
+
+stepToMarkdown(step, (state) => state);
+// - [ ] Run the tests (failed)
+//     > Two cases time out
+```
+
 ## What Markdown leaves out
 
 Markdown carries content, not identity. It leaves out ids, `rev`, `by` and `at`, checks, unlocks, the kind and the status. A plan read back is a new plan with new ids and every state recorded as the agent's. Store plans as JSON.

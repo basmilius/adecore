@@ -1,5 +1,4 @@
-import { intersects } from '@adecore/drawing';
-import type { Point, Rect } from './layout.ts';
+import { intersects, type Point, type Rect } from '@adecore/utils/geometry';
 
 const TRACK_GAP = 12;
 /* Space between the lane of labels and the first track. */
@@ -25,13 +24,12 @@ export interface ChannelLabel {
     edge: number;
     /* The hop it belongs to, whose own line never counts against it. */
     hop: number;
-    /* The line it sits beside. */
     y: number;
     along: number;
     across: number;
 }
 
-export interface ChannelInput {
+interface ChannelInput {
     /* Where the channel begins along the flow, right after the widest box of its layer. */
     start: number;
     /* Room kept free at the start and the end, for a group's border and an arrowhead. */
@@ -43,7 +41,7 @@ export interface ChannelInput {
     obstacles: { y: number; h: number }[];
 }
 
-export interface ChannelResult {
+interface ChannelResult {
     width: number;
     trackX: Map<number, number>;
     labels: Map<number, Rect>;
@@ -93,7 +91,6 @@ function conflictsOf(left: readonly Point[], right: readonly Point[]): number {
     return total;
 }
 
-/* A hop drawn on a track in a channel of unit tracks, only to compare two orders of the tracks. */
 function sketchOf(hop: ChannelHop, track: number): Point[] {
     return [
         { x: 0, y: hop.ya },

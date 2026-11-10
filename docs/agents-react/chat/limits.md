@@ -10,7 +10,7 @@ import { LimitDock, LimitPill, ResumeCompactionDock } from '@adecore/agents-reac
 
 ## LimitDock and LimitPill
 
-`LimitDock({ chatId, info })` sits at the top of the composer. It says what stopped the turn and when the limit lifts, with a switch to resume then. `LimitPill({ chatId })` says the same in a few words, from the status every client gets. Both draw nothing while a turn runs or after a normal stop. `limitView(info, now)` returns their words as a `LimitView`: a pill, a title and when it goes on.
+`LimitDock({ chatId, info })` sits at the top of the composer. It says what stopped the turn and when the limit lifts, with a switch to resume then. `LimitPill({ chatId })` says the same in a few words, from the status every client gets. Both draw nothing while a turn runs or after a normal stop. `limitView(info, now)` returns their words: a pill, a title and when it goes on.
 
 The switch sets the chat's `resumeAtReset` through `configure`, and shows only while the host's `useResumeAtReset(scopeId)` allows it. The host decides whether and when the chat resumes.
 

@@ -2,6 +2,7 @@ import type { CommandOptions, EditorCommand, Selection, TextEdit } from '@adecor
 import { columnSelections, sameCell } from './column-selection.ts';
 import { replacementEdits } from './input.ts';
 import type { Keymap } from './keymap-table.ts';
+import type { KeyChord } from './keymap-table.ts';
 import { chordMatches, type KeyAction, keyAction, type MoveKey } from './keymap.ts';
 import { emit, subscribe } from './listeners.ts';
 import { DoubleModifierGesture } from './modifier-gesture.ts';
@@ -20,13 +21,12 @@ import type {
     EditorPosition,
     EditorRunCommand,
     EditorSelectionRanges,
-    EditorViewCommand,
-    KeyChord
+    EditorViewCommand
 } from './types.ts';
 import type { EditorView } from './view.ts';
 import { WheelZoom } from './zoom.ts';
 
-export interface ControllerOptions {
+interface ControllerOptions {
     /* Read on every key press, so a rebind reaches an editor that is already open. */
     keymap(): Keymap | undefined;
     handBack(): readonly KeyChord[];
@@ -35,7 +35,6 @@ export interface ControllerOptions {
     blur(): void;
     /* One pixel larger (1) or smaller (-1), or back to the page's size (0). */
     zoom(step: -1 | 0 | 1): void;
-    /* Whether the zoom modifier with the wheel, or a pinch, zooms. */
     wheelZooms(): boolean;
 }
 
@@ -405,7 +404,6 @@ export class InputController {
         return pasted;
     }
 
-    /* Told what a copy or cut put on the clipboard. */
     onCopy(listener: (copy: EditorCopy) => void): () => void {
         return subscribe(this.copyListeners, listener);
     }
@@ -715,7 +713,6 @@ export class InputController {
         }
     }
 
-    /* Moves the corner of the box by a step and selects the columns between it and the other corner. */
     private extendBlock(step: { x: number; y: number }): void {
         const { model, layout } = this.view;
         const signature = selectionSignature(model.getSelections());
@@ -735,7 +732,6 @@ export class InputController {
         block.signature = selectionSignature(model.getSelections());
     }
 
-    /* A box between the two ends of a selection. */
     private blockOf(selection: Selection, signature: string): NonNullable<InputController['block']> {
         const { layout } = this.view;
         const anchor = layout.caret(selection.anchor);
@@ -1174,7 +1170,6 @@ export class InputController {
         emit(this.contextListeners, menu);
     }
 
-    /* A press on a pinned header goes to that header. */
     private stickyDown(event: PointerEvent): void {
         const row = (event.target as HTMLElement | null)?.closest?.<HTMLElement>('.se-sticky-row');
 
@@ -1187,7 +1182,6 @@ export class InputController {
         this.view.focus();
     }
 
-    /* A press on a line number selects the line. */
     private gutterDown(event: PointerEvent): void {
         this.view.cancelScroll();
 

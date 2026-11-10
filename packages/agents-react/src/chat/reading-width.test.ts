@@ -1,7 +1,18 @@
 import { describe, expect, test } from 'bun:test';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { REPLY_COLUMN_WIDTH } from '@adecore/agent-contracts';
 import { CHAT_READING_WIDTHS, isChatReadingWidth, readingMeasure, readingWidthLabel, readingWidthStyle } from './reading-width';
 
 describe('reading width', () => {
+    test('the stylesheet falls back to the reply column the contracts name', () => {
+        const theme = readFileSync(join(import.meta.dir, '../theme.css'), 'utf8');
+        const fallbacks = [...theme.matchAll(/var\(--chat-measure, (\d+)px\)/g)].map((match) => Number(match[1]));
+
+        expect(fallbacks.length).toBeGreaterThan(0);
+        expect(new Set(fallbacks)).toEqual(new Set([REPLY_COLUMN_WIDTH]));
+    });
+
     test('comfortable is the column a chat of its own always had', () => {
         expect(readingMeasure('comfortable')).toBe(768);
         expect(readingWidthStyle('comfortable') as Record<string, string>).toEqual({ '--chat-measure': '768px', '--chat-wide-measure': '1200px' });

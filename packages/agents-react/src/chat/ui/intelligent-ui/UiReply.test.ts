@@ -3,7 +3,7 @@ import { compileUi, evaluateUiBlock } from '@adecore/intelligent-ui';
 import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatHost } from '../../../host/host';
 import { UiReplyNavigationContext } from '../reply-context';
 import { uiReplyParts } from './reply-parts';
 import { UiReply } from './UiReply';

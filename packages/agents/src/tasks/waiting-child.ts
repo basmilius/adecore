@@ -9,7 +9,7 @@ import type { DeliverWaitingEntry, TaskWork } from './task-work.ts';
 /* What a child waits on: an answer anyone may give, or an approval only a person gives. */
 export type WaitingRequest = ChatQuestionItem | ChatApprovalItem;
 
-export function isPendingRequest(item: ChatItem | null | undefined): item is WaitingRequest {
+function isPendingRequest(item: ChatItem | null | undefined): item is WaitingRequest {
     return (item?.kind === 'question' && item.state === 'pending') || (item?.kind === 'approval' && item.decision === 'pending');
 }
 
@@ -58,7 +58,7 @@ export function waitingNoteId(childId: string, requestId: string): string {
  */
 export const WAITING_GRACE_MS = 15_000;
 
-export interface WaitingObserverDeps {
+interface WaitingObserverDeps {
     openTask(childId: string): Task | undefined;
     enqueue(projectId: string, target: string, work: TaskWork, notBefore: number): Promise<void>;
     now(): number;
@@ -146,7 +146,7 @@ function questionLine(question: ChatQuestionItem['questions'][number]): string {
 }
 
 /* The call that answers a child's question, in the shape it takes for this many questions. */
-export type WaitingAnswerCall = (childId: string, item: ChatQuestionItem) => string;
+type WaitingAnswerCall = (childId: string, item: ChatQuestionItem) => string;
 
 /*
  * The words a host speaks in: its name, at the head of what a parent's CLI hears, and how an agent answers a
@@ -203,7 +203,7 @@ export function waitingTexts(child: { id: string; title: string }, item: Waiting
     };
 }
 
-export interface DeliverWaitingDeps {
+interface DeliverWaitingDeps {
     request: ChatRequests['request'];
     titleFor(nodeId: string): string | null;
     deliver(chatId: string, delivery: NoteDelivery): Promise<boolean>;

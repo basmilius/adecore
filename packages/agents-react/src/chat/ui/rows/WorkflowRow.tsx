@@ -4,7 +4,7 @@ import clsx from 'clsx';
 import { ChevronRight, Square, TriangleAlert, Workflow } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useChatActions } from '../../actions';

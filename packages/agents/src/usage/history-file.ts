@@ -28,7 +28,7 @@ export interface HistoryEntry {
  * rewrite is never trusted; `base` is the size of the lines it was rewritten with, which says when to
  * rewrite it again.
  */
-export interface HistoryHeader {
+interface HistoryHeader {
     gen: string;
     base: number;
 }
@@ -110,7 +110,7 @@ export function applyEntry(usage: Map<string, FileUsage>, entry: HistoryEntry): 
     usage.set(entry.path, { provider: known.provider, records: foldByKey([...known.records, ...entry.usage.records]), tail: entry.usage.tail });
 }
 
-export interface DecodedHistory {
+interface DecodedHistory {
     header: HistoryHeader | null;
     usage: Map<string, FileUsage>;
     /* The bytes up to the last newline; past it is a line an append left half-written. */

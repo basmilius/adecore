@@ -1,6 +1,6 @@
 import type { CommentSyntax } from '@adecore/editor';
 import { escapeSnippetText } from './snippet.ts';
-import type { TemplateLanguage } from './templates.ts';
+import type { TemplateLanguage } from './template-types.ts';
 
 /* A row of Surround With that wraps the selection in a snippet. */
 export interface Construct {

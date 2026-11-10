@@ -43,7 +43,6 @@ export const quote = (dialect: Dialect, name: string): string => quoteIdentifier
 const schemaOf = (dialect: Dialect, schema: string): string | undefined =>
     schema === '' || (dialect.engine === 'sqlite' && schema === 'main') ? undefined : schema;
 
-/* A table with its schema in front, when the statement needs one. */
 export const tableName = (dialect: Dialect, schema: string, table: string): string =>
     qualifiedName({ engine: dialect.engine, table, schema: schemaOf(dialect, schema) });
 

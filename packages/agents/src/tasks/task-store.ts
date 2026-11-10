@@ -4,7 +4,7 @@ import { TaskSchema, type Task, type TaskChangedEvent, type TaskResult } from '@
 import { ClientSinks } from '../client-sinks.ts';
 import { RecordDirectory } from '../record-directory.ts';
 
-export type TaskListener = (task: Task) => void;
+type TaskListener = (task: Task) => void;
 
 /* What a client hears of a task: the whole of it, every time it is written. */
 export interface TaskEvent {
@@ -12,7 +12,7 @@ export interface TaskEvent {
     payload: TaskChangedEvent;
 }
 
-export type TaskSink = (event: TaskEvent) => void;
+type TaskSink = (event: TaskEvent) => void;
 
 /*
  * What a chat asked of the nodes it opened with `--task`, one file per task under `<dataDir>/tasks`,

@@ -24,23 +24,23 @@ import type {
 import { ENDED_NOTE_PREFIX, HOST_TASK_ORIGIN, notResumedNote } from '@adecore/agent-contracts';
 import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure } from '@adecore/intelligent-ui';
 import { asError } from '@adecore/utils/errors';
+import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
+import type { LimitsUpdate } from '../backends/limits.ts';
+import { ChatError } from '../chat-error.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
+import { systemClock, type Clock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
-import { turnHop } from '../messages/deliver-notice.ts';
-import { systemClock, type OutboxClock } from '../outbox/outbox-worker.ts';
 import { runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
+import { readableAssistantText } from '../readable-text.ts';
 import { cleanTitle } from '../title-file.ts';
-import type { LimitsUpdate } from '../usage/limits/normalize.ts';
-import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
-import type { SpawnChatProcess } from './chat-process.ts';
 import type { ChatTitleInput } from './chat-title.ts';
-import { ChatError } from './errors.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-work.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
-import { readableAssistantText } from './readable-text.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
+import { turnHop } from './turn-hop.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
 
 /* What a host keeps of a chat's turns in git (or anything like it), so a turn can show what it changed. */
@@ -55,8 +55,12 @@ export interface TurnCheckpoints {
 
 /* What a host says in front of the next real prompt, beside the preambles a chat keeps itself. */
 export interface PromptNotes {
-    /* `shown` also lands in the thread as a note a person reads; `heard` only reaches the CLI. */
-    next(): { shown: string[]; heard: string[] };
+    /*
+     * `shown` also lands in the thread as a note a person reads; `heard` only reaches the CLI. `brief` is
+     * the host's instruction for this prompt alone (`ChatSendExtras.brief`); a host that takes briefs
+     * says it here, in the place it wants it among the rest.
+     */
+    next(brief?: string): { shown: string[]; heard: string[] };
     /* The chat started over, so the next prompt is its first again. */
     reset(): void;
 }
@@ -73,7 +77,7 @@ export interface NoteDelivery {
 }
 
 /* What a message pointed at: other chats with `@`, and views and nodes with `#`, by id. */
-export interface ChatAttached {
+interface ChatAttached {
     chats: string[];
     references: string[];
 }
@@ -86,14 +90,13 @@ export type ChatReferences = (attached: {
 
 export interface ChatSessionOptions {
     info: ChatInfo;
-    clock?: OutboxClock;
+    clock?: Clock;
     items?: ChatItem[];
     // Said once, in front of the next real prompt, and kept in the record until then (a fork's note for its agent).
     preambles?: string[];
     // The access a UI host captured per reply, from the record; never on the wire.
     uiAccess?: Readonly<Record<string, unknown>>;
     provider: ChatProvider;
-    command: string[];
     /* The environment of the CLI under the chat's account, asked at every start; throws for an account that cannot start. */
     env(account: string | undefined): Record<string, string>;
     spawn?: SpawnChatProcess;
@@ -158,6 +161,20 @@ export interface ChatSendExtras {
     quoteSource?: ChatQuoteSource;
     attachments?: ChatAttachment[];
     references?: string[];
+    /*
+     * The host's instruction for this prompt alone, never on the wire. A prompt hears it in front, through
+     * `PromptNotes.next`, and a slash command carries it after the command (`foldedBrief`).
+     */
+    brief?: string;
+}
+
+/*
+ * Where a brief goes in a slash command. A CLI reads nothing in front of one, and the notes wait for a
+ * real prompt, so the brief rides in the message after the command as its arguments; the thread shows
+ * the message as it was sent.
+ */
+function foldedBrief(text: string, brief: string | undefined): string {
+    return brief === undefined || !text.startsWith('/') ? text : `${text}\n\n---\n${brief}`;
 }
 
 /* How a turn the host went down in is taken up: what the CLI is told, the note a person reads, and what goes in front. */
@@ -266,11 +283,15 @@ export class ChatSession {
     private pendingHints: readonly string[] = [];
     private submission: { turnId: string; input: TurnInput } | null = null;
     private readonly steering = new Set<string>();
+    // The brief of a queued message, by its id; in memory only like the notes it takes the place of, so a restart sends the message without it.
+    private readonly queuedBriefs = new Map<string, string>();
     private readonly capturedUiAccess: Map<string, unknown>;
     private readonly uiReplies: UiReplies;
+    private readonly clock: Clock;
 
     constructor(options: ChatSessionOptions) {
         this.options = options;
+        this.clock = options.clock ?? systemClock;
         this.resumedForNaming = options.info.agentSessionId !== null;
         this.namingFailed = this.resumedForNaming && options.info.suggestedTitle === undefined;
         this.pendingPreambles = options.preambles ?? [];
@@ -281,7 +302,7 @@ export class ChatSession {
         this.uiReplies = new UiReplies({
             thread: this.thread,
             fenceLanguage: options.uiFenceLanguage ?? UI_FENCE_LANGUAGE,
-            clock: options.clock ?? systemClock,
+            clock: this.clock,
             ...(options.ui ? { host: options.ui } : {}),
             emit: (event) => options.emit(event),
             repair: (note, audience) => {
@@ -316,7 +337,6 @@ export class ChatSession {
         return this.backend?.running === true;
     }
 
-    /* Whether the CLI opens a turn of its own once its background work ended. */
     get reportsOnBackgroundWork(): boolean {
         return reportsOnBackgroundWork(this.options.provider);
     }
@@ -492,6 +512,10 @@ export class ChatSession {
                 ...(extras.attachments?.length ? { attachments: extras.attachments } : {}),
                 ...(extras.references?.length ? { references: extras.references } : {})
             };
+
+            if (extras.brief !== undefined) {
+                this.queuedBriefs.set(message.id, extras.brief);
+            }
 
             this.setQueue([...this.queue, message]);
             this.lapseResume();
@@ -676,7 +700,7 @@ export class ChatSession {
         this.steering.add(message.id);
         const steer = this.steer(message, text, extras, backend.steerTurn.bind(backend), turnId, queued);
         // Claude takes a steer only between tool calls, so a long command would outlast the client's request.
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
         let timer: unknown = null;
 
         const waited = new Promise<null>((resolve) => {
@@ -765,6 +789,7 @@ export class ChatSession {
         }
 
         this.setQueue(queue.filter((entry) => entry.id !== messageId));
+        this.queuedBriefs.delete(messageId);
 
         return message;
     }
@@ -801,7 +826,6 @@ export class ChatSession {
         this.options.persist();
     }
 
-    /* The next queued message, once nothing is in its way. */
     private drainQueue(asked = false): void {
         const [next, ...rest] = this.queue;
         const limited = limitedTurn(this.thread.list());
@@ -843,6 +867,9 @@ export class ChatSession {
         this.pauseQueue(false);
         this.setQueue(rest);
 
+        const brief = this.queuedBriefs.get(next.id);
+        this.queuedBriefs.delete(next.id);
+
         this.dispatch(
             next.text,
             {
@@ -852,7 +879,8 @@ export class ChatSession {
                 attachments: next.attachments,
                 uiChoice: next.uiChoice,
                 quoteSource: next.quoteSource,
-                references: next.references
+                references: next.references,
+                brief
             },
             next.turnId
         );
@@ -867,9 +895,10 @@ export class ChatSession {
             this.emit([this.thread.patchInfo({ goal: undefined })]);
         }
 
-        const { preamble, note } = this.contextNote(text);
-        const attached = this.attached(text, extras);
-        const turnId = this.openTurn(text, note, { ...extras, chats: attached.chats, references: attached.references }, requestedTurnId);
+        const prompt = foldedBrief(text, extras.brief);
+        const { preamble, note } = this.contextNote(prompt, extras.brief);
+        const attached = this.attached(prompt, extras);
+        const turnId = this.openTurn(prompt, note, { ...extras, chats: attached.chats, references: attached.references }, requestedTurnId);
 
         const choiceNote = extras.uiChoice
             ? `The person chose ${JSON.stringify(extras.uiChoice.label)} from your UI reply. Their message is the visible context of that choice.`
@@ -878,7 +907,7 @@ export class ChatSession {
         const said = [preamble, attached.note, choiceNote].filter((part): part is string => part !== null);
 
         const input = {
-            text,
+            text: prompt,
             preamble: said.length === 0 ? null : said.join('\n\n'),
             attachments: extras.attachments ?? [],
             mentions: extras.mentions ?? [],
@@ -1053,6 +1082,7 @@ export class ChatSession {
         this.pendingPreambles = [];
         this.heldPreambles = [];
         this.pendingHints = [];
+        this.queuedBriefs.clear();
         this.submission = null;
         this.staleResults = 0;
         this.sendAfterStop = false;
@@ -1299,13 +1329,16 @@ export class ChatSession {
         messageHop?: number;
         mentions?: string[];
         skills?: string[];
+        /* The host's instruction for this turn alone; a refused wake drops it, and a slash command carries it after the command. */
+        brief?: string;
     }): string | null {
         if (this.frozen || this.relocating || this.thread.info.activeTurnId !== null || this.replacementWaits()) {
             return null;
         }
 
         this.turnOpened();
-        const { preamble, note } = this.contextNote(wake.text);
+        const text = foldedBrief(wake.text, wake.brief);
+        const { preamble, note } = this.contextNote(text, wake.brief);
         const turnId = newId('turn');
         const now = Date.now();
 
@@ -1336,7 +1369,7 @@ export class ChatSession {
 
         this.options.persist();
         this.turnReady = this.checkpoint(turnId);
-        this.submit(turnId, { text: wake.text, preamble, attachments: [], mentions: wake.mentions ?? [], skills: wake.skills ?? [] });
+        this.submit(turnId, { text, preamble, attachments: [], mentions: wake.mentions ?? [], skills: wake.skills ?? [] });
 
         return turnId;
     }
@@ -2170,13 +2203,13 @@ export class ChatSession {
      * What the agent has to hear before this prompt: what the chat kept for it and what the host says.
      * Each is said once, and only in front of a real prompt. The thread gets only what the host shows.
      */
-    private contextNote(text: string): { preamble: string | null; note: string | null } {
-        // A slash command must stay the first thing the CLI reads; the rest waits for a real prompt.
+    private contextNote(text: string, brief?: string): { preamble: string | null; note: string | null } {
+        // A slash command must stay the first thing the CLI reads; the rest waits for a real prompt. Its brief was folded into the text.
         if (text.startsWith('/')) {
             return { preamble: null, note: null };
         }
 
-        const host = this.options.promptNotes?.next() ?? { shown: [], heard: [] };
+        const host = this.options.promptNotes?.next(brief) ?? { shown: [], heard: brief === undefined ? [] : [brief] };
         // Keep consumed notes in the submission until the CLI acknowledges them.
         const preambles = this.preambles;
         this.pendingPreambles = [];
@@ -2275,7 +2308,7 @@ export class ChatSession {
 
     private watchStart(turnId: string): { turnId: string; warning: unknown } {
         this.clearStartWarning();
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
 
         const pending = {
             turnId,
@@ -2307,7 +2340,7 @@ export class ChatSession {
             return;
         }
 
-        (this.options.clock ?? systemClock).clearTimeout(this.pendingStart.warning);
+        this.clock.clearTimeout(this.pendingStart.warning);
         this.pendingStart = null;
     }
 
@@ -2442,8 +2475,8 @@ export class ChatSession {
         this.launchedFolders = folders;
         this.launchedProjectConfig = projectConfig;
 
-        const launch: BackendLaunch = {
-            command: this.options.command,
+        const plain: BackendLaunch = {
+            command: this.options.provider.command,
             cwd: info.cwd,
             env,
             selection: info.selection,
@@ -2451,7 +2484,7 @@ export class ChatSession {
             runtimeMode: info.runtimeMode,
             resume: info.agentSessionId,
             generation,
-            now: () => this.options.limitResume?.now() ?? (this.options.clock ?? systemClock).now(),
+            now: () => this.options.limitResume?.now() ?? this.clock.now(),
             saveGeneratedImage: this.options.saveGeneratedImage,
             instructions: this.options.instructions?.() ?? null,
             resumeNote: this.options.resumeNote?.() ?? null,
@@ -2466,6 +2499,8 @@ export class ChatSession {
         const made: { backend: ChatBackend | null } = { backend: null };
 
         try {
+            const launch = this.options.provider.launch?.(plain) ?? plain;
+
             made.backend = this.options.provider.createBackend(launch, {
                 onEvent: (event) => {
                     if (made.backend === this.backend) {
@@ -2716,7 +2751,7 @@ export class ChatSession {
     }
 
     private clearWorkflowWarnings(): void {
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
 
         for (const timer of this.workflowWarnings.values()) {
             clock.clearTimeout(timer);
@@ -2751,7 +2786,7 @@ export class ChatSession {
     }
 
     private watchWorkflow(item: ChatToolItem, progress: boolean): void {
-        const clock = this.options.clock ?? systemClock;
+        const clock = this.clock;
         const existing = this.workflowWarnings.get(item.id);
 
         if (item.state !== 'running' || progress) {

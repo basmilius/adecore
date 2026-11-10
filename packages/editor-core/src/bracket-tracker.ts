@@ -3,7 +3,6 @@ import { lexerRules, type LexerRules } from './lexical.ts';
 import type { TextRope } from './rope.ts';
 import type { DocumentChange } from './types.ts';
 
-/* What the tracker reads of the document. */
 export type BracketText = Pick<TextRope, 'length' | 'lineCount' | 'charAt' | 'lineAt' | 'lineBounds' | 'slice'>;
 
 /* How much text one stretch between checkpoints holds, which is what an edit makes the tracker lex again. */

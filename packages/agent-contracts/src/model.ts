@@ -127,7 +127,10 @@ export const ProviderCapabilitiesSchema = z.object({
     slashCommands: z.boolean(),
     // How `/goal` reaches the CLI: through a protocol of its own that pauses, resumes and clears (`native`),
     // or as the slash command alone (`command`); absent where the CLI has no goals.
-    goals: z.enum(['native', 'command']).optional()
+    goals: z.enum(['native', 'command']).optional(),
+    // Whether a chat can be forked and go on in a fork. Absent where it cannot. Where the conversation is copied from
+    // (a thread of the CLI's app-server, or a transcript file) is the provider's own business and stays off the wire.
+    fork: z.boolean().optional()
 });
 export type ProviderCapabilities = z.infer<typeof ProviderCapabilitiesSchema>;
 
@@ -209,6 +212,18 @@ export function pickerGroupsOf<T extends { kind: AgentKind; name: string }>(prov
     const inGroup = (group: ProviderPickerGroup): T[] => sorted.filter((provider) => providerGroupOf(provider.kind) === group);
 
     return { frontier: inGroup('frontier'), others: inGroup('others'), api: inGroup('api') };
+}
+
+/* The providers in the order a picker lists them: the frontier labs, the rest, then the API providers, each by name. */
+export function inPickerOrder<T extends { kind: AgentKind; name: string }>(providers: readonly T[]): T[] {
+    const groups = pickerGroupsOf(providers);
+
+    return [...groups.frontier, ...groups.others, ...groups.api];
+}
+
+/* Whether a separator goes between two providers next to each other in that order: where one group ends. */
+export function separatesGroups(previous: AgentKind | undefined, kind: AgentKind): boolean {
+    return previous !== undefined && providerGroupOf(previous) !== providerGroupOf(kind);
 }
 
 export const ProviderListResultSchema = z.object({

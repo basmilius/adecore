@@ -1,9 +1,9 @@
 import type { EditorHighlight, EditorHighlightKind, EditorPosition, EditorRange } from '@adecore/editor';
 import type { DocumentHighlight } from '@adecore/lsp';
 import { isIdentifierCharacter } from './completion-model.ts';
-import { comparePositions, rangeHolds } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import { comparePositions, rangeHolds } from './positions.ts';
 import { Refresher } from './refresher.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -13,7 +13,7 @@ const PAUSE_MS = 150;
 
 const KINDS: Record<number, EditorHighlightKind> = { 1: 'text', 2: 'read', 3: 'write' };
 
-export function editorHighlightsOf(highlights: readonly DocumentHighlight[]): EditorHighlight[] {
+function editorHighlightsOf(highlights: readonly DocumentHighlight[]): EditorHighlight[] {
     return highlights
         .filter((highlight) => comparePositions(highlight.range.start, highlight.range.end) < 0)
         .map((highlight) => ({ range: highlight.range, kind: KINDS[highlight.kind ?? 1] ?? 'text' }))
@@ -21,7 +21,7 @@ export function editorHighlightsOf(highlights: readonly DocumentHighlight[]): Ed
 }
 
 /* The range before the caret when stepping back, or after it when stepping forward, wrapping round the document; null for no ranges. */
-export function neighborRange(ranges: readonly EditorRange[], from: EditorPosition, direction: 1 | -1): EditorRange | null {
+function neighborRange(ranges: readonly EditorRange[], from: EditorPosition, direction: 1 | -1): EditorRange | null {
     if (ranges.length === 0) {
         return null;
     }
@@ -40,11 +40,11 @@ export function neighborRange(ranges: readonly EditorRange[], from: EditorPositi
  * keys step through. They are asked for when the caret rests on a name and go with the next edit.
  */
 export class HighlightsFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly refresher: Refresher;
     private current: readonly EditorHighlight[] = [];
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         const { editor, uri } = language;
 

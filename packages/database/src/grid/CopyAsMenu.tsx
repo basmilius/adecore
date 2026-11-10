@@ -5,7 +5,7 @@ import type { CopyFormat } from './copy-formats.ts';
 
 const ICONS: Record<CopyFormat, LucideIcon> = { tsv: Table2, csv: FileSpreadsheet, json: Braces, sql: Database };
 
-export interface CopyAsMenuProps {
+interface CopyAsMenuProps {
     disabled: boolean;
     formats: readonly CopyFormat[];
     onCopy(format: CopyFormat): void;

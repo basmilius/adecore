@@ -1,10 +1,10 @@
 import clsx from 'clsx';
 import type { ReactNode, Ref } from 'react';
-import { useChatHost } from '../../../host';
-import type { TimelineRow } from '../../logic/timeline';
+import { useChatHost } from '../../../host/host';
+import type { TimelineRow } from '../../../host/timeline-row';
 import { rowPosition, rowRhythm, saidToChat } from './row-rhythm';
 
-export interface RowContainerProps {
+interface RowContainerProps {
     row: TimelineRow;
     previous: TimelineRow | null;
     index: number;

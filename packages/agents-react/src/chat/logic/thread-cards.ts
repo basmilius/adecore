@@ -1,9 +1,9 @@
 import type { ChatVisual } from '@adecore/agent-contracts';
-import type { ThreadCard } from '../../host';
-import type { TimelineRow } from './timeline';
+import type { ThreadCard } from '../../host/host';
+import type { TimelineRow } from '../../host/timeline-row';
 
 /* A row that belongs to a moment rather than to an item of the thread: an app's card, or a visual an agent published. */
-export interface TimedRow {
+interface TimedRow {
     /* In milliseconds on the clock of a chat item's `createdAt`. */
     at: number;
     row: TimelineRow;
@@ -51,7 +51,7 @@ export function cardRows(cards: readonly ThreadCard[]): TimedRow[] {
  * client holds began, while there is a page before it: a visual from before then belongs to that
  * page and waits for it, rather than stacking up at the top of the thread.
  */
-export function visualRows(visuals: readonly ChatVisual[], heldFrom: number | null = null): TimedRow[] {
+function visualRows(visuals: readonly ChatVisual[], heldFrom: number | null = null): TimedRow[] {
     return visuals
         .filter((visual) => heldFrom === null || visual.at >= heldFrom)
         .map((visual) => ({ at: visual.at, row: { kind: 'visual', id: `visual-${visual.id}`, visual } }));

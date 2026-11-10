@@ -1,7 +1,7 @@
 import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
 import type { UiBlock, UiNode } from './compiler.ts';
 import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
-import type { UiViewNode } from './runtime.ts';
+import type { UiViewNode } from './model.ts';
 
 export function uiCompiledNodes(nodes: readonly UiNode[], into = new Map<string, UiNode>()): Map<string, UiNode> {
     for (const node of nodes) {
@@ -24,7 +24,6 @@ export function eachDrawnNode(nodes: readonly UiViewNode[], visit: (node: UiView
     }
 }
 
-/* Whether a control's value is one its own visible options offer. */
 function offered(node: UiViewNode): boolean {
     if (node.type === 'Segmented' || node.type === 'Select') {
         return node.children.some((option) => option.type === 'Option' && !option.error && option.props.value === node.props.value);

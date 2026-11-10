@@ -17,7 +17,6 @@ export interface AccountLaunches {
     homeFolder(kind: AgentKind, account: string | undefined): string | null;
     /* Whether a conversation of one account can go on under the other: the same CLI, reading the same transcripts. */
     canContinue(kind: AgentKind, from: string | undefined, to: string | undefined): boolean;
-    /* What a person calls the account. */
     labelOf(account: string): string;
     /* A CLI started under this account a moment ago, which is what keeps its plan read. */
     launched?(kind: AgentKind, account: string | undefined): void;

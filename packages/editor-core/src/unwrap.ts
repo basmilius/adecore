@@ -1,10 +1,10 @@
-import type { OffsetRange } from './document.ts';
 import type { EditSource } from './edit-source.ts';
 import { isPhp, isScript, isWordCharacter } from './lexical.ts';
 import { whitespaceOf } from './line-text.ts';
 import { enclosingBraces } from './statements.ts';
 import { placeAt } from './text-places.ts';
 import { skipTriviaBack } from './trivia.ts';
+import type { OffsetRange } from './types.ts';
 import type { TextEdit } from './types.ts';
 
 export type UnwrapKind = 'if' | 'else' | 'removeElse' | 'for' | 'while' | 'do' | 'try' | 'removeCatch' | 'removeFinally' | 'braces';
@@ -66,7 +66,6 @@ function wordAt(source: EditSource, at: number): string {
     return source.slice(at, end);
 }
 
-/* The closer of the bracket at `open`. */
 function closerOf(source: EditSource, open: number): number | null {
     const closer = source.charAt(open) === '(' ? ')' : '}';
     const text = source.slice(open + 1, Math.min(source.line(source.lineCount - 1).end, open + 1 + SCAN_LIMIT));

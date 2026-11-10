@@ -1,7 +1,6 @@
 import { UiFailure } from './budget.ts';
 import { isUiComponent, UI_CATALOG } from './catalog.ts';
-import type { UiBlock } from './compiler.ts';
-import type { UiExpression } from './expression.ts';
+import type { UiExpression, UiValue } from './expression.ts';
 
 /* The prop of a component that holds a state action, kept unevaluated, instead of a value. */
 export function uiActionProp(type: string): string | undefined {
@@ -41,6 +40,9 @@ export function uiActionTarget(action: UiExpression, local: (name: string) => bo
 }
 
 /* Whether `name` is local state of the block: declared with a default and never a query. */
-export function uiLocalState(block: Pick<UiBlock, 'defaults' | 'queries'>): (name: string) => boolean {
+export function uiLocalState(block: {
+    readonly defaults: Readonly<Record<string, UiValue>>;
+    readonly queries: Readonly<Record<string, unknown>>;
+}): (name: string) => boolean {
     return (name) => Object.hasOwn(block.defaults, name) && !Object.hasOwn(block.queries, name);
 }

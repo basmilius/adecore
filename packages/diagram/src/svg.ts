@@ -1,8 +1,8 @@
 import { DEFAULT_FONT_STACKS, DEFAULT_PALETTE, DEFAULT_PAPER, escapeXml } from '@adecore/drawing';
 import type { DrawingColor } from '@adecore/drawing/protocol';
-import { GROUP_LABEL_BAND, layoutOf, type DiagramLayout } from './layout.ts';
+import { GROUP_DASH, GROUP_LINE_WIDTH, groupLabelBaselineY, layoutOf, type DiagramLayout } from './layout.ts';
 import type { DiagramDocument } from './protocol.ts';
-import { arrowHeadPath, dashOf, edgeLabelLinesOf, edgePath, shapePaths, textLinesOf } from './shapes.ts';
+import { LINE_WIDTH, arrowHeadPath, dashOf, edgeLabelLinesOf, edgePath, shapePaths, textLinesOf } from './shapes.ts';
 import { SUB_SIZE } from './text.ts';
 
 export interface DiagramSvgOptions {
@@ -19,7 +19,7 @@ export interface DiagramSvgOptions {
     layout?: DiagramLayout;
 }
 
-export const DEFAULT_DIAGRAM_MARGIN = 32;
+const DEFAULT_DIAGRAM_MARGIN = 32;
 
 /* What a node, a group and an edge wear when the file names no tone. */
 export const DEFAULT_NODE_TONE: DrawingColor = 'ink';
@@ -51,8 +51,8 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
         const tone = palette[group.tone ?? DEFAULT_GROUP_TONE];
 
         parts.push(
-            `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="12" fill="none" stroke="${tone}" stroke-width="1" stroke-dasharray="6 4"/>`,
-            `<text x="${box.labelBox.x}" y="${box.y + Math.round(GROUP_LABEL_BAND * 0.7)}" font-size="${SUB_SIZE}" font-weight="600" fill="${tone}">${escapeXml(group.label)}</text>`
+            `<rect x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" rx="12" fill="none" stroke="${tone}" stroke-width="${GROUP_LINE_WIDTH}" stroke-dasharray="${GROUP_DASH.join(' ')}"/>`,
+            `<text x="${box.labelBox.x}" y="${groupLabelBaselineY(box)}" font-size="${SUB_SIZE}" font-weight="600" fill="${tone}">${escapeXml(group.label)}</text>`
         );
     }
 
@@ -62,7 +62,7 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
         const dash = dashOf(edge.style);
 
         parts.push(
-            `<path d="${edgePath(route.points)}" fill="none" stroke="${tone}" stroke-width="2" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`,
+            `<path d="${edgePath(route.points)}" fill="none" stroke="${tone}" stroke-width="${LINE_WIDTH}" stroke-linejoin="round"${dash ? ` stroke-dasharray="${dash}"` : ''}/>`,
             `<path d="${arrowHeadPath(route.points)}" fill="${tone}"/>`
         );
 
@@ -81,10 +81,10 @@ export function toSvg(document: Pick<DiagramDocument, 'meta' | 'nodes' | 'groups
         const node = nodes.get(box.id)!;
         const tone = node.tone ?? DEFAULT_NODE_TONE;
         const paths = shapePaths(node.shape, box);
-        parts.push(`<path d="${paths.body}" fill="${paper[tone]}" stroke="${palette[tone]}" stroke-width="2"/>`);
+        parts.push(`<path d="${paths.body}" fill="${paper[tone]}" stroke="${palette[tone]}" stroke-width="${LINE_WIDTH}"/>`);
 
         if (paths.detail) {
-            parts.push(`<path d="${paths.detail}" fill="none" stroke="${palette[tone]}" stroke-width="2"/>`);
+            parts.push(`<path d="${paths.detail}" fill="none" stroke="${palette[tone]}" stroke-width="${LINE_WIDTH}"/>`);
         }
 
         for (const line of textLinesOf(box, node.shape)) {

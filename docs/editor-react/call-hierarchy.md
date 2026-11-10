@@ -35,7 +35,7 @@ The editor keeps focus, as in the peek.
 
 Keys with a modifier stay the editor's.
 
-A host that draws its own tree reads `CallHierarchyView` from the `callHierarchy` field of `language.popups` and calls `select(id)`, `toggle(id)`, `showMore(parent)`, `retry(id)`, `setDirection(direction)`, `go(id)` and `close()`. The tree and the peek share one widget row, so opening one closes the other.
+A host that draws its own tree reads `CallHierarchyView` from the `callHierarchy` slot of `language.popups` and calls `select(id)`, `toggle(id)`, `showMore(parent)`, `retry(id)`, `setDirection(direction)`, `go(id)` and `close()`. The tree and the peek share one widget row, so opening one closes the other.
 
 ## Accessibility
 

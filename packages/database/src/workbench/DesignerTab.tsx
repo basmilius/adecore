@@ -6,10 +6,9 @@ import { TableDesigner } from '../designer/TableDesigner.tsx';
 import { useStableCallback } from '../use-stable-callback.ts';
 import type { WorkbenchTab } from './tabs.ts';
 
-export interface DesignerTabProps {
+interface DesignerTabProps {
     connection: Connection;
     tab: Extract<WorkbenchTab, { kind: 'designer' }>;
-    /* The designer saved the table under this name, so the tab is now the designer of that table. */
     onTableChange(table: string): void;
 }
 

@@ -3,10 +3,9 @@ export interface CellPosition {
     readonly column: number;
 }
 
-export interface GridSize {
+interface GridSize {
     readonly rows: number;
     readonly columns: number;
-    /* How many rows a PageUp or PageDown moves. */
     readonly page: number;
 }
 
@@ -17,7 +16,6 @@ export interface NavigationKey {
     readonly mod: boolean;
 }
 
-/* Keys that, with no cell focused yet, only put the focus on the first one. */
 const ENTERING_KEYS: ReadonlySet<string> = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Tab']);
 
 const clamp = (value: number, max: number): number => Math.max(0, Math.min(value, max - 1));

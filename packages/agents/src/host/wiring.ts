@@ -1,22 +1,22 @@
 import type { AgentKind, UsageProvider } from '@adecore/agent-contracts';
+import type { ClaudeBackendOptions } from '../backends/claude-backend.ts';
+import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../backends/codex-transport.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { AttachmentStore } from '../chat/attachment-store.ts';
 import { BookmarkStore } from '../chat/bookmark-store.ts';
 import { ChatCore, type ChatCoreOptions } from '../chat/chat-core.ts';
-import type { SpawnChatProcess } from '../chat/chat-process.ts';
 import { ChatStore } from '../chat/chat-store.ts';
 import { suggestChatTitle } from '../chat/chat-title.ts';
-import type { ClaudeBackendOptions } from '../chat/claude-backend.ts';
 import { ClaudeTitleReader } from '../chat/claude-title.ts';
-import { DEFAULT_CODEX_CLIENT, type CodexClientInfo } from '../chat/codex-transport.ts';
 import { VisualStore } from '../chat/visual-store.ts';
-import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';
+import { defaultFolder } from '../providers/accounts/accounts.ts';
 import { definedEnv } from '../providers/accounts/launch.ts';
 import { ProviderAccountsService } from '../providers/accounts/service.ts';
 import type { AccountsHost } from '../providers/accounts/variables.ts';
 import { createClaudeProvider } from '../providers/claude-provider.ts';
 import { createCodexProvider } from '../providers/codex-provider.ts';
-import { codexRulesPathIn, defaultCodexHome, installCodexRules, type CodexRules } from '../providers/codex-rules.ts';
+import type { CodexRules } from '../providers/codex-rules.ts';
 import { ProviderRegistry, type ProviderRegistryOptions } from '../providers/registry.ts';
 import { chatSessionAccounts, limitAccountsOf, usageAccountsOf, usageRootsOf } from '../usage/accounts.ts';
 import { limitsFileIn, UsageMonitor } from '../usage/limits/monitor.ts';
@@ -32,7 +32,7 @@ export interface AgentWiringOptions<Core extends ChatCore = ChatCore> {
     environmentPolicy?: CliEnvironmentPolicy;
     // What every agent is told once, at the start of its process.
     systemNote?: string;
-    // How the host names itself: to Codex, in a refusal about an account, and in the keychain.
+    // How the host names itself to every Codex app-server it opens; absent, as "Agents".
     client?: CodexClientInfo;
     accountsHost?: AccountsHost;
     claude?: ClaudeBackendOptions;
@@ -62,16 +62,6 @@ export interface AgentWiring<Core extends ChatCore = ChatCore> {
     stop(): Promise<void>;
 }
 
-// A folder the rule cannot be written to only costs an approval per call, so it never stops the host.
-async function installRulesIn(kind: AgentKind, folder: string, rules: CodexRules): Promise<void> {
-    if (kind !== 'codex') {
-        return;
-    }
-
-    const path = codexRulesPathIn(folder, rules);
-    await installCodexRules(path, rules).catch((e: unknown) => console.error(`Could not write the codex rules in ${path}:`, errorText(e)));
-}
-
 /*
  * The chats of a host with the providers, accounts and usage around them, and the handlers of
  * every agent request. `AgentHost` serves them over a port; an app that answers requests on a wire
@@ -80,26 +70,37 @@ async function installRulesIn(kind: AgentKind, folder: string, rules: CodexRules
  */
 export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWiringOptions<Core>): AgentWiring<Core> {
     const env = options.env === undefined || options.environmentPolicy !== undefined ? cliEnvironment(options.env, options.environmentPolicy) : options.env;
-    const client = options.client ?? DEFAULT_CODEX_CLIENT;
-    const codexRules = options.codexRules;
-    const providers = new ProviderRegistry({ providers: [createClaudeProvider(options.claude), createCodexProvider({ client })], env, detect: options.detect });
+    const providers = new ProviderRegistry({
+        providers: [
+            createClaudeProvider({ ...options.claude, ...(options.command ? { command: options.command } : {}) }),
+            createCodexProvider({
+                client: options.client ?? DEFAULT_CODEX_CLIENT,
+                ...(options.codexCommand ? { command: options.codexCommand } : {}),
+                ...(options.codexRules ? { rules: options.codexRules } : {})
+            })
+        ],
+        env,
+        detect: options.detect
+    });
 
     const accounts = new ProviderAccountsService({
         home: options.dataDir,
         providers,
         env,
-        client,
-        ...(options.accountsHost ? { host: options.accountsHost } : {}),
-        ...(codexRules ? { install: (kind: AgentKind, folder: string) => installRulesIn(kind, folder, codexRules) } : {})
+        ...(options.accountsHost ? { host: options.accountsHost } : {})
     });
 
-    if (codexRules) {
-        void installRulesIn('codex', defaultCodexHome(env), codexRules);
+    for (const kind of providers.kinds()) {
+        const provider = providers.get(kind);
+
+        if (provider.prepareHome !== undefined && provider.home !== undefined) {
+            void provider.prepareHome(defaultFolder(provider, env));
+        }
     }
 
     const nameOf = (kind: AgentKind | UsageProvider): string => providers.get(kind).name;
 
-    const limits = new UsageMonitor({ providers, accounts: limitAccountsOf(accounts, nameOf, env), client, file: limitsFileIn(options.dataDir) });
+    const limits = new UsageMonitor({ providers, accounts: limitAccountsOf(accounts, nameOf, env), file: limitsFileIn(options.dataDir) });
     accounts.listen(() => limits.accountsChanged());
     const attachments = new AttachmentStore(options.dataDir);
     // Only without `core`, where `Core` is `ChatCore` itself.
@@ -113,10 +114,7 @@ export function wireAgents<Core extends ChatCore = ChatCore>(options: AgentWirin
         visuals: new VisualStore(options.dataDir, attachments),
         env,
         ...(options.systemNote === undefined ? {} : { instructions: options.systemNote }),
-        ...(options.command ? { command: options.command } : {}),
-        ...(options.codexCommand ? { codexCommand: options.codexCommand } : {}),
         ...(options.spawn ? { spawn: options.spawn } : {}),
-        codexClient: client,
         accounts,
         onLimits: (update) => limits.applyLive(update),
         claudeTitles: new ClaudeTitleReader(),

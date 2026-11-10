@@ -26,6 +26,18 @@ export function writingFrameOf(element: WrittenElement): { x: number; y: number;
     return element.kind === 'note' ? { x: NOTE_PADDING, y: NOTE_PADDING, w: Math.max(1, element.w - NOTE_PADDING * 2) } : { x: 0, y: 0, w: element.w };
 }
 
+/* Where every line of an element is anchored along its width, inside the element: its left edge, middle or right edge by `align`. */
+export function lineAnchorX(element: WrittenElement): number {
+    const frame = writingFrameOf(element);
+
+    return frame.x + (element.align === 'center' ? frame.w / 2 : element.align === 'right' ? frame.w : 0);
+}
+
+/* The baseline of the line at `index`, inside the element: 0.8 of its size below the top of its line. */
+export function lineBaselineY(element: WrittenElement, index: number): number {
+    return writingFrameOf(element).y + (index + 0.8) * element.size * LINE_HEIGHT;
+}
+
 export type MeasureLine = (line: string) => number;
 
 /* A measure for where no font exists, such as on a server: most faces average a glyph a little over half its size wide. */

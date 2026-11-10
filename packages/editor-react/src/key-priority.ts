@@ -5,12 +5,12 @@ import type { EditorKeyHandler } from '@adecore/editor';
  * apart, so a handler of the app can stand between two features; 0, the default, comes after all of them.
  */
 export const KEY_PRIORITY = {
+    // Tab only: the suggestion a person asked for is taken before a list; one that came by itself gives way to the list in the handler.
+    suggestionAccept: 1700,
     pick: 1600,
     diagnostics: 1500,
     hover: 1400,
     completion: 1300,
-    // Tab only: a suggestion on screen is taken before a template or an abbreviation expands, so the spacing of a hundred bends here too.
-    inlineAccept: 1250,
     snippets: 1200,
     // Between snippets and markup, so the spacing of a hundred bends here: Tab has to reach the templates after a running snippet and before Emmet.
     templates: 1150,

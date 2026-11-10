@@ -1,16 +1,12 @@
 import { z } from 'zod';
 import { SessionIdSchema } from './ids.ts';
 
-// The agent CLIs this version knows by name. Whether one has a chat backend or a hook normalizer is a
-// capability on its provider, not a second list: a CLI without hooks still opens as a terminal agent.
-export const KNOWN_AGENT_KINDS = ['claude', 'codex', 'gemini', 'copilot', 'apple'] as const;
-export type KnownAgentKind = (typeof KNOWN_AGENT_KINDS)[number];
-
 export const AGENT_KIND_MAX_LENGTH = 32;
 
 /*
  * Open, so a host can offer a CLI this version never heard of and an older client still reads a reply
- * that names it. Bounded to an identifier, since a kind ends up in ids, paths and command lines.
+ * that names it. Bounded to an identifier, since a kind ends up in ids, paths and command lines. The CLIs
+ * a host offers are the providers of its registry, and what one can do is a capability on its provider.
  */
 export const AgentKindSchema = z
     .string()
@@ -18,11 +14,7 @@ export const AgentKindSchema = z
     .max(AGENT_KIND_MAX_LENGTH)
     .regex(/^[a-z][a-z0-9-]*$/);
 
-export type AgentKind = KnownAgentKind | (string & {});
-
-export function isKnownAgentKind(kind: string): kind is KnownAgentKind {
-    return (KNOWN_AGENT_KINDS as readonly string[]).includes(kind);
-}
+export type AgentKind = string;
 
 // `exited` is the daemon's own reading, not a hook's: the CLI went down with its shell without
 // ever reporting an end, so the node offers a resume instead of a status that stays on running.

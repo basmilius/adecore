@@ -25,7 +25,24 @@ The two differ. Claude Code reports a file change as before and after text and c
 | `add(provider)`, `remove(kind)` | Offers or replaces a provider after start, or stops offering one |
 | `onChange(listener)` | Calls the listener with the kind of every provider added, removed, or whose models or capabilities changed (`ChatProvider.onChange`). Returns an unsubscribe function. |
 
-`AgentHost` and `wireAgents` always use the two built-ins, made by `createClaudeProvider` and `createCodexProvider`. A host with other providers builds the registry, `ChatCore` and services itself. The registry's options are `ProviderRegistryOptions`, with the providers, the environment and a `detect`.
+`AgentHost` and `wireAgents` always use the two built-ins, made by `createClaudeProvider` and `createCodexProvider`. A host with other providers builds the registry, `ChatCore` and services itself. The registry's options are `ProviderRegistryOptions`, with the providers, the environment and a `detect`. The registry finds a CLI by `cliExecutable(provider)`: the provider's `executable`, else the first word of its `command`.
+
+## What a provider describes
+
+Everything one CLI does differently sits on its `ChatProvider`, so no other code asks for a kind by name:
+
+| Field | What it says |
+| --- | --- |
+| `command`, `executable` | What a chat starts, and the CLI itself where the chat runs on a server of its own (Antigravity's `agy`). A test points `createClaudeProvider({ command })` and `createCodexProvider({ client, command })` at a fake. |
+| `launch` | A `LaunchDecorator`: the host's additions to every launch, applied once where a backend is made: its MCP server, extra arguments. Each backend hands an MCP server to its CLI in the form the CLI reads. A server with a `tokenVariable` becomes a header with `${VAR}` for Claude Code, `-c` arguments for Codex and an inline header for an ACP agent. |
+| `home`, `prepareHome` | The config folder variable, how an account signs in, whether an account is a shadow home, and what the host puts in an account's folder. |
+| `askAccount`, `probeLimits` | Who is signed in, and what is left of the plan. |
+| `claudeCode`, `subagentSource`, `threads` | Whether the chats run Claude Code, where a subagent's conversation is read from (`claude-transcript` or `codex-thread`), and the thread calls of an app-server (`listItems` and `fork`, each asked of a process the host starts). A chat of a provider whose `capabilities.fork` is set forks through `threads.fork` when the provider has `threads`, and otherwise by the host cutting the CLI's transcript. |
+| `terminal` | How a terminal starts the CLI: flags per runtime mode, the model flag, how an MCP server is loaded from the line, a note for a fresh start, and `prepare` for flags only a newer version takes. |
+| `oneShotArgs`, `oneShotStdinArgs`, `leanOneShotArgs` | A single prompt, and the same run made short and cheap for a model asked for an answer alone. |
+| `oneShotApart` | The single prompt runs on a CLI apart from the chats: `oneShotProvider` asks it first only for its own kind and after every other CLI otherwise, and it names no chat. |
+
+`createCodexProvider` requires the `client` that names the host to every app-server it opens: the chat's, the account check, the plan probe and the thread calls. It is given once, there; `wireAgents` is the one place that falls back to "Agents".
 
 A provider finds its CLI with `detectCli(command, env?, spawn?, flags?)`, which asks for the version and returns a `CliDetection`, `{ installed, version }`. A missing binary is "not installed", never an error.
 
@@ -55,7 +72,7 @@ catalog.normalize({ model: 'standard', options: { effort: 'unknown', other: true
 // { model: 'standard-model', options: { effort: 'medium' } }
 ```
 
-`normalize` takes a slug or alias and falls back to the default model for an unknown one. It resets missing or invalid options to their default and drops options the model lacks. `resolveModel(name)` returns the slug, or `null` for an unknown name, for a caller that would rather refuse. `contextWindowFor(selection)` returns the context size or `null`. `replace(data)` takes a newer catalog, never an older one. `adopt(models, defaultModel, options)` takes the list, order and default an agent reported, keeping the catalog's name and profile for models it knows. A later `replace` keeps that list. The constructor takes a `ModelCatalogInput`, which needs no date for a catalog that is never replaced.
+`normalize` takes a slug or alias and falls back to the default model for an unknown one. It resets missing or invalid options to their default and drops options the model lacks. `resolveModel(name)` returns the slug, or `null` for an unknown name, for a caller that would rather refuse. `contextWindowFor(selection)` returns the context size or `null`. `replace(data)` takes a newer catalog, never an older one. `adopt(models, defaultModel, options)` takes the list, order and default an agent reported, keeping the catalog's name and profile for models it knows. A later `replace` keeps that list. The constructor needs no date for a catalog that is never replaced.
 
 ## Runtime modes
 
@@ -72,7 +89,7 @@ The Codex column is the closest match, not an exact one. A new chat defaults to 
 
 `claude.allowedTools` lets Claude Code use the named tools without asking, in every mode. `codexRules` writes command prefixes Codex may run without asking into every Codex home. A home it cannot write to only costs an approval per call.
 
-The rules are `CodexRules`, `{ app, commands }`. `codexRulesText(rules)` is the file they become, and `codexRulesPathIn(home, rules)` where it goes: the `rules` folder of a Codex home, named after `app`, so it never touches a person's own rules. `installCodexRules(path, rules)` writes the file and returns a `CodexRulesResult`, `unchanged` or `written`. `defaultCodexHome(env)` is `CODEX_HOME`, or `.codex` in the person's home.
+The rules are `CodexRules`, `{ app, commands }`. `codexRulesText(rules)` is the file they become, and `codexRulesPathIn(home, rules)` where it goes: the `rules` folder of a Codex home, named after `app`, so it never touches a person's own rules. `defaultCodexHome(env)` is `CODEX_HOME`, or `.codex` in the person's home.
 
 ## Claude Code through the Agent SDK
 
@@ -84,7 +101,7 @@ On Stop, a message sent into the running turn that the CLI has not taken in yet 
 
 ### On an API key
 
-`claude.apiKey` runs the same chats on an Anthropic API key instead of the person's own sign-in. It takes a `ClaudeApiKeyOptions`:
+`claude.apiKey` runs the same chats on an Anthropic API key instead of the person's own sign-in. It takes a key and a config folder:
 
 ```ts
 createClaudeProvider({
@@ -123,7 +140,6 @@ const registry = new ProviderRegistry({
         createCopilotProvider({
             client,
             launch: withOwnServer,
-            args: ['--allow-tool=example'],
             usageLog: copilotUsageDirectory(dataDir)
         }),
         createAntigravityProvider({
@@ -137,13 +153,13 @@ const registry = new ProviderRegistry({
 
 Every factory takes `AcpVendorOptions`. `client` is how your host names itself in `initialize`. `launch` runs on every launch before its backend starts, for example to add your MCP servers to `mcpServers`. `catalogStore` keeps the models an agent reported across a restart.
 
-`CopilotProviderOptions` adds two fields. `args` goes on Copilot's line after its ACP arguments. Copilot's permission requests name no MCP server, so a server's tools run without asking only with `--allow-tool=<server>` there (measured on Copilot CLI 1.0.104). `usageLog` is the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
+`createCopilotProvider` adds `usageLog`, the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
 
-Antigravity's chat runs on a server installed apart from the `agy` CLI. `AntigravityProviderOptions.server` is an `AcpServerLaunch`: its `launch()` returns the server's command, or `null` while none is installed. Without an installed server the provider offers no chat and refuses to start one, but still runs as a terminal. An absent or `null` server keeps the chat capability, for a host that only reads what the CLI can do. `ANTIGRAVITY_CLI` is the executable a terminal starts, and `antigravityOneShotArgs(prompt)` gives the arguments for a single prompt to it.
+Antigravity's chat runs on a server installed apart from the `agy` CLI. The `server` option of `createAntigravityProvider` is an `AcpServerLaunch`: its `launch()` returns the server's command, or `null` while none is installed. Without an installed server the provider offers no chat and refuses to start one, but still runs as a terminal. An absent or `null` server keeps the chat capability, for a host that only reads what the CLI can do.
 
-The three start from the models in `providers/<kind>-models.json` (`shippedAgentCatalog(kind)`) and take the ones a session reports. `AGENT_DEFAULT_MODEL` leaves the choice to the agent: `agentModel(selection)` maps it to `null`, and `agentDefaultCatalog()` offers only that model. `GROK_MODES`, `COPILOT_MODES` and `ANTIGRAVITY_MODES` are their `AcpModeMap`s.
+The three start from the models in `providers/<kind>-models.json` and take the ones a session reports. A catalog can leave the choice to the agent: `agentModel(selection)` maps that choice to `null`, and `agentDefaultCatalog()` offers only that model.
 
-Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left (`grokAuthMethod(env)`). The host checks its accounts with `grok models`, which opens no session. `askGrokModels(command, env)` runs it and `readGrokModels(output)` turns the output into `GrokModels`. `adoptGrokModels(catalog, store, listed)` writes that list to the catalog and the store, and keeps the names, context windows and options a chat learned.
+Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left. The host checks its accounts with `grok models`, which opens no session, and writes that list to the catalog and the store, keeping the names, context windows and options a chat learned.
 
 ## A model API with no CLI
 
@@ -184,15 +200,15 @@ const provider = createApiChatProvider({
 });
 ```
 
-`createApiChatProvider` takes `ApiChatProviderOptions`, among them an `ApiChatService`: the `catalog`, a `status()` with whether a key is set and how many models it brought, and `onChange`. The provider counts as installed once both are there, and runs only as a chat.
+`createApiChatProvider` takes a `service`: the `catalog`, a `status()` with whether a key is set and how many models it brought, and `onChange`. The provider counts as installed once both are there, and runs only as a chat.
 
-`createChatCompletionsBackend` takes a `ChatCompletionsSpec`. The API keeps no conversation, so the backend keeps the thread as `<session id>.json` in `directory()`. It writes the file after every step and reads it back on resume. A request goes to `<url>/chat/completions` with the key as a bearer token and follows no redirect. Every error the backend writes starts with `name`, and only an error that starts with it reaches the person. Any other failure ends the turn with `words.failed`, since a raw error can quote the key. Build `httpError(status)` from the status alone, and start its message with `name`. The `ChatCompletionsWords` are the sentences that tell a person what to do in your app.
+`createChatCompletionsBackend` takes the options above. The API keeps no conversation, so the backend keeps the thread as `<session id>.json` in `directory()`. It writes the file after every step and reads it back on resume. A request goes to `<url>/chat/completions` with the key as a bearer token and follows no redirect. Every error the backend writes starts with `name`, and only an error that starts with it reaches the person. Any other failure ends the turn with `words.failed`, since a raw error can quote the key. Build `httpError(status)` from the status alone, and start its message with `name`. The `words` are the sentences that tell a person what to do in your app.
 
 The model gets project tools: list, read, search, edit and write files under the working folder, run a command (`/bin/sh`, PowerShell on Windows, 30 seconds, output clipped), and `ask_user`, which opens a question card. A file tool refuses paths outside the folder, symbolic links, hidden files and credential files. `supervised` asks before every tool, and `full-access` asks for none. `auto-accept-edits` and `auto` ask only for a command. A plain API has no classifier, so `auto` runs as `auto-accept-edits`. `ask_user` waits for the person in every mode. A model for which `supportsTools` answers `false` is offered no tools at all.
 
-`toolRounds()` returns `ToolRounds`, read as each run starts. After `roundsPerRun` rounds of tool calls the chat sends itself a message to carry on, up to `runs` runs, then ends the turn with an error. `onUsage` gets a `ChatCompletionsUsage` for every request that reported its `ChatCompletionsTokens`: the prompt holds its cached part and the completion its reasoning, as the API counts them.
+`toolRounds()` returns `roundsPerRun` and `runs`, read as each run starts. After `roundsPerRun` rounds of tool calls the chat sends itself a message to carry on, up to `runs` runs, then ends the turn with an error. `onUsage` gets a `ChatCompletionsUsage` for every request that reported its tokens: the prompt holds its cached part and the completion its reasoning, as the API counts them.
 
-`hostTools(launch, host)` returns `ApiHostTools` offered beside the project tools, such as those of your own MCP server, or `null`. Each `ApiToolDefinition` is a name, a description and a JSON schema. A call to one of them runs without an approval card in every mode, so check each call where you answer it, and return an `ApiToolOutcome`. No host tool may take the name of a project tool in `API_TOOLS` (`read_file`, `write_file`, `run_command` and the rest): the turn fails rather than let it skip that tool's approval. `close()` runs when the backend is disposed.
+`hostTools(launch, host)` returns `ApiHostTools` offered beside the project tools, such as those of your own MCP server, or `null`. Each `ApiToolDefinition` is a name, a description and a JSON schema. A call to one of them runs without an approval card in every mode, so check each call where you answer it, and return its outcome. No host tool may take the name of a project tool in `API_TOOLS` (`read_file`, `write_file`, `run_command` and the rest): the turn fails rather than let it skip that tool's approval. `close()` runs when the backend is disposed.
 
 `nanoGptVendorOf(slug)` names who made a NanoGPT model, for a picker that groups by vendor: the publisher before the slash under one spelling, else the family the slug starts with, else `Other`.
 
@@ -229,10 +245,8 @@ Measured on Claude Code 2.1.300 and Codex 0.162.1. A provider of your own sets `
 
 ## A provider of your own
 
-A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts (a `ProviderHome`: the variable the CLI reads its folder from and the folder it uses without it), `detect`, the first-prompt and one-shot arguments, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports `BackendEvent`s through `host.onEvent`. See [`chat/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/chat/backend.ts) for the interface (exported from `@adecore/agents/chat`) and the built-ins as examples.
+A `ChatProvider` is data plus a backend: `kind`, `name`, `catalog`, `capabilities`, `command`, `resumeCommand`, `home` for accounts (the variable the CLI reads its folder from and the folder it uses without it), `detect`, the first-prompt and one-shot arguments, and `createBackend(launch, host)`. The `ChatBackend` owns the process, speaks the CLI's protocol, and reports `BackendEvent`s through `host.onEvent`. See [`backends/backend`](https://github.com/basmilius/adecore/blob/main/packages/agents/src/backends/backend.ts) for the interface (exported from `@adecore/agents/chat`) and the built-ins as examples. A backend reads its CLI's output line by line, and a line longer than `MAX_LINE_LENGTH` is dropped and reported as `failed`.
 
 The optional `ChatBackend.steerTurn(input)` adds user input to the running turn without interrupting it. Resolve `true` only once the CLI accepted it, `false` only when no turn is active, and reject when the outcome is unknown.
 
 A changed model, option or runtime mode applies when the next turn starts, as a new process would. With the optional `ChatBackend.reconfigure(change)`, a `BackendChange` of the selection and the mode, the session first asks the running process to take it. Resolve `true` once it took all of it, `false` for a new process. A change of account, working folder, folders or project configuration always starts a new one. The Claude backend changes the model, effort, fast mode and permission mode in place. It needs a new process for a context window that moves where the CLI compacts, and for full access in a process that was not started with it.
-
-`LineSplitter` from `@adecore/agents/chat` cuts stdout into frames. It drops a line longer than `MAX_LINE_LENGTH`, reports it as `failed`, and reads on.

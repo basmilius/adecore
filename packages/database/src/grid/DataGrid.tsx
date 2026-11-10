@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import type { DatabaseNotice } from '../actions.ts';
 import { assignRef } from '../assign-ref.ts';
 import { useNumberNotation } from '../client-context.ts';
+import { type NumberNotation } from '../number-notation.ts';
 import type { EditValue, Value } from '../protocol/index.ts';
 import type { SqlTarget } from '../sql.ts';
 import { useDatabaseResources } from '../use-database-resources.ts';
@@ -33,7 +34,7 @@ import { NO_COLUMN_SELECTION, selectColumn, shownSelection, type ColumnSelection
 import { displayOrder, hideColumn, pinnedCount, showAllColumns, togglePin, type ColumnView } from './column-view.ts';
 import { COPY_FORMATS, formatCopy, type CopyFormat } from './copy-formats.ts';
 import { CopyAsMenu } from './CopyAsMenu.tsx';
-import { columnNotation, cellView, copyTextOf, isPreview, type CellView, type NumberNotation, type Shown } from './display.ts';
+import { columnNotation, cellView, copyTextOf, isPreview, type CellView, type Shown } from './display.ts';
 import { draftOf, parseDraft } from './edit-value.ts';
 import { parseEnumType } from './enum-type.ts';
 import { GridHeaderCell, type HeaderActions } from './GridHeaderCell.tsx';
@@ -61,7 +62,6 @@ import { loadWholeCells } from './whole-cells.ts';
 export interface DataGridProps {
     columns: readonly GridColumn[];
     rows: readonly GridRow[];
-    /* The accessible name of the grid. */
     label: string;
     /* Lets a cell be edited in place; the rows that are `locked` stay as they are. */
     editable?: boolean;
@@ -78,7 +78,6 @@ export interface DataGridProps {
     sorts?: readonly GridSort[];
     /* A header's menu picked a sort. The grid draws `rows` in the order given, so the handler orders them and passes `sorts` back. */
     onSortsChange?(sorts: readonly GridSort[]): void;
-    /* The cell that holds the focus changed, or lost it. */
     onFocusedCellChange?(cell: FocusedCell | null): void;
     /* Delete or Backspace with rows selected. */
     onDeleteSelected?(): void;
@@ -514,7 +513,6 @@ export function DataGrid({
         }
     };
 
-    /* The cells from row `top` to `bottom` in the given columns, with the whole value of every preview `loadValue` can fetch. */
     const wholeCellsOf = async (top: number, bottom: number, indexes: readonly number[]): Promise<readonly (readonly Shown[])[]> => {
         const shown = rows.slice(top, bottom + 1);
 

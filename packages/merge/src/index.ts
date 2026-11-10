@@ -1,4 +1,5 @@
 export { diffLines, type Change } from './diff.ts';
+export { lineMap } from './line-map.ts';
 export { splitBlocks, type MergeBlock, type MergeBlockKind } from './blocks.ts';
 export { bothLines, draftOf, fingerprint, sideLines, wandLines, type MergeDraft, type MergeSide, type MergeSpan } from './resolve.ts';
 export { joinLines, shapeOf, splitLines, type TextShape } from './text.ts';

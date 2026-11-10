@@ -16,7 +16,6 @@ export interface MeterProps {
     /* The value in words for a screen reader, such as "-18.2 LUFS". Left out, it reads the number. */
     valueText?: string;
 
-    /* Its width, which it fills. */
     className?: string;
 
     ref?: Ref<HTMLDivElement>;

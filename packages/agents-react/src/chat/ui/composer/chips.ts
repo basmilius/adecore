@@ -5,8 +5,8 @@ import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemir
 import { createElement, Fragment, type ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { CliMark } from '../../../agents/AgentModelLabel';
-import type { ReferenceIconProps } from '../../../host';
-import type { ReferableKind, ReferenceStep } from '../../chat-references';
+import type { ReferenceIconProps } from '../../../host/host';
+import type { ReferableKind, ReferenceStep } from '../../../host/references';
 import { chipRanges, withNamedChips, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
 import type { NamedChipLook, NamedChipLookup } from '../named-chip-look';
@@ -14,7 +14,7 @@ import { referenceGlyph } from '../reference-icons';
 import { ReferenceTrail } from '../ReferenceTrail';
 import { codeRanges } from './editor';
 
-export interface ChipChoices {
+interface ChipChoices {
     mentions: string[];
     skills: string[];
     /* Null for a kind the host no longer names, which draws the chip without its mark. */
@@ -36,7 +36,6 @@ const referenceMark = Decoration.mark({ class: `${REFERENCE_TONE} ${CHIP_IN_EDIT
 
 const roots = new WeakMap<HTMLElement, Root>();
 
-/* The reference's mark in place of the `#`, the way a sent message draws it. */
 class ReferenceIcon extends WidgetType {
     readonly id: string;
     readonly kind: ReferableKind;

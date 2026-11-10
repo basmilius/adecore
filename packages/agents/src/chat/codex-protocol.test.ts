@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import { codexProvider } from '../providers/codex-provider.ts';
-import type { BackendEvent } from './backend.ts';
-import { parseGoalCommand } from './codex-backend.ts';
-import { codexGoal, CodexProtocol, unwrapCommand } from './codex-protocol.ts';
+import type { BackendEvent } from '../backends/backend.ts';
+import { parseGoalCommand } from '../backends/codex-backend.ts';
+import { codexGoal, CodexProtocol, unwrapCommand } from '../backends/codex-protocol.ts';
+import { codexProvider } from '../testing/providers.ts';
 import nativeApprovalCapture from './fixtures/codex-0.159.2-native-approval.json';
 import nativeFileApprovalCapture from './fixtures/codex-0.159.2-native-file-approval.json';
 import nativeInteractedCapture from './fixtures/codex-0.159.2-native-interacted.json';
@@ -209,7 +209,6 @@ describe('CodexProtocol', () => {
         expect(protocol.handle({ method: 'item/started', params: { ...ids, item: started } })).toEqual(opened);
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: started } })).toEqual([]);
 
-        // A wait on it completes with nothing to say about the agent itself.
         const wait = { type: 'collabAgentToolCall', id: 'call_wait', tool: 'wait', status: 'completed', receiverThreadIds: [], agentsStates: {} };
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: wait } }).map((event) => event.type)).toEqual(['tool.started', 'tool.done']);
 
@@ -219,7 +218,6 @@ describe('CodexProtocol', () => {
             { type: 'task.done', ref: 'call_spawn', summary: null, ok: true }
         ]);
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: completed } })).toEqual([]);
-        // An activity about a thread nobody saw start has no row to settle.
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: { ...completed, agentThreadId: 'other' } } })).toEqual([]);
     });
 
@@ -542,7 +540,6 @@ describe('CodexProtocol', () => {
             state: 'done'
         });
 
-        // Another call that reports on a spawned agent settles its row, once.
         const second = { ...item, id: 'collab_3', status: 'completed', receiverThreadIds: ['child-2'], agentsStates: { 'child-2': { status: 'running' } } };
         protocol.handle({ method: 'item/completed', params: { ...ids, item: second } });
 
@@ -565,7 +562,6 @@ describe('CodexProtocol', () => {
             type: 'tool.done'
         });
 
-        // A spawn that failed opened no agent, so nothing is left to wait for.
         const failed = { ...item, id: 'collab_6', status: 'failed', receiverThreadIds: [] };
 
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: failed } }).at(-1)).toEqual({
@@ -769,7 +765,6 @@ describe('reasoning', () => {
         expect(protocol.handle({ method: 'item/reasoning/summaryPartAdded', params: { itemId: 'r1', summaryIndex: 1 } })).toEqual([
             { type: 'thinking.delta', ref: 'r1', text: '\n\n' }
         ]);
-        // The first part needs no break in front of it.
         expect(protocol.handle({ method: 'item/reasoning/summaryPartAdded', params: { itemId: 'r1', summaryIndex: 0 } })).toEqual([]);
         expect(protocol.handle({ method: 'item/reasoning/textDelta', params: { itemId: 'r1', delta: 'the details' } })).toEqual([
             { type: 'thinking.delta', ref: 'r1', text: 'the details' }
@@ -782,7 +777,6 @@ describe('reasoning', () => {
         expect(
             protocol.handle({ method: 'item/completed', params: { item: { type: 'reasoning', id: 'r1', summary: ['first', ''], content: ['second'] } } })
         ).toEqual([{ type: 'thinking.done', ref: 'r1', text: 'first\n\nsecond' }]);
-        // Nothing to say while it is still running, and nothing to say about an empty one.
         expect(protocol.handle({ method: 'item/started', params: { item: { type: 'reasoning', id: 'r2', summary: [], content: [] } } })).toEqual([]);
         expect(protocol.handle({ method: 'item/completed', params: { item: { type: 'reasoning', id: 'r2', summary: [], content: [] } } })).toEqual([]);
     });

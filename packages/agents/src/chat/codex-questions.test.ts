@@ -1,11 +1,12 @@
 import { expect, test } from 'bun:test';
 import { isRecord } from '@adecore/utils/record';
-import { codexProvider } from '../providers/codex-provider.ts';
+import { CodexBackend } from '../backends/codex-backend.ts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
+import { codexProvider } from '../testing/providers.ts';
 import { info, flush } from './chat-session.fixture.test.ts';
 import { ChatSession } from './chat-session.ts';
-import { CodexBackend } from './codex-backend.ts';
 
 test.each(['answer', 'stop'] as const)('an asynchronous Codex question survives the turn until a person chooses to %s', async (action) => {
     const requests: Array<{ method?: string; params?: Record<string, unknown> }> = [];
@@ -37,8 +38,10 @@ test.each(['answer', 'stop'] as const)('an asynchronous Codex question survives 
 
     const session = new ChatSession({
         info: { ...info(), provider: 'codex', selection: codexProvider.catalog.normalize(undefined) },
-        provider: { ...codexProvider, createBackend: (launch, host) => new CodexBackend({ ...launch, spawn: fake.spawn }, host) },
-        command: ['unused'],
+        provider: {
+            ...codexProvider,
+            createBackend: (launch, host) => new CodexBackend({ ...launch, spawn: fake.spawn }, host, { client: DEFAULT_CODEX_CLIENT })
+        },
         env: () => ({}),
         emit: () => undefined,
         persist: () => undefined,

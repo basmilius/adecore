@@ -5,7 +5,7 @@ import { FakeEditorEngine } from '@adecore/editor/fake';
 import { createPage } from '@adecore/editor/testing';
 import { act, StrictMode, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChatHostProvider, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatHost } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { ChangedFilesRow } from '../rows/WorkRows';
 import { DiffStack, ReviewStackView } from './DiffStack';

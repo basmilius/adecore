@@ -7,7 +7,7 @@ export { commentSyntax, type CommentSyntax } from '@adecore/editor-core';
 export { createSmartEditorEngine } from './engine.ts';
 export { rememberCopy } from './controller.ts';
 export { DEFAULT_SMART_KEYS } from './smart-keys.ts';
-export { shikiScopeColors, shikiTokenizers } from './shiki.ts';
+export { shikiScopeColors, shikiTokenizers } from './shiki-grammar.ts';
 
 export type {
     Editor,
@@ -81,7 +81,6 @@ export type {
     EditorWidget,
     EditorZoom,
     FoldRole,
-    KeyChord,
     LineToken,
     LineTokenKind,
     ScopeColorSource,
@@ -93,3 +92,4 @@ export type {
     TokenizedLine,
     TokenizerSource
 } from './types.ts';
+export type { KeyChord } from './keymap-table.ts';

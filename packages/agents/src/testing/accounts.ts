@@ -2,9 +2,10 @@ import type { AgentKind, ProviderAccountMap, ProviderInfo } from '@adecore/agent
 import { ProviderAccountsService } from '../providers/accounts/service.ts';
 import { accountsPath, writeAccounts } from '../providers/accounts/store.ts';
 import type { SecretStore } from '../providers/accounts/variables.ts';
-import { providerFor } from '../providers/registry.ts';
+import { providerFor } from './providers.ts';
 
-/* A keychain in memory; `values` is what it holds, by key. */
+const KINDS: AgentKind[] = ['claude', 'codex', 'copilot'];
+
 export function memorySecrets(values = new Map<string, string>()): SecretStore & { values: Map<string, string> } {
     return {
         values,
@@ -32,11 +33,11 @@ export async function testAccounts(options: {
     const service = new ProviderAccountsService({
         home: options.home,
         providers: {
-            list: async () => (['claude', 'codex'] as AgentKind[]).map((kind) => ({ kind, installed: true }) as ProviderInfo),
-            get: (kind) => providerFor(kind)
+            list: async () => KINDS.map((kind) => ({ kind, installed: true }) as ProviderInfo),
+            get: (kind) => ({ ...providerFor(kind), askAccount: async () => ({ signedIn: true, email: null, plan: null, organization: null }) }),
+            kinds: () => KINDS
         },
         env: options.env,
-        ask: async () => ({ signedIn: true, email: null, plan: null, organization: null }),
         folderExists: (path) => options.folders.has(path),
         prepareShadow: async () => ({ linked: [], unshared: [], sharedLogin: false }),
         secrets: memorySecrets()

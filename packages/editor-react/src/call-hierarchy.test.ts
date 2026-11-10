@@ -69,12 +69,13 @@ async function setup(
 
 function rows(language: EditorLanguage) {
     return language.popups
-        .getState()
-        .callHierarchy!.rows.map((row) => (row.kind === 'node' ? row.item.name : row.kind === 'more' ? `more ${row.hidden}` : row.status));
+        .slot('callHierarchy')
+        .get()!
+        .rows.map((row) => (row.kind === 'node' ? row.item.name : row.kind === 'more' ? `more ${row.hidden}` : row.status));
 }
 
 function view(language: EditorLanguage) {
-    return language.popups.getState().callHierarchy!;
+    return language.popups.slot('callHierarchy').get()!;
 }
 
 function calls(service: FakeLanguageService, method: string) {
@@ -94,7 +95,7 @@ describe('call hierarchy', () => {
         service.providers.delete('textDocument/prepareCallHierarchy');
         await language.callHierarchy.open();
 
-        expect(language.popups.getState().callHierarchy).toBeNull();
+        expect(language.popups.slot('callHierarchy').get()).toBeNull();
         expect(calls(service, 'textDocument/prepareCallHierarchy')).toHaveLength(0);
         expect(notices).toMatchObject([{ kind: 'error', title: 'Calls unavailable in this file' }]);
     });
@@ -107,7 +108,7 @@ describe('call hierarchy', () => {
 
         await language.callHierarchy.open();
 
-        expect(language.popups.getState().callHierarchy).toBeNull();
+        expect(language.popups.slot('callHierarchy').get()).toBeNull();
         expect(notices).toHaveLength(1);
     });
 
@@ -190,7 +191,7 @@ describe('call hierarchy', () => {
         answer();
         await settle();
 
-        expect(language.popups.getState().callHierarchy).toBeNull();
+        expect(language.popups.slot('callHierarchy').get()).toBeNull();
         expect(language.callHierarchy.isOpen).toBe(false);
     });
 
@@ -281,7 +282,6 @@ describe('call hierarchy', () => {
 
         expect(rows(language)).toEqual(['run', 'callee']);
         expect(calls(service, 'textDocument/prepareCallHierarchy')).toHaveLength(1);
-        // The shortcut that opened the tree flips it.
         expect(editor.press({ key: 'h', code: 'KeyH', ctrlKey: true, altKey: true })).toBe(true);
 
         await settle();

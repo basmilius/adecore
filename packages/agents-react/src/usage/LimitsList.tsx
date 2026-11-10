@@ -1,4 +1,4 @@
-import type { UsageLimitsSnapshot, UsageWindow } from '@adecore/agent-contracts';
+import { evenPace, type PaceStanding, type UsageLimitsSnapshot, type UsageWindow } from '@adecore/agent-contracts';
 import { Icon, Tooltip } from '@adecore/ui';
 import { formatClock, formatWeekdayClock, isSameDay, formatCountdown, formatPercent } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -8,13 +8,12 @@ import { useTranslation } from 'react-i18next';
 import { limitsAccountId } from '../agents/account-limits';
 import { accountColor } from '../agents/accounts';
 import { ProviderLogo } from '../agents/ProviderLogo';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { ChartLogo } from './ChartLogo';
 import { PROVIDER_COLORS, PROVIDER_LABELS } from './format';
 import {
     accountNote,
     emptyWindows,
-    evenPace,
     explain,
     isSignedOut,
     limitAccountKey,
@@ -23,8 +22,7 @@ import {
     ringWindows,
     showsWindows,
     type LimitAccount,
-    type LimitGroup,
-    type PaceStanding
+    type LimitGroup
 } from './limit-groups';
 import { LimitProvenance } from './LimitProvenance';
 
@@ -33,12 +31,10 @@ function toneOf(used: number): string {
     return used >= 0.9 ? 'bg-status-error' : used >= 0.7 ? 'bg-status-needs-you' : 'bg-text';
 }
 
-/* A time of day when the reset is today, a weekday and a time when it is not. */
 function resetAtLabel(resetsAt: number, now: number): string {
     return isSameDay(resetsAt, now) ? formatClock(resetsAt) : formatWeekdayClock(resetsAt);
 }
 
-/* How long the window still has, or nothing once it has run out. */
 function resetInLabel(resetsAt: number, now: number): string | null {
     return resetsAt <= now ? null : formatCountdown(resetsAt - now);
 }
@@ -69,7 +65,6 @@ export function WindowBar({ window, now, compact }: { window: UsageWindow; now: 
             className={clsx('relative cursor-default', compact ? 'h-4' : 'h-6')}
         >
             <div className={clsx('absolute inset-x-0 rounded-full bg-track', compact ? 'inset-y-1' : 'inset-y-1.5')} />
-            {/* Past a hundred there is nothing left to fill, so the bar stops rather than overflows. */}
             <div
                 className={clsx('absolute left-0 rounded-full', compact ? 'inset-y-1' : 'inset-y-1.5', toneOf(window.used))}
                 style={{ width: `${Math.min(100, percent)}%` }}
@@ -157,7 +152,6 @@ export function LimitsList({ limits, now, compact = false }: LimitsListProps) {
     );
 }
 
-/* Red where a window is nearly spent, amber where it is worth knowing, in the color of a word. */
 function textToneOf(used: number): string {
     return used >= 0.9 ? 'text-status-error' : used >= 0.7 ? 'text-status-needs-you' : 'text-text';
 }
@@ -204,7 +198,6 @@ function WindowLine({ window, now }: { window: UsageWindow; now: number }) {
     );
 }
 
-/* A window this account has not reported on: no number to draw, so an empty bar and a dash. */
 function EmptyWindowLine({ label }: { label: string }) {
     return (
         <div className={WINDOW_LINE}>
@@ -276,7 +269,6 @@ interface AccountRowProps {
     onToggle: () => void;
 }
 
-/* One account: a row that folds its windows away, or only a row with the words for why it has none. */
 function AccountRow({ group, account, now, folded, onToggle }: AccountRowProps) {
     const { t } = useTranslation('agent-usage');
     const empty = emptyWindows(group, account);

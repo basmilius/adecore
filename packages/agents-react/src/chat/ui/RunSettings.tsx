@@ -1,4 +1,6 @@
 import {
+    inPickerOrder,
+    separatesGroups,
     UsageProviderSchema,
     type AgentKind,
     type ChatUsage,
@@ -36,13 +38,13 @@ import { accountColor, canContinueOn } from '../../agents/accounts';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { modelName } from '../../agents/model-name';
 import { localizedOption } from '../../agents/option-words';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { PROVIDER_COLORS } from '../../usage/format';
 import { useUsageLimits } from '../../usage/limits';
 import type { AccountChoice } from '../account-choice';
 import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type ContextPart } from '../logic/context-usage';
 import { EFFORT_OPTION } from '../logic/effort';
-import { favoritesFirst, inPickerOrder, searchModels, separatesGroups, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
+import { favoritesFirst, searchModels, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
 import { RUNTIME_MODES } from '../runtime-modes';
 import { ModelMarks } from './ModelMarks';

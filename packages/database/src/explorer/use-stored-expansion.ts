@@ -7,7 +7,6 @@ import { expansionKey, parseExpansion, serializeExpansion, type Expansion } from
 type Update = (current: ReadonlySet<string>) => ReadonlySet<string>;
 
 interface Loaded extends Expansion {
-    /* The connections whose stored state is in the sets. */
     readonly loaded: ReadonlySet<string>;
 }
 
@@ -30,7 +29,7 @@ const restore = (storage: DatabaseStorage | undefined, connections: readonly Con
     return { expanded, collapsed, loaded };
 };
 
-export interface StoredExpansion extends Expansion {
+interface StoredExpansion extends Expansion {
     setExpanded(update: Update): void;
     setCollapsed(update: Update): void;
 }

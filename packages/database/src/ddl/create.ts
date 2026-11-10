@@ -6,7 +6,6 @@ import type { TableOptions } from './parse.ts';
 
 const INDENT = '    ';
 
-/* `CONSTRAINT name FOREIGN KEY (...) REFERENCES t (...) ON UPDATE .. ON DELETE ..`, shared by a create and an `ADD`. */
 export const foreignKeySql = (dialect: Dialect, schema: string, foreignKey: ForeignKeyDraft): string => {
     const sqlite = dialect.engine === 'sqlite';
 
@@ -52,11 +51,10 @@ const sqliteOptionsSql = (options: TableOptions): string[] => [...(options.stric
 export const inlineIndexSql = (dialect: Dialect, index: IndexDraft): string =>
     [index.unique ? 'UNIQUE INDEX' : 'INDEX', ...(index.name === '' ? [] : [quote(dialect, index.name)]), `(${columnList(dialect, index.columns)})`].join(' ');
 
-/* `CREATE [UNIQUE] INDEX name ON table (columns)`. */
 export const createIndexSql = (dialect: Dialect, schema: string, table: string, index: Pick<IndexDraft, 'name' | 'columns' | 'unique'>): string =>
     `CREATE ${index.unique ? 'UNIQUE ' : ''}INDEX ${dialect.engine === 'sqlite' ? sqliteSchemaPrefix(dialect, schema) : ''}${quote(dialect, index.name)} ON ${tableName(dialect, dialect.engine === 'sqlite' ? '' : schema, table)} (${columnList(dialect, index.columns)})`;
 
-export interface CreateParts {
+interface CreateParts {
     readonly table: string;
     /* SQLite creates its indexes after the table, where MySQL declares them inside it. */
     readonly indexes: readonly IndexDraft[];

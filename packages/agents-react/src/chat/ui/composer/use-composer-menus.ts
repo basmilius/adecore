@@ -1,7 +1,7 @@
 import type { ChatInfo, ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
 import { useEffect, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostAccountRule, useHostReferables } from '../../../host-hooks';
+import { useHostAccountRule, useHostReferables } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import type { ComposerInputHandle } from '../ComposerInput';
 import type { ComposerDraft } from './use-composer-draft';
@@ -10,7 +10,7 @@ import { usePromptMenus, type PromptMenus } from './use-prompt-menus';
 export type { ComposerCommand } from './use-prompt-menus';
 
 // Commands the composer handles itself; the CLI's own ones are sent through as text.
-export const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
+const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
 
 interface MenusInput {
     chatId: string;

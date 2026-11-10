@@ -83,7 +83,7 @@ function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: 
  * can open the target; one it cannot, outside the project or gone, stays mono text with the reason
  * in a tooltip. A chip fades in, since a link reads as text until the host checked it.
  */
-export function UiLinkChip({ target, context }: { target: UiLinkTarget; context: UiRenderContext }) {
+function UiLinkChip({ target, context }: { target: UiLinkTarget; context: UiRenderContext }) {
     const { t } = useTranslation('agent-chat');
     const link = context.link?.(target) ?? PLAIN;
 

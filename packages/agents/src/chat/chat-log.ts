@@ -44,7 +44,7 @@ export function parseLog(raw: string): ChatLogLine[] {
     return lines;
 }
 
-export interface ChatLogState {
+interface ChatLogState {
     // The last seq anything on disk accounts for, the snapshot or the log.
     seq: number;
     resetSeq: number;

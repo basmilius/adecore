@@ -114,14 +114,20 @@ export function arrowHeadPath(points: readonly Point[]): string {
     return `M${tip.x} ${tip.y} L${round(baseX - uy * HEAD_WIDTH)} ${round(baseY + ux * HEAD_WIDTH)} L${round(baseX + uy * HEAD_WIDTH)} ${round(baseY - ux * HEAD_WIDTH)} Z`;
 }
 
-export function dashOf(style: DiagramEdgeStyle | undefined): string | null {
+export const LINE_WIDTH = 2;
+
+export function dashLengthsOf(style: DiagramEdgeStyle | undefined): number[] | null {
     if (style === 'dashed') {
-        return '8 6';
+        return [8, 6];
     }
 
     if (style === 'dotted') {
-        return '2 5';
+        return [2, 5];
     }
 
     return null;
+}
+
+export function dashOf(style: DiagramEdgeStyle | undefined): string | null {
+    return dashLengthsOf(style)?.join(' ') ?? null;
 }

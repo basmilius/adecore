@@ -1,17 +1,25 @@
 import type { EditorPosition, EditorTextChange } from '@adecore/editor';
 import type { EditPlace } from './edit-locations.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import type { Place } from './navigation-history.ts';
+import type { PickFeature } from './pick.ts';
 import { isShortcut } from './shortcut-keys.ts';
+
+/* The sibling features HistoryFeature drives, which the editor language hands over. */
+interface HistoryPeers {
+    readonly pick: Pick<PickFeature, 'locations'>;
+}
 
 /* Back, Forward and the list of recent locations over the history the whole project shares. */
 export class HistoryFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: HistoryPeers;
     private editing = false;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: HistoryPeers) {
         this.language = language;
+        this.peers = peers;
 
         const off = language.onKey((event) => {
             if (isShortcut(this.language.shortcuts.historyBack, event)) {
@@ -83,7 +91,7 @@ export class HistoryFeature {
     recent(): void {
         const places = this.language.project.history.recent(this.language.place);
 
-        this.language.locations(
+        this.peers.pick.locations(
             places.map((place) => ({ uri: place.uri, range: { start: place.position, end: place.position } })),
             this.language.editor.getCaret(),
             this.language.project.i18n.t('editor:language.history.recent')

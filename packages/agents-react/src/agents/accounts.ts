@@ -1,6 +1,6 @@
 import { orderedAccountIds, type AgentKind, type ProviderAccount, type ProviderAccounts, type ProviderAccountStatus } from '@adecore/agent-contracts';
 import i18next from 'i18next';
-import type { AccentChoice, ChatHost } from '../host';
+import type { AccentChoice, AccountRule, ChatHost } from '../host/host';
 
 /*
  * An account wears one of the host's accents, so the app paints from one palette. A color that is none
@@ -52,9 +52,6 @@ export function movedIds(ids: readonly string[], id: string, to: number): string
     return [...rest.slice(0, place), id, ...rest.slice(place)];
 }
 
-/* What a project says about the accounts of each CLI: the one its new chats start on, and those it never offers. */
-export type AccountRule = Partial<Record<string, { default?: string; off?: readonly string[] }>>;
-
 /* The accounts a project offers, as `offeredAccounts` gives them; the one in use stays even when the project turned it off. */
 export function projectOffered(
     entries: readonly AccountEntry[],
@@ -93,7 +90,7 @@ export function accountLoginOf(accounts: ProviderAccounts | null | undefined, ki
     return accounts?.chatLogins?.includes(kind) === true ? 'chat' : null;
 }
 
-export type AccountTone = 'muted' | 'needs-you' | 'error';
+type AccountTone = 'muted' | 'needs-you' | 'error';
 
 export const ACCOUNT_TONE_CLASSES: Record<AccountTone, string> = {
     muted: 'text-text-muted',

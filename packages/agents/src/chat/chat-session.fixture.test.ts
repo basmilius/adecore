@@ -1,6 +1,6 @@
 import type { ChatInfo } from '@adecore/agent-contracts';
-import { claudeProvider } from '../providers/claude-provider.ts';
-import type { BackendEvent, BackendHost, ChatBackend, TurnInput } from './backend.ts';
+import type { BackendEvent, BackendHost, ChatBackend, TurnInput } from '../backends/backend.ts';
+import { claudeProvider } from '../testing/providers.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
 
 function info(): ChatInfo {
@@ -64,7 +64,6 @@ function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
                 return backend;
             }
         },
-        command: ['unused'],
         env: () => ({}),
         emit: () => undefined,
         persist: () => undefined,

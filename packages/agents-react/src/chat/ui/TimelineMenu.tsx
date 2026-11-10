@@ -2,9 +2,10 @@ import { ContextMenu, copyText, DisabledReason, EDIT_SHORTCUTS, Icon, Kbd, selec
 import { BookmarkPlus, BookmarkX, Braces, Copy, Eye, FileText, GitFork, MessageSquare, MoveHorizontal, Pencil, Scan } from 'lucide-react';
 import type { RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
+import { useProviders } from '../../state/providers';
 import { placeBookmark, removeBookmark, useBookmarkNaming } from '../bookmarks';
 import { forkRefusal, turnIdOfRow } from '../logic/fork';
 import { markdownOf, messageTextOf } from '../logic/timeline-copy';
@@ -33,7 +34,8 @@ export function TimelineMenuPopup({
     const row = target.row;
     const message = row === null ? null : messageTextOf(row);
     const turnId = chatId === null || target.row === null ? null : turnIdOfRow(target.row);
-    const forkBlocked = useChatRow(chatId ?? '', (row) => (turnId === null ? null : forkRefusal(row?.info ?? null, row?.structure[turnId])));
+    const providers = useProviders((host) => host);
+    const forkBlocked = useChatRow(chatId ?? '', (row) => (turnId === null ? null : forkRefusal(row?.info ?? null, row?.structure[turnId], providers)));
     const markdown = target.row === null ? null : markdownOf(target.row);
     const markable = chatId !== null && (target.row?.kind === 'user' || target.row?.kind === 'assistant') ? target.row.id : null;
     // A thread outside a chat (a sub-agent's transcript) has no cwd of its own; the app answers for it then.

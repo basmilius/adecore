@@ -30,7 +30,6 @@ export const useProviderAccountsStore = create<ProviderAccountsStore>((set, get)
     }
 }));
 
-/* The accounts of the host in scope, like `useProviders`. */
 export function useProviderAccounts<T>(select: (row: ProviderAccountsRow) => T): T {
     const { id } = useChatScope();
 

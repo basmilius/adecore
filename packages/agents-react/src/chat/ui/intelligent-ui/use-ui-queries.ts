@@ -1,7 +1,7 @@
 import type { ChatUiQueryReading, ChatUiQueryState } from '@adecore/agent-contracts';
 import { uiInputValues, uiNodeQueries, UI_CATALOG_VERSION, UI_HOST_LIMITS, UiState, type UiBlock, type UiViewNode } from '@adecore/intelligent-ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { UiPageMemory } from './block-local';
 import type { UiLiveNodeState, UiLiveValue, UiLiveStatus, UiRenderContext } from './render-context';
 

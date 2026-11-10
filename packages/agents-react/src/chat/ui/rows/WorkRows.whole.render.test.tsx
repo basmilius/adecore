@@ -3,7 +3,7 @@ import type { ChatCheckpointDiff, ChatToolItem } from '@adecore/agent-contracts'
 import { createPage } from '@adecore/editor/testing';
 import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import { ChatHostProvider, type ChatActions, type ChatHost } from '../../../host';
+import { ChatHostProvider, type ChatActions, type ChatHost } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { ChangedFilesRow, ToolBody } from './WorkRows';
 

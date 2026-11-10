@@ -15,7 +15,6 @@ export interface ExportRow {
 const REPOSITORY = 'https://github.com/basmilius/adecore/blob/main';
 const DOCS = absolute('docs');
 
-/* `<ExportTable entry="@adecore/utils/async" />` on a line of its own. */
 const EXPORT_TABLE_TAG = /^<ExportTable\s+entry="([^"]+)"\s*\/>$/;
 
 const DECLARATION =
@@ -39,7 +38,6 @@ function kindOfDeclaration(keyword: string, name: string, file: string, rest: st
         return 'hook';
     }
 
-    // A component is a capitalized function in a TSX module; a capitalized constant there is one too, when it is not SHOUTING.
     if (file.endsWith('.tsx') && /^[A-Z]/.test(name) && !/^[A-Z0-9_]+$/.test(name)) {
         return 'component';
     }

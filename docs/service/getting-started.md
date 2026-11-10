@@ -43,7 +43,7 @@ import { setTimeout } from 'node:timers/promises';
 import { diskFiles, platformServiceManager, runCommand } from '@adecore/service';
 
 const manager = platformServiceManager(process.platform, {
-    launchd: { label: spec.label, logFile: spec.logFile, uid: userInfo().uid, home, run: runCommand, files: diskFiles, sleep: (ms) => setTimeout(ms) },
+    launchd: { service: spec, uid: userInfo().uid, home, run: runCommand, files: diskFiles, sleep: (ms) => setTimeout(ms) },
     systemd: { unitName: 'example-worker.service', configHome: join(home, '.config'), user: userInfo().username, run: runCommand, files: diskFiles }
 });
 
@@ -90,8 +90,8 @@ manager.uninstall();
 ## Checklist
 
 - Every path in the spec is absolute, and `environment` holds everything the program needs.
-- The launchd `label` and `logFile` equal the spec's.
-- On Windows, `taskName` equals the spec's `label`, and the spec has `user` and `scriptDirectory`.
+- The managers get the spec, or the same `label` and `logFile`, as `service`.
+- On Windows, the spec has `user` and `scriptDirectory`.
 - The app refuses a definition that runs another program before it installs over it.
 - Only one change runs at a time, and `restart()` is awaited.
 - On Linux, lingering is turned on only after the person agreed ([Lingering](/service/managers#lingering)).

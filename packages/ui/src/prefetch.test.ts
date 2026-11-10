@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { Prefetcher, type Loader, type WhenIdle } from './prefetch.ts';
 
-/* Runs every idle callback at once and writes down that it was asked. */
 const eagerIdle = (log: string[]): WhenIdle => {
     return (run) => {
         log.push('idle');

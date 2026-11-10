@@ -1,3 +1,4 @@
+import { REPLY_COLUMN_WIDTH } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import type { CSSProperties } from 'react';
 
@@ -11,7 +12,7 @@ export const DEFAULT_READING_WIDTH: ChatReadingWidth = 'comfortable';
 // About 75 and 90 characters of the thread's text a line.
 const MEASURES: Readonly<Record<ChatReadingWidth, number>> = {
     narrow: 640,
-    comfortable: 768,
+    comfortable: REPLY_COLUMN_WIDTH,
     full: Number.POSITIVE_INFINITY
 };
 

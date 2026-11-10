@@ -3,7 +3,6 @@ import type { MarkdownRenderer } from 'vitepress';
 
 const DEMOS = new URL('../demos/', import.meta.url);
 
-/* `<Demo src="actions/button-variants" />` on a line of its own, with an optional flag such as `fill` after it. */
 const DEMO_TAG = /^<Demo\s+src="([\w/-]+)"((?:\s+[a-z]+)*)\s*\/>$/;
 
 /*

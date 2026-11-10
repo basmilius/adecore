@@ -7,7 +7,6 @@ import { parseSync, type Program } from 'oxc-parser';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(HERE, '..');
 
-/* Every entry point by its subpath, and the file behind it. */
 const ENTRIES: Record<string, string> = {
     '.': 'index.ts'
 };

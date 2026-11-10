@@ -1,4 +1,4 @@
-export type OverviewKind = 'added' | 'modified' | 'deleted' | 'find' | 'find-current' | 'occurrence' | 'todo' | 'info' | 'warning' | 'error';
+type OverviewKind = 'added' | 'modified' | 'deleted' | 'find' | 'find-current' | 'occurrence' | 'todo' | 'info' | 'warning' | 'error';
 
 /* A stretch of the content, in the pixels the content is laid out in. */
 export interface OverviewSpan {
@@ -10,7 +10,7 @@ export interface OverviewSpan {
     title?: string;
 }
 
-export interface OverviewTick {
+interface OverviewTick {
     kind: OverviewKind;
     y: number;
     height: number;

@@ -8,7 +8,7 @@ export type WorkflowCall = ChatToolItem & { workflow: ChatWorkflow };
 /* `stalled` still runs, but reported nothing for a while. */
 export type WorkflowWord = 'running' | 'stalled' | 'done' | 'failed';
 
-export interface WorkflowPill {
+interface WorkflowPill {
     word: WorkflowWord;
     label: string;
 }

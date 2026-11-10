@@ -10,14 +10,14 @@ export const EndChildrenWorkSchema = z.object({
     payload: z.object({ nodeIds: z.array(z.string().min(1)) })
 });
 
-export type EndChildrenWork = z.infer<typeof EndChildrenWorkSchema>;
+type EndChildrenWork = z.infer<typeof EndChildrenWorkSchema>;
 export type EndChildrenEntry = OutboxEntryOf<EndChildrenWork>;
 
 /* The work of tasks that would start or wake an agent again; an agent that was ended has none of it left. */
 const TASK_REVIVING: readonly string[] = ['wake-parent', 'give-task'];
 
 /* The outbox of a host as ending uses it, whatever else the host owes in it. */
-export interface EndChildrenOutbox {
+interface EndChildrenOutbox {
     list(): readonly AnyOutboxEntry[];
     enqueue(projectId: string, target: string, work: EndChildrenWork): Promise<void>;
     remove(id: string): Promise<void>;
@@ -38,7 +38,7 @@ export interface EndChildrenDeps {
     now?: () => number;
 }
 
-export interface EndChildren {
+interface EndChildren {
     /*
      * Owes ending the agents a node opened, before the node itself is stopped or once it is deleted, and
      * answers how many that is. Written to disk first, so a restart in between still ends them. A second

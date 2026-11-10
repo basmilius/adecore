@@ -8,7 +8,7 @@ export const UI_CHART_ROWS = 60;
 type ChartRow = UiProps<'Chart'>['data'][number];
 type ChartKind = UiProps<'Chart'>['kind'];
 
-export interface UiChartSeries {
+interface UiChartSeries {
     key: string;
     /* One per label, null where a row has no number for this series. */
     values: (number | null)[];

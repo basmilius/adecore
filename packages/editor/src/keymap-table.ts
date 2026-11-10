@@ -1,7 +1,15 @@
-import type { KeyChord } from './types.ts';
+/* A shortcut: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` and `meta` the physical keys. */
+export interface KeyChord {
+    readonly mod: boolean;
+    readonly ctrl: boolean;
+    readonly meta: boolean;
+    readonly alt: boolean;
+    readonly shift: boolean;
+    /* An uppercase letter, a digit, a punctuation mark or a named key such as `ArrowLeft`. */
+    readonly key: string;
+}
 
 export interface TakenKey {
-    /* The chord the platform binds on the platform this entry is for. */
     readonly platform: string;
     /* The host command that owns the chord. */
     readonly by: string;
@@ -207,7 +215,6 @@ export function resolveKeymap(overrides: KeymapOverrides = {}): Keymap {
     return Object.fromEntries(KEYMAP_IDS.map((id) => [id, { ...KEYMAP[id], ...overrides[id] }])) as unknown as Keymap;
 }
 
-/* The chord of a command on a platform, or null when the platform has none. */
 export function chordOf(id: KeymapId, apple: boolean, keymap: Keymap = KEYMAP): string | null {
     return (keymap[id] ?? KEYMAP[id])[apple ? 'mac' : 'other'];
 }

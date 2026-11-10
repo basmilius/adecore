@@ -1,5 +1,5 @@
 import clsx from 'clsx';
-import { useChatHost } from '../host';
+import { useChatHost } from '../host/host';
 import { accountColor } from './accounts';
 
 /* The color an account wears, or the app's accent while it wears none of the accents. */

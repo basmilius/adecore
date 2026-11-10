@@ -5,7 +5,7 @@ import clsx from 'clsx';
 import { Info, Lock, Radio, TriangleAlert } from 'lucide-react';
 import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost } from '../../../host';
+import { useChatHost } from '../../../host/host';
 import { uiBlockHead, uiReasonText } from './node-text';
 import { UiHeadContext, type UiLiveStatus } from './render-context';
 import { useLater } from './use-later';
@@ -16,7 +16,7 @@ export interface UiBlockFix {
     message: string;
 }
 
-export interface UiBlockFooterProps {
+interface UiBlockFooterProps {
     live?: UiLiveStatus | null;
     /* The label of the Choice that answered the block, and when, in milliseconds since the epoch. */
     answered?: { label: string; at: number } | null;

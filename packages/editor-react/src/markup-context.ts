@@ -1,42 +1,41 @@
 /* `vue` and `php` are HTML with interpolations or code blocks a markup feature leaves alone. */
 export type MarkupSyntax = 'html' | 'xml' | 'vue' | 'php';
 
-export interface OpenElement {
+interface OpenElement {
     readonly name: string;
     /* The offset of the first character of the name, after the `<`. */
     readonly nameFrom: number;
 }
 
 /* The tag an offset is in, from its `<` up to and including its `>`. */
-export interface TagAt {
+interface TagAt {
     readonly start: number;
     readonly closing: boolean;
     readonly name: string;
     readonly nameFrom: number;
     readonly nameTo: number;
-    /* The offset is inside a quoted attribute value. */
     readonly inValue: boolean;
 }
 
-export type MarkupPlace =
+type MarkupPlace =
     | { readonly kind: 'text'; readonly open: readonly OpenElement[] }
     | { readonly kind: 'tag'; readonly tag: TagAt }
     | { readonly kind: 'other' };
 
 /* The names of an element that are one start tag and its end tag, which change together. */
-export interface TagPair {
+interface TagPair {
     readonly open: { readonly from: number; readonly to: number };
     readonly close: { readonly from: number; readonly to: number };
 }
 
 /* A whole tag, from its `<` up to and after its `>`. */
-export interface TagSpan {
+interface TagSpan {
     readonly from: number;
     readonly to: number;
 }
 
 /* An element as its tags: `close` is null for one that was never closed. */
-export interface EnclosingElement {
+interface EnclosingElement {
     readonly name: string;
     readonly open: TagSpan;
     readonly close: TagSpan | null;
@@ -258,7 +257,6 @@ class MarkupScanner {
         }
     }
 
-    /* The elements still open at the end of the text. */
     unclosed(): EnclosingElement[] {
         return this.open.map((element) => ({ name: element.name, open: element.tag, close: null }));
     }
@@ -279,7 +277,6 @@ export function enclosingElements(text: string, offset: number, syntax: MarkupSy
         .sort((left, right) => right.open.from - left.open.from);
 }
 
-/* A replacement of the text from one offset up to another. */
 export interface TextReplacement {
     readonly from: number;
     readonly to: number;

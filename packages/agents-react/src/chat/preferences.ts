@@ -7,8 +7,8 @@ import {
     type ProviderAccounts,
     type RuntimeMode
 } from '@adecore/agent-contracts';
+import { persistedJson } from '../persisted-json';
 import { chatStorageKey, chatStorageLegacyKeys, createChatStore, onChatStorageConfiguration } from '../storage';
-import { persistedJson } from './persisted-json';
 import { DEFAULT_READING_WIDTH, isChatReadingWidth, type ChatReadingWidth } from './reading-width';
 import { DEFAULT_SEND_KEY, isChatSendKey, type ChatSendKey } from './send-key';
 
@@ -266,7 +266,6 @@ export function toggleFavoriteModel(provider: AgentKind, slug: string): void {
     store(withFavoriteToggled(useChatPreferences.getState(), provider, slug));
 }
 
-/* Back to the CLI's own default for this provider; the other providers keep what they had. */
 export function forgetChatSelection(provider: AgentKind): void {
     const current = useChatPreferences.getState();
     const { [provider]: _dropped, ...rest } = current.selectionByProvider;

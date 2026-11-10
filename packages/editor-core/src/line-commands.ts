@@ -6,9 +6,9 @@ import { isBlank, rangeOf, whitespaceOf } from './line-text.ts';
 import { markupGuard } from './markup-regions.ts';
 import { mapOffset } from './offsets.ts';
 import type { Selection, TextEdit } from './types.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
-export interface LineCommandOptions {
+interface LineCommandOptions {
     language: string;
     /* One level of indentation. */
     unit: string;
@@ -21,7 +21,6 @@ function shiftBefore(offset: number, edits: readonly TextEdit[]): number {
     return edits.filter((edit) => edit.from < offset).reduce((sum, edit) => sum + edit.text.length - (Math.min(edit.to, offset) - edit.from), 0);
 }
 
-/* The offset of the first character after `from` that is not whitespace, line breaks included. */
 function skipWhitespace(source: EditSource, from: number): number {
     const last = source.line(source.lineCount - 1).end;
     let offset = from;
@@ -63,7 +62,6 @@ function endComment(source: EditSource, options: LineCommandOptions, line: numbe
     return { start: context.commentStart, marker: syntax.line };
 }
 
-/* One join of a line with the next content after it. */
 function joinAfter(source: EditSource, options: LineCommandOptions, index: number): Join | null {
     const left = source.line(index);
     const next = skipWhitespace(source, left.end);
@@ -195,7 +193,6 @@ export function planJoinLines(source: EditSource, selections: readonly Selection
     return { edits, selections: result };
 }
 
-/* The identifier characters around an offset. */
 function wordAround(source: EditSource, offset: number): { from: number; to: number } {
     const line = source.line(source.lineAt(offset));
     const column = offset - line.start;
@@ -381,7 +378,6 @@ function previousCodeLine(source: EditSource, line: number): number | null {
     return null;
 }
 
-/* Whether `bracket` is `outer` or sits inside it. */
 function within(bracket: TypingContext['bracket'], outer: TypingContext['bracket']): boolean {
     for (let current = bracket; ; current = current.previous) {
         if (current === outer) {

@@ -6,7 +6,7 @@ import type { EditorSearchSnapshot } from './search-protocol.ts';
 import { SEARCH_LIMIT, MAX_REPLACEMENT_PAGE, MAX_REPLACEMENT_CHARACTERS } from './search-protocol.ts';
 import type { EditorFindQuery, EditorFindState } from './types.ts';
 
-export interface FindMark {
+interface FindMark {
     from: number;
     to: number;
 }
@@ -14,7 +14,7 @@ export interface FindMark {
 export const FIND_LIMIT = SEARCH_LIMIT;
 const LIVE_REGEX_LIMIT = 8_000_000;
 
-export interface FindControllerOptions extends FindSearchOptions {
+interface FindControllerOptions extends FindSearchOptions {
     readonly changed: (reveal?: boolean) => void;
 }
 
@@ -93,7 +93,6 @@ export class FindController {
         };
     }
 
-    /* The range a search in the selection is held to. */
     get scope(): { from: number; to: number } | null {
         return this.query?.inSelection === true ? this.bounds : null;
     }
@@ -205,7 +204,6 @@ export class FindController {
         this.refresh();
     }
 
-    /* The text of a search in the selection moved with an edit. */
     mapBounds(changes: readonly DocumentChange[]): void {
         if (this.pendingAnchor !== undefined) {
             this.pendingAnchor = mapOffset(this.pendingAnchor, changes);

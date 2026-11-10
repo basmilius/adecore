@@ -1,12 +1,12 @@
-import { drawnBoundsOfElements, type Rect } from './geometry.ts';
+import type { Rect } from '@adecore/utils/geometry';
+import { drawnBoundsOfElements } from './geometry.ts';
 import { pathsOfElement, type ElementPath } from './paths.ts';
 import type { DrawingColor, DrawingElement, DrawingFont } from './protocol.ts';
-import { DEFAULT_FONT_STACKS, LINE_HEIGHT, approximateMeasure, fontOf, linesOf, writingFrameOf, type MeasureLine, type WrittenElement } from './text.ts';
+import { DEFAULT_FONT_STACKS, approximateMeasure, fontOf, lineAnchorX, lineBaselineY, linesOf, type MeasureLine, type WrittenElement } from './text.ts';
 
 export interface SvgOptions {
     /* What every palette name is in the theme this export is made in; without it the light theme's colors are used. */
     palette?: Record<DrawingColor, string>;
-    /* The paper behind the drawing, or null for a transparent one. */
     background?: string | null;
     /* World units around the drawing, so nothing touches the edge. */
     margin?: number;
@@ -88,12 +88,11 @@ function textSvg(element: WrittenElement, options: PaintOptions): string {
     const font = fontOf(element.font);
     const family = options.fonts?.[font] ?? DEFAULT_FONT_STACKS[font];
     const anchor = element.align === 'center' ? 'middle' : element.align === 'right' ? 'end' : 'start';
-    const frame = writingFrameOf(element);
-    const dx = frame.x + (element.align === 'center' ? frame.w / 2 : element.align === 'right' ? frame.w : 0);
+    const dx = lineAnchorX(element);
     const measure = options.measure?.(element) ?? approximateMeasure(element.size, element.font);
 
     const lines = linesOf(element, measure)
-        .map((line, index) => `<tspan x="${round(dx)}" y="${round(frame.y + (index + 0.8) * element.size * LINE_HEIGHT)}">${escapeXml(line)}</tspan>`)
+        .map((line, index) => `<tspan x="${round(dx)}" y="${round(lineBaselineY(element, index))}">${escapeXml(line)}</tspan>`)
         .join('');
 
     return `<text font-family="${escapeXml(family)}" font-size="${element.size}" fill="${options.palette[element.stroke]}" text-anchor="${anchor}">${lines}</text>`;

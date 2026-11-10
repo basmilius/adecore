@@ -32,9 +32,7 @@ export interface DesignerViewProps {
     dialect: Dialect;
     schema: string;
     draft: TableDraft;
-    /* The table does not exist yet. */
     isNew: boolean;
-    /* The draft differs from what was loaded. */
     changed: boolean;
     /* The tables a foreign key can point at. */
     tables: readonly string[];
@@ -43,12 +41,10 @@ export interface DesignerViewProps {
     readOnlyReason: string | null;
     /* What the last Apply answered with, kept until the next one. */
     failure: string | null;
-    /* The confirmation of the statements is open. */
     confirming: boolean;
     /* The columns of a table a foreign key may point at, or `null` while they load. */
     referenceColumns(table: string): readonly string[] | null;
     onChange(draft: TableDraft): void;
-    /* Opens the confirmation. */
     onRequestApply(): void;
     onConfirm(): Promise<void>;
     onCancelConfirm(): void;
@@ -62,7 +58,6 @@ export interface DesignerViewProps {
 
 const APPLY_SHORTCUT = /* @__PURE__ */ shortcut('Mod+S');
 
-/* The designer with everything it needs handed in: the name, the four tabs, what Apply would run and the confirmation before it does. */
 export function DesignerView({
     dialect,
     schema,

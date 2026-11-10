@@ -14,7 +14,6 @@ export type InstallStepState = 'done' | 'current' | 'later';
 
 const PLATFORMS: readonly ProviderPlatform[] = ['darwin', 'linux', 'win32'];
 
-/* The first step not done is the current one. */
 export function installStepStates(done: readonly boolean[]): InstallStepState[] {
     const first = done.indexOf(false);
 

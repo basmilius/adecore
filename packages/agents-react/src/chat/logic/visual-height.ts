@@ -18,7 +18,6 @@ function keyOf(visualId: string, width: number): string {
     return `${visualId}@${Math.round(width)}`;
 }
 
-/* A height a page reported, held to the visual's own maximum and the limits, in whole pixels. */
 export function clampVisualHeight(visual: Pick<ChatVisual, 'maxHeight'>, height: number): number {
     return Math.min(Math.max(Math.ceil(Math.min(height, visual.maxHeight)), VISUAL_LIMITS.minHeight), VISUAL_LIMITS.maxHeight);
 }

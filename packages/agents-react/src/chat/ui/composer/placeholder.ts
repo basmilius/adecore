@@ -1,7 +1,7 @@
 import type { TFunction } from 'i18next';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useHostComposerPlaceholder } from '../../../host-hooks';
+import { useHostComposerPlaceholder } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 
 interface PlaceholderHint {

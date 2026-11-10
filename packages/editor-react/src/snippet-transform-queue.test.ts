@@ -1,7 +1,7 @@
 import { expect, test } from 'bun:test';
 import type { WorkerRequestPort } from '@adecore/editor/worker-client';
 import type { SnippetTransformInput, SnippetTransformOutput } from './snippet-transform-protocol.ts';
-import { acquireSnippetTransforms, SnippetTransformQueueError, SnippetTransforms } from './snippet-transform-queue.ts';
+import { SnippetTransformQueueError, SnippetTransforms } from './snippet-transform-queue.ts';
 import { ManualTimers } from './timers.ts';
 
 const settle = async (): Promise<void> => {
@@ -205,8 +205,8 @@ test('a project queue keeps its first clock while another editor retains the lea
 
     const project = new ProjectLanguage(new FakeLanguageService(), { snippetTransformWorker: () => port });
 
-    const first = acquireSnippetTransforms(project, a)!,
-        second = acquireSnippetTransforms(project, b)!;
+    const first = project.acquireSnippetTransforms(a)!,
+        second = project.acquireSnippetTransforms(b)!;
 
     first.dispose();
     const pending = second.request(job('a'));

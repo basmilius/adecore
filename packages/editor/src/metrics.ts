@@ -1,4 +1,4 @@
-import type { LayoutMetrics } from './layout.ts';
+import type { LayoutMetrics } from './line-geometry.ts';
 
 export interface EditorFont {
     family: string;

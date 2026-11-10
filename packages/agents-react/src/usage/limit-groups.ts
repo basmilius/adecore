@@ -14,11 +14,8 @@ import { limitsAccountId } from '../agents/account-limits';
 import { accountName, accountsOfKind, accountStatusLine } from '../agents/accounts';
 import { PROVIDER_LABELS } from './format';
 
-export { evenPace, type EvenPace, type PaceStanding } from '@adecore/agent-contracts';
-
 const MINUTE = 60_000;
 
-/* One account of a CLI as the limits draw it. */
 export interface LimitAccount {
     id: string;
     kind: UsageProvider;
@@ -169,7 +166,6 @@ export function checkedLabel(entry: UsageLimitsProvider, now: number): string | 
     return entry.source === 'event' ? i18next.t('agent-usage:limits.checked.fromTurn', { when }) : when;
 }
 
-/* Why a read account has no bars, or null when it has them. */
 export function explain(provider: UsageLimitsProvider): string | null {
     if (provider.unavailable === null) {
         return provider.windows.length === 0 ? i18next.t('agent-usage:limits.none') : null;

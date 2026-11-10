@@ -1,12 +1,12 @@
 import type { EditPlan, EditSource } from './edit-source.ts';
+import type { FoldingRange } from './fold-types.ts';
 import { isBraced } from './lexical.ts';
 import { indentText, isBlank, whitespaceOf } from './line-text.ts';
 import { mapOffset } from './offsets.ts';
 import { DECLARATION, declarationBody, METHOD, NOT_METHODS, indentWidth, statementAt, visualWidth } from './statements.ts';
-import type { FoldingRange } from './structure.ts';
 import type { Selection, TextEdit } from './types.ts';
 
-export interface MoveStatementOptions {
+interface MoveStatementOptions {
     language: string;
     /* One level of indentation. */
     unit: string;
@@ -17,7 +17,7 @@ export interface MoveStatementOptions {
     lineSpan?: (line: number) => { first: number; last: number };
 }
 
-export interface StatementMove extends EditPlan {
+interface StatementMove extends EditPlan {
     /* The lines that changed place, by their number before (`from`) and after (`to`). */
     moves: { from: number; to: number }[];
 }
@@ -110,7 +110,6 @@ class Planner {
         return indentWidth(this.source.line(line).text, this.options.tabSize);
     }
 
-    /* The lines of the statements a selection touches. */
     unitOf(selection: Selection): LineRange {
         const from = Math.min(selection.anchor, selection.head);
         const to = Math.max(selection.anchor, selection.head);

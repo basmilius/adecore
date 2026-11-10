@@ -26,7 +26,7 @@ export interface ModelPrice {
     tiers?: Partial<Record<string, ModelPrice>>;
 }
 
-export type PriceTable = Map<string, ModelPrice>;
+type PriceTable = Map<string, ModelPrice>;
 
 export interface PriceLookup {
     price: ModelPrice | null;

@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { AGENT_EVENT_SCHEMAS, TOOL_OUTPUT_TAIL, type ChatEvent, type ChatInfo } from '@adecore/agent-contracts';
-import type { BackendEvent } from './backend.ts';
+import type { BackendEvent } from '../backends/backend.ts';
 import { ThreadProjector, stripAgentFooter, summaryLine } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -56,7 +56,6 @@ describe('ThreadProjector', () => {
         const { thread, project } = setup();
         project({ type: 'session', agentSessionId: 'sid', model: 'sonnet', slashCommands: ['compact'] });
         expect(thread.info).toMatchObject({ agentSessionId: 'sid', model: 'sonnet', slashCommands: ['compact'], running: true });
-        // A later frame without a model leaves the one that is known.
         project({ type: 'session', agentSessionId: null, model: null });
         expect(thread.info).toMatchObject({ agentSessionId: 'sid', model: 'sonnet' });
     });
@@ -105,7 +104,6 @@ describe('ThreadProjector', () => {
         project({ type: 'tool.done', ref: 'toolu_1', output: 'ok', state: 'done' });
         expect(thread.get('1:toolu_1')).toMatchObject({ state: 'done', output: 'ok' });
         expect(thread.get('1:toolu_1')).not.toHaveProperty('progress');
-        // Nothing waits under an unknown ref, and a settled call takes no more progress.
         expect(project({ type: 'tool.done', ref: 'nope', output: 'x', state: 'done' })).toEqual([]);
         expect(project({ type: 'tool.progress', ref: 'toolu_1', startedAt: 5, description: null })).toEqual([]);
     });
@@ -152,7 +150,6 @@ describe('ThreadProjector', () => {
         const turn = openTurn();
         expect(turn).toMatchObject({ kind: 'turn', state: 'running', origin: 'agent', label: 'Report written' });
         expect(thread.info).toMatchObject({ status: 'running', activeTurnId: turn?.id ?? '' });
-        // No message of the person in front of it, and the text belongs to the new turn.
         expect(thread.list().some((item) => item.kind === 'user')).toBe(false);
         expect(thread.get('1:msg_9:t0')).toMatchObject({ turnId: turn?.id ?? '' });
 
@@ -408,7 +405,6 @@ describe('thinking', () => {
         const settled = thread.list().find((item) => item.kind === 'thinking');
         expect(settled).toMatchObject({ streaming: false });
         expect(settled?.kind === 'thinking' && settled.endedAt).not.toBeNull();
-        // The row sits in front of the answer it led to.
         expect(thread.list().map((item) => item.kind)).toEqual(['turn', 'thinking', 'assistant']);
     });
 
@@ -493,7 +489,6 @@ describe('subagents', () => {
             result: null,
             itemsTruncated: false
         });
-        // No tool row for the call itself: the subagent row is what says it happened.
         expect(thread.list().some((item) => item.kind === 'tool')).toBe(false);
 
         project({ type: 'task.started', ref: 'toolu_agent', description: 'Find the bug', subagentType: 'explorer', prompt: null, background: true });
@@ -522,7 +517,6 @@ describe('subagents', () => {
         const child = thread.get('1:toolu_child');
         expect(child).toMatchObject({ kind: 'tool', parentToolUseId: 'toolu_agent', state: 'done', turnId: 'turn-1' });
         expect(thread.get('1:msg_9:t0')).toMatchObject({ kind: 'assistant', parentToolUseId: 'toolu_agent', text: 'the bug is in a.ts' });
-        // The last thing it wrote is the report it ends with, until the call itself says otherwise.
         expect(thread.get('1:toolu_agent')).toMatchObject({ result: 'the bug is in a.ts' });
     });
 
@@ -576,7 +570,6 @@ describe('subagents', () => {
             finishedAt: expect.any(Number)
         });
 
-        // A call that failed leaves the row failed, with whatever it did say.
         const other = setup();
 
         other.project(
@@ -606,12 +599,10 @@ describe('subagents', () => {
             usage: { totalTokens: 20, toolUses: 3, durationMs: 40 }
         });
 
-        // The wake-up turn says what it is about and points at the row it came from.
         project({ type: 'text.done', ref: 'msg_10:t0', text: 'here is what it found' });
         const agentTurn = thread.list().find((item) => item.kind === 'turn' && item.origin === 'agent');
         expect(agentTurn).toMatchObject({ label: 'read the docs', taskToolUseId: 'toolu_agent' });
 
-        // A second notification for the same agent only updates what came of it.
         project({ type: 'task.done', ref: 'toolu_agent', summary: 'read the docs twice', ok: true });
         expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'done', summary: 'read the docs twice' });
     });
@@ -781,9 +772,7 @@ describe('an agent a subagent opened', () => {
             turnId: 'turn-1',
             native: { agentId: 'a-leaf' }
         });
-        // The call that opened it is the row; no tool row stands beside it.
         expect(thread.list().some((item) => item.kind === 'tool')).toBe(false);
-        // Only its parent's own row is a row of the thread.
         expect(thread.get('1:toolu_mid')).not.toHaveProperty('parentToolUseId');
 
         // Should the CLI forward the grandchild's own steps, they are drill-in's to show.

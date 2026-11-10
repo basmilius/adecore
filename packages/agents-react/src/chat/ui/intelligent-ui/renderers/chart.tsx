@@ -179,7 +179,6 @@ function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: str
     );
 }
 
-/* The values of one category beside the pointer. */
 function Readout({ chart, index, left, unit }: { chart: UiChartData; index: number; left: number; unit: string | undefined }) {
     return (
         <div
@@ -199,7 +198,6 @@ function Readout({ chart, index, left, unit }: { chart: UiChartData; index: numb
     );
 }
 
-/* Bars and lines over a value axis, in SVG at the measured width. */
 function VerticalChart({
     chart,
     kind,
@@ -412,7 +410,6 @@ function ChartNotes({
 }: {
     chart: UiChartData;
     requested: ChartKind;
-    /* Whether a category label is cut short at this width. */
     cut: boolean;
     values: UiChartValues;
     unit: string | undefined;

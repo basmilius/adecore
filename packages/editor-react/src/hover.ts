@@ -1,10 +1,11 @@
 import type { EditorHover, EditorPosition, EditorRange } from '@adecore/editor';
-import { rangeHolds, type Problem } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { type Problem } from './diagnostics-model.ts';
 import { hoverTextOf, isEmptyHover, locationsOf, type HoverText } from './hover-content.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { lineTextOf } from './line-text.ts';
 import type { HoverInfo } from './popups.ts';
+import { rangeHolds } from './positions.ts';
 import { wordRangeAt } from './rename-model.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -23,13 +24,20 @@ export interface HoverSettings {
     readonly referenceCount?: boolean;
 }
 
+/* The sibling features HoverFeature drives, which the editor language hands over. */
+interface HoverPeers {
+    readonly diagnostics: { at(position: EditorPosition): Problem[] };
+    readonly inlayHints: { showTooltipAt(position: EditorPosition): Promise<boolean> };
+}
+
 /*
  * The card under a character the pointer rests on: the problems there, and what the language servers
  * say about the symbol. It opens after the pointer has stayed a moment, stays while the pointer is on
  * the word or on the card itself, and goes when the text, the scroll or the focus moves.
  */
 export class HoverFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: HoverPeers;
     private readonly timers: Timers;
 
     /* The counts asked for since the text last changed, by the symbol's position, so moving back to a name does not ask again. */
@@ -52,8 +60,9 @@ export class HoverFeature {
     /* The card is being read: an explanation runs in it or is shown, so the pointer going elsewhere neither closes nor replaces it. */
     private held = false;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, peers: HoverPeers, timers: Timers = realTimers) {
         this.language = language;
+        this.peers = peers;
         this.timers = timers;
         const { editor } = language;
 
@@ -87,7 +96,7 @@ export class HoverFeature {
                     return true;
                 }
 
-                if (event.key === 'Escape' && this.language.popups.getState().hover !== null && this.language.popups.getState().callHierarchy === null) {
+                if (event.key === 'Escape' && this.language.popups.slot('hover').get() !== null && this.language.popups.slot('callHierarchy').get() === null) {
                     this.hide();
 
                     return true;
@@ -134,7 +143,7 @@ export class HoverFeature {
 
     /* The problems at a position as a card, at once; what the servers say about the symbol is left for the pointer and Quick Info. */
     showProblemsAt(position: EditorPosition): boolean {
-        const problems = this.language.diagnostics.at(position);
+        const problems = this.peers.diagnostics.at(position);
 
         if (problems.length === 0) {
             return false;
@@ -182,8 +191,8 @@ export class HoverFeature {
         this.timers.clear(this.countTimer);
         this.inCard = false;
 
-        if (this.language.popups.getState().hover !== null) {
-            this.language.popups.setState({ hover: null });
+        if (this.language.popups.slot('hover').get() !== null) {
+            this.language.popups.slot('hover').set(null);
         }
     }
 
@@ -201,7 +210,7 @@ export class HoverFeature {
             return;
         }
 
-        const shown = this.language.popups.getState().hover;
+        const shown = this.language.popups.slot('hover').get();
 
         if (shown !== null && rangeHolds(shown.subject, hover.position)) {
             this.timers.clear(this.hideTimer);
@@ -217,7 +226,7 @@ export class HoverFeature {
     private scheduleHide(): void {
         this.timers.clear(this.hideTimer);
 
-        if (this.language.popups.getState().hover === null || this.inCard || this.held) {
+        if (this.language.popups.slot('hover').get() === null || this.inCard || this.held) {
             return;
         }
 
@@ -268,7 +277,7 @@ export class HoverFeature {
     }
 
     private async show(position: EditorPosition, request: number, pinned: boolean): Promise<void> {
-        const problems = this.language.diagnostics.at(position);
+        const problems = this.peers.diagnostics.at(position);
         this.lookup?.abort();
         const controller = new AbortController();
         this.lookup = controller;
@@ -281,7 +290,7 @@ export class HoverFeature {
         if (problems.length === 0 && info === null) {
             this.hide();
 
-            if (pinned && (await this.language.inlayHints.showTooltipAt(position))) {
+            if (pinned && (await this.peers.inlayHints.showTooltipAt(position))) {
                 this.pinned = true;
 
                 return;
@@ -306,14 +315,12 @@ export class HoverFeature {
         const subject = range ?? { start: position, end: position };
         this.timers.clear(this.hideTimer);
 
-        this.language.popups.setState({
-            hover: {
-                anchor: subject.start.line === position.line ? subject.start : position,
-                position,
-                subject,
-                problems,
-                info
-            }
+        this.language.popups.slot('hover').set({
+            anchor: subject.start.line === position.line ? subject.start : position,
+            position,
+            subject,
+            problems,
+            info
         });
     }
 
@@ -351,10 +358,10 @@ export class HoverFeature {
     }
 
     private showCount(count: number, request: number): void {
-        const shown = this.language.popups.getState().hover;
+        const shown = this.language.popups.slot('hover').get();
 
         if (request === this.request && shown?.info != null) {
-            this.language.popups.setState({ hover: { ...shown, info: { ...shown.info, references: count } } });
+            this.language.popups.slot('hover').set({ ...shown, info: { ...shown.info, references: count } });
         }
     }
 

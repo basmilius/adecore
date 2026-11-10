@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'bun:test';
 import { SUGGESTED_TITLE_LIMIT } from '@adecore/agent-contracts';
-import { ModelCatalog } from '../providers/catalog.ts';
 import {
     AcpProtocol,
     acpStopWords,
@@ -14,8 +13,9 @@ import {
     toolRow,
     unifiedDiff,
     type AcpModeMap
-} from './acp-protocol.ts';
-import type { BackendEvent } from './backend.ts';
+} from '../backends/acp-protocol.ts';
+import type { BackendEvent } from '../backends/backend.ts';
+import { ModelCatalog } from '../providers/catalog.ts';
 import turnCapture from './fixtures/acp-v1-turn.json';
 import grokCompact from './fixtures/grok-1.0.70-compact.json';
 import { ThreadProjector } from './projector.ts';
@@ -29,7 +29,6 @@ const catalog = new ModelCatalog({
     models: [{ slug: 'example-fast', name: 'Example Fast', profile: 'standard' }]
 });
 
-/* Every event the captured turn maps to, with the permission request answered as the capture says. */
 function replay(protocol: AcpProtocol): BackendEvent[] {
     const events: BackendEvent[] = [];
 
@@ -336,7 +335,7 @@ describe('AcpProtocol', () => {
         });
     });
 
-    test('reads the command of a call from the field the agent names it by, for a host to judge', () => {
+    test('reads the command of a call from the field the agent names it by', () => {
         const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
 
         const permission = protocol.permission(7, 's', {
@@ -345,7 +344,6 @@ describe('AcpProtocol', () => {
             options: [{ optionId: 'once', name: 'Allow', kind: 'allow_once' }]
         })!;
 
-        expect(permission.request.commands).toEqual(['ruimte-context list']);
         expect(permission.events.find((event) => event.type === 'approval.requested')).toMatchObject({ input: { command: 'ruimte-context list' } });
     });
 
@@ -453,7 +451,6 @@ describe('modes', () => {
     });
 });
 
-/* The MCP server a permission request for `toolCall` names, with the launch's `servers`. */
 function mcpServerOf(toolCall: Record<string, unknown>, servers: readonly string[] = ['ruimte']): string | null | undefined {
     const protocol = new AcpProtocol(1, MODES, acpStopWords('Example'));
 

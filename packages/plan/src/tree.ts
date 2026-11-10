@@ -32,7 +32,7 @@ export function missingItem(id: string): PlanRefusal {
 }
 
 /* Where an item stands: the array that holds it, so an operation can splice it, and the step or section around it. */
-export interface PlanLocation {
+interface PlanLocation {
     item: PlanItem;
     siblings: PlanItem[];
     index: number;
@@ -141,7 +141,7 @@ export function effectiveChecks(plan: Pick<Plan, 'meta'>, step: PlanStep): PlanC
     return step.unlocked ? 'anyone' : (step.checks ?? plan.meta.checks);
 }
 
-export function isFinishedOutcome(state: PlanStepState): boolean {
+function isFinishedOutcome(state: PlanStepState): boolean {
     return state === 'done' || state === 'skipped' || state === 'warning' || state === 'info';
 }
 
@@ -167,7 +167,6 @@ export function deriveState(states: readonly PlanStepState[]): PlanStepState {
     return 'open';
 }
 
-/* A leaf's own state, or for a parent the state its children add up to. */
 export function stepState(step: PlanStep): PlanStepState {
     return isParentStep(step) ? deriveState(step.steps!.map(stepState)) : (step.state ?? 'open');
 }
@@ -234,7 +233,6 @@ export function activeStepIds(plan: Pick<Plan, 'items'>): string[] {
     return ids;
 }
 
-/* True when a leaf step, here or underneath, carries a state a person set. */
 export function holdsPersonState(item: PlanItem): boolean {
     if (item.type === 'step' && !isParentStep(item)) {
         return item.by === 'person' && item.state !== undefined;

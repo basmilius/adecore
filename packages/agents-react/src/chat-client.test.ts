@@ -1,0 +1,886 @@
+import { describe, expect, test } from 'bun:test';
+import type {
+    AgentEventType,
+    AgentRequestType,
+    ChatBookmark,
+    ChatEvent,
+    ChatHistoryResult,
+    ChatInfo,
+    ChatItem,
+    ChatVisual,
+    ProviderInfo
+} from '@adecore/agent-contracts';
+import { ChatClient } from './chat-client';
+import type { ChatPage, ChatSink } from './chat-sink';
+import { chatSink, useChats } from './state/chats';
+import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from './transport';
+
+type Call = { type: AgentRequestType; payload: unknown };
+
+function info(chatId: string): ChatInfo {
+    return {
+        chatId,
+        provider: 'claude',
+        cwd: '/',
+        agentSessionId: null,
+        model: null,
+        selection: { model: 'claude-sonnet-5', options: {} },
+        runtimeMode: 'full-access',
+        status: 'idle',
+        running: false,
+        activeTurnId: null,
+        slashCommands: [],
+        usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
+        createdAt: 0
+    };
+}
+
+class FakeTransport implements ChatTransport {
+    status: ChatTransportStatus = 'open';
+    readonly calls: Call[] = [];
+    items: ChatItem[] = [];
+    // What `chat.list` answers: every chat the host has loaded, attached here or not.
+    chats: ChatInfo[] = [];
+    // What `chat.attach` answers when a test wants more than the thread, such as a seq or the events after `since`.
+    attachResult: ((payload: ChatRequestMap['chat.attach']['payload']) => Partial<ChatRequestMap['chat.attach']['result']>) | null = null;
+    // What `chat.history` answers, or the error it fails with.
+    history: ChatHistoryResult | ChatTransportError = { items: [], history: { start: 0, cursor: null } };
+    // A request the host turns down, with the error it answers.
+    refusals: Partial<Record<AgentRequestType, ChatTransportError>> = {};
+    // While set, `chat.attach` stays on the wire until it settles.
+    attachHold: Promise<void> | null = null;
+    private readonly statusHandlers = new Set<(status: ChatTransportStatus) => void>();
+    private readonly eventHandlers = new Map<string, Set<(payload: unknown) => void>>();
+
+    request<T extends AgentRequestType>(type: T, payload: ChatRequestMap[T]['payload']): Promise<ChatRequestMap[T]['result']> {
+        this.calls.push({ type, payload });
+
+        if (this.status !== 'open') {
+            return Promise.reject(new ChatTransportError('not-connected', 'offline'));
+        }
+
+        const refusal = this.refusals[type];
+
+        if (refusal) {
+            return Promise.reject(refusal);
+        }
+
+        const chatId = (payload as { chatId?: string }).chatId ?? '';
+
+        switch (type) {
+            case 'chat.create':
+                return Promise.resolve(info(chatId) as ChatRequestMap[T]['result']);
+            case 'chat.attach': {
+                const answer = {
+                    info: info(chatId),
+                    items: this.items,
+                    ...this.attachResult?.(payload as ChatRequestMap['chat.attach']['payload'])
+                } as ChatRequestMap[T]['result'];
+
+                return this.attachHold ? this.attachHold.then(() => answer) : Promise.resolve(answer);
+            }
+            case 'chat.history':
+                return this.history instanceof ChatTransportError ? Promise.reject(this.history) : Promise.resolve(this.history as ChatRequestMap[T]['result']);
+            case 'chat.send':
+                return Promise.resolve({ queued: false, turnId: 'turn-test' } as ChatRequestMap[T]['result']);
+            case 'chat.removeVisual':
+                return Promise.resolve({ visuals: [] } as ChatRequestMap[T]['result']);
+            case 'chat.list':
+                return Promise.resolve({ chats: this.chats } as ChatRequestMap[T]['result']);
+            case 'provider.list':
+                return Promise.resolve({
+                    providers: [{ kind: 'claude', name: 'Claude Code', installed: true, version: '1', models: [], defaultModel: null }]
+                } as ChatRequestMap[T]['result']);
+            default:
+                return Promise.resolve({} as ChatRequestMap[T]['result']);
+        }
+    }
+
+    on<E extends AgentEventType>(event: E, handler: (payload: ChatEventMap[E]) => void): () => void {
+        let handlers = this.eventHandlers.get(event);
+
+        if (!handlers) {
+            handlers = new Set();
+            this.eventHandlers.set(event, handlers);
+        }
+
+        handlers.add(handler as (payload: unknown) => void);
+
+        return () => {
+            handlers.delete(handler as (payload: unknown) => void);
+        };
+    }
+
+    subscribeStatus(handler: (status: ChatTransportStatus) => void): () => void {
+        this.statusHandlers.add(handler);
+
+        return () => {
+            this.statusHandlers.delete(handler);
+        };
+    }
+
+    emit<E extends AgentEventType>(event: E, payload: ChatEventMap[E]): void {
+        for (const handler of this.eventHandlers.get(event) ?? []) {
+            handler(payload);
+        }
+    }
+
+    setStatus(status: ChatTransportStatus): void {
+        this.status = status;
+
+        for (const handler of this.statusHandlers) {
+            handler(status);
+        }
+    }
+
+    of(type: AgentRequestType): Call[] {
+        return this.calls.filter((call) => call.type === type);
+    }
+}
+
+class FakeSink implements ChatSink {
+    readonly resets: Array<{ chatId: string; items: ChatItem[]; page?: ChatPage }> = [];
+    readonly prepended: Array<{ chatId: string; cursor: string; page: ChatHistoryResult }> = [];
+    readonly events: Array<{ chatId: string; event: ChatEvent }> = [];
+    readonly forgotten: string[] = [];
+    readonly statuses: Array<{ chatId: string; info: ChatInfo }> = [];
+    readonly bookmarked: Array<{ chatId: string; bookmarks: ChatBookmark[] }> = [];
+    readonly visualized: Array<{ chatId: string; visuals: ChatVisual[] }> = [];
+
+    reset(chatId: string, _info: ChatInfo, items: ChatItem[], page?: ChatPage): void {
+        this.resets.push({ chatId, items, ...(page === undefined ? {} : { page }) });
+    }
+
+    prepend(chatId: string, cursor: string, page: ChatHistoryResult): void {
+        this.prepended.push({ chatId, cursor, page });
+    }
+
+    apply(chatId: string, event: ChatEvent): void {
+        this.events.push({ chatId, event });
+    }
+
+    status(chatId: string, info: ChatInfo): void {
+        this.statuses.push({ chatId, info });
+    }
+
+    bookmarks(chatId: string, bookmarks: ChatBookmark[]): void {
+        this.bookmarked.push({ chatId, bookmarks });
+    }
+
+    visuals(chatId: string, visuals: ChatVisual[]): void {
+        this.visualized.push({ chatId, visuals });
+    }
+
+    forget(chatId: string): void {
+        this.forgotten.push(chatId);
+    }
+}
+
+function flush(): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function setup() {
+    const transport = new FakeTransport();
+    const sink = new FakeSink();
+    const providers: ProviderInfo[][] = [];
+    const client = new ChatClient(transport, sink, { setProviders: (list) => providers.push(list) });
+
+    return { transport, sink, client, providers };
+}
+
+describe('ChatClient', () => {
+    test('inspecting a hidden chat neither creates it nor keeps it attached', async () => {
+        const { client, transport } = setup();
+        const first = client.inspect('hidden');
+        const second = client.inspect('hidden');
+        const snapshot = await first;
+        await second;
+        expect(snapshot.info.chatId).toBe('hidden');
+        expect(transport.of('chat.create')).toHaveLength(0);
+        expect(transport.of('chat.attach')).toHaveLength(1);
+        expect(transport.of('chat.detach')).toHaveLength(1);
+    });
+
+    test('inspecting a mounted chat preserves its live attachment', async () => {
+        const { client, transport } = setup();
+        await client.open('visible', {});
+        await client.inspect('visible');
+        expect(transport.of('chat.detach')).toHaveLength(0);
+    });
+
+    test('observers share an attachment with a visible chat and release it only after the last reader', async () => {
+        const { client, transport, sink } = setup();
+        const first = client.observe('child');
+        const second = client.observe('child');
+        await flush();
+        expect(transport.of('chat.create')).toHaveLength(0);
+        expect(transport.of('chat.attach')).toHaveLength(1);
+        expect(sink.resets.at(-1)?.chatId).toBe('child');
+
+        await client.open('child', {});
+        first();
+        first();
+        await client.detach('child');
+        expect(transport.of('chat.detach')).toHaveLength(0);
+        expect(client.isMounted('child')).toBe(true);
+        second();
+        await flush();
+        expect(transport.of('chat.detach').map((call) => call.payload)).toEqual([{ chatId: 'child' }]);
+        expect(client.isMounted('child')).toBe(false);
+        client.dispose();
+    });
+
+    test('an observed child reattaches without creating it after a reconnect', async () => {
+        const { client, transport } = setup();
+        const release = client.observe('child');
+        await flush();
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(transport.of('chat.attach')).toHaveLength(2);
+        expect(transport.of('chat.create')).toHaveLength(0);
+        release();
+        client.dispose();
+    });
+
+    test('a released observer detaches an attachment that was still on the wire', async () => {
+        const { client, transport, sink } = setup();
+
+        let finish = () => {};
+
+        transport.attachHold = new Promise((resolve) => {
+            finish = resolve;
+        });
+
+        const release = client.observe('child');
+        release();
+        finish();
+        await flush();
+        expect(sink.resets).toEqual([]);
+        expect(transport.of('chat.detach').map((call) => call.payload)).toEqual([{ chatId: 'child' }]);
+        client.dispose();
+    });
+
+    test('open creates with cwd and resume, attaches and resets the store with the thread', async () => {
+        const { transport, sink, client } = setup();
+        transport.items = [{ id: 'u1', kind: 'user', createdAt: 1, turnId: null, text: 'hi' }];
+        expect(await client.open('c', { cwd: '/tmp', resume: 'abc', runtimeMode: 'auto' })).toBe(true);
+
+        expect(transport.of('chat.create')[0]?.payload).toEqual({
+            chatId: 'c',
+            provider: undefined,
+            cwd: '/tmp',
+            resume: 'abc',
+            selection: undefined,
+            runtimeMode: 'auto'
+        });
+
+        expect(transport.of('chat.attach')[0]?.payload).toEqual({ chatId: 'c', historyLimit: 90 });
+        expect(sink.resets).toEqual([{ chatId: 'c', items: transport.items }]);
+    });
+
+    test('tells the host the composer preference once it has one, and says it again on a fresh socket', () => {
+        const { transport, client } = setup();
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        expect(transport.of('chat.setPreferences')).toEqual([]);
+
+        const preference = { runtimeMode: 'supervised' as const, selections: { claude: { model: 'claude-opus-5', options: {} } }, changedAt: 3 };
+        client.setPreferences(preference);
+        // A reconnect is a new client over there, so the pick has to travel again.
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        expect(transport.of('chat.setPreferences').map((call) => call.payload)).toEqual([preference, preference]);
+    });
+
+    test('the bookmarks come with the attach and after that with every change, and a host without them leaves none', async () => {
+        const { transport, sink, client } = setup();
+        const bookmark: ChatBookmark = { itemId: 'u1', excerpt: 'hi', createdAt: 1 };
+        transport.attachResult = (payload) => (payload.chatId === 'marked' ? { bookmarks: [bookmark] } : {});
+        await client.open('marked', {});
+        await client.open('plain', {});
+        transport.emit('chat.bookmarks', { chatId: 'marked', bookmarks: [] });
+
+        expect(sink.bookmarked).toEqual([
+            { chatId: 'marked', bookmarks: [bookmark] },
+            { chatId: 'plain', bookmarks: [] },
+            { chatId: 'marked', bookmarks: [] }
+        ]);
+    });
+
+    test('the visuals come with the attach and after that with every change, and a host without them leaves none', async () => {
+        const { transport, sink, client } = setup();
+        const visual: ChatVisual = { id: 'v1', title: 'Sales', at: 5, maxHeight: 600, size: 120 };
+        transport.attachResult = (payload) => (payload.chatId === 'drawn' ? { visuals: [visual] } : {});
+        await client.open('drawn', {});
+        await client.open('plain', {});
+        transport.emit('chat.visuals', { chatId: 'drawn', visuals: [] });
+
+        expect(sink.visualized).toEqual([
+            { chatId: 'drawn', visuals: [visual] },
+            { chatId: 'plain', visuals: [] },
+            { chatId: 'drawn', visuals: [] }
+        ]);
+    });
+
+    test('a remove asks the host and leaves the store to the event that follows it', async () => {
+        const { transport, sink, client } = setup();
+        expect(await client.removeVisual('drawn', 'v1')).toEqual([]);
+        expect(transport.of('chat.removeVisual').map((call) => call.payload)).toEqual([{ chatId: 'drawn', visualId: 'v1' }]);
+        expect(sink.visualized).toEqual([]);
+    });
+
+    test('events reach the store, whatever chat they are for', () => {
+        const { transport, sink } = setup();
+        transport.emit('chat.event', { chatId: 'c', event: { type: 'delta', itemId: 'a1', text: 'x' } });
+        expect(sink.events).toEqual([{ chatId: 'c', event: { type: 'delta', itemId: 'a1', text: 'x' } }]);
+    });
+
+    test('a reconnect attaches every mounted chat again and hands the store the fresh thread', async () => {
+        const { transport, sink, client } = setup();
+        await client.open('a', {});
+        await client.open('b', {});
+        await client.detach('b');
+        expect(transport.of('chat.detach')).toHaveLength(1);
+
+        transport.setStatus('closed');
+        transport.calls.length = 0;
+        transport.setStatus('open');
+        await flush();
+        expect(transport.of('chat.attach').map((c) => c.payload)).toEqual([{ chatId: 'a', historyLimit: 90 }]);
+        expect(sink.resets.map((r) => r.chatId)).toEqual(['a', 'b', 'a']);
+    });
+
+    test('a reconnect offers the last seq it holds and applies only the events that came after it', async () => {
+        const { transport, sink, client } = setup();
+        const later: ChatEvent = { type: 'delta', itemId: 'a1', text: 'more' };
+        transport.attachResult = (payload) => (payload.since === undefined ? { seq: 4 } : { items: [], seq: 6, events: [later] });
+        await client.open('a', {});
+        expect(transport.of('chat.attach')[0]?.payload).toEqual({ chatId: 'a', historyLimit: 90 });
+        transport.emit('chat.event', { chatId: 'a', event: { type: 'delta', itemId: 'a1', text: 'x' }, seq: 5 });
+
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, since: 5 });
+        expect(sink.resets).toHaveLength(1);
+        expect(sink.events.at(-1)).toEqual({ chatId: 'a', event: later });
+
+        // The host no longer holds what came after the seq it was offered, so the newest page comes instead.
+        transport.attachResult = () => ({ seq: 9 });
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, since: 6 });
+        expect(sink.resets).toHaveLength(2);
+    });
+
+    test('the newest page comes with where it starts and every request that still waits', async () => {
+        const { transport, sink, client } = setup();
+        const waiting: ChatItem = { id: 'q1', kind: 'question', createdAt: 0, turnId: null, requestId: 'r1', questions: [], answers: null, state: 'pending' };
+        transport.attachResult = () => ({ history: { start: 40, cursor: 'g:40' }, pending: [waiting] });
+        await client.open('a', {});
+        expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [], workflows: [], outline: [] });
+    });
+
+    test('the workflows from before the page reach the store', async () => {
+        const { transport, sink, client } = setup();
+
+        const workflow: ChatItem = {
+            id: 'wf',
+            kind: 'tool',
+            createdAt: 0,
+            turnId: null,
+            toolUseId: 'wf',
+            name: 'Workflow',
+            input: {},
+            output: null,
+            state: 'running',
+            parentToolUseId: null,
+            workflow: { name: 'review', phases: [], agents: [] }
+        };
+
+        transport.attachResult = () => ({ history: { start: 40, cursor: 'g:40' }, workflows: [workflow] });
+        await client.open('a', {});
+        expect(sink.resets[0]?.page?.workflows).toEqual([workflow]);
+    });
+
+    test('a page before is asked for once while it is on its way and handed to the store with its cursor', async () => {
+        const { transport, sink, client } = setup();
+        await client.open('a', {});
+        transport.history = { items: [{ id: 'u0', kind: 'user', createdAt: 0, turnId: null, text: 'first' }], history: { start: 0, cursor: null } };
+        await Promise.all([client.loadEarlier('a', 'g:40'), client.loadEarlier('a', 'g:40')]);
+        expect(transport.of('chat.history').map((call) => call.payload)).toEqual([{ chatId: 'a', cursor: 'g:40', limit: 90 }]);
+        expect(sink.prepended).toEqual([{ chatId: 'a', cursor: 'g:40', page: transport.history }]);
+    });
+
+    test('a cursor the host no longer knows reads the thread again from its end', async () => {
+        const { transport, sink, client } = setup();
+        transport.attachResult = () => ({ seq: 3 });
+        await client.open('a', {});
+        transport.history = new ChatTransportError('history-expired', 'The conversation changed.');
+        await client.loadEarlier('a', 'g:40');
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90 });
+        expect(sink.resets).toHaveLength(2);
+        expect(sink.prepended).toEqual([]);
+    });
+
+    test('a chat pointed at another CLI before it spoke opens again from scratch and keeps its row until then', async () => {
+        const { transport, sink, client } = setup();
+        // As the host's log answers: a chat nothing happened in stands at seq 0, and so does the one made in its place.
+        transport.attachResult = (payload) => (payload.since === undefined ? { seq: 0 } : { items: [], seq: 0, events: [] });
+        await client.open('fresh', { provider: 'claude', cwd: '/tmp' });
+
+        await client.retarget('fresh', 'codex', { model: 'gpt-5.5', options: {} });
+
+        expect(transport.of('chat.create').at(-1)?.payload).toMatchObject({ chatId: 'fresh', provider: 'codex', cwd: '/tmp' });
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'fresh', historyLimit: 90 });
+        expect(sink.resets.map((reset) => reset.chatId)).toEqual(['fresh', 'fresh']);
+        expect(sink.forgotten).toEqual([]);
+        expect(client.isMounted('fresh')).toBe(true);
+    });
+
+    test('a chat that does not open again on the other CLI loses its row', async () => {
+        const { transport, sink, client } = setup();
+        await client.open('fresh', { provider: 'claude' });
+        transport.refusals['chat.create'] = new ChatTransportError('account-missing', 'No account');
+
+        await expect(client.retarget('fresh', 'codex', { model: 'gpt-5.5', options: {} })).rejects.toThrow('No account');
+        expect(sink.forgotten).toEqual(['fresh']);
+    });
+
+    test('a chat closed while its attach is on the wire is detached once the host answers', async () => {
+        const { transport, sink, client } = setup();
+
+        let release = () => {};
+
+        transport.attachHold = new Promise((resolve) => {
+            release = resolve;
+        });
+
+        const opened = client.open('quick', {});
+        await flush();
+        expect(transport.of('chat.attach')).toHaveLength(1);
+
+        await client.detach('quick');
+        release();
+        await opened;
+        await flush();
+        expect(transport.of('chat.detach').map((call) => call.payload)).toEqual([{ chatId: 'quick' }]);
+        expect(sink.resets).toHaveLength(0);
+    });
+
+    test('a chat closed before its create came back is never attached', async () => {
+        const { transport, client } = setup();
+        const opened = client.open('quick', {});
+        void client.detach('quick');
+        await opened;
+        await flush();
+        expect(transport.of('chat.attach')).toHaveLength(0);
+        expect(transport.of('chat.detach')).toHaveLength(0);
+    });
+
+    test('a reattach that answers after the chat was opened again leaves the new opening alone', async () => {
+        const { transport, sink, client } = setup();
+        transport.items = [{ id: 'u1', kind: 'user', createdAt: 0, turnId: 't1', text: 'hi' } as ChatItem];
+        transport.attachResult = (payload) => (payload.since === undefined ? { seq: 9 } : { items: [], events: [], seq: 6 });
+        await client.open('c', {});
+        transport.emit('chat.event', { chatId: 'c', event: { type: 'delta', itemId: 'a1', text: 'x' }, seq: 5 });
+
+        let release = () => {};
+
+        transport.attachHold = new Promise((resolve) => {
+            release = resolve;
+        });
+
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'c', historyLimit: 90, since: 5 });
+
+        // The view mounts again while the reattach is on the wire.
+        void client.detach('c');
+        const reopened = client.open('c', {});
+        release();
+        await reopened;
+        await flush();
+        expect(sink.resets.map((reset) => reset.items.length)).toEqual([1, 1]);
+        expect(transport.of('chat.detach')).toHaveLength(0);
+    });
+
+    test('letting go of the machine detaches every chat and kills none', async () => {
+        const { transport, client } = setup();
+        await client.open('a', {});
+        transport.calls.length = 0;
+
+        client.dispose();
+        await flush();
+
+        expect(transport.of('chat.detach').map((call) => call.payload)).toEqual([{ chatId: 'a' }]);
+        expect(transport.of('chat.kill')).toHaveLength(0);
+        expect(client.isMounted('a')).toBe(false);
+    });
+
+    test('opening while offline waits for the transport', async () => {
+        const { transport, sink, client } = setup();
+        transport.setStatus('closed');
+        expect(await client.open('a', {})).toBe(false);
+        expect(client.isMounted('a')).toBe(true);
+        transport.setStatus('open');
+        await flush();
+        expect(sink.resets.map((r) => r.chatId)).toEqual(['a']);
+    });
+
+    test('send and kill map to their requests', async () => {
+        const { transport, sink, client } = setup();
+        await client.open('a', {});
+        await client.send('a', 'hello');
+        await client.kill('a');
+        expect(transport.of('chat.send')[0]?.payload).toEqual({ chatId: 'a', text: 'hello' });
+        expect(transport.of('chat.kill')).toHaveLength(1);
+        expect(sink.forgotten).toEqual(['a']);
+        expect(client.isMounted('a')).toBe(false);
+    });
+
+    test('send carries the chosen delivery', async () => {
+        const { transport, client } = setup();
+        await client.open('a', {});
+        await client.send('a', 'hello', { delivery: 'steer' });
+        expect(transport.of('chat.send')[0]?.payload).toEqual({ chatId: 'a', text: 'hello', delivery: 'steer' });
+    });
+
+    test('a status event lands in the store for a chat this window never attached', async () => {
+        const { transport, sink } = setup();
+        transport.emit('chat.status', { chatId: 'elsewhere', info: { ...info('elsewhere'), status: 'needs-you' } });
+        expect(sink.statuses).toEqual([{ chatId: 'elsewhere', info: { ...info('elsewhere'), status: 'needs-you' } }]);
+    });
+
+    test('every chat on the machine is asked for on construction and again on every reconnect', async () => {
+        const transport = new FakeTransport();
+        transport.chats = [{ ...info('a'), status: 'running' }, info('b')];
+        const sink = new FakeSink();
+        new ChatClient(transport, sink);
+        await flush();
+        expect(sink.statuses.map((entry) => entry.chatId)).toEqual(['a', 'b']);
+
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(sink.statuses.map((entry) => entry.chatId)).toEqual(['a', 'b', 'a', 'b']);
+    });
+
+    test('the provider list is loaded on construction and again on every reconnect', async () => {
+        const { transport, providers } = setup();
+        await flush();
+        expect(providers).toHaveLength(1);
+        transport.setStatus('closed');
+        transport.setStatus('open');
+        await flush();
+        expect(providers).toHaveLength(2);
+        expect(providers[1]?.[0]?.kind).toBe('claude');
+    });
+});
+
+describe('ChatClient cached history', () => {
+    function cached() {
+        const transport = new FakeTransport();
+        let scope = 'history-test';
+
+        const keyOf = (chatId: string) => `${scope}:${chatId}`;
+
+        const sink = chatSink(keyOf);
+        const client = new ChatClient(transport, sink);
+
+        const items: ChatItem[] = Array.from({ length: 180 }, (_, index) => ({
+            id: `item-${index}`,
+            kind: 'user',
+            createdAt: index,
+            turnId: null,
+            text: `Message ${index}`
+        }));
+
+        transport.items = items.slice(90);
+
+        transport.attachResult = ({ since }) => ({
+            seq: since ?? 7,
+            history: { start: 90, cursor: 'page:90' },
+            ...(since === undefined ? {} : { items: [], events: [] })
+        });
+
+        transport.history = { items: items.slice(0, 90), history: { start: 0, cursor: null } };
+
+        return {
+            transport,
+            sink,
+            client,
+            row: () => useChats.getState().byKey[keyOf('existing')],
+            changeScope: () => {
+                scope = 'history-other';
+            },
+            close: () => {
+                client.dispose();
+                useChats.getState().forgetWhere((key) => key.startsWith('history-'));
+            }
+        };
+    }
+
+    test('remount retains all loaded pages and offers the last live sequence', async () => {
+        const fixture = cached();
+        const { client, transport, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            expect(row()?.order).toHaveLength(90);
+            await client.loadEarlier('existing', 'page:90');
+            transport.emit('chat.event', { chatId: 'existing', seq: 8, event: { type: 'info', info: info('existing') } });
+            await client.detach('existing');
+            expect(row()?.order).toHaveLength(180);
+            await client.open('existing', {});
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90, since: 8 });
+            expect(row()?.order).toHaveLength(180);
+            expect(row()?.order[0]).toBe('item-0');
+            expect(row()?.history).toBeUndefined();
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('a visible chat and observers retain the same history across attachment ownership changes', async () => {
+        const fixture = cached();
+        const { client, transport, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            await client.loadEarlier('existing', 'page:90');
+            const release = client.observe('existing');
+            await client.detach('existing');
+            expect(client.isMounted('existing')).toBe(true);
+            await client.open('existing', {});
+            expect(transport.of('chat.attach').at(-1)?.payload).toMatchObject({ since: 7 });
+            expect(row()?.order).toHaveLength(180);
+            release();
+            await client.detach('existing');
+            const releaseAgain = client.observe('existing');
+            await flush();
+            expect(transport.of('chat.attach').at(-1)?.payload).toMatchObject({ since: 7 });
+            expect(row()?.order).toHaveLength(180);
+            releaseAgain();
+            await flush();
+            expect(client.isMounted('existing')).toBe(false);
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('missed events replay over the cached pages exactly once', async () => {
+        const fixture = cached();
+        const { client, transport, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            await client.loadEarlier('existing', 'page:90');
+            await client.detach('existing');
+            const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 180, turnId: null, text: 'Hello', streaming: true };
+
+            transport.attachResult = ({ since }) =>
+                since === 7
+                    ? {
+                          seq: 9,
+                          items: [],
+                          events: [
+                              { type: 'item', item: reply },
+                              { type: 'delta', itemId: 'reply', text: ' world' }
+                          ]
+                      }
+                    : { seq: 9 };
+
+            let lastReply = row()?.items.reply;
+            const delivered: Array<ChatItem | undefined> = [];
+
+            const stop = useChats.subscribe(() => {
+                const current = row()?.items.reply;
+
+                if (current !== lastReply) {
+                    delivered.push(current);
+                    lastReply = current;
+                }
+            });
+
+            try {
+                await client.open('existing', {});
+            } finally {
+                stop();
+            }
+
+            expect(delivered).toEqual([{ ...reply, text: 'Hello world' }]);
+            expect(row()?.order).toHaveLength(181);
+            expect(row()?.items.reply).toMatchObject({ text: 'Hello world' });
+            await client.detach('existing');
+            transport.attachResult = () => ({ seq: 9, items: [], events: [] });
+            await client.open('existing', {});
+            expect(transport.of('chat.attach').at(-1)?.payload).toMatchObject({ since: 9 });
+            expect(row()?.items.reply).toMatchObject({ text: 'Hello world' });
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('a checkpoint the server cannot replay replaces cached pages with its snapshot', async () => {
+        const fixture = cached();
+        const { client, transport, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            await client.loadEarlier('existing', 'page:90');
+            await client.detach('existing');
+            transport.attachResult = () => ({ seq: 20, history: { start: 90, cursor: 'new:90' } });
+            await client.open('existing', {});
+            expect(transport.of('chat.attach').at(-1)?.payload).toMatchObject({ since: 7 });
+            expect(row()?.order).toHaveLength(90);
+            expect(row()?.history?.cursor).toBe('new:90');
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('an event already delivered during detach is not replayed a second time', async () => {
+        const fixture = cached();
+        const { client, transport, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            await client.loadEarlier('existing', 'page:90');
+            await client.detach('existing');
+            const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 180, turnId: null, text: 'Hello', streaming: true };
+            transport.emit('chat.event', { chatId: 'existing', seq: 8, event: { type: 'item', item: reply } });
+            transport.emit('chat.event', { chatId: 'existing', seq: 9, event: { type: 'delta', itemId: 'reply', text: ' world' } });
+            transport.attachResult = ({ since }) => ({ seq: 9, items: [], events: since === 9 ? [] : [{ type: 'delta', itemId: 'reply', text: ' world' }] });
+            await client.open('existing', {});
+            expect(transport.of('chat.attach').at(-1)?.payload).toMatchObject({ since: 9 });
+            expect(row()?.order).toHaveLength(181);
+            expect(row()?.items.reply).toMatchObject({ text: 'Hello world' });
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('evicting a mounted row cannot establish a checkpoint on a status-only replacement', async () => {
+        const fixture = cached();
+        const { client, transport, sink, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            sink.forget('existing');
+            sink.status('existing', info('existing'));
+            transport.emit('chat.event', { chatId: 'existing', seq: 8, event: { type: 'info', info: info('existing') } });
+            transport.setStatus('closed');
+            transport.setStatus('open');
+            await flush();
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+            expect(row()?.order).toHaveLength(90);
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('eviction during a replay request reads a fresh snapshot', async () => {
+        const fixture = cached();
+        const { client, transport, sink, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            await client.detach('existing');
+
+            let release = () => {};
+
+            transport.attachHold = new Promise((resolve) => {
+                release = resolve;
+            });
+
+            const reopened = client.open('existing', {});
+            await flush();
+            expect(transport.of('chat.attach').at(-1)?.payload).toMatchObject({ since: 7 });
+            sink.forget('existing');
+            release();
+            await reopened;
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+            expect(row()?.order).toHaveLength(90);
+        } finally {
+            fixture.close();
+        }
+    });
+
+    test('an expired earlier-page cursor discards the retained checkpoint', async () => {
+        const fixture = cached();
+        const { client, transport, row } = fixture;
+
+        try {
+            await client.open('existing', {});
+            await client.loadEarlier('existing', 'page:90');
+            await client.detach('existing');
+            await client.open('existing', {});
+            transport.history = new ChatTransportError('history-expired', 'The conversation changed.');
+            await client.loadEarlier('existing', 'old:90');
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+            expect(row()?.order).toHaveLength(90);
+        } finally {
+            fixture.close();
+        }
+    });
+
+    for (const invalidation of ['forget', 'eviction', 'scope', 'retarget', 'kill', 'transport'] as const) {
+        test(`${invalidation} invalidates a cached checkpoint`, async () => {
+            const fixture = cached();
+            const { client, transport, sink, row } = fixture;
+            let replacement: ChatClient | undefined;
+            let activeTransport = transport;
+
+            try {
+                await client.open('existing', {});
+                await client.loadEarlier('existing', 'page:90');
+
+                if (invalidation === 'retarget') {
+                    await client.retarget('existing', 'codex', { model: 'gpt-5.5', options: {} });
+                } else {
+                    await client.detach('existing');
+
+                    switch (invalidation) {
+                        case 'forget':
+                            sink.forget('existing');
+
+                            break;
+                        case 'eviction':
+                            useChats.getState().forgetWhere((key) => key.startsWith('history-'));
+
+                            break;
+                        case 'scope':
+                            fixture.changeScope();
+
+                            break;
+                        case 'kill':
+                            await client.kill('existing');
+
+                            break;
+                        case 'transport':
+                            client.dispose();
+                            activeTransport = new FakeTransport();
+                            activeTransport.items = transport.items;
+                            activeTransport.attachResult = transport.attachResult;
+                            replacement = new ChatClient(activeTransport, sink);
+
+                            break;
+                    }
+
+                    await (replacement ?? client).open('existing', {});
+                }
+
+                expect(activeTransport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+                expect(row()?.order).toHaveLength(90);
+            } finally {
+                replacement?.dispose();
+                fixture.close();
+            }
+        });
+    }
+});

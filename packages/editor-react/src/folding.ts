@@ -1,6 +1,6 @@
 import type { EditorFoldRangeHint, EditorFoldSymbol } from '@adecore/editor';
 import type { DocumentSymbolResult, FoldingRange } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 import { Refresher } from './refresher.ts';
 import { symbolSpansOf } from './symbols.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -23,8 +23,7 @@ const BODIES: Readonly<Record<number, EditorFoldSymbol['body']>> = {
     23: 'class'
 };
 
-/* The symbols that have a body of more than one line, as what the editor folds them by. */
-export function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] {
+function foldSymbolsOf(result: DocumentSymbolResult): EditorFoldSymbol[] {
     return symbolSpansOf(result).flatMap(({ kind, range }) => {
         const body = BODIES[kind];
 
@@ -54,9 +53,9 @@ export class FoldingFeature {
     private symbols: EditorFoldSymbol[] = [];
     private ranges: EditorFoldRangeHint[] = [];
     private readonly refresher: Refresher;
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
 
-    constructor(language: EditorLanguage, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, onSymbols: (listener: (result: DocumentSymbolResult) => void) => () => void, timers: Timers = realTimers) {
         this.language = language;
         const { editor, uri } = language;
 

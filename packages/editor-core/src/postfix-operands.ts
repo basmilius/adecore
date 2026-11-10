@@ -3,7 +3,7 @@ import { isPhp, isScript, isWordCharacter } from './lexical.ts';
 import { atStatementStart } from './surround-shape.ts';
 import { placeAt } from './text-places.ts';
 import { skipTriviaBack } from './trivia.ts';
-import type { TypingContext } from './typing-context.ts';
+import type { TypingContext } from './typing-state.ts';
 
 export interface PostfixOperand {
     /* The expression is `[from, dot)`, trailing whitespace left out. */
@@ -270,7 +270,6 @@ class Scanner {
         return start;
     }
 
-    /* The length of the member operator that ends at `end`. */
     private member(end: number): number {
         const text = this.source.slice(Math.max(0, end - 3), end);
 
@@ -413,7 +412,6 @@ class Scanner {
         return null;
     }
 
-    /* The binary operator left of an expression that starts at `from`. */
     operatorBefore(from: number): FoundOperator | null {
         const end = this.skip(from);
         const found = end === 0 ? null : this.operatorEndingAt(end);
@@ -475,7 +473,6 @@ class Scanner {
     }
 }
 
-/* Every expression that ends right before the `.` at `dot`, innermost first; empty where none does. */
 export function postfixOperands(source: EditSource, dot: number, language: string): PostfixOperand[] {
     if (source.charAt(dot) !== '.') {
         return [];

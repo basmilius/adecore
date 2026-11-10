@@ -13,7 +13,7 @@ export interface TableRequest {
     readonly kind: TableKind;
 }
 
-export interface TableDialogProps {
+interface TableDialogProps {
     request: TableRequest;
     onClose(): void;
     /* After the statement ran; `to` is the new name of a rename. */

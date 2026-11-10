@@ -9,7 +9,7 @@ import type { UsageService } from '../usage/usage-service.ts';
 import type { AgentHandler } from './handlers.ts';
 import { wireAgents, type AgentWiring, type AgentWiringOptions } from './wiring.ts';
 
-export interface AgentHostOptions<Core extends ChatCore = ChatCore> extends AgentWiringOptions<Core> {
+interface AgentHostOptions<Core extends ChatCore = ChatCore> extends AgentWiringOptions<Core> {
     // Whether the host checks who is signed in and reads what is left of each plan on its own clock.
     background?: boolean;
 }

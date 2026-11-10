@@ -5,8 +5,7 @@ import { EditorLanguage } from './editor-language.ts';
 import type { EditorNotification } from './host-types.ts';
 import type { Place } from './navigation-history.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf, settle } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf, settle } from './testing.ts';
 
 const uri = 'file:///work/app/src/a.ts';
 const at = (line: number, character: number) => ({ line, character });
@@ -71,7 +70,7 @@ describe('going to a definition', () => {
         const { editor, language } = await setup(answering([here, there]));
         editor.moveCaret(at(0, 1));
         await language.navigation.go('implementation');
-        const view = language.popups.getState().pick!;
+        const view = language.popups.slot('pick').get()!;
 
         expect(view.title).toBe('Implementations');
         expect(view.groups[0]!.rows.map((row) => row.label)).toEqual(['a.ts:4', 'b.ts:10']);
@@ -86,7 +85,7 @@ describe('going to a definition', () => {
         editor.moveCaret(at(0, 1));
         await language.navigation.go('implementation');
 
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
         expect(editor.getCaret()).toEqual(at(3, 4));
     });
 
@@ -101,7 +100,7 @@ describe('going to a definition', () => {
 
         expect(methods()).toEqual(['textDocument/definition']);
         expect(editor.getCaret()).toEqual(at(3, 4));
-        expect(language.popups.getState().pick).toBeNull();
+        expect(language.popups.slot('pick').get()).toBeNull();
     });
 
     test('takes no click when the file has no server that finds definitions', async () => {
@@ -149,7 +148,7 @@ describe('a name that is its own definition', () => {
         await settle();
 
         expect(methods()).toEqual(['textDocument/definition', 'textDocument/references']);
-        expect(language.popups.getState().peek?.count).toBe(2);
+        expect(language.popups.slot('peek').get()?.count).toBe(2);
         expect(editor.getCaret()).toEqual(at(0, 0));
     });
 });
@@ -185,19 +184,19 @@ describe('going to a name in a signature', () => {
         const several = await setup(answering([symbol('Bus', uri, 2), symbol('Bus', there.uri, 1)], ['workspace/symbol']));
         await several.language.navigation.goToName('Bus', at(0, 0), null);
 
-        expect(several.language.popups.getState().pick?.groups[0]!.rows).toHaveLength(2);
+        expect(several.language.popups.slot('pick').get()?.groups[0]!.rows).toHaveLength(2);
 
         const named = await setup(answering([symbol('Bus', uri, 2, 'one'), symbol('Bus', there.uri, 1, 'App')], ['workspace/symbol']));
         named.editor.type(`${TEXT} // one`);
         await named.language.navigation.goToName('Bus', at(0, 0), null);
 
-        expect(named.language.popups.getState().pick).toBeNull();
+        expect(named.language.popups.slot('pick').get()).toBeNull();
         expect(named.editor.getCaret()).toEqual(at(2, 0));
 
         const none = await setup(answering([], ['workspace/symbol']));
         await none.language.navigation.goToName('Bus', at(0, 0), null);
 
-        expect(none.language.popups.getState().pick).toBeNull();
+        expect(none.language.popups.slot('pick').get()).toBeNull();
         expect(none.notices).toEqual([]);
     });
 

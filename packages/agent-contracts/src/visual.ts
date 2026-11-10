@@ -17,6 +17,9 @@ export const VISUAL_LIMITS = {
     heights: 24
 } as const;
 
+// The widest a chat's reply column runs by default, in CSS pixels. `@adecore/agents-react` reads it for its reading width, and its stylesheet falls back to the same number (`reading-width.test.ts` holds them together).
+export const REPLY_COLUMN_WIDTH = 768;
+
 // The frame widths a host may measure a page at, ascending, from a phone to a wide chat.
 export const VISUAL_MEASURE_WIDTHS: readonly number[] = [320, 400, 480, 560, 640, 720, 800, 900, 1000, 1200];
 
@@ -423,7 +426,7 @@ export const VISUAL_PAGE_RULES =
     'relative paths and local files do not. Prefer inline SVG or a canvas when the drawing needs no library. A link to an http(s) page opens in the browser.';
 
 export const VISUAL_LAYOUT_GUIDE =
-    "The page appears as a borderless frame on the thread's own background. By default it follows the reply column (up to 768px in a chat view). " +
+    `The page appears as a borderless frame on the thread's own background. By default it follows the reply column (up to ${REPLY_COLUMN_WIDTH}px in a chat view). ` +
     'Opt into the wide layout for application mockups or dashboards that need more space: the host uses the available chat pane width with side margins. ' +
     'Both layouts shrink on narrow screens. Lay the page out at a fluid width (percentages, flex, grid) ' +
     'with no horizontal padding on the outermost element. Draw no outer card, border, shadow or banner title: the page is part of the reply. ' +

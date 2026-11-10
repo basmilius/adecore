@@ -1,16 +1,11 @@
-import { activeSubagents, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { activeSubagents, HOST_TASK_ORIGIN, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment, formatElapsedShort } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
-import type { SubagentTask } from '../host';
+import type { SubagentTask } from '../host/host';
 
 export function subagentTitle(item: ChatSubagentItem): string {
     return item.description || item.summary || item.subagentType || i18next.t('agent-chat:rows.subagent.label');
-}
-
-/* The task a row stands for, whose id the host wrote into the row's own. */
-export function taskIdOf(item: ChatSubagentItem): string | null {
-    return item.origin === 'ruimte' && item.id.startsWith('task-') ? item.id.slice(5) : null;
 }
 
 /* A cancelled task is a failed row on the wire and a paused one a running row, and only the task itself still says which it is. */
@@ -111,7 +106,7 @@ export function stopOf(item: ChatSubagentItem, turnRunning: boolean): SubagentSt
         return null;
     }
 
-    if (item.origin === 'ruimte') {
+    if (item.origin === HOST_TASK_ORIGIN) {
         return item.childId === undefined ? null : 'task';
     }
 
@@ -130,7 +125,7 @@ export function stopLabel(stop: SubagentStop): string {
  * What the composer's Stop does. A plain click stops the turn alone, as it always has; Shift also ends
  * every agent the chat opened and marks its CLI's own sub-agents stopped, which a turn alone leaves running.
  */
-export type ComposerStop = 'turn' | 'turn-and-subagents';
+type ComposerStop = 'turn' | 'turn-and-subagents';
 
 export function composerStopOf(shiftKey: boolean): ComposerStop {
     return shiftKey ? 'turn-and-subagents' : 'turn';

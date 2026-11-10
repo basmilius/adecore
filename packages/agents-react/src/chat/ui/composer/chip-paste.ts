@@ -1,5 +1,5 @@
 import type { EditorView } from '@codemirror/view';
-import type { Referable } from '../../chat-references';
+import type { Referable } from '../../../host/references';
 import type { ChatDraft } from '../../drafts';
 import {
     chipRanges,
@@ -41,7 +41,6 @@ export function pastedChipsIn(text: string, from: number, to: number, code: read
     );
 }
 
-/* Whether a plain paste could make a chip at all, before it goes in as text. */
 export function mayHoldChips(text: string): boolean {
     return /(^|[\s([{"'“‘])[$#]\p{L}/u.test(text);
 }

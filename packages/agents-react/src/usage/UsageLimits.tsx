@@ -4,8 +4,8 @@ import { ListRestart, LogIn } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AccountDot } from '../agents/AccountDot';
-import { useChatHost } from '../host';
-import { useHostLoginBlocked } from '../host-hooks';
+import { useChatHost } from '../host/host';
+import { useHostLoginBlocked } from '../host/host-hooks';
 import { useChatScope } from '../scope';
 import { useProviderAccounts } from '../state/provider-accounts';
 import { useUsageStore } from '../state/usage';
@@ -51,7 +51,6 @@ function LoginButton({ account, login }: { account: LimitAccount; login: Login }
     );
 }
 
-/* One account: where its numbers come from, then a bar per window, or why there are none. */
 function LimitCard({ account, named, now, login }: { account: LimitAccount; named: boolean; now: number; login: Login | null }) {
     const { t } = useTranslation('agent-usage');
     const signedOut = isSignedOut(account);

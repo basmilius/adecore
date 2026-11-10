@@ -3,7 +3,7 @@ import { StructureView } from '../structure/StructureView.tsx';
 import { TableView } from '../table/TableView.tsx';
 import type { WorkbenchTab } from './tabs.ts';
 
-export interface TableTabProps {
+interface TableTabProps {
     connection: Connection;
     tab: Extract<WorkbenchTab, { kind: 'table' }>;
     /* Told whether the data holds changes that are not submitted. The view that switches `tab.view` is the workbench's. */

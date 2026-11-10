@@ -1,7 +1,7 @@
 import { diffSyntaxDocument, type DiffSourceTokens } from '@adecore/editor-react';
 import type { DiffDocument } from '@adecore/merge';
 import { useLayoutEffect, useMemo } from 'react';
-import { useChatHost } from '../../host';
+import { useChatHost } from '../../host/host';
 import { diffSourceTokens, diffSyntaxRuntime, type DiffSourceTokenSession, type DiffSyntaxRuntime } from './diff-syntax';
 
 function createSourceBinding(document: DiffDocument, language: string, theme: string, runtime: () => DiffSyntaxRuntime) {

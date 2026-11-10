@@ -1,7 +1,7 @@
 import { describe, expect, jest, test } from 'bun:test';
 import type { ChatSubagentItem } from '@adecore/agent-contracts';
-import type { BackendEvent } from './backend.ts';
-import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from './claude-protocol.ts';
+import type { BackendEvent } from '../backends/backend.ts';
+import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from '../backends/claude-protocol.ts';
 import autoFallbackCapture from './fixtures/claude-2.1.285-auto-fallback.json';
 import nativeChildrenCapture from './fixtures/claude-2.1.285-native-children.json';
 import compactCapture from './fixtures/claude-2.1.285-resume-direct-compact.json';
@@ -263,7 +263,6 @@ describe('ClaudeProtocol', () => {
         expect(protocol.handle({ type: 'stream_event', event: { type: 'content_block_delta', index: 1, delta: { type: 'text_delta', text: 'po' } } })).toEqual([
             { type: 'text.delta', ref: 'msg_1:t0', text: 'po' }
         ]);
-        // A block of a subagent belongs to its own tool call, not to the thread's text.
         expect(
             protocol.handle({
                 type: 'stream_event',
@@ -344,7 +343,6 @@ describe('ClaudeProtocol', () => {
                 }
             })
         ).toEqual([
-            // The subagent's own text is its report, not the thread's answer.
             { type: 'text.done', ref: 'msg_3:t0', text: 'inner', parentRef: 'toolu_task' },
             { type: 'tool.started', ref: 'toolu_5', name: 'Read', input: {}, parentRef: 'toolu_task' }
         ]);
@@ -584,7 +582,6 @@ describe('ClaudeProtocol', () => {
         expect(protocol.handle({ type: 'system', subtype: 'task_updated', task_id: 'bchild', patch: { status: 'completed' } })).toContainEqual(settled);
         expect(protocol.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [] })).toEqual([]);
 
-        // A list that drops the child without a word about it settles the same way.
         const listed = new ClaudeProtocol();
         listed.handle({
             type: 'system',
@@ -599,7 +596,6 @@ describe('ClaudeProtocol', () => {
         listed.handle(interim);
         expect(listed.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [] })).toEqual([settled]);
 
-        // An end the CLI reports for the waiting subagent itself settles it with that outcome.
         const killed = new ClaudeProtocol();
         killed.handle({ type: 'system', subtype: 'background_tasks_changed', tasks: [child] });
         killed.handle(interim);
@@ -632,7 +628,6 @@ describe('ClaudeProtocol', () => {
                 outputFile: '/tmp/tasks/a3838cf8b1de992a3.output'
             }
         ]);
-        // A task that ended another way is still the thing that wakes the agent.
         expect(protocol.handle({ type: 'system', subtype: 'task_notification', task_id: 't', status: 'failed', summary: 'no luck' })).toEqual([
             { type: 'task.done', ref: null, taskId: 't', summary: 'no luck', ok: false, usage: null, outputFile: null }
         ]);
@@ -796,7 +791,6 @@ describe('ClaudeProtocol', () => {
         expect(protocol.handle({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0 })).toEqual([
             { type: 'turn.done', state: 'done', costUsd: 0, native: { lastUuid: 'u-2' } }
         ]);
-        // A turn without an answer of its own does not inherit the one before it.
         expect(protocol.handle({ type: 'result', subtype: 'success', is_error: false, total_cost_usd: 0 })).toEqual([
             { type: 'turn.done', state: 'done', costUsd: 0 }
         ]);
@@ -1249,7 +1243,6 @@ describe('ClaudeProtocol', () => {
                 ...extra
             });
 
-        // Most frames only count; they say nothing about the phases.
         expect(progress({})).toEqual([{ type: 'tool.progress', ref: 'toolu_wf', startedAt: null, description: 'Read: read-file' }]);
         expect(
             progress({

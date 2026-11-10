@@ -5,7 +5,6 @@ const FLOOR = -40;
 const TOP = -4;
 const TARGET = -14;
 
-// A loudness that swells and dips, as a song under the playhead would.
 function loudnessAt(seconds: number, speed: number): number {
     return -20 + 7 * Math.sin(seconds * speed) + 3 * Math.sin(seconds * speed * 3.7);
 }

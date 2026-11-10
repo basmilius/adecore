@@ -5,11 +5,11 @@ import type { TaskStore } from './task-store.ts';
 import type { GiveTaskEntry } from './task-work.ts';
 
 /* The note above the turn a task opens, so whoever reads the child sees who asked for it. */
-export function taskNote(from: string): string {
+function taskNote(from: string): string {
     return `Task from ${from}`;
 }
 
-export interface GiveTaskDeps {
+interface GiveTaskDeps {
     tasks: Pick<TaskStore, 'get'>;
     /* The chat as it is now, loaded from disk when nobody has it; null for a node with no thread. */
     chat(chatId: string): Promise<WakeChat | null>;

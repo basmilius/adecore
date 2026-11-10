@@ -6,7 +6,6 @@ const LIST_MARKER = /^[ \t]*(?:[-*+]|\d+[.)])[ \t]+/gm;
 // A sentence ends on a stop with white space after it, so `a.ts` and `1.5` stay whole.
 const SENTENCE_END = /[.!?]["'”’)\]]*(?=\s)/;
 
-/* The thought as one line of plain text: the marks gone and every run of white space one space. */
 export function flattenThought(text: string): string {
     return stripMarkdown(text.replace(LIST_MARKER, '')).replace(/\s+/g, ' ').trim();
 }

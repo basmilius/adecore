@@ -1,37 +1,3 @@
-/* Highlighter ids mapped to the LSP id of the same language. */
-const LSP_IDS: Record<string, string> = {
-    typescript: 'typescript',
-    tsx: 'typescriptreact',
-    javascript: 'javascript',
-    jsx: 'javascriptreact',
-    vue: 'vue',
-    php: 'php',
-    css: 'css',
-    scss: 'scss',
-    less: 'less',
-    html: 'html',
-    json: 'json',
-    jsonc: 'jsonc',
-    yaml: 'yaml',
-    python: 'python',
-    shellscript: 'shellscript',
-    docker: 'dockerfile',
-    twig: 'twig',
-    sql: 'sql',
-    rust: 'rust',
-    markdown: 'markdown',
-    toml: 'toml',
-    lua: 'lua',
-    go: 'go',
-    swift: 'swift',
-    zig: 'zig'
-};
-
-/* The LSP language id of a file, or null when no language server here knows its language. */
-export function lspLanguageIdOf(language: string | undefined): string | null {
-    return language === undefined ? null : (LSP_IDS[language] ?? null);
-}
-
 const SHIKI_IDS: Record<string, string> = { typescriptreact: 'tsx', javascriptreact: 'jsx' };
 
 /* The highlighter id of an LSP language id, for code a server sends back to be drawn. */

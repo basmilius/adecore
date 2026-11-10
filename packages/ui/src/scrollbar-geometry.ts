@@ -2,7 +2,7 @@
 export const MIN_THUMB = 24;
 
 /* A press on the track moves this share of the visible length, so a line of the old view stays in sight. */
-export const PAGE_SHARE = 0.9;
+const PAGE_SHARE = 0.9;
 
 export interface ScrollMetrics {
     /* The length of the bar the thumb moves along, in pixels. */
@@ -25,7 +25,6 @@ export function overflows(view: number, content: number): boolean {
     return content - view > 1;
 }
 
-/* The thumb's length and its distance from the start of the track, in whole pixels. */
 export function thumbOf({ track, view, content }: ScrollMetrics, position: number): Thumb {
     const range = content - view;
 
@@ -39,7 +38,6 @@ export function thumbOf({ track, view, content }: ScrollMetrics, position: numbe
     return { size, offset: Math.round((track - size) * progress) };
 }
 
-/* The scroll position after the thumb moved `moved` pixels from where a drag started. */
 export function scrollAfterDrag(metrics: ScrollMetrics, start: number, moved: number): number {
     const range = metrics.content - metrics.view;
     const free = metrics.track - thumbOf(metrics, start).size;

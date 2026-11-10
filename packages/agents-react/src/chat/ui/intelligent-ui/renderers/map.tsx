@@ -1,12 +1,11 @@
 import type { UiProps, UiViewNode } from '@adecore/intelligent-ui';
-import { Button, LazyBoundary, Spinner } from '@adecore/ui';
+import { Button, LazyBoundary, Spinner, lazyNamed } from '@adecore/ui';
 import clsx from 'clsx';
 import type { TFunction } from 'i18next';
 import { useId, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type UiMapSource } from '../../../../host';
-import { useHostMapSource } from '../../../../host-hooks';
-import { lazyNamed } from '../../../../lazy';
+import { useChatHost, type UiMapSource } from '../../../../host/host';
+import { useHostMapSource } from '../../../../host/host-hooks';
 import { DiffFallbackBoundary } from '../../diff/DiffFallbackBoundary';
 import { uiChildrenOf, uiNodeLabel } from '../node-text';
 import type { UiPlacePoint, UiRendererProps } from '../render-context';

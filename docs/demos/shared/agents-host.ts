@@ -58,7 +58,6 @@ for (const [language, namespaces] of Object.entries(WORDS)) {
 
 i18n.on('languageChanged', (language) => void globalI18next.changeLanguage(language));
 
-/* The chats a host starts with, by id. */
 export type DemoChats = Record<string, { info: ChatInfo; items: ChatItem[] }>;
 
 function wait(ms: number): Promise<void> {
@@ -72,7 +71,6 @@ function subscribeTheme(changed: () => void): () => void {
     return () => observer.disconnect();
 }
 
-/* The page's light or dark, which the code blocks and diffs follow. */
 function useThemeMode(): 'light' | 'dark' {
     return useSyncExternalStore(
         subscribeTheme,
@@ -103,7 +101,6 @@ const PATH = /^(?<path>[\w.-]+(?:\/[\w.-]+)*\.\w+)(?::(?<line>\d+))?$/;
 // Drafts, preferences and the stash last until the page reloads.
 configureChatStorage({ namespace: 'docs', storage: null });
 
-/* The demo app's choices for its chats; `DemoChatHost` hands them to every demo. */
 export const DEMO_CHAT_HOST: Partial<ChatHost> = {
     accents: { all: ACCENTS, featured: ['blue', 'violet', 'rose', 'amber'], label: (id) => ACCENT_NAMES[id] ?? id, current: () => 'blue' },
     searchFiles: async (_scopeId, _cwd, query, limit) => FILES.filter((path) => path.toLowerCase().includes(query.toLowerCase())).slice(0, limit),
@@ -461,7 +458,6 @@ export class FakeAgentHost implements ChatTransport {
 
 export const DEMO_CHAT = 'chat-demo';
 
-/* The chats that went on from the first turn of the demo chat, which the thread offers under that turn. */
 export function forkChats(): DemoChats {
     return Object.fromEntries(
         Object.keys(FORK_TITLES).map((chatId, index) => [

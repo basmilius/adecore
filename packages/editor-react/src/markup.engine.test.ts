@@ -104,17 +104,17 @@ describe('Emmet abbreviations', () => {
         const { editor, language } = await setup('|<body>\n    one\n    two\n</body>');
         editor.setSelection({ start: { line: 1, character: 4 }, end: { line: 2, character: 7 } });
         expect(language.markup.startWrap()).toBe(true);
-        expect(language.popups.getState().wrap?.anchor).toEqual({ line: 1, character: 4 });
+        expect(language.popups.slot('wrap').get()?.anchor).toEqual({ line: 1, character: 4 });
         expect(language.markup.submitWrap('ul>li*')).toBe(true);
         expect(editor.getText()).toBe('<body>\n    <ul>\n        <li>one</li>\n        <li>two</li>\n    </ul>\n</body>');
-        expect(language.popups.getState().wrap).toBeNull();
+        expect(language.popups.slot('wrap').get()).toBeNull();
     });
 
     test('keeps the field open with a reason when the abbreviation does not expand', async () => {
         const { editor, language } = await setup('text|');
         language.markup.startWrap();
         expect(language.markup.submitWrap('div>>')).toBe(false);
-        expect(language.popups.getState().wrap?.error).toBe('Not an abbreviation');
+        expect(language.popups.slot('wrap').get()?.error).toBe('Not an abbreviation');
         expect(editor.getText()).toBe('text');
     });
 });

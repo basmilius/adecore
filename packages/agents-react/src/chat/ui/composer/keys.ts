@@ -2,9 +2,9 @@ import type { SyntaxNode, Tree } from '@lezer/common';
 import { modSends, type ChatSendKey } from '../../send-key';
 
 /* `send-alternate` sends with the delivery a running turn does not get by default; `send-and-new` also opens a new chat once it went. */
-export type EnterAction = 'send' | 'send-alternate' | 'send-and-new' | 'newline' | 'continue-list' | 'leave-list';
+type EnterAction = 'send' | 'send-alternate' | 'send-and-new' | 'newline' | 'continue-list' | 'leave-list';
 
-export interface EnterKeys {
+interface EnterKeys {
     shift: boolean;
     /* Cmd on macOS, Ctrl elsewhere. */
     mod: boolean;
@@ -25,7 +25,6 @@ export interface EnterContext {
     inOpenFence: boolean;
     /* The list item on the caret's line, or null outside a list and in code. */
     list: ListItem | null;
-    /* The caret's offset in its line. */
     column: number;
     /* Which key sends; `enter` when left out. */
     sendKey?: ChatSendKey;
@@ -37,7 +36,6 @@ export interface EnterContext {
 
 const LIST_ITEM = /^([ \t]*)(?:([-*+])|(\d{1,9})([.)]))([ \t]+)(\[[ xX]\](?:[ \t]+|$))?/;
 
-/* The list item a line starts, if it starts one. */
 export function listItemAt(line: string): ListItem | null {
     const match = LIST_ITEM.exec(line);
 
@@ -92,7 +90,6 @@ export function enterAction(
     return modOnly ? 'newline' : 'send';
 }
 
-/* The innermost fenced code block around `pos`, if any. */
 function enclosingFence(tree: Tree, pos: number): SyntaxNode | null {
     for (let node: SyntaxNode | null = tree.resolveInner(pos, -1); node !== null; node = node.parent) {
         if (node.name === 'FencedCode') {
@@ -108,7 +105,6 @@ function isOpenFence(fence: SyntaxNode): boolean {
     return fence.getChildren('CodeMark').length < 2;
 }
 
-/* Whether `pos` sits inside a fenced code block that has an opening fence and no closing one yet. */
 export function inOpenFence(tree: Tree, pos: number): boolean {
     const fence = enclosingFence(tree, pos);
 
@@ -128,7 +124,6 @@ export function inFenceBody(tree: Tree, text: string, pos: number): boolean {
     return openingEnd !== -1 && pos > openingEnd && (pos < fence.to || isOpenFence(fence));
 }
 
-/* The spaces Tab inserts at `column`, up to the next stop of four, the way a code editor lines up. */
 export function tabSpaces(column: number): string {
     return ' '.repeat(4 - (column % 4));
 }
@@ -172,7 +167,7 @@ export function inCode(tree: Tree, text: string, pos: number): boolean {
     return /(^|[^\\])`/.test(text.slice(from, pos));
 }
 
-export interface RecallContext {
+interface RecallContext {
     key: string;
     text: string;
     from: number;

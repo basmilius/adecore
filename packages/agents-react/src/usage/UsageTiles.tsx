@@ -9,7 +9,6 @@ interface UsageTilesProps {
     cacheSavingsUsd: number;
 }
 
-/* What the period moved, split by the kinds of token that are priced differently. */
 export function UsageTiles({ totals, cacheSavingsUsd }: UsageTilesProps) {
     const { t } = useTranslation('agent-usage');
     const money = useMoney();

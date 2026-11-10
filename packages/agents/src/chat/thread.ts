@@ -14,7 +14,7 @@ import {
     type ChatToolItem
 } from '@adecore/agent-contracts';
 import { appendToolOutput } from '@adecore/agent-contracts/text';
-import { ChatError } from './errors.ts';
+import { ChatError } from '../chat-error.ts';
 import { requestSummaries } from './request-summary.ts';
 
 /*

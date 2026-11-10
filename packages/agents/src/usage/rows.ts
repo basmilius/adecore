@@ -5,7 +5,7 @@ import type { UsageRecord } from './record.ts';
 export type RecordRow = [number, number, number, number, number, number, number, number, number, number, number, string | 0, number?, number?, string?];
 
 /* The names the rows of one document point into. */
-export interface RowTables {
+interface RowTables {
     models: string[];
     sessions: string[];
     folders: string[];
@@ -72,7 +72,7 @@ export class RowWriter {
 }
 
 /* Rows written before accounts carry twelve fields, and before per-call pricing at most fourteen. */
-export interface RowShape {
+interface RowShape {
     accountless: boolean;
     maxLength: number;
 }

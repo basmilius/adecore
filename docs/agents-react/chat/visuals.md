@@ -6,15 +6,7 @@ The timeline draws no visual until the host sets [`visuals`](/agents-react/guide
 
 ## Where a visual goes
 
-The chat client keeps a chat's visuals in `ChatState.visuals`, from the attach and every `chat.visuals` event. The timeline places a visual by its `at`, before the first row that began after it. In a settled turn it lands above the closing answer.
-
-```ts
-import { timedRowsOf, withTimedRows } from '@adecore/agents-react/chat';
-
-const rows = withTimedRows(threadRows, timedRowsOf(cards, visuals, heldFrom));
-```
-
-`withTimedRows(rows, timed)` puts `TimedRow`s (`{ at, row }`) among the rows. `timedRowsOf(cards, visuals, heldFrom)` builds them from your thread cards and the visuals (`null` when the host draws none). A visual row is `{ kind: 'visual', id, visual }`.
+The chat client keeps a chat's visuals in `ChatState.visuals`, from the attach and every `chat.visuals` event. The timeline places a visual by its `at`, before the first row that began after it. In a settled turn it lands above the closing answer. A visual row is `{ kind: 'visual', id, visual }`.
 
 ## The row
 
@@ -26,7 +18,7 @@ The timeline draws the large view and the removal question once per thread. `use
 
 The frame loads the host's `frameUrl` in `<iframe sandbox="allow-scripts allow-forms">`, so the page runs on an opaque origin. A theme change never reloads it.
 
-`VisualPageFrame({ page, title, maxHeight?, fill?, className? })` draws the same frame outside a thread, such as for a page your app kept. `page` returns the HTML; keep it the same function while the page is the same, since a new one reloads the frame. `fill` lets the page scroll inside its positioned parent. It draws nothing without the host's `visuals`. Its props are `VisualPageFrameProps`.
+`VisualPageFrame({ page, title, maxHeight?, fill?, className? })` draws the same frame outside a thread, such as for a page your app kept. `page` returns the HTML; keep it the same function while the page is the same, since a new one reloads the frame. `fill` lets the page scroll inside its positioned parent. It draws nothing without the host's `visuals`.
 
 `VisualBridge` talks to the frame's window (`VisualFrameWindow`), with `VisualBridgeOptions`:
 

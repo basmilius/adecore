@@ -3,7 +3,7 @@ import './test-setup.ts';
 import type { DocumentSymbol } from '@adecore/lsp';
 import i18next from 'i18next';
 import { declarationsOf, startAfterComments, usagesText, type DeclarationSource } from './code-vision-model.ts';
-import dutchWords from './locales/nl.json';
+import dutchWords from './locales/nl.ts';
 
 const at = (line: number, character = 0) => ({ line, character });
 

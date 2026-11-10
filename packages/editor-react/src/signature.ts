@@ -1,7 +1,7 @@
 import type { EditorPosition, EditorTextChange } from '@adecore/editor';
 import type { SignatureHelp, SignatureHelpContext } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { signatureViewOf } from './signature-model.ts';
 import { realTimers, type Timers } from './timers.ts';
@@ -15,7 +15,7 @@ const PAUSE_MS = 60;
  * so the active parameter follows; the server answering nothing is the caret leaving the call.
  */
 export class SignatureFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
     private readonly timers: Timers;
     private timer: unknown;
     private request = 0;
@@ -23,7 +23,7 @@ export class SignatureFeature {
     private help: SignatureHelp | null = null;
     private anchor: EditorPosition | null = null;
 
-    constructor(language: EditorLanguage, timers: Timers = realTimers) {
+    constructor(language: LanguageContext, timers: Timers = realTimers) {
         this.language = language;
         this.timers = timers;
         const { editor } = language;
@@ -33,7 +33,7 @@ export class SignatureFeature {
             editor.onCaret(() => this.retrigger()),
             editor.onBlur(() => this.close()),
             language.onKey((event) => {
-                if (event.key === 'Escape' && this.isOpen && this.language.popups.getState().callHierarchy === null) {
+                if (event.key === 'Escape' && this.isOpen && this.language.popups.slot('callHierarchy').get() === null) {
                     this.close();
 
                     return true;
@@ -63,7 +63,7 @@ export class SignatureFeature {
     }
 
     get isOpen(): boolean {
-        return this.language.popups.getState().signature !== null;
+        return this.language.popups.slot('signature').get() !== null;
     }
 
     /* Asks for the parameters of the call at the caret, as its key does. */
@@ -93,7 +93,7 @@ export class SignatureFeature {
         }
 
         this.help = next;
-        this.language.popups.setState({ signature: { anchor: this.anchor, model } });
+        this.language.popups.slot('signature').set({ anchor: this.anchor, model });
 
         return true;
     }
@@ -106,7 +106,7 @@ export class SignatureFeature {
         this.anchor = null;
 
         if (this.isOpen) {
-            this.language.popups.setState({ signature: null });
+            this.language.popups.slot('signature').set(null);
         }
     }
 
@@ -187,6 +187,6 @@ export class SignatureFeature {
 
         this.help = help;
         this.anchor ??= caret;
-        this.language.popups.setState({ signature: { anchor: this.anchor, model } });
+        this.language.popups.slot('signature').set({ anchor: this.anchor, model });
     }
 }

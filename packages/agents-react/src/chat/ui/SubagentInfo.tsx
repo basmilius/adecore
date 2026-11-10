@@ -1,10 +1,11 @@
+import { taskIdOfRow } from '@adecore/agent-contracts';
 import { Tooltip, useNow } from '@adecore/ui';
 import { useTranslation } from 'react-i18next';
 import { useModelName } from '../../agents/model-name';
-import { useHostTask } from '../../host-hooks';
+import { useHostTask } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
-import { entryTimeOf, statusWordOf, taskIdOf } from '../subagent-list';
+import { entryTimeOf, statusWordOf } from '../subagent-list';
 import { useSubagentItem } from '../subagent-view';
 import { StatusIcon } from './ChatActivity';
 import { SubagentActions, SubagentBreadcrumb } from './SubagentControls';
@@ -19,7 +20,7 @@ export function SubagentInfo({ chatId, toolUseId }: { chatId: string; toolUseId:
     const { id } = useChatScope();
     const item = useSubagentItem(chatId, toolUseId);
     const provider = useChatRow(chatId, (row) => row?.info.provider);
-    const task = useHostTask(id, item === null ? null : taskIdOf(item));
+    const task = useHostTask(id, item === null ? null : taskIdOfRow(item));
     const modelName = useModelName(provider, item?.model ?? '');
     const now = useNow(1000, item?.status === 'running');
     const word = item === null ? null : statusWordOf(item, task);

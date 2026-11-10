@@ -3,7 +3,7 @@
 The diff and merge functions work on arrays of lines without line endings. A `TextShape` keeps the endings apart and puts them back on join.
 
 ```ts
-import { diffLines, joinLines, shapeOf, splitLines } from '@adecore/merge';
+import { diffLines, joinLines, lineMap, shapeOf, splitLines } from '@adecore/merge';
 import type { Change, TextShape } from '@adecore/merge';
 ```
 
@@ -48,6 +48,15 @@ rebuilt.push(...base.slice(cursor));
 Here `diffLines` returns one change, `{ baseStart: 1, baseEnd: 2, otherStart: 1, otherEnd: 3 }`. Adjacent edits come back as one change.
 
 To show a diff as a patch with context lines, use [`patchOf`](/merge/patches#computed-patches) instead.
+
+## lineMap
+
+`lineMap(base, other)` returns an `Int32Array` with one entry per line of `base`: the index of that line in `other`, or `-1` for a line a change replaced or removed. Use it to carry something attached to lines, such as blame or an author's marks, from the text it was computed for to the text on screen. A caller that already holds `diffLines(base, other)` passes it as a third argument to skip the second diff:
+
+```ts
+const map = lineMap(['first', 'old', 'last'], ['first', 'new', 'extra', 'last']);
+// Int32Array [0, -1, 3]
+```
 
 ## Limits
 

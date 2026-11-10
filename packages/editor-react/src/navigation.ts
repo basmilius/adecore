@@ -1,10 +1,10 @@
 import type { EditorPosition } from '@adecore/editor';
-import { StaleResultError, fileUriToPath, type LanguageService, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
-import { rangeHolds } from './diagnostics-model.ts';
-import type { EditorLanguage } from './editor-language.ts';
+import { StaleResultError, type LanguageService, type Location, type LocationLink, type NavigationResult, type Range } from '@adecore/lsp';
 import { messageOf } from './error-message.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
-import { basenameOf } from './paths.ts';
+import type { LanguageContext } from './language-context.ts';
+import type { PickFeature } from './pick.ts';
+import { rangeHolds } from './positions.ts';
 import { isShortcut } from './shortcut-keys.ts';
 import { placesOfName } from './symbol-links.ts';
 import { placeKey, uniqueBy } from './unique.ts';
@@ -47,9 +47,14 @@ export function uniquePlaces(result: NavigationResult): { location: Location; ta
     );
 }
 
-/* The places of a result, each once. */
-export function uniqueLocations(result: NavigationResult): Location[] {
+function uniqueLocations(result: NavigationResult): Location[] {
     return uniquePlaces(result).map(({ location }) => location);
+}
+
+/* The sibling features NavigationFeature drives, which the editor language hands over. */
+interface NavigationPeers {
+    readonly peek: { open(position: EditorPosition): Promise<void> };
+    readonly pick: Pick<PickFeature, 'locations'>;
 }
 
 /*
@@ -58,10 +63,12 @@ export function uniqueLocations(result: NavigationResult): Location[] {
  * the host; several are listed under the name to choose from.
  */
 export class NavigationFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: NavigationPeers;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: NavigationPeers) {
         this.language = language;
+        this.peers = peers;
         const { editor } = language;
 
         const offs = [
@@ -125,11 +132,11 @@ export class NavigationFeature {
             this.tell(this.say('none'));
         } else if (kind === 'definition' && places.length === 1 && places[0]!.uri === uri && rangeHolds(places[0]!.range, position)) {
             // The name is its own definition, so what a person wants to see is where it is used.
-            void this.language.peek.open(position);
+            void this.peers.peek.open(position);
         } else if (places.length === 1) {
             this.language.goTo(places[0]!);
         } else {
-            this.language.locations(places, position, this.say(`titles.${kind}`));
+            this.peers.pick.locations(places, position, this.say(`titles.${kind}`));
         }
 
         editor.focus();
@@ -159,7 +166,7 @@ export class NavigationFeature {
             if (places.length === 1) {
                 this.language.goTo(places[0]!);
             } else if (places.length > 1) {
-                this.language.locations(places, anchor, this.say('titles.symbol'));
+                this.peers.pick.locations(places, anchor, this.say('titles.symbol'));
             }
         } catch {
             // A name that cannot be found is a link that does nothing, not an error.
@@ -173,13 +180,4 @@ export class NavigationFeature {
     private say(key: string, options?: Record<string, unknown>): string {
         return this.language.project.i18n.t(`editor:language.navigation.${key}`, options);
     }
-}
-
-/* How a place reads in a list: the file and the line, with the folder it is in. */
-export function locationRow(location: Location, stored: string | null): { label: string; detail: string; path: true } {
-    const path = stored ?? fileUriToPath(location.uri) ?? location.uri;
-    const name = basenameOf(path);
-    const folder = path.slice(0, Math.max(0, path.length - name.length)).replace(/\/$/, '');
-
-    return { label: `${name}:${location.range.start.line + 1}`, detail: folder, path: true };
 }

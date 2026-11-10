@@ -1,6 +1,6 @@
 import type { EditorRange } from '@adecore/editor';
 import type { SelectionRange } from '@adecore/lsp';
-import type { EditorLanguage } from './editor-language.ts';
+import type { LanguageContext } from './language-context.ts';
 
 const METHOD = 'textDocument/selectionRange';
 
@@ -20,7 +20,7 @@ export function selectionChainOf(selection: SelectionRange): EditorRange[] {
  * follow the syntax of the file. Where no server offers them the editor grows by its own rule.
  */
 export class SelectionRangesFeature {
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext) {
         const { editor, uri } = language;
 
         editor.setSelectionRanges(async (positions) => {

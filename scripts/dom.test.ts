@@ -1,25 +1,20 @@
 import { Glob } from 'bun';
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
 import { availableParallelism } from 'node:os';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const PRELOAD = './packages/ui/src/file-tree/testing/preload.ts';
-const DOM_GUARD = "typeof document === 'undefined'";
 
 /*
  * Base UI and React DOM read `document` once, as they load, so a DOM has to stand before the first
- * import, and the rest of the suite must never see one (the boundary and import-time tests). Every test
- * file that guards on `document` therefore runs again here, in a `bun test` of its own with the DOM
- * preload. To run one by hand: `bun test --preload ./packages/ui/src/file-tree/testing/preload.ts <file>`.
+ * import, and the rest of the suite must never see one (the boundary and import-time tests). Every
+ * `*.dom.test.ts(x)` file is therefore left out of the default run (`bunfig.toml`) and runs here, in a
+ * `bun test` of its own with the DOM preload (`dom.bunfig.toml`). To run one by hand: `bun --config=dom.bunfig.toml test <file>`.
  */
-const files = ['packages/*/src/**/*.test.{ts,tsx}', 'docs/**/*.test.{ts,tsx}']
+const files = ['packages/*/src/**/*.dom.test.{ts,tsx}', 'docs/**/*.dom.test.{ts,tsx}']
     .flatMap((pattern) => [...new Glob(pattern).scanSync(ROOT)])
     .map((path) => path.replaceAll('\\', '/'))
     .filter((path) => !path.includes('node_modules/'))
-    .filter((path) => readFileSync(join(ROOT, path), 'utf8').includes(DOM_GUARD))
     .sort();
 
 const running: Promise<unknown>[] = [];
@@ -43,7 +38,7 @@ test.concurrent.each(files)(
     '%s in a DOM',
     async (file) => {
         const output = await inSlot(async () => {
-            const child = Bun.spawn([process.execPath, 'test', '--preload', PRELOAD, `./${file}`], {
+            const child = Bun.spawn([process.execPath, '--config=dom.bunfig.toml', 'test', `./${file}`], {
                 cwd: ROOT,
                 stdin: 'ignore',
                 stdout: 'pipe',

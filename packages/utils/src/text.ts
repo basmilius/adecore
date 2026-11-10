@@ -3,7 +3,6 @@ export function isHighSurrogate(code: number): boolean {
     return code >= 0xd800 && code <= 0xdbff;
 }
 
-/* The second half of a surrogate pair. */
 export function isLowSurrogate(code: number): boolean {
     return code >= 0xdc00 && code <= 0xdfff;
 }

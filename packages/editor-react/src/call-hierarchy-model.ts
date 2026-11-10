@@ -3,7 +3,6 @@ import type { CallHierarchyIncomingCall, CallHierarchyItem, CallHierarchyOutgoin
 /* Callers of a symbol or the symbols it calls; or the super and sub types of a type, which the same tree draws. */
 export type CallDirection = 'incoming' | 'outgoing' | 'supertypes' | 'subtypes';
 
-/* Whether a direction walks a type hierarchy and not the calls. */
 export function isTypeDirection(direction: CallDirection): direction is 'supertypes' | 'subtypes' {
     return direction === 'supertypes' || direction === 'subtypes';
 }
@@ -13,7 +12,6 @@ export const CALL_LEVEL_LIMIT = 50;
 
 export type CallLoad = 'idle' | 'loading' | 'loaded' | 'failed';
 
-/* One symbol of the tree and what is known of its calls. */
 export interface CallNode {
     readonly id: string;
     readonly parent: string | null;
@@ -28,11 +26,9 @@ export interface CallNode {
     readonly error: string | null;
     /* Every call the server returned, in the order they are listed. */
     readonly children: readonly string[];
-    /* How many of the children are drawn. */
     readonly shown: number;
 }
 
-/* A line of the tree as it is drawn. */
 export type CallRow =
     | {
           readonly kind: 'node';
@@ -59,17 +55,14 @@ export type CallRow =
       }
     | { readonly kind: 'more'; readonly id: string; readonly level: number; readonly parent: string; readonly hidden: number };
 
-/* The id of the status line under a node. */
 export function statusIdOf(parent: string): string {
     return `${parent}:status`;
 }
 
-/* The id of the line that shows more calls under a node. */
 export function moreIdOf(parent: string): string {
     return `${parent}:more`;
 }
 
-/* The tree's roots, each one a symbol the server prepared. */
 export function rootsOf(items: readonly CallHierarchyItem[]): CallNode[] {
     return items.map((item, index) => ({
         id: `r${index}`,

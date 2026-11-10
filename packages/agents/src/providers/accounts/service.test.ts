@@ -5,7 +5,7 @@ import { join, resolve } from 'node:path';
 import type { AgentKind, ProviderAccount, ProviderAccounts, ProviderInfo } from '@adecore/agent-contracts';
 import type { AgentEvent } from '../../events.ts';
 import { memorySecrets } from '../../testing/accounts.ts';
-import { providerFor } from '../registry.ts';
+import { providerFor } from '../../testing/providers.ts';
 import { ProviderAccountsService } from './service.ts';
 import type { ShadowHomeReport } from './shadow-home.ts';
 import { applySharedConfig, removeSharedConfig, type SharedConfigReport } from './shared-config.ts';
@@ -17,9 +17,21 @@ const NOWHERE = resolve('/nowhere');
 const env = { HOME, USERPROFILE: HOME, ANTHROPIC_API_KEY: 'sk-ant' };
 const installed = new Set<AgentKind>(['claude', 'codex', 'copilot']);
 
+const KINDS: AgentKind[] = ['claude', 'codex', 'gemini', 'copilot', 'apple'];
+
 const providers = {
     list: async () => [...installed].map((kind) => ({ kind, installed: true }) as ProviderInfo),
-    get: (kind: AgentKind) => providerFor(kind)
+    get: (kind: AgentKind) => providerFor(kind),
+    kinds: () => KINDS
+};
+
+/* Providers whose CLI always answers that it is signed in, so a service under test never starts one. */
+const signedInProviders = {
+    ...providers,
+    get: (kind: AgentKind) => ({
+        ...providerFor(kind),
+        askAccount: async () => ({ signedIn: true, email: null, plan: null, organization: null })
+    })
 };
 
 interface Asked {
@@ -48,19 +60,24 @@ describe('ProviderAccountsService', () => {
         const service = new ProviderAccountsService({
             home: dir,
             host: { name: 'Host', variablePrefixes: ['HOST_'], keychainPrefix: 'host' },
-            providers,
-            env,
-            ask: async (kind, _command, askedEnv) => {
-                const folder = kind === 'claude' ? askedEnv.CLAUDE_CONFIG_DIR : askedEnv.CODEX_HOME;
-                asked.push({ kind, folder, apiKey: askedEnv.ANTHROPIC_API_KEY });
-                const answer = answers[folder ?? kind] ?? { signedIn: false, email: null, plan: null, organization: null };
+            providers: {
+                ...providers,
+                get: (kind) => ({
+                    ...providerFor(kind),
+                    askAccount: async (_command, askedEnv) => {
+                        const folder = kind === 'claude' ? askedEnv.CLAUDE_CONFIG_DIR : askedEnv.CODEX_HOME;
+                        asked.push({ kind, folder, apiKey: askedEnv.ANTHROPIC_API_KEY });
+                        const answer = answers[folder ?? kind] ?? { signedIn: false, email: null, plan: null, organization: null };
 
-                if (answer instanceof Error) {
-                    throw answer;
-                }
+                        if (answer instanceof Error) {
+                            throw answer;
+                        }
 
-                return answer;
+                        return answer;
+                    }
+                })
             },
+            env,
             folderExists: (path) => folders.has(path),
             prepareShadow: async (home, shadow) => {
                 shadows.push(`${home} <- ${shadow}`);
@@ -318,10 +335,9 @@ describe('ProviderAccountsService', () => {
             await service.shareConfig('claude_personal', true);
             const failing = new ProviderAccountsService({
                 home: dir,
-                providers,
+                providers: signedInProviders,
                 env,
                 secrets: null,
-                ask: async () => ({ signedIn: true, email: null, plan: null, organization: null }),
                 folderExists: () => true,
                 applyShared: async () => {
                     throw new Error('read-only folder');
@@ -405,10 +421,9 @@ describe('ProviderAccountsService', () => {
             const makeReal = async (saveAccount = true): Promise<ProviderAccountsService> => {
                 const service = new ProviderAccountsService({
                     home: dir,
-                    providers,
+                    providers: signedInProviders,
                     env: { HOME: root, USERPROFILE: root },
                     secrets: null,
-                    ask: async () => ({ signedIn: true, email: null, plan: null, organization: null }),
                     // Only the first apply waits, so the test holds it while it changes the flag.
                     applyShared: async (from, into, share, owns) => {
                         const wait = applying;
@@ -908,15 +923,20 @@ describe('ProviderAccountsService kinds', () => {
         const service = new ProviderAccountsService({ home: NOWHERE, providers: { ...providers, kinds: () => ['claude', 'grok'] }, env, secrets: null });
         expect(Object.keys(service.snapshot().accounts)).toEqual(['claude', 'grok']);
     });
-
-    test('a host that names no kinds gets one for every kind this version knows', () => {
-        const service = new ProviderAccountsService({ home: NOWHERE, providers, env, secrets: null });
-        expect(Object.keys(service.snapshot().accounts)).toEqual(['claude', 'codex', 'gemini', 'copilot', 'apple']);
-    });
 });
 
 describe('ProviderAccountsService for a CLI that signs in from its chat', () => {
-    const acme = { ...providerFor('claude'), kind: 'acme', name: 'Acme', home: { env: 'ACME_HOME', fallback: '.acme', loginEnv: [] } };
+    const acme = {
+        ...providerFor('claude'),
+        kind: 'acme',
+        name: 'Acme',
+        home: { env: 'ACME_HOME', fallback: '.acme', loginEnv: [] },
+        askAccount: async () => {
+            asked.push('acme');
+
+            return { signedIn: true, email: null, plan: null, organization: null };
+        }
+    };
 
     const withAcme = {
         list: async () => (['claude', 'acme'] as AgentKind[]).map((kind) => ({ kind, installed: true }) as ProviderInfo),
@@ -933,11 +953,6 @@ describe('ProviderAccountsService for a CLI that signs in from its chat', () => 
             providers: withAcme,
             env,
             secrets: null,
-            ask: async (kind) => {
-                asked.push(kind);
-
-                return { signedIn: true, email: null, plan: null, organization: null };
-            },
             folderExists: () => true,
             prepareShadow: async () => ({ linked: [], unshared: [], sharedLogin: false })
         });
@@ -995,7 +1010,7 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
         }
     };
 
-    const silent = { ...providerFor('claude'), kind: 'silent', name: 'Silent', home: home('silent') };
+    const silent = { ...providerFor('claude'), askAccount: undefined, kind: 'silent', name: 'Silent', home: home('silent') };
     const kinds: AgentKind[] = ['claude', 'reader', 'silent'];
 
     const withReaders = {
@@ -1015,13 +1030,12 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
         await rm(dir, { recursive: true, force: true });
     });
 
-    const make = async (ask?: () => Promise<AccountReading>): Promise<ProviderAccountsService> => {
+    const make = async (): Promise<ProviderAccountsService> => {
         const service = new ProviderAccountsService({
             home: dir,
             providers: withReaders,
             env,
             secrets: null,
-            ...(ask ? { ask } : {}),
             folderExists: () => true,
             prepareShadow: async () => ({ linked: [], unshared: [], sharedLogin: false })
         });
@@ -1031,12 +1045,8 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
         return service;
     };
 
-    test('asks the provider before the host', async () => {
-        const service = await make(async () => {
-            askedBy.push('host');
-
-            return reading;
-        });
+    test('asks the provider who is signed in', async () => {
+        const service = await make();
 
         await service.save({ reader_work: { kind: 'reader', home: '~/.reader_work' } });
         await service.refresh();
@@ -1046,6 +1056,17 @@ describe('ProviderAccountsService for a CLI with a reader of its own', () => {
 
     test('names the CLIs whose login nothing notices', async () => {
         expect((await make()).snapshot().silentLogins).toEqual(['silent']);
-        expect((await make(async () => reading)).snapshot().silentLogins).toBeUndefined();
+    });
+
+    test('says by its kind that a CLI without a reader cannot say who is signed in to an account', async () => {
+        const service = await make();
+
+        await service.save({ silent_work: { kind: 'silent', home: '~/.silent_work' } });
+        await service.refresh();
+
+        expect(service.snapshot().statuses.find((status) => status.id === 'silent_work')).toMatchObject({
+            state: 'failed',
+            message: 'silent cannot say who is signed in'
+        });
     });
 });

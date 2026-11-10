@@ -1,5 +1,3 @@
-/* The settings dialog and the parts a pane is built from. */
-
 export { ConfirmDialog, type ConfirmDialogProps } from './ConfirmDialog.tsx';
 
 export { DetailHeader, type DetailHeaderProps } from './DetailHeader.tsx';

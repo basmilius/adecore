@@ -10,7 +10,6 @@ export interface DocComment {
     /* Zero-based and inclusive. */
     startLine: number;
     endLine: number;
-    /* The whitespace in front of the comment on its first line. */
     indent: string;
     /* The text between the delimiters with the margin stars taken off. */
     body: string;

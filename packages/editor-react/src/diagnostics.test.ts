@@ -5,8 +5,7 @@ import { resolveKeymap } from '@adecore/editor/keymap';
 import type { Diagnostic } from '@adecore/lsp';
 import { EditorLanguage } from './editor-language.ts';
 import { ProjectLanguage } from './project-language.ts';
-import { keyOf } from './test-support.ts';
-import { FakeLanguageService, ManualTimers } from './testing.ts';
+import { FakeLanguageService, ManualTimers, keyOf } from './testing.ts';
 
 const uri = 'file:///work/src/a.ts';
 const at = (line: number, character: number) => ({ line, character });
@@ -175,15 +174,15 @@ describe('problem navigation', () => {
         report([{ range: range(2, 0, 5), message: 'second', severity: 2 }]);
         editor.press(keyOf(language.shortcuts.nextProblem));
 
-        expect(language.popups.getState().hover?.problems[0]?.diagnostic.message).toBe('second');
+        expect(language.popups.slot('hover').get()?.problems[0]?.diagnostic.message).toBe('second');
 
         editor.scroll();
 
-        expect(language.popups.getState().hover).not.toBeNull();
+        expect(language.popups.slot('hover').get()).not.toBeNull();
 
         editor.moveCaret(at(0, 0));
 
-        expect(language.popups.getState().hover).toBeNull();
+        expect(language.popups.slot('hover').get()).toBeNull();
     });
 
     test('follows the keymap of the host, and leaves the bare key of a shortcut with a modifier alone', async () => {

@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { KILL_GRACE_MS, killProcessTree } from './chat/chat-process.ts';
+import { KILL_GRACE_MS, killProcessTree } from './chat-process.ts';
 import { spawnTarget } from './windows-command.ts';
 
 export interface ProcessResult {
@@ -9,7 +9,7 @@ export interface ProcessResult {
     stderr: string;
 }
 
-export interface RunProcessOptions {
+interface RunProcessOptions {
     env?: Record<string, string | undefined>;
     cwd?: string;
     // Written and closed at once; absent, the process reads from nothing.

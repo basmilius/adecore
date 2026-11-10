@@ -177,7 +177,7 @@ export function acceptAccounts(
         const provider = providers.get(account.kind);
 
         const problem =
-            accountProblem(id, account, provider, env, reserved, providers.kinds) ?? linkProblem(id, account, before[id], provider, env, isDirectory);
+            accountProblem(id, account, provider, env, providers.kinds, reserved) ?? linkProblem(id, account, before[id], provider, env, isDirectory);
 
         if (problem !== null) {
             throw new InvalidAccountError(`${id}: ${problem}`);

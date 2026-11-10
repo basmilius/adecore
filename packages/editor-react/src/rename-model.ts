@@ -1,7 +1,7 @@
 import type { EditorPosition, EditorRange } from '@adecore/editor';
 import type { DocumentSymbol, DocumentSymbolResult, Location, PrepareRenameResult, TextEdit, WorkspaceEdit } from '@adecore/lsp';
 import { isIdentifierCharacter } from './completion-model.ts';
-import { rangeHolds } from './diagnostics-model.ts';
+import { rangeHolds } from './positions.ts';
 import { textEntriesOf } from './workspace-edit.ts';
 
 /* The identifier the caret is in or touches; null where there is none. */

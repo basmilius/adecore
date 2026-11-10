@@ -30,17 +30,13 @@ const WRAPPING_VIEWS: ReadonlySet<ViewId> = new Set(['text', 'formatted', 'utf8'
 const READING_FRAME = 'flex-1 rounded-lg border border-border bg-surface';
 const READING = `p-2 ${CODE_TEXT} text-text`;
 
-export interface ValueEditorProps {
+interface ValueEditorProps {
     column: GridColumn;
     value: Value;
     editable: boolean;
     onCommit?(value: EditValue): void;
 }
 
-/*
- * The whole of one value, to read and change what a cell is too small for: Text, Formatted for JSON, or
- * Hex, Text and UUID for binary, with the checks of JSON and hex before a change is taken.
- */
 export function ValueEditor({ column, value, editable, onCommit }: ValueEditorProps) {
     const { t } = useTranslation('database');
     const { name, type, kind } = column;

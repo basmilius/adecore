@@ -20,7 +20,6 @@ function rebuild(base: readonly string[], other: readonly string[]): string[] {
     return out;
 }
 
-/* A deterministic shuffle of a file: some lines dropped, some changed, some added. */
 function mutate(lines: readonly string[], seed: number): string[] {
     let state = seed;
 

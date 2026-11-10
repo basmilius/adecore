@@ -19,7 +19,7 @@ export interface ScanState {
 }
 
 /* The history this state was saved against: the rewrite it belongs to and how far into it. */
-export interface HistoryMark {
+interface HistoryMark {
     gen: string;
     bytes: number;
 }

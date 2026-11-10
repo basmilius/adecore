@@ -49,7 +49,6 @@ function openScope(chats: DemoChats, providers: ProviderInfo[]): { scope: ChatSc
     };
 }
 
-/* The demo app's choices for its chats, provided once around everything it draws. */
 export function DemoChatHost({ children }: { children: ReactNode }) {
     return <ChatHostProvider host={DEMO_CHAT_HOST}>{children}</ChatHostProvider>;
 }

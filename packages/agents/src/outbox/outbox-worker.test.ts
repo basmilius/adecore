@@ -232,6 +232,52 @@ test('a retry that was waiting survives a restart with its attempts', async () =
     expect(reloaded.list().map((entry) => [entry.attempts, entry.notBefore - clock.now()])).toEqual([[1, RETRY_DELAYS_MS[0]]]);
 });
 
+test('a kind with no retries is given up on at its first failure, and the parked listeners hear the error', async () => {
+    const parked: string[] = [];
+    const heard: string[] = [];
+
+    const worker = new OutboxWorker({
+        store,
+        clock,
+        retries: { start: 0 },
+        onParked: (entry, error) => parked.push(`${entry.kind}: ${(error as Error).message}`),
+        handlers: {
+            resume: unused,
+            wake: unused,
+            end: unused,
+            start: async () => {
+                throw new Error('no');
+            }
+        }
+    });
+
+    worker.onParked((entry) => heard.push(entry.target));
+    worker.start();
+    await worker.enqueue('project', 'chat-1', work());
+    await worker.settled();
+
+    expect(parked).toEqual(['start: no']);
+    expect(heard).toEqual(['chat-1']);
+    expect(store.list()).toEqual([]);
+});
+
+test('a handler added after construction runs, once, and start names the kinds that have none', async () => {
+    const seen: string[] = [];
+    const worker = new OutboxWorker({ store, clock, kinds: ['start', 'wake'], handlers: { start: unused, resume: unused, end: unused } });
+
+    expect(() => worker.start()).toThrow('wake');
+
+    worker.handle('wake', async (entry) => {
+        seen.push(entry.payload.taskId);
+    });
+    expect(() => worker.handle('wake', unused)).toThrow('already has a handler for wake');
+
+    worker.start();
+    await worker.enqueue('project', 'chat-1', wakeWork('task-1'));
+    await worker.settled();
+    expect(seen).toEqual(['task-1']);
+});
+
 test('pruning drops what a project owed for nodes it no longer places', async () => {
     await store.put('project', 'kept', work(), clock.now());
     await store.put('project', 'gone', work(), clock.now());

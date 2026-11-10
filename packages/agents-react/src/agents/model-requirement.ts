@@ -1,6 +1,6 @@
 import type { ModelInfo, ProviderInfo } from '@adecore/agent-contracts';
 
-export interface ModelRequirement {
+interface ModelRequirement {
     /* The CLI's name, as the provider list gives it. */
     cli: string;
     minVersion: string;

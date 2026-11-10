@@ -10,6 +10,10 @@ Every name each entry point exports, read from its source. Anything not listed i
 
 <ExportTable entry="@adecore/utils/errors" />
 
+## `@adecore/utils/geometry`
+
+<ExportTable entry="@adecore/utils/geometry" />
+
 ## `@adecore/utils/record`
 
 <ExportTable entry="@adecore/utils/record" />

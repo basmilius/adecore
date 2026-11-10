@@ -1,7 +1,8 @@
 import { rememberCopy } from '@adecore/editor';
 import type { ClipboardEntry } from './clipboard-history.ts';
-import type { EditorLanguage } from './editor-language.ts';
 import { KEY_PRIORITY } from './key-priority.ts';
+import type { LanguageContext } from './language-context.ts';
+import type { PickFeature } from './pick.ts';
 import type { PickGroup } from './popups.ts';
 import { isShortcut } from './shortcut-keys.ts';
 
@@ -14,15 +15,22 @@ function labelOf(text: string): string {
     return flat.length > LABEL_LENGTH ? `${flat.slice(0, LABEL_LENGTH)}…` : flat;
 }
 
+/* The sibling features PasteHistoryFeature drives, which the editor language hands over. */
+interface PasteHistoryPeers {
+    readonly pick: Pick<PickFeature, 'open'>;
+}
+
 /*
  * Paste from History: a list of what was copied in the editors of the project, newest first. Typing narrows it,
  * Shift with the arrows chooses several entries, which paste as one, and Delete forgets entries.
  */
 export class PasteHistoryFeature {
-    private readonly language: EditorLanguage;
+    private readonly language: LanguageContext;
+    private readonly peers: PasteHistoryPeers;
 
-    constructor(language: EditorLanguage) {
+    constructor(language: LanguageContext, peers: PasteHistoryPeers) {
         this.language = language;
+        this.peers = peers;
 
         const off = language.onKey((event) => {
             if (!isShortcut(this.language.shortcuts.pasteFromHistory, event)) {
@@ -66,7 +74,7 @@ export class PasteHistoryFeature {
 
         const rows = groups();
 
-        this.language.pick.open({
+        this.peers.pick.open({
             anchor: editor.getCaret(),
             title: project.i18n.t('editor:language.pasteHistory.title'),
             groups: rows,

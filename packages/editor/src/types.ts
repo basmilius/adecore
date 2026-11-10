@@ -1,6 +1,5 @@
 import type { EditorCommand, FoldRole, TextPlaceKind, UnwrapKind, WhitespaceCleanupOptions } from '@adecore/editor-core';
-import type { Keymap } from './keymap-table.ts';
-import type { EditorSearchClientOptions } from './search-client.ts';
+import type { KeyChord, Keymap } from './keymap-table.ts';
 
 export type { EditorCommand, FoldRole };
 
@@ -45,7 +44,6 @@ export interface EditorZoom {
     readonly wheel?: boolean;
 }
 
-/* Everything `runCommand` runs. */
 export type EditorRunCommand = EditorCommand | EditorViewCommand;
 
 /* Lines to fold, zero-based. */
@@ -115,7 +113,6 @@ export interface EditorOptions {
     readonly zoom?: EditorZoom;
 }
 
-/* The few sentences the editor says on its own. */
 export interface EditorMessages {
     /* Select next occurrence went past the last one. */
     readonly noMoreOccurrences: string;
@@ -224,7 +221,6 @@ export interface EditorRemoteCursor {
     readonly id: string;
     /* A line past the end is the last one, a character past the end of its line is the end of it. */
     readonly position: EditorPosition;
-    /* What the label says, such as the agent's name. */
     readonly name: string;
     readonly color: EditorMarkColor;
 }
@@ -474,8 +470,8 @@ export interface EditorLineAction {
     readonly id: string;
     /* Zero-based; the action stays on its line through edits until its owner sets its actions again. */
     readonly line: number;
-    /* Fills the element once; it is kept for as long as the action is. */
-    render(container: HTMLElement): void;
+    /* Fills the element once; it is kept for as long as the action is. What it returns runs once, when the element is taken away. */
+    render(container: HTMLElement): (() => void) | void;
 }
 
 /* One thing a code vision row says, such as how many times a declaration is used. */
@@ -580,8 +576,8 @@ export interface EditorGhostText {
     /* Where the suggestion would be inserted; the caret stays in front of it. */
     readonly position: EditorPosition;
     readonly text: string;
-    /* Fills the element drawn after the end of the first line's text, such as the keys that take the suggestion. */
-    readonly accessory?: (container: HTMLElement) => void;
+    /* Fills the element drawn after the end of the first line's text, such as the keys that take the suggestion. What it returns runs once, when that element is taken away. */
+    readonly accessory?: (container: HTMLElement) => (() => void) | void;
 }
 
 /* A button in the gutter on one line, such as the lightbulb that offers code actions. */
@@ -619,6 +615,9 @@ export interface EditorIndentation {
     readonly tabSize: number;
     readonly insertSpaces: boolean;
 }
+
+/* Starts the worker a find runs on, which only has to take and answer messages. */
+export type EditorSearchWorkerFactory = () => Pick<Worker, 'addEventListener' | 'removeEventListener' | 'postMessage' | 'terminate'>;
 
 /* What a find bar asks the editor; the editor's own matcher reads it. */
 export interface EditorFindQuery {
@@ -676,7 +675,6 @@ export interface Editor {
     /* An offset past the end, or a character past the end of its line, lands on the end. */
     positionAt(offset: number): EditorPosition;
     offsetAt(position: EditorPosition): number;
-    /* The text of a range, such as the word before the caret. */
     textInRange(range: EditorRange): string;
     /* Mod+S from inside the editor; what happens then is the host's. */
     onSave(listener: () => void): () => void;
@@ -916,17 +914,6 @@ export interface EditorEngine {
     mount(element: HTMLElement, options: EditorOptions): Editor;
 }
 
-/* A shortcut: `mod` is Cmd on macOS and Ctrl elsewhere, `ctrl` and `meta` the physical keys. */
-export interface KeyChord {
-    readonly mod: boolean;
-    readonly ctrl: boolean;
-    readonly meta: boolean;
-    readonly alt: boolean;
-    readonly shift: boolean;
-    /* An uppercase letter, a digit, a punctuation mark or a named key such as `ArrowLeft`. */
-    readonly key: string;
-}
-
 /* One stretch of a colored line. The tokens of a line add up to its length. */
 export interface LineToken {
     readonly length: number;
@@ -966,7 +953,7 @@ export type TokenizerSource = (language: string | undefined, theme: EditorTheme,
 
 export interface SmartEditorEngineOptions {
     /* One lazy search worker per mounted editor; regex search is unavailable without it. */
-    readonly searchWorker?: EditorSearchClientOptions['workerFactory'];
+    readonly searchWorker?: EditorSearchWorkerFactory;
     /* The key table. A function is asked on every key press, so a rebind reaches the editors that are open. */
     readonly keymap?: Keymap | (() => Keymap);
     readonly tokenizer: TokenizerSource;

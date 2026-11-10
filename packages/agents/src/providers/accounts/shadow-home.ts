@@ -33,7 +33,7 @@ export interface ShadowHomeReport {
     sharedLogin: boolean;
 }
 
-export class ShadowHomeError extends Error {}
+class ShadowHomeError extends Error {}
 
 type Existing = { kind: 'missing' } | { kind: 'link'; target: string } | { kind: 'real' };
 

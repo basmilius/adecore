@@ -5,7 +5,6 @@ import type { Shown } from './display.ts';
 export const wholeValueOf = (cell: Shown): Value | undefined =>
     cell !== null && typeof cell === 'object' && cell.kind === 'default' ? undefined : valueOfCell(cell as Cell);
 
-/* What a cell holds as far as it goes: the whole value, or the preview of a long text or a binary value. */
 export const previewValueOf = (cell: Shown): Value => {
     const whole = wholeValueOf(cell);
 

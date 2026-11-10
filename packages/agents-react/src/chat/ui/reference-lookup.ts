@@ -1,6 +1,6 @@
 import { createContext } from 'react';
-import type { OutsideReference } from '../../host';
-import type { Referable } from '../chat-references';
+import type { OutsideReference } from '../../host/host';
+import type { Referable } from '../../host/references';
 
 export interface ReferenceLookup {
     items: readonly Referable[];
