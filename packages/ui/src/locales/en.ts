@@ -13,6 +13,9 @@ export default {
     accent: {
         more: 'More colors'
     },
+    tokenInput: {
+        remove: 'Remove {{label}}'
+    },
     settings: {
         title: 'Settings',
         section: 'Settings section',

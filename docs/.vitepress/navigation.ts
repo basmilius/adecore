@@ -127,7 +127,8 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['ShortcutInput', '/ui/inputs/shortcut-input'],
         ['Slider', '/ui/inputs/slider'],
         ['Stepper', '/ui/inputs/stepper'],
-        ['Switch', '/ui/inputs/switch']
+        ['Switch', '/ui/inputs/switch'],
+        ['TokenInput', '/ui/inputs/token-input']
     ]),
     group('Pickers', [
         ['AccentSwatches', '/ui/pickers/accent-swatches'],

@@ -107,6 +107,7 @@ export { Switch, type SwitchProps } from './Switch.tsx';
 export { TextMenu, type TextMenuProps } from './TextMenu.tsx';
 export { Tile, type TileProps } from './Tile.tsx';
 export { Toasts, type ToastsProps } from './Toasts.tsx';
+export { TokenInput, type TokenInputProps, type TokenInputToken } from './TokenInput.tsx';
 export { Tooltip, type TooltipProps, type TooltipSide } from './Tooltip.tsx';
 export { UIProvider, type UIProviderProps } from './UIProvider.tsx';
 export { Waveform, type WaveformProps } from './Waveform.tsx';
