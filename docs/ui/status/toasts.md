@@ -49,6 +49,14 @@ try {
 }
 ```
 
+A `progress` toast with `progress`, from 0 to 1, draws a thin bar under its title and keeps the spinner. Move it on with `update`; another kind draws no bar.
+
+```ts
+const id = toasts.getState().show({ kind: 'progress', title: 'Syncing mail', description: '41 of 120 messages', progress: 41 / 120 });
+
+toasts.getState().update(id, { description: '68 of 120 messages', progress: 68 / 120 });
+```
+
 `show` with an existing id replaces that toast. `onClose` runs once a toast is gone, timed out or dismissed.
 
 ## The store
@@ -62,7 +70,7 @@ try {
 | `update(id, patch)` | Changes a toast that is up and restarts its timer. Takes a `ToastPatch<T>`. |
 | `dismiss(id)` | Takes a toast down. |
 
-A `Toast` is `{ id, title, kind, description?, action?, actions?, persist?, lifetime?, onClose?, deadline? }`. The store sets `deadline` (a `ToastDeadline` of `start` and `end` in epoch milliseconds). A `ToastAction` is `{ label, run, shortcut? }`; the shortcut is only printed. One action sits beside the title; with `actions`, two or more get their own line under the description. An action does not dismiss the toast; do that in `run` if needed. `ToastKind` is the union of the four kinds.
+A `Toast` is `{ id, title, kind, description?, action?, actions?, progress?, persist?, lifetime?, onClose?, deadline? }`. The store sets `deadline` (a `ToastDeadline` of `start` and `end` in epoch milliseconds). A `ToastAction` is `{ label, run, shortcut? }`; the shortcut is only printed. One action sits beside the title; with `actions`, two or more get their own line under the description. An action does not dismiss the toast; do that in `run` if needed. `ToastKind` is the union of the four kinds.
 
 To carry more on a toast, extend `Toast`, pass the type to the store, and draw the extra fields with `footer`:
 

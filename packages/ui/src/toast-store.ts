@@ -39,6 +39,9 @@ export interface Toast {
     /* Drawn after `action`, in order. */
     actions?: ToastAction[];
 
+    /* How far the work is, from 0 to 1, drawn as a bar under the title. Read only for `progress`. */
+    progress?: number;
+
     /* A success that waits to be dismissed, for news that lands while nobody is looking yet. */
     persist?: boolean;
 

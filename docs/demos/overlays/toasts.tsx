@@ -12,6 +12,18 @@ async function push(): Promise<void> {
     toasts.getState().update(id, { kind: 'success', title: 'Pushed to origin', description: '3 commits' });
 }
 
+async function sync(): Promise<void> {
+    const total = 120;
+    const id = toasts.getState().show({ kind: 'progress', title: 'Syncing mail', progress: 0 });
+
+    for (let done = 0; done < total; done += 20) {
+        toasts.getState().update(id, { description: `${done} of ${total} messages`, progress: done / total });
+        await wait(300);
+    }
+
+    toasts.getState().update(id, { kind: 'success', title: 'Mail up to date', description: undefined, progress: undefined });
+}
+
 function fail(): void {
     const id = toasts.getState().show({
         kind: 'error',
@@ -37,6 +49,9 @@ export default function ToastsDemo() {
         <div className="flex flex-wrap items-center gap-2">
             <Button variant="secondary" onClick={() => void push()}>
                 Push
+            </Button>
+            <Button variant="secondary" onClick={() => void sync()}>
+                Sync
             </Button>
             <Button variant="secondary" onClick={fail}>
                 Fetch

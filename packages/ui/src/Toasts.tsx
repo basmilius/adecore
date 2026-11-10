@@ -27,6 +27,26 @@ const TONE = {
 /* The box is as tall as the title's own line, so what sits beside the title centers on that line. */
 const TITLE_LINE = 'flex h-(--text-sm--line-height) shrink-0 items-center';
 
+function ProgressBar({ value, label }: { value: number; label: string }) {
+    const fraction = Math.min(1, Math.max(0, value));
+
+    return (
+        <span
+            role="progressbar"
+            aria-label={label}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.round(fraction * 100)}
+            className="my-0.5 h-1 overflow-hidden rounded-full bg-track"
+        >
+            <span
+                className="block h-full rounded-full bg-accent transition-[width] duration-300 motion-reduce:transition-none"
+                style={{ width: `${fraction * 100}%` }}
+            />
+        </span>
+    );
+}
+
 /* Starts as far along as the timer that takes the toast away, so both end together. With motion off it stays full. */
 function TimerRing({ deadline, onDismiss }: { deadline: ToastDeadline; onDismiss(): void }) {
     const { t } = useTranslation('ui');
@@ -84,6 +104,7 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
             </span>
             <div className="flex min-w-0 grow flex-col gap-1">
                 <span className="text-sm break-words text-text">{toast.title}</span>
+                {toast.kind === 'progress' && toast.progress !== undefined && <ProgressBar value={toast.progress} label={toast.title} />}
                 {/* Wraps rather than clips: a reason cut off at the card's edge is no reason at all. */}
                 {toast.description !== undefined && toast.description !== '' && (
                     <span className="text-xs break-words text-pretty text-text-muted">{toast.description}</span>
