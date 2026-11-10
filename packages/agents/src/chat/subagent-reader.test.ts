@@ -186,6 +186,13 @@ describe('a Claude subagent', () => {
         expect(grandchild.live).toBe(false);
     });
 
+    test('a row that still says it runs is not live once the CLI that runs now no longer has its agent', async () => {
+        chats.set('chat-1', { ...claudeChat([row(CHILD_CALL)]), runsSubagent: () => false });
+        const reader = makeReader();
+
+        expect((await reader.read('chat-1', CHILD_CALL)).live).toBe(false);
+    });
+
     test('a subagent of more steps than a row keeps pages back to its first step, whatever process ran it', async () => {
         chats.set('chat-1', claudeChat([row(CHILD_CALL, { status: 'done' })]));
         let steps = '';

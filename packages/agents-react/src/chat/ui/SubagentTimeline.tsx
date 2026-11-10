@@ -12,7 +12,7 @@ import { useChatPreferences } from '../preferences';
 import { readingWidthStyle } from '../reading-width';
 import { INITIAL_CONVERSATION, SubagentConversation, type SubagentConversationState } from '../subagent-conversation';
 import { useSubagentSupport } from '../subagent-support';
-import { openBelow, useSubagentTrail, type SubagentStep } from '../subagent-view';
+import { openBelow, useSubagentItem, useSubagentTrail, type SubagentStep } from '../subagent-view';
 import { firstRowInView, restoreAnchor, wantsEarlier, type ReadingAnchor } from '../timeline-scroll';
 import { CoveredBottomContext } from './covered-bottom';
 import { FileLinkContext } from './file-links';
@@ -84,6 +84,9 @@ export function SubagentTimeline({
     }, [state.unsupported, scope]);
 
     const hideTools = useHostHidesToolCalls(scope.id, chatId);
+    const item = useSubagentItem(chatId, toolUseId);
+    // The row still says it runs, but the machine found no process that has it any more.
+    const stale = state.status === 'ready' && !state.live && item?.status === 'running';
 
     const rows = deriveTimelineRows(state.items, {
         expandedGroups: groups.ids,
@@ -207,6 +210,7 @@ export function SubagentTimeline({
                                         );
                                     })}
                                     {state.live && <div className="chat-live-text pt-1 text-xs">{t('subagents.working')}</div>}
+                                    {stale && <div className="pt-1 text-xs text-text-faint">{t('subagents.stale')}</div>}
                                 </ContextMenu.Trigger>
                                 <TimelineMenuPopup target={target} thread={threadRef} />
                             </ContextMenu.Root>

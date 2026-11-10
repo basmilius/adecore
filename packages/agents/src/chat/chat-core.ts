@@ -390,7 +390,8 @@ export class ChatCore {
                           running: session.running,
                           items: () => session.thread.list(),
                           listThreadItems: (params) => session.listThreadItems(params),
-                          noteNative: (toolUseId, native) => session.noteSubagentNative(toolUseId, native)
+                          noteNative: (toolUseId, native) => session.noteSubagentNative(toolUseId, native),
+                          runsSubagent: (toolUseId) => session.runsSubagent(toolUseId)
                       }
                     : null;
             },

@@ -31,6 +31,8 @@ export interface SubagentChat {
     /* A page through the chat's own running app-server, or null when none runs. */
     listThreadItems(params: ThreadItemsParams): Promise<unknown> | null;
     noteNative(toolUseId: string, native: { agentId?: string; threadId?: string }): void;
+    /* Whether the CLI that runs now still has the agent of a row; without it the row's status decides alone. */
+    runsSubagent?(toolUseId: string): boolean;
 }
 
 export interface SubagentReaderOptions {
@@ -268,7 +270,8 @@ export class SubagentReader {
             history: page.history,
             source: 'claude-transcript',
             context: { provider: 'claude', cwd: chat.info.cwd },
-            live: this.live(chat, toolUseId, seen)
+            // A row the CLI that runs now no longer has is not running, whatever it still says.
+            live: this.live(chat, toolUseId, seen) && chat.runsSubagent?.(toolUseId) !== false
         };
     }
 

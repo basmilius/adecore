@@ -482,6 +482,24 @@ describe('stopping one subagent of the CLI', () => {
         await run.session.dispose();
     });
 
+    test('only the process that announced an agent has it, also once a message woke it under another call', async () => {
+        const run = rig();
+        run.session.send('go');
+        await flush();
+        run.event(started('t1', 'a-one'));
+        run.event(started('t-send', 'a-one'));
+        expect(run.session.runsSubagent('t1')).toBe(true);
+        run.event({ type: 'task.done', ref: 't-send', taskId: 'a-one', summary: null, ok: true });
+        expect(run.session.runsSubagent('t1')).toBe(false);
+
+        run.event(started('t2', 'a-two'));
+        run.event({ type: 'exit', exitCode: 1 });
+        run.session.send('again');
+        await flush();
+        expect(run.session.runsSubagent('t2')).toBe(false);
+        await run.session.dispose();
+    });
+
     test('a row without a task id keeps the old mark and refusal', async () => {
         const run = rig();
         run.session.send('go');

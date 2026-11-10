@@ -265,6 +265,8 @@ export class ChatSession {
     private frozen = false;
     // Which CLI process (generation) announced each subagent of its own, by call id; only that one can stop it.
     private readonly subagentOwners = new Map<string, number>();
+    // The same by agent id until it ends, since a woken agent runs on under the call that sent the message.
+    private readonly runningAgents = new Map<string, number>();
     // Subagents a stop_task went out for, as task id to call id, until their notification settles them.
     private readonly stopping = new Map<string, string>();
     // Background subagents a load found running whose transcript did not show an end yet; no CLI here will report them.
@@ -1861,14 +1863,29 @@ export class ChatSession {
         return 'marked';
     }
 
+    /*
+     * Whether the CLI that runs now still has the agent of a row. A row from before a restart, or one its end
+     * never reached, says it runs while no process does; a row the CLI named no agent for yet gets the benefit of the doubt.
+     */
+    runsSubagent(toolUseId: string): boolean {
+        const agentId = this.thread.find('subagent', (item) => item.toolUseId === toolUseId)?.native?.agentId;
+
+        return agentId === undefined || (this.running && this.runningAgents.get(agentId) === this.generation);
+    }
+
     private trackSubagentOwner(generation: number, event: BackendEvent): void {
         if (event.type === 'task.started' && event.taskId) {
             this.subagentOwners.set(event.ref, generation);
+            this.runningAgents.set(event.taskId, generation);
         } else if (event.type === 'task.done') {
             this.noteStopped(event);
 
             if (event.ref !== null) {
                 this.subagentOwners.delete(event.ref);
+            }
+
+            if (event.taskId) {
+                this.runningAgents.delete(event.taskId);
             }
         } else if (event.type === 'exit') {
             this.stopping.clear();

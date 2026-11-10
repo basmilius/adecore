@@ -404,6 +404,7 @@ export class ThreadProjector {
                 }
 
                 this.settleBackgroundSubagent(row, event, events);
+                this.settleOtherRuns(row, event, events);
                 this.settleLaunchedCall(generation, event, events);
 
                 break;
@@ -1050,6 +1051,29 @@ export class ThreadProjector {
                 ...(event.outputFile ? { outputFile: event.outputFile } : {})
             })
         );
+    }
+
+    /*
+     * A message that wakes an agent whose row still runs, as one waiting on an agent of its own, opens a
+     * second row, and the CLI names only that one when the agent ends. The end is the agent's, so every row of it settles.
+     */
+    private settleOtherRuns(row: ChatSubagentItem | null, event: Extract<BackendEvent, { type: 'task.done' }>, events: ChatEvent[]): void {
+        const agentId = event.taskId ?? row?.native?.agentId;
+
+        if (!agentId) {
+            return;
+        }
+
+        const others = this.thread
+            .list()
+            .filter(
+                (item): item is ChatSubagentItem =>
+                    item.kind === 'subagent' && item.id !== row?.id && item.status === 'running' && item.native?.agentId === agentId
+            );
+
+        for (const other of others) {
+            this.settleBackgroundSubagent(other, event, events);
+        }
     }
 
     /* A call whose work ran on past its own answer, such as a workflow, settled by the task it ran as. */

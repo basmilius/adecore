@@ -634,6 +634,29 @@ describe('subagents', () => {
         expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'done', result: 'BANANA', summary: 'said banana', finishedAt: expect.any(Number) });
     });
 
+    test('an agent woken by its own child while it waits settles every row it has once it ends', () => {
+        const { thread, project } = setup();
+
+        project(
+            { type: 'tool.started', ref: 'toolu_agent', name: 'Agent', input: { description: 'Repro A', run_in_background: true }, parentRef: null },
+            { type: 'task.started', ref: 'toolu_agent', taskId: 'aA', description: 'Repro A', subagentType: null, prompt: null, background: true },
+            { type: 'tool.done', ref: 'toolu_agent', output: 'Async agent launched successfully. agentId: aA output_file: /tmp/aA.output', state: 'done' },
+            // A stopped while its child still ran, so that `completed` came through as progress.
+            { type: 'task.progress', ref: 'toolu_agent', taskId: 'aA', summary: 'Repro A is waiting on its own background work', lastTool: null, usage: null },
+            // The child's SendMessage, which the thread never saw, wakes A under a row of its own.
+            { type: 'task.started', ref: 'toolu_send', taskId: 'aA', description: 'Repro A', subagentType: null, prompt: null, background: true },
+            { type: 'tool.done', ref: 'toolu_send', output: 'Resuming agent aA', state: 'done' }
+        );
+
+        expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'running' });
+
+        project({ type: 'task.done', ref: 'toolu_send', taskId: 'aA', summary: 'A finished', ok: true });
+
+        const rows = thread.list().filter((item) => item.kind === 'subagent' && item.native?.agentId === 'aA');
+        expect(rows.filter((item) => item.kind === 'subagent' && item.status === 'running')).toEqual([]);
+        expect(thread.get('1:toolu_agent')).toMatchObject({ status: 'done', summary: 'A finished', finishedAt: expect.any(Number) });
+    });
+
     test('a subagent woken after its CLI started again writes into the row it had, not into nothing', () => {
         const { thread, projector } = setup();
 
