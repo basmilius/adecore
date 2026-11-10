@@ -55,7 +55,7 @@ describe('deliverMessageHandler', () => {
         expect(woken).toEqual([{ text: '3 messages above, 3 named', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'] }]);
     });
 
-    test('opens no turn once messages opened as many as they may in the chat this hour', async () => {
+    test('opens no turn once messages opened as many as they may in the chat this hour, and marks them held', async () => {
         const now = 2 * MESSAGE_TURN_WINDOW_MS;
         const woken: unknown[] = [];
 
@@ -71,9 +71,14 @@ describe('deliverMessageHandler', () => {
             costUsd: 0
         }));
 
+        const held: unknown[] = [];
+
         const chat: WakeChat = {
             items: () => turns,
             inTurn: () => false,
+            holdMessages: (messages) => {
+                held.push(...messages.map((message) => message.text));
+            },
             wake: (wake) => {
                 woken.push(wake);
 
@@ -90,6 +95,7 @@ describe('deliverMessageHandler', () => {
         });
         expect(await handler(entry)).toBeUndefined();
         expect(woken).toEqual([]);
+        expect(held).toEqual(['hello']);
     });
 
     test('waits while the chat is being moved to another folder, and wakes nobody yet', async () => {

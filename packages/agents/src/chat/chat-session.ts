@@ -1578,6 +1578,33 @@ export class ChatSession {
         }
     }
 
+    /* Marks the lines of waiting messages as held by the limit on turns messages may open, so a person sees why and can hand them over. */
+    holdMessages(messages: ReadonlyArray<{ from: string; text: string }>): void {
+        const items = messages.flatMap(({ from, text }) => {
+            const line = this.thread
+                .list()
+                .find(
+                    (item) =>
+                        item.kind === 'note' &&
+                        item.message?.state === 'waiting' &&
+                        item.message.limited !== true &&
+                        item.message.from === from &&
+                        item.message.text === text
+                );
+
+            if (line?.kind !== 'note' || line.message === undefined) {
+                return [];
+            }
+
+            return [this.thread.upsert({ ...line, message: { ...line.message, limited: true } })];
+        });
+
+        if (items.length > 0) {
+            this.emit(items);
+            this.options.persist();
+        }
+    }
+
     /* Lets messages join the running turn, under the same limits as a person's steer. */
     async steerMessages(steer: { text: string; preamble: string }): Promise<boolean> {
         const backend = this.backend;

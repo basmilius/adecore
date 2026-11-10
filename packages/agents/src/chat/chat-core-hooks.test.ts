@@ -242,6 +242,26 @@ describe('the hooks of ChatCore', () => {
         expect(heard.at(-1)).toEqual({ event: 'chat.subagentChanged', payload: { chatId: 'chat-1', toolUseId: 'task-1' } });
     });
 
+    test('mark a waiting message held by the limit until it is heard', async () => {
+        const chats = open();
+        await chats.create({ chatId: 'chat-1', cwd: home });
+        await chats.addNote('chat-1', 'info', 'Lead sent a message: go on', { from: 'chat-2', title: 'Lead', text: 'go on', state: 'waiting' });
+        const message = (): unknown => {
+            const line = chats
+                .get('chat-1')!
+                .thread.list()
+                .find((item) => item.kind === 'note' && item.message !== undefined);
+
+            return line?.kind === 'note' ? line.message : undefined;
+        };
+
+        chats.get('chat-1')!.holdMessages([{ from: 'chat-2', text: 'go on' }]);
+        expect(message()).toEqual({ from: 'chat-2', title: 'Lead', text: 'go on', state: 'waiting', limited: true });
+
+        chats.get('chat-1')!.settleMessages([{ from: 'chat-2', text: 'go on' }], 'heard');
+        expect(message()).toEqual({ from: 'chat-2', title: 'Lead', text: 'go on' });
+    });
+
     test('tell every client when a chat between turns starts or ends a command in the background', async () => {
         const chats = open();
         const heard: AgentEvent[] = [];

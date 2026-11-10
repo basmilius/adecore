@@ -61,6 +61,8 @@ export function deliverMessageHandler(deps: DeliverMessageDeps) {
         // and the label on the turn names who it came from.
         // Past the limit the messages wait for a turn of the chat's own, which takes them in its preamble.
         if (!messagesMayWake(chat.items(), (deps.now ?? Date.now)())) {
+            chat.holdMessages?.(waiting);
+
             return;
         }
 

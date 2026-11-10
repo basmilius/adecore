@@ -15,6 +15,9 @@ export interface WakeChat {
 
     /* Whether a turn runs now, which tells a wake refused for that from one refused while the chat sits idle. */
     inTurn?(): boolean;
+
+    /* Marks messages the limit on turns holds back, so the thread says why they wait. */
+    holdMessages?(messages: ReadonlyArray<{ from: string; text: string }>): void;
 }
 
 export interface ChatOpenerDeps {
@@ -48,6 +51,7 @@ export function chatOpener(deps: ChatOpenerDeps) {
                   items: () => session.thread.list(),
                   relocating: () => session.isRelocating,
                   inTurn: () => session.info.activeTurnId !== null,
+                  holdMessages: (messages) => session.holdMessages(messages),
                   persist: () => deps.chats.save(chatId),
                   // A turn before the reset would stop on the same limit and spend one of the resume's tries, so it waits for the resume turn.
                   wake: (wake) => session.info.resumeAt === undefined && session.wake(wake) !== null
