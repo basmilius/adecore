@@ -4,8 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatNoteMessage, ChatTurnItem } from '@adecore/agent-contracts';
 import type { ChatSession } from '../chat/chat-session.ts';
-import { turnHop } from '../chat/turn-hop.ts';
-import { chatNoticeTargets, deliverToChat, MAX_MESSAGE_HOPS, showNotices, steerNotices, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
+import { chatNoticeTargets, deliverToChat, showNotices, steerNotices, type ChatNoticeTargets, type NoticeChat } from './deliver-notice.ts';
+import { MAX_MESSAGE_TURNS, MESSAGE_TURN_WINDOW_MS } from './message-turns.ts';
 import { MAX_NOTICES, NoticeStore, type Notice } from './notice-store.ts';
 
 let dataDir: string;
@@ -49,7 +49,7 @@ afterEach(async () => {
 describe('deliverToChat', () => {
     const targets = (overrides: Partial<ChatNoticeTargets> = {}): ChatNoticeTargets => ({
         chat: async () => 'none',
-        hop: () => 0,
+        mayWake: () => true,
         ...overrides
     });
 
@@ -64,25 +64,24 @@ describe('deliverToChat', () => {
         expect(await deliverToChat(store, targets(), left('and another', 'chat-3'))).toEqual({ outcome: 'no-chat', waiting: 1 });
     });
 
-    test('a chain of messages wakes up to the hop limit, then only waits', async () => {
-        const atHop = (hop: number): ChatNoticeTargets => targets({ chat: async () => 'idle', hop: () => hop });
-        expect((await deliverToChat(store, atHop(MAX_MESSAGE_HOPS - 1), left('the last step'))).outcome).toBe('wake');
-        expect((await deliverToChat(store, atHop(MAX_MESSAGE_HOPS), left('one too many'))).outcome).toBe('hop-limit');
-        expect(store.waiting('chat-2').map((notice) => notice.hop)).toEqual([MAX_MESSAGE_HOPS, MAX_MESSAGE_HOPS + 1]);
+    test('a chat that messages woke as often as they may this hour only gets it to wait, marked as held for that', async () => {
+        expect((await deliverToChat(store, targets({ chat: async () => 'idle', mayWake: () => false }), left('one too many'))).outcome).toBe('rate-limit');
+        expect(store.waiting('chat-2').map((notice) => notice.limited)).toEqual([true]);
     });
 
-    test('a running chat past the limit is owed nothing either', async () => {
-        const past = targets({ chat: async () => 'running', hop: () => MAX_MESSAGE_HOPS });
-        expect((await deliverToChat(store, past, left('one too many'))).outcome).toBe('hop-limit');
+    test('a running chat past the limit still keeps it, since a message that joins a turn opens none', async () => {
+        const past = targets({ chat: async () => 'running', mayWake: () => false });
+        expect((await deliverToChat(store, past, left('and the tests'))).outcome).toBe('in-turn');
+        expect(store.waiting('chat-2')[0]!.limited).toBeUndefined();
     });
 });
 
 describe('steerNotices', () => {
     const steerWords = { heard: (notice: Notice): string => notice.text, prompt: (count: number): string => `${count} messages` };
 
-    test('what the running turn takes leaves the queue, at the furthest hop among it', async () => {
-        await store.put({ ...left('one'), hop: 1 });
-        const steers: { preamble: string; messageHop: number }[] = [];
+    test('what the running turn takes leaves the queue', async () => {
+        await store.put(left('one'));
+        const steers: { preamble: string }[] = [];
 
         await steerNotices(
             store,
@@ -96,30 +95,14 @@ describe('steerNotices', () => {
             'chat-2'
         );
 
-        expect(steers).toMatchObject([{ preamble: 'one', messageHop: 1 }]);
+        expect(steers).toMatchObject([{ preamble: 'one' }]);
         expect(store.waiting('chat-2')).toEqual([]);
     });
 
-    test('what it refuses stays for the turn after it, and what is past the limit is never offered', async () => {
-        await store.put({ ...left('one'), hop: 1 });
+    test('what it refuses stays for the turn after it', async () => {
+        await store.put(left('one'));
         await steerNotices(store, { steer: async () => false }, steerWords, 'chat-2');
         expect(store.waiting('chat-2')).toHaveLength(1);
-
-        await store.remove('chat-2', store.waiting('chat-2'));
-        await store.put({ ...left('late'), hop: MAX_MESSAGE_HOPS + 1 });
-        let asked = false;
-        await steerNotices(
-            store,
-            {
-                steer: async () => {
-                    asked = true;
-                    return true;
-                }
-            },
-            steerWords,
-            'chat-2'
-        );
-        expect(asked).toBe(false);
     });
 });
 
@@ -136,27 +119,6 @@ describe('NoticeStore settling', () => {
         store.take('chat-2');
         expect(told).toHaveLength(MAX_NOTICES + 1);
         expect(told.at(-1)).toEqual([`message ${MAX_NOTICES}`, 'heard']);
-    });
-});
-
-describe('turnHop', () => {
-    test('a turn carries its hop, and one from before hops stands where its answer could still go', () => {
-        expect(turnHop([{ ...turn('t1', ['chat-1']), messageHop: 3 }], 't1')).toBe(3);
-        expect(turnHop([turn('t1', ['chat-1'])], 't1')).toBe(2);
-        expect(turnHop([turn('t1')], 't1')).toBe(0);
-    });
-
-    test('work a turn a message opened left running goes on in that step, between turns and in the turn the CLI opens about it', () => {
-        const ended = { ...turn('t1', ['chat-1']), state: 'done' as const, messageHop: 1 };
-        expect(turnHop([ended], null)).toBe(1);
-        expect(turnHop([ended, turn('t2')], 't2')).toBe(1);
-    });
-
-    test('a turn a person or a settled task opened counts from zero', () => {
-        const ended = { ...turn('t1', ['chat-1']), state: 'done' as const, messageHop: 3 };
-        expect(turnHop([ended, { ...turn('t2'), origin: 'user' }], 't2')).toBe(0);
-        expect(turnHop([ended, { ...turn('t2'), taskIds: ['task-1'] }], 't2')).toBe(0);
-        expect(turnHop([ended, { ...turn('t2'), origin: 'user', state: 'done' }, turn('t3')], 't3')).toBe(0);
     });
 });
 
@@ -177,16 +139,30 @@ describe('chatNoticeTargets', () => {
         expect(await targets.chat('chat-none')).toBe('none');
     });
 
-    test('knows a sender whose turn a message opened', () => {
+    test('lets messages wake a chat until they opened the most turns the window allows there', () => {
+        const now = 10 * MESSAGE_TURN_WINDOW_MS;
+        const woken = (count: number, at: number): ChatTurnItem[] =>
+            Array.from({ length: count }, (_, i) => ({ ...turn(`t${at}-${i}`, ['chat-1']), createdAt: at, state: 'done' as const }));
+
         const held = new Map([
-            ['chat-woken', session('t1', [turn('t1', ['chat-1'])])],
-            ['chat-asked', session('t2', [turn('t2')])]
+            ['chat-busy', session(null, woken(MAX_MESSAGE_TURNS, now - 1000))],
+            ['chat-room', session(null, woken(MAX_MESSAGE_TURNS - 1, now - 1000))],
+            ['chat-older', session(null, woken(MAX_MESSAGE_TURNS, now - MESSAGE_TURN_WINDOW_MS - 1))],
+            [
+                'chat-asked',
+                session(
+                    null,
+                    Array.from({ length: MAX_MESSAGE_TURNS }, (_, i) => ({ ...turn(`p${i}`), createdAt: now, origin: 'user' as const }))
+                )
+            ]
         ]);
 
-        const targets = chatNoticeTargets({ get: (id) => held.get(id), hasStored: async () => false });
-        expect(targets.hop('chat-woken')).toBe(2);
-        expect(targets.hop('chat-asked')).toBe(0);
-        expect(targets.hop('chat-none')).toBe(0);
+        const targets = chatNoticeTargets({ get: (id) => held.get(id), hasStored: async () => false }, () => now);
+        expect(targets.mayWake('chat-busy')).toBe(false);
+        expect(targets.mayWake('chat-room')).toBe(true);
+        expect(targets.mayWake('chat-older')).toBe(true);
+        expect(targets.mayWake('chat-asked')).toBe(true);
+        expect(targets.mayWake('chat-none')).toBe(true);
     });
 });
 

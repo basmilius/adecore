@@ -3,6 +3,7 @@ import type { WakeChat } from '../chat/wake-chat.ts';
 import type { OutboxOutcome } from '../outbox/outbox-worker.ts';
 import type { OutboxEntryOf } from '../outbox/outbox.ts';
 import type { MessageWords } from './deliver-notice.ts';
+import { messagesMayWake } from './message-turns.ts';
 import type { NoticeStore } from './notice-store.ts';
 
 export const DeliverMessageWorkSchema = z.object({
@@ -21,6 +22,7 @@ export interface DeliverMessageDeps {
     /* Whether a project still places the node; one that is gone reads nothing any more. */
     placed(nodeId: string): boolean;
     words: Pick<MessageWords, 'prompt' | 'label'>;
+    now?: () => number;
 }
 
 /*
@@ -28,8 +30,9 @@ export interface DeliverMessageDeps {
  * takes them (`NoticeNotes`), as a person's own prompt does, so a message is heard once either way.
  *
  * One attempt: a chat already in a turn reads the message in front of its next one, and holding the
- * entry would start turns nobody asked for long after the news mattered. The one exception is a chat
- * being moved to another folder, which has no turn and turns every wake away until the move ends.
+ * entry would start turns nobody asked for long after the news mattered. The exceptions are a chat
+ * being moved to another folder and an idle chat that turns the wake away: neither has a turn whose
+ * end would owe the wake again.
  */
 export function deliverMessageHandler(deps: DeliverMessageDeps) {
     return async (entry: DeliverMessageEntry): Promise<OutboxOutcome> => {
@@ -56,12 +59,22 @@ export function deliverMessageHandler(deps: DeliverMessageDeps) {
 
         // No note and no preamble on the thread: a person read the message as it landed (`showNotices`),
         // and the label on the turn names who it came from.
-        chat.wake({
+        // Past the limit the messages wait for a turn of the chat's own, which takes them in its preamble.
+        if (!messagesMayWake(chat.items(), (deps.now ?? Date.now)())) {
+            return;
+        }
+
+        const woken = chat.wake({
             text: deps.words.prompt(waiting.length, waiting),
             label: deps.words.label(waiting),
             taskIds: [],
-            messageFrom: [...new Set(waiting.map((notice) => notice.from))],
-            messageHop: Math.max(...waiting.map((notice) => notice.hop ?? 0))
+            messageFrom: [...new Set(waiting.map((notice) => notice.from))]
         });
+
+        // An idle chat that turned the wake away (a process waiting to be replaced, an owed resume) has
+        // no turn ending that would owe it again, so it waits for the chat to be free instead.
+        if (!woken && chat.inTurn?.() === false) {
+            return 'wait';
+        }
     };
 }

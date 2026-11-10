@@ -39,13 +39,12 @@ export {
     type ChatNoticeTargets,
     type ChatDelivery,
     chatNoticeTargets,
-    MAX_MESSAGE_HOPS,
     steerNotices,
-    withinHops,
     deliverToChat,
     showNotices,
     type NoticeChat
 } from '../messages/deliver-notice.ts';
+export { MAX_MESSAGE_TURNS, MESSAGE_TURN_WINDOW_MS, messagesMayWake, messageTurns } from '../messages/message-turns.ts';
 
 export { NoticeNotes, unshownNotes } from '../messages/notice-notes.ts';
 export { MAX_NOTICES, NOTICE_MAX_AGE_MS, type Notice, NoticeStore } from '../messages/notice-store.ts';

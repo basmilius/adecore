@@ -12,6 +12,9 @@ export interface WakeChat {
     wake(wake: Parameters<ChatSession['wake']>[0]): boolean;
     /* Whether the host is moving the chat to another folder, which turns every wake away until it ends. */
     relocating?(): boolean;
+
+    /* Whether a turn runs now, which tells a wake refused for that from one refused while the chat sits idle. */
+    inTurn?(): boolean;
 }
 
 export interface ChatOpenerDeps {
@@ -44,6 +47,7 @@ export function chatOpener(deps: ChatOpenerDeps) {
             ? {
                   items: () => session.thread.list(),
                   relocating: () => session.isRelocating,
+                  inTurn: () => session.info.activeTurnId !== null,
                   persist: () => deps.chats.save(chatId),
                   // A turn before the reset would stop on the same limit and spend one of the resume's tries, so it waits for the resume turn.
                   wake: (wake) => session.info.resumeAt === undefined && session.wake(wake) !== null

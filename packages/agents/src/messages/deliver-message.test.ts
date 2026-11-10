@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test';
+import type { ChatItem } from '@adecore/agent-contracts';
 import type { WakeChat } from '../chat/wake-chat.ts';
 import { deliverMessageHandler, type DeliverMessageEntry } from './deliver-message.ts';
+import { MAX_MESSAGE_TURNS, MESSAGE_TURN_WINDOW_MS } from './message-turns.ts';
 import type { Notice } from './notice-store.ts';
 
 const entry: DeliverMessageEntry = {
@@ -50,9 +52,44 @@ describe('deliverMessageHandler', () => {
     test('opens one turn for everything waiting, with the senders on it and the words of the host', async () => {
         const { woken, handler } = fixture([notice('chat-1', 'Lead'), notice('chat-3', 'Builder'), notice('chat-1', 'Lead')]);
         expect(await handler(entry)).toBeUndefined();
-        expect(woken).toEqual([
-            { text: '3 messages above, 3 named', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'], messageHop: 0 }
-        ]);
+        expect(woken).toEqual([{ text: '3 messages above, 3 named', label: 'From Lead, Builder, Lead', taskIds: [], messageFrom: ['chat-1', 'chat-3'] }]);
+    });
+
+    test('opens no turn once messages opened as many as they may in the chat this hour', async () => {
+        const now = 2 * MESSAGE_TURN_WINDOW_MS;
+        const woken: unknown[] = [];
+
+        const turns: ChatItem[] = Array.from({ length: MAX_MESSAGE_TURNS }, (_, i) => ({
+            id: `t${i}`,
+            kind: 'turn',
+            createdAt: now - 1000,
+            turnId: `t${i}`,
+            state: 'done',
+            origin: 'agent',
+            messageFrom: ['chat-1'],
+            endedAt: now - 500,
+            costUsd: 0
+        }));
+
+        const chat: WakeChat = {
+            items: () => turns,
+            inTurn: () => false,
+            wake: (wake) => {
+                woken.push(wake);
+
+                return true;
+            }
+        };
+
+        const handler = deliverMessageHandler({
+            notices: { waiting: () => [notice('chat-1', 'Lead')] },
+            chat: async () => chat,
+            placed: () => true,
+            words,
+            now: () => now
+        });
+        expect(await handler(entry)).toBeUndefined();
+        expect(woken).toEqual([]);
     });
 
     test('waits while the chat is being moved to another folder, and wakes nobody yet', async () => {
@@ -71,6 +108,37 @@ describe('deliverMessageHandler', () => {
         const handler = deliverMessageHandler({ notices: { waiting: () => [notice('chat-1', 'Lead')] }, chat: async () => chat, placed: () => true, words });
         expect(await handler(entry)).toBe('wait');
         expect(woken).toEqual([]);
+    });
+
+    test('waits while an idle chat turns the wake away, and opens the turn once it takes one', async () => {
+        let free = false;
+        const woken: unknown[] = [];
+
+        const chat: WakeChat = {
+            items: () => [],
+            inTurn: () => false,
+            wake: (wake) => {
+                if (free) {
+                    woken.push(wake);
+                }
+
+                return free;
+            }
+        };
+
+        const handler = deliverMessageHandler({ notices: { waiting: () => [notice('chat-1', 'Lead')] }, chat: async () => chat, placed: () => true, words });
+        expect(await handler(entry)).toBe('wait');
+        expect(woken).toEqual([]);
+
+        free = true;
+        expect(await handler(entry)).toBeUndefined();
+        expect(woken).toHaveLength(1);
+    });
+
+    test('gives up on a wake a running turn turned away, since the end of that turn owes it again', async () => {
+        const chat: WakeChat = { items: () => [], inTurn: () => true, wake: () => false };
+        const handler = deliverMessageHandler({ notices: { waiting: () => [notice('chat-1', 'Lead')] }, chat: async () => chat, placed: () => true, words });
+        expect(await handler(entry)).toBeUndefined();
     });
 
     test('wakes nobody when the messages were taken already, the node went or it has no thread', async () => {

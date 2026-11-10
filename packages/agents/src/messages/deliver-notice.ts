@@ -1,6 +1,6 @@
 import type { ChatNoteMessage } from '@adecore/agent-contracts';
 import type { ChatCore } from '../chat/chat-core.ts';
-import { turnHop } from '../chat/turn-hop.ts';
+import { messagesMayWake } from './message-turns.ts';
 import type { Notice, NoticeStore } from './notice-store.ts';
 
 /* The words of a message, which are the host's: it names its app, its nodes and its CLI in them. */
@@ -18,15 +18,9 @@ export interface MessageWords {
 export interface ChatNoticeTargets {
     /* What the host holds under this id: a chat between turns, one that is in a turn, or no chat at all. */
     chat(id: string): Promise<'idle' | 'running' | 'none'>;
-    /* How many messages led to the turn this node is running; 0 for a turn no message opened. */
-    hop(id: string): number;
+    /* Whether messages may still open a turn in the chat under this id (`messagesMayWake`). */
+    mayWake(id: string): boolean;
 }
-
-/*
- * How far a chain of messages may wake chats: enough for a question, an answer and a report on each,
- * and a bound on two agents reading each other, which nothing but a person should be able to keep going.
- */
-export const MAX_MESSAGE_HOPS = 4;
 
 /*
  * Where a message for a chat went, and how many now wait for it. Only `wake` owes the chat a turn now,
@@ -34,17 +28,12 @@ export const MAX_MESSAGE_HOPS = 4;
  * or may join it; every other outcome waits in the queue for the chat's next turn.
  */
 export interface ChatDelivery {
-    outcome: 'wake' | 'no-chat' | 'in-turn' | 'hop-limit';
+    outcome: 'wake' | 'no-chat' | 'in-turn' | 'rate-limit';
     waiting: number;
 }
 
-/* Whether a message may still move a chat. One of an older host has no hop and waits, as it always did. */
-export function withinHops(notice: Pick<Notice, 'hop'>): boolean {
-    return notice.hop !== undefined && notice.hop <= MAX_MESSAGE_HOPS;
-}
-
 /* The chats of a core as a message sees them. */
-export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): ChatNoticeTargets {
+export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>, now: () => number = Date.now): ChatNoticeTargets {
     return {
         chat: async (id) => {
             const session = chats.get(id);
@@ -56,10 +45,11 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
             // A chat nobody has loaded is idle: the turn opens on the thread the host reads back from disk.
             return (await chats.hasStored(id)) ? 'idle' : 'none';
         },
-        hop: (id) => {
+        // A chat nobody has loaded opened no turn since the host started, as far as it can tell.
+        mayWake: (id) => {
             const session = chats.get(id);
 
-            return session === undefined ? 0 : turnHop(session.thread.list(), session.info.activeTurnId);
+            return session === undefined || messagesMayWake(session.thread.list(), now());
         }
     };
 }
@@ -67,24 +57,25 @@ export function chatNoticeTargets(chats: Pick<ChatCore, 'get' | 'hasStored'>): C
 /*
  * One message on its way to a chat, and whether the chat owes a turn on it. A chat between turns gets
  * one, as for a settled task, or the message sits there until someone happens to prompt that chat.
- * Each message is one hop further than the turn that sent it, and past `MAX_MESSAGE_HOPS` it only
- * waits. A node that runs something else, such as a terminal, is the host's to deliver to before this.
+ * Once messages opened `MAX_MESSAGE_TURNS` turns there within the hour, a message only waits, marked
+ * so a person sees why. A node that runs something else, such as a terminal, is the host's to deliver
+ * to before this.
  */
 export async function deliverToChat(
     store: Pick<NoticeStore, 'put'>,
     targets: ChatNoticeTargets,
-    notice: Omit<Notice, 'createdAt' | 'hop'>
+    notice: Omit<Notice, 'createdAt' | 'hop' | 'limited'>
 ): Promise<ChatDelivery> {
-    const hop = targets.hop(notice.from) + 1;
-    const waiting = await store.put({ ...notice, hop });
     const chat = await targets.chat(notice.targetId);
+    const limited = chat === 'idle' && !targets.mayWake(notice.targetId);
+    const waiting = await store.put(limited ? { ...notice, limited } : notice);
 
     if (chat === 'none') {
         return { outcome: 'no-chat', waiting };
     }
 
-    if (hop > MAX_MESSAGE_HOPS) {
-        return { outcome: 'hop-limit', waiting };
+    if (limited) {
+        return { outcome: 'rate-limit', waiting };
     }
 
     return { outcome: chat === 'running' ? 'in-turn' : 'wake', waiting };
@@ -92,7 +83,7 @@ export async function deliverToChat(
 
 /* The chat a message may join while it runs. False when it cannot take one now, which leaves the message waiting. */
 interface SteerChat {
-    steer(chatId: string, steer: { text: string; preamble: string; messageHop: number }): Promise<boolean>;
+    steer(chatId: string, steer: { text: string; preamble: string }): Promise<boolean>;
 }
 
 const steering = new Set<string>();
@@ -116,7 +107,7 @@ export async function steerNotices(
 
     try {
         for (;;) {
-            const batch = store.waiting(targetId).filter(withinHops);
+            const batch = store.waiting(targetId);
 
             if (batch.length === 0) {
                 return;
@@ -124,8 +115,7 @@ export async function steerNotices(
 
             const accepted = await chat.steer(targetId, {
                 text: words.prompt(batch.length, batch),
-                preamble: batch.map((notice) => words.heard(notice)).join('\n\n'),
-                messageHop: Math.max(...batch.map((notice) => notice.hop ?? 0))
+                preamble: batch.map((notice) => words.heard(notice)).join('\n\n')
             });
 
             if (!accepted) {
@@ -149,7 +139,7 @@ export interface NoticeChat {
 
 /* The message itself on the line in the thread, so a client can draw it as said to the chat. */
 export function noticeMessage(notice: Notice): ChatNoteMessage {
-    return { from: notice.from, title: notice.fromTitle, text: notice.text, state: 'waiting' };
+    return { from: notice.from, title: notice.fromTitle, text: notice.text, state: 'waiting', ...(notice.limited === true ? { limited: true } : {}) };
 }
 
 /*

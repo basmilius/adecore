@@ -40,7 +40,6 @@ import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-wo
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
-import { turnHop } from './turn-hop.ts';
 import { UiReplies, type UiReplyHost } from './ui-replies.ts';
 
 /* What a host keeps of a chat's turns in git (or anything like it), so a turn can show what it changed. */
@@ -1328,7 +1327,6 @@ export class ChatSession {
         taskIds: string[];
         summaryFor?: string;
         messageFrom?: string[];
-        messageHop?: number;
         mentions?: string[];
         skills?: string[];
         /* The host's instruction for this turn alone; a refused wake drops it, and a slash command carries it after the command. */
@@ -1357,7 +1355,6 @@ export class ChatSession {
                 label: wake.label,
                 ...(wake.taskIds.length === 0 ? {} : { taskIds: wake.taskIds }),
                 ...(wake.messageFrom === undefined || wake.messageFrom.length === 0 ? {} : { messageFrom: wake.messageFrom }),
-                ...(wake.messageHop === undefined ? {} : { messageHop: wake.messageHop }),
                 ...(wake.summaryFor === undefined ? {} : { summaryFor: wake.summaryFor }),
                 endedAt: null,
                 costUsd: 0
@@ -1405,8 +1402,7 @@ export class ChatSession {
         const opened = this.wake({
             ...wake,
             taskIds: turn.taskIds ?? [],
-            ...(turn.messageFrom === undefined ? {} : { messageFrom: turn.messageFrom }),
-            ...(turn.messageHop === undefined ? {} : { messageHop: turn.messageHop })
+            ...(turn.messageFrom === undefined ? {} : { messageFrom: turn.messageFrom })
         });
 
         if (opened === null) {
@@ -1571,7 +1567,7 @@ export class ChatSession {
                 return [];
             }
 
-            const { state: _waiting, ...message } = line.message;
+            const { state: _waiting, limited: _limited, ...message } = line.message;
 
             return [this.thread.upsert({ ...line, message: state === 'dropped' ? { ...message, state } : message })];
         });
@@ -1582,11 +1578,8 @@ export class ChatSession {
         }
     }
 
-    /*
-     * Lets messages join the running turn, under the same limits as a person's steer. The turn then
-     * stands as far along the chain as they do, so what it sends next counts on from there.
-     */
-    async steerMessages(steer: { text: string; preamble: string; messageHop: number }): Promise<boolean> {
+    /* Lets messages join the running turn, under the same limits as a person's steer. */
+    async steerMessages(steer: { text: string; preamble: string }): Promise<boolean> {
         const backend = this.backend;
         const turnId = this.info.activeTurnId;
 
@@ -1594,22 +1587,12 @@ export class ChatSession {
             return false;
         }
 
-        const accepted = await backend
-            .steerTurn({ promptId: newId('steer'), text: steer.text, preamble: steer.preamble, attachments: [], mentions: [], skills: [] })
-            // A lost acknowledgement proves nothing. The message waits on, and is at worst heard twice rather than never.
-            .catch(() => false);
-
-        const turn = this.thread.get(turnId);
-
-        if (!accepted || turn?.kind !== 'turn') {
-            return accepted;
-        }
-
-        // Only the hop: `messageFrom` says what woke a turn, and this one was running already.
-        this.emit([this.thread.upsert({ ...turn, messageHop: Math.max(turnHop(this.thread.list(), turnId), steer.messageHop) })]);
-        this.options.persist();
-
-        return true;
+        return (
+            backend
+                .steerTurn({ promptId: newId('steer'), text: steer.text, preamble: steer.preamble, attachments: [], mentions: [], skills: [] })
+                // A lost acknowledgement proves nothing. The message waits on, and is at worst heard twice rather than never.
+                .catch(() => false)
+        );
     }
 
     /* Writes items a host draws in the thread itself (a row for work it delegated), leaving the ones that did not change alone. */

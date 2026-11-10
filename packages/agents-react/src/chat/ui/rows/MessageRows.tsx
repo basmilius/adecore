@@ -11,7 +11,7 @@ import type {
     ModelSelection
 } from '@adecore/agent-contracts';
 import { WAITING_NOTE_PREFIX } from '@adecore/agent-contracts';
-import { Icon, IconButton, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
+import { Button, Icon, IconButton, MiddleTruncate, Tooltip, useTickingText } from '@adecore/ui';
 import { formatAgo, formatElapsedShort, formatMoment, formatTokens } from '@adecore/ui/format';
 import clsx from 'clsx';
 import {
@@ -36,6 +36,7 @@ import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStre
 import { useChatScope } from '../../../scope';
 import { useChatRow, useCurrentItem } from '../../../state/chats';
 import { useProviders } from '../../../state/providers';
+import { useChatActions } from '../../actions';
 import { fileBadge, formatBytes, isImageAttachment } from '../../attachments';
 import { referenceTokens } from '../../chat-references';
 import { selectionSwitchText } from '../../logic/selection-switch';
@@ -222,8 +223,51 @@ export function SentMessageRow({ chatId, id, message }: { chatId: string; id: st
                 chip={<ReferenceChip id={message.from} lastName={message.title} />}
                 text={message.text}
             />
-            {message.state !== undefined && <div className="mt-1 text-xs text-text-muted">{t(`rows.message.${message.state}`)}</div>}
+            {message.limited === true && message.state === 'waiting' ? (
+                <LimitedMessageState chatId={chatId} />
+            ) : (
+                message.state !== undefined && <div className="mt-1 text-xs text-text-muted">{t(`rows.message.${message.state}`)}</div>
+            )}
         </ReferenceLookupContext>
+    );
+}
+
+/*
+ * A message that waits because messages opened all the turns they may in this chat this hour. A person
+ * hands it over with a prompt of their own, whose turn takes every waiting message in its preamble.
+ */
+function LimitedMessageState({ chatId }: { chatId: string }) {
+    const { t } = useTranslation('agent-chat');
+    const { send } = useChatActions();
+    const host = useChatHost();
+    const [sending, setSending] = useState(false);
+
+    const deliver = (): void => {
+        if (send === undefined) {
+            return;
+        }
+
+        setSending(true);
+        send(chatId, t('rows.message.deliverPrompt'))
+            .catch((error: unknown) => {
+                host.notify({
+                    kind: 'error',
+                    title: t('rows.message.deliverFailed'),
+                    description: error instanceof Error ? error.message : t('subagents.noAnswer')
+                });
+            })
+            .finally(() => setSending(false));
+    };
+
+    return (
+        <div className="mt-1 flex items-center gap-2 text-xs text-text-muted">
+            <span>{t('rows.message.limited')}</span>
+            {send !== undefined && (
+                <Button size="xs" variant="secondary" disabled={sending} onClick={deliver}>
+                    {t('rows.message.deliverNow')}
+                </Button>
+            )}
+        </div>
     );
 }
 

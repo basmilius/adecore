@@ -23,6 +23,9 @@ function transportActions(transport: ChatTransport): ChatActions {
         sendNow: async (chatId, messageId) => {
             await transport.request('chat.sendNow', { chatId, messageId });
         },
+        send: async (chatId, text) => {
+            await transport.request('chat.send', { chatId, text });
+        },
         compact: async (chatId) => {
             await transport.request('chat.compact', { chatId });
         },

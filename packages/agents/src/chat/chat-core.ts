@@ -1171,7 +1171,7 @@ export class ChatCore {
     }
 
     /* Lets messages join a chat's running turn; false when it holds none that can take them. */
-    steerMessages(chatId: string, steer: { text: string; preamble: string; messageHop: number }): Promise<boolean> {
+    steerMessages(chatId: string, steer: { text: string; preamble: string }): Promise<boolean> {
         return this.chats.get(chatId)?.steerMessages(steer) ?? Promise.resolve(false);
     }
 

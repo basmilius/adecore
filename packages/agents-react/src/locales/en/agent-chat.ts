@@ -126,7 +126,11 @@ export default {
             heading: 'Message from {{name}}',
             unnamed: 'another node',
             waiting: 'Waiting for the next turn',
-            dropped: 'Expired before the agent read it'
+            dropped: 'Expired before the agent read it',
+            limited: 'Waiting: messages woke this chat as often as they may this hour',
+            deliverNow: 'Deliver now',
+            deliverPrompt: 'Read the waiting messages and act on them.',
+            deliverFailed: 'The messages could not be delivered'
         },
         sent: {
             heading: 'Message to {{name}}',

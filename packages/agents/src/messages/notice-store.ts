@@ -27,8 +27,10 @@ const NoticeSchema = z.object({
      * other. Absent is unshown, so a message left by an older host is still shown once.
      */
     shown: z.boolean().optional(),
-    /* How many messages led here since a person or a task last started something; absent for a message of an older host. */
-    hop: z.number().optional()
+    /* How many messages led here, from when chains were counted in hops; no longer written or read. */
+    hop: z.number().optional(),
+    /* Set when the chat it was left for had taken all the turns messages may open this hour, so it waits for one of its own. */
+    limited: z.literal(true).optional()
 });
 
 export type Notice = z.infer<typeof NoticeSchema>;

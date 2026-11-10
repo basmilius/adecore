@@ -7,9 +7,9 @@ Modules for agents that hand each other work: an outbox that survives restarts, 
 `OutboxStore` keeps one record per pending job under `outbox/`, validated by a Zod schema. `OutboxWorker` runs them oldest first per target, with targets in parallel. `enqueue` resolves once the work is on disk, not once it ran.
 
 ```ts
-import { z } from 'zod';
 import { OutboxStore, OutboxWorker } from '@adecore/agents/coordination';
 import { ManualClock } from '@adecore/agents/testing';
+import { z } from 'zod';
 
 export async function runOutboxExample(dataDir: string): Promise<string[]> {
     const WorkSchema = z.object({ kind: z.literal('record-result'), payload: z.object({ text: z.string() }) });
@@ -47,6 +47,7 @@ A handler that throws retries after the delays in `RETRY_DELAYS_MS`, then goes t
 `stop()` schedules nothing more and lets running handlers finish. `settled()` waits for those, not for retries or waiting entries. `ManualClock` moves time by hand in a test.
 
 A kind of work is a schema whose `kind` is a literal, so the kinds of one outbox form a discriminated union. `OutboxEntryOf` gives the entry type of a work: the work plus the fields the store adds. `OutboxHandlers` maps every kind to its handler, which resolves to an `OutboxOutcome`, nothing or `'wait'`. The worker reads time from a `Clock`, `systemClock` by default; a chat session takes the same clock.
+
 ### Resuming a turn after a restart
 
 A turn the host went down in can go on once the chat loads again. Put `ResumeRunWorkSchema` in the outbox's union. Hand `oweResume` to the chat core as its interrupted-run hook. It needs `projectOf`, `entries` and `enqueue` (`OweResumeDeps`), and enqueues one `ResumeRunEntry` per turn and attempt, however often the chat is loaded. Register `resumeRunHandler` for the kind. It calls `resumeRun(chatId, turnId, attempt)` from `ResumeRunDeps`, so a CLI that will not start retries on the outbox's delays. `resumeRunParked` goes in `onParked`. It ends a resume the worker gave up on through `abandonRun`, with `notResumedNote` and the error as its reason, and leaves other kinds alone.
@@ -72,9 +73,19 @@ await prompts.put(projectId, nodeId, 'Start on the parser', { brief: 'Publish th
 A task is what a chat asked of a chat it opened. `TaskStore` keeps them under `tasks/`. `wireTasks` builds the coordinator that settles tasks, the outbox work that starts and wakes chats, and the verbs a context command calls. A set and an array stand in for your app's placement and notifications here:
 
 ```ts
-import { z } from 'zod';
 import type { ChatCore } from '@adecore/agents/chat';
-import { OutboxStore, OutboxWorker, TaskStore, restartBackgroundLimits, BackgroundLimitWorkSchema, DeliverWaitingWorkSchema, GiveTaskWorkSchema, WakeParentWorkSchema, wireTasks } from '@adecore/agents/coordination';
+import {
+    OutboxStore,
+    OutboxWorker,
+    TaskStore,
+    restartBackgroundLimits,
+    BackgroundLimitWorkSchema,
+    DeliverWaitingWorkSchema,
+    GiveTaskWorkSchema,
+    WakeParentWorkSchema,
+    wireTasks
+} from '@adecore/agents/coordination';
+import { z } from 'zod';
 
 export async function openTaskServices(dataDir: string, chats: ChatCore, placedIds: ReadonlySet<string>) {
     const WorkSchema = z.discriminatedUnion('kind', [BackgroundLimitWorkSchema, DeliverWaitingWorkSchema, GiveTaskWorkSchema, WakeParentWorkSchema]);
@@ -160,14 +171,14 @@ The types around `wireTasks`:
 
 After you checked who may write to whom, `deliverToChat(store, chatNoticeTargets(core), notice)` stores a message and returns what happens next:
 
-| Result | Meaning |
-| --- | --- |
-| `wake` | A turn is owed. Enqueue a `DeliverMessageWorkSchema` entry, handled by `deliverMessageHandler`. |
-| `no-chat` | The message waits for the chat's next prompt. |
-| `in-turn` | The running turn may take the message through `steerNotices`. Otherwise enqueue the same entry when that turn finishes, for a chat whose waiting messages pass `withinHops`. |
-| `hop-limit` | The chain went past `MAX_MESSAGE_HOPS`. The message waits, so two chats cannot wake each other forever. |
+| Result       | Meaning                                                                                                                                                                   |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `wake`       | A turn is owed. Enqueue a `DeliverMessageWorkSchema` entry, handled by `deliverMessageHandler`.                                                                           |
+| `no-chat`    | The message waits for the chat's next prompt.                                                                                                                             |
+| `in-turn`    | The running turn may take the message through `steerNotices`. Otherwise enqueue the same entry when that turn finishes, for a chat that has messages waiting.             |
+| `rate-limit` | Messages opened `MAX_MESSAGE_TURNS` turns in that chat within `MESSAGE_TURN_WINDOW_MS`. The message waits, marked `limited`, so two chats cannot wake each other forever. |
 
-Every message counts one hop past the turn that sent it, which `ChatNoticeTargets.hop(id)` answers. A turn a person or a settled task started counts from zero. `steerNotices` needs of a chat only a way to steer it. `NoticeStore.onSettled` says when a message was heard or dropped, so a thread can stop showing it as waiting.
+`messageTurns(items, now)` counts the turns messages opened in a chat within the window, read off its thread, and `messagesMayWake` says whether one more may open; `ChatNoticeTargets.mayWake(id)` answers it for a chat, and `deliverMessageHandler` checks it again before it opens a turn. A turn a person or a settled task started does not count. A message held this way shows as `limited` on its line in the thread, and a person hands it over with a prompt of their own (`ChatActions.send`), whose turn takes every waiting message. `steerNotices` needs of a chat only a way to steer it. `NoticeStore.onSettled` says when a message was heard or dropped, so a thread can stop showing it as waiting.
 
 `NoticeNotes` hands waiting messages to the next prompt through `promptNotesFor`. `unshownNotes` and `showNotices` show them to a person, in the chat as a `NoticeChat`.
 

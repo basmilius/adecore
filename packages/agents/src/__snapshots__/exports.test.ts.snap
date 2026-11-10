@@ -126,8 +126,9 @@ exports[`the public API ./coordination exports these names 1`] = `
   "DeliverWaitingWorkSchema",
   "EndChildrenWorkSchema",
   "GiveTaskWorkSchema",
-  "MAX_MESSAGE_HOPS",
+  "MAX_MESSAGE_TURNS",
   "MAX_NOTICES",
+  "MESSAGE_TURN_WINDOW_MS",
   "NOTICE_MAX_AGE_MS",
   "NoticeNotes",
   "NoticeStore",
@@ -148,6 +149,8 @@ exports[`the public API ./coordination exports these names 1`] = `
   "deliverMessageHandler",
   "deliverToChat",
   "endChildren",
+  "messageTurns",
+  "messagesMayWake",
   "oweResume",
   "restartBackgroundLimits",
   "resumeRunHandler",
@@ -180,7 +183,6 @@ exports[`the public API ./coordination exports these names 1`] = `
   "unshownNotes",
   "wakePrompt",
   "wireTasks",
-  "withinHops",
 ]
 `;
 

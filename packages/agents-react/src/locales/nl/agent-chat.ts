@@ -126,7 +126,11 @@ export default {
             heading: 'Bericht van {{name}}',
             unnamed: 'een andere node',
             waiting: 'Wacht op de volgende turn',
-            dropped: 'Vervallen voordat de agent het las'
+            dropped: 'Vervallen voordat de agent het las',
+            limited: 'Wacht: berichten wekten deze chat dit uur zo vaak als mag',
+            deliverNow: 'Nu bezorgen',
+            deliverPrompt: 'Lees de wachtende berichten en handel ernaar.',
+            deliverFailed: 'De berichten konden niet worden bezorgd'
         },
         sent: {
             heading: 'Bericht aan {{name}}',

@@ -76,6 +76,8 @@ export interface ChatActions {
     /* Refused with `request-not-found` when the message already went out. */
     unqueue(chatId: string, messageId: string): Promise<void>;
     sendNow(chatId: string, messageId: string): Promise<void>;
+    /* Sends a prompt as the person from outside the composer; absent where the host offers none, which leaves such a button out. */
+    send?(chatId: string, text: string): Promise<void>;
     compact(chatId: string): Promise<void>;
     configure(chatId: string, patch: Omit<ChatConfigurePayload, 'chatId'>): Promise<void>;
     continueOn(chatId: string, account: string): Promise<void>;
