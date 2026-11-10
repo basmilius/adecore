@@ -81,7 +81,7 @@ export function waitingOnLabel(waiting: WaitingOn, now: number): string {
             return waiting.until === undefined ? t('waitingOn.paused') : t('waitingOn.pausedUntil', { time: formatMoment(waiting.until, now) });
         case 'command':
             return t('waitingOn.command', {
-                command: waiting.task.command || waiting.task.description || t(`activity.${waiting.task.kind}`),
+                command: waiting.task.description || waiting.task.command || t(`activity.${waiting.task.kind}`),
                 age: formatElapsedShort(Math.max(0, now - waiting.task.startedAt))
             });
         case 'background':

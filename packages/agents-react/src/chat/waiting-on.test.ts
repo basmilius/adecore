@@ -41,9 +41,12 @@ describe('what a chat waits on', () => {
         expect(line({ children: [{ paused: {} }] })).toBe('A sub-agent is paused');
     });
 
-    test('then the oldest command or monitor with its age, by its command and else its description', () => {
+    test('then the oldest command or monitor with its age, by its description and else its command', () => {
         expect(line({ ...everything, children: [] })).toBe('run early · 12m');
         expect(line({ background: [command('m', NOW - 5_000, { kind: 'monitor', command: null, description: 'Tail the log' })] })).toBe('Tail the log · 5s');
+        expect(
+            line({ background: [command('m', NOW - 5_000, { kind: 'monitor', command: 'while true; do sleep 2; done', description: 'Watch the log' })] })
+        ).toBe('Watch the log · 5s');
     });
 
     test('then subagents and workflows in the background, counted where known', () => {
