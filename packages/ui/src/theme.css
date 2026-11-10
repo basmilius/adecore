@@ -700,15 +700,20 @@
     .sliding-column { transition: width 200ms cubic-bezier(0, 0, 0.2, 1); }
     .sliding-column[data-gap] { background: var(--separator); }
     .sliding-column-resize { touch-action: none; }
-    .sliding-column[data-gap] .sliding-column-resize::after {
+    .sliding-column-resize::after {
         content: '';
         position: absolute;
         inset-block: 0;
-        left: calc(50% - 1px);
-        width: 2px;
+        pointer-events: none;
+        background: transparent;
+        transition: background-color 150ms ease-out;
     }
-    .sliding-column[data-gap] .sliding-column-resize:hover::after,
-    .sliding-column[data-gap][data-resizing] .sliding-column-resize::after { background: var(--accent); }
+    /* Over the column's own line; the column clips what would stand left of it. */
+    .sliding-column:not([data-gap]) .sliding-column-resize::after { left: 0; width: 2px; }
+    .sliding-column[data-side="left"]:not([data-gap]) .sliding-column-resize::after { left: auto; right: 0; }
+    .sliding-column[data-gap] .sliding-column-resize::after { left: calc(50% - 1px); width: 2px; }
+    .sliding-column-resize:hover::after,
+    .sliding-column[data-resizing] .sliding-column-resize::after { background: var(--accent); }
     .sliding-column[data-resizing],
     .sliding-column[data-instant] { transition: none; }
 }
@@ -1024,7 +1029,7 @@
     .ade-split-divider[aria-orientation="vertical"] > span { left: -3px; right: -3px; }
     .ade-split-divider[aria-orientation="horizontal"] > span { top: -3px; bottom: -3px; }
     .ade-split-view[data-layout="roomy"] > .ade-split-divider > span { inset: 0; }
-    .ade-split-divider::after { content: ""; position: absolute; pointer-events: none; }
+    .ade-split-divider::after { content: ""; position: absolute; pointer-events: none; background: transparent; transition: background-color 150ms ease-out; }
     .ade-split-divider[aria-orientation="vertical"]::after { inset-block: 0; left: -1px; width: 2px; }
     .ade-split-divider[aria-orientation="horizontal"]::after { inset-inline: 0; top: -1px; height: 2px; }
     .ade-split-view[data-layout="roomy"] > .ade-split-divider[aria-orientation="vertical"]::after { left: 3px; }

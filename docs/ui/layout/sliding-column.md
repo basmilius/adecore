@@ -1,6 +1,6 @@
 # SlidingColumn
 
-A panel that slides in along the right edge of a view, resized by dragging its left edge.
+A panel that slides in along the right edge of a view, resized by dragging its left edge. With `side="left"` it stands along the left edge and drags by its right one. The edge it drags by shows an accent line while the pointer is on it or a drag runs.
 
 ```tsx
 import { SlidingColumn } from '@adecore/ui';
@@ -16,7 +16,7 @@ You hold the width. During a drag, `onWidthChange` reports whole pixels within `
 
 ## Space between panels
 
-`gap={8}` replaces the left border with 8 pixels of `--separator` space, which the resize handle fills. `width`, `bounds` and `onWidthChange` measure the column alone, so an open column takes `width + gap` pixels.
+`gap={8}` replaces the border on the free edge with 8 pixels of `--separator` space, which the resize handle fills. `width`, `bounds` and `onWidthChange` measure the column alone, so an open column takes `width + gap` pixels.
 
 ## A column with shortcuts
 
@@ -27,9 +27,10 @@ You hold the width. During a drag, `onWidthChange` reports whole pixels within `
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `open` | `boolean` | | Required. |
+| `side` | `'left' \| 'right'` | `'right'` | The edge of the view the column stands against. |
 | `width` | `number` | | Required. In pixels, already clamped. |
-| `gap` | `number` | `0` | Space before the column, in whole pixels. |
-| `edge` | `boolean` | `true` | The left border without a gap. Off in a `Workspace` side panel, whose left edge is the sheet's. |
+| `gap` | `number` | `0` | Space on the free edge of the column, in whole pixels. |
+| `edge` | `boolean` | `true` | The border on the free edge without a gap. Off in a `Workspace` side panel, whose left edge is the sheet's. |
 | `bounds` | `{ min: number; max(): number }` | | Required. `max` is read at drag time. |
 | `onWidthChange` | `(width: number) => void` | | Required. |
 | `instant` | `boolean` | `false` | |

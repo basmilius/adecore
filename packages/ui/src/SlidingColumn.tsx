@@ -10,13 +10,16 @@ const TRANSITION_MS = 200;
 export interface SlidingColumnProps {
     open: boolean;
 
+    /* The window edge the column stands against; the gap, the line and the resize handle are on the other side. */
+    side?: 'left' | 'right';
+
     /* Already clamped by the caller, which knows what has to stay beside it (`clampColumnSize`). */
     width: number;
 
-    /* Space before the surface, in pixels. Replaces the border and carries the resize handle. */
+    /* Space between the surface and what is beside it, in pixels. Replaces the border and carries the resize handle. */
     gap?: number;
 
-    /* The line before the surface without a gap; off beside something that draws an edge of its own over that pixel, such as a workspace's sheet. */
+    /* The line beside the surface without a gap; off beside something that draws an edge of its own over that pixel, such as a workspace's sheet. */
     edge?: boolean;
 
     bounds: { min: number; max(): number };
@@ -45,6 +48,7 @@ export interface SlidingColumnProps {
  */
 export function SlidingColumn({
     open,
+    side = 'right',
     width,
     gap = 0,
     edge = true,
@@ -67,12 +71,13 @@ export function SlidingColumn({
     const present = open || !settled;
     const column = useRef<HTMLElement>(null);
     const spacing = Math.max(0, Math.round(gap));
+    const left = side === 'left';
 
     const { startResize } = useColumnResize(column, {
         min: bounds.min + spacing,
         max: () => bounds.max() + spacing,
         size: width + spacing,
-        from: 'right',
+        from: side,
         onSize: (next) => onWidthChange(next - spacing)
     });
 
@@ -95,7 +100,8 @@ export function SlidingColumn({
             inert={!open}
             data-instant={instant ? '' : undefined}
             data-gap={spacing > 0 ? '' : undefined}
-            className={clsx('sliding-column flex h-full shrink-0 justify-end overflow-hidden', className)}
+            data-side={side}
+            className={clsx('sliding-column flex h-full shrink-0 overflow-hidden', left ? 'justify-start' : 'justify-end', className)}
             style={{ width: open ? width + spacing : 0 }}
             onTransitionEnd={(event) => {
                 if (event.propertyName === 'width' && event.target === event.currentTarget) {
@@ -110,16 +116,16 @@ export function SlidingColumn({
                     className={clsx(
                         'relative flex h-full shrink-0 flex-col bg-surface outline-none',
                         // Without its line the pixel stays, under the edge beside it, so the contents keep their place.
-                        spacing === 0 && clsx('border-l', edge ? 'border-border' : 'border-transparent')
+                        spacing === 0 && clsx(left ? 'border-r' : 'border-l', edge ? 'border-border' : 'border-transparent')
                     )}
-                    style={{ width, marginLeft: spacing }}
+                    style={{ width, ...(left ? { marginRight: spacing } : { marginLeft: spacing }) }}
                     onKeyDown={body?.onKeyDown}
                 >
                     {open && (
                         <ColumnResizeHandle
-                            from="right"
+                            from={side}
                             className="sliding-column-resize"
-                            style={spacing > 0 ? { left: -spacing, width: spacing } : undefined}
+                            style={spacing > 0 ? { [left ? 'right' : 'left']: -spacing, width: spacing } : undefined}
                             onPointerDown={startResize}
                         />
                     )}
