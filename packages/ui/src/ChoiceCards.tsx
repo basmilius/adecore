@@ -15,7 +15,8 @@ export interface Choice<Value extends string | number> {
 
 export interface ChoiceCardsProps<Value extends string | number> {
     value: Value;
-    onValueChange(value: Value): void;
+    /* `NoInfer`, so a state setter passed as it is keeps the value's type instead of widening it. */
+    onValueChange(value: NoInfer<Value>): void;
     choices: readonly Choice<Value>[];
 
     /* Read by a screen reader, since the row has no visible heading of its own. */

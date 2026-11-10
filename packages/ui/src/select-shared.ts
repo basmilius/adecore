@@ -19,7 +19,8 @@ export interface SelectGroup<T extends string> {
 
 export interface SelectProps<T extends string> {
     value: T | null;
-    onValueChange(value: T): void;
+    /* `NoInfer`, so a state setter passed as it is keeps the value's type instead of widening it. */
+    onValueChange(value: NoInfer<T>): void;
     items: SelectItem<T>[] | SelectGroup<T>[];
 
     /* The accessible name of the trigger; the row above it usually carries the visible one. */

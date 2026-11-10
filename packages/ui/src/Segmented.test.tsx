@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { List } from 'lucide-react';
+import type { Dispatch, SetStateAction } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { segmentedTarget } from './segmented-keys.ts';
 import { Segmented } from './Segmented.tsx';
@@ -39,6 +40,37 @@ describe('a segmented control', () => {
         const markup = renderToStaticMarkup(<Segmented label="View" value="list" onValueChange={() => {}} options={options} iconOnly />);
         expect(markup).not.toMatch(/>List</);
         expect(markup).toMatch(/>Grid<\/button>/);
+    });
+
+    test('takes a state setter as it is, typed by its value rather than widened to a string', () => {
+        let view: View = 'list';
+        const setView: Dispatch<SetStateAction<View>> = (next) => {
+            view = typeof next === 'function' ? next(view) : next;
+        };
+
+        const markup = renderToStaticMarkup(<Segmented label="View" value={view} onValueChange={setView} options={OPTIONS} />);
+        expect(markup).toMatch(/aria-checked="true"[^>]*>List</);
+    });
+
+    test('draws only the picked option with its label when unpicked ones are icons', () => {
+        const options = OPTIONS.map((option) => ({ ...option, icon: List }));
+        const markup = renderToStaticMarkup(<Segmented label="View" value="grid" onValueChange={() => {}} options={options} iconOnly="unpicked" />);
+        expect(markup).toMatch(/aria-label="List"/);
+        expect(markup).toMatch(/aria-label="Split"/);
+        expect(markup).not.toMatch(/aria-label="Grid"/);
+        expect(markup).toMatch(/<\/svg>Grid<\/button>/);
+    });
+
+    test('marks an option with a dot, and reads out what the dot means', () => {
+        const options = [
+            { ...OPTIONS[0], icon: List, indicator: true, indicatorLabel: '3 unread' },
+            { ...OPTIONS[1], indicator: true, indicatorLabel: '1 unread' },
+            OPTIONS[2]
+        ];
+        const markup = renderToStaticMarkup(<Segmented label="View" value="grid" onValueChange={() => {}} options={options} iconOnly="unpicked" />);
+        expect(markup).toContain('aria-label="List, 3 unread"');
+        expect(markup).toContain('<span class="sr-only">, 1 unread</span>');
+        expect([...markup.matchAll(/rounded-full bg-text-muted/g)]).toHaveLength(2);
     });
 
     test('moves past a disabled option with the arrows, Home and End, and around the ends', () => {

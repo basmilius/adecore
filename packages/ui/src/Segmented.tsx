@@ -6,7 +6,8 @@ import { Tooltip } from './Tooltip.tsx';
 
 export interface SegmentedProps<T extends string> {
     value: T;
-    onValueChange(id: T): void;
+    /* `NoInfer`, so a state setter passed as it is keeps the value's type instead of widening it. */
+    onValueChange(id: NoInfer<T>): void;
     options: readonly SegmentedOption<T>[];
     label: string;
     disabled?: boolean;
@@ -17,8 +18,9 @@ export interface SegmentedProps<T extends string> {
     /* The heights of `Input`, `Select` and `Button`. */
     size?: 'md' | 'sm';
 
-    /* An option with an icon draws as a square, its label as its accessible name and tooltip. One without an icon keeps its label. */
-    iconOnly?: boolean;
+    /* An option with an icon draws as a square, its label as its accessible name and tooltip. One without an icon keeps its label.
+       `unpicked` does so for every option but the picked one, which shows its icon and its label. */
+    iconOnly?: boolean | 'unpicked';
 
     className?: string;
     ref?: Ref<HTMLDivElement>;
@@ -72,31 +74,37 @@ export function Segmented<T extends string>({
             aria-orientation={vertical ? 'vertical' : undefined}
         >
             {options.map((option, index) => {
-                const square = iconOnly && option.icon !== undefined;
+                const picked = value === option.id;
+                const square = option.icon !== undefined && (iconOnly === true || (iconOnly === 'unpicked' && !picked));
+                const note = option.indicator === true && option.indicatorLabel !== undefined ? option.indicatorLabel : undefined;
+                const name = note === undefined ? option.label : `${option.label}, ${note}`;
 
                 const button = (
                     <button
                         key={option.id}
                         type="button"
                         role="radio"
-                        aria-checked={value === option.id}
+                        aria-checked={picked}
                         tabIndex={index === stop ? 0 : -1}
                         disabled={disabled || option.disabled}
                         className={clsx(
-                            'flex items-center transition-colors disabled:opacity-50',
+                            'relative flex items-center transition-colors disabled:opacity-50',
                             square ? clsx(sizing.square, 'justify-center') : clsx(sizing.option, 'gap-1.5 text-left'),
-                            value === option.id ? 'bg-surface-raised text-text shadow-raised' : 'text-text-muted enabled:hover:text-text'
+                            picked ? 'bg-surface-raised text-text shadow-raised' : 'text-text-muted enabled:hover:text-text'
                         )}
                         onClick={() => onValueChange(option.id)}
                         onKeyDown={(event) => move(event, index)}
                     >
                         {option.icon && <Icon icon={option.icon} size={sizing.icon} className="shrink-0" />}
                         {!square && option.label}
+                        {!square && note !== undefined && <span className="sr-only">, {note}</span>}
+                        {option.indicator === true && <span aria-hidden className="absolute top-1 right-1 size-1.5 rounded-full bg-text-muted" />}
                     </button>
                 );
 
-                return square ? (
-                    <Tooltip key={option.id} label={option.label} name>
+                // With `unpicked` the picked option keeps its tooltip, switched off, so a pick does not remount the button and drop its focus.
+                return option.icon !== undefined && iconOnly !== false ? (
+                    <Tooltip key={option.id} label={name} name={square} disabled={!square}>
                         {button}
                     </Tooltip>
                 ) : (

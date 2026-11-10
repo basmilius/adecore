@@ -16,6 +16,12 @@ It is a `radiogroup` of `radio` options and one tab stop: the picked option, or 
 
 With `iconOnly` each option is a square with its icon, and the label becomes its accessible name and tooltip. Give every option an icon; one without keeps its label.
 
+With `iconOnly="unpicked"` only the options that are not picked are squares; the picked one shows its icon and its label.
+
+`indicator: true` draws a quiet dot in the corner of an option that holds something new. `indicatorLabel`, such as "3 unread", is added to the option's accessible name and tooltip while the dot is on.
+
+<Demo src="inputs/segmented-unpicked" />
+
 <Demo src="inputs/segmented-icons" />
 
 ## A disabled option
@@ -36,12 +42,12 @@ An option with `disabled: true` dims, and the keyboard and the tab stop skip it.
 | --- | --- | --- | --- |
 | `value` | `T` | | Required. |
 | `onValueChange` | `(id: T) => void` | | Required. |
-| `options` | `readonly SegmentedOption<T>[]` | | Required. `{ id, label, icon?, disabled? }`, with a Lucide icon drawn at 14 pixels, 12 at `sm`. |
+| `options` | `readonly SegmentedOption<T>[]` | | Required. `{ id, label, icon?, disabled?, indicator?, indicatorLabel? }`, with a Lucide icon drawn at 14 pixels, 12 at `sm`. |
 | `label` | `string` | | Required. The accessible name of the group. |
 | `disabled` | `boolean` | | |
 | `orientation` | `'horizontal' \| 'vertical'` | `'horizontal'` | |
 | `size` | `'md' \| 'sm'` | `'md'` | |
-| `iconOnly` | `boolean` | `false` | |
+| `iconOnly` | `boolean \| 'unpicked'` | `false` | |
 | `className` | `string` | | |
 | `ref` | `Ref<HTMLDivElement>` | | |
 

@@ -10,6 +10,12 @@ export interface SegmentedOption<T extends string> {
 
     /* Takes the option out of the tab order and the arrow keys; the rest of the group stays usable. */
     disabled?: boolean;
+
+    /* A quiet dot in the corner, for an option that holds something new. */
+    indicator?: boolean;
+
+    /* Added to the option's accessible name and tooltip while `indicator` is on, such as "3 unread". */
+    indicatorLabel?: string;
 }
 
 export function segmentedStop<T extends string>(options: readonly SegmentedOption<T>[], value: T): number {
