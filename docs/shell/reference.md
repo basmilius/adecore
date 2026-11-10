@@ -63,7 +63,7 @@ The `WindowState` it returns has `bounds(key, fallback?)`, `track(key, window)`,
 | `trafficLights` | `{ x, y }`, optional | Where macOS puts the traffic lights. `{ x: 17, y: 17 }` by default. |
 | `platform` | `NodeJS.Platform`, optional | `process.platform` by default. |
 
-The `Theme` it returns has `apply(state)`, `current()` and `windowOptions()`.
+The `Theme` it returns has `apply(state)`, `current()`, `windowOptions()`, `windowControls(window)` and `followWindowControls(window, send)`, which take a `ControlsWindow`.
 
 ### Menu options
 

@@ -89,6 +89,7 @@ exports[`the public API . exports these names 1`] = `
   "UI_RESOURCES",
   "UNDO_MS",
   "Waveform",
+  "WindowControlsSpacer",
   "Wipe",
   "Workspace",
   "WorkspaceRail",
@@ -119,6 +120,7 @@ exports[`the public API . exports these names 1`] = `
   "selectionWithin",
   "setApplePlatform",
   "setFileIconOverride",
+  "setWindowControlsSource",
   "shortcut",
   "shortcutFromEvent",
   "shortcutParts",
@@ -315,6 +317,8 @@ exports[`the public API . exports these names 1`] = `
   "type UIProviderProps",
   "type WaveformProps",
   "type WhenIdle",
+  "type WindowControlsSource",
+  "type WindowControlsSpacerProps",
   "type WipeProps",
   "type WorkspaceLayout",
   "type WorkspaceProps",
@@ -334,6 +338,7 @@ exports[`the public API . exports these names 1`] = `
   "useTabDrag",
   "useTickingText",
   "useTopRowSlot",
+  "useWindowControlsInset",
 ]
 `;
 

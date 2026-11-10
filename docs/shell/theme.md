@@ -37,4 +37,16 @@ desktop.setTheme({
 
 `nativeTheme.themeSource` is `system` only while the app follows the system. Otherwise it is the app's choice, so a page inside a `<webview>` follows the app too.
 
+## Room for the window controls
+
+A page that reaches the top of a macOS window keeps the start of its first column free for the traffic lights, and takes that room back in fullscreen, where macOS hides them. `windowControls(window)` returns a `WindowControlsState` (`@adecore/shell/bridge`): its `inset` is the width to keep free, as far past the lights as `trafficLights` sets them from the edge (86 pixels by default). It is `null` off macOS and in fullscreen.
+
+`followWindowControls(window, send)` calls `send` with a new state each time the window goes in or out of fullscreen, and returns what stops it. The shell registers no channel, so the app sends the state on one of its own and answers a page that asks for it. On the page, [`WindowControlsSpacer`](/ui/layout/window-controls-spacer) draws the room.
+
+```ts
+// `ipc` is the app's createAppIpc, which checks the sender first.
+ipc.handle('window:controls', (event) => theme.windowControls(ipc.senderWindow(event)!));
+theme.followWindowControls(window, (state) => window.webContents.send('window:controls', state));
+```
+
 `current()` returns the last `ThemeState` applied, or `null` before the first. `createTheme` takes `ThemeOptions`, whose `overlay` is a `TitleBarOverlay`, and returns a `Theme`. The [reference](/shell/reference#themeoptions) lists the options.

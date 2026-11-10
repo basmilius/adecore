@@ -13,6 +13,6 @@ export type { GestureGate, NavigationVerdict, SenderFrame } from './web-guards.t
 export { createWindowState, fileStorage } from './window-state.ts';
 export type { SavedWindow, StateWindow, WindowDisplay, WindowSize, WindowState, WindowStateOptions, WindowStateStorage } from './window-state.ts';
 export { createTheme } from './theme.ts';
-export type { Theme, ThemeOptions, TitleBarOverlay } from './theme.ts';
+export type { ControlsWindow, Theme, ThemeOptions, TitleBarOverlay } from './theme.ts';
 export { createWindows } from './windows.ts';
 export type { AttachOptions, QuitRequest, WindowOrigin, WindowPoint, Windows, WindowsOptions } from './windows.ts';

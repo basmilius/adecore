@@ -197,6 +197,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['SplitView', '/ui/layout/split-view'],
         ['TabStrip', '/ui/layout/tab-strip'],
         ['Tabs', '/ui/layout/tabs'],
+        ['WindowControlsSpacer', '/ui/layout/window-controls-spacer'],
         ['Wipe', '/ui/layout/wipe'],
         ['Workspace', '/ui/layout/workspace'],
         ['ZoomControls', '/ui/layout/zoom-controls']

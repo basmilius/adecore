@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { BrowserWindow } from 'electron';
-import { createTheme } from './theme.ts';
+import { createTheme, type ControlsWindow } from './theme.ts';
 
 const fakeWindow = (destroyed = false) => {
     const calls: unknown[][] = [];
@@ -174,5 +174,49 @@ describe('createTheme', () => {
         expect(theme.windowOptions()).toEqual({ backgroundColor: '#131316' });
         theme.apply(LIGHT);
         expect(one.calls).toEqual([['background', '#fafafa']]);
+    });
+});
+
+describe('the room for the window controls', () => {
+    const controlsWindow = () => {
+        const listeners = new Map<string, () => void>();
+        let fullscreen = false;
+
+        const window = {
+            isFullScreen: () => fullscreen,
+            isDestroyed: () => false,
+            on: (event: string, listener: () => void) => void listeners.set(event, listener),
+            off: (event: string) => void listeners.delete(event)
+        } as unknown as ControlsWindow;
+
+        const go = (next: boolean) => {
+            fullscreen = next;
+            listeners.get(next ? 'enter-full-screen' : 'leave-full-screen')?.();
+        };
+
+        return { window, go, listeners };
+    };
+
+    const themeOn = (platform: NodeJS.Platform, trafficLights?: { x: number; y: number }) =>
+        createTheme({ nativeTheme: { themeSource: 'system' }, windows: () => [], background: '#131316', platform, trafficLights });
+
+    test('runs as far past the traffic lights as they sit from the edge, and is gone off macOS', () => {
+        const { window } = controlsWindow();
+        expect(themeOn('darwin').windowControls(window)).toEqual({ inset: 86 });
+        expect(themeOn('darwin', { x: 20, y: 18 }).windowControls(window)).toEqual({ inset: 92 });
+        expect(themeOn('win32').windowControls(window)).toEqual({ inset: null });
+    });
+
+    test('goes away in fullscreen and comes back after it, until the app stops following', () => {
+        const { window, go, listeners } = controlsWindow();
+        const sent: unknown[] = [];
+        const stop = themeOn('darwin').followWindowControls(window, (state) => sent.push(state));
+
+        go(true);
+        go(false);
+        expect(sent).toEqual([{ inset: null }, { inset: 86 }]);
+
+        stop();
+        expect(listeners.size).toBe(0);
     });
 });

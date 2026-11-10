@@ -111,6 +111,7 @@ export { TokenInput, type TokenInputProps, type TokenInputToken } from './TokenI
 export { Tooltip, type TooltipProps, type TooltipSide } from './Tooltip.tsx';
 export { UIProvider, type UIProviderProps } from './UIProvider.tsx';
 export { Waveform, type WaveformProps } from './Waveform.tsx';
+export { WindowControlsSpacer, type WindowControlsSpacerProps } from './WindowControlsSpacer.tsx';
 export { Wipe, type WipeProps } from './Wipe.tsx';
 export { ZoomControls, type ZoomControlsProps, type ZoomLabels, type ZoomSelection } from './ZoomControls.tsx';
 
@@ -129,6 +130,7 @@ export { isApplePlatform, setApplePlatform, type ApplePlatformSource } from './p
 export { prefetcher, type Loader, type WhenIdle } from './prefetch.ts';
 export { tintStyle } from './tint.ts';
 export { selectAllWithin, selectionWithin } from './selection.ts';
+export { setWindowControlsSource, useWindowControlsInset, type WindowControlsSource } from './window-controls.ts';
 export {
     EDIT_SHORTCUTS,
     KEY_SHORTCUTS,

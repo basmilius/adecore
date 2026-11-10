@@ -7,6 +7,7 @@
 | `MenuSpec`, `MenuNode`, `MENU_ROLES`, `MenuRole`, `MenuBarRole` | The [application menu](/shell/menu) the page builds. |
 | `UpdateState`, `UpdateErrorCode` | Where [updating](/shell/updater) stands, and why it [failed](/shell/updater#errors). |
 | `ThemeState` | The [theme](/shell/theme) a page reports. |
+| `WindowControlsState` | The [room](/shell/theme#room-for-the-window-controls) a page keeps free for the window's controls. |
 | `compareVersions`, `isVersion` | One [version order](#versions) for shell and page. |
 | `ipcSubscriber`, `Subscribe`, `IpcListeners` | For a preload: turns a channel the main process sends on into a subscribe function for the page. |
 

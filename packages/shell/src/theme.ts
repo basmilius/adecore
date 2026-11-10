@@ -1,5 +1,14 @@
 import type { BrowserWindow, BrowserWindowConstructorOptions, NativeTheme } from 'electron';
 import type { ThemeState } from './bridge/theme.ts';
+import type { WindowControlsState } from './bridge/window-controls.ts';
+
+const TRAFFIC_LIGHTS = { x: 17, y: 17 };
+
+/* Three lights of 12 pixels with 8 between them. */
+const TRAFFIC_LIGHTS_WIDTH = 52;
+
+/* A window as far as the room for its controls goes: whether it is fullscreen, and when that changes. */
+export type ControlsWindow = Pick<BrowserWindow, 'isFullScreen' | 'isDestroyed' | 'on' | 'off'>;
 
 /* The native window controls a page leaves room for off macOS, with their colors per theme. */
 export interface TitleBarOverlay {
@@ -27,7 +36,13 @@ export interface ThemeOptions {
  */
 export const createTheme = (options: ThemeOptions) => {
     const platform = options.platform ?? process.platform;
+    const lights = options.trafficLights ?? TRAFFIC_LIGHTS;
     let current: ThemeState | null = null;
+
+    // As far past the lights as they sit from the edge, so they read as a group of their own. macOS hides them in fullscreen.
+    const controlsOf = (window: ControlsWindow): WindowControlsState => ({
+        inset: platform === 'darwin' && !window.isFullScreen() ? lights.x * 2 + TRAFFIC_LIGHTS_WIDTH : null
+    });
 
     // The colors a page reports win over the ones per theme. Only the two colors are taken from what crossed IPC.
     const overlayOf = (theme: Pick<ThemeState, 'resolved' | 'overlay'>) => {
@@ -68,10 +83,29 @@ export const createTheme = (options: ThemeOptions) => {
             const hidden: BrowserWindowConstructorOptions = options.nativeFrame
                 ? {}
                 : { titleBarStyle: 'hidden', ...(overlay ? { titleBarOverlay: overlay } : {}) };
-            const chrome: BrowserWindowConstructorOptions =
-                platform === 'darwin' ? { titleBarStyle: 'hiddenInset', trafficLightPosition: options.trafficLights ?? { x: 17, y: 17 } } : hidden;
+            const chrome: BrowserWindowConstructorOptions = platform === 'darwin' ? { titleBarStyle: 'hiddenInset', trafficLightPosition: lights } : hidden;
 
             return { ...chrome, backgroundColor: current?.background ?? options.background };
+        },
+
+        /* The room a page keeps free for the controls of this window, which the app hands its page on a channel of its own. */
+        windowControls: controlsOf,
+
+        /* Calls `send` each time the room changes, as the window goes in and out of fullscreen. Returns what stops it. */
+        followWindowControls: (window: ControlsWindow, send: (state: WindowControlsState) => void): (() => void) => {
+            const changed = () => {
+                if (!window.isDestroyed()) {
+                    send(controlsOf(window));
+                }
+            };
+
+            window.on('enter-full-screen', changed);
+            window.on('leave-full-screen', changed);
+
+            return () => {
+                window.off('enter-full-screen', changed);
+                window.off('leave-full-screen', changed);
+            };
         }
     };
 };
