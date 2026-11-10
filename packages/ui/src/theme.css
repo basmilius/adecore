@@ -1,7 +1,14 @@
 /* The tokens, type scale and shared rules of @adecore/ui. An app imports this right after Tailwind and adds its own tokens after it. */
 
-/* dark: follows the app theme, not the OS. */
-@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+/* dark: follows the app theme, not the OS. `data-theme` on any element is a scope, and the nearest one wins:
+   a light subtree in a dark window, such as a mail drawn as its sender made it, takes no `dark:` utility,
+   and a dark subtree inside that light one takes them again. CSS cannot ask for the nearest ancestor,
+   so the selector spells out the scopes, to three deep from the root. */
+@custom-variant dark (&:where(
+    [data-theme="dark"],
+    [data-theme="dark"] :not([data-theme="light"], [data-theme="light"] *),
+    [data-theme="light"] [data-theme="dark"] :not([data-theme="light"] [data-theme="dark"] [data-theme="light"], [data-theme="light"] [data-theme="dark"] [data-theme="light"] *)
+));
 
 /* Semantic tokens. Components only ever reference these, never a raw color. */
 :root, [data-theme="light"] {
@@ -184,7 +191,11 @@
     /* Dark on light green: the dark theme's positive is a foreground color, so text sits on it the
        other way round from the light theme, where the same token is a fill deep enough for white. */
     --positive-text: #052e16;
-    /* Repeated so a dark theme nested under a light one resolves its own accent. */
+    /* Every token the light rule derives with `var()` is repeated, so a dark scope nested under a light
+       one resolves it against its own values rather than inheriting the light result. */
+    --surface-idle: color-mix(in srgb, var(--surface) 50%, var(--surface-sunken));
+    --surface-hover-edged: color-mix(in srgb, var(--surface-raised) 60%, var(--surface-hover));
+    --accent-soft: color-mix(in srgb, var(--accent) 16%, var(--surface));
     --accent-on-surface: var(--accent);
     --chart-1: var(--accent);
     --chart-2: #d95926;

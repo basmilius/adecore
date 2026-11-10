@@ -2,6 +2,14 @@
 
 `@adecore/ui/theme.css` holds the tokens every component draws with. Each color token has a light and a dark value, switched by `data-theme="light"` or `data-theme="dark"` on `<html>`.
 
+`data-theme` also works on any element inside the page, as a scope: a light subtree in a dark window, such as a message drawn on white as its sender made it, or a dark one in a light window. The tokens and the `dark:` variant follow the nearest scope, up to three scopes deep from `<html>`.
+
+```tsx
+<article data-theme="light" className="bg-surface text-text">
+    {/* Components in here draw their light look, also when the window is dark. */}
+</article>
+```
+
 The theme maps the tokens onto Tailwind utilities (`bg-surface`, `text-text-muted`, `border-border`, `shadow-float`) and clears Tailwind's default palette with `--color-*: initial`. Components and your app can reach only these colors until you add your own.
 
 ## Ground and surfaces

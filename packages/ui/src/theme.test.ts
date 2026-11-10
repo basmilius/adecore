@@ -12,6 +12,17 @@ function block(css: string, selector: string): string {
     return css.slice(start, css.indexOf('\n}', start)).replace(/\/\*[\s\S]*?\*\//g, '');
 }
 
+describe('a theme scope inside another', () => {
+    test('resolves every token the light rule derives, since a nested dark scope would inherit the light result', () => {
+        const light = block(THEME, ':root, [data-theme="light"]');
+        const dark = block(THEME, '[data-theme="dark"]');
+        const derived = [...light.matchAll(/^\s*(--[\w-]+):[^;]*var\(/gm)].map((match) => match[1]!);
+
+        expect(derived.length).toBeGreaterThan(0);
+        expect(derived.filter((token) => !dark.includes(`${token}:`))).toEqual([]);
+    });
+});
+
 describe('the accent as text and as a focus ring', () => {
     test('is the accent itself in both themes until an app sets it', () => {
         expect(block(THEME, ':root, [data-theme="light"]')).toContain('--accent-on-surface: var(--accent);');
