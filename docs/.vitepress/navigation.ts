@@ -152,6 +152,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['Tooltip', '/ui/overlays/tooltip']
     ]),
     group('Display', [
+        ['Avatar', '/ui/display/avatar'],
         ['FileIcon', '/ui/display/file-icon'],
         ['Icon', '/ui/display/icon'],
         ['Kbd, KeyCap and Keys', '/ui/display/kbd'],

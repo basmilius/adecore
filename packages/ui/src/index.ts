@@ -52,6 +52,7 @@ export type { TabsCountProps, TabsListProps, TabsRootProps, TabsTabProps, TabsVa
 export { tabDropIndex, useTabDrag, type TabDrag, type TabDragOptions } from './tabs/use-tab-drag.ts';
 
 export { AccentSwatches, type AccentSwatchesProps } from './AccentSwatches.tsx';
+export { Avatar, type AvatarProps } from './Avatar.tsx';
 export { Banner, type BannerProps, type BannerTone } from './Banner.tsx';
 export { Button, type ButtonProps, type ButtonShape, type ButtonSize, type ButtonVariant } from './Button.tsx';
 export { ButtonGroup, type ButtonGroupProps } from './ButtonGroup.tsx';

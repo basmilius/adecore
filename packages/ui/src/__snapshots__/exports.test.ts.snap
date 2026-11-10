@@ -3,6 +3,7 @@
 exports[`the public API . exports these names 1`] = `
 [
   "AccentSwatches",
+  "Avatar",
   "Banner",
   "Button",
   "ButtonGroup",
@@ -130,6 +131,7 @@ exports[`the public API . exports these names 1`] = `
   "type AccentSwatchesProps",
   "type ApplePlatformSource",
   "type AsyncAction",
+  "type AvatarProps",
   "type BannerProps",
   "type BannerTone",
   "type ButtonGroupProps",
