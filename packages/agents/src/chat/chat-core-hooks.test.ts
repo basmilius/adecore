@@ -242,6 +242,24 @@ describe('the hooks of ChatCore', () => {
         expect(heard.at(-1)).toEqual({ event: 'chat.subagentChanged', payload: { chatId: 'chat-1', toolUseId: 'task-1' } });
     });
 
+    test('tell every client when a chat between turns starts or ends a command in the background', async () => {
+        const chats = open();
+        const heard: AgentEvent[] = [];
+        chats.subscribe('client-1', (event) => heard.push(event));
+        await chats.create({ chatId: 'chat-1', cwd: home });
+        await chats.send('chat-1', 'start the dev server');
+        await settle();
+        backendHost!.onEvent({ type: 'turn.done', state: 'done', costUsd: 0 });
+
+        const backgroundSaid = () =>
+            heard.flatMap((event) => (event.event === 'chat.status' && event.payload.chatId === 'chat-1' ? [event.payload.info.background?.length ?? 0] : []));
+
+        const before = backgroundSaid().length;
+        backendHost!.onEvent({ type: 'background.started', taskId: 'b1', ref: null, monitor: false, description: 'Dev server' });
+        backendHost!.onEvent({ type: 'background.ended', taskId: 'b1' });
+        expect(backgroundSaid().slice(before)).toEqual([1, 0]);
+    });
+
     test('a turn the host went down in ends in the words of the host', async () => {
         const chats = new ChatCore({
             providers,

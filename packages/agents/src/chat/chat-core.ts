@@ -2039,13 +2039,15 @@ export class ChatCore {
      */
     private announceStatus(chatId: string, info: ChatInfo): void {
         // A limit, the resume owed after it and subagents still at work are what a header shows of an idle chat, so they count as a change too,
-        // and so does a request opening or settling while the chat already waits on another, and a goal set, moving on or gone.
+        // and so does a request opening or settling while the chat already waits on another, a goal set, moving on or gone,
+        // and a command or monitor starting or ending, which an idle chat's row marks.
         const said = JSON.stringify([
             info.status,
             info.limit ?? null,
             info.resumeAt ?? null,
             info.resumeAtReset ?? null,
             info.delegating ?? false,
+            info.background?.map((task) => task.id) ?? [],
             info.requests?.map((request) => request.requestId) ?? [],
             info.goal === undefined ? null : [info.goal.status, info.goal.objective]
         ]);
