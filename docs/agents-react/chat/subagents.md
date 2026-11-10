@@ -52,7 +52,7 @@ For a view of a workflow outside the thread, the helpers in `@adecore/agents-rea
 4. background subagents and workflows
 5. the status line of the chat's plan
 
-A `WaitingOnInput` takes each of these as optional fields: `children` as `WaitingChild` entries, `background` from the info, counted `subagents` and `workflows` or only `delegating`, and `planStatus`. It returns a `WaitingOn`, or `null` when the chat waits on none of them. `waitingOnLabel(waiting, now)` writes it as one line in the `agent-chat` words, such as `gh run watch · 12m`. The background chip over the composer shows that line for its commands. A canvas or a list can show the same line beside a chat that runs no turn.
+A `WaitingOnInput` takes each of these as optional fields: `children` as `WaitingChild` entries, `background` from the info, counted `subagents` and `workflows` or only `delegating`, and `planStatus`. It returns a `WaitingOn`, or `null` when the chat waits on none of them. `waitingOnLabel(waiting, now)` writes it as one line in the `agent-chat` words, such as `Watch CI · 12m`, naming a command or monitor by its description before its command. A canvas or a list can show the same line beside a chat that runs no turn.
 
 ## Stopping
 
