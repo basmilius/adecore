@@ -17,7 +17,7 @@ Every part takes Base UI's own props; the library adds the styles, the portal an
 | Part | What it is |
 | --- | --- |
 | `Combobox.Root` | Base UI's `Autocomplete.Root`. `value` and `onValueChange` hold the text, `items` the suggestions, `filter` how they match (`null` when you filter yourself). `open`, `onOpenChange`, `autoHighlight` and `onItemHighlighted` work as in Base UI. |
-| `Combobox.Input` | The field, drawn as an [`Input`](/ui/inputs/input) with `size`, `mono` and `icon`. Inside a [`Field`](/ui/inputs/field) it takes the label and hint. |
+| `Combobox.Input` | The field, drawn as an [`Input`](/ui/inputs/input) with `size`, `mono`, `icon` and `variant`. Inside a [`Field`](/ui/inputs/field) it takes the label and hint. |
 | `Combobox.Popup` | Portal, positioner and surface in one. It opens 6 pixels under the field, at least as wide, and takes Base UI's placement props (`side`, `align`, `sideOffset`, ...). |
 | `Combobox.List` | The rows. Pass a function of an item to draw the filtered `items`. Accessible name "Suggestions" (`combobox.suggestions`). |
 | `Combobox.Item` | One row, drawn as a menu row. Its children are the label. |

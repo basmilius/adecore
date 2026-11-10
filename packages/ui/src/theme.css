@@ -409,7 +409,7 @@
     /* A field inside a card that draws the edge and the focus for it. The border stays as a transparent
        line, so the text sits where it would in a field of its own. */
     .field-bare { border-color: transparent; background: transparent; }
-    .field-bare:focus-visible { outline: none; }
+    .field-bare:focus-visible, .field-bare:has(> input:focus-visible) { outline: none; }
     /* Keyboard focus is visible on every control; pointer focus stays quiet. `.focus-ring` is the
        same outline for something that takes focus without being a button, such as a row in a list. */
     .icon-btn:focus-visible, .menu-item:focus-visible, button:focus-visible, .focus-ring:focus-visible { outline: 2px solid var(--accent-on-surface); outline-offset: 1px; }

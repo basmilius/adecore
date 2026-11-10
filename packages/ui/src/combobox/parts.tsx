@@ -30,20 +30,26 @@ export type ComboboxInputProps = Omit<ComponentProps<typeof Autocomplete.Input>,
 
     /* Drawn in front of the text. `className` then goes to the box around the icon and the input; `ref` stays on the input. */
     icon?: LucideIcon;
+
+    /* The variants of `Input`. */
+    variant?: 'field' | 'bare';
 };
 
-export function ComboboxInput({ size = 'md', mono = false, icon, className, id, ...props }: ComboboxInputProps) {
+export function ComboboxInput({ size = 'md', mono = false, variant = 'field', icon, className, id, ...props }: ComboboxInputProps) {
     const field = useFieldControl();
     const small = size === 'sm';
+    const bare = variant === 'bare';
     const control = { ...fieldControlProps(field, id), ...props };
 
     if (icon === undefined) {
-        return <Autocomplete.Input {...control} className={clsx('field', small && 'field-sm', mono && 'font-mono text-code', className)} />;
+        return (
+            <Autocomplete.Input {...control} className={clsx('field', small && 'field-sm', bare && 'field-bare', mono && 'font-mono text-code', className)} />
+        );
     }
 
     // The group is what the popup lines up with, so a list under a field with an icon is as wide as the whole box.
     return (
-        <Autocomplete.InputGroup className={clsx('field relative flex p-0', small && 'field-sm', className)}>
+        <Autocomplete.InputGroup className={clsx('field relative flex p-0', small && 'field-sm', bare && 'field-bare', className)}>
             <Icon
                 icon={icon}
                 size={small ? 12 : 14}

@@ -22,9 +22,13 @@ For a value a person reads but does not type, such as a chosen folder, use `read
 
 A `TextArea` is at least 64 pixels tall; `rows` makes it taller. `size="sm"` gives it compact text and padding. `resize="vertical"` adds a resize handle.
 
-`variant="bare"` drops the border, ground and focus outline, for a text area inside a card that draws them. The card then shows focus itself, for example with `has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:-outline-offset-1 has-[textarea:focus-visible]:outline-accent-on-surface`.
+`variant="bare"` drops the border, ground and focus outline, on both, for a field inside a row or card that draws them. The card then shows focus itself, for example with `has-[textarea:focus-visible]:outline-2 has-[textarea:focus-visible]:-outline-offset-1 has-[textarea:focus-visible]:outline-accent-on-surface`.
 
 <Demo src="inputs/text-area-bare" />
+
+A form of lines, each a label and a bare input on one hairline, shows focus per line:
+
+<Demo src="inputs/input-bare" />
 
 Inside a [`Field`](/ui/inputs/field) both take their `id`, `aria-describedby` and `aria-invalid` from it. Outside one, give them an `aria-label`.
 
@@ -38,6 +42,7 @@ Inside a [`Field`](/ui/inputs/field) both take their `id`, `aria-describedby` an
 | `mono` | `boolean` | `false` | |
 | `icon` | `LucideIcon` | | Drawn in front of the text. |
 | `end` | `ReactNode` | | Drawn after the text, inside the field. |
+| `variant` | `'field' \| 'bare'` | `'field'` | |
 
 `TextArea` takes every prop of a `<textarea>`, plus:
 

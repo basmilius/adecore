@@ -15,20 +15,24 @@ export interface InputProps extends Omit<ComponentProps<'input'>, 'size'> {
 
     /* Inside the field, after the text. `className` then goes to the box, as with `icon`. */
     end?: ReactNode;
+
+    /* `bare` drops the border, the ground and the focus outline, for a field inside a row or card that draws all three around it. */
+    variant?: 'field' | 'bare';
 }
 
-export function Input({ size = 'md', mono = false, icon, end, className, id, ...props }: InputProps) {
+export function Input({ size = 'md', mono = false, variant = 'field', icon, end, className, id, ...props }: InputProps) {
     const field = useFieldControl();
     const small = size === 'sm';
+    const bare = variant === 'bare';
     const control = { ...fieldControlProps(field, id), ...props };
 
     if (icon === undefined && end === undefined) {
-        return <input {...control} className={clsx('field', small && 'field-sm', mono && 'font-mono text-code', className)} />;
+        return <input {...control} className={clsx('field', small && 'field-sm', bare && 'field-bare', mono && 'font-mono text-code', className)} />;
     }
 
     // The input fills the whole box and the icon lets clicks through, so a click on the icon still lands in the input.
     return (
-        <span className={clsx('field relative flex p-0', small && 'field-sm', className)}>
+        <span className={clsx('field relative flex p-0', small && 'field-sm', bare && 'field-bare', className)}>
             {icon !== undefined && (
                 <Icon
                     icon={icon}
