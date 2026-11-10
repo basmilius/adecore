@@ -956,8 +956,9 @@
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { background: var(--separator); }
     /* The gaps already set the sheet apart, and a shadow over them reads as a smudge. */
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { box-shadow: 0 0 0 1px var(--border); }
-    /* Roomy's panes round their own corners, so the sheet's corner on the window's bottom stays square. */
-    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { border-bottom-right-radius: 0; }
+    /* Roomy's toolbar and panes round their own corners, so the sheet's corners on the window's top and bottom stay square. */
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet { border-radius: 0; }
+    .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet::before,
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet::after { display: none; }
     .ade-workspace[data-layout="roomy"] { --workspace-ground: var(--separator); }
     .ade-workspace[data-layout="roomy"] > .ade-workspace-sheet > .ade-workspace-center { gap: 8px; }
