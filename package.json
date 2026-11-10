@@ -10,7 +10,7 @@
   "scripts": {
     "build": "bun scripts/build.ts",
     "typecheck": "bun check --no-script -p tsconfig.scripts.json && bun run --filter './packages/*' typecheck",
-    "lint": "oxlint --deny-warnings && bun scripts/check-design-conventions.ts",
+    "lint": "oxlint --deny-warnings && bun scripts/check-design-conventions.ts && bun scripts/check-module-cycles.ts",
     "check": "bun run typecheck && bun run lint",
     "test": "bun test --parallel=4 --no-isolate",
     "test:dom": "bun test scripts/dom.test.ts",

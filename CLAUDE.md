@@ -62,6 +62,7 @@ Bun workspaces: a package per folder in `packages/`, each published from its fol
 ## Scripts and commits
 
 - `bun run check` (typecheck and oxlint, a warning fails), `bun run test`, `bun run build`, `bun run format` (oxfmt).
+- An import cycle between modules (a package plus the first folder under its `src`, tests and `testing/` left out, type-only imports counted) fails `bun run lint` and so `check` (`scripts/check-module-cycles.ts`). It lists each cycle's modules and one way around, with the file, line and import of every hop: cut one of those imports, or move what both sides need into a module neither imports.
 - A test that needs a DOM is named `*.dom.test.ts(x)`, beside the unit tests of the same component. The default run leaves it out (`bunfig.toml`) and `scripts/dom.test.ts` runs each one in a `bun test` of its own with the happy-dom preload (`dom.bunfig.toml`, `scripts/dom-preload.ts`); `bun run test:dom` runs only those, and `bun --config=dom.bunfig.toml test <file>` one of them. No test guards on `document`.
 - `bun run test:perf` runs the `*.perf.test.ts` wall-clock gates, outside `test` and CI. Run it after a change to the editor or the language mirror.
 - Work happens on `main`. Every commit passes check, test and build, plus `bun run --cwd docs build` when the docs changed: an app that links this checkout breaks with it.
