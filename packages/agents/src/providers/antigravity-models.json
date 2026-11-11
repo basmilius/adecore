@@ -1,11 +1,12 @@
 {
-  "updatedAt": "2026-10-27T14:38:18.971Z",
+  "updatedAt": "2026-11-11T07:25:14.369Z",
   "defaultModel": "default",
   "profiles": {
     "agent": { "options": [], "contextWindowTokens": {} }
   },
   "models": [
     { "slug": "default", "name": "Default", "profile": "agent" },
+    { "slug": "gemini-4-carbon", "name": "Gemini 4 Carbon", "badge": "new", "profile": "agent" },
     { "slug": "gemini-4-argon", "name": "Gemini 4 Argon", "profile": "agent" },
     { "slug": "gemini-3.8-flash", "name": "Gemini 3.8 Flash", "profile": "agent" }
   ]
