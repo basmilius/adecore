@@ -173,7 +173,8 @@ describe('the rings of a folded account', () => {
 describe('where the numbers came from', () => {
     test('a read says how long ago, a turn says so first', () => {
         expect(checkedLabel(entry('claude', undefined, { checkedAt: 1_000 }), 1_000 + 30_000)).toBe('now');
-        expect(checkedLabel(entry('claude', undefined, { checkedAt: 1_000 }), 1_000 + 120_000)).toBe('2 min ago');
+        expect(checkedLabel(entry('claude', undefined, { checkedAt: 1_000 }), 1_000 + 120_000)).toBe('2m ago');
+        expect(checkedLabel(entry('claude', undefined, { checkedAt: 1_000 }), 1_000 + 9.7 * 3_600_000)).toBe('9h ago');
         expect(checkedLabel(entry('claude', undefined, { checkedAt: 1_000, source: 'event' }), 1_000)).toBe('From a turn · now');
     });
 

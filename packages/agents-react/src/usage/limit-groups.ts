@@ -8,7 +8,7 @@ import {
     type UsageProvider,
     type UsageWindow
 } from '@adecore/agent-contracts';
-import { formatDuration } from '@adecore/ui/format';
+import { formatAgo } from '@adecore/ui/format';
 import i18next from 'i18next';
 import { limitsAccountId } from '../agents/account-limits';
 import { accountName, accountsOfKind, accountStatusLine } from '../agents/accounts';
@@ -161,7 +161,7 @@ export function checkedLabel(entry: UsageLimitsProvider, now: number): string | 
         return null;
     }
 
-    const when = past < MINUTE ? i18next.t('agent-usage:limits.checked.now') : i18next.t('agent-usage:limits.checked.ago', { duration: formatDuration(past) });
+    const when = formatAgo(past);
 
     return entry.source === 'event' ? i18next.t('agent-usage:limits.checked.fromTurn', { when }) : when;
 }

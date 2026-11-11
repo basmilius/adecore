@@ -34,8 +34,6 @@ export default {
             unknown: 'Update time unknown',
             updated: 'Last updated · {{when}}',
             old: 'May be out of date',
-            now: 'now',
-            ago: '{{duration}} ago',
             fromTurn: 'From a turn · {{when}}'
         }
     },

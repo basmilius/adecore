@@ -34,8 +34,6 @@ export default {
             unknown: 'Bijwerktijd onbekend',
             updated: 'Laatst bijgewerkt · {{when}}',
             old: 'Mogelijk verouderd',
-            now: 'nu',
-            ago: '{{duration}} geleden',
             fromTurn: 'Uit een turn · {{when}}'
         }
     },
