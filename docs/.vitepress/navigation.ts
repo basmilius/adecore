@@ -357,7 +357,8 @@ export const sidebar: DefaultTheme.SidebarMulti = {
             ['Providers and models', '/agent-contracts/providers'],
             ['Accounts', '/agent-contracts/accounts'],
             ['Tasks and worktrees', '/agent-contracts/tasks'],
-            ['Usage', '/agent-contracts/usage']
+            ['Usage', '/agent-contracts/usage'],
+            ['Newer hosts', '/agent-contracts/tolerance']
         ]),
         group('Reference', [['Exports', '/agent-contracts/reference']])
     ],

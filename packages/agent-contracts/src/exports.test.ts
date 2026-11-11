@@ -14,6 +14,7 @@ await describePublicApi({
         './provider-accounts': 'provider-accounts.ts',
         './task': 'task.ts',
         './text': 'text.ts',
+        './tolerance': 'tolerance.ts',
         './usage': 'usage.ts',
         './visual': 'visual.ts',
         './worktree': 'worktree.ts'

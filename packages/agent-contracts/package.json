@@ -59,6 +59,11 @@
             "types": "./dist/text.d.ts",
             "default": "./dist/text.js"
         },
+        "./tolerance": {
+            "source": "./src/tolerance.ts",
+            "types": "./dist/tolerance.d.ts",
+            "default": "./dist/tolerance.js"
+        },
         "./usage": {
             "source": "./src/usage.ts",
             "types": "./dist/usage.d.ts",

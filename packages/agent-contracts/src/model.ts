@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { AgentKindSchema, type AgentKind } from './agent.ts';
+import { openValues } from './wire-stamps.ts';
 
 // Options a model exposes (effort, context window, thinking). Generic descriptors rather than
 // per-provider enums, so a new model needs a catalog entry and no code change.
@@ -93,7 +94,7 @@ export const ModelCatalogDataSchema = z
 export type ModelCatalogData = z.infer<typeof ModelCatalogDataSchema>;
 
 // The thread's permission policy, one vocabulary for every provider; each adapter maps it.
-export const RuntimeModeSchema = z.enum(['supervised', 'auto-accept-edits', 'auto', 'full-access']);
+export const RuntimeModeSchema = openValues(z.enum(['supervised', 'auto-accept-edits', 'auto', 'full-access']), 'RuntimeMode', { words: 'strings' });
 export type RuntimeMode = z.infer<typeof RuntimeModeSchema>;
 
 // What a provider's CLI can do, so a client never offers what it would drop and the daemon

@@ -152,8 +152,10 @@ export {
     type ChatNoteItem,
     type ChatNoteMessage,
     type ChatCompactionItem,
+    type ChatUnknownItem,
     ChatEventSchema,
     type ChatEvent,
+    type ChatUnknownEvent,
     ChatEventEnvelopeSchema,
     type ChatEventEnvelope,
     ChatCreatePayloadSchema,
@@ -372,6 +374,25 @@ export {
     type TaskChangedEvent
 } from './task.ts';
 export { clipText, TOOL_OUTPUT_TAIL, appendToolOutput } from './text.ts';
+export {
+    openUnion,
+    lossyItems,
+    openValues,
+    wireStampOf,
+    wireStampsIn,
+    type WireStamp,
+    type WireStampAt,
+    type WireDegradation,
+    readTolerant,
+    type ToleratedRead,
+    type Tolerant,
+    type TolerantWith,
+    type OpenUnionTable,
+    type OpenWordTable,
+    type OpenUnions,
+    type OpenWords,
+    type UnknownWord
+} from './tolerance.ts';
 export { type ToolFileEdit, type ToolFileEditPiece, toolFileEdit } from './tool-edits.ts';
 export {
     UsageProviderSchema,

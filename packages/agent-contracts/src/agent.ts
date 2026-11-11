@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { SessionIdSchema } from './ids.ts';
+import { openValues } from './wire-stamps.ts';
 
 export const AGENT_KIND_MAX_LENGTH = 32;
 
@@ -18,7 +19,7 @@ export type AgentKind = string;
 
 // `exited` is the daemon's own reading, not a hook's: the CLI went down with its shell without
 // ever reporting an end, so the node offers a resume instead of a status that stays on running.
-export const AgentStatusSchema = z.enum(['running', 'needs-you', 'idle', 'error', 'exited']);
+export const AgentStatusSchema = openValues(z.enum(['running', 'needs-you', 'idle', 'error', 'exited']), 'AgentStatus', { words: 'strings' });
 export type AgentStatus = z.infer<typeof AgentStatusSchema>;
 
 // Past this a model's name for a session is a summary, not a title.

@@ -5,6 +5,7 @@ import { AgentKindSchema, AgentStatusSchema, SuggestedTitleSchema } from './agen
 import { ModelSelectionSchema, RuntimeModeSchema } from './model.ts';
 import { ProviderAccountIdSchema } from './provider-accounts.ts';
 import { ChatVisualsSchema } from './visual.ts';
+import { lossyItems, openUnion, openValues } from './wire-stamps.ts';
 import { WorktreeSchema } from './worktree.ts';
 
 // The client picks the id (its node id), like a terminal session.
@@ -160,7 +161,7 @@ export type ChatQueuedMessage = z.infer<typeof ChatQueuedMessageSchema>;
 export const ChatBackgroundTaskSchema = z.object({
     // The CLI's own id for the task, which is what stopping it names.
     id: z.string().min(1),
-    kind: z.enum(['shell', 'monitor']),
+    kind: openValues(z.enum(['shell', 'monitor']), 'ChatBackgroundTaskKind'),
     description: z.string(),
     command: z.string().nullable(),
     startedAt: z.number()
@@ -172,7 +173,7 @@ export type ChatBackgroundTask = z.infer<typeof ChatBackgroundTaskSchema>;
  * too busy to answer. Not a state of its own, since a client that validates `state` knows four.
  */
 export const ChatTurnLimitSchema = z.object({
-    kind: z.enum(['usage', 'overload']),
+    kind: openValues(z.enum(['usage', 'overload']), 'ChatTurnLimitKind'),
     // When the limit lifts, in milliseconds since the epoch; absent when the CLI named no time.
     resetsAt: z.number().optional()
 });
@@ -184,7 +185,7 @@ export type ChatTurnLimit = z.infer<typeof ChatTurnLimitSchema>;
  * a new value inside one it already knew. `usage-limited` and `budget-limited` are Codex's: the plan's limit,
  * or the token budget the goal was given.
  */
-export const ChatGoalStatusSchema = z.enum(['active', 'paused', 'blocked', 'usage-limited', 'budget-limited', 'complete']);
+export const ChatGoalStatusSchema = openValues(z.enum(['active', 'paused', 'blocked', 'usage-limited', 'budget-limited', 'complete']), 'ChatGoalStatus');
 export type ChatGoalStatus = z.infer<typeof ChatGoalStatusSchema>;
 
 export const ChatGoalSchema = z.object({
@@ -209,7 +210,8 @@ export const ChatQuestionSchema = z.object({
 });
 export type ChatQuestion = z.infer<typeof ChatQuestionSchema>;
 
-export const ChatRequestKindSchema = z.enum(['approval', 'question']);
+// A request of a kind this version does not know still says a chat waits on a person, and is never answered from here.
+export const ChatRequestKindSchema = openValues(z.enum(['approval', 'question']), 'ChatRequestKind', { words: 'strings' });
 export type ChatRequestKind = z.infer<typeof ChatRequestKindSchema>;
 
 /*
@@ -799,19 +801,35 @@ export const ChatCompactionItemSchema = z.object({
  * native client validates `chat.attach` and `chat.history` whole, so one item it does not know rejects
  * the entire conversation. Add optional fields instead.
  */
-export const ChatItemSchema = z.discriminatedUnion('kind', [
-    ChatUserItemSchema,
-    ChatAssistantItemSchema,
-    ChatThinkingItemSchema,
-    ChatToolItemSchema,
-    ChatSubagentItemSchema,
-    ChatApprovalItemSchema,
-    ChatQuestionItemSchema,
-    ChatTurnItemSchema,
-    ChatNoteItemSchema,
-    ChatCompactionItemSchema
-]);
+export const ChatItemSchema = openUnion(
+    z.discriminatedUnion('kind', [
+        ChatUserItemSchema,
+        ChatAssistantItemSchema,
+        ChatThinkingItemSchema,
+        ChatToolItemSchema,
+        ChatSubagentItemSchema,
+        ChatApprovalItemSchema,
+        ChatQuestionItemSchema,
+        ChatTurnItemSchema,
+        ChatNoteItemSchema,
+        ChatCompactionItemSchema
+    ]),
+    'ChatItem',
+    { tag: 'kind', base: ['id', 'createdAt', 'turnId'] }
+);
 export type ChatItem = z.infer<typeof ChatItemSchema>;
+
+/*
+ * An item of a newer host that this version cannot read, as `readTolerant` keeps it in its place: the fields every item
+ * has and the item as it came. No host sends one, and nothing waits on, answers, forks from or writes back such an item.
+ */
+export interface ChatUnknownItem {
+    readonly kind: 'unknown';
+    readonly id: string;
+    readonly createdAt: number;
+    readonly turnId: string | null;
+    readonly raw: Readonly<Record<string, unknown>>;
+}
 export type ChatUserItem = z.infer<typeof ChatUserItemSchema>;
 export type ChatAssistantItem = z.infer<typeof ChatAssistantItemSchema>;
 export type ChatThinkingItem = z.infer<typeof ChatThinkingItemSchema>;
@@ -937,20 +955,30 @@ export function outlineItems(items: readonly ChatItem[], marked: ReadonlySet<str
 }
 
 // Events apply after the `chat.attach` snapshot; item ids make upserts and streamed deltas replayable.
-export const ChatEventSchema = z.discriminatedUnion('type', [
-    z.object({ type: z.literal('item'), item: ChatItemSchema, historyIndex: z.number().int().nonnegative().optional() }),
-    z.object({
-        type: z.literal('delta'),
-        itemId: z.string(),
-        text: z.string(),
-        ui: UiBlocksSchema.optional(),
-        uiQueries: ChatUiQueryStateSchema.optional(),
-        textLength: z.number().int().nonnegative().optional()
-    }),
-    z.object({ type: z.literal('info'), info: ChatInfoSchema }),
-    z.object({ type: z.literal('reset'), info: ChatInfoSchema, items: z.array(ChatItemSchema) })
-]);
+export const ChatEventSchema = openUnion(
+    z.discriminatedUnion('type', [
+        z.object({ type: z.literal('item'), item: ChatItemSchema, historyIndex: z.number().int().nonnegative().optional() }),
+        z.object({
+            type: z.literal('delta'),
+            itemId: z.string(),
+            text: z.string(),
+            ui: UiBlocksSchema.optional(),
+            uiQueries: ChatUiQueryStateSchema.optional(),
+            textLength: z.number().int().nonnegative().optional()
+        }),
+        z.object({ type: z.literal('info'), info: ChatInfoSchema }),
+        z.object({ type: z.literal('reset'), info: ChatInfoSchema, items: z.array(ChatItemSchema) })
+    ]),
+    'ChatEvent',
+    { tag: 'type', base: [] }
+);
 export type ChatEvent = z.infer<typeof ChatEventSchema>;
+
+/* An event of a newer host that this version cannot read, as `readTolerant` keeps it; a thread leaves it unapplied. */
+export interface ChatUnknownEvent {
+    readonly type: 'unknown';
+    readonly raw: Readonly<Record<string, unknown>>;
+}
 
 export const ChatEventEnvelopeSchema = z.object({
     chatId: ChatIdSchema,
@@ -1069,7 +1097,9 @@ export const ChatSubagentResultSchema = z.object({
     items: z.array(ChatItemSchema),
     history: ChatSubagentPageSchema,
     // A request still waiting must remain answerable after it leaves the newest page.
-    pending: z.array(z.union([ChatApprovalItemSchema, ChatQuestionItemSchema])).optional(),
+    pending: z
+        .array(openUnion(z.union([ChatApprovalItemSchema, ChatQuestionItemSchema]), 'ChatPendingRequest', { tag: 'kind', base: ['id', 'createdAt', 'turnId'] }))
+        .optional(),
     source: ChatSubagentSourceSchema,
     context: z.object({ provider: AgentKindSchema, cwd: z.string(), chatId: ChatIdSchema.optional() }).optional(),
     // Whether the subagent is still writing, so a client knows to keep reading.
@@ -1353,7 +1383,7 @@ export const ChatForkInfoResultSchema = z.object({
 export type ChatForkInfoResult = z.infer<typeof ChatForkInfoResultSchema>;
 
 export const ChatListResultSchema = z.object({
-    chats: z.array(ChatInfoSchema)
+    chats: lossyItems(z.array(ChatInfoSchema))
 });
 export type ChatListResult = z.infer<typeof ChatListResultSchema>;
 

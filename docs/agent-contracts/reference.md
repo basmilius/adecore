@@ -87,3 +87,9 @@ The id of a terminal session.
 Clipping text and keeping the tail of a tool's output. See [Conversation](/agent-contracts/conversation#items).
 
 <ExportTable entry="@adecore/agent-contracts/text" />
+
+## `@adecore/agent-contracts/tolerance`
+
+Stamps that say where a newer host may add something, and the reader that keeps such a reply readable. See [Newer hosts](/agent-contracts/tolerance).
+
+<ExportTable entry="@adecore/agent-contracts/tolerance" />
