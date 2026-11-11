@@ -337,9 +337,16 @@ export function holdsConversation(info: Pick<ChatInfo, 'agentSessionId' | 'activ
  */
 export type ChatActivity = 'waiting' | 'working' | 'delegating' | 'background' | 'holding' | 'settled';
 
-export function chatActivity(
-    info: Pick<ChatInfo, 'status' | 'delegating' | 'background' | 'requests' | 'goal' | 'queue'> & Partial<Pick<ChatInfo, 'activeTurnId'>>
-): ChatActivity {
+// Only compares, so a client's info with a newer machine's words in it reads here as well.
+export function chatActivity(info: {
+    readonly status: string;
+    readonly delegating?: boolean;
+    readonly background?: readonly unknown[];
+    readonly requests?: readonly unknown[];
+    readonly goal?: { readonly status: string };
+    readonly queue?: readonly unknown[];
+    readonly activeTurnId?: string | null;
+}): ChatActivity {
     if (info.status === 'needs-you') {
         return 'waiting';
     }
