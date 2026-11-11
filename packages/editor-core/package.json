@@ -38,6 +38,7 @@
         "dist",
         "src",
         "!src/**/*.test.ts",
+        "!src/**/__snapshots__",
         "LICENSE",
         "NOTICE",
         "LICENSE.apache-2.0.txt"

@@ -11,6 +11,10 @@ async function assets(directory: string): Promise<void> {
     for (const entry of await readdir(directory, { withFileTypes: true })) {
         const path = join(directory, entry.name);
 
+        if (entry.isDirectory() && entry.name === '__snapshots__') {
+            continue;
+        }
+
         if (entry.isDirectory()) {
             await assets(path);
         } else if (!/\.tsx?$/.test(path)) {
