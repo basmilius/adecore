@@ -1,12 +1,21 @@
 import { Glob } from 'bun';
 import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { absolute, exportedNames, publishedEntries } from './published-exports.ts';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
-const SNAPSHOT = readFileSync(join(HERE, '../packages/ui/src/__snapshots__/exports.test.ts.snap'), 'utf8');
+const ENTRIES = publishedEntries();
+
+/* The snapshot that holds each published package's public API, empty for a package without one. */
+const SNAPSHOTS = new Map(
+    ENTRIES.map(({ pkg, file }) => {
+        const path = absolute(join(file.split('/').slice(0, 2).join('/'), 'src/__snapshots__/exports.test.ts.snap'));
+
+        return [pkg, existsSync(path) ? readFileSync(path, 'utf8') : ''];
+    })
+);
 
 function filesIn(pattern: string): { path: string; text: string }[] {
     return [...new Glob(pattern).scanSync({ cwd: HERE, dot: true })]
@@ -20,15 +29,22 @@ const PAGES = filesIn('**/*.md')
     .join('\n');
 
 /* Every name an entry point exports, types included, read from the snapshot that holds the public API. */
-function snapshotNames(): string[] {
-    return [...SNAPSHOT.matchAll(/exports\[`the public API \S+ exports these names 1`\] = `([^`]*)`/g)].flatMap((block) =>
-        [...block[1]!.matchAll(/"(?:type )?([\w$]+)"/g)].map((name) => name[1]!)
-    );
+function snapshotNames(pkg: string, entry: string): string[] {
+    const block = SNAPSHOTS.get(pkg)!.split(`exports[\`the public API ${entry} exports these names 1\`] = \``)[1]?.split('`')[0] ?? '';
+
+    return [...block.matchAll(/"(?:type )?([\w$]+)"/g)].map((name) => name[1]!);
 }
 
 /* Every part of a compound component, as `Menu.Item`. */
 function compoundParts(): string[] {
-    const block = /exports\[`the public API the compound components have these parts 1`\] = `([^`]*)`/.exec(SNAPSHOT)![1]!;
+    return [...SNAPSHOTS.values()].flatMap((snapshot) => {
+        const block = /exports\[`the public API the compound components have these parts 1`\] = `([^`]*)`/.exec(snapshot)?.[1];
+
+        return block === undefined ? [] : partsIn(block);
+    });
+}
+
+function partsIn(block: string): string[] {
     const parts: string[] = [];
     let compound = '';
     for (const line of block.split('\n')) {
@@ -53,16 +69,21 @@ function mentioned(name: string): boolean {
 const APP_NAMES = /ruimte|aftermotion|solvidi|command[ -]center/i;
 
 describe('the docs', () => {
-    test('read the public API out of the snapshot', () => {
-        expect(snapshotNames().length).toBeGreaterThan(200);
+    test('read the public API out of the snapshot of every published package', () => {
+        // An entry whose names its snapshot does not hold would stay out of the check below.
+        const unguarded = ENTRIES.filter(({ pkg, entry, file }) => {
+            const source = exportedNames(absolute(file)).sort();
+
+            return JSON.stringify(snapshotNames(pkg, entry).sort()) !== JSON.stringify(source);
+        }).map(({ pkg, entry }) => `${pkg} ${entry}`);
+        expect(new Set(ENTRIES.map((entry) => entry.pkg)).size).toBeGreaterThan(10);
+        expect(unguarded).toEqual([]);
         expect(compoundParts()).toContain('Menu.Item');
     });
 
     test('mention every name every published package exports', () => {
-        const entries = publishedEntries();
-        expect(new Set(entries.map((entry) => entry.pkg)).size).toBeGreaterThan(10);
-        const missing = entries.flatMap(({ pkg, entry, file }) =>
-            exportedNames(absolute(file))
+        const missing = ENTRIES.flatMap(({ pkg, entry }) =>
+            snapshotNames(pkg, entry)
                 // A legacy name that carries an app's name stays out of the pages, which describe it generically.
                 .filter((name) => !mentioned(name) && !APP_NAMES.test(name))
                 .map((name) => `${pkg} ${entry} ${name}`)
