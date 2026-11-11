@@ -1,0 +1,75 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`the public API ./async exports these names 1`] = `
+[
+  "KeyedSerializer",
+  "Serializer",
+  "SingleFlight",
+  "cancellableTimeout",
+  "type DeadlineTimer",
+  "type Timer",
+  "unrefTimeout",
+  "wait",
+  "withDeadline",
+  "withTimeout",
+]
+`;
+
+exports[`the public API ./errors exports these names 1`] = `
+[
+  "asError",
+  "describeError",
+  "hasErrorCode",
+  "isNotFound",
+]
+`;
+
+exports[`the public API ./fs exports these names 1`] = `
+[
+  "entryExists",
+  "fileExists",
+  "isBusyRename",
+  "isTempName",
+  "removeFile",
+  "replaceSync",
+  "syncDirectory",
+  "tempNameFor",
+  "type WriteAtomicOptions",
+  "writeAtomic",
+  "writeAtomicSync",
+]
+`;
+
+exports[`the public API ./geometry exports these names 1`] = `
+[
+  "centerOf",
+  "intersects",
+  "rectFromPoints",
+  "rotatePoint",
+  "roundPoint",
+  "type Point",
+  "type Rect",
+  "unionOf",
+]
+`;
+
+exports[`the public API ./path exports these names 1`] = `
+[
+  "climbsOut",
+  "isBelow",
+  "isWithin",
+]
+`;
+
+exports[`the public API ./record exports these names 1`] = `
+[
+  "isRecord",
+]
+`;
+
+exports[`the public API ./text exports these names 1`] = `
+[
+  "isHighSurrogate",
+  "isLowSurrogate",
+]
+`;

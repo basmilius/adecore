@@ -1,0 +1,70 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`the public API . exports these names 1`] = `
+[
+  "definitionRunsProgram",
+  "diskFiles",
+  "launchAgentPlist",
+  "launchdManager",
+  "platformServiceManager",
+  "runCommand",
+  "scheduledTask",
+  "scheduledTaskScript",
+  "serviceDefinition",
+  "systemdManager",
+  "systemdUnit",
+  "taskSchedulerManager",
+  "type CommandResult",
+  "type CommandRunner",
+  "type LaunchdOptions",
+  "type PlatformServiceOptions",
+  "type ServiceFiles",
+  "type ServiceIdentity",
+  "type ServiceManager",
+  "type ServiceSpec",
+  "type SystemdOptions",
+  "type TaskSchedulerOptions",
+]
+`;
+
+exports[`the public API ./definitions exports these names 1`] = `
+[
+  "definitionRunsProgram",
+  "launchAgentPlist",
+  "scheduledTask",
+  "scheduledTaskScript",
+  "systemdUnit",
+  "type ServiceIdentity",
+  "type ServiceSpec",
+]
+`;
+
+exports[`the public API ./manager exports these names 1`] = `
+[
+  "launchdManager",
+  "systemdManager",
+  "taskSchedulerManager",
+  "type CommandResult",
+  "type CommandRunner",
+  "type LaunchdOptions",
+  "type ServiceFiles",
+  "type ServiceManager",
+  "type SystemdOptions",
+  "type TaskSchedulerOptions",
+]
+`;
+
+exports[`the public API ./platform exports these names 1`] = `
+[
+  "platformServiceManager",
+  "serviceDefinition",
+  "type PlatformServiceOptions",
+]
+`;
+
+exports[`the public API ./system exports these names 1`] = `
+[
+  "diskFiles",
+  "runCommand",
+]
+`;

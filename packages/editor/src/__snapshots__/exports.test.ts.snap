@@ -1,0 +1,206 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`the public API . exports these names 1`] = `
+[
+  "AGENT_COLORS",
+  "DEFAULT_SMART_KEYS",
+  "DEFAULT_TODO_WORDS",
+  "MAX_DOC_COMMENTS",
+  "MAX_REPLACEMENT_CHARACTERS",
+  "MAX_REPLACEMENT_PAGE",
+  "commentSyntax",
+  "createSmartEditorEngine",
+  "detectIndentation",
+  "findDocComments",
+  "findTodos",
+  "rememberCopy",
+  "shikiScopeColors",
+  "shikiTokenizers",
+  "type CommentSyntax",
+  "type DetectedIndentation",
+  "type DocComment",
+  "type Editor",
+  "type EditorApplyEditsOptions",
+  "type EditorAttributionHover",
+  "type EditorAttributionMark",
+  "type EditorBlock",
+  "type EditorChangeKind",
+  "type EditorChangeMark",
+  "type EditorChangeMarkHover",
+  "type EditorClick",
+  "type EditorClickHandler",
+  "type EditorCodeBlockOptions",
+  "type EditorCodeVision",
+  "type EditorCodeVisionEntry",
+  "type EditorCommand",
+  "type EditorContentChange",
+  "type EditorContextMenu",
+  "type EditorCopy",
+  "type EditorEngine",
+  "type EditorFindQuery",
+  "type EditorFindState",
+  "type EditorFoldHints",
+  "type EditorFoldOutline",
+  "type EditorFoldRange",
+  "type EditorFoldRangeHint",
+  "type EditorFoldSymbol",
+  "type EditorFolds",
+  "type EditorGhostText",
+  "type EditorGutterAction",
+  "type EditorGutterIcon",
+  "type EditorGutterMarker",
+  "type EditorHighlight",
+  "type EditorHighlightKind",
+  "type EditorHover",
+  "type EditorIndentation",
+  "type EditorInlayClick",
+  "type EditorInlayClickHandler",
+  "type EditorInlayHint",
+  "type EditorInlayTarget",
+  "type EditorInputPopup",
+  "type EditorKeyHandler",
+  "type EditorLineAction",
+  "type EditorLineHighlight",
+  "type EditorMarkColor",
+  "type EditorMarker",
+  "type EditorMarkerSeverity",
+  "type EditorMessages",
+  "type EditorOptions",
+  "type EditorPasteOptions",
+  "type EditorPosition",
+  "type EditorPostfixOperand",
+  "type EditorRange",
+  "type EditorRect",
+  "type EditorRemoteCursor",
+  "type EditorReplaceOptions",
+  "type EditorReplacement",
+  "type EditorReveal",
+  "type EditorRunCommand",
+  "type EditorSelectionRanges",
+  "type EditorSemanticToken",
+  "type EditorSetTextOptions",
+  "type EditorSmartKeys",
+  "type EditorSurroundShape",
+  "type EditorTextChange",
+  "type EditorTextPlace",
+  "type EditorTheme",
+  "type EditorTrackedRange",
+  "type EditorUnwrapTarget",
+  "type EditorViewCommand",
+  "type EditorWhitespaceCleanup",
+  "type EditorWidget",
+  "type EditorZoom",
+  "type FoldRole",
+  "type KeyChord",
+  "type LineToken",
+  "type LineTokenKind",
+  "type LineTokenizer",
+  "type ScopeColorSource",
+  "type ScopeColors",
+  "type ScopeStyle",
+  "type SmartEditorEngineOptions",
+  "type TodoMatch",
+  "type TodoOptions",
+  "type TokenizedLine",
+  "type TokenizerSource",
+]
+`;
+
+exports[`the public API ./fake exports these names 1`] = `
+[
+  "FakeEditor",
+  "FakeEditorEngine",
+]
+`;
+
+exports[`the public API ./shiki exports these names 1`] = `
+[
+  "documentLanguageOf",
+  "loadGrammar",
+  "shikiDocumentHighlighter",
+  "shikiDocumentTokens",
+  "shikiScopeColors",
+  "shikiTokenizers",
+  "type ShikiDocumentTokenOptions",
+]
+`;
+
+exports[`the public API ./shiki-worker exports these names 1`] = `
+[
+  "createSyntaxService",
+  "lineTokensOf",
+  "serveDiffSyntax",
+  "type DiffSyntaxDocument",
+  "type DiffSyntaxInput",
+  "type DiffSyntaxOutput",
+  "type DiffSyntaxService",
+  "type DiffSyntaxServiceOptions",
+  "type DiffSyntaxTokens",
+  "type DiffSyntaxWorkerEndpoint",
+]
+`;
+
+exports[`the public API ./keymap exports these names 1`] = `
+[
+  "KEYMAP",
+  "KEYMAP_IDS",
+  "chordOf",
+  "parseChord",
+  "resolveKeymap",
+  "type KeyBinding",
+  "type KeyChord",
+  "type Keymap",
+  "type KeymapId",
+  "type KeymapOverrides",
+  "type OptionalKeymapId",
+  "type TakenKey",
+  "typesInsteadOfChord",
+]
+`;
+
+exports[`the public API ./testing exports these names 1`] = `
+[
+  "clipboard",
+  "createPage",
+  "mountEditor",
+  "pointer",
+  "press",
+  "release",
+  "type KeyOptions",
+  "type MountedEditor",
+  "typeInto",
+]
+`;
+
+exports[`the public API ./search-worker exports these names 1`] = `
+[
+  "EditorSearchError",
+  "createSearchClient",
+  "serveEditorSearch",
+  "type EditorSearchClient",
+  "type EditorSearchClientOptions",
+  "type EditorSearchErrorKind",
+  "type EditorSearchInput",
+  "type EditorSearchMatch",
+  "type EditorSearchNextOptions",
+  "type EditorSearchOptions",
+  "type EditorSearchOutput",
+  "type EditorSearchRange",
+  "type EditorSearchReplacementOptions",
+  "type EditorSearchReplacements",
+  "type EditorSearchResult",
+  "type EditorSearchSnapshot",
+  "type EditorSearchWorkerEndpoint",
+]
+`;
+
+exports[`the public API ./worker-client exports these names 1`] = `
+[
+  "WorkerRequestError",
+  "createWorkerRequestClient",
+  "type WorkerRequestClient",
+  "type WorkerRequestErrorKind",
+  "type WorkerRequestOptions",
+  "type WorkerRequestPort",
+]
+`;

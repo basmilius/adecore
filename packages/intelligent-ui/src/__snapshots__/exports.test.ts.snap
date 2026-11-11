@@ -1,0 +1,228 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`the public API . exports these names 1`] = `
+[
+  "UI_CATALOG",
+  "UI_CATALOG_VERSION",
+  "UI_FENCE_LANGUAGE",
+  "UI_GROUPS",
+  "UI_HOST_LIMITS",
+  "UI_LIMITS",
+  "UI_REPLY_LIMITS",
+  "UI_STREAM_INTERVAL_MS",
+  "UiBlockSchema",
+  "UiBlocksSchema",
+  "UiBudget",
+  "UiCompiler",
+  "UiDiagnosticSchema",
+  "UiFailure",
+  "UiLinkResolutionSchema",
+  "UiLinkTargetSchema",
+  "UiNodeSchema",
+  "UiQuerySchema",
+  "UiState",
+  "UiStream",
+  "UiToneSchema",
+  "compileUi",
+  "compileUiBlock",
+  "copyUiValue",
+  "evaluateUiBlock",
+  "evaluateUiExpression",
+  "isUiComponent",
+  "parseUiEventTime",
+  "parseUiExpression",
+  "parseUiSyntax",
+  "resolveUiChoice",
+  "safeKey",
+  "sameUiValue",
+  "type UiBinding",
+  "type UiBlock",
+  "type UiChoiceSelection",
+  "type UiCompileOptions",
+  "type UiCompileUpdate",
+  "type UiCompilerOptions",
+  "type UiComponentName",
+  "type UiComponentReference",
+  "type UiDiagnostic",
+  "type UiEvaluation",
+  "type UiEventTime",
+  "type UiExpression",
+  "type UiGroupDescription",
+  "type UiGroupName",
+  "type UiLimits",
+  "type UiLinkResolution",
+  "type UiLinkTarget",
+  "type UiNode",
+  "type UiPlaces",
+  "type UiProps",
+  "type UiQuery",
+  "type UiStreamClock",
+  "type UiStreamOptions",
+  "type UiStreamPreview",
+  "type UiSyntax",
+  "type UiSyntaxNode",
+  "type UiTextOptions",
+  "type UiTone",
+  "type UiValue",
+  "type UiViewNode",
+  "uiCatalogText",
+  "uiChoiceLabel",
+  "uiCompactCatalog",
+  "uiDiagnostic",
+  "uiFallbackText",
+  "uiGroupDescription",
+  "uiGroupReference",
+  "uiHasFence",
+  "uiInputValues",
+  "uiLinkTargets",
+  "uiMayReferenceHost",
+  "uiNodeQueries",
+  "uiQueryArguments",
+  "uiQueryFallback",
+  "uiReferenceText",
+  "uiSessionNote",
+  "uiValidatedState",
+]
+`;
+
+exports[`the public API ./links exports these names 1`] = `
+[
+  "UiLinkResolutionSchema",
+  "UiLinkTargetSchema",
+  "type UiLinkResolution",
+  "type UiLinkTarget",
+  "uiLinkTargets",
+]
+`;
+
+exports[`the public API ./query exports these names 1`] = `
+[
+  "uiQueryArguments",
+  "uiQueryFallback",
+  "uiValidatedState",
+]
+`;
+
+exports[`the public API ./catalog exports these names 1`] = `
+[
+  "UI_CATALOG",
+  "UI_CATALOG_VERSION",
+  "UI_GROUPS",
+  "UiToneSchema",
+  "isUiComponent",
+  "type UiComponentName",
+  "type UiGroupName",
+  "type UiProps",
+  "type UiTone",
+  "uiCatalogText",
+]
+`;
+
+exports[`the public API ./event-time exports these names 1`] = `
+[
+  "parseUiEventTime",
+  "type UiEventTime",
+]
+`;
+
+exports[`the public API ./budget exports these names 1`] = `
+[
+  "UI_LIMITS",
+  "UiBudget",
+  "UiFailure",
+  "safeKey",
+  "type UiLimits",
+]
+`;
+
+exports[`the public API ./expression exports these names 1`] = `
+[
+  "copyUiValue",
+  "evaluateUiExpression",
+  "parseUiExpression",
+  "sameUiValue",
+  "type UiExpression",
+  "type UiValue",
+]
+`;
+
+exports[`the public API ./syntax exports these names 1`] = `
+[
+  "parseUiSyntax",
+  "type UiDiagnostic",
+  "type UiSyntax",
+  "type UiSyntaxNode",
+  "uiDiagnostic",
+]
+`;
+
+exports[`the public API ./compiler exports these names 1`] = `
+[
+  "UI_FENCE_LANGUAGE",
+  "UI_HOST_LIMITS",
+  "UI_REPLY_LIMITS",
+  "UiCompiler",
+  "compileUi",
+  "compileUiBlock",
+  "type UiBlock",
+  "type UiCompileOptions",
+  "type UiCompileUpdate",
+  "type UiCompilerOptions",
+  "type UiNode",
+  "type UiQuery",
+  "uiHasFence",
+  "uiMayReferenceHost",
+]
+`;
+
+exports[`the public API ./runtime exports these names 1`] = `
+[
+  "UiState",
+  "evaluateUiBlock",
+  "resolveUiChoice",
+  "type UiBinding",
+  "type UiChoiceSelection",
+  "type UiEvaluation",
+  "type UiViewNode",
+  "uiChoiceLabel",
+  "uiInputValues",
+]
+`;
+
+exports[`the public API ./protocol exports these names 1`] = `
+[
+  "UiBlockSchema",
+  "UiBlocksSchema",
+  "UiDiagnosticSchema",
+  "UiNodeSchema",
+  "UiQuerySchema",
+  "type UiBlock",
+  "type UiDiagnostic",
+  "type UiNode",
+  "type UiQuery",
+]
+`;
+
+exports[`the public API ./text exports these names 1`] = `
+[
+  "type UiComponentReference",
+  "type UiGroupDescription",
+  "type UiTextOptions",
+  "uiCompactCatalog",
+  "uiFallbackText",
+  "uiGroupDescription",
+  "uiGroupReference",
+  "uiReferenceText",
+  "uiSessionNote",
+]
+`;
+
+exports[`the public API ./stream exports these names 1`] = `
+[
+  "UI_STREAM_INTERVAL_MS",
+  "UiStream",
+  "type UiStreamClock",
+  "type UiStreamOptions",
+  "type UiStreamPreview",
+]
+`;

@@ -1,0 +1,13 @@
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
+
+exports[`the public API . exports these names 1`] = `
+[
+  "TerminalView",
+  "linkLineBounds",
+  "type TerminalLinkBounds",
+  "type TerminalSize",
+  "type TerminalViewHandle",
+  "type TerminalViewProps",
+  "webglTerminals",
+]
+`;
