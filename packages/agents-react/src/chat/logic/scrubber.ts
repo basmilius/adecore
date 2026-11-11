@@ -1,4 +1,5 @@
-import type { ChatBookmark, ChatItem } from '@adecore/agent-contracts';
+import type { ChatBookmark } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../../chat-sink';
 import { type TimelineRow } from '../../host/timeline-row';
 import { DEFAULT_READING_WIDTH, readingMeasure } from '../reading-width';
 import { agentTurnLabel } from './timeline';
@@ -46,7 +47,7 @@ const WIDTH_WAKE_PX = 5;
 export const EARLIER_ROW = -1;
 
 /* A message before the rows this client holds, as the outline (`outlineItems`) has it; its row id is the one the thread will draw it with. */
-function earlierTick(item: ChatItem, bookmarks: ReadonlyMap<string, ChatBookmark>): ScrubberTick | null {
+function earlierTick(item: ChatThreadItem, bookmarks: ReadonlyMap<string, ChatBookmark>): ScrubberTick | null {
     const bookmark = bookmarks.get(item.id) ?? null;
     const rowIndex = EARLIER_ROW;
 
@@ -74,7 +75,7 @@ function earlierTick(item: ChatItem, bookmarks: ReadonlyMap<string, ChatBookmark
 export function ticksOf(
     rows: readonly TimelineRow[],
     marks: ReadonlyMap<string, ChatBookmark> = new Map(),
-    earlier: readonly ChatItem[] = [],
+    earlier: readonly ChatThreadItem[] = [],
     bookmarks: readonly ChatBookmark[] = []
 ): ScrubberTick[] {
     const byItem = new Map(bookmarks.map((bookmark) => [bookmark.itemId, bookmark]));

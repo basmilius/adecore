@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem, ModelInfo, ModelSelection } from '@adecore/agent-contracts';
+import type { ModelInfo, ModelSelection } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../../chat-sink';
 import { selectionSwitchText } from './selection-switch';
 import { deriveTimelineRows } from './timeline';
 
@@ -43,7 +44,7 @@ describe('selectionSwitchText', () => {
 });
 
 describe('the line between turns', () => {
-    const turn = (id: string, selection?: ModelSelection): ChatItem[] => [
+    const turn = (id: string, selection?: ModelSelection): ChatThreadItem[] => [
         { id, kind: 'turn', createdAt: 1, turnId: id, state: 'done', endedAt: 2, costUsd: 0, ...(selection === undefined ? {} : { selection }) },
         { id: `u-${id}`, kind: 'user', createdAt: 1, turnId: id, text: 'hi' },
         { id: `a-${id}`, kind: 'assistant', createdAt: 2, turnId: id, text: 'hi', streaming: false }
@@ -51,7 +52,7 @@ describe('the line between turns', () => {
 
     const options = { expandedGroups: new Set<string>(), expandedTurns: new Set<string>(), expandedSubagents: new Set<string>(), activeTurnId: null };
 
-    const switches = (items: ChatItem[]) =>
+    const switches = (items: ChatThreadItem[]) =>
         deriveTimelineRows(items, options)
             .filter((row) => row.kind === 'selection-switch')
             .map((row) => row.id);

@@ -1,10 +1,11 @@
-import { HOST_TASK_ORIGIN, taskIdOfRow, type ChatAssistantItem, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { HOST_TASK_ORIGIN, taskIdOfRow, type ChatAssistantItem, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, ScrollArea, useNow } from '@adecore/ui';
 import { formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { Bot, ChevronDown } from 'lucide-react';
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ChatThreadItem } from '../../../chat-sink';
 import { type SubagentTask } from '../../../host/host';
 import { useHostHidesToolCalls, useHostTask } from '../../../host/host-hooks';
 import type { SubagentBranch } from '../../../host/timeline-row';
@@ -28,7 +29,7 @@ const CHILDREN_MAX_PX = 320;
  * but off a timeline it has already grouped and folded, and it writes an answer at the size of a
  * message; here every step is a line and the text is the aside under it.
  */
-function ChildRow({ chatId, item }: { chatId: string; item: ChatItem }) {
+function ChildRow({ chatId, item }: { chatId: string; item: ChatThreadItem }) {
     if (item.kind === 'tool') {
         if (isImageGeneration(item)) {
             return <GeneratedImageRow chatId={chatId} tool={item} />;
@@ -78,7 +79,7 @@ function StatusPill({ item, task }: { item: ChatSubagentItem; task: SubagentTask
     );
 }
 
-function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubagentItem; work: ChatItem[] }) {
+function SubagentWork({ chatId, item, work }: { chatId: string; item: ChatSubagentItem; work: ChatThreadItem[] }) {
     const { t } = useTranslation('agent-chat');
     const { id } = useChatScope();
     const hideTools = useHostHidesToolCalls(id, chatId);
@@ -150,7 +151,7 @@ export function SubagentRow({
 }: {
     chatId: string;
     item: ChatSubagentItem;
-    work: ChatItem[];
+    work: ChatThreadItem[];
     expanded: boolean;
     onToggle(): void;
     /* Opens everything it did in the thread's place, for a view that has somewhere to open it. */

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
-import type { ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../chat-sink';
 import {
     breadcrumbOf,
     canOpenSubagent,
@@ -38,7 +39,7 @@ function subagent(id: string, patch: Partial<ChatSubagentItem> = {}): ChatSubage
     };
 }
 
-function note(id: string): ChatItem {
+function note(id: string): ChatThreadItem {
     return { id, kind: 'note', createdAt: 0, turnId: null, level: 'info', text: id };
 }
 
@@ -99,7 +100,7 @@ describe('subagent view', () => {
     test('a chat can open every subagent in thread order, and a refusing machine only the ones with a pointer', () => {
         const native = subagent('a', { native: { agentId: 'agent-a' } });
         const task = subagent('b', { origin: 'ruimte', childId: 'node-b' });
-        const structure: Record<string, ChatItem> = { a: native, n: note('n'), b: task };
+        const structure: Record<string, ChatThreadItem> = { a: native, n: note('n'), b: task };
         expect(openableSubagents(['a', 'n', 'b'], structure, false)).toEqual([native, task]);
         expect(openableSubagents(['a', 'n', 'b'], structure, true)).toEqual([native]);
         expect(canOpenSubagent(task, true)).toBe(false);
@@ -108,7 +109,7 @@ describe('subagent view', () => {
 
     test('the row behind a conversation is found by its call, a nested one included', () => {
         const nested = subagent('c', { parentToolUseId: 'toolu_a' });
-        const structure: Record<string, ChatItem> = { a: subagent('a'), n: note('n'), c: nested };
+        const structure: Record<string, ChatThreadItem> = { a: subagent('a'), n: note('n'), c: nested };
         expect(subagentOf(structure, 'toolu_c')).toBe(nested);
         expect(subagentOf(structure, 'toolu_x')).toBeNull();
     });

@@ -1,8 +1,9 @@
-import { holdsConversation, type ChatInfo } from '@adecore/agent-contracts';
+import { holdsConversation } from '@adecore/agent-contracts';
 import { Button, ErrorBoundary, Icon, Tooltip, type Shortcut } from '@adecore/ui';
 import { ArrowUp, Play, Square } from 'lucide-react';
 import { useRef, type Ref } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ChatThreadInfo } from '../../../chat-sink';
 import { useChatHost } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { useProviders } from '../../../state/providers';
@@ -40,7 +41,7 @@ function SendButton({ send }: { send: SendProps }) {
 
 interface ComposerControlsProps {
     chatId: string;
-    info: ChatInfo;
+    info: ChatThreadInfo;
     providerFixed: boolean;
     writable: boolean;
     attachable: boolean;

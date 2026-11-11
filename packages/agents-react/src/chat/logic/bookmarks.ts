@@ -1,4 +1,5 @@
-import type { ChatBookmark, ChatItem } from '@adecore/agent-contracts';
+import type { ChatBookmark } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../../chat-sink';
 import type { TimelineRow } from '../../host/timeline-row';
 
 /* What a list calls a bookmark: its name, else the start of the message. */
@@ -23,7 +24,7 @@ export function bookmarksInThreadOrder(bookmarks: readonly ChatBookmark[], order
 export function bookmarkRows(
     rows: readonly TimelineRow[],
     bookmarks: readonly ChatBookmark[],
-    items: Readonly<Record<string, ChatItem>>
+    items: Readonly<Record<string, ChatThreadItem>>
 ): Map<string, ChatBookmark> {
     const rowIds = new Set(rows.map((row) => row.id));
     const folds = new Map<string, string>();

@@ -1,5 +1,7 @@
-import type { ChatApprovalItem, ChatItem, ChatQuestionItem, ChatSubagentResult } from '@adecore/agent-contracts';
+import type { ChatApprovalItem, ChatQuestionItem, ChatSubagentResult } from '@adecore/agent-contracts';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import i18next from 'i18next';
+import type { ChatThreadItem } from '../chat-sink';
 import { isWaiting } from '../state/chats';
 import { errorCode, isConnectionError, type ChatTransport } from '../transport';
 
@@ -8,7 +10,7 @@ const SUBAGENT_PAGE = 60;
 
 export interface SubagentConversationState {
     status: 'loading' | 'ready' | 'failed';
-    items: ChatItem[];
+    items: ChatThreadItem[];
     pending: Array<ChatApprovalItem | ChatQuestionItem>;
     source: ChatSubagentResult['source'] | null;
     context: NonNullable<ChatSubagentResult['context']> | null;
@@ -41,11 +43,11 @@ export const INITIAL_CONVERSATION: SubagentConversationState = {
  * happened than one page holds, so what is held is dropped for it rather than shown with a hole.
  */
 export function mergeNewest(
-    current: ChatItem[],
+    current: ChatThreadItem[],
     currentCursor: string | null,
-    page: ChatItem[],
+    page: ChatThreadItem[],
     pageCursor: string | null
-): { items: ChatItem[]; cursor: string | null } {
+): { items: ChatThreadItem[]; cursor: string | null } {
     const known = new Map(current.map((item, index) => [item.id, index]));
 
     if (current.length > 0 && page.length > 0 && !page.some((item) => known.has(item.id))) {
@@ -67,7 +69,7 @@ export function mergeNewest(
     return { items, cursor: current.length === 0 ? pageCursor : currentCursor };
 }
 
-function pendingOf(items: readonly ChatItem[]): Array<ChatApprovalItem | ChatQuestionItem> {
+function pendingOf(items: readonly ChatThreadItem[]): Array<ChatApprovalItem | ChatQuestionItem> {
     return items.filter(isWaiting);
 }
 
@@ -151,7 +153,7 @@ export class SubagentConversation {
             try {
                 const page = await this.ask({ cursor, limit: SUBAGENT_PAGE });
                 const items = [...page.items, ...this.state.items];
-                this.set({ items, pending: page.pending ?? pendingOf(items), cursor: page.history.cursor, live: page.live, loadingEarlier: false });
+                this.set({ items, pending: pendingOf(page.pending ?? items), cursor: page.history.cursor, live: page.live, loadingEarlier: false });
             } catch (error) {
                 if (errorCode(error) === 'history-expired') {
                     // The record was written again under this panel; what it holds now is the only truth.
@@ -194,7 +196,8 @@ export class SubagentConversation {
             this.set({
                 status: 'ready',
                 items: merged.items,
-                pending: page.pending ?? pendingOf(merged.items),
+                // A request this version cannot read is never answered from here; its row in the thread says where to.
+                pending: pendingOf(page.pending ?? merged.items),
                 cursor: merged.cursor,
                 live: page.live,
                 source: page.source,
@@ -212,7 +215,7 @@ export class SubagentConversation {
         }
     }
 
-    private ask(extra: { cursor?: string; limit: number; watch?: boolean }): Promise<ChatSubagentResult> {
+    private ask(extra: { cursor?: string; limit: number; watch?: boolean }): Promise<Tolerant<ChatSubagentResult>> {
         return this.transport.request('chat.subagent', { chatId: this.chatId, toolUseId: this.toolUseId, ...extra });
     }
 

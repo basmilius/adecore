@@ -1,4 +1,5 @@
-import { CHAT_REQUEST_LIMITS, type ChatInfo } from '@adecore/agent-contracts';
+import { CHAT_REQUEST_LIMITS } from '@adecore/agent-contracts';
+import type { ChatThreadInfo } from '../chat-sink';
 import type { PendingPrompt } from '../host/prompts';
 import type { PromptSubject } from '../host/prompts';
 import type { ChatScope } from '../scope';
@@ -7,7 +8,7 @@ import { subagentTitle } from './subagent-list';
 
 type ChatPromptSubject = Extract<PromptSubject, { kind: 'chat' }>;
 
-function stillWaiting(item: PendingPrompt, info: ChatInfo): boolean {
+function stillWaiting(item: PendingPrompt, info: ChatThreadInfo): boolean {
     return (
         info.status === 'needs-you' &&
         (info.requests === undefined ||

@@ -60,7 +60,8 @@ export default {
             blocked: 'Goal blocked',
             'usage-limited': 'Goal stopped on a usage limit',
             'budget-limited': 'Goal used up its token budget',
-            complete: 'Goal met'
+            complete: 'Goal met',
+            unknown: 'Goal in a state this version does not know'
         },
         pill: 'Goal',
         checks_one: '{{count}} check not met yet',
@@ -74,6 +75,10 @@ export default {
         failed: 'Could not change goal'
     },
     limit: {
+        other: {
+            pill: 'Stopped',
+            title: 'Stopped on a limit'
+        },
         usage: {
             pill: 'Limited',
             pillUntil: 'Limited until {{time}}',
@@ -153,6 +158,10 @@ export default {
             live: 'Thinking…',
             thoughtFor: 'Thought for {{duration}}',
             thought: 'Thought'
+        },
+        unknown: {
+            item: 'Update the app to see this.',
+            request: 'Answer this on the machine, or update the app to answer here.'
         },
         note: {
             hide: 'Hide',
@@ -480,6 +489,9 @@ export default {
         },
         shell: 'Shell',
         monitor: 'Monitor',
+        other: 'Background task',
+        others_one: '{{count}} background task',
+        others_other: '{{count}} background tasks',
         stop: 'Stop',
         stopFailed: 'Could not stop task'
     },
@@ -534,6 +546,10 @@ export default {
             label: 'Full access',
             hint: 'Never asks for approval',
             short: 'Full access'
+        },
+        unknown: {
+            label: 'Set on the machine',
+            short: 'On the machine'
         }
     },
     pickers: {

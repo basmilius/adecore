@@ -1,23 +1,14 @@
 import { describe, expect, test } from 'bun:test';
-import type {
-    AgentEventType,
-    AgentRequestType,
-    ChatBookmark,
-    ChatEvent,
-    ChatHistoryResult,
-    ChatInfo,
-    ChatItem,
-    ChatVisual,
-    ProviderInfo
-} from '@adecore/agent-contracts';
+import type { AgentEventType, AgentRequestType, ChatBookmark, ChatEvent, ChatHistoryResult, ChatVisual, ProviderInfo } from '@adecore/agent-contracts';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import { ChatClient } from './chat-client';
-import type { ChatPage, ChatSink } from './chat-sink';
+import type { ChatPage, ChatSink, ChatThreadInfo, ChatThreadItem } from './chat-sink';
 import { chatSink, useChats } from './state/chats';
 import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from './transport';
 
 type Call = { type: AgentRequestType; payload: unknown };
 
-function info(chatId: string): ChatInfo {
+function info(chatId: string): ChatThreadInfo {
     return {
         chatId,
         provider: 'claude',
@@ -38,13 +29,13 @@ function info(chatId: string): ChatInfo {
 class FakeTransport implements ChatTransport {
     status: ChatTransportStatus = 'open';
     readonly calls: Call[] = [];
-    items: ChatItem[] = [];
+    items: ChatThreadItem[] = [];
     // What `chat.list` answers: every chat the host has loaded, attached here or not.
-    chats: ChatInfo[] = [];
+    chats: ChatThreadInfo[] = [];
     // What `chat.attach` answers when a test wants more than the thread, such as a seq or the events after `since`.
     attachResult: ((payload: ChatRequestMap['chat.attach']['payload']) => Partial<ChatRequestMap['chat.attach']['result']>) | null = null;
     // What `chat.history` answers, or the error it fails with.
-    history: ChatHistoryResult | ChatTransportError = { items: [], history: { start: 0, cursor: null } };
+    history: Tolerant<ChatHistoryResult> | ChatTransportError = { items: [], history: { start: 0, cursor: null } };
     // A request the host turns down, with the error it answers.
     refusals: Partial<Record<AgentRequestType, ChatTransportError>> = {};
     // While set, `chat.attach` stays on the wire until it settles.
@@ -139,15 +130,15 @@ class FakeTransport implements ChatTransport {
 }
 
 class FakeSink implements ChatSink {
-    readonly resets: Array<{ chatId: string; items: ChatItem[]; page?: ChatPage }> = [];
-    readonly prepended: Array<{ chatId: string; cursor: string; page: ChatHistoryResult }> = [];
+    readonly resets: Array<{ chatId: string; items: ChatThreadItem[]; page?: ChatPage }> = [];
+    readonly prepended: Array<{ chatId: string; cursor: string; page: Tolerant<ChatHistoryResult> }> = [];
     readonly events: Array<{ chatId: string; event: ChatEvent }> = [];
     readonly forgotten: string[] = [];
-    readonly statuses: Array<{ chatId: string; info: ChatInfo }> = [];
+    readonly statuses: Array<{ chatId: string; info: ChatThreadInfo }> = [];
     readonly bookmarked: Array<{ chatId: string; bookmarks: ChatBookmark[] }> = [];
     readonly visualized: Array<{ chatId: string; visuals: ChatVisual[] }> = [];
 
-    reset(chatId: string, _info: ChatInfo, items: ChatItem[], page?: ChatPage): void {
+    reset(chatId: string, _info: ChatThreadInfo, items: ChatThreadItem[], page?: ChatPage): void {
         this.resets.push({ chatId, items, ...(page === undefined ? {} : { page }) });
     }
 
@@ -159,7 +150,7 @@ class FakeSink implements ChatSink {
         this.events.push({ chatId, event });
     }
 
-    status(chatId: string, info: ChatInfo): void {
+    status(chatId: string, info: ChatThreadInfo): void {
         this.statuses.push({ chatId, info });
     }
 
@@ -378,7 +369,16 @@ describe('ChatClient', () => {
 
     test('the newest page comes with where it starts and every request that still waits', async () => {
         const { transport, sink, client } = setup();
-        const waiting: ChatItem = { id: 'q1', kind: 'question', createdAt: 0, turnId: null, requestId: 'r1', questions: [], answers: null, state: 'pending' };
+        const waiting: ChatThreadItem = {
+            id: 'q1',
+            kind: 'question',
+            createdAt: 0,
+            turnId: null,
+            requestId: 'r1',
+            questions: [],
+            answers: null,
+            state: 'pending'
+        };
         transport.attachResult = () => ({ history: { start: 40, cursor: 'g:40' }, pending: [waiting] });
         await client.open('a', {});
         expect(sink.resets[0]?.page).toEqual({ history: { start: 40, cursor: 'g:40' }, pending: [waiting], subagents: [], workflows: [], outline: [] });
@@ -387,7 +387,7 @@ describe('ChatClient', () => {
     test('the workflows from before the page reach the store', async () => {
         const { transport, sink, client } = setup();
 
-        const workflow: ChatItem = {
+        const workflow: ChatThreadItem = {
             id: 'wf',
             kind: 'tool',
             createdAt: 0,
@@ -483,7 +483,7 @@ describe('ChatClient', () => {
 
     test('a reattach that answers after the chat was opened again leaves the new opening alone', async () => {
         const { transport, sink, client } = setup();
-        transport.items = [{ id: 'u1', kind: 'user', createdAt: 0, turnId: 't1', text: 'hi' } as ChatItem];
+        transport.items = [{ id: 'u1', kind: 'user', createdAt: 0, turnId: 't1', text: 'hi' } as ChatThreadItem];
         transport.attachResult = (payload) => (payload.since === undefined ? { seq: 9 } : { items: [], events: [], seq: 6 });
         await client.open('c', {});
         transport.emit('chat.event', { chatId: 'c', event: { type: 'delta', itemId: 'a1', text: 'x' }, seq: 5 });
@@ -592,7 +592,7 @@ describe('ChatClient cached history', () => {
         const sink = chatSink(keyOf);
         const client = new ChatClient(transport, sink);
 
-        const items: ChatItem[] = Array.from({ length: 180 }, (_, index) => ({
+        const items: ChatThreadItem[] = Array.from({ length: 180 }, (_, index) => ({
             id: `item-${index}`,
             kind: 'user',
             createdAt: index,
@@ -681,7 +681,7 @@ describe('ChatClient cached history', () => {
             await client.open('existing', {});
             await client.loadEarlier('existing', 'page:90');
             await client.detach('existing');
-            const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 180, turnId: null, text: 'Hello', streaming: true };
+            const reply: ChatThreadItem = { id: 'reply', kind: 'assistant', createdAt: 180, turnId: null, text: 'Hello', streaming: true };
 
             transport.attachResult = ({ since }) =>
                 since === 7
@@ -696,7 +696,7 @@ describe('ChatClient cached history', () => {
                     : { seq: 9 };
 
             let lastReply = row()?.items.reply;
-            const delivered: Array<ChatItem | undefined> = [];
+            const delivered: Array<ChatThreadItem | undefined> = [];
 
             const stop = useChats.subscribe(() => {
                 const current = row()?.items.reply;
@@ -752,7 +752,7 @@ describe('ChatClient cached history', () => {
             await client.open('existing', {});
             await client.loadEarlier('existing', 'page:90');
             await client.detach('existing');
-            const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 180, turnId: null, text: 'Hello', streaming: true };
+            const reply: ChatThreadItem = { id: 'reply', kind: 'assistant', createdAt: 180, turnId: null, text: 'Hello', streaming: true };
             transport.emit('chat.event', { chatId: 'existing', seq: 8, event: { type: 'item', item: reply } });
             transport.emit('chat.event', { chatId: 'existing', seq: 9, event: { type: 'delta', itemId: 'reply', text: ' world' } });
             transport.attachResult = ({ since }) => ({ seq: 9, items: [], events: since === 9 ? [] : [{ type: 'delta', itemId: 'reply', text: ' world' }] });

@@ -2,18 +2,18 @@ import type {
     ChatApprovalItem,
     ChatAssistantItem,
     ChatCheckpointDiff,
-    ChatItem,
     ChatNoteMessage,
     ChatQuestionItem,
     ChatSubagentItem,
     ChatThinkingItem,
     ChatToolItem,
-    ChatTurnItem,
+    ChatUnknownItem,
     ChatUserItem,
     ChatVisual,
     ChatWorkflow,
     ModelSelection
 } from '@adecore/agent-contracts';
+import type { ChatThreadItem, ChatThreadTurn } from '../chat-sink';
 import type { CommandLook, CommandLookSent, ThreadCard, ToolLook } from './host';
 
 /* A look of the host's own: a program in a shell call, or an MCP server. */
@@ -23,7 +23,7 @@ export type Look = CommandLook | ToolLook;
 export interface SubagentBranch {
     id: string;
     item: ChatSubagentItem;
-    children: ChatItem[];
+    children: ChatThreadItem[];
     nested: SubagentBranch[];
     expanded: boolean;
 }
@@ -41,7 +41,7 @@ export interface BaseMoved {
  */
 export type TimelineRow =
     | { kind: 'user'; id: string; item: ChatUserItem }
-    | { kind: 'turn-start'; id: string; turn: ChatTurnItem; label: string }
+    | { kind: 'turn-start'; id: string; turn: ChatThreadTurn; label: string }
     | { kind: 'assistant'; id: string; item: ChatAssistantItem }
     // A subagent's `SubagentHandback` call, drawn as the report it carries rather than as a tool call.
     | { kind: 'report'; id: string; text: string }
@@ -63,6 +63,8 @@ export type TimelineRow =
     // A message this chat's agent sent another node with a command of a look, drawn as said instead of as its call.
     | { kind: 'sent'; id: string; tool: ChatToolItem; sent: CommandLookSent }
     | { kind: 'compaction'; id: string; preTokens: number | null; postTokens?: number }
+    // An item of a newer host this version cannot read, one muted line with nothing to act on; `waits` for a request that still does.
+    | { kind: 'unknown'; id: string; item: ChatUnknownItem; waits: boolean }
     // The turn below ran on another model or effort than the turn before it.
     | { kind: 'selection-switch'; id: string; from: ModelSelection; to: ModelSelection }
     | {
@@ -76,7 +78,7 @@ export type TimelineRow =
           // Set when `diff` holds back the diffs past its first few, which the host answers whole.
           heldBack?: boolean;
       }
-    | { kind: 'turn-fold'; id: string; turn: ChatTurnItem; label: string; work: string[]; hiddenCount: number; expanded: boolean; expandable: boolean }
+    | { kind: 'turn-fold'; id: string; turn: ChatThreadTurn; label: string; work: string[]; hiddenCount: number; expanded: boolean; expandable: boolean }
     | { kind: 'forks'; id: string; turnId: string }
     | { kind: 'working'; id: string; startedAt: number; tool?: ChatToolItem }
     // A card of the app's own (`thread-cards.ts`), never derived from an item.

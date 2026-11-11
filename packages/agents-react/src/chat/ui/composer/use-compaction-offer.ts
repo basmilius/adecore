@@ -1,5 +1,6 @@
-import type { ChatInfo, ChatItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ProviderCapabilities } from '@adecore/agent-contracts';
 import { useEffect, useState } from 'react';
+import type { ChatThreadInfo, ChatThreadItem } from '../../../chat-sink';
 import { useChatRow } from '../../../state/chats';
 import { RESUME_COMPACTION_TOKENS, resumeCompactionDueAt, resumeCompactionOffer, watchDueAt, type DueClock } from '../../logic/resume-compaction';
 import { useResumeCompactionDismissal } from '../../resume-compaction-dismissals';
@@ -24,14 +25,14 @@ const PAGE_CLOCK: DueClock = {
 };
 
 /* The offer to fold a long context before a chat whose cache went cold goes on, or null when there is none. */
-export function useCompactionOffer(chatId: string, info: ChatInfo, compaction: ProviderCapabilities['compaction'] | undefined) {
+export function useCompactionOffer(chatId: string, info: ChatThreadInfo, compaction: ProviderCapabilities['compaction'] | undefined) {
     const order = useChatRow(chatId, (row) => row?.order);
     const structure = useChatRow(chatId, (row) => row?.structure);
     const dismissedTurnId = useResumeCompactionDismissal(chatId);
     const [now, setNow] = useState(Date.now);
     // The cheap half of the offer, so a chat that can never make one walks no thread.
     const couldOffer = compaction !== undefined && compaction !== 'none' && info.usage.contextTokens >= RESUME_COMPACTION_TOKENS;
-    const items = couldOffer ? (order ?? []).map((id) => structure?.[id]).filter((item): item is ChatItem => item !== undefined) : [];
+    const items = couldOffer ? (order ?? []).map((id) => structure?.[id]).filter((item): item is ChatThreadItem => item !== undefined) : [];
     const input = { info, compaction, items, dismissedTurnId };
     const dueAt = couldOffer ? resumeCompactionDueAt(input) : null;
 

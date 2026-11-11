@@ -32,7 +32,7 @@ import {
 import { useContext, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host/host';
-import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming } from '../../../host/host-hooks';
+import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming, useHostUnknownItemWords } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import { useChatRow, useCurrentItem } from '../../../state/chats';
 import { useProviders } from '../../../state/providers';
@@ -662,6 +662,22 @@ export function NoteRow({ id, level, text, from, said }: { id: string; level: 'i
     }
 
     return <NoteLine id={id} level={level} text={text} from={from} />;
+}
+
+/* An item of a newer host this version cannot read: one muted line in its place, with nothing on it to act on. */
+export function UnknownRow({ id, waits }: { id: string; waits: boolean }) {
+    const { t } = useTranslation('agent-chat');
+    const words = useHostUnknownItemWords();
+    const text = waits ? (words?.request ?? t('rows.unknown.request')) : (words?.item ?? t('rows.unknown.item'));
+
+    return (
+        <div data-find-item={id} className="-mx-1 mb-0.5 flex min-h-7 items-start gap-2 px-1 py-1 text-xs text-text-faint">
+            <span className={ROW_GUTTER}>{NOTE_ICON.info}</span>
+            <span data-find-field="summary" className="min-w-0 flex-1 select-text">
+                {text}
+            </span>
+        </div>
+    );
 }
 
 function NoteLine({ id, level, text, from }: { id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }) {

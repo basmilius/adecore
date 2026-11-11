@@ -1,9 +1,9 @@
-import type { ChatInfo } from '@adecore/agent-contracts';
+import type { ChatThreadInfo } from '../chat-sink';
 import { useChatScope } from '../scope';
 import { useChats, type ChatStatuses } from '../state/chats';
 import { forkIdsAfter, forkedTurnIds } from './logic/fork';
 
-function* forkInfosOn(statuses: ChatStatuses, owns: (key: string) => boolean): Generator<ChatInfo> {
+function* forkInfosOn(statuses: ChatStatuses, owns: (key: string) => boolean): Generator<ChatThreadInfo> {
     for (const [key, state] of Object.entries(statuses)) {
         if (state.info.forkOf !== undefined && owns(key)) {
             yield state.info;
@@ -18,7 +18,7 @@ function* forkInfosOn(statuses: ChatStatuses, owns: (key: string) => boolean): G
  */
 function joinedForks(
     owns: (key: string) => boolean,
-    collect: (infos: Iterable<ChatInfo>) => Iterable<string>
+    collect: (infos: Iterable<ChatThreadInfo>) => Iterable<string>
 ): (state: { statusByKey: ChatStatuses }) => string {
     let statuses: ChatStatuses | null = null;
     let joined = '';

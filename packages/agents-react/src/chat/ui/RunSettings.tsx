@@ -26,6 +26,7 @@ import {
     Settings,
     Shield,
     ShieldAlert,
+    ShieldQuestionMark,
     SlidersHorizontal,
     Star,
     type LucideIcon
@@ -38,6 +39,7 @@ import { accountColor, canContinueOn } from '../../agents/accounts';
 import { AgentIcon } from '../../agents/AgentIcon';
 import { modelName } from '../../agents/model-name';
 import { localizedOption } from '../../agents/option-words';
+import type { ChatThreadInfo } from '../../chat-sink';
 import { useChatHost } from '../../host/host';
 import { PROVIDER_COLORS } from '../../usage/format';
 import { useUsageLimits } from '../../usage/limits';
@@ -46,7 +48,7 @@ import { CONTEXT_OPTION, contextFraction, contextSegments, orderOptions, type Co
 import { EFFORT_OPTION } from '../logic/effort';
 import { favoritesFirst, searchModels, shortlistOf, wantsModelSearch } from '../logic/picker-entries';
 import { favoriteModelsOf, toggleFavoriteModel, useChatPreferences } from '../preferences';
-import { RUNTIME_MODES } from '../runtime-modes';
+import { isKnownRuntimeMode, RUNTIME_MODES } from '../runtime-modes';
 import { ModelMarks } from './ModelMarks';
 import { SessionLine } from './SessionLine';
 
@@ -58,6 +60,10 @@ const MODE_ICONS: Record<RuntimeMode, LucideIcon> = {
     auto: Shield,
     'full-access': ShieldAlert
 };
+
+function modeIcon(mode: string): LucideIcon {
+    return isKnownRuntimeMode(mode) ? MODE_ICONS[mode] : ShieldQuestionMark;
+}
 
 // More choices than this do not fit beside the label, so they go in a submenu of their own.
 const INLINE_CHOICES = 3;
@@ -79,8 +85,9 @@ interface RunSettingsProps {
     provider: AgentKind;
     selection: ModelSelection;
     model: ModelInfo | undefined;
-    runtimeMode: RuntimeMode;
-    effectiveRuntimeMode?: RuntimeMode;
+    /* As the host reports it, so possibly a mode of a newer host that this version shows as set there. */
+    runtimeMode: ChatThreadInfo['runtimeMode'];
+    effectiveRuntimeMode?: ChatThreadInfo['effectiveRuntimeMode'];
     permissionMode?: string;
     /* Controlled, so `/model` in the composer can open the same menu a click on the pill does. */
     open: boolean;
@@ -199,8 +206,9 @@ export function RunSettings({
     const shownMode = effectiveRuntimeMode ?? runtimeMode;
     const fullAccess = shownMode === 'full-access';
     const permissionFallback = permissionMode !== undefined && effectiveRuntimeMode !== runtimeMode;
-    const effectiveLabel = effectiveRuntimeMode === undefined ? permissionMode : t(`modes.${effectiveRuntimeMode}.label`);
-    const permissionHint = permissionFallback ? t('pickers.mode.effective', { effective: effectiveLabel, requested: t(`modes.${runtimeMode}.label`) }) : null;
+    const modeWord = (mode: string, form: 'label' | 'short'): string => (isKnownRuntimeMode(mode) ? t(`modes.${mode}.${form}`) : t(`modes.unknown.${form}`));
+    const effectiveLabel = effectiveRuntimeMode === undefined ? permissionMode : modeWord(effectiveRuntimeMode, 'label');
+    const permissionHint = permissionFallback ? t('pickers.mode.effective', { effective: effectiveLabel, requested: modeWord(runtimeMode, 'label') }) : null;
 
     const chooseModel = (value: string): void => {
         const slash = value.indexOf('/');
@@ -393,9 +401,9 @@ export function RunSettings({
                         )}
                         <span className="shrink-0 text-text-faint">·</span>
                         <span className={clsx('flex shrink-0 items-center gap-1', fullAccess && 'text-status-needs-you')}>
-                            <Icon icon={MODE_ICONS[shownMode]} size={12} className="shrink-0" />
+                            <Icon icon={modeIcon(shownMode)} size={12} className="shrink-0" />
                             <span className="@max-xl/composer:hidden">
-                                {effectiveRuntimeMode === undefined && permissionMode !== undefined ? permissionMode : t(`modes.${shownMode}.short`)}
+                                {effectiveRuntimeMode === undefined && permissionMode !== undefined ? permissionMode : modeWord(shownMode, 'short')}
                             </span>
                             {permissionFallback && <Icon icon={TriangleAlert} size={12} className="shrink-0 text-status-needs-you" />}
                         </span>
@@ -464,12 +472,12 @@ export function RunSettings({
                         <Menu.SubmenuRoot>
                             <Menu.SubmenuTrigger className="text-text-muted">
                                 <Icon
-                                    icon={MODE_ICONS[runtimeMode]}
+                                    icon={modeIcon(runtimeMode)}
                                     size={14}
                                     className={clsx('shrink-0', fullAccess ? 'text-status-needs-you' : 'text-text-faint')}
                                 />
                                 <span className="min-w-0 grow truncate">{t('pickers.mode.label')}</span>
-                                <Menu.Hint className="truncate">{t(`modes.${runtimeMode}.label`)}</Menu.Hint>
+                                <Menu.Hint className="truncate">{modeWord(runtimeMode, 'label')}</Menu.Hint>
                             </Menu.SubmenuTrigger>
                             <Menu.Popup className="w-72">
                                 {permissionHint !== null && <p className="px-2.5 py-2 text-xs text-text-muted">{permissionHint}</p>}

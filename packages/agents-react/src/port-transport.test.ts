@@ -85,6 +85,25 @@ describe('portTransport', () => {
         warn.mockRestore();
     });
 
+    test('reads a reply and an event of a newer host and says what it gave up for them', async () => {
+        const { port, sent, deliver } = fakePort();
+        const reported: unknown[] = [];
+        const transport = portTransport(port, { onDegraded: (source, degraded) => reported.push({ source, kinds: degraded.map((entry) => entry.kind) }) });
+        const events: unknown[] = [];
+        transport.on('chat.event', (payload) => events.push(payload.event.type));
+        const asked = transport.request('chat.history', { chatId: 'chat-1', cursor: 'c', limit: 10 });
+        const future = { id: 'future-1', kind: 'future-kind', createdAt: 1, turnId: null };
+        deliver({ id: lastId(sent), ok: true, result: { items: [future], history: { start: 0, cursor: null } } });
+        deliver({ type: 'event', event: 'chat.event', payload: { chatId: 'chat-1', event: { type: 'future-event' } } });
+
+        expect((await asked).items).toEqual([{ kind: 'unknown', id: 'future-1', createdAt: 1, turnId: null, raw: future }]);
+        expect(events).toEqual(['unknown']);
+        expect(reported).toEqual([
+            { source: { request: 'chat.history' }, kinds: ['unknown-member'] },
+            { source: { event: 'chat.event' }, kinds: ['unknown-member'] }
+        ]);
+    });
+
     test('a frame the port refuses to send fails its request instead of throwing', async () => {
         const { port } = fakePort();
 

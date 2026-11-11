@@ -1,8 +1,8 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../chat-sink';
 import { recentChatMessages } from './recent-messages';
 
-function item(id: string, kind: 'user' | 'assistant', text: string, parentToolUseId?: string): ChatItem {
+function item(id: string, kind: 'user' | 'assistant', text: string, parentToolUseId?: string): ChatThreadItem {
     return kind === 'user'
         ? { id, kind, text, createdAt: Number(id), turnId: null }
         : { id, kind, text, streaming: false, parentToolUseId: parentToolUseId ?? null, createdAt: Number(id), turnId: null };
@@ -10,7 +10,7 @@ function item(id: string, kind: 'user' | 'assistant', text: string, parentToolUs
 
 describe('recentChatMessages', () => {
     test('keeps only the latest person and top-level assistant messages in order', () => {
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             item('1', 'user', 'old'),
             item('2', 'assistant', 'answer'),
             { id: '3', kind: 'thinking', text: 'private', streaming: false, endedAt: 3, createdAt: 3, turnId: null },

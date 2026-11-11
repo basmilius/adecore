@@ -1,21 +1,22 @@
-import type { ChatBackgroundTask, ChatInfo } from '@adecore/agent-contracts';
 import { formatElapsedShort, formatMoment } from '@adecore/ui/format';
 import i18next from 'i18next';
+import type { ChatThreadInfo } from '../chat-sink';
+import { backgroundTaskName, type ChatThreadBackgroundTask } from './activity';
 
 /* An open task the chat delegated: whether its child waits out a limit, and that child's info where the client has it. */
 export interface WaitingChild {
     paused?: { until?: number };
-    child?: Pick<ChatInfo, 'status' | 'requests'>;
+    child?: Pick<ChatThreadInfo, 'status' | 'requests'>;
 }
 
 /* What a chat has that it may be waiting on, as every client already holds it. */
 export interface WaitingOnInput {
     children?: readonly WaitingChild[];
-    background?: readonly ChatBackgroundTask[];
+    background?: readonly ChatThreadBackgroundTask[];
     /* Background subagents and workflows of the CLI's own, counted where the thread is loaded. */
     subagents?: number;
     workflows?: number;
-    /* `ChatInfo.delegating`, for a client that has only the info and so no counts. */
+    /* `ChatThreadInfo.delegating`, for a client that has only the info and so no counts. */
     delegating?: boolean;
     /* The status line of the plan the chat works on. */
     planStatus?: string;
@@ -24,7 +25,7 @@ export interface WaitingOnInput {
 export type WaitingOn =
     | { kind: 'needs-you'; count: number }
     | { kind: 'paused'; until?: number }
-    | { kind: 'command'; task: ChatBackgroundTask }
+    | { kind: 'command'; task: ChatThreadBackgroundTask }
     | { kind: 'background'; subagents: number; workflows: number }
     | { kind: 'plan'; text: string };
 
@@ -49,7 +50,7 @@ export function waitingOnOf(input: WaitingOnInput): WaitingOn | null {
         return times.length === 0 ? { kind: 'paused' } : { kind: 'paused', until: Math.min(...times) };
     }
 
-    const oldest = (input.background ?? []).reduce<ChatBackgroundTask | null>(
+    const oldest = (input.background ?? []).reduce<ChatThreadBackgroundTask | null>(
         (found, task) => (found === null || task.startedAt < found.startedAt ? task : found),
         null
     );
@@ -81,7 +82,7 @@ export function waitingOnLabel(waiting: WaitingOn, now: number): string {
             return waiting.until === undefined ? t('waitingOn.paused') : t('waitingOn.pausedUntil', { time: formatMoment(waiting.until, now) });
         case 'command':
             return t('waitingOn.command', {
-                command: waiting.task.description || waiting.task.command || t(`activity.${waiting.task.kind}`),
+                command: backgroundTaskName(waiting.task),
                 age: formatElapsedShort(Math.max(0, now - waiting.task.startedAt))
             });
         case 'background':

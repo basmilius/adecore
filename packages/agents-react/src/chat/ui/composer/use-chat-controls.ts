@@ -1,6 +1,7 @@
-import type { AgentKind, ChatInfo, ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
+import type { AgentKind, ModelSelection, RuntimeMode } from '@adecore/agent-contracts';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ChatThreadInfo } from '../../../chat-sink';
 import { useChatHost } from '../../../host/host';
 import { useHostCanReorderAccounts } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
@@ -12,7 +13,7 @@ import type { ComposerNotice } from './use-notice';
 
 interface ControlsInput {
     chatId: string;
-    info: ChatInfo;
+    info: ChatThreadInfo;
     notice: ComposerNotice;
     onRetarget(provider: AgentKind, selection: ModelSelection): Promise<void>;
 }

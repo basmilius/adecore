@@ -1,5 +1,6 @@
-import type { AgentKind, ChatForkPayload, ChatInfo, ChatItem, ChatTurnItem, ModelSelection, ProviderInfo } from '@adecore/agent-contracts';
+import type { AgentKind, ChatForkPayload, ModelSelection, ProviderInfo } from '@adecore/agent-contracts';
 import i18next from 'i18next';
+import type { ChatThreadInfo, ChatThreadItem, ChatThreadTurn } from '../../chat-sink';
 import type { TimelineRow } from '../../host/timeline-row';
 
 interface HostProviders {
@@ -24,7 +25,7 @@ interface ForkPoint {
     prompt: string | null;
 }
 
-function turnsOf(items: Record<string, ChatItem>, order: readonly string[]): ChatTurnItem[] {
+function turnsOf(items: Record<string, ChatThreadItem>, order: readonly string[]): ChatThreadTurn[] {
     return order.flatMap((id) => {
         const item = items[id];
 
@@ -37,7 +38,7 @@ function turnsOf(items: Record<string, ChatItem>, order: readonly string[]): Cha
  * or any turn in the chat, is a transcript that grows while it would be copied. Until the host named its
  * CLIs, no CLI is known to fork.
  */
-export function forkRefusal(info: ChatInfo | null, turn: ChatItem | undefined, host: HostProviders): string | null {
+export function forkRefusal(info: ChatThreadInfo | null, turn: ChatThreadItem | undefined, host: HostProviders): string | null {
     if (info === null || turn?.kind !== 'turn') {
         return i18next.t('agent-chat:fork.refusal.notInConversation');
     }
@@ -75,7 +76,7 @@ export function summaryRefusal(state: { busy: boolean; originalPresent: boolean 
     return null;
 }
 
-export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: string): string[] {
+export function forkIdsAfter(infos: Iterable<ChatThreadInfo>, chatId: string, turnId: string): string[] {
     const ids: string[] = [];
 
     for (const info of infos) {
@@ -87,7 +88,7 @@ export function forkIdsAfter(infos: Iterable<ChatInfo>, chatId: string, turnId: 
     return ids;
 }
 
-export function forkedTurnIds(infos: Iterable<ChatInfo>, chatId: string): Set<string> {
+export function forkedTurnIds(infos: Iterable<ChatThreadInfo>, chatId: string): Set<string> {
     const turns = new Set<string>();
 
     for (const info of infos) {
@@ -100,11 +101,11 @@ export function forkedTurnIds(infos: Iterable<ChatInfo>, chatId: string): Set<st
 }
 
 /* The last turn that ended, which is where a fork from the node's menu goes on after. */
-export function lastSettledTurn(items: Record<string, ChatItem>, order: readonly string[]): string | null {
+export function lastSettledTurn(items: Record<string, ChatThreadItem>, order: readonly string[]): string | null {
     return turnsOf(items, order).findLast((turn) => turn.state !== 'running')?.id ?? null;
 }
 
-export function forkPointOf(items: Record<string, ChatItem>, order: readonly string[], turnId: string, whole: boolean): ForkPoint | null {
+export function forkPointOf(items: Record<string, ChatThreadItem>, order: readonly string[], turnId: string, whole: boolean): ForkPoint | null {
     const turns = turnsOf(items, order);
     const index = turns.findIndex((turn) => turn.id === turnId);
     const turn = turns[index];

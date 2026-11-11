@@ -1,4 +1,3 @@
-import type { ChatInfo } from '@adecore/agent-contracts';
 import { Switch, Button, ButtonGroup, Icon, Menu, Pill, Tooltip, useNow } from '@adecore/ui';
 import { useFormatLocale } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -8,6 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { continueTargets, hasUnreadAccount, limitsOfAccount, sessionWindow } from '../../agents/account-limits';
 import { AccountDot } from '../../agents/AccountDot';
 import { canContinueOn, type AccountEntry } from '../../agents/accounts';
+import type { ChatThreadInfo } from '../../chat-sink';
 import { useChatHost } from '../../host/host';
 import { useHostResumeAtReset } from '../../host/host-hooks';
 import { useChatScope, type ChatScope } from '../../scope';
@@ -50,7 +50,7 @@ function readUnreadAccounts(scope: ChatScope): void {
  * The chat's own "Resume at reset". It only counts while the host allows it, so with the host's
  * switch off it stands off and says where that switch is.
  */
-function ResumeAtResetToggle({ chatId, info }: { chatId: string; info: ChatInfo }) {
+function ResumeAtResetToggle({ chatId, info }: { chatId: string; info: ChatThreadInfo }) {
     const { t } = useTranslation('agent-chat');
     const { id } = useChatScope();
     const actions = useChatActions();
@@ -74,7 +74,7 @@ function ResumeAtResetToggle({ chatId, info }: { chatId: string; info: ChatInfo 
  * Another account of the chat's CLI with room, only ever offered since it spends someone's other plan, and
  * never remembered. One that reads the chat's conversation takes it over; any other goes on in a fork.
  */
-function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatInfo; choice: AccountChoice }) {
+function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatThreadInfo; choice: AccountChoice }) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
@@ -165,7 +165,7 @@ function ContinueOnRows({
     onPick
 }: {
     targets: AccountEntry[];
-    info: ChatInfo;
+    info: ChatThreadInfo;
     choice: AccountChoice;
     onPick(entry: AccountEntry): void;
 }) {
@@ -199,7 +199,7 @@ function ContinueOnRows({
 }
 
 /* At the top of the composer while the last turn stopped on a limit: what stopped it, when it goes on, and the switch. */
-export function LimitDock({ chatId, info }: { chatId: string; info: ChatInfo }) {
+export function LimitDock({ chatId, info }: { chatId: string; info: ChatThreadInfo }) {
     const { t } = useTranslation('agent-chat');
     useFormatLocale();
     const now = useNow(MINUTE_MS, info.limit !== undefined);

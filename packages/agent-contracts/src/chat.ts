@@ -842,19 +842,30 @@ export type ChatNoteItem = z.infer<typeof ChatNoteItemSchema>;
 export type ChatNoteMessage = z.infer<typeof ChatNoteMessageSchema>;
 export type ChatCompactionItem = z.infer<typeof ChatCompactionItemSchema>;
 
+// An item as a host holds it or as a client reads it, where a newer host's item may be unknown or carry a newer word.
+type ThreadItem = { readonly kind: string; readonly createdAt: number };
+
+function isSubagentItem(item: ThreadItem): item is ChatSubagentItem {
+    return item.kind === 'subagent';
+}
+
+function isToolItem(item: ThreadItem): item is ChatToolItem {
+    return item.kind === 'tool';
+}
+
 /*
  * The sub-agents a chat still speaks of beside its thread: every one at work, and the ones that settled
  * since the last message, so a finished batch stays until the next message is sent. That includes an
  * older row a message woke again. A settled one from before that message stays too while a sibling of
  * its turn still runs. Older ones are only in the thread. `items` is in thread order.
  */
-export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] {
+export function activeSubagents(items: readonly ThreadItem[]): ChatSubagentItem[] {
     const lastMessage = items.findLastIndex((item) => item.kind === 'user');
     const lastMessageAt = lastMessage < 0 ? null : items[lastMessage]!.createdAt;
     const turns = new Set<string>();
 
     for (const item of items) {
-        if (item.kind === 'subagent' && item.status === 'running' && item.turnId !== null) {
+        if (isSubagentItem(item) && item.status === 'running' && item.turnId !== null) {
             turns.add(item.turnId);
         }
     }
@@ -865,7 +876,7 @@ export function activeSubagents(items: readonly ChatItem[]): ChatSubagentItem[] 
         const item = items[index]!;
 
         if (
-            item.kind === 'subagent' &&
+            isSubagentItem(item) &&
             (item.status === 'running' ||
                 index > lastMessage ||
                 (lastMessageAt !== null && item.finishedAt !== null && item.finishedAt > lastMessageAt) ||
@@ -897,12 +908,12 @@ export function workflowEndedAt(workflow: ChatWorkflow): number | null {
  * one that runs, and the ones that ended since the last message, so a finished workflow stays until the
  * next message is sent. Only a call that reported what it runs counts. `items` is in thread order.
  */
-export function activeWorkflows(items: readonly ChatItem[]): ChatToolItem[] {
+export function activeWorkflows(items: readonly ThreadItem[]): ChatToolItem[] {
     const lastMessage = items.findLastIndex((item) => item.kind === 'user');
     const lastMessageAt = lastMessage < 0 ? null : items[lastMessage]!.createdAt;
 
     return items.filter((item, index): item is ChatToolItem => {
-        if (item.kind !== 'tool' || item.name !== 'Workflow' || item.workflow === undefined) {
+        if (!isToolItem(item) || item.name !== 'Workflow' || item.workflow === undefined) {
             return false;
         }
 

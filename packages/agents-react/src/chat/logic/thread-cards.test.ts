@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem, ChatToolItem, ChatVisual } from '@adecore/agent-contracts';
+import type { ChatToolItem, ChatVisual } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../../chat-sink';
 import type { ThreadCard } from '../../host/host';
 import { type TimelineRow } from '../../host/timeline-row';
 import { cardRows, timedRowsOf, withTimedRows } from './thread-cards';
@@ -20,7 +21,7 @@ function tool(id: string, createdAt: number, turnId: string, state: ChatToolItem
     };
 }
 
-const settled: ChatItem[] = [
+const settled: ChatThreadItem[] = [
     { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 9000, costUsd: 0 },
     { id: 'u1', kind: 'user', createdAt: 1000, turnId: 't1', text: 'make a cut' },
     tool('b1', 2000, 't1'),
@@ -82,7 +83,7 @@ describe('withThreadCards', () => {
     });
 
     test('a running turn keeps its working row last, under every card', () => {
-        const running: ChatItem[] = [
+        const running: ChatThreadItem[] = [
             { id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'again' },
             tool('b3', 2000, 't2', 'running')
@@ -105,7 +106,7 @@ describe('withThreadCards', () => {
 });
 
 describe('visuals among the rows', () => {
-    const running: ChatItem[] = [
+    const running: ChatThreadItem[] = [
         { id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 },
         { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'chart it' },
         tool('b3', 2000, 't2'),

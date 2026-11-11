@@ -1,6 +1,7 @@
-import type { ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ChatSubagentItem } from '@adecore/agent-contracts';
 import i18next from 'i18next';
 import { create } from 'zustand';
+import type { ChatThreadItem } from '../chat-sink';
 import { useChatScope } from '../scope';
 import { useChatRow } from '../state/chats';
 import { useSubagentSupport } from './subagent-support';
@@ -69,11 +70,11 @@ export function canOpenSubagent(item: ChatSubagentItem, machineRefused: boolean)
 }
 
 /* The row of the call that opened a conversation, a nested one included, since its row is in the thread too. */
-export function subagentOf(structure: Readonly<Record<string, ChatItem>>, toolUseId: string): ChatSubagentItem | null {
+export function subagentOf(structure: Readonly<Record<string, ChatThreadItem>>, toolUseId: string): ChatSubagentItem | null {
     return Object.values(structure).find((item): item is ChatSubagentItem => item.kind === 'subagent' && item.toolUseId === toolUseId) ?? null;
 }
 
-export function openableSubagents(order: readonly string[], structure: Record<string, ChatItem>, machineRefused: boolean): ChatSubagentItem[] {
+export function openableSubagents(order: readonly string[], structure: Record<string, ChatThreadItem>, machineRefused: boolean): ChatSubagentItem[] {
     return order.flatMap((id) => {
         const item = structure[id];
 

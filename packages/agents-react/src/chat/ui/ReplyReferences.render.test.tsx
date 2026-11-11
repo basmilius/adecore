@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import { ChatHostProvider, type ChatHost } from '../../host/host';
 import type { Referables } from '../../host/references';
 import { ChatScopeContext, type ChatScope } from '../../scope';
@@ -15,7 +15,7 @@ const scope = {
     owns: (key: string) => key.startsWith('reply-references/')
 } as unknown as ChatScope;
 
-const info = { chatId: 'chat', provider: 'claude', status: 'idle', activeTurnId: null, background: [] } as unknown as ChatInfo;
+const info = { chatId: 'chat', provider: 'claude', status: 'idle', activeTurnId: null, background: [] } as unknown as ChatThreadInfo;
 
 const referables: Referables = {
     items: [
@@ -53,7 +53,7 @@ test('a reply spells a view or node as #Name, and that chip opens it like a chip
     const items = [
         { id: 'ask', kind: 'user', turnId: 'turn', createdAt: 0, text: 'Look at #Todo', references: ['view-todo'] },
         { id: 'answer', kind: 'assistant', turnId: 'turn', createdAt: 1, text: reply, streaming: false }
-    ] as ChatItem[];
+    ] as ChatThreadItem[];
 
     useChats.getState().reset(scope.keyOf('chat'), info, items);
     const page = createPage();
@@ -73,7 +73,7 @@ test('a reply spells a view or node as #Name, and that chip opens it like a chip
             root.render(
                 <ChatHostProvider host={host}>
                     <ChatScopeContext.Provider value={scope}>
-                        <AssistantRow chatId="chat" item={items[1] as Extract<ChatItem, { kind: 'assistant' }>} />
+                        <AssistantRow chatId="chat" item={items[1] as Extract<ChatThreadItem, { kind: 'assistant' }>} />
                     </ChatScopeContext.Provider>
                 </ChatHostProvider>
             )

@@ -1,4 +1,13 @@
-import { UsageRateSchema, type UsageLimitsSnapshot, type UsageRate, type UsageSummaryPayload, type UsageSummaryResult } from '@adecore/agent-contracts';
+import {
+    UsageProviderSchema,
+    UsageRateSchema,
+    type UsageLimitsSnapshot,
+    type UsageProvider,
+    type UsageRate,
+    type UsageSummaryPayload,
+    type UsageSummaryResult
+} from '@adecore/agent-contracts';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import { localTimeZone } from '@adecore/ui/format';
 import { persistedJson } from '../persisted-json';
 import { useChatScope } from '../scope';
@@ -103,6 +112,35 @@ interface UsageRow {
     limits: UsageLimitsSnapshot | null;
 }
 
+/* A row of a provider a newer host reads is left off: this version has no name, color or price basis for it. */
+function isUsageProvider(word: string): word is UsageProvider {
+    return (UsageProviderSchema.options as readonly string[]).includes(word);
+}
+
+function knownProvider<Row extends { provider: string }>(row: Row): row is Row & { provider: UsageProvider } {
+    return isUsageProvider(row.provider);
+}
+
+function knownKind<Row extends { kind: string }>(row: Row): row is Row & { kind: UsageProvider } {
+    return isUsageProvider(row.kind);
+}
+
+function knownSummary(summary: Tolerant<UsageSummaryResult>): UsageSummaryResult {
+    const { accounts, ...rest } = summary;
+
+    return {
+        ...rest,
+        buckets: summary.buckets.filter(knownProvider),
+        models: summary.models.filter(knownProvider),
+        roots: summary.roots.filter(knownProvider),
+        ...(accounts === undefined ? {} : { accounts: accounts.filter(knownKind) })
+    };
+}
+
+function knownLimits(limits: Tolerant<UsageLimitsSnapshot>): UsageLimitsSnapshot {
+    return { providers: limits.providers.filter(knownKind) };
+}
+
 /* One object for a host nothing was read from yet, so a selector gets a stable snapshot. */
 const EMPTY: UsageRow = { asked: null, summary: null, loading: false, failed: false, limits: null };
 
@@ -118,9 +156,9 @@ interface UsageStore extends Preferences {
     setMetric(metric: UsageMetric): void;
     setCurrency(currency: UsageCurrency): void;
     setLoading(scopeId: string, loading: boolean): void;
-    receive(scopeId: string, asked: string, summary: UsageSummaryResult): void;
+    receive(scopeId: string, asked: string, summary: Tolerant<UsageSummaryResult>): void;
     fail(scopeId: string): void;
-    setLimits(scopeId: string, limits: UsageLimitsSnapshot): void;
+    setLimits(scopeId: string, limits: Tolerant<UsageLimitsSnapshot>): void;
     /* A host that is forgotten takes its numbers with it; the three preferences are the viewer's and stay. */
     forget(scopeId: string): void;
 }
@@ -160,7 +198,9 @@ export const useUsageStore = createChatStore<UsageStore>(
             setLoading(scopeId, loading) {
                 patchRow(scopeId, { loading });
             },
-            receive(scopeId, asked, summary) {
+            receive(scopeId, asked, read) {
+                const summary = knownSummary(read);
+
                 patchRow(scopeId, { asked, summary, loading: false, failed: false });
 
                 if (summary.rate !== null && JSON.stringify(summary.rate) !== JSON.stringify(get().rate)) {
@@ -171,7 +211,7 @@ export const useUsageStore = createChatStore<UsageStore>(
                 patchRow(scopeId, { loading: false, failed: true });
             },
             setLimits(scopeId, limits) {
-                patchRow(scopeId, { limits });
+                patchRow(scopeId, { limits: knownLimits(limits) });
             },
             forget(scopeId) {
                 const { [scopeId]: _gone, ...rest } = get().byScope;

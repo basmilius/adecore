@@ -1,7 +1,8 @@
-import type { ChatInfo, ModelInfo } from '@adecore/agent-contracts';
+import type { ModelInfo } from '@adecore/agent-contracts';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { choiceWord } from '../../../agents/option-words';
+import type { ChatThreadInfo } from '../../../chat-sink';
 import { useChatScope } from '../../../scope';
 import { registerEffortStepper } from '../../composer-effort';
 import { EFFORT_OPTION, stepEffort, type EffortStep } from '../../logic/effort';
@@ -10,7 +11,7 @@ import type { ComposerNotice } from './use-notice';
 
 interface EffortStepperInput {
     chatId: string;
-    info: ChatInfo;
+    info: ChatThreadInfo;
     model: ModelInfo | undefined;
     writable: boolean;
     controls: ChatControls;

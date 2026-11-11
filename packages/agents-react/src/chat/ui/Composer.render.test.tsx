@@ -1,7 +1,5 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
 import type {
-    ChatInfo,
-    ChatItem,
     ChatSkill,
     ModelInfo,
     ProviderAccounts,
@@ -19,6 +17,7 @@ import { GitBranch, Server } from 'lucide-react';
 import { Activity, act, Children, isValidElement, type ReactElement, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { ChatSendExtras } from '../../chat-client';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import { ChatHostProvider, type ChatActions, type ChatHost, type ChatToast, type ComposerHeaderSlotProps, type ComposerStatusItem } from '../../host/host';
 import type { Referables } from '../../host/references';
 import { ChatScopeContext, type ChatScope } from '../../scope';
@@ -70,7 +69,7 @@ function providerOf(capabilities: Partial<ProviderCapabilities>, model: ModelInf
     } as ProviderInfo;
 }
 
-function infoOf(patch: Partial<ChatInfo> = {}): ChatInfo {
+function infoOf(patch: Partial<ChatThreadInfo> = {}): ChatThreadInfo {
     return {
         chatId: CHAT,
         provider: 'claude',
@@ -86,11 +85,11 @@ function infoOf(patch: Partial<ChatInfo> = {}): ChatInfo {
         usage: { turns: 0, contextTokens: 0, contextWindow: 200_000, costUsd: 0 },
         background: [],
         ...patch
-    } as unknown as ChatInfo;
+    } as unknown as ChatThreadInfo;
 }
 
 interface Options {
-    info?: ChatInfo;
+    info?: ChatThreadInfo;
     capabilities?: Partial<ProviderCapabilities>;
     model?: ModelInfo;
     /* More installed chat CLIs beside Claude Code, for the model menu. */
@@ -98,7 +97,7 @@ interface Options {
     host?: Partial<ChatHost>;
     actions?: Partial<ChatActions>;
     skills?: ChatSkill[];
-    items?: ChatItem[];
+    items?: ChatThreadItem[];
     focused?: boolean;
     disabled?: boolean;
     readOnly?: boolean;
@@ -462,7 +461,7 @@ describe('sending', () => {
 });
 
 describe('steering', () => {
-    const busy = infoOf({ activeTurnId: 'turn-1', status: 'running', running: true } as Partial<ChatInfo>);
+    const busy = infoOf({ activeTurnId: 'turn-1', status: 'running', running: true } as Partial<ChatThreadInfo>);
 
     test('a running turn takes the message when the host steers and the provider can', async () => {
         const composer = await mount({ info: busy, host: { useSendDelivery: () => 'steer' } });
@@ -788,7 +787,7 @@ describe('skills and commands', () => {
     });
 
     test('a command of the CLI goes out as text', async () => {
-        const composer = await mount({ info: infoOf({ slashCommands: ['init'] } as Partial<ChatInfo>) });
+        const composer = await mount({ info: infoOf({ slashCommands: ['init'] } as Partial<ChatThreadInfo>) });
         await composer.type('/init');
         await composer.press('Enter');
         expect(composer.sent).toEqual([{ text: '/init', extras: {} }]);
@@ -808,7 +807,7 @@ describe('drafts and history', () => {
         const items = [
             { id: 'one', kind: 'user', turnId: 'turn-1', createdAt: 1, text: 'First prompt' },
             { id: 'two', kind: 'user', turnId: 'turn-2', createdAt: 2, text: 'Second prompt' }
-        ] as ChatItem[];
+        ] as ChatThreadItem[];
 
         const composer = await mount({ items });
         await composer.press('ArrowUp');
@@ -958,7 +957,7 @@ describe('continuing after a stop', () => {
     const stopped = [
         { id: 'turn-1', kind: 'turn', createdAt: 10, turnId: 'turn-1', state: 'aborted', endedAt: 20, costUsd: 0 },
         { id: 'user-1', kind: 'user', createdAt: 11, turnId: 'turn-1', text: 'Do the thing' }
-    ] as ChatItem[];
+    ] as ChatThreadItem[];
 
     test('an empty box after a stopped turn offers Continue instead of Send', async () => {
         const composer = await mount({ items: stopped });
@@ -1001,7 +1000,7 @@ describe('continuing after a stop', () => {
     });
 
     test('a request that waits on a person comes before Continue', async () => {
-        const composer = await mount({ items: stopped, info: infoOf({ status: 'needs-you' } as Partial<ChatInfo>) });
+        const composer = await mount({ items: stopped, info: infoOf({ status: 'needs-you' } as Partial<ChatThreadInfo>) });
         expect(continueButton(composer)).toBeUndefined();
     });
 
@@ -1045,14 +1044,14 @@ describe('continuing after a stop', () => {
     });
 
     test('a turn that finished offers the send button as before', async () => {
-        const composer = await mount({ items: [{ ...stopped[0], state: 'done' }] as ChatItem[] });
+        const composer = await mount({ items: [{ ...stopped[0], state: 'done' }] as ChatThreadItem[] });
         expect(composer.byLabel('Send')).not.toBeNull();
         expect(composer.page.host.textContent).not.toContain('Continue');
     });
 });
 
 describe('continuing on another account after a usage limit', () => {
-    const limited = infoOf({ status: 'error', limit: { kind: 'usage' } } as Partial<ChatInfo>);
+    const limited = infoOf({ status: 'error', limit: { kind: 'usage' } } as Partial<ChatThreadInfo>);
     // The chat's own account and Home write their conversations to one folder, so Home takes the chat over and Work forks it.
     const SHARED = '/home/sam/.claude/projects';
 
@@ -1231,7 +1230,7 @@ describe('the queue', () => {
         status: 'running',
         running: true,
         queue: [{ id: 'queued', text: 'Later', mentions: ['src/app.ts'], createdAt: 1 }]
-    } as Partial<ChatInfo>);
+    } as Partial<ChatThreadInfo>);
 
     test('Send now sends a queued message ahead of its turn', async () => {
         const composer = await mount({ info: queued });
@@ -1404,7 +1403,7 @@ describe('a cold prompt cache', () => {
             info: infoOf({
                 usage: { turns: 3, contextTokens: 150_000, contextWindow: 1_000_000, costUsd: 1, cacheTtlMs: 300_000, cacheExpiresAt: start + 240_000 }
             }),
-            items: [turn as ChatItem]
+            items: [turn as ChatThreadItem]
         });
 
         expect(composer.page.host.textContent).not.toContain('Cache expired');
@@ -1484,6 +1483,12 @@ describe('the run settings pill', () => {
         expect(pill.textContent).toBe('Opus 5.5HighFast·200K·Ask');
     });
 
+    test('a mode of a newer host reads as set on the machine', async () => {
+        const composer = await mount({ info: infoOf({ runtimeMode: 'future-mode' } as unknown as Partial<ChatThreadInfo>) });
+        const pill = [...composer.page.host.querySelectorAll('[aria-haspopup="menu"]')].find((trigger) => trigger.textContent?.includes('Model'))!;
+        expect(pill.textContent).toEndWith('On the machine');
+    });
+
     test("the CLI's only account tints the mark in its own color, and one without a color leaves it as it is", async () => {
         const host = { accents: { all: [{ id: 'teal', color: '#14b8a6' }], featured: [], label: (id: string) => id, current: () => '' } } as Partial<ChatHost>;
         const markOf = (composer: Mounted): HTMLElement | null => composer.page.host.querySelector('[aria-haspopup="menu"] span[style]');
@@ -1519,9 +1524,9 @@ describe('the model menu', () => {
 
 describe('the context meter', () => {
     /* The Context group of the model menu, drawn on its own, and the ring in the pill. */
-    async function meterOf(usage: Partial<ChatInfo['usage']>) {
+    async function meterOf(usage: Partial<ChatThreadInfo['usage']>) {
         const composer = await mount({
-            info: infoOf({ usage: { turns: 2, contextTokens: 0, contextWindow: 200_000, costUsd: 0, ...usage } as ChatInfo['usage'] })
+            info: infoOf({ usage: { turns: 2, contextTokens: 0, contextWindow: 200_000, costUsd: 0, ...usage } as ChatThreadInfo['usage'] })
         });
         const popup = composer.propsOf('RunSettings', 'MenuPopup') as { children: ReactNode };
 

@@ -1,5 +1,6 @@
 import { afterEach, expect, test } from 'bun:test';
-import type { ChatInfo, ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ChatThreadInfo } from '../chat-sink';
 import type { PromptSubject } from '../host/prompts';
 import type { ChatScope } from '../scope';
 import { useChats } from '../state/chats';
@@ -10,7 +11,7 @@ const APPROVAL = PROMPT_SAMPLES.find((sample) => sample.label === 'Permission ·
 
 const keyOf = (id: string) => `prompt-feed/${id}`;
 
-const info = (chatId: string, waiting = true): ChatInfo => ({ chatId, provider: 'grok', status: waiting ? 'needs-you' : 'running' }) as ChatInfo;
+const info = (chatId: string, waiting = true): ChatThreadInfo => ({ chatId, provider: 'grok', status: waiting ? 'needs-you' : 'running' }) as ChatThreadInfo;
 
 const child = (childId: string): ChatSubagentItem =>
     ({ kind: 'subagent', id: `spawn-${childId}`, childId, description: childId, status: 'running' }) as ChatSubagentItem;
@@ -91,4 +92,23 @@ test('discovers a child created in a streamed event and releases a settled branc
     useChats.getState().apply(keyOf('main'), { type: 'item', item: { ...child('later'), status: 'done' } });
     expect(following.subjects()).toEqual([]);
     expect(following.released).toEqual(['later']);
+});
+
+test('never offers a request of a newer host to answer, also once a known one turns into one', () => {
+    const unread = {
+        kind: 'unknown',
+        id: APPROVAL.id,
+        createdAt: APPROVAL.createdAt,
+        turnId: APPROVAL.turnId,
+        raw: { ...APPROVAL, decision: 'escalated' }
+    } as const;
+    const unreadPending = { ...unread, id: 'later-request', raw: { ...APPROVAL, id: 'later-request', allowAlways: { label: 'Always' } } };
+    useChats.getState().reset(keyOf('main'), info('main'), [APPROVAL]);
+    const following = follow();
+    expect(following.subjects()).toEqual([{ kind: 'chat', nodeId: 'main', item: APPROVAL }]);
+
+    useChats.getState().apply(keyOf('main'), { type: 'item', item: unread });
+    useChats.getState().apply(keyOf('main'), { type: 'item', item: unreadPending });
+
+    expect(following.subjects()).toEqual([]);
 });

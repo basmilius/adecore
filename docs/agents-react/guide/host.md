@@ -86,6 +86,7 @@ export function Workspace() {
 | `openSettings(section)`            | Nothing                                            | Opens your settings on `providers` or `agents`.                                                        |
 | `useResumeAtReset(scopeId)`        | `true`                                             | Whether a chat may go on by itself once the limit it stopped on lifts.                                 |
 | `useComposerPlaceholder(scopeId, chatId)` | The chat's own                              | The first words of an empty composer.                                                                  |
+| `useUnknownItemWords()`            | "Update the app to see this." and its request version | `UnknownItemWords` (`item`, `request`) for the row of an item from a newer host, such as naming your app. See [Newer hosts](/agents-react/guide/chat-client#newer-hosts). |
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
 | `ComposerHeaderSlot`               | Nothing                                            | A bar of your own at the top of the composer's card, above the text.                                   |
 | `useComposerStatus(scopeId, chatId)` | No line                                         | Items of your own on a line under the composer's card, such as a branch. See [Slots and cards](#slots-and-cards). |

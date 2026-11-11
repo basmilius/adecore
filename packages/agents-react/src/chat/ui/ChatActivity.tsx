@@ -1,4 +1,4 @@
-import { taskIdOfRow, type ChatBackgroundTask, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { taskIdOfRow, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
 import { formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -12,7 +12,7 @@ import { useHostTask, useHostTasks } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
 import { useChatActions } from '../actions';
-import { backgroundCounts } from '../activity';
+import { backgroundCounts, backgroundTaskName, type ChatThreadBackgroundTask } from '../activity';
 import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
@@ -20,7 +20,7 @@ import { flyoutWorkflows, workflowPillOf, type WorkflowCall, type WorkflowWord }
 import { WorkflowRow } from './rows/WorkflowRow';
 import { SubagentStopButton } from './SubagentStopButton';
 
-const NO_TASKS: readonly ChatBackgroundTask[] = [];
+const NO_TASKS: readonly ChatThreadBackgroundTask[] = [];
 
 const NO_ITEMS: readonly string[] = [];
 
@@ -64,7 +64,7 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
         return null;
     }
 
-    const { shells, monitors } = backgroundCounts(background);
+    const { shells, monitors, others } = backgroundCounts(background);
     const Slot = host.SubagentSlot;
     const counting = progress.active > 0 && progress.total > 1;
 
@@ -98,7 +98,11 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
             {background.length > 0 && (
                 <Flyout
                     icon={<Icon icon={shells > 0 ? SquareTerminal : Activity} size={14} />}
-                    label={[shells > 0 && t('activity.shells', { count: shells }), monitors > 0 && t('activity.monitors', { count: monitors })]
+                    label={[
+                        shells > 0 && t('activity.shells', { count: shells }),
+                        monitors > 0 && t('activity.monitors', { count: monitors }),
+                        others > 0 && t('activity.others', { count: others })
+                    ]
                         .filter(Boolean)
                         .join(' · ')}
                 >
@@ -253,7 +257,7 @@ function SubagentEntry({ chatId, item, now }: { chatId: string; item: ChatSubage
 }
 
 /* Only drawn while the flyout is open, so the clock ticks for nobody otherwise. */
-function BackgroundTaskRows({ chatId, tasks }: { chatId: string; tasks: readonly ChatBackgroundTask[] }) {
+function BackgroundTaskRows({ chatId, tasks }: { chatId: string; tasks: readonly ChatThreadBackgroundTask[] }) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     const now = useNow(1000);
@@ -270,7 +274,7 @@ function BackgroundTaskRows({ chatId, tasks }: { chatId: string; tasks: readonly
         <ActivityRow
             key={task.id}
             icon={<Icon icon={task.kind === 'shell' ? SquareTerminal : Activity} size={14} className="shrink-0 text-text-faint" />}
-            title={task.description || task.command || t(`activity.${task.kind}`)}
+            title={backgroundTaskName(task)}
             detail={task.description ? task.command : null}
             time={formatElapsedShort(now - task.startedAt)}
         >

@@ -7,8 +7,13 @@ import i18next from 'i18next';
  */
 export const RUNTIME_MODES: readonly RuntimeMode[] = RuntimeModeSchema.options;
 
-export function runtimeModeLabel(mode: RuntimeMode): string {
-    return i18next.t(`agent-chat:modes.${mode}.label`);
+/* Whether this version knows a mode a host reports; a newer host's mode is shown as set there and never sent back as another. */
+export function isKnownRuntimeMode(mode: string): mode is RuntimeMode {
+    return (RUNTIME_MODES as readonly string[]).includes(mode);
+}
+
+export function runtimeModeLabel(mode: string): string {
+    return isKnownRuntimeMode(mode) ? i18next.t(`agent-chat:modes.${mode}.label`) : i18next.t('agent-chat:modes.unknown.label');
 }
 
 export function runtimeModeHint(mode: RuntimeMode): string {

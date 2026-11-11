@@ -1,4 +1,5 @@
-import { abortedByEnd, abortedByMachine, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
+import { abortedByEnd, abortedByMachine } from '@adecore/agent-contracts';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 
 /* English like the other prompts the CLI gets, and it reaches the thread as the person's own message, which it is. */
 export const CONTINUE_PROMPT = 'Continue.';
@@ -8,7 +9,7 @@ export const CONTINUE_PROMPT = 'Continue.';
  * A paused queue, a limit and a paused goal have their own way out, a turn the machine ended has its own resume,
  * and a request that waits on a person comes first.
  */
-export function continuableTurn(info: ChatInfo, items: readonly ChatItem[]): string | null {
+export function continuableTurn(info: ChatThreadInfo, items: readonly ChatThreadItem[]): string | null {
     if (
         info.activeTurnId !== null ||
         info.status === 'needs-you' ||

@@ -19,6 +19,7 @@ export {
     type VisualHost,
     type HostMenuAction,
     type ReplyAuthor,
+    type UnknownItemWords,
     type ChatHost,
     type UiMapSource,
     type UiModelViewProps,
@@ -48,7 +49,7 @@ export {
     isConnectionError
 } from './transport';
 
-export { portTransport, type PortTransport } from './port-transport';
+export { portTransport, type PortTransport, type PortTransportOptions } from './port-transport';
 export { configureChatStorage } from './storage';
 export { type MountedEntry, MountedRegistry } from './mounted-registry';
 export { PROVIDERS_SECTION, USAGE_SECTION, settingsSection } from './settings/sections';

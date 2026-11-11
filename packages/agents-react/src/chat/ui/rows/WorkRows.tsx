@@ -1,4 +1,4 @@
-import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
+import type { ChatCheckpointDiff, ChatCheckpointFile, ChatFileChange, ChatToolItem } from '@adecore/agent-contracts';
 import { Button, Icon, LazyBoundary, MiddleTruncate, ScrollArea, Spinner, lazyNamed, useTickingText } from '@adecore/ui';
 import { formatClockDuration, formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -6,6 +6,7 @@ import i18next from 'i18next';
 import { ChevronRight, FileDiff, X } from 'lucide-react';
 import { Fragment, useContext, useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ChatThreadTurn } from '../../../chat-sink';
 import { useChatHost, type CommandLook, type ToolLook } from '../../../host/host';
 import { useCommandNames } from '../../../host/host-hooks';
 import { type Look } from '../../../host/timeline-row';
@@ -614,7 +615,7 @@ export function TurnFoldRow({
     expandable,
     onToggle
 }: {
-    turn: ChatTurnItem;
+    turn: ChatThreadTurn;
     label: string;
     work: readonly string[];
     expanded: boolean;

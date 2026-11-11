@@ -1,16 +1,18 @@
 import { describe, expect, test } from 'bun:test';
-import type { AgentEventType, AgentRequestType, ChatApprovalItem, ChatItem, ChatSubagentPayload, ChatSubagentResult } from '@adecore/agent-contracts';
+import type { AgentEventType, AgentRequestType, ChatApprovalItem, ChatSubagentPayload, ChatSubagentResult } from '@adecore/agent-contracts';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
+import type { ChatThreadItem } from '../chat-sink';
 import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from '../transport';
 import { mergeNewest, SubagentConversation, type SubagentConversationState } from './subagent-conversation';
 
-function note(id: string, text = id): ChatItem {
+function note(id: string, text = id): ChatThreadItem {
     return { id, kind: 'note', createdAt: 0, turnId: null, level: 'info', text };
 }
 
 /* A machine that answers `chat.subagent` from a list the test grows, newest page first with offsets as cursors. */
 class FakeMachine implements ChatTransport {
     status: ChatTransportStatus = 'open';
-    conversation: ChatItem[] = [];
+    conversation: ChatThreadItem[] = [];
     readonly asked: ChatSubagentPayload[] = [];
     fail: ChatTransportError | null = null;
     context: ChatSubagentResult['context'];
@@ -37,7 +39,7 @@ class FakeMachine implements ChatTransport {
         const end = asked.cursor === undefined ? this.conversation.length : Number(asked.cursor);
         const start = Math.max(0, end - (asked.limit ?? 60));
 
-        const result: ChatSubagentResult = {
+        const result: Tolerant<ChatSubagentResult> = {
             items: this.conversation.slice(start, end),
             history: { start, cursor: start > 0 ? String(start) : null },
             source: 'claude-transcript',

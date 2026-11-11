@@ -4,7 +4,6 @@ import type {
     ChatCheckpointDiff,
     ChatConfigurePayload,
     ChatGoalAction,
-    ChatItem,
     ChatSubagentItem,
     ChatUiChoicePayload,
     ChatUiQueryPayload,
@@ -32,6 +31,7 @@ import {
     type RefObject
 } from 'react';
 import type { Highlighter, ThemeRegistration } from 'shiki';
+import type { ChatThreadItem } from '../chat-sink';
 import { PlainTextarea } from './PlainTextarea';
 import type { HostPrompt, PromptAction, PromptViewProps } from './prompts';
 import type { ReferableKind, Referables } from './references';
@@ -140,7 +140,7 @@ export interface TimelineFindOptions {
     scroller: RefObject<HTMLDivElement | null>;
     enabled: boolean;
     rows: readonly TimelineRow[];
-    structure: Readonly<Record<string, ChatItem>> | undefined;
+    structure: Readonly<Record<string, ChatThreadItem>> | undefined;
     order: readonly string[] | undefined;
     /* The first row on screen, where a new search starts looking. */
     firstRowInView(): number;
@@ -464,6 +464,15 @@ export interface AgentMark {
     fillRule?: 'nonzero' | 'evenodd';
 }
 
+/* The words of the row an item of a newer host gets, such as naming the app a person updates. */
+export interface UnknownItemWords {
+    /* For an item that only shows something. */
+    readonly item: string;
+
+    /* For an approval or question that still waits, which this version never answers. */
+    readonly request: string;
+}
+
 export interface ChatHost {
     /*
      * The marks of the kinds the app adds, and any it draws differently. Every place the shared UI draws an agent's
@@ -663,6 +672,8 @@ export interface ChatHost {
     useResumeAtReset(scopeId: string): boolean;
     /* The words an empty composer opens with, before the keys it hints at; null keeps the chat's own. */
     useComposerPlaceholder(scopeId: string, chatId: string): string | null;
+    /* What the row of an item this version cannot read says, in the app's words; left out, or null, the shared ones. */
+    useUnknownItemWords?(): UnknownItemWords | null;
     /* The app's own control in the composer's row, after the pickers; null draws none. */
     ComposerSlot: ComponentType<ComposerSlotProps> | null;
     /* The app's own bar at the top of the composer, inside its card, such as a switch between chats of one thing; left out, or a slot that renders nothing, draws none. */

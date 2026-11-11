@@ -58,21 +58,30 @@ type UnknownMemberOf<T, Unions extends OpenUnionTable> = {
 
 type IsOpenWord<T, Words extends OpenWordTable> = true extends { [K in keyof Words]: Same<T, Words[K]> }[keyof Words] ? true : false;
 
-type TolerantShape<T, Unions extends OpenUnionTable, Words extends OpenWordTable> = T extends readonly (infer Element)[]
-    ? TolerantWith<Element, Unions, Words>[]
-    : T extends object
-      ? { [K in keyof T]: TolerantWith<T[K], Unions, Words> }
-      : T;
+// A mapped type over a type parameter keeps an array an array and a tuple a tuple.
+type TolerantShape<T, Unions extends OpenUnionTable, Words extends OpenWordTable, Depth extends unknown[]> = T extends object
+    ? { [K in keyof T]: TolerantAt<T[K], Unions, Words, [...Depth, unknown]> }
+    : T;
+
+/*
+ * Stops this deep, which no stamped path reaches, so a recursive type such as a tree of UI blocks ends instead of
+ * unfolding without end.
+ */
+type MaxDepth = 12;
+
+type TolerantAt<T, Unions extends OpenUnionTable, Words extends OpenWordTable, Depth extends unknown[]> = Depth['length'] extends MaxDepth
+    ? T
+    : [UnknownMemberOf<NonNullable<T>, Unions>] extends [never]
+      ? IsOpenWord<NonNullable<T>, Words> extends true
+          ? T | UnknownWord
+          : TolerantShape<T, Unions, Words, Depth>
+      : TolerantShape<NonNullable<T>, Unions, Words, Depth> | UnknownMemberOf<NonNullable<T>, Unions> | Extract<T, null | undefined>;
 
 /*
  * `T` as `readTolerant` may hand it over with these tables: an open union also holds its unknown member, and an open
  * vocabulary also an `UnknownWord`. Types match a table by being the same type, never by one being part of the other.
  */
-export type TolerantWith<T, Unions extends OpenUnionTable, Words extends OpenWordTable> = [UnknownMemberOf<NonNullable<T>, Unions>] extends [never]
-    ? IsOpenWord<NonNullable<T>, Words> extends true
-        ? T | UnknownWord
-        : TolerantShape<T, Unions, Words>
-    : TolerantShape<NonNullable<T>, Unions, Words> | UnknownMemberOf<NonNullable<T>, Unions> | Extract<T, null | undefined>;
+export type TolerantWith<T, Unions extends OpenUnionTable, Words extends OpenWordTable> = TolerantAt<T, Unions, Words, []>;
 
 /* `T` as `readTolerant` may hand it over with the open unions and vocabularies of these contracts. */
 export type Tolerant<T> = TolerantWith<T, OpenUnions, OpenWords>;

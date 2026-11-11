@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { Activity, act, Profiler } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import { ChatHostProvider, type ChatHost, type CommandLook, type ToolLook } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
@@ -21,7 +21,7 @@ const KEY = scope.keyOf('chat');
 
 const VIEWPORT = { width: 800, height: 600 };
 
-function infoOf(activeTurnId: string | null): ChatInfo {
+function infoOf(activeTurnId: string | null): ChatThreadInfo {
     return {
         chatId: 'chat',
         provider: 'claude',
@@ -36,11 +36,11 @@ function infoOf(activeTurnId: string | null): ChatInfo {
         slashCommands: [],
         usage: { turns: 2 },
         background: []
-    } as unknown as ChatInfo;
+    } as unknown as ChatThreadInfo;
 }
 
-function threadOf(): ChatItem[] {
-    return [1, 2, 3].flatMap((turn): ChatItem[] => [
+function threadOf(): ChatThreadItem[] {
+    return [1, 2, 3].flatMap((turn): ChatThreadItem[] => [
         { id: `user-${turn}`, kind: 'user', turnId: `turn-${turn}`, createdAt: turn * 10, text: `Question ${turn}` },
         { id: `reply-${turn}`, kind: 'assistant', turnId: `turn-${turn}`, createdAt: turn * 10 + 1, text: `Answer ${turn}`, streaming: turn === 3 }
     ]);
@@ -183,10 +183,10 @@ class ManualResizeObserver {
 }
 
 interface Setup {
-    items?: ChatItem[];
+    items?: ChatThreadItem[];
     host?: Partial<ChatHost>;
     statusOnly?: boolean;
-    info?: ChatInfo;
+    info?: ChatThreadInfo;
     onLayout?(host: HTMLElement): void;
     onContentHeight?(height: number): void;
 }
@@ -446,7 +446,7 @@ test('a composer taller than the frame covers it and scrolls by itself, leaving 
 });
 
 test('growing a reply cannot hide earlier rows while the thread still fits without scrolling', async () => {
-    const items: ChatItem[] = Array.from({ length: 20 }, (_, index) => ({
+    const items: ChatThreadItem[] = Array.from({ length: 20 }, (_, index) => ({
         id: `reply-${index}`,
         kind: 'assistant',
         turnId: null,
@@ -475,7 +475,7 @@ test('growing a reply cannot hide earlier rows while the thread still fits witho
 });
 
 test('loading an older page keeps the reader on the same message', async () => {
-    const items: ChatItem[] = Array.from({ length: 40 }, (_, index) => ({
+    const items: ChatThreadItem[] = Array.from({ length: 40 }, (_, index) => ({
         id: `reply-${index}`,
         kind: 'assistant',
         turnId: null,
@@ -545,8 +545,8 @@ const ORBIT: CommandLook = {
 const LOOKS_HOST: Partial<ChatHost> = { commandLooks: [ORBIT] };
 
 /* A call of the CLI, a run of two, and a plain shell call, each on a line of its own between replies. */
-function shellThread(): ChatItem[] {
-    const bash = (id: string, command: string, createdAt: number): ChatItem => ({
+function shellThread(): ChatThreadItem[] {
+    const bash = (id: string, command: string, createdAt: number): ChatThreadItem => ({
         id,
         kind: 'tool',
         createdAt,
@@ -559,7 +559,7 @@ function shellThread(): ChatItem[] {
         parentToolUseId: null
     });
 
-    const reply = (id: string, createdAt: number): ChatItem => ({ id, kind: 'assistant', turnId: null, createdAt, text: 'Done.', streaming: false });
+    const reply = (id: string, createdAt: number): ChatThreadItem => ({ id, kind: 'assistant', turnId: null, createdAt, text: 'Done.', streaming: false });
 
     return [
         bash('probe', 'sleep 1; orbit probe launch probe-1 --wait 5 2>&1 | grep ok', 1),
@@ -606,7 +606,7 @@ test('tool groups keep the host program branding, and opening a single call reve
 });
 
 test('a turn that only compacted shows the divider, and no line of how long it worked', async () => {
-    const items: ChatItem[] = [
+    const items: ChatThreadItem[] = [
         { id: 'turn-c', kind: 'turn', turnId: 'turn-c', createdAt: 1000, state: 'done', endedAt: 17_000, costUsd: 0.05 },
         { id: 'user-c', kind: 'user', turnId: 'turn-c', createdAt: 1000, text: '/compact' },
         { id: 'compaction-c', kind: 'compaction', turnId: 'turn-c', createdAt: 16_000, preTokens: 54_266 }
@@ -624,8 +624,50 @@ test('a turn that only compacted shows the divider, and no line of how long it w
     );
 });
 
+const FUTURE_ITEMS: ChatThreadItem[] = [
+    { id: 'user-u', kind: 'user', turnId: null, createdAt: 900, text: 'Go on' },
+    { kind: 'unknown', id: 'future-1', createdAt: 1000, turnId: null, raw: { id: 'future-1', kind: 'future-kind', createdAt: 1000, turnId: null } },
+    {
+        kind: 'unknown',
+        id: 'approval-2',
+        createdAt: 1001,
+        turnId: null,
+        raw: { id: 'approval-2', kind: 'approval', createdAt: 1001, turnId: null, decision: 'pending', allowAlways: { label: 'Always' } }
+    }
+];
+
+test('an item of a newer host keeps its place, and a request of one that still waits says where to answer it', async () => {
+    await mounted(
+        { rowHeights: [40, 40, 40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            const text = page.host.textContent ?? '';
+            const seen = text.indexOf('Update the app to see this.');
+            const waiting = text.indexOf('Answer this on the machine, or update the app to answer here.');
+            expect(text.indexOf('Go on')).toBeLessThan(seen);
+            expect(seen).toBeLessThan(waiting);
+        },
+        { items: FUTURE_ITEMS }
+    );
+});
+
+test('an item of a newer host speaks in the words the host gives', async () => {
+    const host: Partial<ChatHost> = { useUnknownItemWords: () => ({ item: 'Update the desktop app to see this.', request: 'Answer it on the machine.' }) };
+
+    await mounted(
+        { rowHeights: [40, 40, 40], composerHeight: 0 },
+        null,
+        async ({ page }) => {
+            const text = page.host.textContent ?? '';
+            expect(text).toContain('Update the desktop app to see this.');
+            expect(text).toContain('Answer it on the machine.');
+        },
+        { items: FUTURE_ITEMS, host }
+    );
+});
+
 test('a compaction marker names both sizes where the CLI named them, and leaves out the one it did not', async () => {
-    const items: ChatItem[] = [
+    const items: ChatThreadItem[] = [
         { id: 'turn-c', kind: 'turn', turnId: 'turn-c', createdAt: 1000, state: 'done', endedAt: 17_000, costUsd: 0 },
         { id: 'compaction-c', kind: 'compaction', turnId: 'turn-c', createdAt: 16_000, preTokens: 123_323, postTokens: 86_425 },
         { id: 'turn-d', kind: 'turn', turnId: 'turn-d', createdAt: 20_000, state: 'done', endedAt: 21_000, costUsd: 0 },
@@ -665,7 +707,7 @@ test('a call of a tool look reads as its tool, with the host names for its value
         useNames: () => (word, option) => (word === 'probe-1' && option === 'probe' ? { name: 'Main Deck' } : null)
     };
 
-    const call: ChatItem = {
+    const call: ChatThreadItem = {
         id: 'probe',
         kind: 'tool',
         createdAt: 1,
@@ -702,7 +744,7 @@ test('a value a tool look names as a reference is the reference chip, which open
         useNames: () => (word) => (word === 'deck-1' ? { name: 'Old Deck', reference: word } : null)
     };
 
-    const call: ChatItem = {
+    const call: ChatThreadItem = {
         id: 'probe',
         kind: 'tool',
         createdAt: 1,
@@ -740,7 +782,7 @@ test('a value a tool look names as a reference is the reference chip, which open
 });
 
 test('a failed call leaves its group and its line in their own tone and says so in a mark of its own', async () => {
-    const link = (id: string, state: 'done' | 'error', createdAt: number): ChatItem => ({
+    const link = (id: string, state: 'done' | 'error', createdAt: number): ChatThreadItem => ({
         id,
         kind: 'tool',
         createdAt,
@@ -817,7 +859,7 @@ test('a genuinely new chat keeps its greeting and composer before its empty hist
             expect(page.host.querySelector('[data-composer]')).not.toBeNull();
             expect(page.host.textContent).not.toContain('is ready');
         },
-        { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatInfo, host: { useWelcome: () => true } }
+        { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatThreadInfo, host: { useWelcome: () => true } }
     );
 });
 
@@ -838,7 +880,7 @@ test('a welcome holds the composer in flow under the greeting, and the first mes
             expect(after.layer.style.position).toBe('absolute');
             expect(after.spacer.style.height).toBe('80px');
         },
-        { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatInfo, host: { useWelcome: () => true } }
+        { statusOnly: true, info: { ...infoOf(null), usage: { turns: 0 } } as ChatThreadInfo, host: { useWelcome: () => true } }
     );
 });
 
@@ -854,7 +896,7 @@ for (const cached of [true, false]) {
                     createdAt: index,
                     text: `Answer ${index}`,
                     streaming: false
-                }) as ChatItem
+                }) as ChatThreadItem
         );
 
         const layouts: Array<Array<{ top: number; height: number }>> = [];

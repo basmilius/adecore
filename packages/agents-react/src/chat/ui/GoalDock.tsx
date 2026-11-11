@@ -1,4 +1,4 @@
-import type { ChatGoal, ChatGoalAction, ChatInfo, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatGoalAction, ProviderCapabilities } from '@adecore/agent-contracts';
 import { Button, Icon, Pill, Tooltip } from '@adecore/ui';
 import { formatTokens, useFormatLocale } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -6,15 +6,16 @@ import type { TFunction } from 'i18next';
 import { Target } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ChatThreadInfo } from '../../chat-sink';
 import { useChatHost } from '../../host/host';
 import { useChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
 import { errorMessage } from '../../transport';
 import { useChatActions } from '../actions';
-import { goalView } from '../logic/goal';
+import { goalView, knownGoalStatus } from '../logic/goal';
 
 /* How far the goal got, in what its CLI counts: the checks that sent the agent on, or the tokens it spent. */
-function progressOf(goal: ChatGoal, t: TFunction<'agent-chat'>): string | null {
+function progressOf(goal: NonNullable<ChatThreadInfo['goal']>, t: TFunction<'agent-chat'>): string | null {
     const parts: string[] = [];
 
     if (goal.checks !== undefined && goal.checks > 0) {
@@ -36,7 +37,7 @@ function progressOf(goal: ChatGoal, t: TFunction<'agent-chat'>): string | null {
  * At the top of the composer while the chat has a goal: where it stands, the objective, how far it got,
  * and what a person may do to it. The whole objective and what the last check said are in the tooltip.
  */
-export function GoalDock({ chatId, info, goals }: { chatId: string; info: ChatInfo; goals: ProviderCapabilities['goals'] }) {
+export function GoalDock({ chatId, info, goals }: { chatId: string; info: ChatThreadInfo; goals: ProviderCapabilities['goals'] }) {
     const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     useFormatLocale();
@@ -68,7 +69,7 @@ export function GoalDock({ chatId, info, goals }: { chatId: string; info: ChatIn
         <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
             <Icon icon={Target} size={16} className={clsx('shrink-0', goal.status === 'active' ? 'text-accent' : 'text-text-faint')} />
             <span className="flex min-w-0 grow flex-col">
-                <span className="truncate text-sm text-text">{t(`goal.status.${goal.status}`)}</span>
+                <span className="truncate text-sm text-text">{knownGoalStatus(goal) ? t(`goal.status.${goal.status}`) : t('goal.status.unknown')}</span>
                 <Tooltip
                     label={
                         goal.lastCheck === undefined ? (

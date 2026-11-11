@@ -1,4 +1,4 @@
-import type { AgentKind, ChatInfo, ModelSelection } from '@adecore/agent-contracts';
+import type { AgentKind, ModelSelection } from '@adecore/agent-contracts';
 import { Icon, PromptDialog, Surface, Tooltip } from '@adecore/ui';
 import { formatNumber } from '@adecore/ui/format';
 import clsx from 'clsx';
@@ -6,6 +6,7 @@ import { ChevronDown } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore, type MouseEvent, type PointerEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChatSendExtras } from '../../chat-client';
+import type { ChatThreadInfo } from '../../chat-sink';
 import { useChatHost } from '../../host/host';
 import { useHostComposerStatus, useHostExtraPrompts, useHostSendDelivery } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
@@ -49,7 +50,7 @@ import { ResumeCompactionDock } from './ResumeCompactionDock';
 
 interface ComposerProps {
     chatId: string;
-    info: ChatInfo;
+    info: ChatThreadInfo;
     focused: boolean;
     /*
      * Set where the chat's prompts are answered somewhere else, such as a stack over a canvas: the

@@ -1,5 +1,6 @@
-import type { ChatItem, ChatUiChoiceOrigin } from '@adecore/agent-contracts';
+import type { ChatUiChoiceOrigin } from '@adecore/agent-contracts';
 import { selectionWithin } from '@adecore/ui';
+import type { ChatThreadItem } from '../../chat-sink';
 import type { FileRef } from '../../host/host';
 import type { TimelineRow } from '../../host/timeline-row';
 
@@ -22,7 +23,7 @@ export const EMPTY_TARGET: TimelineTarget = { selection: '', row: null, code: nu
  * The rows with the text a reply or a thought holds now. Rows are derived from the structure of a
  * thread, which a delta leaves alone, so a row still carries the text it was derived with.
  */
-export function withCurrentText(rows: TimelineRow[], items: Record<string, ChatItem> | undefined): TimelineRow[] {
+export function withCurrentText(rows: TimelineRow[], items: Record<string, ChatThreadItem> | undefined): TimelineRow[] {
     if (!items) {
         return rows;
     }
@@ -85,7 +86,7 @@ type UiReplyJump = { kind: 'missing' | 'earlier' } | { kind: 'turn'; turnId: str
 export function uiReplyJump(
     target: UiReplyTarget,
     rows: readonly TimelineRow[],
-    items: Record<string, ChatItem> | undefined,
+    items: Record<string, ChatThreadItem> | undefined,
     expandedTurns: ReadonlySet<string>,
     hasEarlier: boolean
 ): UiReplyJump {

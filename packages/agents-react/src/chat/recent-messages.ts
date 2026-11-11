@@ -1,5 +1,3 @@
-import type { ChatItem } from '@adecore/agent-contracts';
-
 interface RecentChatMessage {
     role: 'user' | 'assistant';
     text: string;
@@ -18,9 +16,9 @@ function clipped(text: string): { text: string; truncated: boolean } {
     return text.length <= MAX_MESSAGE_CHARACTERS ? { text, truncated: false } : { text: `${text.slice(0, MAX_MESSAGE_CHARACTERS - 1)}…`, truncated: true };
 }
 
-type MessageItem = Extract<ChatItem, { kind: 'user' | 'assistant' }>;
+type MessageItem = Extract<ChatThreadItem, { kind: 'user' | 'assistant' }>;
 
-function isMessage(item: ChatItem | undefined): item is MessageItem {
+function isMessage(item: ChatThreadItem | undefined): item is MessageItem {
     return item !== undefined && (item.kind === 'user' || item.kind === 'assistant') && item.text.trim() !== '';
 }
 
@@ -51,7 +49,7 @@ function recentMessages(eligible: readonly MessageItem[], limit: number): Recent
 }
 
 /* A sub-agent's replies sit in the thread too, and belong to its own conversation rather than the chat's. */
-export function recentChatMessages(items: Record<string, ChatItem>, order: readonly string[], limit: number): RecentChatMessages {
+export function recentChatMessages(items: Record<string, ChatThreadItem>, order: readonly string[], limit: number): RecentChatMessages {
     return recentMessages(
         order.map((id) => items[id]).filter((item): item is MessageItem => isMessage(item) && !(item.kind === 'assistant' && item.parentToolUseId)),
         limit
@@ -59,6 +57,7 @@ export function recentChatMessages(items: Record<string, ChatItem>, order: reado
 }
 
 /* Everything in a sub-agent's conversation is its own, so nothing is left out for being nested. */
-export function recentSubagentMessages(items: readonly ChatItem[], limit: number): RecentChatMessages {
+export function recentSubagentMessages(items: readonly ChatThreadItem[], limit: number): RecentChatMessages {
     return recentMessages(items.filter(isMessage), limit);
 }
+import type { ChatThreadItem } from '../chat-sink';

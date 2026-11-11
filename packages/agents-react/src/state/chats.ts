@@ -1,30 +1,21 @@
-import type {
-    AgentKind,
-    ChatApprovalItem,
-    ChatBookmark,
-    ChatEvent,
-    ChatHistoryResult,
-    ChatInfo,
-    ChatItem,
-    ChatQuestionItem,
-    ChatVisual
-} from '@adecore/agent-contracts';
+import type { AgentKind, ChatApprovalItem, ChatBookmark, ChatHistoryResult, ChatQuestionItem, ChatUnknownItem, ChatVisual } from '@adecore/agent-contracts';
 import { appendToolOutput } from '@adecore/agent-contracts/text';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import { useContext } from 'react';
 import { create } from 'zustand';
-import type { ChatHistoryPage, ChatPage, ChatSink } from '../chat-sink';
+import type { ChatHistoryPage, ChatPage, ChatSink, ChatThreadEvent, ChatThreadInfo, ChatThreadItem } from '../chat-sink';
 import { ChatScopeContext, useChatScope } from '../scope';
 
 export interface ChatState {
-    info: ChatInfo;
+    info: ChatThreadInfo;
     /* Status and live events do not establish where the initial history begins. */
     historyPending?: boolean;
-    items: Record<string, ChatItem>;
+    items: Record<string, ChatThreadItem>;
     /*
      * `items`, except that a delta growing a reply or thought that has text, or a running call's output,
      * leaves it as it was. The rows derive from this, so a word redraws only its row (`useCurrentItem`).
      */
-    structure: Record<string, ChatItem>;
+    structure: Record<string, ChatThreadItem>;
     order: string[];
     /* Where the part of the thread this client holds begins; absent when it holds the whole thread. */
     history?: ChatHistoryPage;
@@ -47,7 +38,7 @@ export interface ChatState {
      * The outline of the thread before that part (`outlineItems`), cut down and kept apart from
      * `items`, so the scrubber has a tick for every message before a scroll reaches it.
      */
-    outlineBefore?: ChatItem[];
+    outlineBefore?: ChatThreadItem[];
     /* The messages marked to come back to, as the host last said; absent until it said anything. */
     bookmarks?: ChatBookmark[];
     /* The pages agents published in the chat, as the host last said; absent until it said anything. */
@@ -64,11 +55,11 @@ interface ChatsStore {
     byKey: ChatsById;
     /* Replaced only when a chat's info is, never for a streamed word, so what reads the status alone is not redrawn by one. */
     statusByKey: ChatStatuses;
-    reset(key: string, info: ChatInfo, items: ChatItem[], page?: ChatPage): void;
-    prepend(key: string, cursor: string, page: ChatHistoryResult): void;
-    apply(key: string, event: ChatEvent): void;
-    replay(key: string, events: readonly ChatEvent[]): void;
-    status(key: string, info: ChatInfo): void;
+    reset(key: string, info: ChatThreadInfo, items: ChatThreadItem[], page?: ChatPage): void;
+    prepend(key: string, cursor: string, page: Tolerant<ChatHistoryResult>): void;
+    apply(key: string, event: ChatThreadEvent): void;
+    replay(key: string, events: readonly ChatThreadEvent[]): void;
+    status(key: string, info: ChatThreadInfo): void;
     bookmarks(key: string, bookmarks: ChatBookmark[]): void;
     visuals(key: string, visuals: ChatVisual[]): void;
     forget(key: string): void;
@@ -76,11 +67,16 @@ interface ChatsStore {
     forgetWhere(matches: (key: string) => boolean): void;
 }
 
-export function isWaiting(item: ChatItem | undefined): item is ChatApprovalItem | ChatQuestionItem {
+export function isWaiting(item: ChatThreadItem | undefined): item is ChatApprovalItem | ChatQuestionItem {
     return (item?.kind === 'approval' && item.decision === 'pending') || (item?.kind === 'question' && item.state === 'pending');
 }
 
-function stateOf(info: ChatInfo, items: ChatItem[], page?: ChatPage): ChatState {
+/* An approval or question of a newer host that still waits; this version never answers it, so its row says where to. */
+export function waitsOnTheHost(item: ChatUnknownItem): boolean {
+    return (item.raw.kind === 'approval' && item.raw.decision === 'pending') || (item.raw.kind === 'question' && item.raw.state === 'pending');
+}
+
+function stateOf(info: ChatThreadInfo, items: ChatThreadItem[], page?: ChatPage): ChatState {
     const byId = Object.fromEntries(items.map((item) => [item.id, item]));
     const order = items.map((item) => item.id);
 
@@ -114,10 +110,10 @@ function isBeforePage(state: ChatState, historyIndex: number | undefined): boole
     return state.history !== undefined && historyIndex !== undefined && historyIndex < state.history.start;
 }
 
-type ItemWriter = (state: ChatState, item: ChatItem, structural?: boolean) => ChatState;
+type ItemWriter = (state: ChatState, item: ChatThreadItem, structural?: boolean) => ChatState;
 
 /* An item from before the page this client holds matters only as a sub-agent, a workflow, a request that waits, or one that stopped waiting. */
-function withEarlierItem(state: ChatState, item: ChatItem, write: ItemWriter): ChatState {
+function withEarlierItem(state: ChatState, item: ChatThreadItem, write: ItemWriter): ChatState {
     if (item.kind === 'subagent') {
         const subagents = state.subagentsBefore ?? [];
 
@@ -141,7 +137,7 @@ function withEarlierItem(state: ChatState, item: ChatItem, write: ItemWriter): C
 }
 
 /* The page before the one a chat holds, unless the thread was read again since that page was asked for. */
-export function prependPage(state: ChatState, cursor: string, page: ChatHistoryResult): ChatState {
+export function prependPage(state: ChatState, cursor: string, page: Tolerant<ChatHistoryResult>): ChatState {
     if (state.history?.cursor !== cursor) {
         return state;
     }
@@ -185,18 +181,18 @@ export function waitingRequestsOf(chat: Pick<ChatState, 'structure' | 'order' | 
     return [...(chat?.waitingBefore ?? []), ...(chat?.order ?? [])].map((id) => chat?.structure[id]).filter(isWaiting);
 }
 
-function withItem(state: ChatState, item: ChatItem, structural = true): ChatState {
+function withItem(state: ChatState, item: ChatThreadItem, structural = true): ChatState {
     const items = { ...state.items, [item.id]: item };
 
     return structural ? { ...state, items, structure: items } : { ...state, items };
 }
 
 /* Cheap enough, since a status only arrives when the host saw one change, never on a streamed word. */
-function sameInfo(left: ChatInfo, right: ChatInfo): boolean {
+function sameInfo(left: ChatThreadInfo, right: ChatThreadInfo): boolean {
     return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function withStatus(statuses: ChatStatuses, key: string, info: ChatInfo): ChatStatuses {
+function withStatus(statuses: ChatStatuses, key: string, info: ChatThreadInfo): ChatStatuses {
     return statuses[key]?.info === info ? statuses : { ...statuses, [key]: { info } };
 }
 
@@ -204,12 +200,12 @@ function without<T>(rows: Record<string, T>, matches: (key: string) => boolean):
     return Object.fromEntries(Object.entries(rows).filter(([key]) => !matches(key)));
 }
 
-export function applyEvent(state: ChatState, event: ChatEvent): ChatState {
+export function applyEvent(state: ChatState, event: ChatThreadEvent): ChatState {
     return applyUpdate(state, event, withItem);
 }
 
-function replayEvents(state: ChatState, events: readonly ChatEvent[]): ChatState {
-    let draft: Record<string, ChatItem> | undefined;
+function replayEvents(state: ChatState, events: readonly ChatThreadEvent[]): ChatState {
+    let draft: Record<string, ChatThreadItem> | undefined;
 
     const write: ItemWriter = (current, item, structural = true) => {
         // A text delta must leave the last structural snapshot intact, including within this replay.
@@ -230,7 +226,7 @@ function replayEvents(state: ChatState, events: readonly ChatEvent[]): ChatState
     return state;
 }
 
-function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): ChatState {
+function applyUpdate(state: ChatState, event: ChatThreadEvent, write: ItemWriter): ChatState {
     switch (event.type) {
         case 'item': {
             if (isBeforePage(state, event.historyIndex)) {
@@ -250,7 +246,7 @@ function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): Cha
                 const grown = event.text === '' ? state : applyUpdate(state, text, write);
                 const reply = grown.items[event.itemId] ?? item;
 
-                return write(grown, { ...reply, uiQueries } as ChatItem, false);
+                return write(grown, { ...reply, uiQueries } as ChatThreadItem, false);
             }
 
             if (event.ui !== undefined && event.text === '') {
@@ -280,6 +276,9 @@ function applyUpdate(state: ChatState, event: ChatEvent, write: ItemWriter): Cha
             return { ...state, info: event.info };
         case 'reset':
             return stateOf(event.info, event.items);
+        // A newer host's event; guessing what it does could only leave the thread wrong.
+        case 'unknown':
+            return state;
     }
 }
 
@@ -464,7 +463,7 @@ export function useAwaitsApproval(chatId: string, toolUseId: string): boolean {
 }
 
 /* The item as the thread holds it now, for a row derived from the structure, which a delta leaves alone. */
-export function useCurrentItem<T extends ChatItem>(chatId: string, derived: T): T {
+export function useCurrentItem<T extends ChatThreadItem>(chatId: string, derived: T): T {
     return useChatRow(chatId, (row) => {
         const item = row?.items[derived.id];
 

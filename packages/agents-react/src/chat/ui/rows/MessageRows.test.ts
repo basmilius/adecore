@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import type { ChatInfo, ChatNoteMessage, ChatToolItem, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatNoteMessage, ChatToolItem, ChatUserItem, ProviderCapabilities } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
 import { createInstance } from 'i18next';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { I18nextProvider } from 'react-i18next';
+import type { ChatThreadInfo } from '../../../chat-sink';
 import { ChatHostProvider, type ChatHost, type CommandLookSent } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
@@ -55,7 +56,7 @@ const capabilities: ProviderCapabilities = {
     slashCommands: false
 };
 
-function render(context: { provider: ChatInfo['provider']; chatId?: string } | null = null) {
+function render(context: { provider: ChatThreadInfo['provider']; chatId?: string } | null = null) {
     return renderToStaticMarkup(
         createElement(
             ChatHostProvider,
@@ -84,7 +85,7 @@ beforeEach(() => {
         { kind: 'claude', name: 'Claude Code', installed: true, version: '1', models: [], defaultModel: null, capabilities, resumeCommand: '' }
     ]);
 
-    const info: ChatInfo = {
+    const info: ChatThreadInfo = {
         chatId: 'parent',
         provider: 'codex',
         cwd: '/parent',

@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem, ChatSubagentItem, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
+import type { ChatSubagentItem, ChatToolItem, ChatTurnItem } from '@adecore/agent-contracts';
 import { notResumedNote } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../../chat-sink';
 import type { CommandLook, ToolLook } from '../../host/host';
 import { agentTurnLabel, deriveTimelineRows, findSubagentBranch, isBlock, summarizeGroup, summarizeTurn, turnLabel } from './timeline';
 
@@ -19,7 +20,7 @@ function tool(id: string, name: string, input: unknown, state: ChatToolItem['sta
     };
 }
 
-const thread: ChatItem[] = [
+const thread: ChatThreadItem[] = [
     { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 13_000, costUsd: 0 },
     { id: 'u1', kind: 'user', createdAt: 1000, turnId: 't1', text: 'fix it' },
     tool('r1', 'Read', { file_path: 'a.ts' }),
@@ -47,7 +48,7 @@ describe('the base moving during a turn', () => {
             ...heads
         };
 
-        const rows = deriveTimelineRows([turn as ChatItem, ...thread.slice(1)], { ...options, expandedTurns: new Set(['t1']) });
+        const rows = deriveTimelineRows([turn as ChatThreadItem, ...thread.slice(1)], { ...options, expandedTurns: new Set(['t1']) });
 
         return rows.find((row) => row.kind === 'changed-files');
     };
@@ -90,7 +91,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test.each(['running', 'done', 'error'] as const)('a %s image stays outside a settled turn fold', (state) => {
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             thread[0]!,
             thread[1]!,
             tool('r1', 'Read', {}),
@@ -108,9 +109,10 @@ describe('deriveTimelineRows', () => {
     });
 
     test("the working row carries the call running last, not a subagent's", () => {
-        const turn: ChatItem = { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'running', endedAt: null, costUsd: 0 };
-        const child: ChatItem = { ...tool('child', 'Read', {}, 'running'), parentToolUseId: 'first' };
-        const working = (items: ChatItem[]) => deriveTimelineRows([turn, ...items], { ...options, activeTurnId: 't1' }).find((row) => row.kind === 'working');
+        const turn: ChatThreadItem = { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'running', endedAt: null, costUsd: 0 };
+        const child: ChatThreadItem = { ...tool('child', 'Read', {}, 'running'), parentToolUseId: 'first' };
+        const working = (items: ChatThreadItem[]) =>
+            deriveTimelineRows([turn, ...items], { ...options, activeTurnId: 't1' }).find((row) => row.kind === 'working');
 
         expect(working([tool('first', 'Read', {}, 'running'), tool('second', 'Grep', {}, 'running'), tool('third', 'Read', {}), child])).toMatchObject({
             tool: { id: 'second' }
@@ -130,7 +132,15 @@ describe('deriveTimelineRows', () => {
 
     test('hidden tools leave a fold of only tool lines a label that opens nothing, and one with more a fold that opens', () => {
         const hidden = { ...options, hideTools: true, expandedTurns: new Set(['t1']) };
-        const thought: ChatItem = { id: 'th1', kind: 'thinking', createdAt: 2000, turnId: 't1', text: 'Which file first?', streaming: false, endedAt: 3000 };
+        const thought: ChatThreadItem = {
+            id: 'th1',
+            kind: 'thinking',
+            createdAt: 2000,
+            turnId: 't1',
+            text: 'Which file first?',
+            streaming: false,
+            endedAt: 3000
+        };
         const onlyTools = deriveTimelineRows(thread, hidden);
         const withThought = deriveTimelineRows([...thread.slice(0, 2), thought, ...thread.slice(2)], hidden);
 
@@ -142,7 +152,14 @@ describe('deriveTimelineRows', () => {
 
     test('hidden tools keep a generated image in a folded turn, an opened one and a live one', () => {
         const hidden = { ...options, hideTools: true };
-        const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {}), thread[5]!];
+        const items: ChatThreadItem[] = [
+            thread[0]!,
+            thread[1]!,
+            tool('r1', 'Read', {}),
+            tool('image', 'ImageGeneration', {}),
+            tool('r2', 'Read', {}),
+            thread[5]!
+        ];
         const collapsed = deriveTimelineRows(items, hidden);
         const expanded = deriveTimelineRows(items, { ...hidden, expandedTurns: new Set(['t1']) });
         const live = deriveTimelineRows(items.slice(0, 5), { ...hidden, activeTurnId: 't1' });
@@ -179,7 +196,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('a generated image interrupts tool grouping during a live turn', () => {
-        const items: ChatItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {})];
+        const items: ChatThreadItem[] = [thread[0]!, thread[1]!, tool('r1', 'Read', {}), tool('image', 'ImageGeneration', {}), tool('r2', 'Read', {})];
         const rows = deriveTimelineRows(items, { ...options, activeTurnId: 't1' });
         expect(rows.map((row) => row.id)).toEqual(['u1', 'group-r1', 'image', 'group-r2', 'working-t1']);
         expect(rows.map((row) => row.kind)).toEqual(['user', 'work-group', 'work', 'work-group', 'working']);
@@ -196,7 +213,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('steering stays after the earlier response while running and after settling', () => {
-        const conversation: ChatItem[] = [
+        const conversation: ChatThreadItem[] = [
             { id: 't1', kind: 'turn', createdAt: 1, turnId: 't1', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u1', kind: 'user', createdAt: 1, turnId: 't1', text: 'Write about this project' },
             { id: 'a1', kind: 'assistant', createdAt: 2, turnId: 't1', text: 'I will read the project first.', streaming: false },
@@ -221,7 +238,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('a turn that ends on a refused call keeps the answer before it in sight, with the call and its denial', () => {
-        const refusal = (decision: 'deny' | 'allow'): ChatItem[] => [
+        const refusal = (decision: 'deny' | 'allow'): ChatThreadItem[] => [
             { id: 't5', kind: 'turn', createdAt: 1000, turnId: 't5', state: 'done', endedAt: 9000, costUsd: 0 },
             { id: 'u5', kind: 'user', createdAt: 1000, turnId: 't5', text: 'create probe.txt' },
             tool('r5', 'Read', { file_path: 'a.ts' }, 'done', 't5'),
@@ -264,7 +281,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('the active turn keeps running calls in their group and ends with a working row', () => {
-        const active: ChatItem[] = [
+        const active: ChatThreadItem[] = [
             { id: 't2', kind: 'turn', createdAt: 1, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u2', kind: 'user', createdAt: 1, turnId: 't2', text: 'go' },
             tool('b1', 'Bash', { command: 'ls' }, 'done', 't2'),
@@ -291,17 +308,21 @@ describe('deriveTimelineRows', () => {
         };
 
         const work = tool('r9', 'Read', { file_path: 'a.ts' }, 'done', 'ta');
-        const items: ChatItem[] = [turn, work, { id: 'a9', kind: 'assistant', createdAt: 3000, turnId: 'ta', text: 'The report is ready.', streaming: false }];
+        const items: ChatThreadItem[] = [
+            turn,
+            work,
+            { id: 'a9', kind: 'assistant', createdAt: 3000, turnId: 'ta', text: 'The report is ready.', streaming: false }
+        ];
         const rows = deriveTimelineRows(items, options);
         expect(rows.map((row) => row.kind)).toEqual(['turn-start', 'turn-fold', 'assistant']);
         expect(rows[0]).toMatchObject({ label: 'Sub-agent finished: Report written' });
 
-        const running: ChatItem[] = [{ ...turn, state: 'running', endedAt: null }, work];
+        const running: ChatThreadItem[] = [{ ...turn, state: 'running', endedAt: null }, work];
         expect(deriveTimelineRows(running, { ...options, activeTurnId: 'ta' }).map((row) => row.kind)).toEqual(['turn-start', 'work-group', 'working']);
     });
 
     test('a message another node sent is said to the chat, and the turn it opened needs no line of its own', () => {
-        const note = (id: string, from: string): ChatItem => ({
+        const note = (id: string, from: string): ChatThreadItem => ({
             id,
             kind: 'note',
             createdAt: 500,
@@ -324,7 +345,7 @@ describe('deriveTimelineRows', () => {
             costUsd: 0
         };
 
-        const answer: ChatItem = { id: 'am', kind: 'assistant', createdAt: 1500, turnId: 'tm', text: 'On it.', streaming: false };
+        const answer: ChatThreadItem = { id: 'am', kind: 'assistant', createdAt: 1500, turnId: 'tm', text: 'On it.', streaming: false };
         const rows = deriveTimelineRows([note('n1', 'lead'), turn, answer], options);
         expect(rows.map((row) => row.kind)).toEqual(['message', 'assistant']);
         expect(rows[0]).toMatchObject({ message: { from: 'lead', title: 'lead', text: 'go' }, createdAt: 500 });
@@ -340,7 +361,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('pending approvals and questions stay off the transcript, answered ones are history', () => {
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             { id: 't3', kind: 'turn', createdAt: 1, turnId: 't3', state: 'running', endedAt: null, costUsd: 0 },
             {
                 id: 'q',
@@ -374,7 +395,7 @@ describe('deriveTimelineRows', () => {
     test("a turn's checkpoint diff carries the card, also when no tool call reported an edit", () => {
         const checkpointDiff = { files: [{ path: 'src/a.ts', kind: 'update' as const, added: 2, deleted: 1, diff: '@@\n+a\n' }], truncated: false };
 
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             { id: 't4', kind: 'turn', createdAt: 1, turnId: 't4', state: 'done', endedAt: 2, costUsd: 0, checkpoint: 'abc', checkpointDiff },
             { id: 'u4', kind: 'user', createdAt: 1, turnId: 't4', text: 'patch it' },
             tool('s1', 'Bash', { command: 'sed -i s/a/b/ src/a.ts' }, 'done', 't4')
@@ -386,7 +407,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('a checkpoint diff without files leaves the card out', () => {
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             {
                 id: 't5',
                 kind: 'turn',
@@ -406,7 +427,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('a subagent is one row that carries its own work, and its text stays out of the thread', () => {
-        const subagent: ChatItem = {
+        const subagent: ChatThreadItem = {
             id: 'sa1',
             kind: 'subagent',
             createdAt: 2,
@@ -426,7 +447,7 @@ describe('deriveTimelineRows', () => {
             itemsTruncated: false
         };
 
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             { id: 't6', kind: 'turn', createdAt: 1, turnId: 't6', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u6', kind: 'user', createdAt: 1, turnId: 't6', text: 'find it' },
             subagent,
@@ -441,7 +462,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('an agent a subagent opened is a row under its parent, found from a header that names it', () => {
-        const row = (id: string, toolUseId: string, parentToolUseId?: string): ChatItem => ({
+        const row = (id: string, toolUseId: string, parentToolUseId?: string): ChatThreadItem => ({
             id,
             kind: 'subagent',
             createdAt: 2,
@@ -462,7 +483,7 @@ describe('deriveTimelineRows', () => {
             ...(parentToolUseId === undefined ? {} : { parentToolUseId })
         });
 
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             { id: 't7', kind: 'turn', createdAt: 1, turnId: 't7', state: 'running', endedAt: null, costUsd: 0 },
             { id: 'u7', kind: 'user', createdAt: 1, turnId: 't7', text: 'go' },
             row('middle', 'toolu_mid'),
@@ -485,7 +506,7 @@ describe('deriveTimelineRows', () => {
     });
 
     test('subagent tool calls of an older record stay hidden and items without a turn render as they are', () => {
-        const items: ChatItem[] = [
+        const items: ChatThreadItem[] = [
             { id: 'u', kind: 'user', createdAt: 1, turnId: null, text: 'old' },
             { ...tool('inner', 'Read', {}), turnId: null, parentToolUseId: 'task-1' },
             { id: 'a', kind: 'assistant', createdAt: 2, turnId: null, text: 'old answer', streaming: false }
@@ -497,7 +518,7 @@ describe('deriveTimelineRows', () => {
     test('a workflow is a row of its own, and stays out of the fold of its settled turn until it ends', () => {
         const workflow = { name: 'review', phases: [{ index: 1, title: 'Read' }], agents: [] };
 
-        const items = (state: ChatToolItem['state']): ChatItem[] => [
+        const items = (state: ChatToolItem['state']): ChatThreadItem[] => [
             thread[0]!,
             thread[1]!,
             tool('r1', 'Read', { file_path: 'a.ts' }),
@@ -539,7 +560,7 @@ describe('deriveTimelineRows', () => {
             itemsTruncated: false
         });
 
-        const items = (status: ChatSubagentItem['status']): ChatItem[] => [
+        const items = (status: ChatSubagentItem['status']): ChatThreadItem[] => [
             thread[0]!,
             thread[1]!,
             tool('r1', 'Read', { file_path: 'a.ts' }),
@@ -609,7 +630,14 @@ describe('labels', () => {
     test('an aborted turn the machine ended after a restart is not one the person stopped', () => {
         const turn = { id: 't', kind: 'turn' as const, createdAt: 0, turnId: 't', state: 'aborted' as const, endedAt: 8000, costUsd: 0 };
 
-        const note = (text: string, level: 'info' | 'warning' = 'warning'): ChatItem => ({ id: 'n', kind: 'note', createdAt: 1, turnId: 't', level, text });
+        const note = (text: string, level: 'info' | 'warning' = 'warning'): ChatThreadItem => ({
+            id: 'n',
+            kind: 'note',
+            createdAt: 1,
+            turnId: 't',
+            level,
+            text
+        });
 
         expect(turnLabel(turn, [turn, note(notResumedNote('the agent had not started a session to resume yet'))])).toBe('Stopped after 8s');
         // Any other warning in a turn a person stopped (a CLI that retried, say) leaves it theirs.
@@ -688,7 +716,7 @@ describe('labels', () => {
 });
 
 describe('thinking rows', () => {
-    const thinking = (streaming: boolean): ChatItem => ({
+    const thinking = (streaming: boolean): ChatThreadItem => ({
         id: 'k1',
         kind: 'thinking',
         createdAt: 1000,
@@ -728,10 +756,10 @@ describe('thinking rows', () => {
 });
 
 describe('the live thought', () => {
-    const running: ChatItem = { id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 };
-    const asked: ChatItem = { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'fix it' };
+    const running: ChatThreadItem = { id: 't2', kind: 'turn', createdAt: 1000, turnId: 't2', state: 'running', endedAt: null, costUsd: 0 };
+    const asked: ChatThreadItem = { id: 'u2', kind: 'user', createdAt: 1000, turnId: 't2', text: 'fix it' };
 
-    const thought = (id: string, text = 'The entry is written first.'): ChatItem => ({
+    const thought = (id: string, text = 'The entry is written first.'): ChatThreadItem => ({
         id,
         kind: 'thinking',
         createdAt: 1000,
@@ -743,7 +771,8 @@ describe('the live thought', () => {
 
     const call = (id: string, state: ChatToolItem['state']): ChatToolItem => ({ ...tool(id, 'Bash', { command: 'bun test' }, state, 't2'), createdAt: 3000 });
 
-    const kinds = (items: ChatItem[], activeTurnId: string | null = 't2') => deriveTimelineRows(items, { ...options, activeTurnId }).map((row) => row.kind);
+    const kinds = (items: ChatThreadItem[], activeTurnId: string | null = 't2') =>
+        deriveTimelineRows(items, { ...options, activeTurnId }).map((row) => row.kind);
 
     test.each([false, true])('a tool group never repeats its thought when expanded is %s', (expanded) => {
         const rows = deriveTimelineRows([running, asked, thought('k1'), call('r1', 'done'), call('b1', 'running')], {
@@ -767,7 +796,7 @@ describe('the live thought', () => {
 });
 
 test("a subagent's handback call reads as its report, and one without a message stays a tool call", () => {
-    const items: ChatItem[] = [
+    const items: ChatThreadItem[] = [
         tool('b1', 'Bash', { command: 'git diff' }, 'done', 'x'),
         tool('h1', 'SubagentHandback', { message: '## Review\n\nAll good.' }, 'done', 'x'),
         tool('h2', 'SubagentHandback', {}, 'done', 'x')
@@ -803,7 +832,7 @@ describe('a message sent with a command of a look', () => {
     const bash = (id: string, command: string, state: ChatToolItem['state'] = 'done'): ChatToolItem => tool(id, 'Bash', { command }, state);
 
     test('a line of only that call becomes a row of its own, with tool lines kept apart around it', () => {
-        const items: ChatItem[] = [bash('1', 'ls'), bash('2', "chatter say chat-b 'on it'"), bash('3', 'ls')].map((call) => ({ ...call, turnId: null }));
+        const items: ChatThreadItem[] = [bash('1', 'ls'), bash('2', "chatter say chat-b 'on it'"), bash('3', 'ls')].map((call) => ({ ...call, turnId: null }));
         const rows = deriveTimelineRows(items, looked);
         expect(rows.map((row) => row.kind)).toEqual(['work-group', 'sent', 'work-group']);
         expect(rows[1]).toMatchObject({ id: '2', sent: { to: 'chat-b', text: 'on it', state: 'delivered' } });
@@ -831,7 +860,7 @@ describe('a message sent with a command of a look', () => {
     });
 
     test('a settled turn folds it with the work and says how many went, failed ones among the calls', () => {
-        const turn: ChatItem[] = [
+        const turn: ChatThreadItem[] = [
             { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 13_000, costUsd: 0 },
             { id: 'u1', kind: 'user', createdAt: 1000, turnId: 't1', text: 'tell them' },
             bash('1', "chatter say chat-b 'one'"),
@@ -868,7 +897,7 @@ describe('runs of a command look', () => {
 
     const bash = (id: string, command: string): ChatToolItem => tool(id, 'Bash', { command });
 
-    const loose = (calls: ChatToolItem[]): ChatItem[] => calls.map((call) => ({ ...call, turnId: null }));
+    const loose = (calls: ChatToolItem[]): ChatThreadItem[] => calls.map((call) => ({ ...call, turnId: null }));
 
     test('a group of one key reads as its sentence, and carries the look', () => {
         const calls = [bash('1', 'orbit probe a'), bash('2', 'sleep 1; orbit probe b')];
@@ -911,7 +940,7 @@ describe('runs of a tool look', () => {
 
     const LOOKS = [ORBIT];
 
-    const loose = (calls: ChatToolItem[]): ChatItem[] => calls.map((call) => ({ ...call, turnId: null }));
+    const loose = (calls: ChatToolItem[]): ChatThreadItem[] => calls.map((call) => ({ ...call, turnId: null }));
 
     test('calls in the shapes of different CLIs read as one look', () => {
         const calls = [tool('1', 'mcp__orbit__probe_send', {}), tool('2', 'orbit/probe_list', {}), tool('3', 'Tool', { description: 'orbit-probe_stop' })];
@@ -923,7 +952,7 @@ describe('runs of a tool look', () => {
     });
 
     test('a message is a row of its own and counts in a folded turn', () => {
-        const turn: ChatItem[] = [
+        const turn: ChatThreadItem[] = [
             { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 13_000, costUsd: 0 },
             tool('1', 'mcp__orbit__probe_send', {}),
             tool('2', 'mcp__orbit__say', { text: 'on it' }),

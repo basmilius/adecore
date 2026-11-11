@@ -1,7 +1,5 @@
-import type { ChatItem } from '@adecore/agent-contracts';
-
 /* The report a `SubagentHandback` call carries in `input.message` (Claude Code 2.1.273), or null for any other item. */
-export function handbackReportOf(item: ChatItem): string | null {
+export function handbackReportOf(item: ChatThreadItem): string | null {
     if (item.kind !== 'tool' || item.name !== 'SubagentHandback' || typeof item.input !== 'object' || item.input === null) {
         return null;
     }
@@ -10,3 +8,4 @@ export function handbackReportOf(item: ChatItem): string | null {
 
     return typeof message === 'string' && message.trim() !== '' ? message : null;
 }
+import type { ChatThreadItem } from '../../chat-sink';

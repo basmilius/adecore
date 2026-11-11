@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem, ChatWorkflow, ChatWorkflowAgent } from '@adecore/agent-contracts';
+import type { ChatWorkflow, ChatWorkflowAgent } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../chat-sink';
 import { flyoutWorkflows, workflowPillOf, workflowWordOf, type WorkflowCall } from './workflow-list';
 
 function agent(index: number, status: ChatWorkflowAgent['status']): ChatWorkflowAgent {
@@ -34,7 +35,7 @@ function call(id: string, state: 'running' | 'done' | 'error', workflow: Partial
 describe('flyoutWorkflows', () => {
     test('lists the ones from before the page first, and leaves out a call that never reported', () => {
         const unreported = { ...call('quiet', 'running'), workflow: undefined };
-        const structure: Record<string, ChatItem> = { old: call('old', 'running'), quiet: unreported, now: call('now', 'running') };
+        const structure: Record<string, ChatThreadItem> = { old: call('old', 'running'), quiet: unreported, now: call('now', 'running') };
 
         expect(flyoutWorkflows(['old', 'quiet', 'now', 'gone'], structure).map((item) => item.id)).toEqual(['old', 'now']);
     });

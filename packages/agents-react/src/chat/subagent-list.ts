@@ -1,7 +1,8 @@
-import { activeSubagents, HOST_TASK_ORIGIN, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { activeSubagents, HOST_TASK_ORIGIN, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment, formatElapsedShort } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
+import type { ChatThreadInfo, ChatThreadItem } from '../chat-sink';
 import type { SubagentTask } from '../host/host';
 
 export function subagentTitle(item: ChatSubagentItem): string {
@@ -24,7 +25,7 @@ export function statusWordOf(item: ChatSubagentItem, task: SubagentTask | null):
 /* What a task's row says its agent is doing: the task's own state, or that the agent waits on a person while the task runs. */
 export type TaskRowState = StatusWord | 'waiting';
 
-export function taskRowStateOf(item: ChatSubagentItem, task: SubagentTask | null, child: ChatInfo | undefined): TaskRowState {
+export function taskRowStateOf(item: ChatSubagentItem, task: SubagentTask | null, child: ChatThreadInfo | undefined): TaskRowState {
     const word = statusWordOf(item, task);
 
     if (word === 'running' && (child?.status === 'needs-you' || (child?.requests?.length ?? 0) > 0)) {
@@ -45,7 +46,7 @@ export function progressOf(states: readonly TaskRowState[]): { done: number; tot
 }
 
 /* What the flyout over the composer lists (`activeSubagents`); `order` puts the rows from before the page first. */
-export function flyoutSubagents(order: readonly string[], structure: Readonly<Record<string, ChatItem>>): ChatSubagentItem[] {
+export function flyoutSubagents(order: readonly string[], structure: Readonly<Record<string, ChatThreadItem>>): ChatSubagentItem[] {
     return activeSubagents(
         order.flatMap((id) => {
             const item = structure[id];

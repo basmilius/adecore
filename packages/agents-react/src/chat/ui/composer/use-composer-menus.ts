@@ -1,6 +1,7 @@
-import type { ChatInfo, ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
 import { useEffect, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { ChatThreadInfo } from '../../../chat-sink';
 import { useHostAccountRule, useHostReferables } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import type { ComposerInputHandle } from '../ComposerInput';
@@ -14,7 +15,7 @@ const LOCAL_COMMANDS = ['model', 'compact', 'clear'];
 
 interface MenusInput {
     chatId: string;
-    info: ChatInfo;
+    info: ChatThreadInfo;
     capabilities: ProviderCapabilities | undefined;
     providerName: string | undefined;
     draft: ComposerDraft;

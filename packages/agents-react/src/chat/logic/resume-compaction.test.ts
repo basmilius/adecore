@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import {
     RESUME_COMPACTION_IDLE_MS,
     RESUME_COMPACTION_TOKENS,
@@ -12,7 +12,7 @@ import {
 const NOW = 1_800_000_000_000;
 const ENDED = NOW - RESUME_COMPACTION_IDLE_MS;
 
-function info(patch: Partial<ChatInfo> = {}): ChatInfo {
+function info(patch: Partial<ChatThreadInfo> = {}): ChatThreadInfo {
     return {
         chatId: 'chat-1',
         provider: 'claude',
@@ -31,7 +31,7 @@ function info(patch: Partial<ChatInfo> = {}): ChatInfo {
     };
 }
 
-function turn(id: string, endedAt: number | null, createdAt = 0): ChatItem {
+function turn(id: string, endedAt: number | null, createdAt = 0): ChatThreadItem {
     return {
         id,
         kind: 'turn',
@@ -43,7 +43,7 @@ function turn(id: string, endedAt: number | null, createdAt = 0): ChatItem {
     };
 }
 
-function compaction(turnId: string): ChatItem {
+function compaction(turnId: string): ChatThreadItem {
     return { id: `compaction-${turnId}`, kind: 'compaction', createdAt: 0, turnId, preTokens: 180_000 };
 }
 

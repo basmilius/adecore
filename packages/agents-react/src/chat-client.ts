@@ -11,6 +11,7 @@ import type {
     ProviderInfo,
     RuntimeMode
 } from '@adecore/agent-contracts';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import type { ChatSink } from './chat-sink';
 import { MountedRegistry, type MountedEntry } from './mounted-registry';
 import { errorCode, isConnectionError, type ChatTransport, type ChatTransportStatus } from './transport';
@@ -70,7 +71,7 @@ export class ChatClient {
     private readonly unsubscribe: Array<() => void> = [];
     private readonly earlier = new Map<string, Promise<void>>();
     private readonly observers = new Map<string, number>();
-    private readonly inspections = new Map<string, Promise<ChatAttachResult>>();
+    private readonly inspections = new Map<string, Promise<Tolerant<ChatAttachResult>>>();
     private preferences: ChatPreferencesPayload | null = null;
     private checkpoints = new WeakMap<object, number>();
 
@@ -101,7 +102,7 @@ export class ChatClient {
         }
     }
 
-    inspect(chatId: string): Promise<ChatAttachResult> {
+    inspect(chatId: string): Promise<Tolerant<ChatAttachResult>> {
         const pending = this.inspections.get(chatId);
 
         if (pending) {

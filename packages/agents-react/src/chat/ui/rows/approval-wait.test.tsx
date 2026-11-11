@@ -1,8 +1,9 @@
 import { expect, test } from 'bun:test';
-import type { ChatApprovalItem, ChatInfo, ChatToolItem } from '@adecore/agent-contracts';
+import type { ChatApprovalItem, ChatToolItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ChatThreadInfo } from '../../../chat-sink';
 import { ChatHostProvider } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
@@ -16,7 +17,7 @@ const scope = {
     owns: (key: string) => key.startsWith('approval-wait-test/')
 } as unknown as ChatScope;
 
-const info = { chatId: 'chat', provider: 'antigravity', status: 'needs-you', activeTurnId: 'turn', background: [] } as unknown as ChatInfo;
+const info = { chatId: 'chat', provider: 'antigravity', status: 'needs-you', activeTurnId: 'turn', background: [] } as unknown as ChatThreadInfo;
 
 const tool = {
     id: 'tool-item',

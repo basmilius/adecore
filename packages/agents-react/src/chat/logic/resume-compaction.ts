@@ -1,4 +1,5 @@
-import type { ChatInfo, ChatItem, ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ProviderCapabilities } from '@adecore/agent-contracts';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 
 /*
  * An absolute count, not a share of the window: reading a thread again costs per token, so 100k in a
@@ -19,18 +20,18 @@ export interface ResumeCompactionOffer {
     reason: ResumeCompactionReason;
 }
 
-type Turn = Extract<ChatItem, { kind: 'turn' }>;
+type Turn = Extract<ChatThreadItem, { kind: 'turn' }>;
 
 interface OfferInput {
-    info: ChatInfo;
+    info: ChatThreadInfo;
     /* Absent until the host answered `provider.list`. */
     compaction: ProviderCapabilities['compaction'] | undefined;
-    items: readonly ChatItem[];
+    items: readonly ChatThreadItem[];
     dismissedTurnId: string | null;
 }
 
 /* The newest turn by when it started, so a thread that arrives out of order still names the turn that ran last. */
-function lastTurn(items: readonly ChatItem[]): Turn | null {
+function lastTurn(items: readonly ChatThreadItem[]): Turn | null {
     let last: Turn | null = null;
 
     for (const item of items) {
@@ -72,7 +73,7 @@ function offerableTurn({ info, compaction, items, dismissedTurnId }: OfferInput)
 }
 
 /* A silence longer than any cache lives stands in for an expiry from a CLI that names none. */
-function dueAtOf(info: ChatInfo, endedAt: number): number {
+function dueAtOf(info: ChatThreadInfo, endedAt: number): number {
     return info.usage.cacheExpiresAt ?? endedAt + RESUME_COMPACTION_IDLE_MS;
 }
 

@@ -30,6 +30,12 @@ test('an overload says when it tries again, or that a message does', () => {
     });
 });
 
+test('a limit of a kind a newer host knows says only that the turn stopped', () => {
+    const limit = { kind: 'future-limit', resetsAt: LATER } as unknown as { kind: 'usage'; resetsAt: number };
+
+    expect(limitView({ limit, activeTurnId: null }, NOW)).toEqual({ pill: 'Stopped', title: 'Stopped on a limit', detail: null });
+});
+
 test('nothing while the last turn stopped on nothing, or while a turn runs', () => {
     expect(limitView({ activeTurnId: null }, NOW)).toBeNull();
     expect(limitView({ limit: { kind: 'overload' }, activeTurnId: 'turn-2' }, NOW)).toBeNull();

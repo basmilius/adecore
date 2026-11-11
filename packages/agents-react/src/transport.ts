@@ -1,15 +1,17 @@
 import type { AGENT_EVENT_SCHEMAS, AGENT_REQUEST_SCHEMAS, AgentEventType, AgentRequestType } from '@adecore/agent-contracts/protocol';
+import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import type { z } from 'zod';
 
+// What a client sends stays strict; what it reads may come from a newer host, as `readTolerant` reads it.
 export type ChatRequestMap = {
     [T in AgentRequestType]: {
         payload: z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['payload']>;
-        result: z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['result']>;
+        result: Tolerant<z.infer<(typeof AGENT_REQUEST_SCHEMAS)[T]['result']>>;
     };
 };
 
 export type ChatEventMap = {
-    [E in AgentEventType]: z.infer<(typeof AGENT_EVENT_SCHEMAS)[E]>;
+    [E in AgentEventType]: Tolerant<z.infer<(typeof AGENT_EVENT_SCHEMAS)[E]>>;
 };
 
 export type ChatTransportStatus = 'connecting' | 'open' | 'closed';

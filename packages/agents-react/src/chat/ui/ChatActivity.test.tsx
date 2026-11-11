@@ -1,8 +1,8 @@
 import { expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import { ChatHostProvider, type ChatHost } from '../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../scope';
 import { useChats } from '../../state/chats';
@@ -14,8 +14,8 @@ const scope = {
     owns: (key: string) => key.startsWith('activity-test/')
 } as unknown as ChatScope;
 
-function infoOf(chatId: string, status: string): ChatInfo {
-    return { chatId, provider: 'claude', status, activeTurnId: null, background: [] } as unknown as ChatInfo;
+function infoOf(chatId: string, status: string): ChatThreadInfo {
+    return { chatId, provider: 'claude', status, activeTurnId: null, background: [] } as unknown as ChatThreadInfo;
 }
 
 const subagent = {
@@ -37,9 +37,9 @@ const subagent = {
     lastTool: null,
     itemsTruncated: false,
     childId: 'child'
-} as ChatItem;
+} as ChatThreadItem;
 
-const workflow: ChatItem = {
+const workflow: ChatThreadItem = {
     id: 'flow',
     kind: 'tool',
     createdAt: 0,
@@ -145,7 +145,7 @@ test('the background chip counts its commands and monitors, like the subagent ch
             { id: 'b2', kind: 'monitor', description: 'Tail the log', command: null, startedAt: 10 * 60_000 },
             { id: 'b1', kind: 'shell', description: 'Watch CI', command: 'gh run watch', startedAt: 60_000 }
         ]
-    } as ChatInfo;
+    } as ChatThreadInfo;
 
     useChats.getState().reset(scope.keyOf('chat'), info, []);
 

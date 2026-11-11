@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem } from '@adecore/agent-contracts';
+import type { ChatThreadItem } from '../../chat-sink';
 import { bookmarkRows } from './bookmarks';
 import {
     EARLIER_ROW,
@@ -21,7 +21,7 @@ import { deriveTimelineRows } from './timeline';
 
 const options = { expandedGroups: new Set<string>(), expandedTurns: new Set<string>(), expandedSubagents: new Set<string>(), activeTurnId: null };
 
-const thread: ChatItem[] = [
+const thread: ChatThreadItem[] = [
     { id: 't1', kind: 'turn', createdAt: 1000, turnId: 't1', state: 'done', endedAt: 2000, costUsd: 0 },
     { id: 'u1', kind: 'user', createdAt: 1000, turnId: 't1', text: 'fix it' },
     { id: 'a1', kind: 'assistant', createdAt: 1500, turnId: 't1', text: 'Done.', streaming: false },
@@ -37,7 +37,7 @@ const thread: ChatItem[] = [
         turnId: 't4',
         text: '',
         attachments: [{ id: 'f1', name: 'shot.png', mime: 'image/png', size: 10 }]
-    } as ChatItem
+    } as ChatThreadItem
 ];
 
 describe('ticksOf', () => {
@@ -56,7 +56,7 @@ describe('ticksOf', () => {
     });
 
     test('a wake by a message is a place to return to as much as a wake by a task', () => {
-        const woken: ChatItem[] = [
+        const woken: ChatThreadItem[] = [
             {
                 id: 't5',
                 kind: 'turn',
@@ -90,7 +90,7 @@ describe('ticksOf', () => {
             ['u4', 'person', null]
         ]);
 
-        const folded: ChatItem[] = [
+        const folded: ChatThreadItem[] = [
             { id: 't9', kind: 'turn', createdAt: 1, turnId: 't9', state: 'done', endedAt: 2, costUsd: 0 },
             { id: 'u9', kind: 'user', createdAt: 1, turnId: 't9', text: 'go' },
             { id: 'a9', kind: 'assistant', createdAt: 1, turnId: 't9', text: 'On it.', streaming: false },

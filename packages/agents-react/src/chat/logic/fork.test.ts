@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem, ProviderInfo } from '@adecore/agent-contracts';
+import type { ProviderInfo } from '@adecore/agent-contracts';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import {
     branchRefusal,
     forkedTurnIds,
@@ -15,7 +16,7 @@ import {
 } from './fork';
 import { deriveTimelineRows } from './timeline';
 
-function info(patch: Partial<ChatInfo> = {}): ChatInfo {
+function info(patch: Partial<ChatThreadInfo> = {}): ChatThreadInfo {
     return {
         chatId: 'chat-1',
         provider: 'claude',
@@ -34,7 +35,7 @@ function info(patch: Partial<ChatInfo> = {}): ChatInfo {
     };
 }
 
-const thread: ChatItem[] = [
+const thread: ChatThreadItem[] = [
     { id: 't1', kind: 'turn', createdAt: 0, turnId: 't1', state: 'done', endedAt: 1, costUsd: 0 },
     { id: 'u1', kind: 'user', createdAt: 0, turnId: 't1', text: '\nMake the lexer handle unicode identifiers everywhere it reads a name\nand test it' },
     { id: 't2', kind: 'turn', createdAt: 2, turnId: 't2', state: 'aborted', endedAt: 3, costUsd: 0, origin: 'agent', label: 'Woken by 2 tasks' },

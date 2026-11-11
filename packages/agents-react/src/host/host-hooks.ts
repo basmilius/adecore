@@ -5,7 +5,7 @@
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
 import type { AccountRule } from './host';
-import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem } from './host';
+import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem, type UnknownItemWords } from './host';
 import { referablesOfChats, type Referables } from './references';
 
 export function useHostCodeMode(): 'light' | 'dark' {
@@ -30,6 +30,14 @@ export function useHostTask(...args: Parameters<ChatHost['tasks']['useTask']>): 
 
 export function useHostExtraPrompts(...args: Parameters<ChatHost['prompts']['useExtra']>): ReturnType<ChatHost['prompts']['useExtra']> {
     return useChatHost().prompts.useExtra(...args);
+}
+
+const useNoUnknownItemWords = (): UnknownItemWords | null => null;
+
+export function useHostUnknownItemWords(): UnknownItemWords | null {
+    const useWords = useChatHost().useUnknownItemWords ?? useNoUnknownItemWords;
+
+    return useWords();
 }
 
 export function useHostStreaming(): ReturnType<ChatHost['useStreaming']> {

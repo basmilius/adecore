@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
-import type { ChatInfo, ChatItem, ChatSubagentItem } from '@adecore/agent-contracts';
+import type { ChatSubagentItem } from '@adecore/agent-contracts';
 import { compileUi } from '@adecore/intelligent-ui';
+import type { ChatThreadInfo, ChatThreadItem } from '../chat-sink';
 import { flyoutSubagents } from '../chat/subagent-list';
 import { applyEvent, chatSink, prependPage, useChats, waitingRequestsOf, type ChatState } from './chats';
 
@@ -8,7 +9,7 @@ import { applyEvent, chatSink, prependPage, useChats, waitingRequestsOf, type Ch
 beforeEach(() => setSystemTime(Date.now()));
 afterEach(() => setSystemTime());
 
-function info(patch: Partial<ChatInfo> = {}): ChatInfo {
+function info(patch: Partial<ChatThreadInfo> = {}): ChatThreadInfo {
     return {
         chatId: 'chat-1',
         provider: 'claude',
@@ -27,13 +28,19 @@ function info(patch: Partial<ChatInfo> = {}): ChatInfo {
     };
 }
 
-function user(id: string, text: string): Extract<ChatItem, { kind: 'user' }> {
+function user(id: string, text: string): Extract<ChatThreadItem, { kind: 'user' }> {
     return { id, kind: 'user', createdAt: 0, turnId: null, text };
 }
 
 describe('applyEvent', () => {
+    test('an event of a newer host leaves the thread as it was', () => {
+        const state: ChatState = { info: info(), items: { u: user('u', 'Hello') }, structure: { u: user('u', 'Hello') }, order: ['u'] };
+
+        expect(applyEvent(state, { type: 'unknown', raw: { type: 'future-event', itemId: 'u' } })).toBe(state);
+    });
+
     test('a delta grows the text of a thinking item as it does an assistant one', () => {
-        const thinking: ChatItem = { id: 't', kind: 'thinking', createdAt: 0, turnId: null, text: 'Let me', streaming: true, endedAt: null };
+        const thinking: ChatThreadItem = { id: 't', kind: 'thinking', createdAt: 0, turnId: null, text: 'Let me', streaming: true, endedAt: null };
         const state: ChatState = { info: info(), items: { t: thinking }, structure: { t: thinking }, order: ['t'] };
 
         const next = applyEvent(state, { type: 'delta', itemId: 't', text: ' think' });
@@ -42,7 +49,7 @@ describe('applyEvent', () => {
     });
 
     test('a delta with query metadata grows the text before it patches the reply, as the daemon does', () => {
-        const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
+        const reply: ChatThreadItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
         const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
         const uiQueries = { authorChatId: 'chat-1', blocks: {} };
 
@@ -52,7 +59,7 @@ describe('applyEvent', () => {
     });
 
     test('a delta on a reply with text leaves the structure the rows are derived from as it was', () => {
-        const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
+        const reply: ChatThreadItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
         const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
 
         const next = applyEvent(state, { type: 'delta', itemId: 'r', text: ' there' });
@@ -63,9 +70,9 @@ describe('applyEvent', () => {
     });
 
     test('the first text of a reply and an item event change the structure', () => {
-        const empty: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: false };
+        const empty: ChatThreadItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: false };
 
-        const tool: ChatItem = {
+        const tool: ChatThreadItem = {
             id: 'x',
             kind: 'tool',
             createdAt: 0,
@@ -88,9 +95,9 @@ describe('applyEvent', () => {
     });
 
     test("a stream of tool output and a sub-agent's words leaves the structure of a long thread as it was", () => {
-        const thread: ChatItem[] = Array.from({ length: 5000 }, (_, i) => user(`u${i}`, `message ${i}`));
+        const thread: ChatThreadItem[] = Array.from({ length: 5000 }, (_, i) => user(`u${i}`, `message ${i}`));
 
-        const tool: ChatItem = {
+        const tool: ChatThreadItem = {
             id: 'x',
             kind: 'tool',
             createdAt: 0,
@@ -103,7 +110,7 @@ describe('applyEvent', () => {
             parentToolUseId: null
         };
 
-        const child: ChatItem = { id: 'c', kind: 'assistant', createdAt: 0, turnId: null, text: 'Reading', streaming: true, parentToolUseId: 'task-1' };
+        const child: ChatThreadItem = { id: 'c', kind: 'assistant', createdAt: 0, turnId: null, text: 'Reading', streaming: true, parentToolUseId: 'task-1' };
         const items = Object.fromEntries([...thread, tool, child].map((item) => [item.id, item]));
         const start: ChatState = { info: info(), items, structure: items, order: Object.keys(items) };
 
@@ -215,7 +222,7 @@ describe('visuals in the store', () => {
 describe('the statuses beside the threads', () => {
     test('stay the same object while a reply streams, and change with the info', () => {
         const key = 'status-test/chat-1';
-        const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
+        const reply: ChatThreadItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text: 'Hello', streaming: true };
         useChats.getState().reset(key, info({ status: 'running' }), [reply]);
         const streaming = useChats.getState().statusByKey;
         expect(streaming[key]?.info.status).toBe('running');
@@ -251,7 +258,7 @@ describe('the statuses beside the threads', () => {
 });
 
 describe('a thread held from its newest page', () => {
-    const question = (id: string, state: 'pending' | 'answered'): ChatItem => ({
+    const question = (id: string, state: 'pending' | 'answered'): ChatThreadItem => ({
         id,
         kind: 'question',
         createdAt: 0,
@@ -370,7 +377,7 @@ describe('a thread held from its newest page', () => {
     });
 
     describe('with workflows from before it', () => {
-        const workflow = (id: string, state: 'running' | 'done', agents = 0): Extract<ChatItem, { kind: 'tool' }> => ({
+        const workflow = (id: string, state: 'running' | 'done', agents = 0): Extract<ChatThreadItem, { kind: 'tool' }> => ({
             id,
             kind: 'tool',
             createdAt: 0,
@@ -397,7 +404,7 @@ describe('a thread held from its newest page', () => {
             }
         });
 
-        const holding = (...workflows: Extract<ChatItem, { kind: 'tool' }>[]): ChatState => {
+        const holding = (...workflows: Extract<ChatThreadItem, { kind: 'tool' }>[]): ChatState => {
             useChats.getState().reset(key, info(), newest, { history: { start: 2, cursor: 'g:2' }, pending: [], workflows });
             const state = useChats.getState().byKey[key]!;
             useChats.getState().forget(key);
@@ -422,7 +429,7 @@ describe('a thread held from its newest page', () => {
             expect(state.workflowsBefore).toEqual(['w0', 'w1']);
 
             // Any other call from before the page stays out.
-            const call = { ...workflow('bash', 'running'), name: 'Bash' } as ChatItem;
+            const call = { ...workflow('bash', 'running'), name: 'Bash' } as ChatThreadItem;
             expect(applyEvent(state, { type: 'item', item: call, historyIndex: 1 })).toBe(state);
         });
 
@@ -447,7 +454,7 @@ describe('a thread held from its newest page', () => {
 
 test('a UI preview updates only the matching streaming text without changing timeline structure', () => {
     const text = '```ui\n<Summary>Ready</Summary>\n```';
-    const reply: ChatItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text, streaming: true };
+    const reply: ChatThreadItem = { id: 'r', kind: 'assistant', createdAt: 0, turnId: null, text, streaming: true };
     const state: ChatState = { info: info(), items: { r: reply }, structure: { r: reply }, order: ['r'] };
     const ui = compileUi(text, { id: 'r' });
     const event = { type: 'delta' as const, itemId: 'r', text: '', textLength: text.length, ui };
@@ -464,9 +471,9 @@ describe('chat replay publication', () => {
     test('keeps old snapshots and the last structural text while replaying mixed events', () => {
         const key = 'batch-replay';
         const sink = chatSink(() => key);
-        const reply: ChatItem = { id: 'reply', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: true };
+        const reply: ChatThreadItem = { id: 'reply', kind: 'assistant', createdAt: 0, turnId: null, text: '', streaming: true };
 
-        const tool: ChatItem = {
+        const tool: ChatThreadItem = {
             id: 'tool',
             kind: 'tool',
             createdAt: 0,

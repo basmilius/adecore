@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { ENDED_NOTE_PREFIX, notResumedNote, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
+import { ENDED_NOTE_PREFIX, notResumedNote } from '@adecore/agent-contracts';
+import type { ChatThreadInfo, ChatThreadItem } from '../../chat-sink';
 import { continuableTurn } from './continue-after-stop';
 
-function info(patch: Partial<ChatInfo> = {}): ChatInfo {
+function info(patch: Partial<ChatThreadInfo> = {}): ChatThreadInfo {
     return {
         chatId: 'chat-1',
         provider: 'claude',
@@ -21,12 +22,12 @@ function info(patch: Partial<ChatInfo> = {}): ChatInfo {
     };
 }
 
-function turn(id: string, state: 'running' | 'done' | 'aborted' | 'error', patch: Record<string, unknown> = {}): ChatItem {
-    return { id, kind: 'turn', createdAt: 10, turnId: id, state, endedAt: state === 'running' ? null : 20, costUsd: 0, ...patch } as ChatItem;
+function turn(id: string, state: 'running' | 'done' | 'aborted' | 'error', patch: Record<string, unknown> = {}): ChatThreadItem {
+    return { id, kind: 'turn', createdAt: 10, turnId: id, state, endedAt: state === 'running' ? null : 20, costUsd: 0, ...patch } as ChatThreadItem;
 }
 
-function user(id: string, turnId: string, createdAt: number): ChatItem {
-    return { id, kind: 'user', createdAt, turnId, text: 'Hello' } as ChatItem;
+function user(id: string, turnId: string, createdAt: number): ChatThreadItem {
+    return { id, kind: 'user', createdAt, turnId, text: 'Hello' } as ChatThreadItem;
 }
 
 const STOPPED = [turn('turn-1', 'aborted'), user('user-1', 'turn-1', 11)];
@@ -46,7 +47,7 @@ describe('continuableTurn', () => {
     });
 
     test('a queued message keeps its own way out', () => {
-        const queue = [{ id: 'queued-1', text: 'Next', createdAt: 30 }] as unknown as ChatInfo['queue'];
+        const queue = [{ id: 'queued-1', text: 'Next', createdAt: 30 }] as unknown as ChatThreadInfo['queue'];
         expect(continuableTurn(info({ queue, queuePaused: true }), STOPPED)).toBeNull();
     });
 
@@ -56,7 +57,14 @@ describe('continuableTurn', () => {
     });
 
     test('a turn the machine ended has its own resume', () => {
-        const note = { id: 'note-1', kind: 'note', createdAt: 21, turnId: 'turn-1', level: 'warning', text: notResumedNote('the CLI is gone') } as ChatItem;
+        const note = {
+            id: 'note-1',
+            kind: 'note',
+            createdAt: 21,
+            turnId: 'turn-1',
+            level: 'warning',
+            text: notResumedNote('the CLI is gone')
+        } as ChatThreadItem;
         expect(continuableTurn(info(), [...STOPPED, note])).toBeNull();
     });
 
@@ -68,7 +76,7 @@ describe('continuableTurn', () => {
             turnId: 'turn-1',
             level: 'warning',
             text: 'Stopped with its children'
-        } as ChatItem;
+        } as ChatThreadItem;
 
         expect(continuableTurn(info(), [...STOPPED, note])).toBeNull();
     });
@@ -78,8 +86,8 @@ describe('continuableTurn', () => {
     });
 
     test('a paused goal is resumed from its own row', () => {
-        expect(continuableTurn(info({ goal: { objective: 'Ship it', status: 'paused' } as ChatInfo['goal'] }), STOPPED)).toBeNull();
-        expect(continuableTurn(info({ goal: { objective: 'Ship it', status: 'active' } as ChatInfo['goal'] }), STOPPED)).toBe('turn-1');
+        expect(continuableTurn(info({ goal: { objective: 'Ship it', status: 'paused' } as ChatThreadInfo['goal'] }), STOPPED)).toBeNull();
+        expect(continuableTurn(info({ goal: { objective: 'Ship it', status: 'active' } as ChatThreadInfo['goal'] }), STOPPED)).toBe('turn-1');
     });
 
     test('a message sent after the stop leaves nothing to continue', () => {

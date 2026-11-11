@@ -1,6 +1,6 @@
-import type { ChatInfo } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
 import i18next from 'i18next';
+import type { ChatThreadInfo } from '../../chat-sink';
 
 interface LimitView {
     /* The state in a word or two with its time, for a pill in a header. */
@@ -14,7 +14,7 @@ interface LimitView {
  * What a chat that stopped on a limit says about it, from its info alone, so a header that never holds
  * the thread says the same as the chat. Null while the last turn stopped on nothing, or a turn runs.
  */
-export function limitView(info: Pick<ChatInfo, 'limit' | 'resumeAt' | 'activeTurnId'>, now: number): LimitView | null {
+export function limitView(info: Pick<ChatThreadInfo, 'limit' | 'resumeAt' | 'activeTurnId'>, now: number): LimitView | null {
     const limit = info.limit;
 
     if (limit === undefined || info.activeTurnId !== null) {
@@ -29,6 +29,11 @@ export function limitView(info: Pick<ChatInfo, 'limit' | 'resumeAt' | 'activeTur
             title: i18next.t('agent-chat:limit.overload.title'),
             detail: resumes === null ? i18next.t('agent-chat:limit.overload.sendAgain') : i18next.t('agent-chat:limit.overload.retries', { time: resumes })
         };
+    }
+
+    // A kind of a newer host says only that the turn stopped, never which limit it was.
+    if (limit.kind !== 'usage') {
+        return { pill: i18next.t('agent-chat:limit.other.pill'), title: i18next.t('agent-chat:limit.other.title'), detail: null };
     }
 
     const title = i18next.t('agent-chat:limit.usage.title');

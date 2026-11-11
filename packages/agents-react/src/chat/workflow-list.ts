@@ -1,5 +1,6 @@
-import { activeWorkflows, type ChatItem, type ChatToolItem, type ChatWorkflow } from '@adecore/agent-contracts';
+import { activeWorkflows, type ChatToolItem, type ChatWorkflow } from '@adecore/agent-contracts';
 import i18next from 'i18next';
+import type { ChatThreadItem } from '../chat-sink';
 import { workflowCounts, workflowPhases } from './logic/workflow';
 
 /* A Workflow call that reported what it runs, which is every one `activeWorkflows` keeps. */
@@ -14,7 +15,7 @@ interface WorkflowPill {
 }
 
 /* What the workflow pill over the composer lists (`activeWorkflows`); `order` puts the calls from before the page first. */
-export function flyoutWorkflows(order: readonly string[], structure: Readonly<Record<string, ChatItem>>): WorkflowCall[] {
+export function flyoutWorkflows(order: readonly string[], structure: Readonly<Record<string, ChatThreadItem>>): WorkflowCall[] {
     return activeWorkflows(
         order.flatMap((id) => {
             const item = structure[id];

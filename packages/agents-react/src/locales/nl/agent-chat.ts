@@ -60,7 +60,8 @@ export default {
             blocked: 'Doel geblokkeerd',
             'usage-limited': 'Doel gestopt op een verbruikslimiet',
             'budget-limited': 'Doel heeft zijn tokenbudget op',
-            complete: 'Doel bereikt'
+            complete: 'Doel bereikt',
+            unknown: 'Doel in een toestand die deze versie niet kent'
         },
         pill: 'Doel',
         checks_one: '{{count}} controle nog niet gehaald',
@@ -74,6 +75,10 @@ export default {
         failed: 'Kon het doel niet wijzigen'
     },
     limit: {
+        other: {
+            pill: 'Gestopt',
+            title: 'Gestopt op een limiet'
+        },
         usage: {
             pill: 'Limiet bereikt',
             pillUntil: 'Limiet tot {{time}}',
@@ -153,6 +158,10 @@ export default {
             live: 'Denkt na…',
             thoughtFor: 'Nagedacht, {{duration}}',
             thought: 'Gedachte'
+        },
+        unknown: {
+            item: 'Werk de app bij om dit te zien.',
+            request: 'Beantwoord dit op de machine, of werk de app bij om hier te antwoorden.'
         },
         note: {
             hide: 'Verbergen',
@@ -480,6 +489,9 @@ export default {
         },
         shell: 'Shell',
         monitor: 'Monitor',
+        other: 'Achtergrondtaak',
+        others_one: '{{count}} achtergrondtaak',
+        others_other: '{{count}} achtergrondtaken',
         stop: 'Stoppen',
         stopFailed: 'Kon de taak niet stoppen'
     },
@@ -534,6 +546,10 @@ export default {
             label: 'Volledige toegang',
             hint: 'Vraagt nooit om goedkeuring',
             short: 'Volledig'
+        },
+        unknown: {
+            label: 'Ingesteld op de machine',
+            short: 'Op de machine'
         }
     },
     pickers: {

@@ -16,6 +16,12 @@ describe('goalView', () => {
         expect(goalView({ goal: goal('complete'), activeTurnId: null }, 'native', true)?.actions).toEqual(['clear']);
     });
 
+    test('a state of a newer host could mean either, so only a clear is offered for it', () => {
+        const future = { objective: 'ship it', status: 'future-state' } as unknown as ChatGoal;
+
+        expect(goalView({ goal: future, activeTurnId: null }, 'native', true)?.actions).toEqual(['clear']);
+    });
+
     test('a CLI that only reads `/goal` clears between turns, and never a goal it met', () => {
         expect(goalView({ goal: goal('paused'), activeTurnId: null }, 'command', true)?.actions).toEqual(['clear']);
         expect(goalView({ goal: goal('active'), activeTurnId: 'turn' }, 'command', true)?.actions).toEqual([]);

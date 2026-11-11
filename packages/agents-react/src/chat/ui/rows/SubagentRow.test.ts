@@ -1,8 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatItem, ChatSubagentItem, ChatToolItem } from '@adecore/agent-contracts';
+import type { ChatSubagentItem, ChatToolItem } from '@adecore/agent-contracts';
 import { parseHTML } from 'linkedom';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import type { ChatThreadItem } from '../../../chat-sink';
 import { ChatHostProvider } from '../../../host/host';
 import { ChatScopeContext, type ChatScope } from '../../../scope';
 import { SubagentRow } from './SubagentRow';
@@ -39,7 +40,7 @@ function tool(id: string, name: string): ChatToolItem {
     return { id, kind: 'tool', createdAt: 1, turnId: 't1', toolUseId: id, name, input: {}, output: '', state: 'done', parentToolUseId: 'agent-call' };
 }
 
-function render(work: ChatItem[], hidesToolCalls: boolean): Document {
+function render(work: ChatThreadItem[], hidesToolCalls: boolean): Document {
     const host = { useHidesToolCalls: () => hidesToolCalls };
     const row = createElement(SubagentRow, { chatId: 'chat', item, work, expanded: true, onToggle: () => undefined });
 

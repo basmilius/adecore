@@ -1,14 +1,14 @@
 import { expect, test } from 'bun:test';
-import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import { createPage } from '@adecore/editor/testing';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
+import type { ChatThreadInfo, ChatThreadItem } from '../chat-sink';
 import { ChatScopeContext, type ChatScope } from '../scope';
 import { useChats } from '../state/chats';
 import { useForkedTurns } from './forks';
 
-function infoOf(chatId: string, forkOf?: { chatId: string; turnId: string }): ChatInfo {
-    return { chatId, provider: 'claude', activeTurnId: null, ...(forkOf === undefined ? {} : { forkOf }) } as unknown as ChatInfo;
+function infoOf(chatId: string, forkOf?: { chatId: string; turnId: string }): ChatThreadInfo {
+    return { chatId, provider: 'claude', activeTurnId: null, ...(forkOf === undefined ? {} : { forkOf }) } as unknown as ChatThreadInfo;
 }
 
 test('the forked turns walk the chats again when an info changes, not for every streamed word', async () => {
@@ -24,7 +24,7 @@ test('the forked turns walk the chats again when an info changes, not for every 
         }
     } as unknown as ChatScope;
 
-    const reply: ChatItem = { id: 'reply', kind: 'assistant', turnId: 'turn-1', createdAt: 0, text: 'Hello', streaming: true };
+    const reply: ChatThreadItem = { id: 'reply', kind: 'assistant', turnId: 'turn-1', createdAt: 0, text: 'Hello', streaming: true };
     const store = useChats.getState();
     store.reset(scope.keyOf('chat'), infoOf('chat'), [reply]);
     store.status(scope.keyOf('fork'), infoOf('fork', { chatId: 'chat', turnId: 'turn-1' }));

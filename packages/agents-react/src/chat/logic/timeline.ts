@@ -1,9 +1,11 @@
-import type { ChatItem, ChatSubagentItem, ChatToolItem, ChatTurnItem, ModelSelection } from '@adecore/agent-contracts';
+import type { ChatSubagentItem, ChatToolItem, ModelSelection } from '@adecore/agent-contracts';
 import { abortedByMachine } from '@adecore/agent-contracts';
 import { formatElapsedShort } from '@adecore/ui/format';
 import i18next from 'i18next';
+import type { ChatThreadItem, ChatThreadTurn } from '../../chat-sink';
 import type { CommandLook, ToolLook } from '../../host/host';
 import type { Look, SubagentBranch, TimelineRow } from '../../host/timeline-row';
+import { waitsOnTheHost } from '../../state/chats';
 import { lookKey, lookRunOf, sentMessageOf } from './command-looks';
 import { isImageGeneration } from './generated-image';
 import { handbackReportOf } from './handback';
@@ -192,7 +194,7 @@ export function summarizeTurn(tools: readonly ChatToolItem[], looks?: readonly C
  * What a turn nobody asked for is about. The CLI wakes the agent when a background subagent settles
  * and hands over its summary; without one all that is known is that the agent went on by itself.
  */
-export function agentTurnLabel(turn: ChatTurnItem): string {
+export function agentTurnLabel(turn: ChatThreadTurn): string {
     const about = (what: string): string => (turn.label ? i18next.t('agent-chat:turn.about', { what, label: turn.label }) : what);
 
     // A turn the machine opened with the results of tasks this chat gave; the label is their titles.
@@ -217,7 +219,7 @@ export function agentTurnLabel(turn: ChatTurnItem): string {
 }
 
 /* The items of the turn tell a turn a person stopped from one the machine ended after a restart. */
-export function turnLabel(turn: ChatTurnItem, items: readonly ChatItem[] = []): string {
+export function turnLabel(turn: ChatThreadTurn, items: readonly ChatThreadItem[] = []): string {
     const duration = formatElapsedShort((turn.endedAt ?? turn.createdAt) - turn.createdAt);
 
     switch (turn.state) {
@@ -231,14 +233,14 @@ export function turnLabel(turn: ChatTurnItem, items: readonly ChatItem[] = []): 
 }
 
 // A subagent's own work, and an agent it opened, belong to its row, not to the thread; an old record has no row for it.
-function parentOf(item: ChatItem): string | null {
+function parentOf(item: ChatThreadItem): string | null {
     return item.kind === 'tool' || item.kind === 'assistant' || item.kind === 'subagent' ? (item.parentToolUseId ?? null) : null;
 }
 
 // Deeper than the CLI forwards any call; it also ends a chain of rows that would name each other.
 const MAX_NESTING = 8;
 
-function branchOf(item: ChatSubagentItem, options: TimelineOptions, children: Map<string, ChatItem[]>, depth = 0): SubagentBranch {
+function branchOf(item: ChatSubagentItem, options: TimelineOptions, children: Map<string, ChatThreadItem[]>, depth = 0): SubagentBranch {
     const own = children.get(item.toolUseId) ?? [];
 
     return {
@@ -284,8 +286,8 @@ export function findSubagentBranch(rows: readonly TimelineRow[], toolUseId: stri
 }
 
 /* What each subagent did, keyed by the call that spawned it, in the order it happened. */
-function groupChildren(items: ChatItem[]): Map<string, ChatItem[]> {
-    const children = new Map<string, ChatItem[]>();
+function groupChildren(items: ChatThreadItem[]): Map<string, ChatThreadItem[]> {
+    const children = new Map<string, ChatThreadItem[]>();
 
     for (const item of items) {
         const parent = parentOf(item);
@@ -334,7 +336,7 @@ function isImageRow(row: TimelineRow): boolean {
     return (row.kind === 'work' || row.kind === 'work-live') && isImageGeneration(row.tool);
 }
 
-function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map<string, ChatItem[]>): TimelineRow[] {
+function rowsForItems(items: ChatThreadItem[], options: TimelineOptions, children: Map<string, ChatThreadItem[]>): TimelineRow[] {
     const rows: TimelineRow[] = [];
     const tools: ChatToolItem[] = [];
 
@@ -438,6 +440,10 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
                 });
 
                 break;
+            case 'unknown':
+                rows.push({ kind: 'unknown', id: item.id, item, waits: waitsOnTheHost(item) });
+
+                break;
             case 'turn':
                 break;
         }
@@ -449,7 +455,7 @@ function rowsForItems(items: ChatItem[], options: TimelineOptions, children: Map
 }
 
 /* The card of a settled turn: the checkpoint diff when the host took one, else what the tool calls carry. */
-function changedFilesRow(turn: ChatTurnItem, items: ChatItem[]): TimelineRow | null {
+function changedFilesRow(turn: ChatThreadTurn, items: ChatThreadItem[]): TimelineRow | null {
     const edits = items.filter(
         (item): item is ChatToolItem => item.kind === 'tool' && item.state === 'done' && isFileChange(item.name) && hasFileChanges(item)
     );
@@ -516,7 +522,7 @@ function lastAssistantRow(rows: TimelineRow[]): TimelineRow | null {
  * the thought's own row and that call, since the thought still shows there, or when a newer thought
  * came after the call.
  */
-function withLiveThought(rows: TimelineRow[], items: readonly ChatItem[]): TimelineRow[] {
+function withLiveThought(rows: TimelineRow[], items: readonly ChatThreadItem[]): TimelineRow[] {
     const thoughtAt = items.findLastIndex((item) => item.kind === 'thinking' && parentOf(item) === null);
     const thought = items[thoughtAt];
 
@@ -540,13 +546,13 @@ function withLiveThought(rows: TimelineRow[], items: readonly ChatItem[]): Timel
 
 interface TurnChunk {
     turnId: string | null;
-    items: ChatItem[];
+    items: ChatThreadItem[];
 }
 
 /* Items grouped by turn, in order of first appearance; runs of turnless items keep their place. */
-function chunksByTurn(items: ChatItem[]): TurnChunk[] {
+function chunksByTurn(items: ChatThreadItem[]): TurnChunk[] {
     const chunks: TurnChunk[] = [];
-    const byTurn = new Map<string, ChatItem[]>();
+    const byTurn = new Map<string, ChatThreadItem[]>();
 
     for (const item of items) {
         if (item.turnId === null) {
@@ -575,7 +581,7 @@ function chunksByTurn(items: ChatItem[]): TurnChunk[] {
     return chunks;
 }
 
-function opensUnderItsMessages(turn: ChatTurnItem, rows: readonly TimelineRow[]): boolean {
+function opensUnderItsMessages(turn: ChatThreadTurn, rows: readonly TimelineRow[]): boolean {
     const from = turn.messageFrom ?? [];
 
     if (from.length === 0) {
@@ -598,7 +604,7 @@ function opensUnderItsMessages(turn: ChatTurnItem, rows: readonly TimelineRow[])
 }
 
 /* The whole thread as rows; items without a turn (older records) are shown as they are. */
-export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions): TimelineRow[] {
+export function deriveTimelineRows(items: ChatThreadItem[], options: TimelineOptions): TimelineRow[] {
     const rows: TimelineRow[] = [];
     const children = groupChildren(items);
     let selection: ModelSelection | null = null;
@@ -611,7 +617,7 @@ export function deriveTimelineRows(items: ChatItem[], options: TimelineOptions):
         }
 
         const turnId = chunk.turnId;
-        const turn = chunk.items.find((item): item is ChatTurnItem => item.kind === 'turn');
+        const turn = chunk.items.find((item): item is ChatThreadTurn => item.kind === 'turn');
         const conversation = chunk.items.filter((item) => item.kind !== 'turn');
 
         // A turn without a selection (older ones, or one the CLI started on its own) compares the next with the one before it.

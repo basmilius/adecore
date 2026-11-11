@@ -1,12 +1,21 @@
 import { parseServerFrame } from '@adecore/agent-contracts/envelope';
 import type { FramePort } from '@adecore/agent-contracts/port';
 import { AGENT_EVENT_SCHEMAS, AGENT_REQUEST_SCHEMAS, type AgentEventType, type AgentRequestType } from '@adecore/agent-contracts/protocol';
+import { readTolerant, type WireDegradation } from '@adecore/agent-contracts/tolerance';
 import i18next from 'i18next';
 import { ChatTransportError, type ChatEventMap, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from './transport';
 
 export interface PortTransport extends ChatTransport {
     /* Lets go of the port: every request still waiting fails with `disconnected`, and the status turns `closed` for good. */
     close(): void;
+}
+
+export interface PortTransportOptions {
+    /*
+     * A reply or event of a newer host that was read by giving something up, with what; for the app to report, since
+     * this package keeps no telemetry. It runs for every such frame, so an app that reports keeps its own count.
+     */
+    onDegraded?(source: { readonly request: AgentRequestType } | { readonly event: AgentEventType }, degraded: readonly WireDegradation[]): void;
 }
 
 interface Pending {
@@ -25,7 +34,7 @@ function isEventType(event: string): event is AgentEventType {
  * until `close`. Frames are checked where they arrive, and a frame that does not hold up is dropped
  * with a warning, the way the socket transport of an app drops one.
  */
-export function portTransport(port: FramePort): PortTransport {
+export function portTransport(port: FramePort, options: PortTransportOptions = {}): PortTransport {
     let status: ChatTransportStatus = 'open';
     let nextId = 1;
     const pending = new Map<string, Pending>();
@@ -47,12 +56,16 @@ export function portTransport(port: FramePort): PortTransport {
             return;
         }
 
-        const result = AGENT_REQUEST_SCHEMAS[entry.type].result.safeParse(frame.result);
+        const result = readTolerant(AGENT_REQUEST_SCHEMAS[entry.type].result, frame.result);
 
         if (!result.success) {
             entry.reject(new ChatTransportError('bad-reply', i18next.t('agent-chat:transport.badReply', { type: entry.type })));
 
             return;
+        }
+
+        if (result.degraded.length > 0) {
+            options.onDegraded?.({ request: entry.type }, result.degraded);
         }
 
         entry.resolve(result.data);
@@ -65,12 +78,16 @@ export function portTransport(port: FramePort): PortTransport {
             return;
         }
 
-        const parsed = AGENT_EVENT_SCHEMAS[event].safeParse(payload);
+        const parsed = readTolerant(AGENT_EVENT_SCHEMAS[event], payload);
 
         if (!parsed.success) {
             console.warn(`Dropped a malformed ${event} event`);
 
             return;
+        }
+
+        if (parsed.degraded.length > 0) {
+            options.onDegraded?.({ event }, parsed.degraded);
         }
 
         // A copy, so a handler that unsubscribes while it runs does not change the set being walked.

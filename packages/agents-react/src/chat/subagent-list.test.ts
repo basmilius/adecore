@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test';
-import { taskIdOfRow, type ChatInfo, type ChatItem, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { taskIdOfRow, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
+import type { ChatThreadInfo, ChatThreadItem } from '../chat-sink';
 import type { SubagentTask } from '../host/host';
 import {
     badgeCountOf,
@@ -39,11 +40,11 @@ function subagent(id: string, patch: Partial<ChatSubagentItem> = {}): ChatSubage
     };
 }
 
-function message(id: string): ChatItem {
+function message(id: string): ChatThreadItem {
     return { id, kind: 'user', createdAt: 0, turnId: null, text: id };
 }
 
-function note(id: string): ChatItem {
+function note(id: string): ChatThreadItem {
     return { id, kind: 'note', createdAt: 0, turnId: null, level: 'info', text: id };
 }
 
@@ -59,7 +60,17 @@ describe('subagent list', () => {
         const older = subagent('older', { status: 'done', turnId: 'turn-2' });
         const survey = subagent('survey', { status: 'done', turnId: 'turn-3' });
         const task = subagent('task', { origin: 'ruimte', childId: 'node-1', turnId: 'turn-3', status: 'failed' });
-        const structure: Record<string, ChatItem> = { early, background, sibling, older, survey, task, u1: message('u1'), u2: message('u2'), n: note('n') };
+        const structure: Record<string, ChatThreadItem> = {
+            early,
+            background,
+            sibling,
+            older,
+            survey,
+            task,
+            u1: message('u1'),
+            u2: message('u2'),
+            n: note('n')
+        };
         const order = ['u1', 'early', 'background', 'sibling', 'older', 'u2', 'survey', 'n', 'task'];
         expect(flyoutSubagents(order, structure)).toEqual([early, background, sibling, survey, task]);
         expect(flyoutSubagents([...order, 'u3'], { ...structure, u3: message('u3') })).toEqual([early, background, sibling]);
@@ -69,7 +80,7 @@ describe('subagent list', () => {
     test('a row from before the last message that a message woke again stays once it settles', () => {
         const woken = subagent('woken', { status: 'done', turnId: 'turn-1', startedAt: 20, finishedAt: 30 });
         const settled = subagent('settled', { status: 'done', turnId: 'turn-1', startedAt: 1, finishedAt: 5 });
-        const structure: Record<string, ChatItem> = { woken, settled, u1: { ...message('u1'), createdAt: 10 } };
+        const structure: Record<string, ChatThreadItem> = { woken, settled, u1: { ...message('u1'), createdAt: 10 } };
         expect(flyoutSubagents(['settled', 'woken', 'u1'], structure)).toEqual([woken]);
     });
 
@@ -80,7 +91,7 @@ describe('subagent list', () => {
 
         const words = (items: readonly ChatSubagentItem[]) => items.map((item) => statusWordOf(item, tasks[taskIdOfRow(item) ?? ''] ?? null));
 
-        const structure: Record<string, ChatItem> = { u1: message('u1'), u2: { ...message('u2'), createdAt: 5 }, 'task-a': first, 'task-b': second };
+        const structure: Record<string, ChatThreadItem> = { u1: message('u1'), u2: { ...message('u2'), createdAt: 5 }, 'task-a': first, 'task-b': second };
 
         const listed = flyoutSubagents(['u1', 'task-a', 'task-b'], structure);
         expect(listed).toEqual([first, second]);
@@ -200,10 +211,10 @@ describe("the composer's Stop", () => {
 describe('the row of a task', () => {
     test('a running task whose agent waits on a person reads as waiting, and a settled one keeps its own state', () => {
         const row = subagent('task-t', { origin: 'ruimte', childId: 'node-1' });
-        const waiting = { status: 'needs-you' } as ChatInfo;
-        const asking = { status: 'running', requests: [{}] } as unknown as ChatInfo;
+        const waiting = { status: 'needs-you' } as ChatThreadInfo;
+        const asking = { status: 'running', requests: [{}] } as unknown as ChatThreadInfo;
         expect(taskRowStateOf(row, null, undefined)).toBe('running');
-        expect(taskRowStateOf(row, null, { status: 'running' } as ChatInfo)).toBe('running');
+        expect(taskRowStateOf(row, null, { status: 'running' } as ChatThreadInfo)).toBe('running');
         expect(taskRowStateOf(row, null, waiting)).toBe('waiting');
         expect(taskRowStateOf(row, null, asking)).toBe('waiting');
         expect(taskRowStateOf({ ...row, status: 'done' }, null, waiting)).toBe('done');

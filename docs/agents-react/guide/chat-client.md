@@ -15,7 +15,20 @@ interface ChatTransport {
 
 The names and payloads are those of the [agent protocol](/agent-contracts/protocol). A refused request rejects with an error with a string `code`. `ChatTransportError(code, message)` is such an error, `errorCode(error)` reads the code of any error, and `isConnectionError(error)` is true for `not-connected` and `disconnected`. A reconnecting socket keeps the same transport object and reports through `subscribeStatus`; when `status` turns `open` again, the views reload their state.
 
-`portTransport(port)` returns a `PortTransport`, a transport over a [`FramePort`](/agent-contracts/protocol#frameport) with a `close()`. It is open from the start, drops malformed frames with a warning, and rejects a result that fails its schema with `bad-reply`. It cannot reconnect and has no timeout. The port's owner calls `close()`, which rejects waiting requests with `disconnected`, and closes the port itself.
+`portTransport(port, options?)` returns a `PortTransport`, a transport over a [`FramePort`](/agent-contracts/protocol#frameport) with a `close()`. It is open from the start, drops malformed frames with a warning, and reads results and events with [`readTolerant`](/agent-contracts/tolerance). A result that still fails its schema rejects with `bad-reply`. `PortTransportOptions` has one member, `onDegraded(source, degraded)`, which runs for every reply or event that was read by giving something up, with the request or event and the `WireDegradation` list. The package keeps no telemetry, so your app reports these if it wants to. The transport cannot reconnect and has no timeout. The port's owner calls `close()`, which rejects waiting requests with `disconnected`, and closes the port itself.
+
+## Newer hosts
+
+A host may run a newer version than the window. A transport of your own reads replies and events with `readTolerant` too, so its results match `ChatRequestMap` and `ChatEventMap`. Those maps type every result as `Tolerant`, and the state holds what they hand over:
+
+| Type | Is |
+| --- | --- |
+| `ChatThreadItem` | An item as the store holds it, `ChatUnknownItem` included |
+| `ChatThreadTurn` | A turn item as the store holds it |
+| `ChatThreadInfo` | A chat's info, where a state word of a newer host is kept as it came |
+| `ChatThreadEvent` | An event as the store applies it; `ChatUnknownEvent` changes nothing |
+
+An unknown item gets one muted row in its place. An approval or question among them that still waits says to answer it on the machine. The composer never offers it, and no fork, bookmark or other action is on the row. A goal in an unknown state offers only a clear. A runtime mode the window does not know reads as set on the machine. Usage of a provider it has no name for stays off the usage page. The words of the row come from `useUnknownItemWords` on the [host](/agents-react/guide/host).
 
 ## ChatClient
 
