@@ -7,10 +7,17 @@ import { fileURLToPath } from 'node:url';
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 const ROOT = join(HERE, '..');
 
+/* The contract test every package shares, the one import a test takes from outside its package. */
+const PUBLIC_API_TEST = { path: 'exports.test.ts', specifier: '../../../scripts/public-api.ts' };
+
 const sources = (): { path: string; text: string }[] =>
     [...new Glob('**/*.{ts,tsx,css,json}').scanSync(HERE)]
         .map((path) => path.replaceAll('\\', '/'))
-        .map((path) => ({ path, text: readFileSync(join(HERE, path), 'utf8') }));
+        .map((path) => {
+            const text = readFileSync(join(HERE, path), 'utf8');
+
+            return { path, text: path === PUBLIC_API_TEST.path ? text.replace(`from '${PUBLIC_API_TEST.specifier}'`, '') : text };
+        });
 
 /* What an app has and a library never reaches: an app's alias, a path out of `src`, or a package of an app. */
 const REACHES_OUT = /from ['"](?:@\/|~\/|(?:\.\.\/)+(?:\.\.\/|apps\/|packages\/)|@ruimte\/|@aftermotion\/|@command-center\/)/;

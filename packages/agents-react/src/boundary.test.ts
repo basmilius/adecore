@@ -19,6 +19,8 @@ describe('the boundary of @adecore/agents-react', () => {
     test('nothing imports from an app', () => {
         const reaching = sources().flatMap((path) =>
             specifiersOf(path)
+                // The contract test every package shares, the one import a test takes from outside its package.
+                .filter((specifier) => path !== 'exports.test.ts' || specifier !== '../../../scripts/public-api.ts')
                 .filter(
                     (specifier) => specifier.startsWith('@/') || (specifier.startsWith('.') && !resolve(dirname(join(HERE, path)), specifier).startsWith(HERE))
                 )

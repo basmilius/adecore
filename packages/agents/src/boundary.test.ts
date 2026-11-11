@@ -23,7 +23,16 @@ function modulesOf(text: string): string[] {
     return [...text.matchAll(/(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*|^\s*import\s+)(['"])([^'"]+)\1/gm)].map((match) => match[2]!);
 }
 
+/* The contract test every package shares, the one import a test takes from outside its package. */
+function isPublicApiTest(path: string, specifier: string): boolean {
+    return path === 'exports.test.ts' && specifier === '../../../scripts/public-api.ts';
+}
+
 function reachesOut(path: string, specifier: string): boolean {
+    if (isPublicApiTest(path, specifier)) {
+        return false;
+    }
+
     return (
         specifier.startsWith('@/') ||
         specifier.startsWith('@ruimte/') ||

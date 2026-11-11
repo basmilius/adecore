@@ -425,7 +425,16 @@ exports[`the public API ./testing exports these names 1`] = `
 
 exports[`the public API ./testing/dedupe exports these names 1`] = `[]`;
 
-exports[`the public API ./design-conventions exports these names 1`] = `[]`;
+exports[`the public API ./design-conventions exports these names 1`] = `
+[
+  "DESIGN_RULES",
+  "designProblemsIn",
+  "type DesignOptions",
+  "type DesignProblem",
+  "type DesignRule",
+  "type DesignSource",
+]
+`;
 
 exports[`the public API the compound components have these parts 1`] = `
 {
@@ -551,6 +560,17 @@ exports[`the public API the compound components have these parts 1`] = `
     "Popup",
     "Root",
     "Trigger",
+  ],
+  "Table": [
+    "Cell",
+    "Column",
+    "Empty",
+    "Foot",
+    "Group",
+    "Head",
+    "Loading",
+    "Root",
+    "Row",
   ],
   "Tabs": [
     "Count",

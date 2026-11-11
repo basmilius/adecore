@@ -1,87 +1,15 @@
-import { describe, expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { parseSync, type Program } from 'oxc-parser';
+import { describePublicApi } from '../../../scripts/public-api.ts';
 
-const HERE = fileURLToPath(new URL('.', import.meta.url));
-const ROOT = join(HERE, '..');
-
-const ENTRIES: Record<string, string> = {
-    '.': 'index.ts',
-    './settings': 'settings/index.ts',
-    './format': 'format/index.ts',
-    './testing': 'testing/index.ts',
-    './testing/dedupe': 'testing/dedupe.ts',
-    './design-conventions': 'design-conventions.ts'
-};
-
-/* Loaded with the file, so compiling every module of the package through the test preload counts against no test's timeout. */
-const MODULES: Record<string, Record<string, unknown>> = Object.fromEntries(
-    await Promise.all(Object.entries(ENTRIES).map(async ([entry, file]) => [entry, (await import(`./${file}`)) as Record<string, unknown>]))
-);
-
-type Declaration = Program['body'][number];
-
-/* What an entry file names, values and types alike, as written in its export statements. */
-const namesIn = (file: string): string[] => {
-    const program = parseSync(file, readFileSync(join(HERE, file), 'utf8')).program;
-
-    return program.body.flatMap((statement: Declaration) => {
-        if (statement.type === 'ExportNamedDeclaration') {
-            const typeOnly = statement.exportKind === 'type';
-
-            return statement.specifiers.map((specifier) => {
-                const exported = specifier.exported.type === 'Identifier' ? specifier.exported.name : String(specifier.exported.value);
-
-                return typeOnly || specifier.exportKind === 'type' ? `type ${exported}` : exported;
-            });
-        }
-
-        if (statement.type === 'ExportAllDeclaration' && statement.exported !== null) {
-            return [statement.exported.type === 'Identifier' ? statement.exported.name : String(statement.exported.value)];
-        }
-
-        if (statement.type === 'ExportAllDeclaration') {
-            return [`* from ${statement.source.value}`];
-        }
-
-        return [];
-    });
-};
-
-describe('the public API', () => {
-    test('the package exports these entry points and nothing else', () => {
-        const manifest = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as { exports: Record<string, unknown> };
-        expect(Object.keys(manifest.exports).sort()).toEqual([...Object.keys(ENTRIES), './theme.css'].sort());
-    });
-
-    test.each(Object.entries(ENTRIES))('%s names every export itself', (_entry, file) => {
-        // A star re-export would let a new export in a module slip past the snapshot.
-        expect(namesIn(file).filter((name) => name.startsWith('* from'))).toEqual([]);
-    });
-
-    test.each(Object.entries(ENTRIES))('%s exports these names', (_entry, file) => {
-        expect(namesIn(file).sort()).toMatchSnapshot();
-    });
-
-    test('the compound components have these parts', () => {
-        const barrel = MODULES['.']!;
-
-        const parts = Object.fromEntries(
-            ['Combobox', 'CommandPalette', 'ContextMenu', 'Dialog', 'FileTree', 'Tree', 'KeyValueList', 'Menu', 'Popover', 'PreviewCard', 'Tabs'].map(
-                (name) => [name, Object.keys(barrel[name] as object).sort()]
-            )
-        );
-
-        expect(parts).toMatchSnapshot();
-    });
-
-    test('every value an entry names is there at run time', () => {
-        for (const [entry, file] of Object.entries(ENTRIES)) {
-            const module = MODULES[entry]!;
-            const values = namesIn(file).filter((name) => !name.startsWith('type '));
-            expect({ entry, missing: values.filter((name) => module[name] === undefined) }).toEqual({ entry, missing: [] });
-        }
-    });
+await describePublicApi({
+    url: import.meta.url,
+    entries: {
+        '.': 'index.ts',
+        './settings': 'settings/index.ts',
+        './format': 'format/index.ts',
+        './testing': 'testing/index.ts',
+        './testing/dedupe': 'testing/dedupe.ts',
+        './design-conventions': 'design-conventions.ts'
+    },
+    assets: ['./theme.css'],
+    compounds: ['Combobox', 'CommandPalette', 'ContextMenu', 'Dialog', 'FileTree', 'Tree', 'KeyValueList', 'Menu', 'Popover', 'PreviewCard', 'Table', 'Tabs']
 });
