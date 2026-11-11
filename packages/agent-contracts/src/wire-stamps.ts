@@ -74,7 +74,8 @@ export function lossyItems<S extends z.core.$ZodType>(schema: S): S {
 
 /*
  * A vocabulary a newer host may add a word to. A word this version does not know is kept as it came. `words` says how a
- * typed client models the known ones: as `cases` beside an unknown one, or as plain `strings`.
+ * typed client models the known ones: as `cases` beside an unknown one, or as plain `strings`. A string schema is already
+ * open, so it takes the stamp only to name its `known` words for such a client, which reads them as `strings`.
  */
 export function openValues<S extends z.core.$ZodType>(
     schema: S,
@@ -83,8 +84,14 @@ export function openValues<S extends z.core.$ZodType>(
 ): S {
     const def = defOf(schema);
 
+    if (def.type === 'string' && options.known !== undefined) {
+        stamp(schema, { open: 'values', name, words: 'strings', known: [...options.known] });
+
+        return schema;
+    }
+
     if (def.type !== 'enum' || def.entries === undefined) {
-        throw new Error(`${name} cannot take open values: only an enum can`);
+        throw new Error(`${name} cannot take open values: only an enum can, or a string that names its known words`);
     }
 
     stamp(schema, { open: 'values', name, words: options.words ?? 'cases', known: [...(options.known ?? Object.values(def.entries).map(String))] });
@@ -242,13 +249,16 @@ function walk(schema: z.core.$ZodType, input: unknown, path: (string | number)[]
     const stamp = stamps.get(schema);
 
     if (stamp?.open === 'values') {
-        if (typeof input === 'string' && !stamp.known.includes(input)) {
-            degraded.push({ kind: 'unknown-word', path, name: stamp.name, word: input });
+        const read = strictly(schema, input);
 
-            return { value: input };
+        // A string schema takes any word itself, so only an enum has a word to keep that a strict parse refused.
+        if (read !== FAILED || typeof input !== 'string' || defOf(schema).type !== 'enum') {
+            return read;
         }
 
-        return strictly(schema, input);
+        degraded.push({ kind: 'unknown-word', path, name: stamp.name, word: input });
+
+        return { value: input };
     }
 
     if (stamp?.open === 'union') {

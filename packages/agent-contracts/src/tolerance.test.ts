@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { z } from 'zod';
 import { ChatAttachResultSchema, ChatEventEnvelopeSchema, ChatItemSchema, ChatListResultSchema, ChatSubagentResultSchema, type ChatInfo } from './chat.ts';
 import * as contracts from './index.ts';
-import { readTolerant, wireStampsIn, type OpenUnions, type OpenWords } from './tolerance.ts';
+import { openValues, readTolerant, wireStampsIn, type OpenUnions, type OpenWords } from './tolerance.ts';
 
 const info: ChatInfo = {
     chatId: 'chat-1',
@@ -111,6 +111,14 @@ describe('reading what a newer host sent', () => {
         const { data } = readable(ChatListResultSchema, { chats: [info, { ...withoutCwd, chatId: 'chat-2' }] });
 
         expect(data.chats.map((chat) => chat.chatId)).toEqual(['chat-1']);
+    });
+
+    test('holds a string that names its known words to its own rules, since any word it takes is already readable', () => {
+        const schema = z.object({ kind: openValues(z.string().regex(/^[a-z]+$/), 'TestKind', { known: ['known'] }), items: z.array(ChatItemSchema) });
+        const future = { ...user, kind: 'future-kind' };
+
+        expect(readable(schema, { kind: 'newer', items: [future] }).degraded.map((entry) => entry.kind)).toEqual(['unknown-member']);
+        expect(readTolerant(schema, { kind: 'Not A Kind', items: [future] }).success).toBe(false);
     });
 
     test('refuses a reply that fails where nothing around it is open, as the strict parse does', () => {
