@@ -1153,6 +1153,16 @@ describe('continuing on another account after a usage limit', () => {
         expect(composer.byLabel('Choose another account')).toBeNull();
     });
 
+    test('a long account name truncates inside the button, while its label and the title keep it whole', async () => {
+        const name = 'Claude Code secondary account for the weekend';
+        const long: ProviderAccounts = { ...accounts, accounts: { ...accounts.accounts, claude_home: { kind: 'claude', label: name } } };
+        const composer = await mount({ info: limited, accounts: long, limits: roomy });
+        const suggestion = composer.byLabel(`Continue on ${name}`)!;
+        const shown = [...suggestion.querySelectorAll('span')].find((span) => span.textContent === name);
+        expect(shown?.classList.contains('truncate')).toBe(true);
+        expect(composer.page.host.textContent).toContain('Stopped on a usage limit');
+    });
+
     test('no account with room offers nothing', async () => {
         const composer = await mount({ info: limited, accounts, limits: { providers: spent } });
         expect(composer.page.host.textContent).toContain('Stopped on a usage limit');

@@ -121,14 +121,14 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatThread
             <Button
                 variant="secondary"
                 size="sm"
-                className={clsx('shrink-0 gap-1.5 whitespace-nowrap', split && 'rounded-r-none')}
+                className={clsx('min-w-0 gap-1.5 whitespace-nowrap', split && 'rounded-r-none')}
                 disabled={busy}
                 aria-label={t('limit.continueOnAria', { account: name })}
                 onClick={() => go(target)}
             >
-                {t('limit.continueOn')}
-                <AccountDot color={target.account.color} className="size-1.75" />
-                {name}
+                <span className="shrink-0">{t('limit.continueOn')}</span>
+                <AccountDot color={target.account.color} className="size-1.75 shrink-0" />
+                <span className="truncate">{name}</span>
             </Button>
         </Tooltip>
     );
@@ -138,7 +138,7 @@ function ContinueOn({ chatId, info, choice }: { chatId: string; info: ChatThread
     }
 
     return (
-        <ButtonGroup className="shrink-0">
+        <ButtonGroup className="min-w-0">
             {suggestion}
             <Menu.Root>
                 <Tooltip label={t('limit.chooseAccount')} name>
@@ -214,16 +214,24 @@ export function LimitDock({ chatId, info }: { chatId: string; info: ChatThreadIn
     const account = choice === null ? null : choice.current === null ? choice.currentId : choice.nameOf(choice.current);
     const detail = account === null ? view.detail : view.detail === null ? account : `${account} · ${view.detail}`;
 
+    /*
+     * The title keeps room to name the limit. Narrower, the account name truncates and the switch drops its
+     * words, which its tooltip and label still say; only a composer too narrow for even that wraps the actions.
+     */
     return (
-        <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5">
-            <Icon icon={Hourglass} size={16} className="shrink-0 text-text-faint" />
-            <span className="flex min-w-0 grow flex-col">
-                <span className="truncate text-sm text-text">{view.title}</span>
-                {detail !== null && <span className="truncate text-xs tabular-nums text-text-faint">{detail}</span>}
+        <div className="flex items-center gap-2 border-b border-border px-3.5 py-2.5 @max-md/composer:flex-wrap">
+            <span className="flex min-w-40 grow basis-0 items-center gap-2">
+                <Icon icon={Hourglass} size={16} className="shrink-0 text-text-faint" />
+                <span className="flex min-w-0 grow flex-col">
+                    <span className="truncate text-sm text-text">{view.title}</span>
+                    {detail !== null && <span className="truncate text-xs tabular-nums text-text-faint">{detail}</span>}
+                </span>
             </span>
-            {choice !== null && info.limit?.kind === 'usage' && <ContinueOn chatId={chatId} info={info} choice={choice} />}
-            <span className="shrink-0 text-xs text-text-muted">{t('limit.toggle')}</span>
-            <ResumeAtResetToggle chatId={chatId} info={info} />
+            <span className="ml-auto flex max-w-full min-w-0 items-center gap-2">
+                {choice !== null && info.limit?.kind === 'usage' && <ContinueOn chatId={chatId} info={info} choice={choice} />}
+                <span className="shrink-0 text-xs text-text-muted @max-lg/composer:hidden">{t('limit.toggle')}</span>
+                <ResumeAtResetToggle chatId={chatId} info={info} />
+            </span>
         </div>
     );
 }
