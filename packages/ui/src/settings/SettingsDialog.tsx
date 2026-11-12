@@ -76,6 +76,9 @@ export interface SettingsDialogProps {
     /* Before the title, such as the app's mark at 16 or 20 pixels. Hidden from a screen reader, which reads the title alone. */
     heading?: ReactNode;
 
+    /* The title of the dialog, where it is the settings of one thing and not the app's; "Settings" in the person's language by default. */
+    title?: string;
+
     search?: SettingsSearch;
 
     /* The row a search result jumped to, lit until `onTargetShown`. */
@@ -267,6 +270,7 @@ export function SettingsDialog({
     footer = [],
     account,
     heading,
+    title,
     search,
     target = null,
     onTargetShown,
@@ -274,6 +278,7 @@ export function SettingsDialog({
     ref
 }: SettingsDialogProps) {
     const { t } = useTranslation('ui');
+    const name = title ?? t('settings.title');
     const [query, setQuery] = useState('');
     const sections = [...groups.flatMap((group) => group.sections), ...footer, ...(account ? [account.section] : [])];
     const meta = sections.find((entry) => entry.id === section) ?? sections[0]!;
@@ -317,13 +322,13 @@ export function SettingsDialog({
                 >
                     <div className="flex w-58 shrink-0 flex-col gap-3.5 border-r border-border bg-surface bg-clip-padding px-3 py-4 max-[960px]:w-48 max-[640px]:w-auto max-[640px]:flex-row max-[640px]:items-center max-[640px]:border-r-0 max-[640px]:border-b">
                         {heading === undefined ? (
-                            <DialogTitle className="px-2.5 pt-1 max-[640px]:pt-0">{t('settings.title')}</DialogTitle>
+                            <DialogTitle className="px-2.5 pt-1 max-[640px]:pt-0">{name}</DialogTitle>
                         ) : (
                             <div className="flex shrink-0 items-center gap-2 px-2.5 pt-1 max-[640px]:pt-0">
                                 <span className="flex shrink-0" aria-hidden>
                                     {heading}
                                 </span>
-                                <DialogTitle>{t('settings.title')}</DialogTitle>
+                                <DialogTitle>{name}</DialogTitle>
                             </div>
                         )}
                         <div className="contents max-[640px]:hidden">

@@ -36,6 +36,14 @@ Escape clears the query first and closes the dialog only from an empty field. En
 <SettingsDialog heading={<AppMark size={16} />} open={open} onOpenChange={setOpen} ... />
 ```
 
+## Another title
+
+The dialog is titled "Settings" in the person's language. `title` names it otherwise, for the settings of one thing such as a project.
+
+```tsx
+<SettingsDialog title="Project settings" open={open} onOpenChange={setOpen} ... />
+```
+
 ## Narrow windows
 
 The dialog is 1200 by 760 pixels and shrinks with the viewport. Under 960 pixels the navigation narrows; under 640 it becomes a select above the pane.
@@ -52,6 +60,7 @@ The dialog is 1200 by 760 pixels and shrinks with the viewport. Under 960 pixels
 | `footer` | `readonly SettingsSectionEntry[]` | `[]` | |
 | `account` | `{ section: SettingsSectionEntry; tab: ReactNode }` | | |
 | `heading` | `ReactNode` | | Before the title. |
+| `title` | `string` | "Settings" | The title of the dialog, for the settings of one thing. |
 | `search` | `SettingsSearch` | | `{ find(query), hint?, focusAt? }` |
 | `target` | `string \| null` | `null` | The row a search result jumped to. |
 | `onTargetShown` | `() => void` | | |
