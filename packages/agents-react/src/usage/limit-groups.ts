@@ -180,7 +180,7 @@ export function explain(provider: UsageLimitsProvider): string | null {
         return provider.unavailable.message ?? i18next.t('agent-usage:limits.noSubscription');
     }
 
-    return provider.unavailable.message ?? i18next.t('agent-usage:limits.unreachable');
+    return i18next.t('agent-usage:limits.unreachable');
 }
 
 /* The explanation for an account, including a failed read beside retained bars. An account the machine does not read says what its login is doing. */

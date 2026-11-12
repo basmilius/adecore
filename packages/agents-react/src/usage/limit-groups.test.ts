@@ -218,10 +218,10 @@ describe('the age of a row from a machine clock', () => {
         expect(checkedAge(entry('claude', undefined, { checkedAt: checkedAt! }), 1_000_000)).toBe(expected);
     });
 
-    test('only failed reads retain visible windows, without erasing their explanation', () => {
+    test('only failed reads retain visible windows, with a readable failure status', () => {
         const retained = entry('claude', undefined, { windows: [window('session', null)], unavailable: { reason: 'failed', message: 'CLI offline' } });
         expect(showsWindows(retained)).toBe(true);
-        expect(explain(retained)).toBe('CLI offline');
+        expect(explain(retained)).toBe('Could not check the limits.');
         expect(showsWindows({ ...retained, unavailable: { reason: 'no-subscription', message: null } })).toBe(false);
         expect(showsWindows({ ...retained, unavailable: { reason: 'not-installed', message: null } })).toBe(false);
         expect(showsWindows({ ...retained, windows: [] })).toBe(false);

@@ -22,23 +22,25 @@ function entry(id: string, extra: Partial<UsageLimitsProvider> = {}): UsageLimit
 
 const failed = { unavailable: { reason: 'failed', message: 'The CLI did not answer' } } as const;
 
-test('a failed read keeps the last numbers on screen, says they are the last known ones and why', () => {
+test('a failed read keeps the last numbers with a readable status instead of the technical error', () => {
     const limits: UsageLimitsSnapshot = { providers: [entry('claude', failed)] };
     const html = renderToStaticMarkup(<LimitsList limits={limits} now={NOW} />);
 
     expect(html).toContain('Last known numbers');
     expect(html).toContain('40%');
-    expect(html).toContain('The CLI did not answer');
+    expect(html).toContain('Could not check the limits.');
+    expect(html).not.toContain('The CLI did not answer');
 });
 
-test('an account row keeps its bars after a failed read, with the failure beside them', () => {
+test('an account row keeps its bars after a failed read without exposing the technical error', () => {
     const snapshot: UsageLimitsSnapshot = { providers: [entry('claude'), entry('work', failed)] };
     const groups = limitGroups(snapshot, null);
     const html = renderToStaticMarkup(<AccountLimitsList groups={groups} now={NOW} folded={new Set()} onFoldedChange={() => {}} />);
     const work = html.slice(html.indexOf('Work'));
 
     expect(work).toContain('Last known numbers');
-    expect(work).toContain('The CLI did not answer');
+    expect(work).toContain('Could not check the limits.');
+    expect(work).not.toContain('The CLI did not answer');
     expect(work).toContain('40%');
 });
 
