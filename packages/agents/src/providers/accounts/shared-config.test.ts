@@ -42,6 +42,7 @@ describe('applySharedConfig', () => {
         await mkdir(join(home, 'agents'));
         await mkdir(join(home, 'commands'));
         await mkdir(join(home, 'rules'));
+        await mkdir(join(home, 'output-styles'));
         await mkdir(own);
         await writeFile(join(home, 'CLAUDE.md'), '# mine');
         await writeFile(join(home, 'settings.json'), JSON.stringify(SETTINGS));
@@ -54,7 +55,7 @@ describe('applySharedConfig', () => {
     test('links every shared entry into a fresh folder, and a second run changes nothing', async () => {
         const first = await applySharedConfig(home, own, share);
 
-        expect(first.linked).toEqual(['CLAUDE.md', 'rules', 'skills', 'agents', 'commands']);
+        expect(first.linked).toEqual(['CLAUDE.md', 'rules', 'skills', 'agents', 'commands', 'output-styles']);
         expect(first.unshared).toEqual([]);
         expect(await readlink(join(own, 'skills'))).toBe(join(home, 'skills'));
         expect(await readFile(join(own, 'CLAUDE.md'), 'utf8')).toBe('# mine');
@@ -79,7 +80,7 @@ describe('applySharedConfig', () => {
         const report = await applySharedConfig(home, own, share);
 
         expect(report.unshared).toEqual(['CLAUDE.md', 'skills']);
-        expect(report.linked).toEqual(['rules', 'agents', 'commands']);
+        expect(report.linked).toEqual(['rules', 'agents', 'commands', 'output-styles']);
         expect(await readFile(join(own, 'CLAUDE.md'), 'utf8')).toBe('# own');
         expect(await readlink(join(own, 'skills'))).toBe(join(dir, 'elsewhere'));
     });
@@ -110,6 +111,16 @@ describe('applySharedConfig', () => {
         if (process.platform !== 'win32') {
             expect((await lstat(join(own, 'settings.json'))).mode & 0o777).toBe(0o600);
         }
+    });
+
+    test('links the output styles, so a custom style the copied settings name is there', async () => {
+        await writeFile(join(home, 'output-styles', 'terse.md'), '---\nname: Terse\n---\n');
+        await writeFile(join(home, 'settings.json'), JSON.stringify({ ...SETTINGS, outputStyle: 'Terse' }));
+
+        await applySharedConfig(home, own, share);
+
+        expect((await settingsOf(own)).outputStyle).toBe('Terse');
+        expect(await readFile(join(own, 'output-styles', 'terse.md'), 'utf8')).toContain('name: Terse');
     });
 
     test('leaves a settings file the host does not own alone', async () => {
@@ -164,7 +175,7 @@ describe('applySharedConfig', () => {
 
         await applySharedConfig(home, own, share);
 
-        expect((await readdir(own)).sort()).toEqual(['CLAUDE.md', 'agents', 'commands', 'rules', 'settings.json', 'skills']);
+        expect((await readdir(own)).sort()).toEqual(['CLAUDE.md', 'agents', 'commands', 'output-styles', 'rules', 'settings.json', 'skills']);
     });
 
     test('shares nothing a provider does not list', async () => {

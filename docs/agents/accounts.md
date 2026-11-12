@@ -16,7 +16,7 @@ A provider reads who is signed in with its own `askAccount(command, env)`: Claud
 
 ## Sharing the default account's setup
 
-A provider whose `home` has a `share` lets an extra account read the setup of the default account. Claude Code does: `CLAUDE.md`, `rules`, `skills`, `agents` and `commands` become links to the default folder's entries, and `settings.json` is written once with only the keys `permissions`, `hooks`, `model`, `statusLine` and `outputStyle`. The list is closed. A login, `env`, `apiKeyHelper`, history, projects and plugins are never named, so they are never shared.
+A provider whose `home` has a `share` lets an extra account read the setup of the default account. Claude Code does: `CLAUDE.md`, `rules`, `skills`, `agents`, `commands` and `output-styles` become links to the default folder's entries, and `settings.json` is written once with only the keys `permissions`, `hooks`, `model`, `statusLine` and `outputStyle`. The list is closed. A login, `env`, `apiKeyHelper`, history, projects and plugins are never named, so they are never shared.
 
 A person turns it on per account with `accounts.shareConfig`, which sets `shareConfig` on the account. `sharedConfigKinds` in the snapshot names the kinds that offer it. The service applies it in `prepare`, before the host's `install`, when it creates the account and on every check, so an entry the default account gained later is linked. An entry the account already holds stays and is named in the status message. Turning it off removes only links that point at the default folder's entry of that name; real files and the copied `settings.json` stay.
 
