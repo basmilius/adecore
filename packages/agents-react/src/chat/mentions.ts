@@ -1,6 +1,7 @@
 /*
- * What a file dragged out of an app's own list of files carries: the paths, space separated, relative
- * to the folder. The composer takes it next to the image files it already accepts.
+ * What a file dragged out of an app's own list of files carries: the paths as a JSON array, relative
+ * to the folder, so a path with a space stays whole. The composer takes it next to the image files it
+ * already accepts.
  */
 export const MENTION_DRAG_TYPE = 'application/x-adecore-mention';
 export const LEGACY_MENTION_DRAG_TYPE = 'application/x-ruimte-mention';
@@ -10,14 +11,27 @@ export function carriesMentions(types: readonly string[]): boolean {
     return MENTION_DRAG_TYPES.some((type) => types.includes(type));
 }
 
-export function droppedMentions(data: Pick<DataTransfer, 'getData'>): string[] {
-    const text = data.getData(MENTION_DRAG_TYPE) || data.getData(LEGACY_MENTION_DRAG_TYPE);
+/* A drag from a build before the JSON array spelled the paths space separated, which is still read. */
+function pathList(text: string): string[] {
+    try {
+        const parsed: unknown = JSON.parse(text);
+
+        if (Array.isArray(parsed)) {
+            return parsed.filter((path): path is string => typeof path === 'string' && path !== '');
+        }
+    } catch {
+        // Not JSON, so the older form.
+    }
 
     return text.trim() === '' ? [] : text.trim().split(/\s+/);
 }
 
+export function droppedMentions(data: Pick<DataTransfer, 'getData'>): string[] {
+    return pathList(data.getData(MENTION_DRAG_TYPE) || data.getData(LEGACY_MENTION_DRAG_TYPE));
+}
+
 export function writeMentionDrag(data: Pick<DataTransfer, 'setData'>, paths: readonly string[], legacy = true): void {
-    const text = paths.join(' ');
+    const text = JSON.stringify(paths);
     data.setData(MENTION_DRAG_TYPE, text);
 
     if (legacy) {

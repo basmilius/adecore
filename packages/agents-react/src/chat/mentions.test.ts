@@ -332,14 +332,29 @@ test('mention drags read neutral and transitional formats and write both for old
     values.set(MENTION_DRAG_TYPE, 'src/new.ts');
     expect(droppedMentions(data)).toEqual(['src/new.ts']);
     writeMentionDrag(data, ['one.ts', 'two.ts']);
-    expect(values.get(MENTION_DRAG_TYPE)).toBe('one.ts two.ts');
-    expect(values.get(LEGACY_MENTION_DRAG_TYPE)).toBe('one.ts two.ts');
+    expect(values.get(MENTION_DRAG_TYPE)).toBe('["one.ts","two.ts"]');
+    expect(values.get(LEGACY_MENTION_DRAG_TYPE)).toBe('["one.ts","two.ts"]');
     expect(carriesMentions([MENTION_DRAG_TYPE])).toBe(true);
     expect(carriesMentions(['Files'])).toBe(false);
     values.clear();
     expect(droppedMentions(data)).toEqual([]);
     writeMentionDrag(data, ['new.ts'], false);
     expect(values.has(LEGACY_MENTION_DRAG_TYPE)).toBe(false);
+});
+
+test('a dragged path with spaces in it comes back whole, beside the others in their order', async () => {
+    const { droppedMentions, writeMentionDrag } = await import('./mentions');
+    const values = new Map<string, string>();
+
+    const data = {
+        getData: (type: string) => values.get(type) ?? '',
+        setData: (type: string, value: string) => {
+            values.set(type, value);
+        }
+    };
+
+    writeMentionDrag(data, ['docs/dit is een bestand met spaties.pdf', 'src/main.ts']);
+    expect(droppedMentions(data)).toEqual(['docs/dit is een bestand met spaties.pdf', 'src/main.ts']);
 });
 
 describe('a query ends at the punctuation that ends a token', () => {
