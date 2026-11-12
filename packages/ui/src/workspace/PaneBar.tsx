@@ -34,9 +34,13 @@ function countControls(element: HTMLElement): number {
  */
 function useBesideTabs(part: RefObject<HTMLElement | null>, enabled: boolean): boolean {
     const [beside, setBeside] = useState(true);
+    const counted = useRef(beside);
 
     useLayoutEffect(() => {
         const element = part.current;
+        const moved = counted.current !== beside;
+
+        counted.current = beside;
 
         if (!enabled || element === null || typeof MutationObserver === 'undefined') {
             return;
@@ -46,7 +50,12 @@ function useBesideTabs(part: RefObject<HTMLElement | null>, enabled: boolean): b
         const observer = new MutationObserver(measure);
 
         observer.observe(element, { childList: true, subtree: true });
-        measure();
+
+        /* A part that just moved holds what it was counted with, except controls that portal into a slot of
+           it: those arrive a render later, and counting the empty slot would send the part back forever. */
+        if (!moved) {
+            measure();
+        }
 
         return () => observer.disconnect();
         // Again on every move: the part is a new element in its new place.
