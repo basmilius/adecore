@@ -37,7 +37,9 @@ export const menuTemplateOf = <Action extends string>(spec: MenuSpec<Action>, op
                     checked: node.checked ?? false,
                     enabled: node.enabled ?? true,
                     ...(node.accelerator ? { accelerator: node.accelerator } : {}),
-                    // Off macOS a registered accelerator would take a key such as Ctrl+W before the page saw it.
+                    // Off macOS the page sees a key first and runs its own command, and Electron fires a registered accelerator only
+                    // for a key the page let pass. `createMenuCommands` drops that as a key the page had (`pageKeys`), so registering
+                    // would only add a menu command for a key typed in a guest page, which bypasses the page.
                     registerAccelerator: platform === 'darwin',
                     click: (_item, _window, event) => options.run(node.id, event.triggeredByAccelerator === true)
                 };
