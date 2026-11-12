@@ -8,4 +8,4 @@ export { MENU_ROLES, type MenuBarRole, type MenuNode, type MenuRole, type MenuSp
 export type { ThemeState } from './theme.ts';
 export type { UpdateErrorCode, UpdateState } from './update.ts';
 export { compareVersions, isVersion } from './versions.ts';
-export type { WindowControlsState } from './window-controls.ts';
+export { windowControlsOf, type WindowControlsOptions, type WindowControlsState } from './window-controls.ts';

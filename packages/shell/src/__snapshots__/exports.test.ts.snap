@@ -73,6 +73,8 @@ exports[`the public API ./bridge exports these names 1`] = `
   "type ThemeState",
   "type UpdateErrorCode",
   "type UpdateState",
+  "type WindowControlsOptions",
   "type WindowControlsState",
+  "windowControlsOf",
 ]
 `;

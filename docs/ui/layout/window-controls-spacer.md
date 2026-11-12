@@ -18,16 +18,21 @@ Put the spacer first in the header of whatever stands at the left edge: a sideba
 
 ## The source
 
-The width comes from a source the app sets once, before the first render. Without one there is no room to keep, as in a browser tab. In a desktop app the shell knows the width; [`windowControls` and `followWindowControls`](/shell/theme#room-for-the-window-controls) report it with every change.
+The width comes from a source the app sets once, before the first render. Without one there is no room to keep, as in a browser tab. In a desktop app the shell knows the width; [`windowControls` and `followWindowControls`](/shell/theme#room-for-the-window-controls) report it with every change. Until the shell answers, `windowControlsOf` gives the room from the platform alone, so the first frame does not move.
 
 ```ts
-let inset = await desktop.windowControls();
+import { type WindowControlsState, windowControlsOf } from '@adecore/shell/bridge';
+
+let inset = windowControlsOf(desktop.platform).inset;
 const listeners = new Set<() => void>();
 
-desktop.onWindowControls((state) => {
+const take = (state: WindowControlsState) => {
     inset = state.inset;
     listeners.forEach((listener) => listener());
-});
+};
+
+desktop.onWindowControls(take);
+void desktop.windowControls().then(take);
 
 setWindowControlsSource({
     inset: () => inset,

@@ -43,6 +43,8 @@ A page that reaches the top of a macOS window keeps the start of its first colum
 
 `followWindowControls(window, send)` calls `send` with a new state each time the window goes in or out of fullscreen, and returns what stops it. The shell registers no channel, so the app sends the state on one of its own and answers a page that asks for it. On the page, [`WindowControlsSpacer`](/ui/layout/window-controls-spacer) draws the room.
 
+`windowControlsOf(platform, options)` (`@adecore/shell/bridge`) computes the same state without a window: `options` takes `fullscreen` and `trafficLights`, a `WindowControlsOptions`. A page starts from it with the platform its preload reports, so the first frame clears the traffic lights before the shell answers.
+
 ```ts
 // `ipc` is the app's createAppIpc, which checks the sender first.
 ipc.handle('window:controls', (event) => theme.windowControls(ipc.senderWindow(event)!));

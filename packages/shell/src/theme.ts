@@ -1,11 +1,6 @@
 import type { BrowserWindow, BrowserWindowConstructorOptions, NativeTheme } from 'electron';
 import type { ThemeState } from './bridge/theme.ts';
-import type { WindowControlsState } from './bridge/window-controls.ts';
-
-const TRAFFIC_LIGHTS = { x: 17, y: 17 };
-
-/* Three lights of 12 pixels with 8 between them. */
-const TRAFFIC_LIGHTS_WIDTH = 52;
+import { TRAFFIC_LIGHTS, type WindowControlsState, windowControlsOf } from './bridge/window-controls.ts';
 
 /* A window as far as the room for its controls goes: whether it is fullscreen, and when that changes. */
 export type ControlsWindow = Pick<BrowserWindow, 'isFullScreen' | 'isDestroyed' | 'on' | 'off'>;
@@ -39,10 +34,8 @@ export const createTheme = (options: ThemeOptions) => {
     const lights = options.trafficLights ?? TRAFFIC_LIGHTS;
     let current: ThemeState | null = null;
 
-    // As far past the lights as they sit from the edge, so they read as a group of their own. macOS hides them in fullscreen.
-    const controlsOf = (window: ControlsWindow): WindowControlsState => ({
-        inset: platform === 'darwin' && !window.isFullScreen() ? lights.x * 2 + TRAFFIC_LIGHTS_WIDTH : null
-    });
+    const controlsOf = (window: ControlsWindow): WindowControlsState =>
+        windowControlsOf(platform, { fullscreen: window.isFullScreen(), trafficLights: lights });
 
     // The colors a page reports win over the ones per theme. Only the two colors are taken from what crossed IPC.
     const overlayOf = (theme: Pick<ThemeState, 'resolved' | 'overlay'>) => {
