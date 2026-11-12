@@ -1492,19 +1492,27 @@ export class ChatSession {
     }
 
     /*
-     * The limited turn went on elsewhere (a fork), so what the host owes for it lapses, and the note says where
-     * it went. The note is also the mark that keeps a switch turned on later from owing that turn again.
+     * The limited turn went on elsewhere (a fork), so what the host owes for it lapses, the chat stops saying it is
+     * limited, and the note says where it went. The note is also the mark that keeps a switch turned on later from
+     * owing that turn again.
      */
     continuedElsewhere(note: string): void {
         this.lapseResume();
+        const limited = this.thread.info.limit !== undefined;
         const turn = limitedTurn(this.thread.list());
+        const noted = turn !== null && !this.wentOn(turn);
 
-        if (turn === null || this.wentOn(turn)) {
-            return;
+        if (limited) {
+            this.emit([this.thread.patchInfo({ limit: undefined })]);
         }
 
-        this.emit([this.thread.upsert({ id: continuedNoteId(turn.id), kind: 'note', createdAt: Date.now(), turnId: turn.id, level: 'info', text: note })]);
-        this.options.persist();
+        if (noted) {
+            this.emit([this.thread.upsert({ id: continuedNoteId(turn.id), kind: 'note', createdAt: Date.now(), turnId: turn.id, level: 'info', text: note })]);
+        }
+
+        if (limited || noted) {
+            this.options.persist();
+        }
     }
 
     /* Drops the resume owed after a limit, the time the thread shows for it included. */

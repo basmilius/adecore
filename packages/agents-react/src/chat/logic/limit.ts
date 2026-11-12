@@ -46,6 +46,10 @@ export function limitView(info: Pick<ChatThreadInfo, 'limit' | 'resumeAt' | 'act
         };
     }
 
+    if (limit.resetsAt !== undefined && limit.resetsAt <= now) {
+        return { pill: i18next.t('agent-chat:limit.usage.pillReset'), title, detail: i18next.t('agent-chat:limit.usage.reset') };
+    }
+
     if (limit.resetsAt !== undefined) {
         const resets = formatMoment(limit.resetsAt, now);
 

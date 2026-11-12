@@ -83,8 +83,10 @@ export default {
             pill: 'Limiet bereikt',
             pillUntil: 'Limiet tot {{time}}',
             pillResumes: 'Verder om {{time}}',
+            pillReset: 'Limiet gereset',
             title: 'Gestopt op een verbruikslimiet',
             resets: 'De limiet reset om {{time}}.',
+            reset: 'De limiet is gereset. Stuur een bericht om verder te gaan.',
             resumes: 'Gaat verder om {{time}}.'
         },
         overload: {

@@ -426,6 +426,36 @@ describe('the coordinator', () => {
     });
 });
 
+describe('handing a task over', () => {
+    test('a task paused on a usage limit settles from the turn of the chat it went to, and wakes its parent once', async () => {
+        const task = await open('chat-lead', 'chat-limited');
+        const limited: ChatTurnItem = { ...turn('t1', 'error'), limit: { kind: 'usage', resetsAt: 99 } };
+        threads.set('chat-limited', [limited]);
+        ends('chat-limited', limited);
+        await coordinator.settled();
+        expect(tasks.get(task.id)?.paused).toEqual({ kind: 'usage', until: 99 });
+
+        const handed = await coordinator.handOver('chat-limited', 'chat-fork');
+        expect(handed).toMatchObject({ id: task.id, childId: 'chat-fork', status: 'open' });
+        expect(handed?.paused).toBeUndefined();
+        expect(tasks.openFor('chat-limited')).toBeUndefined();
+
+        const done: ChatTurnItem = { ...turn('t2', 'done'), taskIds: [task.id] };
+        threads.set('chat-fork', [done, answer('t2', 'finished in the fork')]);
+        const woken = nextOwed();
+        ends('chat-fork', done);
+        await woken;
+        ends('chat-fork', done);
+        await coordinator.settled();
+        expect(tasks.get(task.id)).toMatchObject({ status: 'done', childId: 'chat-fork', result: { text: 'finished in the fork' } });
+        expect(owed).toEqual([task.id]);
+    });
+
+    test('a child without an open task hands nothing over', async () => {
+        expect(await coordinator.handOver('chat-idle', 'chat-fork')).toBeNull();
+    });
+});
+
 describe('the task store', () => {
     test('a removed child cancels its open task and a removed parent takes its tasks, across a restart', async () => {
         const kept = await open('chat-lead', 'chat-a');

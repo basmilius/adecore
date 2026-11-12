@@ -157,6 +157,21 @@ export class TaskStore {
         return true;
     }
 
+    /* Gives an open task to another child, free of what held it for the first; null when it was not open. */
+    async handOver(id: string, childId: string): Promise<Task | null> {
+        const task = this.tasks.get(id);
+
+        if (!task || task.status !== 'open') {
+            return null;
+        }
+
+        const { paused: _paused, background: _background, ...open } = task;
+        const handed: Task = { ...open, childId };
+        await this.write(handed);
+
+        return handed;
+    }
+
     /* Cancels the open tasks of these children, with the reason as the result; a cancelled task wakes nobody. */
     async cancelOpen(childIds: ReadonlySet<string>, reason: string, now: number): Promise<Task[]> {
         const cancelled: Task[] = [];

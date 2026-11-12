@@ -464,6 +464,25 @@ describe('a resume owed after a limit', () => {
         await run.session.dispose();
     });
 
+    test('lapses when the turn went on in a fork, which leaves the chat no longer limited and a note under that turn', async () => {
+        const { owed, hooks } = owing();
+        const run = rig({ limitResume: hooks });
+        run.session.send('original');
+        await flush();
+        const limitedId = run.session.info.activeTurnId!;
+        run.event({ type: 'turn.done', state: 'error', costUsd: 0, limit: { kind: 'usage', resetsAt: 100000 }, error: 'limit' });
+        await flush();
+        expect(run.session.info.limit).toEqual({ kind: 'usage', resetsAt: 100000 });
+
+        run.session.continuedElsewhere('Continued in a fork');
+        await flush();
+        expect(run.session.info.limit).toBeUndefined();
+        expect(run.session.info.resumeAt).toBeUndefined();
+        expect(owed.lapsed).toBe(1);
+        expect(run.session.thread.list().find((item) => item.id === `continued-${limitedId}`)).toMatchObject({ text: 'Continued in a fork' });
+        await run.session.dispose();
+    });
+
     test('takes its time off when it comes due and opens no turn', async () => {
         const { hooks } = owing();
         const run = rig({ limitResume: hooks });

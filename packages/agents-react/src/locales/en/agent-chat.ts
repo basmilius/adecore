@@ -83,8 +83,10 @@ export default {
             pill: 'Limited',
             pillUntil: 'Limited until {{time}}',
             pillResumes: 'Resumes {{time}}',
+            pillReset: 'Limit reset',
             title: 'Stopped on a usage limit',
             resets: 'The limit resets at {{time}}.',
+            reset: 'The limit has reset. Send a message to go on.',
             resumes: 'Resumes at {{time}}.'
         },
         overload: {

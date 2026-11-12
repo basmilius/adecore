@@ -147,6 +147,24 @@ export class TaskCoordinator {
         return this.settleNow(task, status, result);
     }
 
+    /*
+     * A chat a person made to take a child's work over (a fork after a limit) gets the child's open task,
+     * so that chat's turns settle it and wake the parent; null when the child had no open task here.
+     */
+    async handOver(fromChildId: string, toChildId: string): Promise<Task | null> {
+        const task = this.localTask(fromChildId);
+
+        if (this.stopped || !task) {
+            return null;
+        }
+
+        if (this.deps.limit.owed(task.id)) {
+            await this.deps.limit.lapse(task.id);
+        }
+
+        return this.deps.tasks.handOver(task.id, toChildId);
+    }
+
     chatEvent(event: AgentEvent): void {
         if (this.stopped || event.event !== 'chat.event') {
             return;
