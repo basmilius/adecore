@@ -254,6 +254,12 @@ export interface ChatCoreOptions {
      * without a store, a loaded chat stays until it is removed or the host stops.
      */
     unloadAfterMs?: number;
+    /*
+     * How long the CLI of a chat stays once the chat said nothing more and nothing is under way, whoever
+     * reads it. The chat itself stays, and its next message starts a process that resumes the conversation.
+     * Without it an idle CLI lives as long as its chat is in memory.
+     */
+    releaseProcessAfterMs?: number;
 }
 
 /*
@@ -318,6 +324,8 @@ export class ChatCore {
     private readonly limitResume: ChatCoreOptions['limitResume'] | null;
     private readonly unloadAfterMs: number | null;
     private readonly unloadTimers = new Map<string, ReturnType<typeof setTimeout>>();
+    private readonly releaseProcessAfterMs: number | null;
+    private readonly releaseTimers = new Map<string, ReturnType<typeof setTimeout>>();
     // The last info of each chat that left memory, so `list` still answers what it was doing.
     private readonly unloadedInfo = new Map<string, ChatInfo>();
 
@@ -351,6 +359,7 @@ export class ChatCore {
         this.onInterruptedRun = options.onInterruptedRun ?? null;
         this.limitResume = options.limitResume ?? null;
         this.unloadAfterMs = options.store && options.unloadAfterMs !== undefined ? options.unloadAfterMs : null;
+        this.releaseProcessAfterMs = options.releaseProcessAfterMs ?? null;
         this.hooks = options.hooks ?? {};
 
         this.spawn = options.spawn ?? null;
@@ -1711,6 +1720,28 @@ export class ChatCore {
         this.unloadTimers.delete(chatId);
     }
 
+    /* Counted from what the chat said last. A CLI that still holds work then is asked again after the next thing it says. */
+    private scheduleRelease(chatId: string): void {
+        if (this.releaseProcessAfterMs === null) {
+            return;
+        }
+
+        this.cancelRelease(chatId);
+
+        const timer = setTimeout(() => {
+            this.releaseTimers.delete(chatId);
+            void this.releaseProcess(chatId).catch((e) => console.error(`Ending the idle CLI of chat ${chatId} failed:`, errorText(e)));
+        }, this.releaseProcessAfterMs);
+
+        timer.unref?.();
+        this.releaseTimers.set(chatId, timer);
+    }
+
+    private cancelRelease(chatId: string): void {
+        clearTimeout(this.releaseTimers.get(chatId));
+        this.releaseTimers.delete(chatId);
+    }
+
     /* Drops what the core keeps of a loaded chat beside its session, which a kill and an unload share. */
     private forgetLoaded(chatId: string): void {
         this.subagents.releaseChat(chatId);
@@ -1721,6 +1752,7 @@ export class ChatCore {
         this.logs.delete(chatId);
         this.cancelWaiting(chatId);
         this.cancelUnload(chatId);
+        this.cancelRelease(chatId);
         this.sizes.delete(chatId);
         this.unlogged.delete(chatId);
         this.writes.delete(chatId);
@@ -1841,6 +1873,7 @@ export class ChatCore {
         for (const chatId of this.chats.keys()) {
             this.cancelWaiting(chatId);
             this.cancelUnload(chatId);
+            this.cancelRelease(chatId);
         }
 
         // A thread that cannot be written still ends its CLI, whose process group would otherwise outlive the host.
@@ -2042,6 +2075,7 @@ export class ChatCore {
 
         // A chat nobody reads counts its time from what it said last, such as its CLI going down.
         this.scheduleUnload(chatId);
+        this.scheduleRelease(chatId);
 
         // After the thread, so a client reading it has already had this info and the status is a no-op there.
         if (event.type === 'info' || event.type === 'reset') {

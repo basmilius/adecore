@@ -32,7 +32,7 @@ const providers = new ProviderRegistry({
 
 const homes: string[] = [];
 
-async function coreIn(unloadAfterMs?: number, registry: ProviderRegistry = providers): Promise<ChatCore> {
+async function coreIn(unloadAfterMs?: number, registry: ProviderRegistry = providers, releaseProcessAfterMs?: number): Promise<ChatCore> {
     const home = await mkdtemp(join(tmpdir(), 'adecore-unload-'));
     homes.push(home);
     const attachments = new AttachmentStore(home);
@@ -41,7 +41,8 @@ async function coreIn(unloadAfterMs?: number, registry: ProviderRegistry = provi
         attachments,
         store: new ChatStore(home, { attachments }),
         providers: registry,
-        ...(unloadAfterMs === undefined ? {} : { unloadAfterMs })
+        ...(unloadAfterMs === undefined ? {} : { unloadAfterMs }),
+        ...(releaseProcessAfterMs === undefined ? {} : { releaseProcessAfterMs })
     });
 }
 
@@ -235,6 +236,44 @@ test('releasing the process of an idle chat ends its CLI and keeps the chat, and
     expect(run.disposed).toBe(1);
     expect(core.get('chat')?.info).toMatchObject({ running: false, status: 'idle' });
     expect(await core.releaseProcess('chat')).toBe(false);
+
+    await core.shutdown();
+});
+
+test('a chat a client reads lets go of its idle CLI after releaseProcessAfterMs, counted from what it said last', async () => {
+    const { run, registry } = withProcess();
+    const core = await coreIn(undefined, registry, 60_000);
+    await core.create({ chatId: 'chat', cwd: tmpdir() });
+    core.attach('chat', 'client');
+    await core.send('chat', 'hello');
+    await sent(core, run);
+    jest.useFakeTimers();
+    run.emit({ type: 'turn.done', state: 'done', costUsd: 0 });
+    jest.advanceTimersByTime(59_999);
+
+    expect(run.disposed).toBe(0);
+
+    jest.advanceTimersByTime(1);
+    await Promise.resolve();
+
+    expect(run.disposed).toBe(1);
+    expect(core.get('chat')?.info).toMatchObject({ running: false, status: 'idle' });
+
+    await core.shutdown();
+});
+
+test('a CLI in a turn outlives releaseProcessAfterMs', async () => {
+    const { run, registry } = withProcess();
+    const core = await coreIn(undefined, registry, 60_000);
+    await core.create({ chatId: 'chat', cwd: tmpdir() });
+    await core.send('chat', 'hello');
+    await sent(core, run);
+    jest.useFakeTimers();
+    run.emit({ type: 'text.delta', ref: 'text-1', text: 'Still at it' });
+    jest.advanceTimersByTime(120_000);
+    await Promise.resolve();
+
+    expect(run.disposed).toBe(0);
 
     await core.shutdown();
 });
