@@ -372,6 +372,19 @@ describe('the Claude backend', () => {
         await backend.dispose();
     });
 
+    test('starts the CLI with a first turn that waits for its MCP servers, unless the host chose otherwise', async () => {
+        const cli = recording();
+        const backend = new ClaudeBackend({ ...launch, spawn: cli.spawn }, { onEvent: () => undefined });
+        const chosen = new ClaudeBackend({ ...launch, env: { MCP_CONNECTION_NONBLOCKING: 'true' }, spawn: cli.spawn }, { onEvent: () => undefined });
+
+        await backend.start();
+        await chosen.start();
+        expect(cli.spawned[0]!.env.MCP_CONNECTION_NONBLOCKING).toBe('false');
+        expect(cli.spawned[1]!.env.MCP_CONNECTION_NONBLOCKING).toBe('true');
+        await backend.dispose();
+        await chosen.dispose();
+    });
+
     test('keeps reading after an event consumer throws, and reports the failure without ending the CLI', async () => {
         const script = scripted();
         const fake = inProcess(script.cli);

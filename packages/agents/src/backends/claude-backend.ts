@@ -49,6 +49,14 @@ const STEER_GRACE_MS = 30_000;
 const NO_NONESSENTIAL_TRAFFIC = { DISABLE_AUTOUPDATER: '1', DISABLE_BUG_COMMAND: '1', DISABLE_ERROR_REPORTING: '1', DISABLE_TELEMETRY: '1' };
 
 /*
+ * The CLI starts a turn without waiting for the servers it finds itself (the person's own and their claude.ai connectors),
+ * only for the ones on its command line. In the first turn of a resumed session it then tells the agent that the tools
+ * the transcript knew are gone, and they return seconds later (measured on Claude Code 2.1.322). With this the first turn
+ * waits until every server connected or failed, each within the CLI's own connect timeout.
+ */
+const BLOCKING_MCP_STARTUP = { MCP_CONNECTION_NONBLOCKING: 'false' };
+
+/*
  * A chat on an API key takes nothing from the host's environment that moves where the CLI sends the key and the prompts,
  * or signs it in another way: every `ANTHROPIC_*` variable (the base URLs of the API, Bedrock, Vertex and Foundry, an auth
  * token, custom headers, a Foundry key), the switches to another cloud and their auth skips, and the other sign-ins.
@@ -466,7 +474,8 @@ export class ClaudeBackend implements ChatBackend {
     // The process environment only: an `env` in the person's own Claude settings still wins in the CLI.
     private env(key: string | null): Record<string, string> {
         const entrypoint: Record<string, string> = this.options.entrypoint === undefined ? {} : { CLAUDE_CODE_ENTRYPOINT: this.options.entrypoint };
-        const env = { ...this.launch.env, ...claudeEnv(this.launch.selection), ...entrypoint };
+        // First, so a host that sets the variable itself keeps its choice.
+        const env = { ...BLOCKING_MCP_STARTUP, ...this.launch.env, ...claudeEnv(this.launch.selection), ...entrypoint };
 
         if (key === null || !this.options.apiKey) {
             return env;
