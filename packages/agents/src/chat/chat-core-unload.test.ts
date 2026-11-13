@@ -2,7 +2,7 @@ import { afterEach, expect, jest, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { BackendEvent } from '../backends/types.ts';
+import type { BackendEvent } from '../backends/backend.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { claudeProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
