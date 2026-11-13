@@ -2,6 +2,7 @@ import { afterEach, expect, jest, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import type { BackendEvent } from '../backends/types.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { claudeProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
@@ -31,12 +32,65 @@ const providers = new ProviderRegistry({
 
 const homes: string[] = [];
 
-async function coreIn(unloadAfterMs?: number): Promise<ChatCore> {
+async function coreIn(unloadAfterMs?: number, registry: ProviderRegistry = providers): Promise<ChatCore> {
     const home = await mkdtemp(join(tmpdir(), 'adecore-unload-'));
     homes.push(home);
     const attachments = new AttachmentStore(home);
 
-    return new ChatCore({ attachments, store: new ChatStore(home, { attachments }), providers, ...(unloadAfterMs === undefined ? {} : { unloadAfterMs }) });
+    return new ChatCore({
+        attachments,
+        store: new ChatStore(home, { attachments }),
+        providers: registry,
+        ...(unloadAfterMs === undefined ? {} : { unloadAfterMs })
+    });
+}
+
+/* A provider whose backend is a process: it has a pid until it is disposed, and the test says what it emits. */
+function withProcess() {
+    const run = { sent: 0, disposed: 0, emit: (_event: BackendEvent): void => undefined };
+    const registry = new ProviderRegistry({
+        detect: async () => ({ installed: true, version: 'test' }),
+        providers: [
+            {
+                ...claudeProvider,
+                createBackend: (_launch, host) => {
+                    let pid: number | null = 4242;
+                    run.emit = host.onEvent;
+
+                    return {
+                        running: true,
+                        get pid() {
+                            return pid;
+                        },
+                        start: async () => undefined,
+                        sendTurn: () => {
+                            run.sent += 1;
+                        },
+                        compact: () => undefined,
+                        interrupt: () => undefined,
+                        respondApproval: () => false,
+                        respondQuestion: () => false,
+                        stop: () => undefined,
+                        dispose: async () => {
+                            pid = null;
+                            run.disposed += 1;
+                        }
+                    };
+                }
+            }
+        ]
+    });
+
+    return { run, registry };
+}
+
+/* A turn reaches its CLI once the chat's record is written and the start settled. */
+async function sent(core: ChatCore, run: { sent: number }): Promise<void> {
+    await core.persisted('chat');
+
+    for (let i = 0; i < 100 && run.sent === 0; i++) {
+        await Promise.resolve();
+    }
 }
 
 function notes(items: { kind: string; text?: string }[]): string[] {
@@ -143,6 +197,44 @@ test('removing the record of a chat that left memory takes it off the list', asy
 
     expect(await core.deleteRecord('chat')).toBe(true);
     expect(core.list()).toEqual([]);
+
+    await core.shutdown();
+});
+
+test('an idle chat nobody reads ends its CLI when it leaves memory, and not while its turn runs', async () => {
+    const { run, registry } = withProcess();
+    const core = await coreIn(undefined, registry);
+    await core.create({ chatId: 'chat', cwd: tmpdir() });
+    await core.send('chat', 'hello');
+    await sent(core, run);
+
+    expect(await core.unloadIdle('chat')).toBe(false);
+    expect(run.disposed).toBe(0);
+
+    run.emit({ type: 'turn.done', state: 'done', costUsd: 0 });
+
+    expect(await core.unloadIdle('chat')).toBe(true);
+    expect(run.disposed).toBe(1);
+    expect(core.list()).toMatchObject([{ chatId: 'chat', running: false, status: 'idle' }]);
+
+    await core.shutdown();
+});
+
+test('releasing the process of an idle chat ends its CLI and keeps the chat, and a running turn keeps its CLI', async () => {
+    const { run, registry } = withProcess();
+    const core = await coreIn(undefined, registry);
+    await core.create({ chatId: 'chat', cwd: tmpdir() });
+    await core.send('chat', 'hello');
+    await sent(core, run);
+
+    expect(await core.releaseProcess('chat')).toBe(false);
+
+    run.emit({ type: 'turn.done', state: 'done', costUsd: 0 });
+
+    expect(await core.releaseProcess('chat')).toBe(true);
+    expect(run.disposed).toBe(1);
+    expect(core.get('chat')?.info).toMatchObject({ running: false, status: 'idle' });
+    expect(await core.releaseProcess('chat')).toBe(false);
 
     await core.shutdown();
 });

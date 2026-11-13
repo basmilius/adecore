@@ -249,8 +249,8 @@ export interface ChatCoreOptions {
     accounts?: AccountLaunches;
     hooks?: ChatCoreHooks;
     /*
-     * How long a chat stays in memory once nobody reads it, its CLI is gone and nothing is under way;
-     * after that only its info stays, for `list`, until something loads it again. Without it, or
+     * How long a chat stays in memory once nobody reads it and nothing is under way; after that its
+     * idle CLI ends and only its info stays, for `list`, until something loads it again. Without it, or
      * without a store, a loaded chat stays until it is removed or the host stops.
      */
     unloadAfterMs?: number;
@@ -1621,9 +1621,27 @@ export class ChatCore {
     }
 
     /*
-     * Leaves a chat on disk alone once memory has no use for it. That holds when nobody reads it, it
-     * has no CLI, no turn, request, hold or move is under way, no resume is owed, and it holds no
-     * preamble that is asked again before it is said (`NoteDelivery.holds`). Answers whether it left.
+     * Ends the CLI of a chat that has no use for it now and keeps its conversation: no turn, request, hold
+     * or move is under way, and the process holds no background work or goal. Answers whether a process
+     * ended. The next message starts one that resumes the conversation, as after `restart`.
+     */
+    async releaseProcess(chatId: string): Promise<boolean> {
+        const session = this.chats.get(chatId);
+
+        if (!session || session.pid === null || !session.relocatable || this.relocations.has(chatId) || this.creating.has(chatId)) {
+            return false;
+        }
+
+        await session.dropProcess();
+
+        return true;
+    }
+
+    /*
+     * Leaves a chat on disk alone once memory has no use for it. That holds when nobody reads it, no
+     * turn, request, hold or move is under way, its CLI holds no work, no resume is owed, and it holds
+     * no preamble that is asked again before it is said (`NoteDelivery.holds`). A CLI left idle ends
+     * with it, or every chat nobody reads would keep a process for good. Answers whether it left.
      * The next create, attach or note loads it again from its record, as after a restart.
      */
     async unloadIdle(chatId: string): Promise<boolean> {
@@ -1631,6 +1649,13 @@ export class ChatCore {
 
         if (!this.unloadable(chatId)) {
             return false;
+        }
+
+        // Before the record is written, so the info that stays listed says no process runs.
+        if (this.chats.get(chatId)?.pid != null) {
+            await this.releaseProcess(chatId);
+            // Letting go said so in the thread, which counts the chat's time again.
+            this.cancelUnload(chatId);
         }
 
         await this.persistNow(chatId, true);
@@ -1658,7 +1683,6 @@ export class ChatCore {
             (this.attached.get(chatId)?.size ?? 0) === 0 &&
             !this.creating.has(chatId) &&
             !this.relocations.has(chatId) &&
-            session.pid === null &&
             session.relocatable &&
             session.info.resumeAt === undefined &&
             (session.info.requests?.length ?? 0) === 0 &&
