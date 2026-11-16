@@ -12,16 +12,30 @@ The label above the track is the accessible name; the value sits on the right in
 
 The value is controlled. It stays within `min` and `max`, snaps to a step from `min`, and is rounded so 0.2 plus 0.1 lands on 0.3. It shows as many decimals as `step`, unless you pass `decimals`. The `unit` follows the number on screen and for screen readers.
 
+## On release
+
+`onValueChange` follows the pointer, so a drag calls it many times. Work that only needs the last value, such as a command to a device, goes in `onValueCommitted`. It runs when a drag ends and after each key press, with the value rounded the same way.
+
+```tsx
+<Slider label="Volume" value={volume} onValueChange={setVolume} onValueCommitted={(next) => speaker.setVolume(next)} min={0} max={100} unit="%" heading={false} />
+```
+
+## Without the heading
+
+`heading={false}` leaves out the label and value above the track, for a slider beside an icon and a reading of its own, or in a row of a list. The label then names the thumb, and screen readers still hear the value with its unit.
+
 ## Props
 
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `value` | `number` | | Required. |
 | `onValueChange` | `(value: number) => void` | | Required. Called on every step and while dragging. |
+| `onValueCommitted` | `(value: number) => void` | | Called when a drag ends and after a key press. |
 | `min` | `number` | | Required. |
 | `max` | `number` | | Required. |
 | `step` | `number` | `1` | |
 | `label` | `string` | | Required. |
+| `heading` | `boolean` | `true` | False leaves out the label and value above the track. |
 | `decimals` | `number` | the places of `step` | |
 | `unit` | `string` | | Printed right after the number, such as `px` or `%`. |
 | `disabled` | `boolean` | | |

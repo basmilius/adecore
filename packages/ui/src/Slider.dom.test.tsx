@@ -107,6 +107,14 @@ describe('a slider under the keyboard', () => {
         expect(input.getAttribute('aria-valuetext')).toBe('0.4');
     });
 
+    test('commits each key press with the value rounded like a change', async () => {
+        const commits: number[] = [];
+        const input = await mount(<Harness initial={0.2} min={0} max={1} step={0.1} onValueCommitted={(next) => commits.push(next)} />);
+        await press(input, 'ArrowRight');
+        await press(input, 'ArrowRight');
+        expect(commits).toEqual([0.3, 0.4]);
+    });
+
     test('takes its input out of the tab order when disabled', async () => {
         const input = await mount(<Harness initial={8} min={0} max={20} disabled />);
         expect(input.disabled).toBe(true);

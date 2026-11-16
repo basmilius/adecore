@@ -42,6 +42,14 @@ describe('a slider', () => {
         expect(render(<Slider label="Scale" value={2} onValueChange={() => {}} min={1} max={3} step={0.5} decimals={2} />)).toContain('aria-valuetext="2.00"');
     });
 
+    test('without its heading names the thumb after the label and still says the value', () => {
+        const markup = render(<Slider label="Volume" value={40} onValueChange={() => {}} min={0} max={100} unit="%" heading={false} />);
+        expect(markup).not.toContain('>Volume<');
+        expect(markup).not.toContain('aria-labelledby');
+        expect(markup).toContain('aria-label="Volume"');
+        expect(markup).toContain('aria-valuetext="40%"');
+    });
+
     test('turns its input off when disabled', () => {
         const markup = render(<Slider label="Agents" value={8} onValueChange={() => {}} min={1} max={16} disabled />);
         expect(markup).toContain('data-disabled');
