@@ -182,21 +182,25 @@ export const createWindows = (options: WindowsOptions) => {
     };
 
     /*
-     * A window in full screen covers a whole display. When that display goes, as an external screen does
-     * when it sleeps on a lock, macOS takes the window's Space with it and leaves the window nowhere.
+     * When the display of a window in full screen goes, as an external screen does when it sleeps on a
+     * lock, macOS takes the window's Space with it and leaves the window nowhere. Only its middle has to
+     * sit on a display: on a display with a camera notch the window stays below it, so its bounds never
+     * equal the display's.
      */
     const lostFullScreen = (window: BrowserWindow): boolean => {
         const bounds = window.getBounds();
+        const x = bounds.x + bounds.width / 2;
+        const y = bounds.y + bounds.height / 2;
 
         return !options.state
             .displays()
             .some(
                 (display) =>
                     display.bounds === undefined ||
-                    (display.bounds.x === bounds.x &&
-                        display.bounds.y === bounds.y &&
-                        display.bounds.width === bounds.width &&
-                        display.bounds.height === bounds.height)
+                    (x >= display.bounds.x &&
+                        x < display.bounds.x + display.bounds.width &&
+                        y >= display.bounds.y &&
+                        y < display.bounds.y + display.bounds.height)
             );
     };
 

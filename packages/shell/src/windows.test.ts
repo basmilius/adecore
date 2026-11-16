@@ -596,6 +596,36 @@ describe('createWindows', () => {
         expect(fake.calls).toEqual(['fullScreen:false', 'bounds:{"width":1440,"height":900}', 'center', 'show']);
     });
 
+    test('a window in full screen below the camera notch stays in full screen', () => {
+        const builtIn = { workArea: { x: 0, y: 38, width: 1728, height: 1079 }, bounds: { x: 0, y: 0, width: 1728, height: 1117 } };
+
+        const state = createWindowState({
+            storage: memory().storage,
+            displays: () => [builtIn],
+            defaults: { width: 1440, height: 900 },
+            setTimeout: () => null
+        });
+
+        const fakes: Fake[] = [];
+
+        const windows = createWindows({
+            state,
+            session: memory().storage,
+            platform: 'darwin',
+            create: () => {
+                const fake = fakeWindow({ x: 0, y: 38, width: 1728, height: 1079 });
+                fake.state.fullScreen = true;
+                fakes.push(fake);
+
+                return fake.window;
+            }
+        });
+
+        windows.restore();
+        windows.bringBack();
+        expect(fakes[0]!.calls).toEqual([]);
+    });
+
     test('a quit that goes ahead keeps its windows in the session, without the app calling quit()', () => {
         const { windows, created, session, app, beforeQuit } = setupAttached();
         windows.attach(app);
