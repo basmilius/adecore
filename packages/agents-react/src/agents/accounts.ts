@@ -103,7 +103,7 @@ export const ACCOUNT_TONE_CLASSES: Record<AccountTone, string> = {
  * folder: it has no login of its own to report, so being there is all a ready one says.
  */
 export function accountStatusLine(status: ProviderAccountStatus | null, canLogIn: boolean): { text: string; tone: AccountTone } {
-    const words = (key: string, values?: Record<string, string>): string => i18next.t(`agent-providers:status.${key}`, values);
+    const words = (key: string, values?: Record<string, string>): string => i18next.t(`agent-providers:status.${key}`, values ?? {});
 
     switch (status?.state ?? 'checking') {
         case 'checking':

@@ -95,7 +95,13 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
         }
     }
 
-    let offset = 0;
+    const groupStarts: number[] = [];
+    let next = 0;
+
+    for (const group of groups) {
+        groupStarts.push(next);
+        next += group.entries.length;
+    }
 
     return createPortal(
         <div
@@ -153,9 +159,8 @@ export function SymbolPicker({ language, view }: { language: EditorLanguage; vie
                         );
                     })}
                 {mode.mode === 'symbol' &&
-                    groups.map((group) => {
-                        const start = offset;
-                        offset += group.entries.length;
+                    groups.map((group, groupIndex) => {
+                        const start = groupStarts[groupIndex] ?? 0;
 
                         return (
                             <div key={group.group} role="group">

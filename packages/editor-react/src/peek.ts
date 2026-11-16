@@ -289,6 +289,6 @@ export class PeekFeature {
     }
 
     private say(key: string, options?: Record<string, unknown>): string {
-        return this.language.project.i18n.t(`editor:language.peek.${key}`, options);
+        return this.language.project.i18n.t(`editor:language.peek.${key}`, options ?? {});
     }
 }

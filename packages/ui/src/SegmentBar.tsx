@@ -44,14 +44,14 @@ export function SegmentBar({ parts, range, size = 'md', onSelect, label, classNa
     const labels = useRef<(HTMLSpanElement | null)[]>([]);
     const [cut, setCut] = useState<readonly boolean[]>([]);
 
+    const placed: { part: SegmentBarPart; index: number; from: number; to: number }[] = [];
     let end = 0;
 
-    const placed = parts.map((part, index) => {
+    for (const [index, part] of parts.entries()) {
         const from = part.start ?? end;
         end = from + Math.max(0, part.value);
-
-        return { part, index, from, to: end };
-    });
+        placed.push({ part, index, from, to: end });
+    }
 
     const [from, to] = range ?? [0, end];
     const span = to - from;

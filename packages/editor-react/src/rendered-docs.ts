@@ -432,7 +432,7 @@ export class RenderedDocsFeature {
 
         const { editor } = this.language;
 
-        const t = (key: string, options?: Record<string, string>): string => this.language.project.i18n.t(`editor:language.docs.${key}`, options);
+        const t = (key: string, options?: Record<string, string>): string => this.language.project.i18n.t(`editor:language.docs.${key}`, options ?? {});
 
         const rendered = this.comments.filter((comment) => this.isRendered(comment));
         const signature = rendered.map((comment) => `${this.idOf(comment)}@${comment.startLine}-${comment.endLine}`).join('|');

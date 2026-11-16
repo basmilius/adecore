@@ -178,6 +178,6 @@ export class NavigationFeature {
     }
 
     private say(key: string, options?: Record<string, unknown>): string {
-        return this.language.project.i18n.t(`editor:language.navigation.${key}`, options);
+        return this.language.project.i18n.t(`editor:language.navigation.${key}`, options ?? {});
     }
 }

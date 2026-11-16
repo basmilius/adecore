@@ -561,6 +561,6 @@ export class CallHierarchyFeature {
     }
 
     private say(key: string, options?: Record<string, unknown>): string {
-        return this.language.project.i18n.t(`editor:language.callHierarchy.${key}`, options);
+        return this.language.project.i18n.t(`editor:language.callHierarchy.${key}`, options ?? {});
     }
 }

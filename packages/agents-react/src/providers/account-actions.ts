@@ -7,7 +7,7 @@ import { providerAccountsOf, useProviderAccountsStore } from '../state/provider-
 import { errorMessage, type ChatTransport } from '../transport';
 
 function words(key: string, values?: Record<string, string>): string {
-    return i18next.t(`agent-providers:${key}`, values);
+    return i18next.t(`agent-providers:${key}`, values ?? {});
 }
 
 function linkTo(scope: ChatScope): ChatTransport {

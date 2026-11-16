@@ -349,6 +349,6 @@ export class RenameFeature {
     }
 
     private say(key: string, options?: Record<string, unknown>): string {
-        return this.language.project.i18n.t(`editor:language.rename.${key}`, options);
+        return this.language.project.i18n.t(`editor:language.rename.${key}`, options ?? {});
     }
 }

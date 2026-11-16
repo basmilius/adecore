@@ -511,6 +511,6 @@ export class CodeActionsFeature {
     }
 
     private say(key: string, options?: Record<string, unknown>): string {
-        return this.language.project.i18n.t(`editor:language.actions.${key}`, options);
+        return this.language.project.i18n.t(`editor:language.actions.${key}`, options ?? {});
     }
 }

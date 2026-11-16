@@ -56,8 +56,8 @@
     "dependencies": {
         "@adecore/editor-core": "workspace:*",
         "@adecore/utils": "workspace:*",
-        "linkedom": "^0.18.14",
-        "shiki": "^4.5.0"
+        "linkedom": "^0.18.15",
+        "shiki": "^4.6.0"
     },
     "devDependencies": {
         "@types/bun": "^1.4.4",
