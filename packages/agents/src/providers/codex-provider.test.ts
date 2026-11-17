@@ -7,11 +7,11 @@ describe('codex catalog', () => {
         const registry = new ProviderRegistry({ detect: async () => ({ installed: true, version: '0.153.4' }) });
         const codex = registry.catalogFor('codex');
         const models = codex.list();
-        expect(models.filter((model) => model.isDefault).map((model) => model.slug)).toEqual(['gpt-6-astra']);
+        expect(models.filter((model) => model.isDefault).map((model) => model.slug)).toEqual(['gpt-6.2-astra']);
         expect(models.find((model) => model.slug === 'gpt-5.6-sol')?.options[0]).toMatchObject({ id: 'effort', type: 'select', defaultChoice: 'low' });
 
         for (const [alias, slug] of [
-            ['sol', 'gpt-6.1-sol'],
+            ['gpt-6', 'gpt-6-astra'],
             ['luna', 'gpt-6-luna']
         ]) {
             expect(codex.normalize({ model: alias })).toEqual({
@@ -22,10 +22,11 @@ describe('codex catalog', () => {
         }
 
         expect(codex.normalize({ model: 'terra' })).toEqual({ model: 'gpt-6.1-terra', options: { effort: 'low', serviceTier: false } });
+        expect(codex.normalize({ model: 'sol' })).toEqual({ model: 'gpt-6.2-sol', options: { effort: 'low', serviceTier: false } });
         expect(models.find((model) => model.slug === 'gpt-5.6-terra')).toMatchObject({ legacy: true, badge: 'retiring' });
         expect(codex.normalize({ model: 'gpt-5.6-terra', options: { effort: 'high' } }).model).toBe('gpt-5.6-terra');
         expect(codex.normalize({ model: 'astra', options: { effort: 'ultra', contextWindow: '1m' } })).toEqual({
-            model: 'gpt-6-astra',
+            model: 'gpt-6.2-astra',
             options: { effort: 'ultra', serviceTier: false }
         });
         expect(codex.normalize({ model: 'gpt-5.5', options: { effort: 'ultra' } }).options.effort).toBe('medium');
