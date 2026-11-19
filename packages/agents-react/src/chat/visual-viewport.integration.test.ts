@@ -30,7 +30,7 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         `
         import { createElement } from ${JSON.stringify(join(import.meta.dir, '../../../../node_modules/react'))};
         import { createRoot } from ${JSON.stringify(join(import.meta.dir, '../../../../node_modules/react-dom/client'))};
-        import { ChatHostProvider } from ${JSON.stringify(join(import.meta.dir, '../host.ts'))};
+        import { ChatHostProvider } from ${JSON.stringify(join(import.meta.dir, '../host/host.ts'))};
         import { ChatScopeContext } from ${JSON.stringify(join(import.meta.dir, '../scope.ts'))};
         import { VisualFrame } from ${JSON.stringify(join(import.meta.dir, 'ui/VisualFrame.tsx'))};
         import { RowContainer } from ${JSON.stringify(join(import.meta.dir, 'ui/rows/RowContainer.tsx'))};
@@ -52,6 +52,8 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
                     : createElement(RowContainer, {row:card ? {kind:'app-card',id:'page',card:{id:'page',at:0,render:()=>frame}} : {kind:'visual',id:'page',visual},previous:null,index:1,top:200}, frame)
             )));
         };
+        window.unmount = () => app.render(null);
+        window.remount = () => render();
         window.setLayout = next => { layout = next; render(); };
         window.setCard = () => { card = true; render(); };
         window.resizePane = (width, strip = false) => {
@@ -158,6 +160,13 @@ test('a sandboxed visual follows the timeline while its own controls retain thei
         await view.resize(760, 720);
         await waitFor('window.ready?.() === true');
         await waitFor('(async()=> (await sample()).boxHeight === 6000)()');
+
+        // A visual that mounts again with its top above the fold, as on a return to a chat at its end.
+        await view.evaluate('move(5500)');
+        await view.evaluate('unmount()');
+        await view.evaluate('(()=> {move(5500); remount();})()');
+        await waitFor('window.ready?.() === true');
+        await waitFor('(async()=> (await sample()).top === 5300)()');
 
         for (const top of [0, 100, 200, 1700, 5700, 5900]) {
             await view.evaluate(`move(${top})`);

@@ -35,6 +35,11 @@ window.addEventListener('message', function (event) {
     viewport = next;
     apply(next.top);
 });
+// The new frame size travels apart from the message and often lands after it, so a top beyond the old
+// size was clamped; once the size arrives, scroll there again.
+window.addEventListener('resize', function () {
+    if (viewport) { apply(viewport.top); }
+});
 function nestedScroll(path, delta, axis) {
     for (var i = 0; i < path.length; i++) {
         var node = path[i];
