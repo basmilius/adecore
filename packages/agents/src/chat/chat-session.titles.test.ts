@@ -177,3 +177,48 @@ describe('host-selected chat naming', () => {
         });
     }
 });
+
+describe("a host's reading of a CLI's own title", () => {
+    const cliTitle = (title: string): string => title.replace('Acme-design', 'Design');
+
+    test('rewrites a title the CLI pushes as an event or with its session', async () => {
+        const run = rig({ cliTitle });
+        run.session.send('$acme-design a pricing page');
+        await flush();
+        run.event({ type: 'title', title: 'Acme-design pricing page' });
+        expect(run.session.info.suggestedTitle).toBe('Design pricing page');
+        run.event({ type: 'session', agentSessionId: 'native-session', model: null, title: 'Acme-design checkout' });
+        expect(run.session.info.suggestedTitle).toBe('Design checkout');
+        await run.session.dispose();
+    });
+
+    test('rewrites a title read from the transcript', async () => {
+        const run = rig({ cliTitle, readTitle: async () => 'Acme-design onboarding' });
+        run.session.send('$acme-design onboarding');
+        await flush();
+        run.event({ type: 'session', agentSessionId: 'native-session', model: null });
+        await flush();
+        expect(run.session.info.suggestedTitle).toBe('Design onboarding');
+        await run.session.dispose();
+    });
+
+    test('rewrites a native title held back for a generated one that failed', async () => {
+        const run = rig({ cliTitle, titlePolicy: () => 'generated', nameThread: async () => null });
+        run.session.send('$acme-design a pricing page');
+        await flush();
+        run.event({ type: 'title', title: 'Acme-design pricing page' });
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        await flush();
+        expect(run.session.info.suggestedTitle).toBe('Design pricing page');
+        await run.session.dispose();
+    });
+
+    test('leaves the title as the CLI wrote it without the hook', async () => {
+        const run = rig();
+        run.session.send('$acme-design a pricing page');
+        await flush();
+        run.event({ type: 'title', title: 'Acme-design pricing page' });
+        expect(run.session.info.suggestedTitle).toBe('Acme-design pricing page');
+        await run.session.dispose();
+    });
+});

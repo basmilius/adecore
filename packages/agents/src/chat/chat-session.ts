@@ -131,6 +131,8 @@ export interface ChatSessionOptions {
     persistSoon(): void;
     // The name the CLI gave its session, where it writes one down; absent for a CLI that does not.
     readTitle?(agentSessionId: string): Promise<string | null>;
+    // A title of the CLI's own, pushed or read, as the host wants it stored.
+    cliTitle?(title: string): string;
     // A generated name; null leaves the native or derived name available.
     nameThread?(input: ChatTitleInput): Promise<string | null>;
     // Set when this CLI names nothing itself, so `nameThread` names its chats even under the native policy.
@@ -2915,7 +2917,9 @@ export class ChatSession {
 
         void this.options
             .readTitle(agentSessionId)
-            .then((title) => {
+            .then((read) => {
+                const title = read === null ? null : this.cliTitle(read);
+
                 // A clear in between started another session, whose name this is not.
                 if (title === null || title === this.thread.info.suggestedTitle || this.generation !== generation || this.prefersGeneratedTitle()) {
                     return;
@@ -2931,7 +2935,13 @@ export class ChatSession {
         return this.options.nameThread !== undefined && !this.namingFailed && this.options.titlePolicy?.() === 'generated';
     }
 
-    private applyNativeTitle(title: string): void {
+    private cliTitle(title: string): string {
+        return this.options.cliTitle?.(title) ?? title;
+    }
+
+    private applyNativeTitle(native: string): void {
+        const title = this.cliTitle(native);
+
         if (this.prefersGeneratedTitle()) {
             const cleaned = cleanTitle(title);
 

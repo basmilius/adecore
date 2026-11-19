@@ -172,6 +172,12 @@ export interface ChatCoreHooks {
      * they stay in its text as typed, but no CLI gets one as a skill to run.
      */
     hostSkillsFor?(chatId: string): readonly string[];
+    /*
+     * A title the chat's CLI gave its session, pushed as an event or read from its transcript, as the host
+     * wants it stored. A CLI names a session from the prompt, so a host can read its own words there as a
+     * person should see them. Absent, the title stays as the CLI wrote it.
+     */
+    cliTitleFor?(chatId: string, title: string): string;
     /* How the chats, views and nodes a person attached to a message are named to the agent; without it they are dropped. */
     referencesFor?(chatId: string): ChatReferences | undefined;
     /* The environment of this chat's CLI before its account adds its own. */
@@ -670,6 +676,7 @@ export class ChatCore {
             promptSuggestions: () => this.hooks.promptSuggestionsFor?.(payload.chatId) ?? false,
             promptHeard: (text) => this.hooks.promptHeardFor?.(payload.chatId, text) ?? [],
             hostSkills: () => this.hooks.hostSkillsFor?.(payload.chatId) ?? [],
+            cliTitle: (title) => this.hooks.cliTitleFor?.(payload.chatId, title) ?? title,
             onSuggestion: (suggestion) => {
                 for (const clientId of this.attached.get(payload.chatId) ?? []) {
                     this.sinks.to(clientId, { event: 'chat.suggestion', payload: { chatId: payload.chatId, suggestion } });

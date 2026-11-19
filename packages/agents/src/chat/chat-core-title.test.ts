@@ -101,3 +101,32 @@ describe('the name ChatCore asks its host for', () => {
         expect(asked[0]?.input.env?.REVIEW_ACCOUNT).toBeUndefined();
     });
 });
+
+describe('a title the CLI gives its session', () => {
+    test("reaches the chat as the host's cliTitleFor reads it, with the chat it belongs to", async () => {
+        root = await mkdtemp(join(tmpdir(), 'adecore-core-title-'));
+        home = join(root, 'home');
+        const asked: string[] = [];
+
+        core = new ChatCore({
+            providers,
+            store: new ChatStore(root),
+            attachments: new AttachmentStore(root),
+            env: { HOME: home, PATH: '/bin' },
+            hooks: {
+                cliTitleFor: (chatId, title) => {
+                    asked.push(chatId);
+
+                    return title.replace('Acme-design', 'Design');
+                }
+            }
+        });
+
+        await core.create({ chatId: 'chat', provider: 'codex', cwd: home });
+        await core.send('chat', '$acme-design a pricing page');
+        host!.onEvent({ type: 'title', title: 'Acme-design pricing page' });
+
+        expect(core.get('chat')?.info.suggestedTitle).toBe('Design pricing page');
+        expect(asked).toEqual(['chat']);
+    });
+});
