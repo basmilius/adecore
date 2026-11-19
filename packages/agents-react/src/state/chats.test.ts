@@ -177,6 +177,15 @@ describe('a status without an attach', () => {
         });
     });
 
+    test('one from a list without commands keeps the commands and skills the row holds', () => {
+        useChats.setState({ byKey: { 'local:chat-4': { info: info({ skills: ['review'] }), items: {}, structure: {}, order: [] } } });
+
+        useChats.getState().status('local:chat-4', info({ status: 'running', slashCommands: [] }));
+
+        expect(useChats.getState().byKey['local:chat-4']?.info).toEqual(info({ status: 'running', skills: ['review'] }));
+        expect(useChats.getState().statusByKey['local:chat-4']?.info).toEqual(info({ status: 'running', skills: ['review'] }));
+    });
+
     test('the same info again changes nothing, so an attached thread is not redrawn for it', () => {
         useChats.setState({ byKey: { 'local:chat-3': { info: info(), items: {}, structure: {}, order: [] } } });
         const before = useChats.getState().byKey;

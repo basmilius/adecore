@@ -263,6 +263,8 @@ export {
     type ChatForkInfoPayload,
     ChatForkInfoResultSchema,
     type ChatForkInfoResult,
+    ChatListPayloadSchema,
+    type ChatListPayload,
     ChatListResultSchema,
     type ChatListResult,
     GeneratedImageInputSchema,

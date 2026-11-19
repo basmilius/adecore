@@ -9,7 +9,7 @@ Not every host implements every request. A host that only runs chats refuses the
 | Request | Payload | Result |
 | --- | --- | --- |
 | `chat.create` | `ChatCreatePayloadSchema` (`ChatCreatePayload`) | `ChatInfoSchema` (`ChatInfo`) |
-| `chat.list` | `EmptySchema` | `ChatListResultSchema` (`ChatListResult`) |
+| `chat.list` | `ChatListPayloadSchema` (`ChatListPayload`) | `ChatListResultSchema` (`ChatListResult`) |
 | `chat.attach` | `ChatAttachPayloadSchema` | `ChatAttachResultSchema` (`ChatAttachResult`) |
 | `chat.detach` | `ChatTargetPayloadSchema` (`ChatTargetPayload`) | `EmptySchema` |
 | `chat.history` | `ChatHistoryPayloadSchema` | `ChatHistoryResultSchema` (`ChatHistoryResult`) |
@@ -17,7 +17,9 @@ Not every host implements every request. A host that only runs chats refuses the
 
 `chat.create` takes a `chatId` the client picks, and optionally a provider, account, folder, model selection and runtime mode. `ChatIdSchema` (`ChatId`) is any nonempty string. `ChatTargetPayload` is `{ chatId }`, the payload of every request that only names a chat.
 
-`chat.attach` takes an optional `historyLimit` and the `since` of a reconnect. `chat.history` takes a `cursor` and an optional `limit`, and returns `items` with a `history` page (`ChatHistoryPageSchema`, `{ start, cursor }`). See [Attaching and replay](/agent-contracts/protocol#attaching-and-replay).
+`chat.list` answers the `ChatInfo` of every chat the host has loaded. With `omitCommands` each one comes with `slashCommands` empty and without `skills`, which are most of a long list's bytes; a composer reads them from `chat.attach` and its events. A host that predates the flag ignores it and sends them, so a client takes either answer.
+
+`chat.attach` takes an optional `historyLimit` and the `since` of a reconnect. With `create`, the fields of `chat.create` without `chatId`, the host makes the chat first as `chat.create` would, so opening a chat takes one request. A host that predates `create` ignores it and refuses a chat it does not have with `chat-not-found`; the client then sends `chat.create` and attaches again. `chat.history` takes a `cursor` and an optional `limit`, and returns `items` with a `history` page (`ChatHistoryPageSchema`, `{ start, cursor }`). See [Attaching and replay](/agent-contracts/protocol#attaching-and-replay).
 
 ## Send and control
 

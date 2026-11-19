@@ -359,12 +359,15 @@ export const useChats = create<ChatsStore>((set) => ({
                 return { byKey: { ...s.byKey, [key]: { ...stateOf(info, []), historyPending: true } }, statusByKey: withStatus(s.statusByKey, key, info) };
             }
 
+            // The commands come from the attach and its events; a status may come from a list that left them out.
+            const next = { ...info, slashCommands: current.info.slashCommands, skills: current.info.skills };
+
             // An attached client already had this on `chat.event`; writing it again would redraw the thread.
-            if (sameInfo(current.info, info)) {
+            if (sameInfo(current.info, next)) {
                 return {};
             }
 
-            return { byKey: { ...s.byKey, [key]: { ...current, info } }, statusByKey: withStatus(s.statusByKey, key, info) };
+            return { byKey: { ...s.byKey, [key]: { ...current, info: next } }, statusByKey: withStatus(s.statusByKey, key, next) };
         });
     },
     bookmarks(key, bookmarks) {

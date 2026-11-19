@@ -1060,7 +1060,12 @@ export type ChatCancelPayload = z.infer<typeof ChatCancelPayloadSchema>;
 export const ChatAttachPayloadSchema = ChatTargetPayloadSchema.extend({
     historyLimit: z.number().int().min(1).max(100).optional(),
     // The last seq this client saw; honored when the daemon still holds everything after it.
-    since: z.number().int().nonnegative().optional()
+    since: z.number().int().nonnegative().optional(),
+    /*
+     * Makes the chat first, as `chat.create` with these would, so opening one takes a single request. A
+     * host that predates it ignores it and refuses a chat it does not have with `chat-not-found`.
+     */
+    create: ChatCreatePayloadSchema.omit({ chatId: true }).optional()
 });
 
 export const ChatHistoryPayloadSchema = ChatTargetPayloadSchema.extend({
@@ -1399,6 +1404,16 @@ export const ChatForkInfoResultSchema = z.object({
     filesAfterTurn: z.boolean()
 });
 export type ChatForkInfoResult = z.infer<typeof ChatForkInfoResultSchema>;
+
+/*
+ * With `omitCommands` every chat comes with `slashCommands` empty and without `skills`, which are most of
+ * a long list's bytes and only a composer reads, from `chat.attach` and its events. A host that predates
+ * it ignores it and sends them, so a client takes either answer.
+ */
+export const ChatListPayloadSchema = z.object({
+    omitCommands: z.boolean().optional()
+});
+export type ChatListPayload = z.infer<typeof ChatListPayloadSchema>;
 
 export const ChatListResultSchema = z.object({
     chats: lossyItems(z.array(ChatInfoSchema))

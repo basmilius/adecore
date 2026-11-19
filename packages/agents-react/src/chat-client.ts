@@ -14,7 +14,7 @@ import type {
 import type { Tolerant } from '@adecore/agent-contracts/tolerance';
 import type { ChatSink } from './chat-sink';
 import { MountedRegistry, type MountedEntry } from './mounted-registry';
-import { errorCode, isConnectionError, type ChatTransport, type ChatTransportStatus } from './transport';
+import { errorCode, isConnectionError, type ChatRequestMap, type ChatTransport, type ChatTransportStatus } from './transport';
 
 interface ChatOpenOptions {
     /* Which agent CLI answers; a chat that exists on the host keeps its own. */
@@ -72,6 +72,7 @@ export class ChatClient {
     private readonly earlier = new Map<string, Promise<void>>();
     private readonly observers = new Map<string, number>();
     private readonly inspections = new Map<string, Promise<Tolerant<ChatAttachResult>>>();
+    private readonly skillLists = new Map<string, Promise<ChatSkill[]>>();
     private preferences: ChatPreferencesPayload | null = null;
     private checkpoints = new WeakMap<object, number>();
 
@@ -274,11 +275,34 @@ export class ChatClient {
         return visuals;
     }
 
-    /* What this chat's CLI would run as a skill, for the composer's `$` picker. */
-    async listSkills(chatId: string): Promise<ChatSkill[]> {
-        const { skills } = await this.transport.request('skills.list', { chatId });
+    /*
+     * What this chat's CLI would run as a skill, for the composer's `$` picker. Chats the caller gives
+     * the same `alike` key share a request still on the wire, so a project that opens several chats in
+     * one folder asks once; an answer is never kept after it came. A shared request that failed is
+     * asked again for this chat alone, since it may have failed for the other chat only.
+     */
+    listSkills(chatId: string, alike?: string): Promise<ChatSkill[]> {
+        const ask = async (): Promise<ChatSkill[]> => (await this.transport.request('skills.list', { chatId })).skills;
 
-        return skills;
+        if (alike === undefined) {
+            return ask();
+        }
+
+        const pending = this.skillLists.get(alike);
+
+        if (pending !== undefined) {
+            return pending.catch(ask);
+        }
+
+        const request = ask().finally(() => {
+            if (this.skillLists.get(alike) === request) {
+                this.skillLists.delete(alike);
+            }
+        });
+
+        this.skillLists.set(alike, request);
+
+        return request;
     }
 
     /* Starts the chat over; refused with `chat-busy` while a turn runs, unless `force` stops that turn. */
@@ -302,11 +326,12 @@ export class ChatClient {
 
     /*
      * What every chat on this machine is doing right now. `chat.status` only carries a change, so a
-     * window that just opened or came back from a lost socket asks for the standing answer.
+     * window that just opened or came back from a lost socket asks for the standing answer. It leaves
+     * out the commands, which the sink keeps from the attach of a chat that has them.
      */
     async loadStatuses(): Promise<void> {
         try {
-            const { chats } = await this.transport.request('chat.list', {});
+            const { chats } = await this.transport.request('chat.list', { omitCommands: true });
 
             for (const info of chats) {
                 this.sink.status(info.chatId, info);
@@ -395,25 +420,13 @@ export class ChatClient {
             return;
         }
 
-        if (!entry.observerOnly) {
-            await this.transport.request('chat.create', {
-                chatId,
-                provider: entry.provider,
-                account: entry.account,
-                cwd: entry.cwd,
-                resume: entry.resume,
-                selection: entry.selection,
-                runtimeMode: entry.runtimeMode
-            });
-        }
+        const since = this.sequence(chatId);
+        const result = await this.openOnHost(chatId, entry, since);
 
-        // Closed or opened again in the meantime: an opening that is still there attaches itself.
-        if (this.mounted.get(chatId) !== entry) {
+        if (result === null) {
             return;
         }
 
-        const since = this.sequence(chatId);
-        const result = await this.transport.request('chat.attach', { chatId, historyLimit: HISTORY_PAGE, ...(since === undefined ? {} : { since }) });
         const current = this.mounted.get(chatId);
 
         if (current !== entry) {
@@ -461,6 +474,48 @@ export class ChatClient {
         // A host without bookmarks or visuals sends none, and then this chat has none.
         this.sink.bookmarks(chatId, result.bookmarks ?? []);
         this.sink.visuals(chatId, result.visuals ?? []);
+    }
+
+    /*
+     * Makes the chat and attaches it in one request. A host that predates `create` on `chat.attach`
+     * ignores it and refuses a chat it does not have yet, which is then made with `chat.create` first.
+     * Null when the chat was closed or opened again before that attach: an opening still there attaches itself.
+     */
+    private async openOnHost(chatId: string, entry: Mounted, since: number | undefined): Promise<ChatRequestMap['chat.attach']['result'] | null> {
+        const read = { chatId, historyLimit: HISTORY_PAGE, ...(since === undefined ? {} : { since }) };
+
+        if (entry.observerOnly) {
+            return this.transport.request('chat.attach', read);
+        }
+
+        const create = {
+            provider: entry.provider,
+            account: entry.account,
+            cwd: entry.cwd,
+            resume: entry.resume,
+            selection: entry.selection,
+            runtimeMode: entry.runtimeMode
+        };
+
+        try {
+            return await this.transport.request('chat.attach', { ...read, create });
+        } catch (e) {
+            if (errorCode(e) !== 'chat-not-found') {
+                throw e;
+            }
+        }
+
+        if (this.mounted.get(chatId) !== entry) {
+            return null;
+        }
+
+        await this.transport.request('chat.create', { chatId, ...create });
+
+        if (this.mounted.get(chatId) !== entry) {
+            return null;
+        }
+
+        return this.transport.request('chat.attach', read);
     }
 
     private sequence(chatId: string): number | undefined {

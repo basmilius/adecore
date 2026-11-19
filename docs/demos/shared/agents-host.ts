@@ -1,4 +1,13 @@
-import type { AgentEventType, AgentRequestType, ChatBookmark, ChatEvent, ChatInfo, ChatItem, ProviderAccounts } from '@adecore/agent-contracts';
+import type {
+    AgentEventType,
+    AgentRequestType,
+    ChatBookmark,
+    ChatCreatePayload,
+    ChatEvent,
+    ChatInfo,
+    ChatItem,
+    ProviderAccounts
+} from '@adecore/agent-contracts';
 import {
     type ChatHost,
     type FileRef,
@@ -284,6 +293,20 @@ export class FakeAgentHost implements ChatTransport {
         return { bookmarks };
     }
 
+    private create(payload: ChatCreatePayload): ChatInfo {
+        const chat = this.chat(payload.chatId);
+
+        if (chat.items.length === 0 && payload.provider !== undefined) {
+            chat.info = {
+                ...chat.info,
+                provider: payload.provider,
+                ...(payload.selection ? { selection: payload.selection, model: payload.selection.model } : {})
+            };
+        }
+
+        return chat.info;
+    }
+
     private changeAccounts(next: ProviderAccounts): ProviderAccounts {
         this.accounts = next;
         this.emit('accounts.changed', next);
@@ -293,20 +316,12 @@ export class FakeAgentHost implements ChatTransport {
     private readonly handlers: Handlers = {
         'provider.list': () => ({ providers: PROVIDERS }),
         'chat.list': () => ({ chats: [...this.chats.values()].map((chat) => chat.info) }),
-        'chat.create': (payload) => {
-            const chat = this.chat(payload.chatId);
-
-            if (chat.items.length === 0 && payload.provider !== undefined) {
-                chat.info = {
-                    ...chat.info,
-                    provider: payload.provider,
-                    ...(payload.selection ? { selection: payload.selection, model: payload.selection.model } : {})
-                };
+        'chat.create': (payload) => this.create(payload),
+        'chat.attach': (payload) => {
+            if (payload.create) {
+                this.create({ ...payload.create, chatId: payload.chatId });
             }
 
-            return chat.info;
-        },
-        'chat.attach': (payload) => {
             const chat = this.chat(payload.chatId);
             return { info: chat.info, items: chat.items, bookmarks: chat.bookmarks, seq: this.seq };
         },

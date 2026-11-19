@@ -36,9 +36,12 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
      */
     useEffect(() => {
         let stale = false;
+        // Without a process, the host answers from its scan of the folder, narrowed to what the CLI announced,
+        // so chats alike in those share a request. A running CLI may answer for itself.
+        const alike = info.running ? undefined : JSON.stringify([info.provider, info.cwd, info.skills ?? null]);
 
         scope.chats
-            .listSkills(chatId)
+            .listSkills(chatId, alike)
             .then((found) => {
                 if (!stale) {
                     setSkills(found);
@@ -49,7 +52,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         return () => {
             stale = true;
         };
-    }, [scope, chatId, info.skills, info.running]);
+    }, [scope, chatId, info.provider, info.cwd, info.skills, info.running]);
 
     return usePromptMenus({
         draft,

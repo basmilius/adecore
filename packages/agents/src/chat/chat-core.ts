@@ -817,13 +817,21 @@ export class ChatCore {
      * `attach` with the chat's bookmarks and visuals. They are read before the client joins, and
      * read again when either changed during the read, so a change reaches the client in the answer
      * or as `chat.bookmarks` or `chat.visuals` and never falls between the two. A file that cannot be
-     * read leaves its list out rather than the thread.
+     * read leaves its list out rather than the thread. With `create` the chat is made first, as `create` makes it.
      */
-    async attachWithBookmarks(chatId: string, clientId: string, historyLimit?: number, since?: number): Promise<ChatAttachResult> {
+    async attachWithBookmarks(
+        chatId: string,
+        clientId: string,
+        historyLimit?: number,
+        since?: number,
+        create?: Omit<ChatCreatePayload, 'chatId'>
+    ): Promise<ChatAttachResult> {
         // A client that only watches a chat sends no create, so a chat on disk nobody loaded since the host started is loaded for it.
         await this.loaded(chatId);
 
-        if (!this.chats.has(chatId) && (await this.store?.has(chatId)) === true) {
+        if (create) {
+            await this.create({ ...create, chatId });
+        } else if (!this.chats.has(chatId) && (await this.store?.has(chatId)) === true) {
             await this.create({ chatId });
         }
 

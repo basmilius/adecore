@@ -45,7 +45,7 @@ An unknown item gets one muted row in its place. An approval or question among t
 | `clear(chatId, force?)`                 | Starts the chat over; refused with `chat-busy` during a turn unless `force`.                     |
 | `restart(chatId)`                       | Ends the chat's CLI and keeps the conversation for the next message; refused with `chat-busy` while the chat works. |
 | `kill(chatId)`                          | Forgets the chat here and asks the host to remove it.                                            |
-| `listSkills(chatId)`                    | The CLI's skills, for the `$` picker.                                                            |
+| `listSkills(chatId, alike?)`            | The CLI's skills, for the `$` picker. Calls with the same `alike` key share a request still on the wire. |
 | `addBookmark`, `renameBookmark`, `removeBookmark` | Return the chat's whole bookmark list.                                                 |
 | `removeVisual(chatId, visualId)`        | Deletes a visual for good and returns the chat's visuals.                                        |
 | `setPreferences(payload)`               | Tells the host the defaults for chats it starts itself, also after every reconnect.             |

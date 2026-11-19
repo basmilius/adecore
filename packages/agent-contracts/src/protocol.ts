@@ -23,6 +23,7 @@ import {
     ChatHistoryPayloadSchema,
     ChatHistoryResultSchema,
     ChatInfoSchema,
+    ChatListPayloadSchema,
     ChatListResultSchema,
     ChatPreferencesPayloadSchema,
     ChatQueuePayloadSchema,
@@ -126,7 +127,7 @@ export const AGENT_REQUEST_SCHEMAS = {
     'chat.kill': { payload: ChatTargetPayloadSchema, result: EmptySchema },
     // Ends the chat's CLI and keeps the conversation, which the next message resumes in a fresh process.
     'chat.restart': { payload: ChatTargetPayloadSchema, result: EmptySchema },
-    'chat.list': { payload: EmptySchema, result: ChatListResultSchema }
+    'chat.list': { payload: ChatListPayloadSchema, result: ChatListResultSchema }
 } as const;
 
 export const AGENT_EVENT_SCHEMAS = {

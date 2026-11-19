@@ -47,13 +47,17 @@ describe('the handlers of a host', () => {
         const { calls, preferences, handlers } = chatsRig();
         expect(await handlers['chat.history']({ chatId: 'chat-1', cursor: 'c1', limit: 20 }, 'client-1')).toBe('history result' as never);
         expect(await handlers['chat.attach']({ chatId: 'chat-1', historyLimit: 40, since: 7 }, 'client-1')).toBe('attachWithBookmarks result' as never);
+        expect(await handlers['chat.attach']({ chatId: 'chat-2', create: { provider: 'codex', cwd: '/work' } }, 'client-1')).toBe(
+            'attachWithBookmarks result' as never
+        );
         expect(await handlers['chat.clear']({ chatId: 'chat-1' }, 'client-1')).toEqual({});
         expect(await handlers['chat.cancel']({ chatId: 'chat-1', subagents: true }, 'client-1')).toEqual({});
         expect(await handlers['chat.unqueue']({ chatId: 'chat-1', messageId: 'm1' }, 'client-1')).toEqual({ message: 'unqueue result' } as never);
         expect(await handlers['chat.setPreferences']({ runtimeMode: 'supervised' }, 'client-1')).toEqual({});
         expect(calls).toEqual([
             ['history', 'chat-1', 'c1', 20],
-            ['attachWithBookmarks', 'chat-1', 'client-1', 40, 7],
+            ['attachWithBookmarks', 'chat-1', 'client-1', 40, 7, undefined],
+            ['attachWithBookmarks', 'chat-2', 'client-1', undefined, undefined, { provider: 'codex', cwd: '/work' }],
             ['clear', 'chat-1', false],
             ['cancel', 'chat-1', true],
             ['unqueue', 'chat-1', 'm1']
@@ -74,6 +78,17 @@ describe('the handlers of a host', () => {
         const { handlers } = chatsRig();
         expect(await handlers['provider.list']({}, 'client-1')).toEqual({ providers: [{ kind: 'claude' }] } as never);
         expect(await handlers['chat.list']({}, 'client-1')).toEqual({ chats: 'list result' } as never);
+    });
+
+    test('list every chat whole, or without its commands when the client asks', async () => {
+        const info = { chatId: 'chat-1', status: 'idle', slashCommands: ['compact', 'review'], skills: ['deploy'], createdAt: 1 };
+        const chats = { list: () => [info] } as unknown as ChatCore;
+        const handlers = chatHandlers(chats, {} as ProviderRegistry);
+
+        expect(await handlers['chat.list']({}, 'client-1')).toEqual({ chats: [info] } as never);
+        expect(await handlers['chat.list']({ omitCommands: true }, 'client-1')).toEqual({
+            chats: [{ chatId: 'chat-1', status: 'idle', slashCommands: [], createdAt: 1 }]
+        } as never);
     });
 
     test('refuse what only a host with more than chats can do', () => {

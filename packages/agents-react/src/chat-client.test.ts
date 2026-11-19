@@ -40,6 +40,11 @@ class FakeTransport implements ChatTransport {
     refusals: Partial<Record<AgentRequestType, ChatTransportError>> = {};
     // While set, `chat.attach` stays on the wire until it settles.
     attachHold: Promise<void> | null = null;
+    // As a host that predates `create` on `chat.attach`: it ignores it and refuses a chat nobody sent `chat.create` for.
+    olderHost = false;
+    // Chats `skills.list` no longer finds, as a chat closed while its request was on the wire.
+    readonly skillsGone = new Set<string>();
+    private readonly created = new Set<string>();
     private readonly statusHandlers = new Set<(status: ChatTransportStatus) => void>();
     private readonly eventHandlers = new Map<string, Set<(payload: unknown) => void>>();
 
@@ -60,8 +65,14 @@ class FakeTransport implements ChatTransport {
 
         switch (type) {
             case 'chat.create':
+                this.created.add(chatId);
+
                 return Promise.resolve(info(chatId) as ChatRequestMap[T]['result']);
             case 'chat.attach': {
+                if (this.olderHost && !this.created.has(chatId)) {
+                    return Promise.reject(new ChatTransportError('chat-not-found', `No chat ${chatId}`));
+                }
+
                 const answer = {
                     info: info(chatId),
                     items: this.items,
@@ -78,6 +89,12 @@ class FakeTransport implements ChatTransport {
                 return Promise.resolve({ visuals: [] } as ChatRequestMap[T]['result']);
             case 'chat.list':
                 return Promise.resolve({ chats: this.chats } as ChatRequestMap[T]['result']);
+            case 'skills.list':
+                if (this.skillsGone.has(chatId)) {
+                    return Promise.reject(new ChatTransportError('chat-not-found', `No chat ${chatId}`));
+                }
+
+                return Promise.resolve({ skills: [{ name: `skill-of-${chatId}`, description: '', source: 'project' }] } as ChatRequestMap[T]['result']);
             case 'provider.list':
                 return Promise.resolve({
                     providers: [{ kind: 'claude', name: 'Claude Code', installed: true, version: '1', models: [], defaultModel: null }]
@@ -193,6 +210,25 @@ describe('ChatClient', () => {
         expect(transport.of('chat.detach')).toHaveLength(1);
     });
 
+    test('chats alike ask for their skills once while the request is on the wire, and again after it came', async () => {
+        const { client, transport } = setup();
+        const answers = await Promise.all([client.listSkills('a', 'same'), client.listSkills('b', 'same'), client.listSkills('c', 'other')]);
+        await client.listSkills('d', 'same');
+
+        expect(transport.of('skills.list').map((call) => call.payload)).toEqual([{ chatId: 'a' }, { chatId: 'c' }, { chatId: 'd' }]);
+        expect(answers.map((skills) => skills[0]!.name)).toEqual(['skill-of-a', 'skill-of-a', 'skill-of-c']);
+    });
+
+    test('a chat whose shared skill request failed asks for its own', async () => {
+        const { client, transport } = setup();
+        transport.skillsGone.add('a');
+        const [first, second] = await Promise.allSettled([client.listSkills('a', 'same'), client.listSkills('b', 'same')]);
+
+        expect(first.status).toBe('rejected');
+        expect(second.status === 'fulfilled' ? second.value[0]!.name : null).toBe('skill-of-b');
+        expect(transport.of('skills.list').map((call) => call.payload)).toEqual([{ chatId: 'a' }, { chatId: 'b' }]);
+    });
+
     test('inspecting a mounted chat preserves its live attachment', async () => {
         const { client, transport } = setup();
         await client.open('visible', {});
@@ -206,7 +242,7 @@ describe('ChatClient', () => {
         const second = client.observe('child');
         await flush();
         expect(transport.of('chat.create')).toHaveLength(0);
-        expect(transport.of('chat.attach')).toHaveLength(1);
+        expect(transport.of('chat.attach').map((call) => call.payload)).toEqual([{ chatId: 'child', historyLimit: 90 }]);
         expect(sink.resets.at(-1)?.chatId).toBe('child');
 
         await client.open('child', {});
@@ -253,22 +289,35 @@ describe('ChatClient', () => {
         client.dispose();
     });
 
-    test('open creates with cwd and resume, attaches and resets the store with the thread', async () => {
+    test('open creates with cwd and resume and attaches in one request, then resets the store with the thread', async () => {
         const { transport, sink, client } = setup();
         transport.items = [{ id: 'u1', kind: 'user', createdAt: 1, turnId: null, text: 'hi' }];
         expect(await client.open('c', { cwd: '/tmp', resume: 'abc', runtimeMode: 'auto' })).toBe(true);
 
-        expect(transport.of('chat.create')[0]?.payload).toEqual({
-            chatId: 'c',
-            provider: undefined,
-            cwd: '/tmp',
-            resume: 'abc',
-            selection: undefined,
-            runtimeMode: 'auto'
-        });
-
-        expect(transport.of('chat.attach')[0]?.payload).toEqual({ chatId: 'c', historyLimit: 90 });
+        expect(transport.calls.filter((call) => call.type === 'chat.create' || call.type === 'chat.attach')).toEqual([
+            { type: 'chat.attach', payload: { chatId: 'c', historyLimit: 90, create: { cwd: '/tmp', resume: 'abc', runtimeMode: 'auto' } } }
+        ]);
         expect(sink.resets).toEqual([{ chatId: 'c', items: transport.items }]);
+    });
+
+    test('on a host that predates create on attach, a new chat is created first and attached again', async () => {
+        const { transport, sink, client } = setup();
+        transport.olderHost = true;
+        expect(await client.open('c', { cwd: '/tmp', runtimeMode: 'auto' })).toBe(true);
+
+        expect(transport.calls.filter((call) => call.type === 'chat.create' || call.type === 'chat.attach')).toEqual([
+            { type: 'chat.attach', payload: { chatId: 'c', historyLimit: 90, create: { cwd: '/tmp', runtimeMode: 'auto' } } },
+            { type: 'chat.create', payload: { chatId: 'c', cwd: '/tmp', runtimeMode: 'auto' } },
+            { type: 'chat.attach', payload: { chatId: 'c', historyLimit: 90 } }
+        ]);
+        expect(sink.resets.map((reset) => reset.chatId)).toEqual(['c']);
+    });
+
+    test('asks the list of chats without their commands', async () => {
+        const { transport } = setup();
+        await flush();
+
+        expect(transport.of('chat.list').map((call) => call.payload)).toEqual([{ omitCommands: true }]);
     });
 
     test('tells the host the composer preference once it has one, and says it again on a fresh socket', () => {
@@ -339,7 +388,7 @@ describe('ChatClient', () => {
         transport.calls.length = 0;
         transport.setStatus('open');
         await flush();
-        expect(transport.of('chat.attach').map((c) => c.payload)).toEqual([{ chatId: 'a', historyLimit: 90 }]);
+        expect(transport.of('chat.attach').map((c) => c.payload)).toEqual([{ chatId: 'a', historyLimit: 90, create: {} }]);
         expect(sink.resets.map((r) => r.chatId)).toEqual(['a', 'b', 'a']);
     });
 
@@ -348,13 +397,13 @@ describe('ChatClient', () => {
         const later: ChatEvent = { type: 'delta', itemId: 'a1', text: 'more' };
         transport.attachResult = (payload) => (payload.since === undefined ? { seq: 4 } : { items: [], seq: 6, events: [later] });
         await client.open('a', {});
-        expect(transport.of('chat.attach')[0]?.payload).toEqual({ chatId: 'a', historyLimit: 90 });
+        expect(transport.of('chat.attach')[0]?.payload).toEqual({ chatId: 'a', historyLimit: 90, create: {} });
         transport.emit('chat.event', { chatId: 'a', event: { type: 'delta', itemId: 'a1', text: 'x' }, seq: 5 });
 
         transport.setStatus('closed');
         transport.setStatus('open');
         await flush();
-        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, since: 5 });
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, since: 5, create: {} });
         expect(sink.resets).toHaveLength(1);
         expect(sink.events.at(-1)).toEqual({ chatId: 'a', event: later });
 
@@ -363,7 +412,7 @@ describe('ChatClient', () => {
         transport.setStatus('closed');
         transport.setStatus('open');
         await flush();
-        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, since: 6 });
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, since: 6, create: {} });
         expect(sink.resets).toHaveLength(2);
     });
 
@@ -421,7 +470,7 @@ describe('ChatClient', () => {
         await client.open('a', {});
         transport.history = new ChatTransportError('history-expired', 'The conversation changed.');
         await client.loadEarlier('a', 'g:40');
-        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90 });
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'a', historyLimit: 90, create: {} });
         expect(sink.resets).toHaveLength(2);
         expect(sink.prepended).toEqual([]);
     });
@@ -434,8 +483,11 @@ describe('ChatClient', () => {
 
         await client.retarget('fresh', 'codex', { model: 'gpt-5.5', options: {} });
 
-        expect(transport.of('chat.create').at(-1)?.payload).toMatchObject({ chatId: 'fresh', provider: 'codex', cwd: '/tmp' });
-        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'fresh', historyLimit: 90 });
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({
+            chatId: 'fresh',
+            historyLimit: 90,
+            create: { provider: 'codex', cwd: '/tmp', selection: { model: 'gpt-5.5', options: {} } }
+        });
         expect(sink.resets.map((reset) => reset.chatId)).toEqual(['fresh', 'fresh']);
         expect(sink.forgotten).toEqual([]);
         expect(client.isMounted('fresh')).toBe(true);
@@ -444,7 +496,7 @@ describe('ChatClient', () => {
     test('a chat that does not open again on the other CLI loses its row', async () => {
         const { transport, sink, client } = setup();
         await client.open('fresh', { provider: 'claude' });
-        transport.refusals['chat.create'] = new ChatTransportError('account-missing', 'No account');
+        transport.refusals['chat.attach'] = new ChatTransportError('account-missing', 'No account');
 
         await expect(client.retarget('fresh', 'codex', { model: 'gpt-5.5', options: {} })).rejects.toThrow('No account');
         expect(sink.forgotten).toEqual(['fresh']);
@@ -471,13 +523,15 @@ describe('ChatClient', () => {
         expect(sink.resets).toHaveLength(0);
     });
 
-    test('a chat closed before its create came back is never attached', async () => {
+    test('on a host that predates create on attach, a chat closed before its refusal came back is neither created nor attached', async () => {
         const { transport, client } = setup();
+        transport.olderHost = true;
         const opened = client.open('quick', {});
         void client.detach('quick');
         await opened;
         await flush();
-        expect(transport.of('chat.attach')).toHaveLength(0);
+        expect(transport.of('chat.attach')).toHaveLength(1);
+        expect(transport.of('chat.create')).toHaveLength(0);
         expect(transport.of('chat.detach')).toHaveLength(0);
     });
 
@@ -497,7 +551,7 @@ describe('ChatClient', () => {
         transport.setStatus('closed');
         transport.setStatus('open');
         await flush();
-        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'c', historyLimit: 90, since: 5 });
+        expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'c', historyLimit: 90, since: 5, create: {} });
 
         // The view mounts again while the reattach is on the wire.
         void client.detach('c');
@@ -637,7 +691,7 @@ describe('ChatClient cached history', () => {
             await client.detach('existing');
             expect(row()?.order).toHaveLength(180);
             await client.open('existing', {});
-            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90, since: 8 });
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90, since: 8, create: {} });
             expect(row()?.order).toHaveLength(180);
             expect(row()?.order[0]).toBe('item-0');
             expect(row()?.history).toBeUndefined();
@@ -777,7 +831,7 @@ describe('ChatClient cached history', () => {
             transport.setStatus('closed');
             transport.setStatus('open');
             await flush();
-            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90, create: {} });
             expect(row()?.order).toHaveLength(90);
         } finally {
             fixture.close();
@@ -804,7 +858,7 @@ describe('ChatClient cached history', () => {
             sink.forget('existing');
             release();
             await reopened;
-            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90, create: {} });
             expect(row()?.order).toHaveLength(90);
         } finally {
             fixture.close();
@@ -822,7 +876,7 @@ describe('ChatClient cached history', () => {
             await client.open('existing', {});
             transport.history = new ChatTransportError('history-expired', 'The conversation changed.');
             await client.loadEarlier('existing', 'old:90');
-            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+            expect(transport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90, create: {} });
             expect(row()?.order).toHaveLength(90);
         } finally {
             fixture.close();
@@ -875,7 +929,8 @@ describe('ChatClient cached history', () => {
                     await (replacement ?? client).open('existing', {});
                 }
 
-                expect(activeTransport.of('chat.attach').at(-1)?.payload).toEqual({ chatId: 'existing', historyLimit: 90 });
+                expect(activeTransport.of('chat.attach').at(-1)?.payload).toMatchObject({ chatId: 'existing', historyLimit: 90 });
+                expect(activeTransport.of('chat.attach').at(-1)?.payload).not.toHaveProperty('since');
                 expect(row()?.order).toHaveLength(90);
             } finally {
                 replacement?.dispose();

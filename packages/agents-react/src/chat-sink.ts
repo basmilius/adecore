@@ -41,7 +41,10 @@ export interface ChatSink {
     apply(chatId: string, event: ChatThreadEvent): void;
     /* A reconnect can publish its complete replay at once; absent sinks receive each event through apply. */
     replay?(chatId: string, events: readonly ChatThreadEvent[]): void;
-    /* What a chat is doing, for a thread nobody in this window has open. */
+    /*
+     * What a chat is doing, for a thread nobody in this window has open. Its `slashCommands` may be empty
+     * and its `skills` absent when it came from a list that left them out, so a sink keeps the ones it holds.
+     */
     status(chatId: string, info: ChatThreadInfo): void;
     bookmarks(chatId: string, bookmarks: ChatBookmark[]): void;
     visuals(chatId: string, visuals: ChatVisual[]): void;

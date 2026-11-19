@@ -1,4 +1,4 @@
-import type { AGENT_REQUEST_SCHEMAS, AgentRequestType } from '@adecore/agent-contracts';
+import type { AGENT_REQUEST_SCHEMAS, AgentRequestType, ChatInfo } from '@adecore/agent-contracts';
 import type { z } from 'zod';
 import { ChatError } from '../chat-error.ts';
 import type { ChatCore } from '../chat/chat-core.ts';
@@ -32,6 +32,11 @@ function unsupported(what: string) {
     };
 }
 
+// `slashCommands` stays, empty, since a client that validates `ChatInfo` whole requires it.
+function withoutCommands({ skills: _skills, ...info }: ChatInfo): ChatInfo {
+    return { ...info, slashCommands: [] };
+}
+
 /* The chat requests over a core, including the ones only a host with more than chats can answer, which say so. */
 export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T in ChatRequestType]: AgentHandler<T> } {
     return {
@@ -44,7 +49,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
 
             return {};
         },
-        'chat.attach': (payload, clientId) => chats.attachWithBookmarks(payload.chatId, clientId, payload.historyLimit, payload.since),
+        'chat.attach': (payload, clientId) => chats.attachWithBookmarks(payload.chatId, clientId, payload.historyLimit, payload.since, payload.create),
         'chat.history': (payload) => chats.history(payload.chatId, payload.cursor, payload.limit),
         'chat.subagent': (payload, clientId) => chats.subagent(clientId, payload),
         'chat.stopSubagent': async (payload) => {
@@ -141,7 +146,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
 
             return {};
         },
-        'chat.list': () => ({ chats: chats.list() })
+        'chat.list': (payload) => ({ chats: payload.omitCommands ? chats.list().map(withoutCommands) : chats.list() })
     };
 }
 
