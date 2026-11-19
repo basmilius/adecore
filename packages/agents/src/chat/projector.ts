@@ -1155,14 +1155,15 @@ export class ThreadProjector {
 
         this.settleOpenItems(events, false, state === 'aborted');
         this.closeTurn(state, costUsd, events, native, limit);
-        const usage = this.thread.info.usage;
+        const { usage, activeTurnId } = this.thread.info;
 
         events.push(
             this.thread.patchInfo({
                 status: this.thread.statusFor(null),
                 activeTurnId: null,
                 usage: { ...usage, costUsd: costUsd || usage.costUsd, turns: usage.turns + 1 },
-                limit: state === 'error' ? limit : undefined
+                // A result outside a turn (a background subagent that failed) says nothing about the limit the last turn stopped on.
+                ...(activeTurnId === null ? {} : { limit: state === 'error' ? limit : undefined })
             })
         );
     }

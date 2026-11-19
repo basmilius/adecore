@@ -357,6 +357,16 @@ describe('ThreadProjector', () => {
         expect(other.thread.info).toMatchObject({ status: 'error', activeTurnId: null, usage: { turns: 0 } });
     });
 
+    test('a result outside a turn keeps the limit the last turn stopped on', () => {
+        const { thread, project } = setup();
+        project({ type: 'turn.done', state: 'error', costUsd: 0, limit: { kind: 'usage', resetsAt: 100000 }, error: 'limit' });
+        project({ type: 'turn.done', state: 'error', costUsd: 0, error: 'rate limit' });
+        expect(thread.info.limit).toEqual({ kind: 'usage', resetsAt: 100000 });
+
+        project({ type: 'turn.done', state: 'done', costUsd: 0 });
+        expect(thread.info.limit).toEqual({ kind: 'usage', resetsAt: 100000 });
+    });
+
     test('an exit while the chat was busy names the CLI and ends the turn in error', () => {
         const { thread, project } = setup();
         project({ type: 'text.delta', ref: 'msg_1:t0', text: 'half' });
