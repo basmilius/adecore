@@ -3,7 +3,7 @@ import type { ChatSubagentItem, ChatToolItem, ChatTurnItem } from '@adecore/agen
 import { notResumedNote } from '@adecore/agent-contracts';
 import type { ChatThreadItem } from '../../chat-sink';
 import type { CommandLook, ToolLook } from '../../host/host';
-import { agentTurnLabel, deriveTimelineRows, findSubagentBranch, isBlock, summarizeGroup, summarizeTurn, turnLabel } from './timeline';
+import { agentTurnLabel, deriveTimelineRows, findSubagentBranch, isBlock, keepUnchangedRows, summarizeGroup, summarizeTurn, turnLabel } from './timeline';
 
 function tool(id: string, name: string, input: unknown, state: ChatToolItem['state'] = 'done', turnId = 't1'): ChatToolItem {
     return {
@@ -576,6 +576,28 @@ describe('deriveTimelineRows', () => {
                 ['assistant', 'a1']
             ]);
         }
+    });
+});
+
+describe('keepUnchangedRows', () => {
+    const expanded = { ...options, expandedTurns: new Set(['t1']) };
+
+    test('keeps every row a new derivation holds the same, and the list itself when nothing changed', () => {
+        const before = deriveTimelineRows(thread, expanded);
+        const again = deriveTimelineRows(thread, expanded);
+
+        expect(keepUnchangedRows(before, again)).toBe(before);
+    });
+
+    test('hands out the new row where a call changed, and keeps the rows around it', () => {
+        const before = deriveTimelineRows(thread, expanded);
+        const failed = thread.map((item) => (item.id === 'e1' ? tool('e1', 'Edit', { file_path: 'a.ts', old_string: 'x', new_string: 'y' }, 'error') : item));
+        const after = keepUnchangedRows(before, deriveTimelineRows(failed, expanded));
+        const edit = after.findIndex((row) => row.kind === 'work-group' || (row.kind === 'work' && row.tool.id === 'e1'));
+
+        expect(after[edit]).not.toBe(before[edit]);
+        expect(after.find((row) => row.id === 'u1')).toBe(before.find((row) => row.id === 'u1')!);
+        expect(after.find((row) => row.id === 'a1')).toBe(before.find((row) => row.id === 'a1')!);
     });
 });
 

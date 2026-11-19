@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, mock, spyOn, test } from 'bun:test';
+import { afterAll, beforeAll, beforeEach, describe, expect, mock, spyOn, test } from 'bun:test';
 import { createPage } from '@adecore/editor/testing';
 import { act, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
@@ -22,6 +22,10 @@ mock.module('react-markdown', () => ({
 }));
 
 const { ReplyMarkdown } = await import('./Markdown');
+const { forgetParsedMarkdown } = await import('./markdown-cache');
+
+// Each test counts its parses from nothing, whatever an earlier one parsed.
+beforeEach(forgetParsedMarkdown);
 
 // A reference definition keeps a reply in one block, so the same reply goes through remark as a whole.
 const THROUGH_REMARK = '[unused]: https://example.com\n\n';
@@ -312,6 +316,66 @@ describe('a streaming reply in a page', () => {
         expect(page.host.querySelector('.chat-code .line')).toBe(line);
         expect([...page.host.querySelectorAll('.chat-code .line')].map((element) => element.textContent)).toEqual(['const a = 1;', 'const b = 2;']);
         await act(async () => root.unmount());
+    });
+
+    test('the end of a stream parses no block again, and only then calls a shell command complete', async () => {
+        const complete: boolean[] = [];
+
+        const shellHost: Partial<ChatHost> = {
+            ...host,
+            renderShellCodeBlock: (context) => {
+                complete.push(context.complete);
+
+                return createElement('button', { 'data-complete': context.complete }, 'Run');
+            }
+        };
+
+        const text = Array.from({ length: 40 }, (_, index) => `Paragraph ${index} with *some* words.`).join('\n\n') + '\n\n- a list\n\n```sh\nls -la\n```';
+
+        const draw = (itemStreaming: boolean, revealing: boolean) =>
+            act(async () =>
+                root.render(
+                    <ChatHostProvider host={shellHost}>
+                        <ReplyMarkdown text={text} streaming={revealing} reply={{ ...REPLY, streaming: itemStreaming }} />
+                    </ChatHostProvider>
+                )
+            );
+
+        root = createRoot(page.host);
+
+        try {
+            await draw(true, true);
+            const before = parses;
+            await draw(false, true);
+            await draw(false, false);
+
+            expect(parses - before).toBe(0);
+            expect(page.host.querySelectorAll('p')).toHaveLength(40);
+            // The words keep their spans, without the fade that would play again once the thread is shown again.
+            expect(page.host.querySelector('.chat-markdown')!.hasAttribute('data-faded-in')).toBe(true);
+            expect(page.host.querySelector('[data-complete]')!.getAttribute('data-complete')).toBe('true');
+            expect(complete.at(0)).toBe(false);
+        } finally {
+            await act(async () => root.unmount());
+        }
+    });
+
+    test('a finished reply mounted again parses nothing, and a reply that differs by a word parses what changed', async () => {
+        const text = Array.from({ length: 30 }, (_, index) => `Paragraph ${index} with *some* words.`).join('\n\n');
+        const parsed: number[] = [];
+        const seventh: (string | null | undefined)[] = [];
+
+        for (const shown of [text, text, text.replace('Paragraph 7 ', 'Paragraph seven ')]) {
+            root = createRoot(page.host);
+            const before = parses;
+            await show(shown, false);
+            parsed.push(parses - before);
+            seventh.push(page.host.querySelectorAll('p')[7]?.textContent);
+            await act(async () => root.unmount());
+        }
+
+        expect(parsed).toEqual([30, 0, 1]);
+        expect(seventh).toEqual(['Paragraph 7 with some words.', 'Paragraph 7 with some words.', 'Paragraph seven with some words.']);
     });
 
     test.each([10, 2000])('a word added to a fence of %i lines parses nothing', async (count) => {

@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { Zap } from 'lucide-react';
 import { createContext, memo, useContext, useState, type ComponentProps, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import ReactMarkdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
+import type { Components, ExtraProps, Options } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } from '../../host/host';
@@ -14,6 +14,7 @@ import { CodeBlock } from './CodeBlock';
 import { DisplayImage } from './DisplayImage';
 import { useFileLinkCwd, useFileLinkScopeId, useFileLinkTarget, useOpenFileLink } from './file-links';
 import { createMarkdownBlockSplitter } from './markdown-blocks';
+import { parseMarkdown } from './markdown-cache';
 import { MermaidBlock } from './MermaidBlock';
 import { NamedChip } from './NamedChip';
 import { ReferenceLookupContext } from './reference-lookup';
@@ -409,8 +410,22 @@ const MESSAGE_PLUGINS = [remarkGfm, remarkHtmlAsText, remarkBreaks];
 const FADE_PLUGINS = [rehypeFadeWords];
 const NO_PLUGINS: typeof FADE_PLUGINS = [];
 
+const namesKeys = new WeakMap<readonly ReferenceToken[], string>();
+
+/* What of the named references the chip plugin reads, as the part of a cache key it decides. */
+function namesKey(items: readonly ReferenceToken[]): string {
+    let key = namesKeys.get(items);
+
+    if (key === undefined) {
+        key = items.map((item) => `${item.id}\u0001${item.name}`).join('\u0002');
+        namesKeys.set(items, key);
+    }
+
+    return key;
+}
+
 /* One block of a reply. It renders no element of its own, so prose keeps its first and last margins. */
-const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text: string; fade: boolean; open: boolean; reply?: ShellCodeBlockReply }) {
+const ReplyBlock = memo(function ReplyBlock({ text, fade, open }: { text: string; fade: boolean; open: boolean }) {
     const { items, referenced } = useContext(ReferenceLookupContext);
     // Chips first, so the fade wraps the words around a chip and never cuts a name in two.
     const named: NamedReferenceOptions = { items, referenced };
@@ -418,15 +433,14 @@ const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text:
     const rehypePlugins: Options['rehypePlugins'] =
         items.length === 0 ? (fade ? FADE_PLUGINS : NO_PLUGINS) : [[rehypeNamedReferences, named], ...(fade ? FADE_PLUGINS : [])];
 
+    // A block that fades is one being written, which no other mount of the thread draws again.
+    const variant = fade ? null : items.length === 0 ? 'reply' : `reply\u0003${namesKey(items)}\u0003${(referenced ?? []).join('\u0002')}`;
+
     return (
         // A context rather than a second set of components. A component that changed would mount the
         // code block again the moment its fence closes, and it would lose the lines it already has.
         <CodeStreamingContext.Provider value={open}>
-            <ShellCodeBlockReplyContext.Provider value={reply ?? null}>
-                <ReactMarkdown remarkPlugins={REPLY_PLUGINS} rehypePlugins={rehypePlugins} components={replyComponents}>
-                    {text}
-                </ReactMarkdown>
-            </ShellCodeBlockReplyContext.Provider>
+            {parseMarkdown(variant, { remarkPlugins: REPLY_PLUGINS, rehypePlugins, components: replyComponents, children: text })}
         </CodeStreamingContext.Provider>
     );
 });
@@ -436,23 +450,12 @@ const ReplyBlock = memo(function ReplyBlock({ text, fade, open, reply }: { text:
  * added to a long fence costs no more than one added to a short one. It is the same tree whether the
  * fence is open or closed, so closing it keeps the lines its code block already has.
  */
-const ReplyFence = memo(function ReplyFence({
-    info,
-    body,
-    source,
-    open,
-    reply
-}: {
-    info: string;
-    body: string;
-    source: string;
-    open: boolean;
-    reply?: ShellCodeBlockReply;
-}) {
+const ReplyFence = memo(function ReplyFence({ info, body, source, open }: { info: string; body: string; source: string; open: boolean }) {
+    const reply = useContext(ShellCodeBlockReplyContext);
     const { renderCodeFence, renderShellCodeBlock } = useChatHost();
     // The class markdown gives the code, read back the way a parsed fence's is.
     const lang = languageOf(`language-${info.split(/[ \t]/, 1)[0]}`);
-    const shell = reply === undefined ? null : shellFence(source);
+    const shell = reply === null ? null : shellFence(source);
     // The host gets a fence only once it closed, so it never draws a body that is still being written.
     const drawn = open ? null : renderCodeFence?.(lang, body);
 
@@ -465,7 +468,7 @@ const ReplyFence = memo(function ReplyFence({
             {lang === 'mermaid' ? (
                 <Diagram code={body} />
             ) : (
-                <CodeBlock code={body} lang={lang} actions={shellCodeBlockActions(reply ?? null, shell, renderShellCodeBlock)} />
+                <CodeBlock code={body} lang={lang} actions={shellCodeBlockActions(reply, shell, renderShellCodeBlock)} />
             )}
         </CodeStreamingContext.Provider>
     );
@@ -490,24 +493,37 @@ export const ReplyMarkdown = memo(function ReplyMarkdown({
 }) {
     const [split] = useState(createMarkdownBlockSplitter);
     const blocks = split(text);
+    // Words that faded in keep their spans once the reveal is over. Taking them away would parse every
+    // block again in one frame, for a page that looks the same, since the last fade has ended by then.
+    const [faded, setFaded] = useState(streaming);
+
+    if (streaming && !faded) {
+        setFaded(true);
+    }
 
     return (
-        <div className="chat-markdown prose prose-sm max-w-none text-sm" data-arriving={arriving || undefined}>
-            {blocks.map((block, index) =>
-                // Blocks only ever grow at the end, so the place of a block is a stable key.
-                block.fence !== undefined ? (
-                    <ReplyFence
-                        key={index}
-                        info={block.fence.info}
-                        body={block.fence.body}
-                        source={block.fence.source}
-                        open={streaming && !block.fence.closed}
-                        reply={reply}
-                    />
-                ) : (
-                    <ReplyBlock key={index} text={block.text} fade={streaming} open={streaming && block.openFence} reply={reply} />
-                )
-            )}
+        <div
+            className="chat-markdown prose prose-sm max-w-none text-sm"
+            data-arriving={arriving || undefined}
+            data-faded-in={(faded && !streaming) || undefined}
+        >
+            {/* A context, so the reply ending reaches its shell fences without drawing every block again. */}
+            <ShellCodeBlockReplyContext.Provider value={reply ?? null}>
+                {blocks.map((block, index) =>
+                    // Blocks only ever grow at the end, so the place of a block is a stable key.
+                    block.fence !== undefined ? (
+                        <ReplyFence
+                            key={index}
+                            info={block.fence.info}
+                            body={block.fence.body}
+                            source={block.fence.source}
+                            open={streaming && !block.fence.closed}
+                        />
+                    ) : (
+                        <ReplyBlock key={index} text={block.text} fade={streaming || faded} open={streaming && block.openFence} />
+                    )
+                )}
+            </ShellCodeBlockReplyContext.Provider>
         </div>
     );
 });
@@ -527,13 +543,17 @@ export const MessageMarkdown = memo(function MessageMarkdown({
     skills?: string[];
     references?: readonly ReferenceToken[];
 }) {
-    const rehypePlugins: [typeof rehypeChips, ChipOptions][] = [[rehypeChips, { mentions, skills, references }]];
+    const chips: ChipOptions = { mentions, skills, references };
+    const rehypePlugins: [typeof rehypeChips, ChipOptions][] = [[rehypeChips, chips]];
 
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm">
-            <ReactMarkdown remarkPlugins={MESSAGE_PLUGINS} rehypePlugins={rehypePlugins} components={replyComponents}>
-                {text}
-            </ReactMarkdown>
+            {parseMarkdown(`message\u0003${JSON.stringify(chips)}`, {
+                remarkPlugins: MESSAGE_PLUGINS,
+                rehypePlugins,
+                components: replyComponents,
+                children: text
+            })}
         </div>
     );
 });
@@ -558,12 +578,12 @@ export const Markdown = memo(function Markdown({
     componentOverrides?: Components;
 }) {
     const renderComponents = { ...(fileLinks ? components : plainComponents), ...componentOverrides };
+    // Plugins and components a caller hands in have no name to key a parsed tree on.
+    const variant = rehypePlugins === undefined && componentOverrides === undefined ? `markdown\u0003${breaks}\u0003${fileLinks}` : null;
 
     return (
         <div className="chat-markdown prose prose-sm max-w-none text-sm" data-muted={muted || undefined}>
-            <ReactMarkdown remarkPlugins={breaks ? PLUGINS_WITH_BREAKS : PLUGINS} rehypePlugins={rehypePlugins} components={renderComponents}>
-                {text}
-            </ReactMarkdown>
+            {parseMarkdown(variant, { remarkPlugins: breaks ? PLUGINS_WITH_BREAKS : PLUGINS, rehypePlugins, components: renderComponents, children: text })}
         </div>
     );
 });

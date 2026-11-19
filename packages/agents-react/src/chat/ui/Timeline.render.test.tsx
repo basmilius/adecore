@@ -376,6 +376,33 @@ test('a word that adds a line moves the end of the thread down without drawing i
     });
 });
 
+test('a tool that starts while a reply streams draws only the rows of the turn it runs in', async () => {
+    await mounted({ rowHeights: [60, 60, 60, 60, 60, 60, 40, 40], composerHeight: 0 }, 'turn-3', async ({ commits }) => {
+        const tool: ChatThreadItem = {
+            id: 'tool-3',
+            kind: 'tool',
+            createdAt: 32,
+            turnId: 'turn-3',
+            toolUseId: 'tool-3',
+            name: 'Read',
+            input: { file_path: 'a.ts' },
+            output: '',
+            state: 'running',
+            parentToolUseId: null
+        };
+
+        await act(async () => useChats.getState().apply(KEY, { type: 'delta', itemId: 'reply-3', text: ' and' }));
+        await act(async () => useChats.getState().apply(KEY, { type: 'item', item: tool }));
+
+        const drawn = commits
+            .flat()
+            .filter((fiber) => nameOf(fiber) === 'ThreadRow')
+            .map((fiber) => (fiber.memoizedProps!.row as { id: string }).id);
+
+        expect(drawn.filter((id) => /-[12]$/.test(id))).toEqual([]);
+    });
+});
+
 /* The composer, the box measured around it, the layer that holds it over the thread, and the space under the thread. */
 function composerParts(page: ReturnType<typeof createPage>) {
     const composer = page.host.querySelector('[data-composer]')!;

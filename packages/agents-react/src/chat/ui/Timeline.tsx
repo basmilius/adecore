@@ -41,7 +41,7 @@ import {
     EARLIER_ROW
 } from '../logic/scrubber';
 import { timedRowsOf, withTimedRows } from '../logic/thread-cards';
-import { deriveTimelineRows, findSubagentBranch } from '../logic/timeline';
+import { createRowKeeper, deriveTimelineRows, findSubagentBranch } from '../logic/timeline';
 import {
     EMPTY_TARGET,
     readTimelineTarget,
@@ -305,26 +305,29 @@ export function Timeline({
     }, [scope, chatId, cursor]);
 
     const hideTools = useHostHidesToolCalls(scopeId, chatId);
+    const [keepRows] = useState(createRowKeeper);
 
     const threadRows = useMemo(() => {
         if (!order || !items) {
             return [];
         }
 
-        return deriveTimelineRows(
-            order.map((id) => items[id]!),
-            {
-                expandedGroups: groups.ids,
-                expandedTurns: turns.ids,
-                expandedSubagents: subagents.ids,
-                activeTurnId,
-                forkedTurns,
-                commandLooks: host.commandLooks,
-                toolLooks: host.toolLooks,
-                hideTools
-            }
+        return keepRows(
+            deriveTimelineRows(
+                order.map((id) => items[id]!),
+                {
+                    expandedGroups: groups.ids,
+                    expandedTurns: turns.ids,
+                    expandedSubagents: subagents.ids,
+                    activeTurnId,
+                    forkedTurns,
+                    commandLooks: host.commandLooks,
+                    toolLooks: host.toolLooks,
+                    hideTools
+                }
+            )
         );
-    }, [order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks, host.toolLooks, hideTools]);
+    }, [keepRows, order, items, groups.ids, turns.ids, subagents.ids, activeTurnId, forkedTurns, host.commandLooks, host.toolLooks, hideTools]);
 
     const cards = useHostThreadCards(scopeId, chatId);
     const drawsVisuals = host.visuals !== null;

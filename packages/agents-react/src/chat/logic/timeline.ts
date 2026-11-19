@@ -708,3 +708,66 @@ export function deriveTimelineRows(items: ChatThreadItem[], options: TimelineOpt
 
     return rows;
 }
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+    if (typeof value !== 'object' || value === null) {
+        return false;
+    }
+
+    const prototype = Object.getPrototypeOf(value);
+
+    return prototype === Object.prototype || prototype === null;
+}
+
+/* Equal all the way down; an item the store left alone is the same object, so a row is compared without opening it. */
+function sameValue(left: unknown, right: unknown): boolean {
+    if (Object.is(left, right)) {
+        return true;
+    }
+
+    if (Array.isArray(left)) {
+        return Array.isArray(right) && left.length === right.length && left.every((value, index) => sameValue(value, right[index]));
+    }
+
+    if (!isPlainObject(left) || !isPlainObject(right)) {
+        return false;
+    }
+
+    const keys = Object.keys(left);
+
+    return keys.length === Object.keys(right).length && keys.every((key) => Object.hasOwn(right, key) && sameValue(left[key], right[key]));
+}
+
+/*
+ * `next`, with every row that holds what the row of the same id in `previous` held swapped for that
+ * row, and `previous` itself when nothing changed. Deriving the rows makes every row anew, so without
+ * this one tool that starts would draw every row of the thread again.
+ */
+export function keepUnchangedRows(previous: TimelineRow[], next: TimelineRow[]): TimelineRow[] {
+    const byId = new Map(previous.map((row) => [row.id, row]));
+    let changed = previous.length !== next.length;
+
+    const kept = next.map((row, index) => {
+        const before = byId.get(row.id);
+        const keep = before !== undefined && sameValue(before, row) ? before : row;
+
+        if (keep !== previous[index]) {
+            changed = true;
+        }
+
+        return keep;
+    });
+
+    return changed ? kept : previous;
+}
+
+/* A `keepUnchangedRows` that remembers the rows it handed out last, for a thread that derives its rows again. */
+export function createRowKeeper(): (rows: TimelineRow[]) => TimelineRow[] {
+    let kept: TimelineRow[] = [];
+
+    return (rows) => {
+        kept = keepUnchangedRows(kept, rows);
+
+        return kept;
+    };
+}

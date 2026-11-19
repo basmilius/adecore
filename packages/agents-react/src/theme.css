@@ -144,6 +144,9 @@
     /* A word of a reply that just arrived. The duration is REVEAL_FADE_MS in chat/ui/reveal.ts, which
        keeps the spans until it is over; ease-in-out, because ease-out jumps up and then trails. */
     .chat-fade { animation: chat-fade 300ms ease-in-out both; }
+    /* A reply keeps its spans once the reveal is over; without the animation, a thread hidden and shown
+       again does not fade the whole reply in a second time. */
+    .chat-markdown[data-faded-in] .chat-fade { animation: none; }
     /* A whole reply that was written out of sight. */
     .chat-fade-whole { animation: chat-fade 220ms ease-out both; }
     /* A block of a reply streamed a block at a time, faded in when it is inserted and never when a
