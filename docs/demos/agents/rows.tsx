@@ -77,6 +77,7 @@ function Rows() {
                 {tasks.map(({ item, task }) => (
                     <TaskRow
                         key={item.id}
+                        chatId={DEMO_CHAT}
                         item={item}
                         task={task}
                         open={openTask === item.id}
