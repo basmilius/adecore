@@ -130,6 +130,23 @@ export interface SubagentTask {
     paused?: { until?: number };
 }
 
+/* Where a task's row says its agent stands: the task's own state, or `waiting` while the agent waits on a person. */
+export type TaskRowState = 'running' | 'paused' | 'done' | 'failed' | 'cancelled' | 'waiting';
+
+/* What the row of a task given to another agent stands on, for a host that draws that row itself. */
+export interface HostTaskRow {
+    scopeId: string;
+    /* The chat whose thread holds the row. */
+    chatId: string;
+    item: ChatSubagentItem;
+    task: SubagentTask | null;
+    state: TaskRowState;
+    /* Whether the row's work is folded out under it. */
+    open: boolean;
+    /* What pressing the row does: open the agent's conversation, or fold its work out. */
+    onPress(): void;
+}
+
 /* What a find in a thread needs of it, and what it hands back to draw. */
 export interface TimelineFindOptions {
     chatId: string;
@@ -506,6 +523,12 @@ export interface ChatHost {
 
     /* Over a tool call's body. */
     renderToolActions?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;
+
+    /*
+     * The row of a task given to another agent, drawn by the host; null keeps the standard row. `TaskRowHead`
+     * draws that row's own line, for a host that builds on it rather than replacing all of it.
+     */
+    useTaskRow?(row: HostTaskRow): ReactNode;
 
     /* A tool call the host draws itself, under its line; null leaves it to the thread. */
     renderToolResult?(tool: { name: string; input: unknown; output: string | null; state: string }, chatId: string | undefined): ReactNode;

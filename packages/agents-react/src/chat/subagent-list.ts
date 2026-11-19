@@ -3,7 +3,7 @@ import { formatMoment, formatElapsedShort } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { StatusWord } from '../agents/status-look';
 import type { ChatThreadInfo, ChatThreadItem } from '../chat-sink';
-import type { SubagentTask } from '../host/host';
+import type { SubagentTask, TaskRowState } from '../host/host';
 
 export function subagentTitle(item: ChatSubagentItem): string {
     return item.description || item.summary || item.subagentType || i18next.t('agent-chat:rows.subagent.label');
@@ -21,9 +21,6 @@ export function statusWordOf(item: ChatSubagentItem, task: SubagentTask | null):
 
     return item.status;
 }
-
-/* What a task's row says its agent is doing: the task's own state, or that the agent waits on a person while the task runs. */
-export type TaskRowState = StatusWord | 'waiting';
 
 export function taskRowStateOf(item: ChatSubagentItem, task: SubagentTask | null, child: ChatThreadInfo | undefined): TaskRowState {
     const word = statusWordOf(item, task);

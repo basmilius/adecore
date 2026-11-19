@@ -80,6 +80,7 @@ export function Workspace() {
 | `useContextSources(chatId)`        | Nothing                                            | What a chat may read besides its folder, named under an empty thread.                                  |
 | `useWelcome(chatId)`               | `false`                                            | Open an empty chat on a greeting with the composer under it.                                           |
 | `tasks`                            | No tasks                                           | `useTasks` and `useTask`: the tasks behind subagent rows your app opened itself.                       |
+| `useTaskRow(row)`                  | The standard row                                   | A row of your own for such a task, from a `HostTaskRow`; `null` keeps the standard row.                |
 | `confirm`                          | Runs at once                                       | `stopSubagents` and `stopTask` get a `run` to call once a person confirmed.                            |
 | `fork(chatId, turnId)`             | No fork action                                     | Offers a fork after a turn; where it lands is up to you.                                               |
 | `openNewChat(scopeId, chatId)`     | Mod+Alt+Enter sends the other way, like Alt+Enter  | After Mod+Alt+Enter sent a message, opens a new chat with the same CLI, model and settings and focuses its composer. |
@@ -107,6 +108,7 @@ Some fields take a type of their own:
 - `dictation` holds a `Textarea` that takes the props of a `textarea` plus a `buttonClassName`, and a composer control with `ComposerDictationProps`: the editor, the row it sits in and whether it is disabled.
 - `useChatPlace` returns a `ChatPlace`, `{ title, go() }`.
 - `tasks` returns a `SubagentTask` per row: its status, when it started and settled, and `paused` while it waits out a limit.
+- `useTaskRow` gets a `HostTaskRow`: the scope, the chat whose thread holds the row, the row's item, its `SubagentTask`, its `TaskRowState` (the task's state, or `waiting` while the agent waits on a person), whether it is `open` and `onPress`, which opens the agent's conversation. To keep the row's own line and add to it, draw `TaskRowHead` from `@adecore/agents-react/chat/ui`, whose `line` takes the place of the words under the task.
 - `useThreadCards` returns `ThreadCard`s, and `useReplyAuthor` a `ReplyAuthor`.
 - `accents` lists choices as `{ id, color }`.
 - `ComposerHeaderSlot` gets `ComposerHeaderSlotProps`, and `SubagentSlot` gets `SubagentSlotProps`.

@@ -43,7 +43,7 @@ export { uiTableColumns, type UiTableColumn } from './intelligent-ui/table-data'
 export { ForksRow } from './rows/ForksRow';
 export { GeneratedImageRow } from './rows/GeneratedImageRow';
 export { ReportRow, NoteRow, AgentTurnRow, CompactionRow } from './rows/MessageRows';
-export { TaskRow } from './rows/TaskRow';
+export { TaskRow, TaskRowHead } from './rows/TaskRow';
 export { WorkRow, WorkGroupRow, WorkingRow } from './rows/WorkRows';
 export { WorkflowRow } from './rows/WorkflowRow';
 export { WorkflowAgentLine } from './WorkflowAgentLine';

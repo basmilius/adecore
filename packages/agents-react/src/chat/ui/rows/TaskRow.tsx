@@ -6,11 +6,12 @@ import { Bot, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { AgentIcon } from '../../../agents/AgentIcon';
 import { modelName, shortModelName } from '../../../agents/model-name';
-import type { SubagentTask } from '../../../host/host';
+import type { SubagentTask, TaskRowState } from '../../../host/host';
+import { useHostTaskRow } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useProviders } from '../../../state/providers';
-import { taskRowStateOf, type TaskRowState } from '../../subagent-list';
+import { taskRowStateOf } from '../../subagent-list';
 import { ROW_GUTTER } from '../icons';
 
 const DOT: Record<TaskRowState, string> = {
@@ -37,27 +38,71 @@ function Elapsed({ startedAt }: { startedAt: number }) {
     return <span ref={ref} className="shrink-0 text-xs text-text-faint tabular-nums" />;
 }
 
-function StateLine({ state, task }: { state: TaskRowState; task: SubagentTask | null }) {
+function StateLine({ state, task, line }: { state: TaskRowState; task: SubagentTask | null; line: string | undefined }) {
     const { t } = useTranslation('agent-chat');
     const until = state === 'paused' ? task?.paused?.until : undefined;
     const now = useNow(60_000, until !== undefined);
 
     return (
         <span className={clsx('truncate text-2xs', STATE_TONE[state])}>
-            {until === undefined ? t(`rows.task.${state}`) : t('rows.task.pausedUntil', { time: formatMoment(until, now) })}
+            {line ?? (until === undefined ? t(`rows.task.${state}`) : t('rows.task.pausedUntil', { time: formatMoment(until, now) }))}
         </span>
     );
+}
+
+function useTaskChild(item: ChatSubagentItem) {
+    const { keyOf } = useChatScope();
+
+    return useChats((s) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info));
+}
+
+interface TaskRowProps {
+    /* The chat whose thread holds the row. */
+    chatId: string;
+    item: ChatSubagentItem;
+    task: SubagentTask | null;
+    open: boolean;
+    onPress(): void;
 }
 
 /*
  * The row of a task given to another node: that agent's mark and model, what the task is about and
  * where it stands, read from the status every client gets of the child's chat. A child without one,
- * a terminal or a node that is gone, keeps the task's own words.
+ * a terminal or a node that is gone, keeps the task's own words. A host may draw the row itself
+ * (`useTaskRow`).
  */
-export function TaskRow({ item, task, open, onPress }: { item: ChatSubagentItem; task: SubagentTask | null; open: boolean; onPress(): void }) {
+export function TaskRow({ chatId, item, task, open, onPress }: TaskRowProps) {
+    const { id } = useChatScope();
+    const state = taskRowStateOf(item, task, useTaskChild(item));
+    const drawn = useHostTaskRow({ scopeId: id, chatId, item, task, state, open, onPress });
+
+    if (drawn !== null && drawn !== undefined) {
+        return drawn;
+    }
+
+    return <TaskRowHead item={item} task={task} open={open} onPress={onPress} />;
+}
+
+/*
+ * The line of a task's row on its own: the agent's mark with its state, the task, its time and the
+ * way into its conversation. `line` takes the place of the words under the task, in the same tone,
+ * for a host that knows better what the agent does now.
+ */
+export function TaskRowHead({
+    item,
+    task,
+    open,
+    onPress,
+    line
+}: {
+    item: ChatSubagentItem;
+    task: SubagentTask | null;
+    open: boolean;
+    onPress(): void;
+    line?: string;
+}) {
     const { t } = useTranslation('agent-chat');
-    const { keyOf } = useChatScope();
-    const child = useChats((s) => (item.childId === undefined ? undefined : s.statusByKey[keyOf(item.childId)]?.info));
+    const child = useTaskChild(item);
     const provider = child?.provider;
     const slug = child?.model ?? child?.selection.model ?? null;
 
@@ -87,7 +132,7 @@ export function TaskRow({ item, task, open, onPress }: { item: ChatSubagentItem;
                 <span data-find-field="summary" className="truncate text-xs font-medium text-text">
                     {model === null ? title : t('rows.task.named', { model, title })}
                 </span>
-                <StateLine state={state} task={task} />
+                <StateLine state={state} task={task} line={line} />
             </span>
             <span className="flex h-5 shrink-0 items-center gap-2">
                 {(state === 'running' || state === 'waiting') && startedAt > 0 && <Elapsed startedAt={startedAt} />}

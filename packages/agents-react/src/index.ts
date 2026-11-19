@@ -5,6 +5,8 @@ export {
     type ShellCodeBlockContext,
     type ChatPlace,
     type SubagentTask,
+    type TaskRowState,
+    type HostTaskRow,
     type TimelineFindOptions,
     type TimelineFind,
     type ComposerDictationProps,

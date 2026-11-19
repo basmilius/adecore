@@ -171,7 +171,7 @@ export function SubagentRow({
     return (
         <div data-find-item={item.id}>
             {item.origin === HOST_TASK_ORIGIN ? (
-                <TaskRow item={item} task={task} open={expanded} onPress={press} />
+                <TaskRow chatId={chatId} item={item} task={task} open={expanded} onPress={press} />
             ) : (
                 <ToggleLine
                     icon={<Icon icon={Bot} size={12} />}

@@ -4,8 +4,9 @@
  * hooks are called through these wrappers only. `ChatHostProvider` pins its host, so they never change.
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
+import type { ReactNode } from 'react';
 import type { AccountRule } from './host';
-import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem, type HostSkill, type UnknownItemWords } from './host';
+import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem, type HostSkill, type HostTaskRow, type UnknownItemWords } from './host';
 import { referablesOfChats, type Referables } from './references';
 
 export function useHostCodeMode(): 'light' | 'dark' {
@@ -89,6 +90,14 @@ export function useHostSkills(scopeId: string, chatId: string): readonly HostSki
     const useSkills = useChatHost().useSkills ?? noSkills;
 
     return useSkills(scopeId, chatId);
+}
+
+const noTaskRow = (): ReactNode => null;
+
+export function useHostTaskRow(row: HostTaskRow): ReactNode {
+    const useTaskRow = useChatHost().useTaskRow ?? noTaskRow;
+
+    return useTaskRow(row);
 }
 
 const noPlatform = (): ProviderPlatform | null => null;
