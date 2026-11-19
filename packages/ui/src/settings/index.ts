@@ -14,4 +14,5 @@ export {
 
 export { SettingsRow, TopIcon, type SettingsRowProps, type TopIconProps } from './SettingsRow.tsx';
 export { SettingsSection, type SettingsSectionProps } from './SettingsSection.tsx';
+export { SettingsTabs, type SettingsTabsProps } from './SettingsTabs.tsx';
 export { useSettingsTarget } from './target.ts';

@@ -351,6 +351,7 @@ exports[`the public API ./settings exports these names 1`] = `
   "SettingsDialog",
   "SettingsRow",
   "SettingsSection",
+  "SettingsTabs",
   "TopIcon",
   "type ConfirmDialogProps",
   "type DetailHeaderProps",
@@ -363,6 +364,7 @@ exports[`the public API ./settings exports these names 1`] = `
   "type SettingsSearchResult",
   "type SettingsSectionEntry",
   "type SettingsSectionProps",
+  "type SettingsTabsProps",
   "type TopIconProps",
   "useSettingsTarget",
 ]

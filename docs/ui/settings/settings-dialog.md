@@ -18,6 +18,26 @@ A section with a `hero` opens on that block, edge to edge, with the title bar fl
 
 You hold the open section. `onNavigate` fires when a person picks another.
 
+## Tabs in a pane
+
+A pane with several pages draws `SettingsTabs` and the picked page under it. The tabs stand in the header, under the title, so they stay put while the pane scrolls:
+
+```tsx
+import { SettingsTabs } from '@adecore/ui/settings';
+
+<SettingsTabs
+    value={tab}
+    tabs={[
+        { id: 'general', label: 'General' },
+        { id: 'colors', label: 'Colors' }
+    ]}
+    label="Editor pages"
+    onValueChange={setTab}
+/>
+```
+
+In a `split` pane, and outside the dialog, `SettingsTabs` stays where it is drawn, such as above a `MasterDetail`'s detail.
+
 ## Search
 
 `search.find(query)` returns the results, so it can search your own words in any language. While the field holds a query, the results replace the navigation. A result names a section and optionally the `searchId` of a [`SettingsRow`](/ui/settings/settings-section). Picking one calls `onNavigate` with the row as `target`. Pass it back as `target`. The row scrolls into view and flashes, then `onTargetShown` fires, where you clear it.

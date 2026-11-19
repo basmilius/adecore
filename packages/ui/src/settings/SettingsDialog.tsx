@@ -12,6 +12,7 @@ import { Input } from '../Input.tsx';
 import { LazyBoundary } from '../LazyBoundary.tsx';
 import { ScrollArea } from '../ScrollArea.tsx';
 import { Select } from '../Select.tsx';
+import { SettingsTabSlotContext } from './tab-slot.ts';
 import { SettingsTargetContext } from './target.ts';
 
 /* A pane that is not split scrolls as one column: the panel's own props land on the viewport, which stays the tab panel. */
@@ -286,6 +287,7 @@ export function SettingsDialog({
     const searching = search !== undefined && query.trim() !== '';
     const floating = meta.hero !== undefined && !meta.split;
     const barFill = useRef<HTMLDivElement>(null);
+    const [tabSlot, setTabSlot] = useState<HTMLDivElement | null>(null);
     // The latest callback behind a stable one, so a lit row's timer does not start over on every render.
     const latestShown = useRef(onTargetShown);
 
@@ -364,6 +366,8 @@ export function SettingsDialog({
                             </div>
                             <CloseButton label={t('settings.close')} dialog />
                         </div>
+                        {/* The tabs of the pane in front (`SettingsTabs`), outside the panel so they stay while it scrolls. */}
+                        <div ref={setTabSlot} className="shrink-0 px-8 pb-4.5 empty:hidden max-[960px]:px-4" />
                         <SettingsTargetContext value={targetValue}>
                             {sections.map((entry) => {
                                 const Pane = entry.pane;
@@ -389,14 +393,17 @@ export function SettingsDialog({
                                         }}
                                     >
                                         <ErrorBoundary label={t('settings.failed')} className="min-h-0 grow">
-                                            <LazyBoundary>
-                                                {Hero && (
-                                                    <div className="-mx-8 shrink-0 max-[960px]:-mx-4">
-                                                        <Hero />
-                                                    </div>
-                                                )}
-                                                <Pane />
-                                            </LazyBoundary>
+                                            {/* A split pane's tabs belong to its detail, which they would leave from up here. */}
+                                            <SettingsTabSlotContext value={entry.split ? null : tabSlot}>
+                                                <LazyBoundary>
+                                                    {Hero && (
+                                                        <div className="-mx-8 shrink-0 max-[960px]:-mx-4">
+                                                            <Hero />
+                                                        </div>
+                                                    )}
+                                                    <Pane />
+                                                </LazyBoundary>
+                                            </SettingsTabSlotContext>
                                         </ErrorBoundary>
                                     </Tabs.Panel>
                                 );
