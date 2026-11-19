@@ -36,7 +36,7 @@ import { SettingsTabs } from '@adecore/ui/settings';
 />
 ```
 
-In a `split` pane, and outside the dialog, `SettingsTabs` stays where it is drawn, such as above a `MasterDetail`'s detail.
+In a `split` pane, and outside the dialog, `SettingsTabs` stays where it is drawn, such as above a `MasterDetail`'s detail. Its props are the exported type `SettingsTabsProps`.
 
 ## Search
 
