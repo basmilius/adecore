@@ -365,6 +365,15 @@ export class ClaudeProtocol {
                 this.handleToolProgress(frame, events);
 
                 break;
+            case 'prompt_suggestion': {
+                const text = str(frame.suggestion)?.trim();
+
+                if (text) {
+                    events.push({ type: 'prompt.suggestion', text });
+                }
+
+                break;
+            }
             case 'rate_limit_event': {
                 this.noteRefusal(frame.rate_limit_info);
                 // The plan's own numbers, streamed while a turn runs; the usage monitor keeps them.

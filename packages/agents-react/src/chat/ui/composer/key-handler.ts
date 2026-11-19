@@ -10,6 +10,7 @@ import { pageTimeline } from '../../timeline-scroll';
 import { enterAction, inCode, inFenceBody, inOpenFence, listItemAt, recallDirection, tabSpaces } from './keys';
 import type { ComposerMenus } from './use-composer-menus';
 import type { PromptHistory } from './use-prompt-history';
+import type { PromptSuggestion } from './use-prompt-suggestion';
 
 const SEND_HOW: Readonly<Record<'send' | 'send-alternate' | 'send-and-new', ComposerSend>> = {
     send: 'default',
@@ -25,6 +26,7 @@ interface KeyHandlerInput {
     menus: ComposerMenus;
     history: PromptHistory;
     noteKey(e: KeyboardEvent): void;
+    suggestion: PromptSuggestion | null;
     toggleStash(): void;
     submit(how: ComposerSend): void;
 }
@@ -156,13 +158,20 @@ function enter(e: KeyboardEvent, view: EditorView, { host, sendKey, submit }: Ke
 
 /* Runs before the editor's own keymap; true means the key is handled and its default prevented. */
 export function composerKeyHandler(input: KeyHandlerInput): (e: KeyboardEvent, view: EditorView) => boolean {
-    const { chatId, host, text, history } = input;
+    const { chatId, host, text, history, suggestion } = input;
 
     return (e, view) => {
         input.noteKey(e);
 
-        // Escape leaves the node, unless it first has a recalled prompt to put back.
+        // Escape leaves the node, unless it first has a predicted prompt to wave off or a recalled one to put back.
         if (e.key === 'Escape' && !e.isComposing) {
+            if (suggestion !== null) {
+                suggestion.dismiss();
+                e.stopPropagation();
+
+                return true;
+            }
+
             if (!history.leave()) {
                 return false;
             }
@@ -200,6 +209,12 @@ export function composerKeyHandler(input: KeyHandlerInput): (e: KeyboardEvent, v
         }
 
         if (e.key === 'Tab' && !e.altKey && !e.metaKey && !e.ctrlKey && indentInFence(e, view)) {
+            return true;
+        }
+
+        if (e.key === 'Tab' && !e.shiftKey && !e.altKey && !e.metaKey && !e.ctrlKey && suggestion !== null) {
+            suggestion.accept();
+
             return true;
         }
 

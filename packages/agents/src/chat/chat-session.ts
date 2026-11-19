@@ -108,6 +108,9 @@ export interface ChatSessionOptions {
     folders?(): readonly string[];
     // False runs the CLI without the configuration of the working folder; asked before every turn like the folders.
     projectConfig?(): boolean;
+    // Whether the CLI predicts the next prompt; asked when a process starts, so a change reaches a running one on its next start.
+    promptSuggestions?(): boolean;
+    onSuggestion?(suggestion: string | null): void;
     promptNotes?: PromptNotes;
     references?: ChatReferences;
     // Trees per turn, so a settled turn can show what the working tree holds against its start.
@@ -272,6 +275,7 @@ export class ChatSession {
     private readonly orphans = new Set<string>();
     // What `settleStored` found the restart took, until `settleOrphanedSubagents` adds its own and tells the agent.
     private lostOnRestart: Omit<LostWork, 'noteId'> | null = null;
+    private predicted: string | null = null;
     // The settled form of that work, written once the note is.
     private settleWithNote: ChatItem[] = [];
     // A person's stop since this load, after which a restart's wake is no longer owed.
@@ -336,6 +340,11 @@ export class ChatSession {
 
     get running(): boolean {
         return this.backend?.running === true;
+    }
+
+    /* The next prompt the CLI predicted after the last turn, until a turn opens; in memory only. */
+    get suggestion(): string | null {
+        return this.predicted;
     }
 
     get reportsOnBackgroundWork(): boolean {
@@ -2528,6 +2537,7 @@ export class ChatSession {
             ...(info.usage.cacheTtlMs === undefined ? {} : { cacheTtlMs: info.usage.cacheTtlMs }),
             ...(folders.length > 0 ? { folders } : {}),
             ...(projectConfig ? {} : { projectConfig }),
+            ...(this.options.promptSuggestions?.() ? { promptSuggestions: true } : {}),
             ...(this.options.spawn ? { spawn: this.options.spawn } : {})
         };
 
@@ -2613,6 +2623,15 @@ export class ChatSession {
 
         if (event.type === 'stop.refused') {
             this.refuseStop(event.taskId, event.message);
+
+            return;
+        }
+
+        // A prediction that arrives once the next turn is open is about a conversation that moved on.
+        if (event.type === 'prompt.suggestion') {
+            if (this.thread.info.activeTurnId === null) {
+                this.predict(event.text);
+            }
 
             return;
         }
@@ -3032,6 +3051,20 @@ export class ChatSession {
         for (const event of delegating === null ? events : [...events, delegating]) {
             this.uiReplies.pass(event);
         }
+
+        // Every way a turn opens (a send, a wake, a turn the CLI starts itself) ends up here.
+        if (this.thread.info.activeTurnId !== null) {
+            this.predict(null);
+        }
+    }
+
+    private predict(suggestion: string | null): void {
+        if (suggestion === this.predicted) {
+            return;
+        }
+
+        this.predicted = suggestion;
+        this.options.onSuggestion?.(suggestion);
     }
 
     /* Said on the info as well as by the rows, since a client with the thread closed sees only the info. */

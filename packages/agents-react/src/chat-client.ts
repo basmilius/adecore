@@ -94,6 +94,7 @@ export class ChatClient {
             transport.on('chat.status', ({ chatId, info }) => this.sink.status(chatId, info)),
             transport.on('chat.bookmarks', ({ chatId, bookmarks }) => this.sink.bookmarks(chatId, bookmarks)),
             transport.on('chat.visuals', ({ chatId, visuals }) => this.sink.visuals(chatId, visuals)),
+            transport.on('chat.suggestion', ({ chatId, suggestion }) => this.sink.suggestion?.(chatId, suggestion)),
             transport.subscribeStatus((status) => this.onStatus(status))
         );
 
@@ -474,6 +475,7 @@ export class ChatClient {
         // A host without bookmarks or visuals sends none, and then this chat has none.
         this.sink.bookmarks(chatId, result.bookmarks ?? []);
         this.sink.visuals(chatId, result.visuals ?? []);
+        this.sink.suggestion?.(chatId, result.suggestion ?? null);
     }
 
     /*

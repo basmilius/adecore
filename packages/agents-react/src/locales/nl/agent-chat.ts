@@ -397,7 +397,8 @@ export default {
             files: 'bestanden',
             references: 'weergaven',
             skills: 'skills',
-            readOnly: 'Ga terug naar de main agent om te schrijven'
+            readOnly: 'Ga terug naar de main agent om te schrijven',
+            suggestion: 'om in te vullen'
         },
         jumpToEnd: 'Naar het einde',
         mentions: {

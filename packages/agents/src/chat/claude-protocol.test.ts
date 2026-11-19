@@ -835,6 +835,15 @@ describe('ClaudeProtocol', () => {
         expect(events.filter((event) => event.type === 'usage' && event.contextTokens !== undefined && event.contextTokens > 0)).toEqual([]);
     });
 
+    test('reads the next prompt Claude Code predicts, and nothing from an empty one', () => {
+        const protocol = new ClaudeProtocol();
+
+        expect(protocol.handle({ type: 'prompt_suggestion', suggestion: ' run the tests ', uuid: 'u-1', session_id: 's-1' })).toEqual([
+            { type: 'prompt.suggestion', text: 'run the tests' }
+        ]);
+        expect(protocol.handle({ type: 'prompt_suggestion', suggestion: '  ', uuid: 'u-2', session_id: 's-1' })).toEqual([]);
+    });
+
     test('frames it does not know say nothing', () => {
         const protocol = new ClaudeProtocol();
         expect(protocol.handle({ type: 'rate_limit_event' })).toEqual([]);

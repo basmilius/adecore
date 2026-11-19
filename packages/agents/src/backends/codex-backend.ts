@@ -10,6 +10,12 @@ import { CodexTransport, type CodexClientInfo, type CodexFrame } from './codex-t
 import { codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
 
+const SUGGESTION_PROMPT = [
+    'Predict the next message the user is most likely to send you in this conversation.',
+    "Answer with only that message, in the user's own words and language, at most one short sentence.",
+    'Answer with nothing when there is no obvious next step.'
+].join(' ');
+
 function textInput(text: string) {
     return [{ type: 'text', text, text_elements: [] }];
 }
@@ -548,6 +554,29 @@ export class CodexBackend implements ChatBackend {
         this.request('thread/compact/start', { threadId: this.threadId });
     }
 
+    /*
+     * Codex predicts no next prompt by itself, so one low-effort response on a hidden fork of the thread asks for it,
+     * reading the turn's prompt cache. A Codex without `thread/sample`, or a turn that moved on, gives nobody a suggestion.
+     */
+    private suggestNext(transport: CodexTransport, turnId: string): void {
+        if (!this.launch.promptSuggestions || this.threadId === '') {
+            return;
+        }
+
+        const params = { threadId: this.threadId, expectedTurnId: turnId, prompt: SUGGESTION_PROMPT, effort: 'low' };
+
+        void transport
+            .request('thread/sample', params)
+            .then((result) => {
+                const text = isRecord(result) && typeof result.text === 'string' ? result.text.trim() : '';
+
+                if (this.transport === transport && text !== '') {
+                    this.host.onEvent({ type: 'prompt.suggestion', text });
+                }
+            })
+            .catch(() => undefined);
+    }
+
     /* Not a turn: a name Codex refuses is not something the person has to hear about. */
     setTitle(title: string): void {
         if (!this.transport || this.threadId === '') {
@@ -739,6 +768,10 @@ export class CodexBackend implements ChatBackend {
         }
 
         for (const event of events) {
+            if (event.type === 'turn.done' && event.state === 'done' && event.native?.turnId !== undefined) {
+                this.suggestNext(transport, event.native.turnId);
+            }
+
             if (event.type === 'turn.done' && this.nativePrompt !== null && event.native?.turnId === this.nativePrompt.turnId) {
                 const promptId = this.nativePrompt.promptId;
                 this.nativePrompt = null;

@@ -214,6 +214,8 @@ export {
     type ChatVisualsResult,
     ChatVisualsEventSchema,
     type ChatVisualsEvent,
+    ChatSuggestionEventSchema,
+    type ChatSuggestionEvent,
     ChatAttachResultSchema,
     type ChatAttachResult,
     ChatDeliverySchema,

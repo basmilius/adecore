@@ -72,6 +72,8 @@ export interface BackendLaunch {
     // MCP servers the session loads, each in the form its backend's CLI takes them: a session request, an SDK option
     // or arguments on the command line.
     mcpServers?: readonly ChatMcpServer[];
+    // Whether the CLI predicts the next prompt after each turn, which costs a model request of its own.
+    promptSuggestions?: boolean;
     spawn?: SpawnChatProcess;
     saveGeneratedImage?(ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment>;
 }
@@ -114,6 +116,8 @@ export type BackendEvent =
           permissionMode?: string;
       }
     | { type: 'title'; title: string }
+    // What the CLI predicts the person sends next, after a turn ended; only from a launch with `promptSuggestions`.
+    | { type: 'prompt.suggestion'; text: string }
     | { type: 'permissions'; permissionMode: string; effectiveRuntimeMode?: RuntimeMode }
     // The folder the CLI works in now, for a CLI that can move out of the one it started in.
     | { type: 'workdir'; path: string }

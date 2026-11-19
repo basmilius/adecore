@@ -41,6 +41,7 @@ import { useNotice } from './composer/use-notice';
 import { usePendingRequests } from './composer/use-pending-requests';
 import { usePromptHistory } from './composer/use-prompt-history';
 import { usePromptHold } from './composer/use-prompt-hold';
+import { usePromptSuggestion } from './composer/use-prompt-suggestion';
 import { useTakeBack } from './composer/use-take-back';
 import { ComposerInput, type ComposerInputHandle } from './ComposerInput';
 import { GoalDock } from './GoalDock';
@@ -192,7 +193,17 @@ export function Composer({
     const pending = usePendingRequests(chatId);
     const compactionOffer = useCompactionOffer(chatId, info, capabilities?.compaction);
     const sigils = { mentionable: capabilities?.mentions !== false, referable: menus.offersViews, hasSkills: menus.hasSkills };
-    const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, ...sigils });
+
+    const suggestion = usePromptSuggestion({
+        chatId,
+        info,
+        empty: isEmptyDraft(draft),
+        writable,
+        asked: pending.length > 0,
+        fill: (text) => inputRef.current?.insert(text)
+    });
+
+    const placeholder = useHintedPlaceholder({ chatId, disabled, readOnly, suggestion: suggestion?.text ?? null, ...sigils });
     const editorExtensions = [
         chipDecorations({
             mentions: draft.mentions,
@@ -228,6 +239,7 @@ export function Composer({
         menus,
         history,
         noteKey: files.noteKey,
+        suggestion,
         toggleStash,
         submit
     });

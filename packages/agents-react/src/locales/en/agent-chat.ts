@@ -397,7 +397,8 @@ export default {
             files: 'files',
             references: 'views',
             skills: 'skills',
-            readOnly: 'Go back to the main agent to write'
+            readOnly: 'Go back to the main agent to write',
+            suggestion: 'to fill in'
         },
         jumpToEnd: 'Jump to end',
         mentions: {

@@ -463,6 +463,7 @@ export class ClaudeBackend implements ChatBackend {
             // Without a preset the SDK starts the CLI on an empty system prompt instead of its own.
             systemPrompt: { type: 'preset', preset: 'claude_code', ...(instructions === null ? {} : { append: instructions }) },
             includePartialMessages: true,
+            ...(this.launch.promptSuggestions ? { promptSuggestions: true } : {}),
             canUseTool: (toolName, input, permission) => this.askPermission(toolName, input, permission),
             // EnterWorktree moves the CLI without a `CwdChanged` hook (Claude Code 2.1.317), but every later hook carries the new `cwd`.
             hooks: { PostToolUse: [{ hooks: [async (input) => this.followWorkdir(input)] }] },

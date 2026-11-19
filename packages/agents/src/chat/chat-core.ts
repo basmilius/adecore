@@ -153,6 +153,11 @@ export interface ChatCoreHooks {
      * unset refuses the turn with `project-config-unsupported`, so a host can check the flag first.
      */
     projectConfigFor?(chatId: string): boolean;
+    /*
+     * Whether this chat's CLI predicts the next prompt after each turn, which costs a model request of its own.
+     * Asked when a process starts; absent predicts none.
+     */
+    promptSuggestionsFor?(chatId: string): boolean;
     /* Whether no list of chats shows this one, which `ChatInfo.hidden` says to every client. */
     hiddenFor?(chatId: string): boolean;
     /* What the host says in front of a chat's next real prompt, beside what the chat keeps itself. */
@@ -652,6 +657,12 @@ export class ChatCore {
             resumeInstructions: () => this.hooks.resumeInstructionsFor?.(payload.chatId) ?? null,
             folders: () => this.hooks.foldersFor?.(payload.chatId) ?? [],
             projectConfig: () => this.hooks.projectConfigFor?.(payload.chatId) ?? true,
+            promptSuggestions: () => this.hooks.promptSuggestionsFor?.(payload.chatId) ?? false,
+            onSuggestion: (suggestion) => {
+                for (const clientId of this.attached.get(payload.chatId) ?? []) {
+                    this.sinks.to(clientId, { event: 'chat.suggestion', payload: { chatId: payload.chatId, suggestion } });
+                }
+            },
             ...(promptNotes ? { promptNotes } : {}),
             ...(references ? { references } : {}),
             ...(this.checkpoints ? { checkpoints: this.checkpoints } : {}),
@@ -864,7 +875,14 @@ export class ChatCore {
             result.outline = this.require(chatId).thread.outlineBefore(result.history.start, marked);
         }
 
-        return { ...result, ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
+        const suggestion = this.require(chatId).suggestion;
+
+        return {
+            ...result,
+            ...(bookmarks === undefined ? {} : { bookmarks }),
+            ...(visuals === undefined ? {} : { visuals }),
+            ...(suggestion === null ? {} : { suggestion })
+        };
     }
 
     private listChanged(chatId: string): void {

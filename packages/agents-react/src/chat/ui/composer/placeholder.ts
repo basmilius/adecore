@@ -51,10 +51,14 @@ interface PlaceholderInput extends HintConditions {
     chatId: string;
     disabled: boolean;
     readOnly: boolean;
+    suggestion: string | null;
 }
 
-/* What the empty box says: why nothing can be written, or the host's words and the keys that open a picker. */
-export function useHintedPlaceholder({ chatId, disabled, readOnly, mentionable, referable, hasSkills }: PlaceholderInput): string | HTMLElement {
+/*
+ * What the empty box says: why nothing can be written, the next prompt the CLI predicted and the key that fills it in,
+ * or the host's words and the keys that open a picker.
+ */
+export function useHintedPlaceholder({ chatId, disabled, readOnly, suggestion, mentionable, referable, hasSkills }: PlaceholderInput): string | HTMLElement {
     const { t } = useTranslation('agent-chat');
     const scope = useChatScope();
     const lead = useHostComposerPlaceholder(scope.id, chatId);
@@ -68,10 +72,17 @@ export function useHintedPlaceholder({ chatId, disabled, readOnly, mentionable, 
             return t('composer.placeholder.readOnly');
         }
 
+        if (suggestion !== null) {
+            const predicted = hintedPlaceholder(suggestion, '', [{ key: 'Tab', label: t('composer.placeholder.suggestion') }]);
+            predicted.classList.add('composer-suggestion');
+
+            return predicted;
+        }
+
         return hintedPlaceholder(
             lead ?? t('composer.placeholder.lead'),
             t('composer.placeholder.joiner'),
             placeholderHints(t, { mentionable, referable, hasSkills })
         );
-    }, [disabled, readOnly, lead, mentionable, referable, hasSkills, t]);
+    }, [disabled, readOnly, suggestion, lead, mentionable, referable, hasSkills, t]);
 }

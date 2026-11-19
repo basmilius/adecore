@@ -1201,6 +1201,10 @@ export type ChatVisualsResult = z.infer<typeof ChatVisualsResultSchema>;
 export const ChatVisualsEventSchema = z.object({ chatId: ChatIdSchema, visuals: ChatVisualsSchema });
 export type ChatVisualsEvent = z.infer<typeof ChatVisualsEventSchema>;
 
+// What the CLI predicts the person sends next, to every client attached to the chat; null once a turn opens. Never stored.
+export const ChatSuggestionEventSchema = z.object({ chatId: ChatIdSchema, suggestion: z.string().min(1).nullable() });
+export type ChatSuggestionEvent = z.infer<typeof ChatSuggestionEventSchema>;
+
 export const ChatAttachResultSchema = z.object({
     info: ChatInfoSchema,
     items: z.array(ChatItemSchema),
@@ -1218,7 +1222,9 @@ export const ChatAttachResultSchema = z.object({
     // With a page: the active Workflow calls (`activeWorkflows`) from before it, so what shows a workflow beside the thread never waits on a scroll.
     workflows: z.array(ChatToolItemSchema).optional(),
     // With a page: the thread before it as `outlineItems` cuts it, so the scrubber reaches the whole thread before a scroll does.
-    outline: z.array(ChatItemSchema).optional()
+    outline: z.array(ChatItemSchema).optional(),
+    // The next prompt the CLI predicts after the last turn; absent while it predicts none.
+    suggestion: z.string().min(1).optional()
 });
 export type ChatAttachResult = z.infer<typeof ChatAttachResultSchema>;
 

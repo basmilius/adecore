@@ -51,6 +51,7 @@ import {
     ChatToolOutputPayloadSchema,
     ChatToolOutputResultSchema,
     ChatUnqueueResultSchema,
+    ChatSuggestionEventSchema,
     ChatVisualsEventSchema,
     ChatVisualsResultSchema,
     SkillsListPayloadSchema,
@@ -136,6 +137,7 @@ export const AGENT_EVENT_SCHEMAS = {
     'chat.subagentChanged': ChatSubagentChangedEventSchema,
     'chat.bookmarks': ChatBookmarksEventSchema,
     'chat.visuals': ChatVisualsEventSchema,
+    'chat.suggestion': ChatSuggestionEventSchema,
     'usage.changed': UsageChangedEventSchema,
     'usage.limitsChanged': UsageLimitsSnapshotSchema,
     'accounts.changed': ProviderAccountsSchema

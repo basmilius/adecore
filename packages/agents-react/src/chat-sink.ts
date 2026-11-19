@@ -48,5 +48,7 @@ export interface ChatSink {
     status(chatId: string, info: ChatThreadInfo): void;
     bookmarks(chatId: string, bookmarks: ChatBookmark[]): void;
     visuals(chatId: string, visuals: ChatVisual[]): void;
+    /* The next prompt the CLI predicted; a sink without it shows none. */
+    suggestion?(chatId: string, suggestion: string | null): void;
     forget(chatId: string): void;
 }

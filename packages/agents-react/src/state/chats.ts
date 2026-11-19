@@ -43,6 +43,8 @@ export interface ChatState {
     bookmarks?: ChatBookmark[];
     /* The pages agents published in the chat, as the host last said; absent until it said anything. */
     visuals?: ChatVisual[];
+    /* The next prompt the CLI predicted after the last turn; absent or null while it predicts none. */
+    suggestion?: string | null;
 }
 
 /* Rows keyed with the scope's `keyOf`, so a thread says which host it runs on. */
@@ -62,6 +64,7 @@ interface ChatsStore {
     status(key: string, info: ChatThreadInfo): void;
     bookmarks(key: string, bookmarks: ChatBookmark[]): void;
     visuals(key: string, visuals: ChatVisual[]): void;
+    suggestion(key: string, suggestion: string | null): void;
     forget(key: string): void;
     /* Drops the threads whose key matches, such as every thread of one host. They keep running there; this client is done looking at them. */
     forgetWhere(matches: (key: string) => boolean): void;
@@ -283,7 +286,7 @@ function applyUpdate(state: ChatState, event: ChatThreadEvent, write: ItemWriter
 }
 
 /* Fields of a held chat that are not part of its thread; a chat this client does not hold stays as it is. */
-function withFields(store: ChatsStore, key: string, fields: Pick<ChatState, 'bookmarks' | 'visuals'>): Partial<ChatsStore> {
+function withFields(store: ChatsStore, key: string, fields: Pick<ChatState, 'bookmarks' | 'visuals' | 'suggestion'>): Partial<ChatsStore> {
     const current = store.byKey[key];
 
     if (!current) {
@@ -298,9 +301,15 @@ export const useChats = create<ChatsStore>((set) => ({
     statusByKey: {},
     reset(key, info, items, page) {
         set((s) => {
-            // The bookmarks and the visuals are not part of the thread; they come in on their own and outlive a reset of it.
-            const { bookmarks, visuals } = s.byKey[key] ?? {};
-            const next = { ...stateOf(info, items, page), ...(bookmarks === undefined ? {} : { bookmarks }), ...(visuals === undefined ? {} : { visuals }) };
+            // The bookmarks, the visuals and the suggestion are not part of the thread; they come in on their own and outlive a reset of it.
+            const { bookmarks, visuals, suggestion } = s.byKey[key] ?? {};
+
+            const next = {
+                ...stateOf(info, items, page),
+                ...(bookmarks === undefined ? {} : { bookmarks }),
+                ...(visuals === undefined ? {} : { visuals }),
+                ...(suggestion === undefined ? {} : { suggestion })
+            };
 
             return {
                 byKey: { ...s.byKey, [key]: next },
@@ -376,6 +385,9 @@ export const useChats = create<ChatsStore>((set) => ({
     visuals(key, visuals) {
         set((s) => withFields(s, key, { visuals }));
     },
+    suggestion(key, suggestion) {
+        set((s) => withFields(s, key, { suggestion }));
+    },
     forget(key) {
         set((s) => {
             const next = { ...s.byKey };
@@ -402,6 +414,7 @@ export function chatSink(keyOf: (chatId: string) => string): ChatSink {
         status: (chatId, info) => useChats.getState().status(keyOf(chatId), info),
         bookmarks: (chatId, bookmarks) => useChats.getState().bookmarks(keyOf(chatId), bookmarks),
         visuals: (chatId, visuals) => useChats.getState().visuals(keyOf(chatId), visuals),
+        suggestion: (chatId, suggestion) => useChats.getState().suggestion(keyOf(chatId), suggestion),
         forget: (chatId) => useChats.getState().forget(keyOf(chatId))
     };
 }

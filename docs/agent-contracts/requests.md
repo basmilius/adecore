@@ -136,6 +136,7 @@ See [Usage](/agent-contracts/usage).
 | `chat.subagentChanged` | `ChatSubagentChangedEventSchema` (`ChatSubagentChangedEvent`) | `{ chatId, toolUseId }`: ask for the watched subagent page again. It carries no conversation. |
 | `chat.bookmarks` | `ChatBookmarksEventSchema` (`ChatBookmarksEvent`) | `{ chatId, bookmarks }`: the attached chat's whole bookmark list. |
 | `chat.visuals` | `ChatVisualsEventSchema` (`ChatVisualsEvent`) | `{ chatId, visuals }`: the attached chat's whole list of [visuals](/agent-contracts/visuals). |
+| `chat.suggestion` | `ChatSuggestionEventSchema` (`ChatSuggestionEvent`) | `{ chatId, suggestion }`: the next prompt the CLI predicts after a turn, or null once a turn opens. Never stored; `chat.attach` carries the current one. |
 | `accounts.changed` | `ProviderAccountsSchema` | The whole account snapshot. |
 | `usage.changed` | `UsageChangedEventSchema` (`UsageChangedEvent`) | `{ scannedAt }`: ask for the period on screen again. |
 | `usage.limitsChanged` | `UsageLimitsSnapshotSchema` | The whole plan limit snapshot. |

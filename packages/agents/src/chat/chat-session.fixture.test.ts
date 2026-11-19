@@ -1,5 +1,5 @@
 import type { ChatInfo } from '@adecore/agent-contracts';
-import type { BackendEvent, BackendHost, ChatBackend, TurnInput } from '../backends/backend.ts';
+import type { BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { claudeProvider } from '../testing/providers.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
 
@@ -34,6 +34,7 @@ function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
     }
 
     let host: BackendHost;
+    let launched: BackendLaunch | null = null;
     const sent: TurnInput[] = [];
     let stops = 0;
 
@@ -58,7 +59,8 @@ function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
         info: info(),
         provider: {
             ...claudeProvider,
-            createBackend: (_launch, madeHost) => {
+            createBackend: (launch, madeHost) => {
+                launched = launch;
                 host = madeHost;
 
                 return backend;
@@ -71,7 +73,7 @@ function rig(options: Partial<ChatSessionOptions> = {}, blocked = false) {
         ...options
     });
 
-    return { session, sent, start, backend, stops: () => stops, event: (event: BackendEvent) => host.onEvent(event) };
+    return { session, sent, start, backend, stops: () => stops, launched: () => launched, event: (event: BackendEvent) => host.onEvent(event) };
 }
 
 export { info, flush, rig };

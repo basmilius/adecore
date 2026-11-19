@@ -304,6 +304,9 @@
 .composer-hints, .composer-hints-extra, .composer-hint { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 /* The joiner starts with its own comma, so it sits against the lead without the gap. */
 .composer-hints-extra { margin-left: -8px; }
+/* A predicted prompt wraps like the text it stands for; its key has no joiner to lean on. */
+.composer-hints.composer-suggestion { display: inline; white-space: normal; }
+.composer-suggestion .composer-hints-extra { margin-left: 8px; }
 .composer-hints kbd { padding: 0 6px; border-radius: 5px; background: var(--surface-active); color: var(--text-muted); font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
 /* The widths of Tailwind's `@md` container variant, which the rest of the composer narrows at. */
 @container composer (width < 28rem) {
