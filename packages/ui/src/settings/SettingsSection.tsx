@@ -44,7 +44,8 @@ export function SettingsSection({ title, description, icon, tag, action, footer,
                     {tag}
                 </div>
             )}
-            <div className="min-w-0 divide-y divide-border rounded-xl border border-border bg-surface bg-clip-padding">{children}</div>
+            {/* Out by a row's inset and the border, so the words in a row start where the title does. */}
+            <div className="-mx-4.75 min-w-0 divide-y divide-border rounded-xl border border-border bg-surface bg-clip-padding">{children}</div>
             {footer && <p className="text-xs text-text-faint">{footer}</p>}
         </section>
     );

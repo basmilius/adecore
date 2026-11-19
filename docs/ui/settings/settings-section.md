@@ -12,6 +12,8 @@ import { SettingsRow, SettingsSection, TopIcon } from '@adecore/ui/settings';
 
 A header with a title, a description, an `action` on the right and a `tag` after it, then the rows in one card, divided by hairlines. Without header props the section is the card alone.
 
+The card reaches 19px out on both sides, a row's inset plus its border, so the words of a row start where the title does. Leave at least that much room beside a section, as the panes of [`SettingsDialog`](/ui/settings/settings-dialog) do.
+
 | Prop | Type | Default | |
 | --- | --- | --- | --- |
 | `children` | `ReactNode` | | Required. The rows. |
