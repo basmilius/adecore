@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import type { Components, ExtraProps, Options } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
+import { MarkGlyph } from '../../agents/AgentIcon';
 import { useChatHost, type ChatHost, type FileRef, type ShellCodeBlockContext } from '../../host/host';
 import type { ReferenceToken } from '../mentions';
 import { MENTION_TONE, SKILL_TONE, TOKEN_ICON } from './chips';
@@ -364,16 +365,7 @@ function Chip({ kind, value }: { kind: string; value: string }) {
     }
 
     if (kind === 'skill') {
-        return (
-            <TokenChip
-                kind="skill"
-                value={value}
-                sigil="$"
-                icon={<Icon icon={Zap} size={14} className={clsx(TOKEN_ICON, 'opacity-85')} />}
-                label={value}
-                tone={SKILL_TONE}
-            />
-        );
+        return <SkillChip name={value} />;
     }
 
     return (
@@ -387,6 +379,36 @@ function Chip({ kind, value }: { kind: string; value: string }) {
             tone={MENTION_TONE}
             data-file-path={value}
             data-file-directory={/[\\/]$/.test(value)}
+        />
+    );
+}
+
+/* A host's own skill shows its title under the host's mark, while a selection still copies `$name`. */
+function SkillChip({ name }: { name: string }) {
+    const host = useContext(ReferenceLookupContext).skills?.find((skill) => skill.name === name);
+
+    if (host !== undefined) {
+        return (
+            <TokenChip
+                kind="skill"
+                value={name}
+                sigil="$"
+                icon={<MarkGlyph mark={host.icon} size={14} decorative className={clsx(TOKEN_ICON, 'opacity-85')} />}
+                label={host.title}
+                spelled={host.title === name ? undefined : name}
+                tone={SKILL_TONE}
+            />
+        );
+    }
+
+    return (
+        <TokenChip
+            kind="skill"
+            value={name}
+            sigil="$"
+            icon={<Icon icon={Zap} size={14} className={clsx(TOKEN_ICON, 'opacity-85')} />}
+            label={name}
+            tone={SKILL_TONE}
         />
     );
 }

@@ -210,7 +210,8 @@ export function Composer({
             skills: draft.skills,
             references: menus.referenceChips,
             referenceIcon: host.ReferenceIcon,
-            named: menus.namedLook
+            named: menus.namedLook,
+            hostSkills: menus.hostSkills
         }),
         LEAVE_DROPS_TO_THE_CARD
     ];

@@ -2,7 +2,7 @@ import type { ChatSkill } from '@adecore/agent-contracts';
 import { Surface } from '@adecore/ui';
 import clsx from 'clsx';
 import { useLayoutEffect, useRef, type SetStateAction } from 'react';
-import { useChatHost } from '../../host/host';
+import { useChatHost, type HostSkill } from '../../host/host';
 import type { Referables } from '../../host/references';
 import { chipDecorations } from './composer/chips';
 import { ComposerMenu } from './composer/ComposerMenu';
@@ -17,6 +17,8 @@ interface PromptEditorProps {
     label: string;
     placeholder: string;
     skills: readonly ChatSkill[];
+    /* The host's own skills, offered above the CLI's. */
+    hostSkills?: readonly HostSkill[];
     /* What the CLI answers after `/`, besides `/goal` where `goals` is set. */
     slashCommands?: readonly string[];
     goals?: boolean;
@@ -40,6 +42,7 @@ export function PromptEditor({
     label,
     placeholder,
     skills,
+    hostSkills,
     slashCommands = NO_COMMANDS,
     goals = false,
     cwd,
@@ -72,6 +75,7 @@ export function PromptEditor({
         inputRef,
         cwd,
         skills,
+        hostSkills,
         slashCommands,
         goals,
         providerName,
@@ -84,7 +88,8 @@ export function PromptEditor({
         skills: value.skills,
         references: menus.referenceChips,
         referenceIcon: host.ReferenceIcon,
-        named: menus.namedLook
+        named: menus.namedLook,
+        hostSkills: menus.hostSkills
     });
 
     const onKeyDown = (e: KeyboardEvent): boolean => {

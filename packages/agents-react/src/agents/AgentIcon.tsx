@@ -23,10 +23,14 @@ export function AgentIcon({ kind, size = 14, className }: { kind: AgentKind; siz
         return <Icon icon={Bot} size={size} className={className} />;
     }
 
+    return <MarkGlyph mark={mark} size={size} className={className} />;
+}
+
+/* A mark in the current text color; `decorative` hides it from a screen reader where a label beside it says the same. */
+export function MarkGlyph({ mark, size = 14, className, decorative = false }: { mark: AgentMark; size?: number; className?: string; decorative?: boolean }) {
     return (
         <svg
-            role="img"
-            aria-label={mark.title}
+            {...(decorative ? { 'aria-hidden': true } : { role: 'img', 'aria-label': mark.title })}
             viewBox={mark.viewBox ?? '0 0 24 24'}
             width={size}
             height={size}

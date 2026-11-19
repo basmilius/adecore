@@ -751,6 +751,56 @@ describe('skills and commands', () => {
         expect(composer.sent[0]?.extras.skills).toEqual(['review']);
     });
 
+    describe("the host's own skills", () => {
+        const mark = { title: 'Host', path: 'M0 0h24v24H0z' };
+        const ownSkills = [{ name: 'own-design', title: 'design', description: 'Design a screen', icon: mark }];
+        const cliSkills = [{ name: 'design', description: '' }, ...skills] as ChatSkill[];
+
+        test('stand above a CLI skill of the same title under their own mark, found by title', async () => {
+            const composer = await mount({ skills: cliSkills, host: { useSkills: () => ownSkills } });
+            await settle();
+            await composer.type('$des');
+            const options = [...composer.page.host.querySelectorAll('[role="option"]')];
+
+            expect(options.map((option) => option.textContent)).toEqual(['designDesign a screen', '$design']);
+            expect(options[0]?.querySelector('path')?.getAttribute('d')).toBe(mark.path);
+            expect(options[1]?.querySelector('path')?.getAttribute('d')).not.toBe(mark.path);
+        });
+
+        test('draw their title as the chip, while the text, the send and a copy hold $name', async () => {
+            const composer = await mount({ skills: cliSkills, host: { useSkills: () => ownSkills } });
+            await settle();
+            await composer.type('$des');
+            await composer.press('Tab');
+
+            expect(composer.text()).toBe('$own-design ');
+            expect(composer.view().contentDOM.textContent).toContain('design');
+            expect(composer.view().contentDOM.textContent).not.toContain('$own-design');
+            await act(async () => composer.view().dispatch({ selection: { anchor: 0, head: 11 } }));
+            const clipboardData = clipboardOf();
+            await composer.fire(composer.view().contentDOM, 'copy', { clipboardData });
+
+            expect(clipboardData.data['text/plain']).toBe('$own-design');
+            expect(JSON.parse(clipboardData.data['application/x-adecore-chips']!)).toMatchObject({ text: '$own-design', skills: ['own-design'] });
+            await composer.press('Enter');
+            expect(composer.sent[0]).toMatchObject({ text: '$own-design', extras: { skills: ['own-design'] } });
+        });
+
+        test('come back as a chip from a paste of their copy', async () => {
+            const composer = await mount({ skills: cliSkills, host: { useSkills: () => ownSkills } });
+            await settle();
+            const chips = { text: 'Use $own-design now', mentions: [], skills: ['own-design'], references: [] };
+
+            await composer.fire(composer.view().contentDOM, 'paste', {
+                clipboardData: clipboardOf({ 'text/plain': chips.text, 'application/x-adecore-chips': JSON.stringify(chips) })
+            });
+
+            expect(composer.text()).toBe('Use $own-design now');
+            await composer.press('Enter');
+            expect(composer.sent[0]?.extras.skills).toEqual(['own-design']);
+        });
+    });
+
     test('/ lists the commands, and /clear asks before it clears a chat whose turn is in the way', async () => {
         const calls: Array<[string, boolean]> = [];
 

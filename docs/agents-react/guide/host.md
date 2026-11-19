@@ -90,6 +90,7 @@ export function Workspace() {
 | `ComposerSlot`                     | Nothing                                            | A control of your own in the composer's row, with `insert(text)` to type into the draft.               |
 | `ComposerHeaderSlot`               | Nothing                                            | A bar of your own at the top of the composer's card, above the text.                                   |
 | `useComposerStatus(scopeId, chatId)` | No line                                         | Items of your own on a line under the composer's card, such as a branch. See [Slots and cards](#slots-and-cards). |
+| `useSkills(scopeId, chatId)`       | Only the CLI's skills                              | `HostSkill`s (`{ name, title, description, icon }`) of your own after `$`, above the CLI's. See [Pickers and pasting](/agents-react/chat/composer#pickers-and-pasting). |
 | `SubagentSlot`                     | One flyout                                         | Chips of your own for a chat's subagents over the composer.                                            |
 | `useThreadCards(scopeId, chatId)`  | No cards                                           | Cards of your own between the messages, each `{ id, at, render }`.                                     |
 | `useReplyAuthor(scopeId, chatId)`  | The agent is named for screen readers only         | A header over each reply: `{ name, mark? }`.                                                           |

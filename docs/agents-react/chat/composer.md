@@ -24,7 +24,7 @@ import { Composer } from '@adecore/agents-react/chat/ui';
 
 ## A prompt in a form
 
-`PromptEditor` is the composer's editor as a form field, for a prompt sent later, such as a template. It has the same `@`, `$`, `/` and `#` pickers and chips, without a chat. Pass the CLI's `skills`, the `cwd` that `@` searches and the `referables` that `#` offers, and keep the `PromptDraft` it returns. `promptPicks(draft, referables)` turns the picks into `ChatSendExtras` for the send.
+`PromptEditor` is the composer's editor as a form field, for a prompt sent later, such as a template. It has the same `@`, `$`, `/` and `#` pickers and chips, without a chat. Pass the CLI's `skills` (and your own as `hostSkills`), the `cwd` that `@` searches and the `referables` that `#` offers, and keep the `PromptDraft` it returns. `promptPicks(draft, referables)` turns the picks into `ChatSendExtras` for the send.
 
 ```tsx
 <PromptEditor value={draft} onChange={setDraft} label="Prompt" placeholder="What should the agent do?" skills={skills} cwd={folder} referables={referables} />
@@ -85,6 +85,14 @@ import { GoalPill } from '@adecore/agents-react/chat/ui';
 ## Pickers and pasting
 
 `@` searches files through the host's `searchFiles` and lists the chats of `useReferableChats` above them. `$` lists the CLI's skills. A sigil opens a picker only at the start of a word.
+
+A host's `useSkills(scopeId, chatId)` adds skills of its own above the CLI's, each a `HostSkill`: the `name` the text holds as `$name`, the `title` a person reads, a `description` for the hint and an `AgentMark` as its `icon`. Typing after `$` finds one by its title or its name. Its chip shows the title under that mark, while the text, the send, a copy and a paste keep `$name`. The send lists it in `skills` like any other; leave its name out of what the CLI runs with the agents host's `hostSkillsFor`. While the list is empty, loading or failed, `$` shows the CLI's skills alone.
+
+```ts
+const CHAT_HOST: Partial<ChatHost> = {
+    useSkills: (scopeId, chatId) => useSkillsOf(scopeId, chatId) ?? NO_SKILLS
+};
+```
 
 A pasted or dropped file becomes an attachment, within the contract's [limits](/agent-contracts/conversation#attachments). Long pasted text becomes a `paste-1.txt` attachment. Past `PROMPT_COUNTER_FROM` characters the box shows a counter, and past `PROMPT_MAX_CHARS` it refuses to send.
 

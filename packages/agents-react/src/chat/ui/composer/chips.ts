@@ -4,8 +4,9 @@ import { Facet, StateField, type EditorState, type Extension, type Range } from 
 import { Decoration, EditorView, WidgetType, type DecorationSet } from '@codemirror/view';
 import { createElement, Fragment, type ComponentType } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { MarkGlyph } from '../../../agents/AgentIcon';
 import { CliMark } from '../../../agents/AgentModelLabel';
-import type { ReferenceIconProps } from '../../../host/host';
+import type { HostSkill, ReferenceIconProps } from '../../../host/host';
 import type { ReferableKind, ReferenceStep } from '../../../host/references';
 import { chipRanges, withNamedChips, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
@@ -23,6 +24,8 @@ interface ChipChoices {
     referenceIcon?: ComponentType<ReferenceIconProps> | null;
     /* How a model or an account reads; without it a named chip shows its id. */
     named?: NamedChipLookup | null;
+    /* The host's own skills, whose chips show their title under the host's mark. */
+    hostSkills?: readonly HostSkill[];
 }
 
 const NO_CHOICES: ChipChoices = { mentions: [], skills: [] };
@@ -129,6 +132,40 @@ class NamedChipWidget extends WidgetType {
     }
 }
 
+/* A skill of the host's own in place of its `$name`: the host's mark and the title. One atom, like a named chip. */
+class HostSkillWidget extends WidgetType {
+    readonly skill: HostSkill;
+
+    constructor(skill: HostSkill) {
+        super();
+        this.skill = skill;
+    }
+
+    override eq(other: HostSkillWidget): boolean {
+        return other.skill.name === this.skill.name && other.skill.title === this.skill.title && other.skill.icon.path === this.skill.icon.path;
+    }
+
+    toDOM(): HTMLElement {
+        const chip = document.createElement('span');
+        const mark = document.createElement('span');
+        const root = createRoot(mark);
+
+        chip.className = `${SKILL_TONE} ${CHIP_IN_EDITOR}`;
+        mark.className = TOKEN_ICON_IN_EDITOR;
+        root.render(createElement(MarkGlyph, { mark: this.skill.icon, size: 12, decorative: true }));
+        roots.set(chip, root);
+        chip.append(mark, this.skill.title);
+
+        return chip;
+    }
+
+    override destroy(dom: HTMLElement): void {
+        const root = roots.get(dom);
+        roots.delete(dom);
+        queueMicrotask(() => root?.unmount());
+    }
+}
+
 interface ChipMarks {
     marks: DecorationSet;
     /* The named chips, which the caret and a delete take whole. */
@@ -136,8 +173,9 @@ interface ChipMarks {
 }
 
 function chipMarks(state: EditorState): ChipMarks {
-    const { mentions, skills, references = [], referenceIcon = null, named = null } = state.facet(choices);
+    const { mentions, skills, references = [], referenceIcon = null, named = null, hostSkills = [] } = state.facet(choices);
     const tokens = new Map(references.map((token) => [token.id, token]));
+    const hosted = new Map(hostSkills.map((skill) => [skill.name, skill]));
     const marks: Range<Decoration>[] = [];
     const atoms: Range<Decoration>[] = [];
     const text = state.doc.toString();
@@ -151,6 +189,17 @@ function chipMarks(state: EditorState): ChipMarks {
             const id = range.value.slice(slash + 1);
             const look = named?.(range.kind, cli, id) ?? { label: id, color: undefined };
             const atom = Decoration.replace({ widget: new NamedChipWidget(cli as AgentKind, look) }).range(range.from, range.to);
+
+            marks.push(atom);
+            atoms.push(atom);
+
+            continue;
+        }
+
+        const hostSkill = range.kind === 'skill' ? hosted.get(range.value) : undefined;
+
+        if (hostSkill !== undefined) {
+            const atom = Decoration.replace({ widget: new HostSkillWidget(hostSkill) }).range(range.from, range.to);
 
             marks.push(atom);
             atoms.push(atom);

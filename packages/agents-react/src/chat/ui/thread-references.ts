@@ -1,6 +1,6 @@
 import type { ChatThreadItem } from '../../chat-sink';
 import { useChatHost } from '../../host/host';
-import { useHostReferables } from '../../host/host-hooks';
+import { useHostReferables, useHostSkills } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow } from '../../state/chats';
 import type { ReferenceLookup } from './reference-lookup';
@@ -48,12 +48,14 @@ export function useReferenceLookup(chatId: string): ReferenceLookup {
 export function useReferenceLookupIn(scopeId: string, chatId: string): ReferenceLookup {
     const { openReference, outsideReference } = useChatHost();
     const referables = useHostReferables(scopeId, chatId);
+    const skills = useHostSkills(scopeId, chatId);
     const key = useChatRow(chatId, (chat) => threadReferencedKey(chat?.structure));
 
     return {
         items: referables.items,
         open: openReference ? (id: string) => openReference(scopeId, id) : null,
         ...(outsideReference ? { outside: (id: string) => outsideReference(scopeId, id) } : {}),
-        referenced: key === '' ? [] : key.split('\n')
+        referenced: key === '' ? [] : key.split('\n'),
+        skills
     };
 }

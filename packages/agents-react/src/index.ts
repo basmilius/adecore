@@ -33,6 +33,7 @@ export {
     type ToolLookMatch,
     ChatHostProvider,
     type AgentMark,
+    type HostSkill,
     type ChatHostLayer,
     useChatHost
 } from './host/host';

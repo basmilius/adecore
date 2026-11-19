@@ -35,6 +35,7 @@ exports[`the public API . exports these names 1`] = `
   "type ComposerStatusItem",
   "type FileRef",
   "type HostMenuAction",
+  "type HostSkill",
   "type MountedEntry",
   "type OutsideReference",
   "type PortTransport",

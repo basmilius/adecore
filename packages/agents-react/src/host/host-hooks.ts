@@ -5,7 +5,7 @@
  */
 import type { ProviderPlatform } from '@adecore/agent-contracts';
 import type { AccountRule } from './host';
-import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem, type UnknownItemWords } from './host';
+import { useChatHost, type ChatHost, type CommandLook, type ComposerStatusItem, type HostSkill, type UnknownItemWords } from './host';
 import { referablesOfChats, type Referables } from './references';
 
 export function useHostCodeMode(): 'light' | 'dark' {
@@ -80,6 +80,15 @@ export function useHostExpandingCommands(): ReturnType<NonNullable<ChatHost['use
     const useExpanding = useChatHost().useExpandingCommands ?? noExpanding;
 
     return useExpanding();
+}
+
+const NO_SKILLS: readonly HostSkill[] = [];
+const noSkills = (): readonly HostSkill[] => NO_SKILLS;
+
+export function useHostSkills(scopeId: string, chatId: string): readonly HostSkill[] {
+    const useSkills = useChatHost().useSkills ?? noSkills;
+
+    return useSkills(scopeId, chatId);
 }
 
 const noPlatform = (): ProviderPlatform | null => null;

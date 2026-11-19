@@ -2,7 +2,7 @@ import type { ChatSkill, ProviderCapabilities } from '@adecore/agent-contracts';
 import { useEffect, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ChatThreadInfo } from '../../../chat-sink';
-import { useHostAccountRule, useHostReferables } from '../../../host/host-hooks';
+import { useHostAccountRule, useHostReferables, useHostSkills } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
 import type { ComposerInputHandle } from '../ComposerInput';
 import type { ComposerDraft } from './use-composer-draft';
@@ -28,6 +28,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
     const scope = useChatScope();
     const referables = useHostReferables(scope.id, chatId);
     const accountRule = useHostAccountRule(scope.id, chatId);
+    const hostSkills = useHostSkills(scope.id, chatId);
     const [skills, setSkills] = useState<ChatSkill[]>([]);
 
     /*
@@ -60,6 +61,7 @@ export function useComposerMenus({ chatId, info, capabilities, providerName, dra
         // A CLI that does not expand `@path` gets the text as it is, so the picker stays out of the way.
         cwd: capabilities?.mentions === false ? null : info.cwd,
         skills,
+        hostSkills,
         slashCommands: info.slashCommands,
         localCommands: LOCAL_COMMANDS,
         goals: capabilities?.goals !== undefined,

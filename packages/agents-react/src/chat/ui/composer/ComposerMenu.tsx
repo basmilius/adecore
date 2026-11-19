@@ -3,6 +3,7 @@ import clsx from 'clsx';
 import { SquareSlash, Zap } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MarkGlyph } from '../../../agents/AgentIcon';
 import { CliMark } from '../../../agents/AgentModelLabel';
 import { useChatHost } from '../../../host/host';
 import type { Referable } from '../../../host/references';
@@ -68,8 +69,17 @@ function SkillMenu({ menus }: { menus: Menus }) {
         <div id={menus.listId} role="listbox" aria-label={t('composer.menu.skills')} className="border-b border-border px-1.5 py-1.5">
             {menus.skillMatches.map((skill, index) => (
                 <MenuOption key={skill.name} menus={menus} index={index} className="items-center" onPick={() => menus.chooseSkill(skill.name)}>
-                    <Icon icon={Zap} size={12} className="shrink-0 text-skill" />
-                    <span className="shrink-0 font-mono text-text">${skill.name}</span>
+                    {skill.host === null ? (
+                        <>
+                            <Icon icon={Zap} size={12} className="shrink-0 text-skill" />
+                            <span className="shrink-0 font-mono text-text">${skill.name}</span>
+                        </>
+                    ) : (
+                        <>
+                            <MarkGlyph mark={skill.host.icon} size={12} decorative className="shrink-0 text-skill" />
+                            <span className="shrink-0 text-text">{skill.host.title}</span>
+                        </>
+                    )}
                     {skill.description !== '' && <span className="min-w-0 truncate text-text-faint">{skill.description}</span>}
                 </MenuOption>
             ))}

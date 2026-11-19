@@ -3,7 +3,7 @@ import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import type { EditorState } from '@codemirror/state';
 import { useEffect, useId, useState, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useChatHost, type AccountRule } from '../../../host/host';
+import { useChatHost, type AccountRule, type HostSkill } from '../../../host/host';
 import { useHostExpandingCommands } from '../../../host/host-hooks';
 import { type Referable, type Referables } from '../../../host/references';
 import { useChatScope } from '../../../scope';
@@ -61,12 +61,21 @@ export interface ComposerCommand {
     skill: boolean;
 }
 
+/* A row of the `$` menu; `host` is set for a skill of the host's own, which shows its title under its mark. */
+export interface SkillMatch {
+    name: string;
+    description: string;
+    host: HostSkill | null;
+}
+
 interface PromptMenusInput<D extends PromptDraft> {
     draft: PromptDraftBox<D>;
     inputRef: RefObject<ComposerInputHandle | null>;
     /* Where `@` searches for files; null offers none. */
     cwd: string | null;
     skills: readonly ChatSkill[];
+    /* The host's own skills, offered above the CLI's. */
+    hostSkills?: readonly HostSkill[];
     slashCommands: readonly string[];
     /* Commands the box runs itself, named in `composer.commands`; the rest go to the CLI as text. */
     localCommands?: readonly string[];
@@ -85,6 +94,24 @@ interface PromptMenusInput<D extends PromptDraft> {
 }
 
 const NO_COMMANDS: readonly string[] = [];
+const NO_HOST_SKILLS: readonly HostSkill[] = [];
+const SKILL_RESULTS = 8;
+
+/* The host's skills first, found by title or name, then the CLI's; a CLI skill under a host skill's name is the host's. */
+function skillMatchesOf(query: string, skills: readonly ChatSkill[], hostSkills: readonly HostSkill[]): SkillMatch[] {
+    const wanted = query.toLowerCase();
+    const own = new Set(hostSkills.map((skill) => skill.name));
+
+    const hosted = hostSkills
+        .filter((skill) => skill.title.toLowerCase().includes(wanted) || skill.name.toLowerCase().includes(wanted))
+        .map((skill) => ({ name: skill.name, description: skill.description, host: skill }));
+
+    const cli = skills
+        .filter((skill) => !own.has(skill.name) && skill.name.toLowerCase().includes(wanted))
+        .map((skill) => ({ name: skill.name, description: skill.description, host: null }));
+
+    return [...hosted, ...cli].slice(0, SKILL_RESULTS);
+}
 
 function sameQuery(left: MentionQuery | null, right: MentionQuery | null): boolean {
     return left?.start === right?.start && left?.query === right?.query;
@@ -100,6 +127,7 @@ export function usePromptMenus<D extends PromptDraft>({
     inputRef,
     cwd,
     skills,
+    hostSkills = NO_HOST_SKILLS,
     slashCommands,
     localCommands = NO_COMMANDS,
     goals,
@@ -193,7 +221,7 @@ export function usePromptMenus<D extends PromptDraft>({
     };
 
     const commands = commandQuery === null ? [] : commandsOf(commandQuery);
-    const skillMatches = skillQuery === null ? [] : skills.filter((skill) => skill.name.toLowerCase().includes(skillQuery.query.toLowerCase())).slice(0, 8);
+    const skillMatches = skillQuery === null ? [] : skillMatchesOf(skillQuery.query, skills, hostSkills);
 
     const commandMenuOpen = commandQuery !== null && commands.length > 0;
     const skillMenuOpen = !commandMenuOpen && skillQuery !== null && skillMatches.length > 0;
@@ -403,10 +431,11 @@ export function usePromptMenus<D extends PromptDraft>({
         activeIndex,
         inputAria,
         menuOpen,
-        hasSkills: skills.length > 0,
+        hasSkills: skills.length > 0 || hostSkills.length > 0,
         // While only chats can be pointed at, the hint that names views would promise what `#` does not open.
         offersViews: offersReferences && !referables.chatsOnly,
-        skillNames: skills.map((skill) => skill.name),
+        skillNames: [...hostSkills.map((skill) => skill.name), ...skills.map((skill) => skill.name)],
+        hostSkills,
         commandQuery,
         commands,
         commandMenuOpen,

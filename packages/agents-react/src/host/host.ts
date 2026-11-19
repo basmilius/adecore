@@ -464,6 +464,18 @@ export interface AgentMark {
     fillRule?: 'nonzero' | 'evenodd';
 }
 
+/*
+ * A skill of the host's own, picked after `$` like a CLI's. The text holds `$<name>`, which is what is
+ * sent, copied and pasted; the menu and the chip show `title` under the host's mark.
+ */
+export interface HostSkill {
+    readonly name: string;
+    readonly title: string;
+    /* The hint beside the title in the menu; empty for none. */
+    readonly description: string;
+    readonly icon: AgentMark;
+}
+
 /* The words of the row an item of a newer host gets, such as naming the app a person updates. */
 export interface UnknownItemWords {
     /* For an item that only shows something. */
@@ -482,6 +494,12 @@ export interface ChatHost {
 
     /* Commands of the host's own after `/`, which turn into the prompt instead of reaching the CLI. */
     useExpandingCommands?(): readonly { name: string; hint: string; expand(args: string): Promise<string> }[];
+
+    /*
+     * Skills of the host's own for a chat, offered after `$` above the CLI's. Hand back an empty list while it
+     * loads or when it failed, and the same array while none changed; left out, only the CLI's skills show.
+     */
+    useSkills?(scopeId: string, chatId: string): readonly HostSkill[];
 
     /* Under an empty thread's own words. */
     renderEmptyThread?(chatId: string): ReactNode;
