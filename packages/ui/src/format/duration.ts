@@ -57,16 +57,23 @@ export const formatPreciseDuration = (ms: number): string => {
 /* How long a window still has, tight enough for the end of a bar: `4d 3h`, `12h 8m`, `9m`. */
 export const formatCountdown = (ms: number): string => {
     const left = Math.max(0, ms);
+    // Rounded once before it splits, so a rest that rounds up carries into the unit above: `5h`, never `4h 60m`.
+    const minutes = Math.max(1, Math.round(left / MINUTE));
 
-    if (left >= DAY) {
-        return `${formatNumber(Math.floor(left / DAY))}d ${formatNumber(Math.round((left % DAY) / HOUR))}h`;
+    if (minutes >= DAY / MINUTE) {
+        const hours = Math.round(left / HOUR);
+        const days = `${formatNumber(Math.floor(hours / 24))}d`;
+
+        return hours % 24 === 0 ? days : `${days} ${formatNumber(hours % 24)}h`;
     }
 
-    if (left >= HOUR) {
-        return `${formatNumber(Math.floor(left / HOUR))}h ${formatNumber(Math.round((left % HOUR) / MINUTE))}m`;
+    if (minutes >= 60) {
+        const hours = `${formatNumber(Math.floor(minutes / 60))}h`;
+
+        return minutes % 60 === 0 ? hours : `${hours} ${formatNumber(minutes % 60)}m`;
     }
 
-    return `${formatNumber(Math.max(1, Math.round(left / MINUTE)))}m`;
+    return `${formatNumber(minutes)}m`;
 };
 
 /* `12s`, `2m 5s`, `3h 20m`. Anything above zero reads as at least `1s`; only a clock that runs ahead of the start comes out as `0s`. */

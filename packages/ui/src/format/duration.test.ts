@@ -99,6 +99,18 @@ describe('how long a window still has', () => {
         expect(formatCountdown(9 * MINUTE)).toBe('9m');
     });
 
+    test('carries a rest that rounds up into the unit above', () => {
+        expect(formatCountdown(59 * MINUTE + 30_000)).toBe('1h');
+        expect(formatCountdown(4 * HOUR + 59 * MINUTE + 40_000)).toBe('5h');
+        expect(formatCountdown(23 * HOUR + 59 * MINUTE + 40_000)).toBe('1d');
+        expect(formatCountdown(6 * DAY + 23 * HOUR + 40 * MINUTE)).toBe('7d');
+    });
+
+    test('leaves out a rest of zero', () => {
+        expect(formatCountdown(5 * HOUR)).toBe('5h');
+        expect(formatCountdown(7 * DAY)).toBe('7d');
+    });
+
     // Under a minute the window is all but gone, and `0m` reads as spent rather than as nearly so.
     test('never counts down to zero minutes', () => {
         expect(formatCountdown(10_000)).toBe('1m');
