@@ -67,12 +67,10 @@ function SkillMenu({ menus }: { menus: Menus }) {
     return (
         <div id={menus.listId} role="listbox" aria-label={t('composer.menu.skills')} className="border-b border-border px-1.5 py-1.5">
             {menus.skillMatches.map((skill, index) => (
-                <MenuOption key={skill.name} menus={menus} index={index} className="items-start" onPick={() => menus.chooseSkill(skill.name)}>
-                    <Icon icon={Zap} size={12} className="mt-0.5 shrink-0 text-skill" />
-                    <span className="flex min-w-0 flex-col">
-                        <span className="truncate font-mono text-text">${skill.name}</span>
-                        {skill.description !== '' && <span className="line-clamp-1 text-text-faint">{skill.description}</span>}
-                    </span>
+                <MenuOption key={skill.name} menus={menus} index={index} className="items-center" onPick={() => menus.chooseSkill(skill.name)}>
+                    <Icon icon={Zap} size={12} className="shrink-0 text-skill" />
+                    <span className="shrink-0 font-mono text-text">${skill.name}</span>
+                    {skill.description !== '' && <span className="min-w-0 truncate text-text-faint">{skill.description}</span>}
                 </MenuOption>
             ))}
         </div>
