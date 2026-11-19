@@ -112,6 +112,10 @@ export interface ChatSessionOptions {
     promptSuggestions?(): boolean;
     onSuggestion?(suggestion: string | null): void;
     promptNotes?: PromptNotes;
+    // What the agent hears in front of a real prompt, a steered one too, read from its own text; the thread shows none of it.
+    promptHeard?(text: string): readonly string[];
+    // The host's own skills a message may pick, asked before every prompt; they stay in its text and never reach the CLI as one of its skills.
+    hostSkills?(): readonly string[];
     references?: ChatReferences;
     // Trees per turn, so a settled turn can show what the working tree holds against its start.
     checkpoints?: TurnCheckpoints;
@@ -744,13 +748,15 @@ export class ChatSession {
         try {
             const attached = this.attached(text, extras);
 
+            const said = [attached.note, ...this.heardFrom(text)].filter((part): part is string => part !== null);
+
             const accepted = await steerTurn({
                 promptId: message.id,
                 text,
-                preamble: attached.note,
+                preamble: said.length === 0 ? null : said.join('\n\n'),
                 attachments: extras.attachments ?? [],
                 mentions: extras.mentions ?? [],
-                skills: extras.skills ?? []
+                skills: this.cliSkills(extras.skills)
             });
 
             if (!accepted) {
@@ -921,7 +927,7 @@ export class ChatSession {
             preamble: said.length === 0 ? null : said.join('\n\n'),
             attachments: extras.attachments ?? [],
             mentions: extras.mentions ?? [],
-            skills: extras.skills ?? []
+            skills: this.cliSkills(extras.skills)
         };
 
         // The prompt waits for the checkpoint, so the tree is the folder as it was before the agent edited it.
@@ -1377,7 +1383,7 @@ export class ChatSession {
 
         this.options.persist();
         this.turnReady = this.checkpoint(turnId);
-        this.submit(turnId, { text, preamble, attachments: [], mentions: wake.mentions ?? [], skills: wake.skills ?? [] });
+        this.submit(turnId, { text, preamble, attachments: [], mentions: wake.mentions ?? [], skills: this.cliSkills(wake.skills) });
 
         return turnId;
     }
@@ -2266,7 +2272,18 @@ export class ChatSession {
 
         const joined = (parts: string[]): string | null => (parts.length === 0 ? null : parts.join('\n\n'));
 
-        return { preamble: joined([...read, ...host.heard, ...hints]), note: joined(read) };
+        return { preamble: joined([...read, ...this.heardFrom(text), ...host.heard, ...hints]), note: joined(read) };
+    }
+
+    private heardFrom(text: string): readonly string[] {
+        return this.options.promptHeard?.(text) ?? [];
+    }
+
+    // A host's skill is read from the text; a CLI handed it as one of its own would run a command it does not have.
+    private cliSkills(skills: readonly string[] | undefined): string[] {
+        const own = this.options.hostSkills?.() ?? [];
+
+        return (skills ?? []).filter((name) => !own.includes(name));
     }
 
     private submit(turnId: string, input: TurnInput): void {

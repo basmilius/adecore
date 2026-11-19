@@ -97,6 +97,8 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `promptSuggestionsFor(chatId)`                                 | `true` has the chat's CLI predict the next prompt after each turn, sent as `chat.suggestion`. Each prediction costs a model request; asked at process start. |
 | `envFor(chatId, base)`                                         | The environment of the chat's CLI before its account adds its own.                        |
 | `promptNotesFor`, `referencesFor`                              | Notes in front of the next prompt, and how chats a message points at are named to the agent. |
+| `promptHeardFor(chatId, text)`                                 | What the agent hears in front of a prompt for what its text says, on every way a prompt is sent (a person's message, a steer, a wake). The thread shows none of it, and a slash command hears nothing. |
+| `hostSkillsFor(chatId)`                                        | The names of the host's own skills. A message picks them like a CLI's skills and keeps `$name` in its text, but no CLI gets one as a skill to run. |
 | `hiddenFor(chatId)`                                            | Leaves the chat out of every list.                                                         |
 | `openingNotes`, `opened`, `recordExtras`                       | What the host lays down in a loaded chat above its task rows and below them, and keeps in its record beside the thread. |
 | `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. |

@@ -162,6 +162,16 @@ export interface ChatCoreHooks {
     hiddenFor?(chatId: string): boolean;
     /* What the host says in front of a chat's next real prompt, beside what the chat keeps itself. */
     promptNotesFor?(chatId: string): PromptNotes | undefined;
+    /*
+     * What the agent hears in front of a prompt for what its text says, on every way a prompt is sent: a
+     * person's, a steer, a wake. The thread shows none of it, and a slash command hears nothing.
+     */
+    promptHeardFor?(chatId: string, text: string): readonly string[];
+    /*
+     * The names of the host's own skills, asked before every prompt. A message picks them like a CLI's and
+     * they stay in its text as typed, but no CLI gets one as a skill to run.
+     */
+    hostSkillsFor?(chatId: string): readonly string[];
     /* How the chats, views and nodes a person attached to a message are named to the agent; without it they are dropped. */
     referencesFor?(chatId: string): ChatReferences | undefined;
     /* The environment of this chat's CLI before its account adds its own. */
@@ -658,6 +668,8 @@ export class ChatCore {
             folders: () => this.hooks.foldersFor?.(payload.chatId) ?? [],
             projectConfig: () => this.hooks.projectConfigFor?.(payload.chatId) ?? true,
             promptSuggestions: () => this.hooks.promptSuggestionsFor?.(payload.chatId) ?? false,
+            promptHeard: (text) => this.hooks.promptHeardFor?.(payload.chatId, text) ?? [],
+            hostSkills: () => this.hooks.hostSkillsFor?.(payload.chatId) ?? [],
             onSuggestion: (suggestion) => {
                 for (const clientId of this.attached.get(payload.chatId) ?? []) {
                     this.sinks.to(clientId, { event: 'chat.suggestion', payload: { chatId: payload.chatId, suggestion } });
