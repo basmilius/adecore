@@ -1,5 +1,7 @@
 import { useRender } from '@base-ui/react/use-render';
 import clsx from 'clsx';
+import type { LucideIcon } from 'lucide-react';
+import { Icon } from '../Icon.tsx';
 
 export type KeyValueListRootProps = useRender.ComponentProps<'dl'> & {
     /* A hairline between rows, for a long list such as the headers of a message. Without it the rows sit close, for a few facts in a card. */
@@ -29,10 +31,28 @@ export function KeyValueListItem({ render, className, ref, ...props }: KeyValueL
     return useRender({ render, ref, defaultTagName: 'div', props: { ...props, className: clsx('col-span-2 grid grid-cols-subgrid', className) } });
 }
 
-export type KeyValueListNameProps = useRender.ComponentProps<'dt'>;
+export type KeyValueListNameProps = useRender.ComponentProps<'dt'> & {
+    /* A 12px icon before the name. */
+    icon?: LucideIcon;
+};
 
-export function KeyValueListName({ render, className, ref, ...props }: KeyValueListNameProps) {
-    return useRender({ render, ref, defaultTagName: 'dt', props: { ...props, className: clsx('min-w-0 break-words text-text-faint', className) } });
+/* The icon stays inline, so a long name wraps under it as it would without one. */
+export function KeyValueListName({ icon, render, className, ref, children, ...props }: KeyValueListNameProps) {
+    return useRender({
+        render,
+        ref,
+        defaultTagName: 'dt',
+        props: {
+            ...props,
+            className: clsx('min-w-0 break-words text-text-faint', className),
+            children: (
+                <>
+                    {icon !== undefined && <Icon icon={icon} size={12} className="mr-1.5" />}
+                    {children}
+                </>
+            )
+        }
+    });
 }
 
 export type KeyValueListValueProps = useRender.ComponentProps<'dd'> & {

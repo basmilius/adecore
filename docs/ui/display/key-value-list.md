@@ -23,7 +23,7 @@ import { KeyValueList } from '@adecore/ui';
 | --- | --- |
 | `KeyValueList.Root` | The list, a `<dl>`. `divided` puts a hairline between rows. |
 | `KeyValueList.Item` | One row, which holds a name and its value. |
-| `KeyValueList.Name` | The name, a `<dt>`, in the faint text color. |
+| `KeyValueList.Name` | The name, a `<dt>`, in the faint text color. `icon` draws a 12 pixel Lucide icon before it. |
 | `KeyValueList.Value` | The value, a `<dd>`. `mono` sets it in the monospace face. |
 
 Every part takes the props of its element, plus `render` to draw another one.
@@ -40,7 +40,7 @@ The names take the width of the widest one, so every value starts on the same li
 
 ## Rich content
 
-A name and a value take any content: an [`Icon`](/ui/display/icon), a status icon or a row of [`Pill`](/ui/actions/pill)s.
+`icon` on a name puts a small icon before it. A name and a value also take any content: a status icon, or a row of [`Pill`](/ui/actions/pill)s.
 
 <Demo src="display/key-value-list-rich" />
 
