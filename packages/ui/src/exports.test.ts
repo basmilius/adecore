@@ -23,6 +23,7 @@ await describePublicApi({
         'Menu',
         'Popover',
         'PreviewCard',
+        'StatStrip',
         'Table',
         'Tabs'
     ]

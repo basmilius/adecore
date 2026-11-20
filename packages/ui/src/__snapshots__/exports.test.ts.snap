@@ -73,6 +73,7 @@ exports[`the public API . exports these names 1`] = `
   "Spinner",
   "SplitButton",
   "SplitView",
+  "StatStrip",
   "Stepper",
   "Surface",
   "Switch",
@@ -274,6 +275,8 @@ exports[`the public API . exports these names 1`] = `
   "type SplitViewBounds",
   "type SplitViewInfo",
   "type SplitViewProps",
+  "type StatStripItemProps",
+  "type StatStripRootProps",
   "type StepperProps",
   "type SurfaceProps",
   "type SwitchProps",
@@ -579,6 +582,10 @@ exports[`the public API the compound components have these parts 1`] = `
     "Popup",
     "Root",
     "Trigger",
+  ],
+  "StatStrip": [
+    "Item",
+    "Root",
   ],
   "Table": [
     "Cell",

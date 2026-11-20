@@ -15,6 +15,7 @@ export * as KeyValueList from './key-value-list/index.parts.ts';
 export * as Menu from './menu/index.parts.ts';
 export * as Popover from './popover/index.parts.ts';
 export * as PreviewCard from './preview-card/index.parts.ts';
+export * as StatStrip from './stat-strip/index.parts.ts';
 export * as Table from './table/index.parts.ts';
 export * as Tabs from './tabs/index.parts.ts';
 
@@ -37,6 +38,7 @@ export type {
 
 export type { KeyValueListItemProps, KeyValueListNameProps, KeyValueListRootProps, KeyValueListValueProps } from './key-value-list/parts.tsx';
 export type { PopoverPopupProps, PopupVariant, PreviewCardPopupProps } from './popover/parts.tsx';
+export type { StatStripItemProps, StatStripRootProps } from './stat-strip/parts.tsx';
 export type {
     TableBreakpoint,
     TableCellProps,
