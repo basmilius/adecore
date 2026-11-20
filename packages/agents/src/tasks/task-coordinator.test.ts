@@ -348,6 +348,78 @@ describe('the coordinator', () => {
         expect(limits.get(task.id)?.at).toBe(10 + 30 * 60_000);
     });
 
+    test('a limit owed as the host stops lands before settled resolves, so a restart fails the task on the restart and not on lost work', async () => {
+        const task = await open('chat-lead', 'chat-child');
+        const landed = Promise.withResolvers<void>();
+        const disk = new Map<string, { commands: readonly string[]; at: number }>();
+        let settledYet = false;
+
+        coordinator = new TaskCoordinator({
+            tasks,
+            now: () => 10,
+            chatItems: (chatId) => threads.get(chatId) ?? null,
+            placed: () => true,
+            owedTurn: () => false,
+            oweWake: async (settled) => {
+                owed.push(settled.id);
+            },
+            alert: () => undefined,
+            afterBackgroundWork: () => after,
+            commandsOf: (chatId) => commands.get(chatId) ?? [],
+            limit: {
+                owed: (taskId) => disk.has(taskId),
+                owe: async (owing, list, at) => {
+                    await landed.promise;
+                    disk.set(owing.id, { commands: list, at });
+                },
+                lapse: async (taskId) => {
+                    disk.delete(taskId);
+                }
+            }
+        });
+
+        commands.set('chat-child', [{ id: 'b1', kind: 'shell', description: 'Serve', command: 'bun dev', startedAt: 8 }]);
+        threads.set('chat-child', [turn('t1', 'done'), answer('t1', 'the server runs')]);
+        ends('chat-child', turn('t1', 'done'));
+        coordinator.stop();
+
+        const settling = coordinator.settled().then(() => {
+            settledYet = true;
+        });
+
+        await tasks.settled();
+
+        for (let i = 0; i < 20; i++) {
+            await Promise.resolve();
+        }
+
+        expect(settledYet).toBe(false);
+
+        landed.resolve();
+        await settling;
+
+        expect([...disk.keys()]).toEqual([task.id]);
+
+        // The next run: the CLI went down with the host, and only the limit on disk remembers its commands.
+        limits = new Map(disk);
+        commands = new Map();
+        after = 'gone';
+        coordinator = makeCoordinator();
+        ends('chat-child', turn('t1', 'done'));
+        await coordinator.settled();
+
+        expect(tasks.get(task.id)?.status).toBe('open');
+
+        const owedOnce = nextOwed();
+        await coordinator.outlasted('chat-child', ['bun dev'], 'restart');
+        await owedOnce;
+
+        expect(tasks.get(task.id)).toMatchObject({
+            status: 'failed',
+            result: { text: 'the server runs\n\nThe machine restarted while this still ran in the background: `bun dev`.', source: 'exit' }
+        });
+    });
+
     test('an agent that is not a chat fails its task when it ends without done', async () => {
         const task = await open('chat-lead', 'terminal-child');
         const owedOnce = nextOwed();

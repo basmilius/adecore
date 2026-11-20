@@ -409,7 +409,7 @@ export class TaskCoordinator {
     private heldInBackground(chatId: string, task: Task, items: readonly ChatItem[]): boolean {
         if (runningInBackground(items).length > 0) {
             if (this.deps.limit.owed(task.id)) {
-                void this.deps.limit.lapse(task.id).catch((e: unknown) => console.error(`Dropping the limit of task ${task.id} failed:`, errorText(e)));
+                this.track(this.deps.limit.lapse(task.id), `Dropping the limit of task ${task.id} failed`);
             }
 
             return true;
@@ -421,10 +421,12 @@ export class TaskCoordinator {
             return false;
         }
 
+        // Tracked, so a host that stops lands the limit before it goes. A restart reads it to say the machine restarted.
         if (!this.deps.limit.owed(task.id)) {
-            void this.deps.limit
-                .owe(task, commands.map(commandLabel), this.deps.now() + BACKGROUND_COMMAND_LIMIT_MS)
-                .catch((e: unknown) => console.error(`Owing the limit of task ${task.id} failed:`, errorText(e)));
+            this.track(
+                this.deps.limit.owe(task, commands.map(commandLabel), this.deps.now() + BACKGROUND_COMMAND_LIMIT_MS),
+                `Owing the limit of task ${task.id} failed`
+            );
         }
 
         return true;
@@ -460,7 +462,7 @@ export class TaskCoordinator {
     }
 
     private hold(task: Task, paused: NonNullable<Task['paused']> | null): void {
-        void this.deps.tasks.pause(task.id, paused).catch((e: unknown) => console.error(`Pausing task ${task.id} failed:`, errorText(e)));
+        this.track(this.deps.tasks.pause(task.id, paused), `Pausing task ${task.id} failed`);
     }
 
     private recheck(chatId: string): void {
