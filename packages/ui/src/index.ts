@@ -19,6 +19,8 @@ export * as Table from './table/index.parts.ts';
 export * as Tabs from './tabs/index.parts.ts';
 
 export type { CardBodyProps, CardFooterProps, CardGround, CardHeaderProps, CardRootProps } from './card/parts.tsx';
+export { CardGrid, type CardGridColumns, type CardGridFlow, type CardGridProps } from './card/CardGrid.tsx';
+export type { CardSpan } from './card/context.ts';
 export type { ComboboxInputProps, ComboboxItemProps, ComboboxPopupProps } from './combobox/parts.tsx';
 export type { CommandPaletteFooterProps, CommandPaletteInputProps, CommandPalettePopupProps, CommandPaletteRootProps } from './command-palette/parts.tsx';
 export type { DialogDescriptionProps, DialogFooterProps, DialogPopupProps, DialogTextProps, DialogTitleProps } from './dialog/parts.tsx';

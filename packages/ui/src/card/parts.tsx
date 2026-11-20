@@ -6,7 +6,7 @@ import { use, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon.tsx';
 import { IconButton } from '../IconButton.tsx';
-import { CardContext, type CardContextValue } from './context.ts';
+import { CardContext, CardGridContext, cardSpan, type CardContextValue, type CardSpan } from './context.ts';
 import { LevelHeading } from './heading.tsx';
 
 export type CardGround = 'raised' | 'surface';
@@ -21,11 +21,15 @@ export type CardRootProps = useRender.ComponentProps<'section'> & {
     open?: boolean;
     defaultOpen?: boolean;
     onOpenChange?: (open: boolean) => void;
+
+    /* The columns of a `CardGrid` it takes: a number, or `full` for the whole row. */
+    span?: CardSpan;
 };
 
 /* A container, so what is inside can answer to the card's width rather than the window's. */
 export function CardRoot({
     ground = 'raised',
+    span,
     collapsible = false,
     open: openProp,
     defaultOpen = true,
@@ -36,6 +40,7 @@ export function CardRoot({
     children,
     ...props
 }: CardRootProps) {
+    const grid = use(CardGridContext);
     const titleId = useId();
     const section = useRef<HTMLElement>(null);
     const [ownOpen, setOwnOpen] = useState(defaultOpen);
@@ -60,12 +65,18 @@ export function CardRoot({
         defaultTagName: 'section',
         props: {
             ...props,
+            'data-card-span': cardSpan(span, grid),
             className: clsx(
                 '@container flex min-w-0 flex-col rounded-xl border border-border',
                 ground === 'raised' ? 'bg-surface-raised' : 'bg-surface',
                 className
             ),
-            children: <CardContext value={card}>{children}</CardContext>
+            // A card or grid inside this card stands in the card, not in the grid around it.
+            children: (
+                <CardGridContext value={null}>
+                    <CardContext value={card}>{children}</CardContext>
+                </CardGridContext>
+            )
         }
     });
 

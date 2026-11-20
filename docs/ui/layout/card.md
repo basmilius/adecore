@@ -21,7 +21,7 @@ import { Card } from '@adecore/ui';
 
 | Part | What it is |
 | --- | --- |
-| `Card.Root` | The card, a `<section>`. `ground` is `raised` (the default) or `surface`. `collapsible`, `open`, `defaultOpen` and `onOpenChange` fold it. |
+| `Card.Root` | The card, a `<section>`. `ground` is `raised` (the default) or `surface`. `collapsible`, `open`, `defaultOpen` and `onOpenChange` fold it. `span` sets its place in a [`CardGrid`](/ui/layout/card-grid). |
 | `Card.Header` | One line of at least 44 pixels. `title` is the heading, `icon` a 16 pixel Lucide icon before it. The children sit at the end in small muted text: a pill, a link, an icon button, a `Segmented`. `toggle` places the fold toggle at the `start` or the `end` (the default). |
 | `Card.Body` | The content, padded 16 pixels. `flush` runs it to the edges. |
 | `Card.Footer` | One line at the bottom edge, under a hairline: a summary, a link to more, actions. |

@@ -1151,6 +1151,36 @@
 }
 
 @layer components {
+    /* `CardGrid`. The outer box is the container whose width the grid answers to; a card sets its own place with
+       `data-card-span`, so the grid never reads its children. One column once a column would be narrower than 280px. */
+    .ade-card-grid { container: card-grid / inline-size; }
+    .ade-card-grid-cards { --card-grid-columns: 1; }
+    .ade-card-grid[data-columns="2"] > .ade-card-grid-cards { --card-grid-columns: 2; }
+    .ade-card-grid[data-columns="3"] > .ade-card-grid-cards { --card-grid-columns: 3; }
+    .ade-card-grid[data-columns="4"] > .ade-card-grid-cards { --card-grid-columns: 4; }
+    @container card-grid (width < 576px) { .ade-card-grid[data-columns="2"] > .ade-card-grid-cards { --card-grid-columns: 1; } }
+    @container card-grid (width < 872px) { .ade-card-grid[data-columns="3"] > .ade-card-grid-cards { --card-grid-columns: 1; } }
+    @container card-grid (width < 1168px) { .ade-card-grid[data-columns="4"] > .ade-card-grid-cards { --card-grid-columns: 1; } }
+
+    /* Rows of cards as tall as the tallest in them. `min()` keeps a span inside the grid, so a narrow grid of one column
+       gets no implicit second one. */
+    .ade-card-grid[data-flow="grid"] > .ade-card-grid-cards { display: grid; grid-template-columns: repeat(var(--card-grid-columns), minmax(0, 1fr)); gap: 16px; }
+    .ade-card-grid[data-flow="grid"] > .ade-card-grid-cards > [data-card-span="2"] { grid-column: span min(2, var(--card-grid-columns)); }
+    .ade-card-grid[data-flow="grid"] > .ade-card-grid-cards > [data-card-span="3"] { grid-column: span min(3, var(--card-grid-columns)); }
+    .ade-card-grid[data-flow="grid"] > .ade-card-grid-cards > [data-card-span="full"] { grid-column: 1 / -1; }
+
+    /* Columns that each card closes up in. A margin that meets a column break is dropped and the columns balance unevenly
+       around a bottom margin, so the gutter is a top margin, which the top of a column drops. A card across all columns
+       carries the gutter under it instead, since the card after it may start any column. */
+    .ade-card-grid[data-flow="masonry"] > .ade-card-grid-cards { columns: var(--card-grid-columns); column-gap: 16px; }
+    .ade-card-grid[data-flow="masonry"] > .ade-card-grid-cards > * { break-inside: avoid; margin-top: 16px; }
+    .ade-card-grid[data-flow="masonry"] > .ade-card-grid-cards > :first-child { margin-top: 0; }
+    .ade-card-grid[data-flow="masonry"] > .ade-card-grid-cards > [data-card-span="full"] { column-span: all; margin-bottom: 16px; }
+    .ade-card-grid[data-flow="masonry"] > .ade-card-grid-cards > [data-card-span="full"]:last-child { margin-bottom: 0; }
+    .ade-card-grid[data-flow="masonry"] > .ade-card-grid-cards > [data-card-span="full"] + * { margin-top: 0; }
+}
+
+@layer components {
     /* `Table`. A line above every row of the body but the first, also when that row opens a group, so
        no line doubles the head's edge or the frame's. */
     .ade-table-line { border-top: 1px solid var(--border-soft); }

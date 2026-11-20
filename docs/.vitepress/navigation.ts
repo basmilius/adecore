@@ -191,6 +191,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
     ]),
     group('Layout', [
         ['Card', '/ui/layout/card'],
+        ['CardGrid', '/ui/layout/card-grid'],
         ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
         ['DockShell', '/ui/layout/dock-shell'],
         ['ScrollArea', '/ui/layout/scroll-area'],
