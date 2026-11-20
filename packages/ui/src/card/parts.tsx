@@ -60,7 +60,11 @@ export function CardRoot({
         defaultTagName: 'section',
         props: {
             ...props,
-            className: clsx('@container min-w-0 rounded-xl border border-border', ground === 'raised' ? 'bg-surface-raised' : 'bg-surface', className),
+            className: clsx(
+                '@container flex min-w-0 flex-col rounded-xl border border-border',
+                ground === 'raised' ? 'bg-surface-raised' : 'bg-surface',
+                className
+            ),
             children: <CardContext value={card}>{children}</CardContext>
         }
     });
@@ -75,17 +79,32 @@ export function CardRoot({
 export type CardHeaderProps = Omit<useRender.ComponentProps<'header'>, 'title'> & {
     title?: ReactNode;
     icon?: LucideIcon;
+
+    /* Where a collapsible card draws its toggle: before the icon and title, or after the children. */
+    toggle?: 'start' | 'end';
 };
 
 /* One line. The children sit at the end and hide while the card is folded. */
-export function CardHeader({ title, icon, render, className, ref, children, ...props }: CardHeaderProps) {
+export function CardHeader({ title, icon, toggle = 'end', render, className, ref, children, ...props }: CardHeaderProps) {
     const { t } = useTranslation('ui');
     const card = use(CardContext);
     const triggerId = useId();
     const titled = title !== undefined && card !== null;
     const open = card?.open ?? true;
-    const trailing = (open && children !== undefined) || card?.collapsible === true;
+    const collapsible = card?.collapsible === true;
+    const toggleAtStart = collapsible && toggle === 'start';
+    const toggleAtEnd = collapsible && toggle === 'end';
+    const trailing = (open && children !== undefined) || toggleAtEnd;
     const labelled = titled && card.labelledByTitle;
+
+    const toggleButton = collapsible && (
+        <Collapsible.Trigger
+            id={triggerId}
+            aria-labelledby={titled ? `${triggerId} ${card.titleId}` : undefined}
+            render={<IconButton icon={open ? ChevronDown : ChevronRight} label={open ? t('card.collapse') : t('card.expand')} size="sm" />}
+        />
+    );
+
     const sectionRef = card?.section;
     const titleId = card?.titleId;
 
@@ -109,9 +128,10 @@ export function CardHeader({ title, icon, render, className, ref, children, ...p
         props: {
             ...props,
             'data-card-header': '',
-            className: clsx('flex min-h-11 min-w-0 items-center gap-2 pr-3 pl-4', className),
+            className: clsx('ade-card-line flex min-w-0 items-center gap-2', className),
             children: (
                 <>
+                    {toggleAtStart && toggleButton}
                     {icon !== undefined && <Icon icon={icon} size={16} className="shrink-0 text-text-muted" />}
                     {title !== undefined && (
                         <LevelHeading id={card?.titleId} className="min-w-0 truncate text-sm font-medium text-text">
@@ -119,17 +139,9 @@ export function CardHeader({ title, icon, render, className, ref, children, ...p
                         </LevelHeading>
                     )}
                     {trailing && (
-                        <div className="ml-auto flex shrink-0 items-center gap-2 text-xs text-text-muted tabular-nums">
+                        <div className="ade-card-end ml-auto flex shrink-0 items-center gap-2 text-xs text-text-muted tabular-nums">
                             {open && children}
-                            {card?.collapsible && (
-                                <Collapsible.Trigger
-                                    id={triggerId}
-                                    aria-labelledby={titled ? `${triggerId} ${card.titleId}` : undefined}
-                                    render={
-                                        <IconButton icon={open ? ChevronDown : ChevronRight} label={open ? t('card.collapse') : t('card.expand')} size="sm" />
-                                    }
-                                />
-                            )}
+                            {toggleAtEnd && toggleButton}
                         </div>
                     )}
                 </>
@@ -143,7 +155,10 @@ export type CardBodyProps = useRender.ComponentProps<'div'> & {
     flush?: boolean;
 };
 
-/* Close under a header, which already holds the space above it. */
+/*
+ * Close under a header, which already holds the space above it. A column that takes the height a grid stretches the card
+ * to, so a chart or a list inside can fill or scroll it.
+ */
 export function CardBody({ flush = false, render, className, ref, ...props }: CardBodyProps) {
     const card = use(CardContext);
 
@@ -151,7 +166,10 @@ export function CardBody({ flush = false, render, className, ref, ...props }: Ca
         render,
         ref,
         defaultTagName: 'div',
-        props: { ...props, className: clsx('min-w-0', flush ? 'pb-1' : 'p-4 [[data-card-header]+&]:pt-1', className) }
+        props: {
+            ...props,
+            className: clsx('flex min-h-0 min-w-0 grow flex-col', flush ? 'pb-1' : 'p-4 [[data-card-header]+&]:pt-1', className)
+        }
     });
 
     if (card?.collapsible !== true) {
@@ -159,4 +177,31 @@ export function CardBody({ flush = false, render, className, ref, ...props }: Ca
     }
 
     return <Collapsible.Panel render={element} />;
+}
+
+export type CardFooterProps = useRender.ComponentProps<'footer'>;
+
+/* One line at the bottom edge, also of a card a grid stretches: a summary, a link to more, actions. Folds away with the body. */
+export function CardFooter({ render, className, ref, ...props }: CardFooterProps) {
+    const card = use(CardContext);
+
+    const element = useRender({
+        render,
+        ref,
+        defaultTagName: 'footer',
+        props: {
+            ...props,
+            // `box-content` keeps the line 44px tall under its hairline, so a box in it is as far from the line as from the edge.
+            className: clsx(
+                'ade-card-line ade-card-footer mt-auto box-content flex min-w-0 items-center gap-2 border-t border-border-soft text-xs text-text-muted tabular-nums first:border-t-0',
+                className
+            )
+        }
+    });
+
+    if (card?.open === false) {
+        return null;
+    }
+
+    return element;
 }

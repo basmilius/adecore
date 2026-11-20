@@ -1136,6 +1136,21 @@
 }
 
 @layer components {
+    /* `Card.Header` and `Card.Footer`. Text or a link at an end lines up with the body's 16px edge. Any other element there
+       is a box (a pill, a `Segmented`, a button) and sits in the corner: 8px from the edge, the inset of a 28px box in the
+       44px line. An icon button, whose height the theme knows, is inset by exactly as much as above and below it. */
+    .ade-card-line { min-height: 44px; padding-inline: 16px; }
+    :is(.ade-card-end, .ade-card-footer) > :last-child:not(a) { margin-inline-end: -8px; }
+    .ade-card-footer > :first-child:not(a) { margin-inline-start: -8px; }
+    .ade-card-line .icon-btn { --card-line-button: 32px; }
+    .ade-card-line .icon-btn-sm { --card-line-button: 28px; }
+    .ade-card-line .icon-btn-xs { --card-line-button: 24px; }
+    .ade-card-line .icon-btn-2xs { --card-line-button: 20px; }
+    :is(.ade-card-end, .ade-card-footer) > .icon-btn:last-child { margin-inline-end: calc((44px - var(--card-line-button)) / 2 - 16px); }
+    .ade-card-line > .icon-btn:first-child { margin-inline-start: calc((44px - var(--card-line-button)) / 2 - 16px); }
+}
+
+@layer components {
     /* `Table`. A line above every row of the body but the first, also when that row opens a group, so
        no line doubles the head's edge or the frame's. */
     .ade-table-line { border-top: 1px solid var(--border-soft); }

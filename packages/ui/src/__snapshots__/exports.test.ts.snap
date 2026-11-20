@@ -144,6 +144,7 @@ exports[`the public API . exports these names 1`] = `
   "type ButtonSize",
   "type ButtonVariant",
   "type CardBodyProps",
+  "type CardFooterProps",
   "type CardGround",
   "type CardHeaderProps",
   "type CardRootProps",
@@ -447,6 +448,7 @@ exports[`the public API the compound components have these parts 1`] = `
 {
   "Card": [
     "Body",
+    "Footer",
     "Header",
     "Root",
   ],
