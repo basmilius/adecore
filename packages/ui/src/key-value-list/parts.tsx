@@ -36,7 +36,7 @@ export type KeyValueListNameProps = useRender.ComponentProps<'dt'> & {
     icon?: LucideIcon;
 };
 
-/* The icon stays inline, so a long name wraps under it as it would without one. */
+/* The icon is a column of its own, so it never stands alone on a line and a long name wraps beside it. */
 export function KeyValueListName({ icon, render, className, ref, children, ...props }: KeyValueListNameProps) {
     return useRender({
         render,
@@ -44,13 +44,17 @@ export function KeyValueListName({ icon, render, className, ref, children, ...pr
         defaultTagName: 'dt',
         props: {
             ...props,
-            className: clsx('min-w-0 break-words text-text-faint', className),
-            children: (
-                <>
-                    {icon !== undefined && <Icon icon={icon} size={12} className="mr-1.5" />}
-                    {children}
-                </>
-            )
+            className: clsx('min-w-0 break-words text-text-faint', icon !== undefined && 'flex items-start gap-1.5', className),
+            children:
+                icon === undefined ? (
+                    children
+                ) : (
+                    <>
+                        {/* Centers the 12px icon on the first 20px line. */}
+                        <Icon icon={icon} size={12} className="mt-1 shrink-0" />
+                        <span className="min-w-0">{children}</span>
+                    </>
+                )
         }
     });
 }

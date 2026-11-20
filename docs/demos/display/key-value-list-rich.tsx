@@ -15,7 +15,10 @@ export default function KeyValueListRichDemo() {
             <KeyValueList.Item>
                 <KeyValueList.Name icon={KeyRound}>Security</KeyValueList.Name>
                 <KeyValueList.Value>
-                    <Icon icon={CircleCheck} size={14} className="text-positive" /> STARTTLS
+                    <span className="inline-flex items-center gap-1.5">
+                        <Icon icon={CircleCheck} size={14} className="text-positive" />
+                        STARTTLS
+                    </span>
                 </KeyValueList.Value>
             </KeyValueList.Item>
             <KeyValueList.Item>
