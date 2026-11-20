@@ -3,6 +3,7 @@
  * `exports.test.ts` turns any change to this list into a diff someone has to accept.
  */
 
+export * as Card from './card/index.parts.ts';
 export * as Combobox from './combobox/index.parts.ts';
 
 export * as CommandPalette from './command-palette/index.parts.ts';
@@ -17,6 +18,7 @@ export * as PreviewCard from './preview-card/index.parts.ts';
 export * as Table from './table/index.parts.ts';
 export * as Tabs from './tabs/index.parts.ts';
 
+export type { CardBodyProps, CardGround, CardHeaderProps, CardRootProps } from './card/parts.tsx';
 export type { ComboboxInputProps, ComboboxItemProps, ComboboxPopupProps } from './combobox/parts.tsx';
 export type { CommandPaletteFooterProps, CommandPaletteInputProps, CommandPalettePopupProps, CommandPaletteRootProps } from './command-palette/parts.tsx';
 export type { DialogDescriptionProps, DialogFooterProps, DialogPopupProps, DialogTextProps, DialogTitleProps } from './dialog/parts.tsx';

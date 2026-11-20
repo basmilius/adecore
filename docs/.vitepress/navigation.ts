@@ -190,6 +190,7 @@ const desktopUi: DefaultTheme.SidebarItem[] = [
         ['Tree reference', '/ui/trees/tree/reference']
     ]),
     group('Layout', [
+        ['Card', '/ui/layout/card'],
         ['ColumnResizeHandle', '/ui/layout/column-resize-handle'],
         ['DockShell', '/ui/layout/dock-shell'],
         ['ScrollArea', '/ui/layout/scroll-area'],

@@ -83,6 +83,10 @@ export default {
     table: {
         loading: 'Laden'
     },
+    card: {
+        expand: 'Uitvouwen',
+        collapse: 'Invouwen'
+    },
     tree: {
         label: 'Bestanden',
         expand: 'Uitvouwen',

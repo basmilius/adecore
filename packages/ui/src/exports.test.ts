@@ -11,5 +11,19 @@ await describePublicApi({
         './design-conventions': 'design-conventions.ts'
     },
     assets: ['./theme.css'],
-    compounds: ['Combobox', 'CommandPalette', 'ContextMenu', 'Dialog', 'FileTree', 'Tree', 'KeyValueList', 'Menu', 'Popover', 'PreviewCard', 'Table', 'Tabs']
+    compounds: [
+        'Card',
+        'Combobox',
+        'CommandPalette',
+        'ContextMenu',
+        'Dialog',
+        'FileTree',
+        'Tree',
+        'KeyValueList',
+        'Menu',
+        'Popover',
+        'PreviewCard',
+        'Table',
+        'Tabs'
+    ]
 });

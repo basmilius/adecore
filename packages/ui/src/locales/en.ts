@@ -83,6 +83,10 @@ export default {
     table: {
         loading: 'Loading'
     },
+    card: {
+        expand: 'Expand',
+        collapse: 'Collapse'
+    },
     tree: {
         label: 'Files',
         expand: 'Expand',

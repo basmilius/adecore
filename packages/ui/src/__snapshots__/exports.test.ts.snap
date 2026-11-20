@@ -7,6 +7,7 @@ exports[`the public API . exports these names 1`] = `
   "Banner",
   "Button",
   "ButtonGroup",
+  "Card",
   "Checkbox",
   "ChoiceCards",
   "CloseButton",
@@ -142,6 +143,10 @@ exports[`the public API . exports these names 1`] = `
   "type ButtonShape",
   "type ButtonSize",
   "type ButtonVariant",
+  "type CardBodyProps",
+  "type CardGround",
+  "type CardHeaderProps",
+  "type CardRootProps",
   "type CheckboxProps",
   "type Choice",
   "type ChoiceCardsProps",
@@ -440,6 +445,11 @@ exports[`the public API ./design-conventions exports these names 1`] = `
 
 exports[`the public API the compound components have these parts 1`] = `
 {
+  "Card": [
+    "Body",
+    "Header",
+    "Root",
+  ],
   "Combobox": [
     "Collection",
     "Empty",
