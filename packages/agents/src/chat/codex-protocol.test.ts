@@ -773,7 +773,8 @@ describe('CodexProtocol', () => {
             { type: 'compaction', preTokens: null }
         ]);
         expect(protocol.handle({ method: 'error', params: { error: { message: 'stream stalled' }, willRetry: true } })).toEqual([
-            { type: 'note', level: 'warning', text: 'stream stalled' }
+            { type: 'note', level: 'warning', text: 'stream stalled' },
+            { type: 'quiet.watch' }
         ]);
         expect(protocol.handle({ method: 'model/rerouted', params: { toModel: 'gpt-5.6-sol' } })).toEqual([{ type: 'model', model: 'gpt-5.6-sol' }]);
     });

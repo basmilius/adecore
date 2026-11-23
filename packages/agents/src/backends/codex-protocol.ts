@@ -463,6 +463,10 @@ export class CodexProtocol {
                 const error = isRecord(params.error) ? params.error : {};
                 events.push({ type: 'note', level: params.willRetry === true ? 'warning' : 'error', text: str(error.message) ?? 'Codex reported an error' });
 
+                if (params.willRetry === true) {
+                    events.push({ type: 'quiet.watch' });
+                }
+
                 break;
             }
             case 'account/rateLimits/updated': {
