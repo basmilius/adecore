@@ -437,7 +437,12 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     // agy runs the browser sign-in itself, on a callback server of its own.
     authMethod: 'oauth-personal',
     loginHint: 'Run `agy acp --login` in a terminal on this machine, then send your message again.',
-    capabilities: { terminal: true, hooks: true },
+    capabilities: { terminal: true, hooks: true, steer: true },
+    steer: 'prompt',
+    repliesEndOnUsage: true,
+    cancelsIdle: true,
+    mcpToolPrefix: 'mcp_',
+    daemonFlag: 'IsDaemon',
     resumeCommand: 'agy {flags} --conversation {id}',
     home: ANTIGRAVITY_HOME,
     install: {

@@ -4,9 +4,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import type { SpawnChatProcess } from '../chat-process.ts';
+import daemonCancelFixture from '../chat/fixtures/antigravity-1.5.15-daemon-cancel.json' with { type: 'json' };
+import daemonWakeFixture from '../chat/fixtures/antigravity-1.5.15-daemon-wake.json' with { type: 'json' };
 import mcpTurnFixture from '../chat/fixtures/antigravity-1.5.15-mcp-turn.json' with { type: 'json' };
+import steerFixture from '../chat/fixtures/antigravity-1.5.15-steer.json' with { type: 'json' };
+import { playAcpRecording, recordedAnswer, type AcpTimedFrame } from '../testing/fake-acp-capture.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
+import { ManualClock } from '../testing/manual-clock.ts';
 import { UsageService } from '../usage/usage-service.ts';
 import { ProviderAccountsService } from './accounts/service.ts';
 import {
@@ -533,6 +538,118 @@ describe('Antigravity', () => {
 
             await backend.dispose();
         }
+    });
+});
+
+describe('an Antigravity chat replayed from agy 1.5.15', () => {
+    type Frame = AcpTimedFrame['frame'];
+
+    const mcpFrames = mcpTurn.frames as unknown as AcpTimedFrame[];
+    const handshake = { initialize: recordedAnswer(mcpFrames, 'initialize'), 'session/new': recordedAnswer(mcpFrames, 'session/new') };
+    const isPromptAnswer = (frame: Frame): boolean => frame.method === undefined && (frame.result as Frame | undefined)?.stopReason !== undefined;
+    const isUsage = (frame: Frame): boolean => ((frame.params as Frame | undefined)?.update as Frame | undefined)?.sessionUpdate === 'usage_update';
+    const timeOf = (frames: readonly AcpTimedFrame[], match: (frame: Frame) => boolean): number =>
+        frames.find((entry) => entry.dir !== 'in' && match(entry.frame))!.t;
+
+    // A full-access chat on the provider's own backend, against the frames of a recording on a manual clock.
+    const replay = (frames: readonly AcpTimedFrame[], overrides: Partial<BackendLaunch> = {}) => {
+        const provider = createAntigravityProvider();
+        const clock = new ManualClock();
+        const player = playAcpRecording(frames, clock, handshake);
+        const fake = inProcess(player.cli);
+        const events: BackendEvent[] = [];
+
+        const launch: BackendLaunch = {
+            command: provider.command,
+            cwd: '/tmp/capture',
+            env: {},
+            selection: provider.catalog.normalize(undefined),
+            modelName: provider.catalog.nameOf(provider.catalog.defaultModel),
+            runtimeMode: 'full-access',
+            resume: null,
+            generation: 1,
+            instructions: null,
+            resumeNote: null,
+            clock,
+            spawn: fake.spawn,
+            ...overrides
+        };
+
+        const backend = provider.createBackend(launch, { onEvent: (event) => events.push(event) });
+        const methods = (): string[] => player.received.flatMap((frame) => (typeof frame.method === 'string' ? [frame.method] : []));
+
+        return { provider, backend, player, events, methods };
+    };
+
+    const turn = (text: string) => ({ ...HELLO, promptId: `prompt-${text}`, text });
+
+    test('ends a wake after a daemon command three seconds after its usage_update', async () => {
+        const frames = daemonWakeFixture.frames as AcpTimedFrame[];
+        const answered = timeOf(frames, isPromptAnswer);
+        const wakeUsage = frames.find((entry) => isUsage(entry.frame) && entry.t > answered)!.t;
+        const run = replay(frames);
+        await run.backend.start();
+        run.backend.sendTurn(turn('daemons'));
+        await run.player.playTo(wakeUsage + 2_999);
+
+        expect(run.events.filter((event) => event.type === 'turn.done')).toHaveLength(1);
+
+        await run.player.playTo(wakeUsage + 3_000);
+
+        expect(run.events.at(-1)).toEqual({ type: 'turn.done', state: 'done', costUsd: 0 });
+
+        await run.backend.dispose();
+    });
+
+    test('keeps a daemon command as background work, and its stop sends session/cancel', async () => {
+        const frames = daemonCancelFixture.frames as AcpTimedFrame[];
+        const run = replay(frames);
+        await run.backend.start();
+        run.backend.sendTurn(turn('daemon'));
+        await run.player.playTo(timeOf(frames, isPromptAnswer));
+
+        expect(run.events).toContainEqual(expect.objectContaining({ type: 'background.started', taskId: 'call_15227589526489405582' }));
+
+        run.backend.stopTask?.('call_15227589526489405582');
+        await run.player.playTo(frames.at(-1)!.t);
+
+        expect(run.methods().at(-1)).toBe('session/cancel');
+        expect(run.events.at(-1)).toMatchObject({ type: 'background.ended', taskId: 'call_15227589526489405582' });
+
+        await run.backend.dispose();
+    });
+
+    test("reads an mcp_ call as the tool of the launch's server", async () => {
+        const run = replay(mcpFrames, { mcpServers: [{ name: 'ruimte', url: 'http://127.0.0.1:50000/mcp', allowTools: true }] });
+        const starting = run.backend.start();
+        await run.player.playTo(mcpFrames.find((entry) => entry.frame.method === 'session/prompt')!.t);
+        await starting;
+        run.backend.sendTurn(turn('tools'));
+        await run.player.playTo(timeOf(mcpFrames, isPromptAnswer));
+
+        expect(run.events.find((event) => event.type === 'tool.started')).toMatchObject({ name: 'mcp__ruimte__node_list' });
+
+        await run.backend.dispose();
+    });
+
+    test('steers a running prompt with a second session/prompt, within one turn', async () => {
+        const frames = steerFixture.frames as AcpTimedFrame[];
+        const prompts = frames.filter((entry) => entry.frame.method === 'session/prompt');
+        const run = replay(frames);
+
+        expect(run.provider.capabilities.steer).toBe(true);
+
+        await run.backend.start();
+        run.backend.sendTurn(turn('sleep'));
+        await run.player.playTo(prompts[1]!.t);
+        const steered = run.backend.steerTurn?.(turn('banana'));
+        await run.player.playTo(frames.at(-1)!.t);
+
+        expect(await steered).toBe(true);
+        expect(run.methods().filter((method) => method === 'session/prompt')).toHaveLength(2);
+        expect(run.events.filter((event) => event.type === 'turn.done')).toMatchObject([{ promptId: 'prompt-sleep', state: 'done' }]);
+
+        await run.backend.dispose();
     });
 });
 
