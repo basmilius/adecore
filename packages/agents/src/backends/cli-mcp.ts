@@ -1,3 +1,5 @@
+import { codexFrom0166 } from './codex.ts';
+
 /* An HTTP MCP server a CLI loads from its command line, with a bearer token it reads from its own environment. */
 export interface CliMcpServer {
     readonly name: string;
@@ -26,26 +28,6 @@ export function claudeMcpArgs(server: CliMcpServer): string[] {
 }
 
 /*
- * Whether a Codex of this `--version` takes `omit_tools_from`: read from 0.166.0's config, and no older one was
- * checked, so an older one may refuse the key. An unknown version, or a prerelease of 0.166.0, does not.
- */
-function codexTakesDirectTools(version: string | null): boolean {
-    const match = version === null ? null : /^v?(\d+)\.(\d+)\.(\d+)(-)?/.exec(version.trim());
-
-    if (match === null) {
-        return false;
-    }
-
-    const [major, minor, patch] = [Number(match[1]), Number(match[2]), Number(match[3])];
-
-    if (major > 0 || minor > 166) {
-        return true;
-    }
-
-    return minor === 166 && (patch > 0 || match[4] === undefined);
-}
-
-/*
  * Codex reads the token from the variable it names, and `approve` runs every tool without an elicitation, the way
  * Claude Code's allow rule does (measured on Codex 0.164). A JSON string is a valid TOML basic string. `version` is
  * what the installed Codex's `--version` said, null while unknown.
@@ -57,7 +39,7 @@ export function codexMcpArgs(server: CliMcpServer, approveTools = true, version:
     }
 
     const key = `mcp_servers.${server.name}`;
-    const direct = server.directTools === true && codexTakesDirectTools(version);
+    const direct = server.directTools === true && codexFrom0166(version);
 
     return [
         '-c',

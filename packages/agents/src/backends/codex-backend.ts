@@ -208,7 +208,7 @@ export class CodexBackend implements ChatBackend {
             cwd: this.launch.cwd,
             model: this.launch.selection.model,
             ...(tier === null ? {} : { serviceTier: tier }),
-            ...codexThreadOptions(this.launch.runtimeMode)
+            ...codexThreadOptions(this.launch.runtimeMode, this.version)
         };
 
         const instructions = this.launch.instructions === null ? {} : { developerInstructions: this.launch.instructions };
@@ -769,9 +769,14 @@ export class CodexBackend implements ChatBackend {
         }
 
         const events = this.protocol.handle(frame);
+        const replies = this.protocol.takeReplies();
+
+        for (const reply of replies) {
+            transport.respond(reply.rpcId, reply.result);
+        }
 
         // A server request the protocol did not take still needs an answer, or Codex waits forever.
-        if (frame.id !== undefined && events.length === 0 && (typeof frame.id === 'number' || typeof frame.id === 'string')) {
+        if (frame.id !== undefined && events.length === 0 && replies.length === 0 && (typeof frame.id === 'number' || typeof frame.id === 'string')) {
             transport.respondError(frame.id, -32601, `${this.client.title} does not handle ${String(frame.method)}`);
         }
 

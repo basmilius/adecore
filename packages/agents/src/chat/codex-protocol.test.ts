@@ -21,6 +21,10 @@ import { ChatThread } from './thread.ts';
 
 const ids = { threadId: 't1', turnId: 'ct1' };
 
+const FULL_ACCESS_GRANULAR = {
+    granular: { mcp_elicitations: true, rules: false, sandbox_approval: false, skill_approval: false, request_permissions: false }
+};
+
 function message(id: string, text: string, extra: Record<string, unknown> = {}) {
     return {
         type: 'agentMessage',
@@ -142,6 +146,10 @@ describe('CodexProtocol', () => {
                 permissionMode: `${approvalPolicy} / ${sandbox}`
             });
         }
+
+        expect(
+            new CodexProtocol(1).threadReady({ thread: { id: 'root' }, approvalPolicy: FULL_ACCESS_GRANULAR, sandbox: { type: 'dangerFullAccess' } })[0]
+        ).toMatchObject({ effectiveRuntimeMode: 'full-access', permissionMode: 'granular / dangerFullAccess' });
     });
 
     test('says so when a sandbox that was never set up leaves a thread read-only', () => {
@@ -727,12 +735,29 @@ describe('CodexProtocol', () => {
         expect(protocol.approvalDecision('2-2', 'deny')).toEqual({ rpcId: 2, result: { action: 'decline' } });
     });
 
-    test('an MCP server that asks for fields or sends a link is left to the backend to refuse', () => {
+    test('under full access a subagent thread, which may run a policy of its own, still asks the person', () => {
         const protocol = new CodexProtocol(1);
-        const form = { ...ids, serverName: 's', mode: 'form', message: 'Name?', requestedSchema: { type: 'object', properties: { name: { type: 'string' } } } };
-        expect(protocol.handle({ method: 'mcpServer/elicitation/request', id: 0, params: form })).toEqual([]);
-        const link = { ...ids, serverName: 's', mode: 'url', message: 'Sign in', url: 'https://example.com', elicitationId: 'e1' };
-        expect(protocol.handle({ method: 'mcpServer/elicitation/request', id: 1, params: link })).toEqual([]);
+        protocol.threadReady({ thread: { id: 'main' }, approvalPolicy: FULL_ACCESS_GRANULAR, sandbox: { type: 'dangerFullAccess' } });
+        const child = { threadId: 'child', turnId: 'child-turn' };
+        const confirm = { ...child, serverName: 's', mode: 'form', message: 'Allow?', requestedSchema: { type: 'object', properties: {} } };
+        expect(
+            protocol.handle({ method: 'item/commandExecution/requestApproval', id: 0, params: { ...child, itemId: 'c', command: 'rm -f a' } })
+        ).toMatchObject([{ type: 'approval.requested', background: true }]);
+        expect(protocol.handle({ method: 'mcpServer/elicitation/request', id: 1, params: confirm })).toMatchObject([
+            { type: 'approval.requested', background: true }
+        ]);
+        expect(protocol.takeReplies()).toEqual([]);
+    });
+
+    test('a thread whose policy is not the one full access sends asks before a flagged command', () => {
+        const protocol = new CodexProtocol(1);
+        const rules = { granular: { ...FULL_ACCESS_GRANULAR.granular, rules: true } };
+        expect(protocol.threadReady({ thread: { id: 'main' }, approvalPolicy: rules, sandbox: { type: 'dangerFullAccess' } })[0]).not.toHaveProperty(
+            'effectiveRuntimeMode'
+        );
+        const own = { threadId: 'main', turnId: 'main-turn', itemId: 'c', command: 'rm -f a' };
+        expect(protocol.handle({ method: 'item/commandExecution/requestApproval', id: 0, params: own })).toHaveLength(1);
+        expect(protocol.takeReplies()).toEqual([]);
     });
 
     test('unknown and malformed server requests say nothing, so the backend can refuse them', () => {

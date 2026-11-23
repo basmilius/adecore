@@ -4,7 +4,7 @@ import { num, str } from '../fields.ts';
 import { cleanTitle } from '../title-file.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
 import type { CodexFrame } from './codex-transport.ts';
-import { codexRuntimeMode } from './codex.ts';
+import { codexPolicyName, codexRuntimeMode } from './codex.ts';
 import { generatedImage, savedGeneratedImage } from './generated-image.ts';
 import { readCodexLimits } from './limits.ts';
 
@@ -255,6 +255,10 @@ export class CodexProtocol {
     private contextTokens = 0;
     // While a compaction runs: the size it started from, and the usage Codex 0.166.0 sends just before the item completes.
     private compacting: { preTokens: number; postTokens: number; contextWindow: number } | null = null;
+    // True once the handshake said the thread runs full access, so the host answers what Codex still asks itself.
+    private fullAccess = false;
+    // Answers to server requests the protocol settled without a person, for the backend to send.
+    private readonly replies: Array<{ rpcId: CodexRpcId; result: unknown }> = [];
 
     constructor(generation: number) {
         this.generation = generation;
@@ -270,13 +274,21 @@ export class CodexProtocol {
         return this.spentUntil;
     }
 
+    /* The answers `handle` settled itself since the last call, which the backend sends as replies. */
+    takeReplies(): Array<{ rpcId: CodexRpcId; result: unknown }> {
+        return this.replies.splice(0);
+    }
+
     /* The result of `thread/start` or `thread/resume`. The thread id is what a terminal resumes. */
     threadReady(result: unknown, askedSandbox?: string): BackendEvent[] {
         const thread = isRecord(result) && isRecord(result.thread) ? result.thread : {};
         this.ownThreadId = str(thread.id) ?? this.ownThreadId;
-        const policy = isRecord(result) ? str(result.approvalPolicy) : null;
+        const approvalPolicy = isRecord(result) ? result.approvalPolicy : null;
+        const policy = codexPolicyName(approvalPolicy);
         const sandbox = isRecord(result) && isRecord(result.sandbox) ? str(result.sandbox.type) : null;
-        const effectiveRuntimeMode = policy && sandbox ? codexRuntimeMode(policy, sandbox) : undefined;
+        const effectiveRuntimeMode = policy && sandbox ? codexRuntimeMode(approvalPolicy, sandbox) : undefined;
+        // What the thread really runs decides, so a policy Codex's own config put in place of ours keeps asking the person.
+        this.fullAccess = effectiveRuntimeMode === 'full-access';
 
         return [
             {
@@ -725,6 +737,12 @@ export class CodexProtocol {
             return;
         }
 
+        if (kind === 'command' && this.answersForFullAccess(params) && !asksNetwork(params)) {
+            this.replies.push({ rpcId, result: { decision: 'accept' } });
+
+            return;
+        }
+
         const itemId = str(params.itemId);
         const known = itemId ? this.toolInputs.get(this.toolKey(this.owner(params).threadId, itemId)) : undefined;
 
@@ -776,11 +794,28 @@ export class CodexProtocol {
     }
 
     /*
-     * An MCP server asking the person something, such as computer use asking before it touches an app.
-     * Only a yes or no becomes a card; a form with fields or a link stays unanswered, which Codex reads as a decline.
+     * Under full access the host answers what Codex still asks, the way the person who chose it would. A subagent's thread
+     * may run a policy of its own, so its requests still reach the person.
+     */
+    private answersForFullAccess(params: Frame): boolean {
+        return this.fullAccess && !this.isChildRequest(params);
+    }
+
+    /*
+     * An MCP server asking the person something, such as computer use asking before it touches an app. Only a yes or no
+     * can be answered: full access accepts it, any other mode shows a card. A form with fields or a link gets `cancel`,
+     * never `decline`, which an MCP server may keep as the person's refusal.
      */
     private elicitation(requestId: string, rpcId: CodexRpcId, params: Frame, events: BackendEvent[]): void {
         if (!isConfirmation(params)) {
+            this.replies.push({ rpcId, result: { action: 'cancel' } });
+
+            return;
+        }
+
+        if (this.answersForFullAccess(params)) {
+            this.replies.push({ rpcId, result: { action: 'accept', content: {} } });
+
             return;
         }
 
@@ -1234,6 +1269,13 @@ function codexDecision(decision: ApprovalDecision, pending: Extract<Pending, { t
     }
 
     return pending.kind === 'fileChange' || pending.decisions.includes('acceptForSession') ? 'acceptForSession' : 'accept';
+}
+
+/* A command Codex asks about for its managed network settings, which hold the person's allowlist, so only they answer it. */
+function asksNetwork(params: Frame): boolean {
+    const amendments = params.proposedNetworkPolicyAmendments ?? [];
+
+    return (params.networkApprovalContext ?? null) !== null || !Array.isArray(amendments) || amendments.length > 0;
 }
 
 /* The MCP answer to a yes or no; how long it is remembered rides along in `_meta.persist`. */

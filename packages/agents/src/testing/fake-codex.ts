@@ -48,7 +48,9 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
         let threadModel = 'fake-model';
         let threadName: string | null = null;
         let threadSandbox = '';
+        // The policy's name, and the policy as the client sent it, which a granular policy is an object of.
         let threadApproval = '';
+        let threadPolicy: unknown = '';
         let turnId = '';
         let turnEffort: string | null = null;
         let pasted: string | null = null;
@@ -167,6 +169,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
         let pendingApproval: PendingApproval | null = null;
         let pendingQuestion: { rpcId: number; questionId: string } | null = null;
+        let pendingElicitation: { rpcId: number; entry: Frame } | null = null;
         let pendingSteer = false;
         let slow = false;
 
@@ -343,6 +346,65 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
             if (text === 'slow') {
                 slow = true;
                 started(item('agentMessage', { text: '', phase: 'final_answer', memoryCitation: null, delivery: null, questions: null }));
+
+                return;
+            }
+
+            // A command Codex's danger check flags still asks under the granular policy; `network:` asks for a host its managed network settings hold back.
+            if (text.startsWith('danger:') || text.startsWith('network:')) {
+                const network = text.startsWith('network:');
+                const command = text.slice(text.indexOf(':') + 1).trim();
+                const entry = item('commandExecution', { command, cwd: io.cwd, status: 'inProgress', aggregatedOutput: null, exitCode: null });
+                started(entry);
+
+                if (threadApproval === 'never') {
+                    completed({ ...entry, status: 'completed', aggregatedOutput: `ran: ${command}\n`, exitCode: 0 });
+                    agentMessage('done');
+                    turnCompleted('completed');
+
+                    return;
+                }
+
+                askApproval('command', entry, {
+                    kind: 'command',
+                    command,
+                    cwd: io.cwd,
+                    reason: network ? 'Network access to example.com' : 'This command removes files',
+                    ...(network ? { networkApprovalContext: { host: 'example.com', protocol: 'https' } } : {}),
+                    availableDecisions: ['accept', 'cancel']
+                });
+
+                return;
+            }
+
+            /*
+             * An MCP tool whose server asks first, as computer use does. Under `never` Codex declines the question itself and
+             * the call fails; `elicit form:` asks for a field, `elicit link:` sends a link.
+             */
+            if (text.startsWith('elicit')) {
+                const entry = item('mcpToolCall', { server: 'cua', tool: 'get_app_state', arguments: { app: 'Notes' }, status: 'inProgress' });
+                started(entry);
+
+                if (threadApproval === 'never') {
+                    completed({ ...entry, status: 'failed', error: { message: 'user declined the MCP elicitation' } });
+                    turnCompleted('completed');
+
+                    return;
+                }
+
+                const shape = text.startsWith('elicit form:')
+                    ? { mode: 'form', requestedSchema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } }
+                    : text.startsWith('elicit link:')
+                      ? { mode: 'url', url: 'https://example.com/sign-in', elicitationId: 'sign-in' }
+                      : { mode: 'form', requestedSchema: { type: 'object', properties: {} } };
+
+                pendingElicitation = { rpcId: serverRequestId, entry };
+
+                out({
+                    method: 'mcpServer/elicitation/request',
+                    id: serverRequestId++,
+                    params: { threadId, turnId, serverName: 'cua', message: 'Allow Computer Use to use "Notes"?', _meta: { callId: entry.id }, ...shape }
+                });
 
                 return;
             }
@@ -588,7 +650,8 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
                     threadModel = typeof params.model === 'string' ? params.model : 'fake-model';
                     threadSandbox = typeof params.sandbox === 'string' ? params.sandbox : '';
-                    threadApproval = typeof params.approvalPolicy === 'string' ? params.approvalPolicy : '';
+                    threadApproval = typeof params.approvalPolicy === 'string' ? params.approvalPolicy : params.approvalPolicy === undefined ? '' : 'granular';
+                    threadPolicy = params.approvalPolicy ?? threadApproval;
                     threadName = threadId.startsWith('named-') ? 'Named before' : null;
                     const thread = { id: threadId, model: threadModel, cwd: params.cwd, turns: [], name: threadName };
 
@@ -599,7 +662,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                             model: `${threadModel} ${threadApproval} ${threadSandbox}`,
                             modelProvider: 'fake',
                             cwd: params.cwd,
-                            approvalPolicy: threadApproval,
+                            approvalPolicy: threadPolicy,
                             sandbox: { type: threadSandbox }
                         }
                     });
@@ -819,8 +882,25 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                 const result = frame.result as Frame;
                 const approval = pendingApproval;
                 const question = pendingQuestion;
+                const elicitation = pendingElicitation;
 
-                if (approval && approval.rpcId === frame.id) {
+                if (elicitation && elicitation.rpcId === frame.id) {
+                    pendingElicitation = null;
+                    notify('serverRequest/resolved', { threadId, requestId: elicitation.rpcId });
+                    const action = String(result.action);
+
+                    completed(
+                        action === 'accept'
+                            ? { ...elicitation.entry, status: 'completed', result: { content: [{ type: 'text', text: 'Notes is open' }] } }
+                            : {
+                                  ...elicitation.entry,
+                                  status: 'failed',
+                                  error: { message: `user ${action === 'cancel' ? 'cancelled' : 'declined'} the MCP elicitation` }
+                              }
+                    );
+
+                    turnCompleted('completed');
+                } else if (approval && approval.rpcId === frame.id) {
                     handleApprovalResponse(approval, result);
                 } else if (question && question.rpcId === frame.id) {
                     handleQuestionResponse(question, result);

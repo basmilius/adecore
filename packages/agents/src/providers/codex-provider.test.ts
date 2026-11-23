@@ -123,4 +123,13 @@ describe('codexThreadOptions', () => {
         expect(codexThreadOptions('auto')).toEqual({ approvalPolicy: 'on-request', sandbox: 'workspace-write' });
         expect(codexThreadOptions('full-access')).toEqual({ approvalPolicy: 'never', sandbox: 'danger-full-access' });
     });
+
+    test('full access on Codex 0.166.0 asks only for MCP elicitations, and the modes that ask stay as they are', () => {
+        expect(codexThreadOptions('full-access', '0.166.0')).toEqual({
+            approvalPolicy: { granular: { mcp_elicitations: true, rules: false, sandbox_approval: false, skill_approval: false, request_permissions: false } },
+            sandbox: 'danger-full-access'
+        });
+        expect(codexThreadOptions('auto', '0.166.0')).toEqual({ approvalPolicy: 'on-request', sandbox: 'workspace-write' });
+        expect(codexThreadOptions('full-access', '0.166.0-alpha.1')).toEqual({ approvalPolicy: 'never', sandbox: 'danger-full-access' });
+    });
 });
