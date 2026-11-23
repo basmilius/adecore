@@ -45,6 +45,11 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `onCommands(commands)` | The session's slash commands, without the slash, each time the agent lists them. |
 | `adoptTitles` | `true` takes the agent's session titles as the chat's suggested title. Absent leaves naming to the host. |
 | `steer` | How a message joins the running turn. `interject` sends Grok's `_x.ai/interject`. Absent leaves the backend without `steerTurn`, so a message queues. Set `capabilities.steer` beside it. See [Steering](#steering). |
+| `repliesEndOnUsage` | `true` for an agent whose every reply ends on a `usage_update`, also one it starts by itself with no prompt open. See [Turns the agent opens](#turns-the-agent-opens). |
+| `cancelsIdle` | `true` sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its turn on it. Absent sends nothing then. |
+| `mcp` | MCP transports (`http`, `sse`) the agent takes although its `initialize` does not advertise them. |
+| `mcpToolPrefix` | What the `name` of a tool call that runs an MCP tool starts with, before `<server>_<tool>`, for an agent that marks the call no other way. See [Calls the host guards](#calls-the-host-guards). |
+| `daemonFlag` | The key of a command's input that marks one the agent runs on past its turn. See [Turns the agent opens](#turns-the-agent-opens). |
 | `onContextReport()` | Called once per process, at the first `usage_update` that names the context window. |
 | `capabilities` | Overrides on top of the ACP defaults and what the agent showed (see [Capabilities](#capabilities)). |
 | `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotApart`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
@@ -53,9 +58,9 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 
 `start` runs `initialize` and opens the session before the first turn. The backend accepts only protocol version 1. The client advertises no file system or terminal, so the agent uses its own tools.
 
-Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` or a `tokenVariable` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`. Otherwise the session starts without it, and the thread gets a warning note that names it. An agent expands no variable in a session request, so a `tokenVariable` becomes an `Authorization: Bearer` header holding the value of that variable in the launch's environment.
+Every session request (`session/new`, `session/load`, `session/resume`) names the launch's `mcpServers`, each a `ChatMcpServer` with a `name`, a `url`, its `headers` or a `tokenVariable` and a `transport` (`http` by default, or `sse`). A server goes along only when the agent advertises that transport in `agentCapabilities.mcpCapabilities`, or the spec's `mcp` names it. Otherwise the session starts without it, and the thread gets a warning note that names it. An agent expands no variable in a session request, so a `tokenVariable` becomes an `Authorization: Bearer` header holding the value of that variable in the launch's environment.
 
-A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The backend drops the history a load replays, since the thread already holds it. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
+A chat with an agent session to continue uses `session/resume` (if the agent advertises `sessionCapabilities.resume`) or `session/load` (if it advertises `loadSession`). The backend drops the history a load replays, since the thread already holds it. An agent that marks replayed frames with `_meta.isReplay` (Grok) ends the replay at its first unmarked frame, so what it says live before the load answers reaches the thread. If the agent supports neither or refuses, it gets a new session and the thread gets a note. `BackendLaunch.folders` go along as `additionalDirectories` when the agent supports them.
 
 ACP has no system prompt. The launch's `instructions` go before the first prompt of a new session. `resumeInstructions` and `resumeNote` go before the first prompt of a resumed one.
 
@@ -80,7 +85,7 @@ Everything else becomes an approval in the thread.
 
 ## Calls the host guards
 
-A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it. Antigravity marks it in the tool call's `_meta.mcp.server`. Grok puts it in the `<server>__<tool>` name of its `use_tool`, which the backend matches against the launch's own server names, the longest first. A call of a kind other than `other`, or one with `_meta.is_mcp_tool_call: false`, is never an MCP call. The mark of a call holds for the permission request that names only its `toolCallId`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`.
+A server in `mcpServers` with `allowTools: true` checks each call itself, so its tools run without asking in every runtime mode. The backend knows a call's server only where the agent marks it. Antigravity marks it in the tool call's `_meta.mcp.server`. Grok puts it in the `<server>__<tool>` name of its `use_tool`, which the backend matches against the launch's own server names, the longest first. With `mcpToolPrefix`, a call whose `name` is the prefix followed by `<server>_<tool>` (agy 1.5's `mcp_files_read`) is matched the same way; a name that starts with no server of the launch stays an ordinary call and asks. A call of a kind other than `other`, or one with `_meta.is_mcp_tool_call: false`, is never an MCP call. The mark of a call holds for the permission request that names only its `toolCallId`. Copilot names no server, so a host allows its tools with Copilot's own `--allow-tool=<server>`.
 
 ACP does not tell a client which servers an agent loaded. A server of the agent's own configuration with the same name as one in `mcpServers` gets the same calls allowed, so give a server with `allowTools` a name no configuration uses. The backend refuses the clashes it can see. `start` throws before the agent runs when two servers in `mcpServers` share a name, or when one name is another followed by `__`, since `own__events__delete` could then be a tool of either. A server the agent could not take (see [A session](#a-session)) never counts, so a call to a server of that name asks.
 
@@ -110,7 +115,13 @@ Any other failure stays an error without a limit.
 
 An approval offers allow, allow always (only when the agent has `allow_always`) and deny. They map to the agent's `allow_once`, `allow_always` and `reject_once` or `reject_always` options. A missing option falls to the narrower one. A denial without any reject option answers `cancelled`.
 
-`interrupt` cancels every open permission request and question and sends `session/cancel`. The turn ends when the agent answers the prompt.
+`interrupt` cancels every open permission request and question and sends `session/cancel`. The turn ends when the agent answers the prompt. With no prompt open, it cancels the open requests the same way, withdraws their cards and ends the turn the agent opened itself at once; it sends `session/cancel` only with `cancelsIdle`.
+
+### Turns the agent opens
+
+An agent may speak with no prompt open. Copilot's root agent says when it starts and goes idle, and that idle ends its turn. With `repliesEndOnUsage`, every reply ends on a `usage_update`: output with no prompt open is a turn of the agent's own, and it ends once `WAKE_QUIET_MS` (3 seconds) pass after a `usage_update` with no new output. Output in that time, a tool that ends included, keeps the turn open until the next `usage_update`. The backend's timers run on `BackendLaunch.clock`.
+
+With `daemonFlag`, a command whose input sets that key and still runs when its prompt answers is background work (`background.started` under the call's id), ended by the `tool_call_update` that completes or fails it. With `cancelsIdle`, `stopTask` stops it with `session/cancel`, which stops every such command; with a prompt open it answers `stop.refused`, since the cancel would end that prompt too.
 
 ### Steering
 

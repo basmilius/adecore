@@ -2,6 +2,7 @@ import { expect, test } from 'bun:test';
 import agyDaemonCancel from '../chat/fixtures/antigravity-1.5.15-daemon-cancel.json';
 import agyDaemonWake from '../chat/fixtures/antigravity-1.5.15-daemon-wake.json';
 import agyMcpTurn from '../chat/fixtures/antigravity-1.5.15-mcp-turn.json';
+import agySubagent from '../chat/fixtures/antigravity-1.5.15-subagent.json';
 import grokLoad from '../chat/fixtures/grok-1.0.70-load.json';
 import { playAcpRecording, recordedAnswer, type AcpTimedFrame } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
@@ -255,6 +256,99 @@ test('a stop with no prompt open withdraws the permission a wake asked for and a
         { type: 'request.withdrawn', requestId: wake.type === 'approval.requested' ? wake.requestId : '' },
         { type: 'turn.done', state: 'aborted', costUsd: 0 }
     ]);
+
+    await run.backend.dispose();
+});
+
+const AGY_TOOLS: AcpAgentSpec = { ...AGY, mcp: { http: true }, mcpToolPrefix: 'mcp_', daemonFlag: 'IsDaemon' };
+const FIRST_MCP_PROMPT = mcpTurnFrames.find((entry) => entry.frame.method === 'session/prompt')!.t;
+const FIRST_MCP_ANSWER = at(mcpTurnFrames, isPromptAnswer);
+
+function approvals(events: readonly BackendEvent[]): Array<Extract<BackendEvent, { type: 'approval.requested' }>> {
+    return events.flatMap((event) => (event.type === 'approval.requested' ? [event] : []));
+}
+
+for (const [server, named, asks] of [
+    ['ruimte', 'mcp__ruimte__node_list', ['Bash']],
+    ['other', 'mcp_ruimte_node_list', ['mcp_ruimte_node_list', 'Bash']]
+] as const) {
+    test(`an MCP call agy names mcp_ruimte_node_list, from a launch that passed "${server}", ${server === 'ruimte' ? 'is that tool and runs without a card' : 'is no tool of it and asks'}`, async () => {
+        const run = replay(mcpTurnFrames, AGY_TOOLS, { mcpServers: [{ name: server, url: 'http://127.0.0.1:50000/mcp', allowTools: true }] });
+        const starting = run.backend.start();
+        await run.player.playTo(FIRST_MCP_PROMPT);
+        await starting;
+        run.backend.sendTurn(turn('tools'));
+
+        for (let asked = 0; asked < asks.length; asked++) {
+            await run.player.playTo(FIRST_MCP_ANSWER);
+            run.backend.respondApproval(approvals(run.events)[asked]?.requestId ?? '', 'allow');
+        }
+
+        await run.player.playTo(FIRST_MCP_ANSWER);
+        const calls = run.events.flatMap((event) => (event.type === 'tool.started' ? [event] : []));
+
+        expect(approvals(run.events).map((approval) => approval.toolName)).toEqual([...asks]);
+        expect(calls[0]?.name).toBe(named);
+        expect(run.events.at(-1)).toMatchObject({ type: 'turn.done', promptId: 'prompt-tools', state: 'done' });
+
+        if (server === 'ruimte') {
+            // agy's own `toolSummary` is no argument of the tool.
+            expect(calls[0]?.input).toEqual({});
+        }
+
+        await run.backend.dispose();
+    });
+}
+
+test('a daemon command still running when its prompt ends is background work until it ends, and its stop sends session/cancel', async () => {
+    const run = replay(cancelFrames, AGY_TOOLS, { runtimeMode: 'full-access' }, AGY_HANDSHAKE);
+    await run.backend.start();
+    run.backend.sendTurn(turn('daemon'));
+    await run.player.playTo(DAEMON_STARTED - 1);
+    run.backend.stopTask?.('call_15227589526489405582');
+    await run.player.playTo(DAEMON_STARTED);
+    const background = run.events.filter((event) => event.type === 'background.started' || event.type === 'background.ended' || event.type === 'stop.refused');
+
+    expect(background.map((event) => event.type)).toEqual(['stop.refused', 'background.started']);
+    expect(background[1]).toEqual({
+        type: 'background.started',
+        taskId: 'call_15227589526489405582',
+        ref: 'call_15227589526489405582',
+        monitor: false,
+        description: null
+    });
+    expect(run.events.indexOf(background[1]!)).toBeLessThan(run.events.findIndex((event) => event.type === 'turn.done'));
+
+    run.backend.stopTask?.('call_15227589526489405582');
+    await run.player.playTo(DAEMON_STOPPED);
+
+    expect(run.methods().at(-1)).toBe('session/cancel');
+    expect(run.events.slice(-2)).toMatchObject([
+        { type: 'tool.done', ref: 'call_15227589526489405582', state: 'error' },
+        { type: 'background.ended', taskId: 'call_15227589526489405582' }
+    ]);
+
+    await run.backend.dispose();
+});
+
+test('a subagent agy starts is an ordinary tool row that completes once it is spawned, and the prompt stays open until the subagent ends', async () => {
+    const frames = agySubagent.frames as AcpTimedFrame[];
+    const run = replay(frames, AGY_TOOLS, { runtimeMode: 'full-access' }, AGY_HANDSHAKE);
+    await run.backend.start();
+    run.backend.sendTurn(turn('subagent'));
+    await run.player.playTo(at(frames, isPromptAnswer) - 1);
+    const work = run.events.filter(
+        (event) => event.type.startsWith('tool.') || event.type.startsWith('task.') || event.type.startsWith('background.') || event.type === 'turn.done'
+    );
+
+    expect(work.map((event) => [event.type, 'name' in event ? event.name : 'state' in event ? event.state : null])).toEqual([
+        ['tool.started', 'invoke_subagent'],
+        ['tool.done', 'done']
+    ]);
+
+    await run.player.playTo(at(frames, isPromptAnswer));
+
+    expect(run.events.at(-1)).toMatchObject({ type: 'turn.done', promptId: 'prompt-subagent', state: 'done' });
 
     await run.backend.dispose();
 });

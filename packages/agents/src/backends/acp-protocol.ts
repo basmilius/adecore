@@ -701,8 +701,11 @@ function mcpRow(mark: McpMark, raw: Readonly<Record<string, unknown>>): { name: 
         return { name: `mcp__${mark.qualified}`, input: isRecord(raw.tool_input) ? raw.tool_input : {} };
     }
 
-    // Antigravity hands the arguments over as `arguments`, with a copy of each beside it.
-    return mark.tool === null ? null : { name: `mcp__${mark.server}__${mark.tool}`, input: isRecord(raw.arguments) ? raw.arguments : raw };
+    // Antigravity's 1.4.1 server hands the arguments over as `arguments`, with a copy of each beside it; agy 1.5 adds its
+    // own `toolSummary` to them.
+    const { toolSummary: _summary, ...given } = raw;
+
+    return mark.tool === null ? null : { name: `mcp__${mark.server}__${mark.tool}`, input: isRecord(raw.arguments) ? raw.arguments : given };
 }
 
 /* The row a tool call becomes: a name the thread has words for where the kind says which, and an input it reads a subject from. */
@@ -1000,6 +1003,9 @@ export class AcpProtocol {
     private readonly prompts: string[] = [];
     // This turn's last call that runs its command on past it (`mode: "async"`), which a held prompt waits on.
     private asyncCall: string | null = null;
+    // How the agent names a call of an MCP tool, for one that marks it no other way: a prefix before `<server>_<tool>`,
+    // and the servers of the launch that name may start with.
+    private mcpNames: { prefix: string; servers: readonly string[] } | null = null;
 
     private readonly titles: boolean;
 
@@ -1044,6 +1050,30 @@ export class AcpProtocol {
     /* The call of this turn whose command runs on past it; the end of the turn forgets it. */
     get runningAsyncCall(): string | null {
         return this.asyncCall;
+    }
+
+    /* Reads a call named `<prefix><server>_<tool>` as a tool of that server, for one of `servers` only. */
+    nameMcpTools(prefix: string, servers: readonly string[]): void {
+        this.mcpNames = { prefix, servers: [...servers].sort((left, right) => right.length - left.length) };
+    }
+
+    /* The calls still running whose input sets `flag`, such as the commands an agent runs on past its turn. */
+    runningCalls(flag: string): string[] {
+        return [...this.tools].flatMap(([id, tool]) => (!tool.settled && isRecord(tool.rawInput) && tool.rawInput[flag] === true ? [id] : []));
+    }
+
+    /* The mark a call's name gives it under `nameMcpTools`; undefined where it names no tool of the launch's servers. */
+    private namedMcpMark(name: string | null | undefined): McpMark | undefined {
+        const names = this.mcpNames;
+
+        if (names === null || !name?.startsWith(names.prefix)) {
+            return undefined;
+        }
+
+        const rest = name.slice(names.prefix.length);
+        const server = names.servers.find((candidate) => rest.startsWith(`${candidate}_`) && rest.length > candidate.length + 1);
+
+        return server === undefined ? undefined : { server, tool: rest.slice(server.length + 1) };
     }
 
     /* The next turn is the agent's `/compact`, which ends as one marker in place of its text. */
@@ -1624,7 +1654,8 @@ export class AcpProtocol {
             refused: false
         };
 
-        const mark = mcpMarkOf(call);
+        const said = mcpMarkOf(call);
+        const mark = said === undefined ? this.namedMcpMark(call.name) : said;
         tool.title = call.title ?? tool.title;
         tool.name = call.name ?? tool.name;
         tool.kind = call.kind ?? tool.kind;

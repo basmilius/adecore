@@ -91,6 +91,16 @@ export interface AcpAgentSpec {
     // True sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its
     // turn on it (Antigravity 1.5). Absent sends nothing then, since Copilot ends the whole session on one.
     cancelsIdle?: boolean;
+    // MCP transports the agent takes although its `initialize` does not say so, as agy 1.5.15 advertises no
+    // `mcpCapabilities` and uses an http server all the same.
+    mcp?: { http?: boolean; sse?: boolean };
+    // What the `name` of a tool call that runs an MCP tool starts with, before `<server>_<tool>`, for an agent that marks
+    // the call no other way (Antigravity 1.5's `mcp_`). Only the servers the launch passed are read from it.
+    mcpToolPrefix?: string;
+    // The key of a command's input that marks one the agent runs on past its turn (Antigravity 1.5's `IsDaemon`). Such a
+    // command still running when its prompt ends is background work, stopped with `session/cancel` where the agent
+    // `cancelsIdle`.
+    daemonFlag?: string;
 }
 
 export interface AcpUsageReport extends AcpTurnUsage {
@@ -199,6 +209,8 @@ class AcpBackend implements ChatBackend {
     private woken: { spoken: boolean } | null = null;
     // The timer that ends that turn, for an agent whose replies end on a `usage_update`.
     private wakeEnd: unknown = null;
+    // The commands under `daemonFlag` that ran on past their prompt, each shown as background work under its call's id.
+    private readonly daemons = new Set<string>();
     private model: string | null = null;
     private contextReported = false;
     private commands: string[] = [];
@@ -206,6 +218,8 @@ class AcpBackend implements ChatBackend {
     private early: unknown[] = [];
     // Set only for an agent that takes a message into its running prompt, since a host steers wherever it is set.
     readonly steerTurn?: (input: TurnInput) => Promise<boolean>;
+    // Set only for an agent that runs commands on past its turn and stops them on `session/cancel`.
+    readonly stopTask?: (taskId: string) => void;
 
     constructor(launch: BackendLaunch, host: BackendHost, spec: AcpAgentSpec) {
         this.launch = launch;
@@ -216,6 +230,10 @@ class AcpBackend implements ChatBackend {
 
         if (spec.steer === 'interject') {
             this.steerTurn = (input) => this.interject(input);
+        }
+
+        if (spec.daemonFlag !== undefined && spec.cancelsIdle === true) {
+            this.stopTask = (taskId) => this.stopDaemon(taskId);
         }
     }
 
@@ -290,6 +308,13 @@ class AcpBackend implements ChatBackend {
 
         this.capabilities = capabilities;
         this.mcpServers = this.reachableMcpServers(capabilities);
+
+        if (this.spec.mcpToolPrefix !== undefined) {
+            this.protocol.nameMcpTools(
+                this.spec.mcpToolPrefix,
+                this.mcpServers.map((server) => server.name)
+            );
+        }
         const info = await this.openSession(transport, capabilities);
         const modeId = await this.applyMode(transport, info);
         const { model, thoughtLevel } = await this.applyModel(transport, info);
@@ -325,7 +350,7 @@ class AcpBackend implements ChatBackend {
         return (this.launch.mcpServers ?? []).filter((server) => {
             const transport = server.transport ?? 'http';
 
-            if (capabilities.mcp[transport]) {
+            if (capabilities.mcp[transport] || this.spec.mcp?.[transport] === true) {
                 return true;
             }
 
@@ -627,6 +652,7 @@ class AcpBackend implements ChatBackend {
                 } else if (this.prompt === turn) {
                     this.prompt = null;
                     this.report(result);
+                    this.keepDaemons();
                     this.emitAll(this.protocol.finish(result, turn.promptId, turn.cancelled));
                 }
             })
@@ -824,6 +850,12 @@ class AcpBackend implements ChatBackend {
             const events = this.protocol.update(this.sessionId, frame.params);
             this.heard(events);
             this.emitAll(events);
+
+            for (const event of events) {
+                if (event.type === 'tool.done' && this.daemons.delete(event.ref)) {
+                    this.emit({ type: 'background.ended', taskId: event.ref });
+                }
+            }
 
             return;
         }
@@ -1037,6 +1069,52 @@ class AcpBackend implements ChatBackend {
         this.clearWakeEnd();
     }
 
+    /* The commands under `daemonFlag` still running as their prompt ends, which the agent runs on past its turn. */
+    private keepDaemons(): void {
+        const flag = this.spec.daemonFlag;
+
+        if (flag === undefined) {
+            return;
+        }
+
+        for (const ref of this.protocol.runningCalls(flag)) {
+            if (!this.daemons.has(ref)) {
+                this.daemons.add(ref);
+                this.emit({ type: 'background.started', taskId: ref, ref, monitor: false, description: null });
+            }
+        }
+    }
+
+    /*
+     * Stops the commands the agent runs on past its turn: `session/cancel` with no prompt open, after which the agent
+     * reports each one failed. With a prompt open it would cancel that prompt too, so the stop waits for the turn.
+     */
+    private stopDaemon(taskId: string): void {
+        const transport = this.transport;
+
+        if (!this.daemons.has(taskId) || transport === null) {
+            this.emit({ type: 'stop.refused', taskId, message: `${this.spec.name} runs no such command.` });
+
+            return;
+        }
+
+        if (this.prompt !== null) {
+            this.emit({
+                type: 'stop.refused',
+                taskId,
+                message: `${this.spec.name} stops this command only with its running turn. Stop the turn or wait until it ends.`
+            });
+
+            return;
+        }
+
+        try {
+            transport.notify('session/cancel', { sessionId: this.sessionId });
+        } catch (error) {
+            this.fail(error);
+        }
+    }
+
     /* The response of a prompt whose turn ended on the agent's idle: it ends the background work and closes no newer turn. */
     private endReleased(turn: PromptState): boolean {
         const taskId = this.released.get(turn);
@@ -1068,6 +1146,7 @@ class AcpBackend implements ChatBackend {
         this.transport = null;
         this.prompt = null;
         this.released.clear();
+        this.daemons.clear();
         this.forgetWake();
         this.protocol.cancelRequests();
         this.emit({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
