@@ -1,11 +1,15 @@
-import { afterEach, expect, jest, test } from 'bun:test';
+import { afterEach, describe, expect, jest, test } from 'bun:test';
 import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { CodexBackend } from '../backends/codex-backend.ts';
 import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { CodexTransport } from '../backends/codex-transport.ts';
 import { MAX_LINE_LENGTH, type ChatProcess, type ChatSpawnOptions } from '../chat-process.ts';
+import { createAcpProvider } from '../providers/acp-provider.ts';
+import { ModelCatalog } from '../providers/catalog.ts';
+import { fakeAcp } from '../testing/fake-acp.ts';
 import { inProcess, type FakeIo, type FakeCli } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
+import { ManualClock } from '../testing/manual-clock.ts';
 import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { info } from './chat-session.fixture.test.ts';
 import { ChatSession } from './chat-session.ts';
@@ -27,6 +31,12 @@ const launch: BackendLaunch = {
     instructions: null,
     resumeNote: null
 };
+
+const acpCatalog = new ModelCatalog({
+    defaultModel: 'fake-small',
+    profiles: { standard: { options: [], contextWindowTokens: {} } },
+    models: [{ slug: 'fake-small', name: 'Fake small', profile: 'standard' }]
+});
 
 afterEach(() => {
     jest.useRealTimers();
@@ -398,4 +408,96 @@ test('a Codex frame past the line limit is dropped and reported, and the frames 
     expect(((await pending) as Error).message).toContain('which was dropped');
     expect(frames).toEqual([{ method: 'after', params: {} }]);
     cli.end();
+});
+
+describe('a turn that goes quiet', () => {
+    const quietNotes = (session: ChatSession) => session.thread.list().filter((item) => item.kind === 'note' && item.text.startsWith('No word from the agent'));
+
+    function codexSession(clock: ManualClock) {
+        const fake = pipe(fakeCodexWith({}));
+
+        const session = new ChatSession({
+            info: { ...info(), provider: 'codex', selection: codexProvider.catalog.normalize(undefined) },
+            provider: codexProvider,
+            clock,
+            env: () => ({}),
+            spawn: fake.spawn,
+            emit: () => undefined,
+            persist: () => undefined,
+            persistSoon: () => undefined
+        });
+
+        return { fake, session };
+    }
+
+    const retrying = { method: 'error', params: { error: { message: 'Reconnecting... 2/5' }, willRetry: true } };
+
+    test('a Codex turn silent after a retry gets one note after three minutes and stays open', async () => {
+        const clock = new ManualClock();
+        const { fake, session } = codexSession(clock);
+        const { turnId } = session.send('slow');
+        await flush();
+        fake.out(retrying);
+        await flush();
+        clock.advance(3 * 60_000 - 1);
+        expect(quietNotes(session)).toEqual([]);
+        expect(session.quietNoted).toBe(false);
+        clock.advance(1);
+        expect(quietNotes(session)).toMatchObject([{ turnId, level: 'warning' }]);
+        expect(session.quietNoted).toBe(true);
+        clock.advance(10 * 60_000);
+        expect(quietNotes(session)).toHaveLength(1);
+        expect(session.thread.get(turnId)).toMatchObject({ state: 'running' });
+        expect(session.info.activeTurnId).toBe(turnId);
+        await session.dispose();
+    });
+
+    test('word from Codex after the retry leaves the turn without a note', async () => {
+        const clock = new ManualClock();
+        const { fake, session } = codexSession(clock);
+        session.send('slow');
+        await flush();
+        fake.out(retrying);
+        await flush();
+        clock.advance(60_000);
+        fake.out({ method: 'thread/tokenUsage/updated', params: { tokenUsage: { last: { totalTokens: 10 } } } });
+        await flush();
+        clock.advance(10 * 60_000);
+        expect(quietNotes(session)).toEqual([]);
+        await session.dispose();
+    });
+
+    test('an ACP prompt that gets no frame at all gets one note after three minutes', async () => {
+        const clock = new ManualClock();
+        const provider = createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: acpCatalog });
+
+        // The fake, except that a prompt goes unanswered.
+        const fake = inProcess((io) => {
+            const program = fakeAcp(io);
+
+            return { onLine: (line) => (JSON.parse(line).method === 'session/prompt' ? undefined : program.onLine(line)) };
+        });
+
+        const session = new ChatSession({
+            info: { ...info(), provider: 'example', selection: provider.catalog.normalize(undefined) },
+            provider,
+            clock,
+            env: () => ({}),
+            spawn: fake.spawn,
+            emit: () => undefined,
+            persist: () => undefined,
+            persistSoon: () => undefined
+        });
+
+        const { turnId } = session.send('hello');
+
+        for (let i = 0; i < 20; i++) {
+            await flush();
+        }
+
+        clock.advance(3 * 60_000);
+        expect(quietNotes(session)).toMatchObject([{ turnId }]);
+        expect(session.info.activeTurnId).toBe(turnId);
+        await session.dispose();
+    });
 });

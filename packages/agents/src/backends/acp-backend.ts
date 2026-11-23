@@ -570,6 +570,7 @@ class AcpBackend implements ChatBackend {
         const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false };
         this.prompt = turn;
         this.woken = null;
+        this.emit({ type: 'quiet.watch' });
 
         transport
             .request('session/prompt', { sessionId: this.sessionId, prompt }, { timeoutMs: null })
