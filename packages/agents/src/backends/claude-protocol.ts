@@ -33,7 +33,6 @@ function resultText(content: unknown): string {
         .join('\n');
 }
 
-// What a subagent spent, as `task_progress` and `task_notification` report it.
 /*
  * What Claude Code wraps around a subagent's report for the model that called it: a note naming the tools it used,
  * and for a nested subagent a hand-back frame after which every line of the report is indented by two spaces. The
@@ -54,6 +53,7 @@ function subagentReport(output: string): string {
     return report.slice(frame[0].length).replace(HAND_BACK_INDENT, '');
 }
 
+// What a subagent spent, as `task_progress` and `task_notification` report it.
 function taskUsage(usage: unknown): ChatSubagentUsage | null {
     return isRecord(usage) ? { totalTokens: num(usage.total_tokens), toolUses: num(usage.tool_uses), durationMs: num(usage.duration_ms) } : null;
 }
