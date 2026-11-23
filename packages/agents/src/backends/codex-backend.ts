@@ -137,6 +137,10 @@ export class CodexBackend implements ChatBackend {
     private interruptOwed = false;
     // The thread's goal as Codex last reported it, which a stop pauses first so Codex opens no turn after it.
     private goalNow: ChatGoal | null = null;
+    // A goal turn Codex opened by itself, which on a resume (Codex 0.166.0) is already running once the handshake ends.
+    private selfTurnId: string | null = null;
+    // A prompt that came in during that turn; a `turn/start` beside it would collide, so it goes out once the turn ends.
+    private heldPrompt: { nativeInput: unknown[]; promptId: string | undefined } | null = null;
 
     constructor(launch: BackendLaunch, host: BackendHost, options: CodexBackendOptions) {
         this.launch = launch;
@@ -342,9 +346,20 @@ export class CodexBackend implements ChatBackend {
         }
 
         const nativeInput = this.turnInput(input);
+
+        if (this.selfTurnId !== null) {
+            this.heldPrompt = { nativeInput, promptId: input.promptId };
+
+            return;
+        }
+
+        this.startTurn(nativeInput, input.promptId);
+    }
+
+    private startTurn(nativeInput: unknown[], promptId: string | undefined): void {
         this.turnUnnamed = true;
-        this.promptId = input.promptId ?? null;
-        this.request('turn/start', this.turnStartParams(nativeInput), () => this.acceptPrompt(input.promptId));
+        this.promptId = promptId ?? null;
+        this.request('turn/start', this.turnStartParams(nativeInput), () => this.acceptPrompt(promptId));
     }
 
     private turnStartParams(nativeInput: unknown[]): Record<string, unknown> {
@@ -787,10 +802,34 @@ export class CodexBackend implements ChatBackend {
                 this.nativePrompt = { turnId: nativeTurnId, promptId: this.promptId };
             }
 
+            if (!this.turnUnnamed) {
+                this.selfTurnId = nativeTurnId;
+            }
+
             this.acceptPrompt(this.promptId ?? undefined);
         }
 
         for (const event of events) {
+            if (event.type === 'turn.done' && this.selfTurnId !== null && event.native?.turnId === this.selfTurnId) {
+                const held = this.heldPrompt;
+                this.selfTurnId = null;
+                this.heldPrompt = null;
+
+                // The chat already opened the held prompt's turn, so the goal turn's work stays in it and only its own answer ends it.
+                if (held !== null && event.state === 'done') {
+                    this.startTurn(held.nativeInput, held.promptId);
+
+                    continue;
+                }
+
+                // A goal turn that was stopped or failed takes the held prompt with it, so a Stop sends nothing after it.
+                if (held !== null) {
+                    this.emit({ ...event, ...(held.promptId === undefined ? {} : { promptId: held.promptId }) });
+
+                    continue;
+                }
+            }
+
             if (event.type === 'turn.done' && event.state === 'done' && event.native?.turnId !== undefined) {
                 this.suggestNext(transport, event.native.turnId);
             }
@@ -835,6 +874,8 @@ export class CodexBackend implements ChatBackend {
             this.interruptOwed = false;
             this.promptId = null;
             this.nativePrompt = null;
+            this.selfTurnId = null;
+            this.heldPrompt = null;
         }
 
         const resetUnknown = event.type === 'turn.done' && event.limit?.kind === 'usage' && event.limit.resetsAt === undefined;
