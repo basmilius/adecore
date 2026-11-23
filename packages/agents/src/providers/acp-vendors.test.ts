@@ -396,6 +396,7 @@ describe('Antigravity', () => {
         expect(provider.resumeCommand).toBe('agy {flags} --conversation {id}');
         expect(provider.terminal?.modeArgs?.auto).toEqual(['--mode=auto']);
         expect(antigravityOneShotArgs('hi')).toEqual(['-p', 'hi', '--output-format', 'text']);
+        expect(provider.oneShotEnv).toEqual(NO_UPDATE);
     });
 
     test('an agy older than 1.5.15 offers no chat and starts none, and its version probe never updates it', async () => {

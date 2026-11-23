@@ -117,6 +117,8 @@ export interface ChatProvider {
     /* Set on a CLI whose single prompt runs apart from its chats: it answers one first only for its own kind, after
        every other CLI otherwise, and it names no chat. */
     readonly oneShotApart?: boolean;
+    /* Variables set over the environment of every one-shot run, such as one that keeps the CLI from updating itself. */
+    readonly oneShotEnv?: Readonly<Record<string, string>>;
     /* The same run with the prompt read from stdin, for a prompt too long for one argument (Linux
        refuses one past 128 KiB) or too private for the process list. Absent on a CLI that cannot. */
     readonly oneShotStdinArgs?: readonly string[];

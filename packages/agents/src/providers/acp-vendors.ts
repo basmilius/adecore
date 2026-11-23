@@ -432,6 +432,7 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     oneShotArgs: antigravityOneShotArgs,
     // Every `agy -p` stays in the person's own conversation list, so it is the last CLI asked and names no chat.
     oneShotApart: true,
+    oneShotEnv: ANTIGRAVITY_ENV,
     model: agentModel,
     modes: ANTIGRAVITY_MODES,
     // agy runs the browser sign-in itself, on a callback server of its own.

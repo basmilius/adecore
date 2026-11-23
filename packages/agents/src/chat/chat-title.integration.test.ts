@@ -59,4 +59,12 @@ describe('suggestChatTitle under an account', () => {
 
         expect(await suggestChatTitle(registry, 'grok', { ...input, env })).toBe('daemon-default');
     });
+
+    test("the provider's one-shot variables lie over the account's environment, and over the machine's without one", async () => {
+        const printsBoth = `console.log(JSON.stringify({ title: [process.env.REVIEW_ACCOUNT ?? 'daemon-default', process.env.NO_UPDATE].join(' ') }))`;
+        const registry = registryWith(['bun'], [{ ...grokLike(printsBoth), oneShotEnv: { NO_UPDATE: '1' } }]);
+
+        expect(await suggestChatTitle(registry, 'grok', { ...input, account: 'grok_work', env })).toBe('work-account 1');
+        expect(await suggestChatTitle(registry, 'grok', input)).toBe('daemon-default 1');
+    });
 });

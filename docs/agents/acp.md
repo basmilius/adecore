@@ -53,7 +53,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `minVersion` | The oldest `x.y.z` the agent may name in `initialize.agentInfo.version`, with the `updateHint` an older one fails the start with. A version that is not `x.y.z` passes. |
 | `onContextReport()` | Called once per process, at the first `usage_update` that names the context window. |
 | `capabilities` | Overrides on top of the ACP defaults and what the agent showed (see [Capabilities](#capabilities)). |
-| `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotApart`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
+| `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotApart`, `oneShotEnv`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
 
 ## A session
 

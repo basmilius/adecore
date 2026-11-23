@@ -111,12 +111,13 @@ export async function suggestChatTitle(
     }
 
     const accountEnv = own ? (env ?? input.env) : undefined;
+    const runEnv = provider.oneShotEnv === undefined ? accountEnv : { ...(accountEnv ?? process.env), ...provider.oneShotEnv };
 
     try {
         const result = await runProcess([cliExecutable(provider), ...args], {
             cwd: input.cwd,
             timeoutMs: TIMEOUT_MS,
-            ...(accountEnv === undefined ? {} : { env: accountEnv })
+            ...(runEnv === undefined ? {} : { env: runEnv })
         });
 
         return result.exitCode === 0 ? parseTitle(result.stdout) : null;

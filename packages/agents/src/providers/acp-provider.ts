@@ -51,6 +51,7 @@ export interface AcpProviderSpec extends AcpAgentSpec {
     launch?: LaunchDecorator;
     oneShotArgs?(prompt: string): string[];
     oneShotApart?: boolean;
+    oneShotEnv?: Readonly<Record<string, string>>;
     oneShotStdinArgs?: readonly string[];
     leanOneShotArgs?(args: readonly string[], model: string): string[];
     // Absent leaves the agent to chats only.
@@ -119,6 +120,7 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
         ...(spec.launch === undefined ? {} : { launch: spec.launch }),
         ...(spec.oneShotArgs ? { oneShotArgs: spec.oneShotArgs } : {}),
         ...(spec.oneShotApart === true ? { oneShotApart: true } : {}),
+        ...(spec.oneShotEnv ? { oneShotEnv: spec.oneShotEnv } : {}),
         ...(spec.oneShotStdinArgs ? { oneShotStdinArgs: spec.oneShotStdinArgs } : {}),
         ...(spec.leanOneShotArgs ? { leanOneShotArgs: spec.leanOneShotArgs } : {}),
         ...(spec.enabled ? { enabled: spec.enabled } : {}),
