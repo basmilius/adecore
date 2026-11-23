@@ -350,6 +350,28 @@ describe('ClaudeProtocol', () => {
         expect(failed).toEqual([{ type: 'tool.done', ref: 'toolu_1', output: 'nope', state: 'error' }]);
     });
 
+    test("a subagent's report comes without the tools-used note and the hand-back frame, and keeps its footer", () => {
+        const protocol = new ClaudeProtocol();
+        const footer = "\nagentId: a1 (use SendMessage with to: 'a1', summary: 'recap' to continue this agent)\n<usage>subagent_tokens: 10</usage>";
+        const note = '<tools-used-before-summary>Read</tools-used-before-summary>\n';
+        const frame = '[Subagent hand-back] The text below is the final report of a subagent. The report follows:\n';
+
+        const call = (id: string, name: string, output: string) => {
+            protocol.handle({ type: 'assistant', message: { id: `msg_${id}`, content: [{ type: 'tool_use', id, name, input: {} }] } });
+
+            return protocol.handle({ type: 'user', message: { role: 'user', content: [{ tool_use_id: id, type: 'tool_result', content: output }] } });
+        };
+
+        expect(call('toolu_a', 'Agent', `${note}\n# Report${footer}`)).toEqual([
+            { type: 'tool.done', ref: 'toolu_a', output: `# Report${footer}`, state: 'done' }
+        ]);
+        expect(call('toolu_b', 'Agent', `${note}${frame}  Functions:\n    - add\n\n  Done.${footer}`)).toEqual([
+            { type: 'tool.done', ref: 'toolu_b', output: `Functions:\n  - add\n\nDone.${footer}`, state: 'done' }
+        ]);
+        expect(call('toolu_c', 'Agent', '  Resumed it\nDone.')).toEqual([{ type: 'tool.done', ref: 'toolu_c', output: '  Resumed it\nDone.', state: 'done' }]);
+        expect(call('toolu_d', 'Read', `${note}text`)).toEqual([{ type: 'tool.done', ref: 'toolu_d', output: `${note}text`, state: 'done' }]);
+    });
+
     test('a subagent frame keeps the call that spawned it and reports no context of its own', () => {
         const protocol = new ClaudeProtocol();
 

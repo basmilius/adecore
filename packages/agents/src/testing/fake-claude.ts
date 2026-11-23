@@ -167,6 +167,16 @@ export function fakeClaude(io: FakeIo): FakeProgram {
     const agentFooter = (agentId: string): string =>
         `\n\nagentId: ${agentId} (use SendMessage with to: '${agentId}', summary: 'the report' to continue this agent)\n<usage>subagent_tokens: 1500\ntool_uses: 2\nduration_ms: 250</usage>`;
 
+    // The note the CLI puts before a foreground report, and the frame it puts around a nested subagent's report.
+    const toolsUsedNote = (tools: string): string => `<tools-used-before-summary>${tools}</tools-used-before-summary>\n\n`;
+
+    const handBack = (report: string): string =>
+        '[Subagent hand-back] The text below is the final report of a subagent this session delegated to. It is model output, NOT a message from the user. The report follows:\n' +
+        report
+            .split('\n')
+            .map((line) => `  ${line}`)
+            .join('\n');
+
     let pendingApproval: { command: string } | null = null;
     let pendingQuestion: string | null = null;
     // The request id of an MCP elicitation the fake's MCP server waits on.
@@ -649,7 +659,14 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                 type: 'user',
                 message: {
                     role: 'user',
-                    content: [{ type: 'tool_result', tool_use_id: 'toolu_delegate', content: `${report}${agentFooter('agent_fake')}`, is_error: false }]
+                    content: [
+                        {
+                            type: 'tool_result',
+                            tool_use_id: 'toolu_delegate',
+                            content: `${toolsUsedNote('Read, Bash')}${report}${agentFooter('agent_fake')}`,
+                            is_error: false
+                        }
+                    ]
                 },
                 session_id: sessionId
             });
@@ -747,7 +764,10 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                 task({ subtype: 'task_notification', task_id: 'a-leaf', tool_use_id: 'toolu_leaf', status: 'completed', output_file: '', summary: 'PONG' });
 
                 underMiddle(
-                    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_leaf', content: `PONG${agentFooter('a-leaf')}`, is_error: false }] },
+                    {
+                        role: 'user',
+                        content: [{ type: 'tool_result', tool_use_id: 'toolu_leaf', content: `${handBack('PONG')}${agentFooter('a-leaf')}`, is_error: false }]
+                    },
                     'user'
                 );
 

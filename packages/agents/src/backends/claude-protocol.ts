@@ -34,6 +34,26 @@ function resultText(content: unknown): string {
 }
 
 // What a subagent spent, as `task_progress` and `task_notification` report it.
+/*
+ * What Claude Code wraps around a subagent's report for the model that called it: a note naming the tools it used,
+ * and for a nested subagent a hand-back frame after which every line of the report is indented by two spaces. The
+ * `agentId:`/`<usage>` footer stays, since the projector reads the subagent's usage from it.
+ */
+const TOOLS_USED_NOTE = /^\s*<tools-used-before-summary>[^<]*<\/tools-used-before-summary>\s*/;
+const HAND_BACK_FRAME = /^\[Subagent hand-back\] [^\n]* The report follows:\n/;
+const HAND_BACK_INDENT = /^ {2}/gm;
+
+function subagentReport(output: string): string {
+    const report = output.replace(TOOLS_USED_NOTE, '');
+    const frame = HAND_BACK_FRAME.exec(report);
+
+    if (frame === null) {
+        return report;
+    }
+
+    return report.slice(frame[0].length).replace(HAND_BACK_INDENT, '');
+}
+
 function taskUsage(usage: unknown): ChatSubagentUsage | null {
     return isRecord(usage) ? { totalTokens: num(usage.total_tokens), toolUses: num(usage.tool_uses), durationMs: num(usage.duration_ms) } : null;
 }
@@ -316,6 +336,8 @@ export class ClaudeProtocol {
     private readonly waitingAgents = new Map<string, Extract<BackendEvent, { type: 'task.done' }>>();
     // `ScheduleWakeup` calls whose result has not come in, and the one wakeup the CLI keeps per session, with when it fires.
     private readonly wakeupCalls = new Set<string>();
+    // `Agent` and `Task` calls whose result has not come in, so only a subagent's report is unwrapped.
+    private readonly agentCalls = new Set<string>();
     private wakeup: { taskId: string; scheduledFor: number } | null = null;
     // A turn the CLI started by itself shortly before the wakeup's time; its result says whether the wakeup started it.
     private earlyWake = false;
@@ -1025,6 +1047,10 @@ export class ClaudeProtocol {
                     this.wakeupCalls.add(ref);
                 }
 
+                if (block.name === 'Agent' || block.name === 'Task') {
+                    this.agentCalls.add(ref);
+                }
+
                 events.push({
                     type: 'tool.started',
                     ref,
@@ -1142,7 +1168,8 @@ export class ClaudeProtocol {
 
             if (ref) {
                 this.subagentModels.delete(ref);
-                const output = resultText(block.content);
+                const text = resultText(block.content);
+                const output = this.agentCalls.delete(ref) ? subagentReport(text) : text;
                 const workflow = WORKFLOW_LAUNCHED.exec(output)?.[1];
 
                 if (workflow) {
