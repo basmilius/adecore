@@ -365,7 +365,10 @@ exports[`what a chat tells the session an approval denied with a reason 1`] = `
     "type": "approval.requested",
   },
   {
-    "output": "denied by user",
+    "output": 
+"The user declined this tool call and said:
+not now"
+,
     "ref": "toolu_1",
     "state": "error",
     "type": "tool.done",

@@ -132,6 +132,15 @@ function parseWorkflowProgress(entries: unknown[]): Pick<ChatWorkflow, 'phases' 
 }
 
 // The CLI's AskUserQuestion input, as far as the person needs to see it.
+// The CLI hands a deny message to the model as the tool's error result, so a bare reason reads as a failure of the tool.
+function denyMessage(reason: string | undefined): string {
+    if (reason === undefined || reason.trim() === '') {
+        return 'The user declined this action';
+    }
+
+    return `The user declined this tool call and said:\n${reason}`;
+}
+
 function parseQuestions(input: unknown): ChatQuestion[] {
     if (!isRecord(input) || !Array.isArray(input.questions)) {
         return [];
@@ -151,7 +160,19 @@ function parseQuestions(input: unknown): ChatQuestion[] {
 // What the CLI waits for on stdin, kept until `chat.approve` or `chat.answer` names the request.
 type Pending =
     | { type: 'approval'; toolUseId: string | null; input: unknown; suggestions: unknown[] }
-    | { type: 'question'; toolUseId: string | null; input: unknown };
+    | { type: 'question'; toolUseId: string | null; input: unknown }
+    | { type: 'elicitation' };
+
+function controlResponse(requestId: string, response: Frame): Frame {
+    return { type: 'control_response', response: { subtype: 'success', request_id: requestId, response } };
+}
+
+/* A form that asks for no fields is a yes or no, which is all an approval card can answer; MCP reads a missing mode as a form. */
+function isConfirmation(request: Frame): boolean {
+    const schema = request.requested_schema;
+
+    return (request.mode ?? 'form') === 'form' && isRecord(schema) && Object.keys(isRecord(schema.properties) ? schema.properties : {}).length === 0;
+}
 
 /*
  * What Claude Code 2.1.296 answers a `/goal` with, as a `<synthetic>` assistant message of its own: the goal
@@ -395,6 +416,12 @@ export class ClaudeProtocol {
     approvalResponse(requestId: string, decision: ApprovalDecision, message?: string): unknown | null {
         const pending = this.pending.get(requestId);
 
+        if (pending?.type === 'elicitation') {
+            this.pending.delete(requestId);
+
+            return controlResponse(requestId, decision === 'deny' ? { action: 'decline' } : { action: 'accept', content: {} });
+        }
+
         if (pending?.type !== 'approval') {
             return null;
         }
@@ -404,7 +431,7 @@ export class ClaudeProtocol {
 
         const response =
             decision === 'deny'
-                ? { behavior: 'deny', message: message?.trim() || 'The user declined this action', toolUseID }
+                ? { behavior: 'deny', message: denyMessage(message), toolUseID }
                 : {
                       behavior: 'allow',
                       updatedInput: pending.input,
@@ -413,7 +440,7 @@ export class ClaudeProtocol {
                       ...(decision === 'allow-always' && pending.suggestions.length > 0 ? { updatedPermissions: pending.suggestions } : {})
                   };
 
-        return { type: 'control_response', response: { subtype: 'success', request_id: requestId, response } };
+        return controlResponse(requestId, response);
     }
 
     questionResponse(requestId: string, answers: Record<string, string>): unknown | null {
@@ -456,10 +483,12 @@ export class ClaudeProtocol {
 
         this.pending.delete(requestId);
 
-        return {
-            type: 'control_response',
-            response: { subtype: 'success', request_id: requestId, response: { behavior: 'deny', message, toolUseID: pending.toolUseId ?? undefined } }
-        };
+        // Nobody answered the MCP server's question, which MCP calls a cancel; a decline would say the person refused.
+        if (pending.type === 'elicitation') {
+            return controlResponse(requestId, { action: 'cancel' });
+        }
+
+        return controlResponse(requestId, { behavior: 'deny', message, toolUseID: pending.toolUseId ?? undefined });
     }
 
     forgetPending(): void {
@@ -1176,6 +1205,12 @@ export class ClaudeProtocol {
         const request = isRecord(frame.request) ? frame.request : {};
         const requestId = str(frame.request_id);
 
+        if (requestId && request.subtype === 'elicitation') {
+            this.handleElicitation(requestId, request, events);
+
+            return;
+        }
+
         if (!requestId || request.subtype !== 'can_use_tool') {
             return;
         }
@@ -1211,6 +1246,33 @@ export class ClaudeProtocol {
             canAllowAlways: suggestions.length > 0,
             ...(suggestions.length > 0 ? { allowAlways: { label: 'Allow with these rules', description: JSON.stringify(suggestions, null, 2) } } : {})
         });
+    }
+
+    /*
+     * An MCP server asking the person something. Only a yes or no becomes a card; a form with fields or a link raises
+     * nothing, so the backend answers it `cancel` at once (`elicitationRaised`).
+     */
+    private handleElicitation(requestId: string, request: Frame, events: BackendEvent[]): void {
+        if (!isConfirmation(request)) {
+            return;
+        }
+
+        const message = str(request.message);
+        this.pending.set(requestId, { type: 'elicitation' });
+
+        events.push({
+            type: 'approval.requested',
+            requestId,
+            ref: null,
+            toolName: str(request.display_name) ?? str(request.mcp_server_name) ?? 'MCP',
+            input: {},
+            description: [str(request.title), str(request.description), message].filter((line) => line !== null).join('\n') || null,
+            canAllowAlways: false
+        });
+    }
+
+    elicitationRaised(requestId: string): boolean {
+        return this.pending.get(requestId)?.type === 'elicitation';
     }
 
     private textRef(messageId: string, ordinal: number): string {

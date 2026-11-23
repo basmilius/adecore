@@ -8,6 +8,8 @@ import { isRecord } from '@adecore/utils/record';
 import type {
     CanUseTool,
     EffortLevel,
+    ElicitationRequest,
+    ElicitationResult,
     HookInput,
     HookJSONOutput,
     McpServerConfig,
@@ -186,6 +188,16 @@ function permissionResult(frame: unknown): PermissionResult {
     return response as PermissionResult;
 }
 
+function elicitationResult(frame: unknown): ElicitationResult {
+    const response = isRecord(frame) && isRecord(frame.response) ? frame.response.response : null;
+
+    if (!isRecord(response) || (response.action !== 'accept' && response.action !== 'decline' && response.action !== 'cancel')) {
+        throw new Error('The protocol built no elicitation answer');
+    }
+
+    return response as ElicitationResult;
+}
+
 /*
  * Claude Code driven through the Claude Agent SDK. The CLI is the person's own, so the SDK starts the
  * launch command through `launch.spawn` and never the binary it bundles. The process stays alive between
@@ -210,8 +222,9 @@ export class ClaudeBackend implements ChatBackend {
     private readonly steers = new Map<string, { resolve(accepted: boolean): void; reject(reason: Error): void }>();
     private steerTimer: ReturnType<typeof setTimeout> | null = null;
     private active = false;
-    // Permission requests the CLI waits on, by its own request id; settling one hands the SDK its answer.
-    private readonly permissions = new Map<string, (result: PermissionResult) => void>();
+    // Permission and elicitation requests the CLI waits on, by its own request id; settling one with the frame the
+    // protocol built hands the SDK its answer, and with null lets the request go.
+    private readonly waiting = new Map<string, (frame: unknown | null) => void>();
     // Moves on with every stop and dispose, so a start still waiting finds out it was let go.
     private generation = 0;
     // What the process runs on now, which `reconfigure` moves on from the launch.
@@ -460,11 +473,15 @@ export class ClaudeBackend implements ChatBackend {
             ...(key !== null ? { settingSources: [], strictMcpConfig: true } : {}),
             ...(key === null && projectConfig === false ? { settingSources: ['user' as const], strictMcpConfig: true } : {}),
             ...(mcpServers.length > 0 ? { mcpServers: Object.fromEntries(mcpServers.map((server) => [server.name, mcpConfig(server)])) } : {}),
+            // Held on the command line: the person's own CLI may predate the initialize delivery the SDK will default to.
+            mcpServersDelivery: 'argv',
             // Without a preset the SDK starts the CLI on an empty system prompt instead of its own.
             systemPrompt: { type: 'preset', preset: 'claude_code', ...(instructions === null ? {} : { append: instructions }) },
             includePartialMessages: true,
             ...(this.launch.promptSuggestions ? { promptSuggestions: true } : {}),
             canUseTool: (toolName, input, permission) => this.askPermission(toolName, input, permission),
+            // Without it the SDK declines every elicitation, which tells the MCP server the person refused a question nobody saw.
+            onElicitation: (request, { requestId, signal }) => this.askElicitation(request, requestId, signal),
             // EnterWorktree moves the CLI without a `CwdChanged` hook (Claude Code 2.1.317), but every later hook carries the new `cwd`.
             hooks: { PostToolUse: [{ hooks: [async (input) => this.followWorkdir(input)] }] },
             // The echo of a message is what acknowledges a steer, and the SDK leaves the flag out.
@@ -644,12 +661,12 @@ export class ClaudeBackend implements ChatBackend {
         const { requestId, signal } = options;
 
         return new Promise((resolve) => {
-            this.permissions.set(requestId, resolve);
+            this.waiting.set(requestId, (frame) => resolve(frame === null ? { behavior: 'deny', message: 'Claude stopped' } : permissionResult(frame)));
 
             signal.addEventListener(
                 'abort',
                 () => {
-                    if (!this.permissions.delete(requestId)) {
+                    if (!this.waiting.delete(requestId)) {
                         return;
                     }
 
@@ -678,19 +695,64 @@ export class ClaudeBackend implements ChatBackend {
         });
     }
 
+    /* The request as the CLI sent it, so the protocol reads it like every other control request. */
+    private askElicitation(elicitation: ElicitationRequest, requestId: string, signal: AbortSignal): Promise<ElicitationResult> {
+        const cancel: ElicitationResult = { action: 'cancel' };
+
+        const request = {
+            subtype: 'elicitation',
+            mcp_server_name: elicitation.serverName,
+            message: elicitation.message,
+            ...(elicitation.mode === undefined ? {} : { mode: elicitation.mode }),
+            ...(elicitation.url === undefined ? {} : { url: elicitation.url }),
+            ...(elicitation.requestedSchema === undefined ? {} : { requested_schema: elicitation.requestedSchema }),
+            ...(elicitation.title === undefined ? {} : { title: elicitation.title }),
+            ...(elicitation.displayName === undefined ? {} : { display_name: elicitation.displayName }),
+            ...(elicitation.description === undefined ? {} : { description: elicitation.description })
+        };
+
+        return new Promise((resolve) => {
+            this.waiting.set(requestId, (frame) => resolve(frame === null ? cancel : elicitationResult(frame)));
+
+            signal.addEventListener(
+                'abort',
+                () => {
+                    if (!this.waiting.delete(requestId)) {
+                        return;
+                    }
+
+                    resolve(cancel);
+                    this.dispatch(this.protocol.handle({ type: 'control_cancel_request', request_id: requestId }));
+                },
+                { once: true }
+            );
+
+            try {
+                this.dispatch(this.protocol.handle({ type: 'control_request', request_id: requestId, request }));
+            } catch (error) {
+                this.failed(error);
+            }
+
+            // A form with fields or a link has no card yet; cancel says nobody saw it, where a decline would say the person refused.
+            if (!this.protocol.elicitationRaised(requestId) && this.waiting.delete(requestId)) {
+                resolve(cancel);
+            }
+        });
+    }
+
     private answer(requestId: string, frame: unknown): boolean {
         if (frame === null) {
             return false;
         }
 
-        const settle = this.permissions.get(requestId);
-        this.permissions.delete(requestId);
+        const settle = this.waiting.get(requestId);
+        this.waiting.delete(requestId);
 
         if (settle === undefined) {
             return false;
         }
 
-        settle(permissionResult(frame));
+        settle(frame);
 
         return true;
     }
@@ -801,13 +863,13 @@ export class ClaudeBackend implements ChatBackend {
         this.host.onEvent({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
     }
 
-    /* Answers every request the CLI still waits on, so no `canUseTool` promise is left hanging once the backend lets go. */
+    /* Answers every request the CLI still waits on, so no `canUseTool` or `onElicitation` promise is left hanging once the backend lets go. */
     private denyPermissions(): void {
-        const waiting = [...this.permissions.values()];
-        this.permissions.clear();
+        const waiting = [...this.waiting.values()];
+        this.waiting.clear();
 
         for (const settle of waiting) {
-            settle({ behavior: 'deny', message: 'Claude stopped' });
+            settle(null);
         }
     }
 }

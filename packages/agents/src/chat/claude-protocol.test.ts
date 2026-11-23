@@ -707,8 +707,22 @@ describe('ClaudeProtocol', () => {
             request: { subtype: 'can_use_tool', tool_name: 'Bash', input: {}, tool_use_id: 'toolu_1' }
         });
 
-        expect(protocol.approvalResponse('r2', 'deny', 'not that')).toMatchObject({
-            response: { response: { behavior: 'deny', message: 'not that' } }
+        expect(protocol.approvalResponse('r2', 'deny', 'stepping away')).toMatchObject({
+            response: { response: { behavior: 'deny', message: 'The user declined this tool call and said:\nstepping away' } }
+        });
+    });
+
+    test('a decline without a reason keeps the plain refusal', () => {
+        const protocol = new ClaudeProtocol();
+
+        protocol.handle({
+            type: 'control_request',
+            request_id: 'r2',
+            request: { subtype: 'can_use_tool', tool_name: 'Bash', input: {}, tool_use_id: 'toolu_1' }
+        });
+
+        expect(protocol.approvalResponse('r2', 'deny', '  ')).toMatchObject({
+            response: { response: { behavior: 'deny', message: 'The user declined this action' } }
         });
     });
 

@@ -169,6 +169,8 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
     let pendingApproval: { command: string } | null = null;
     let pendingQuestion: string | null = null;
+    // The request id of an MCP elicitation the fake's MCP server waits on.
+    let pendingElicitation: string | null = null;
     // What a background agent asked; its answer comes in after the turn that launched it, whenever a person gives one.
     let backgroundAsk: { requestId: string; command: string } | null = null;
     let slow = false;
@@ -1093,6 +1095,30 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             return;
         }
 
+        // An MCP server asking the person something: `elicit:` a yes or no, `elicit form:` a field, `elicit url:` a sign-in link.
+        if (text.startsWith('elicit')) {
+            const [kind, message = ''] = text.split(/:\s*/, 2);
+            const requestedSchema =
+                kind === 'elicit form' ? { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } : { type: 'object', properties: {} };
+            pendingElicitation = 'req-elicit';
+
+            out({
+                type: 'control_request',
+                request_id: pendingElicitation,
+                request: {
+                    subtype: 'elicitation',
+                    mcp_server_name: 'tracker',
+                    message,
+                    ...(kind === 'elicit url'
+                        ? { mode: 'url', url: 'https://tracker.example/sign-in', elicitation_id: 'el-1' }
+                        : { mode: 'form', requested_schema: requestedSchema }),
+                    display_name: 'Tracker'
+                }
+            });
+
+            return;
+        }
+
         if (text.startsWith('tool:')) {
             const command = text.slice(5).trim();
             const id = `msg_${nonce}_${++messageCounter}`;
@@ -1136,8 +1162,16 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
     const handleControlResponse = (response: Record<string, unknown>): void => {
         const inner = response.response as
-            | { behavior?: string; message?: string; updatedInput?: { answers?: Record<string, string> }; updatedPermissions?: unknown[] }
+            | { behavior?: string; message?: string; updatedInput?: { answers?: Record<string, string> }; updatedPermissions?: unknown[]; action?: string }
             | undefined;
+
+        if (pendingElicitation !== null && response.request_id === pendingElicitation) {
+            pendingElicitation = null;
+            assistantText(`the MCP server heard ${inner?.action ?? 'nothing'}`);
+            result();
+
+            return;
+        }
 
         if (backgroundAsk !== null && response.request_id === backgroundAsk.requestId) {
             const { command } = backgroundAsk;
@@ -1176,7 +1210,11 @@ export function fakeClaude(io: FakeIo): FakeProgram {
         } else {
             out({
                 type: 'user',
-                message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: 'denied by user', is_error: true }] },
+                // The CLI hands the deny message to the model as the tool's result.
+                message: {
+                    role: 'user',
+                    content: [{ type: 'tool_result', tool_use_id: 'toolu_1', content: inner?.message ?? 'denied by user', is_error: true }]
+                },
                 session_id: sessionId
             });
 
@@ -1256,6 +1294,14 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
                 if (request.subtype === 'stop_task' && (request.task_id === 'a-one' || request.task_id === 'a-two')) {
                     settleTwo(request.task_id, true);
+                }
+
+                // The CLI takes back what the MCP server asked once its turn is interrupted.
+                if (request.subtype === 'interrupt' && pendingElicitation !== null) {
+                    out({ type: 'control_cancel_request', request_id: pendingElicitation });
+                    pendingElicitation = null;
+                    assistantText('[interrupted]');
+                    result();
                 }
 
                 if (request.subtype === 'interrupt' && slow) {

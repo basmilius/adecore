@@ -781,6 +781,81 @@ describe('the entrypoint the CLI names its host by', () => {
     });
 });
 
+describe('an MCP elicitation', () => {
+    const started = async (): Promise<Run> => {
+        const run = open();
+        await run.backend.start();
+
+        return run;
+    };
+
+    const heard = (events: readonly BackendEvent[], action: string): boolean =>
+        events.some((event) => event.type === 'text.done' && event.text === `the MCP server heard ${action}`);
+
+    test("a yes or no becomes the person's approval card, and the server hears the answer", async () => {
+        for (const [decision, action] of [
+            ['allow', 'accept'],
+            ['deny', 'decline']
+        ] as const) {
+            const { backend, events } = await started();
+            backend.sendTurn(turn('elicit: Close issue 12?', 'p1'));
+            await until(() => events.some((event) => event.type === 'approval.requested'));
+
+            // An approval, never a question, so a delegating agent cannot answer it for the person.
+            expect(events.filter((event) => event.type === 'question.requested')).toEqual([]);
+            expect(events.find((event) => event.type === 'approval.requested')).toEqual({
+                type: 'approval.requested',
+                requestId: 'req-elicit',
+                ref: null,
+                toolName: 'Tracker',
+                input: {},
+                description: 'Close issue 12?',
+                canAllowAlways: false
+            });
+
+            expect(backend.respondApproval('req-elicit', decision)).toBe(true);
+            await until(() => doneTurns(events) === 1);
+            expect(heard(events, action)).toBe(true);
+            await backend.dispose();
+        }
+    });
+
+    test('a form with fields or a sign-in link is cancelled without a card, never declined', async () => {
+        for (const prompt of ['elicit form: Your name?', 'elicit url: Sign in to the tracker']) {
+            const { backend, events } = await started();
+            backend.sendTurn(turn(prompt, 'p1'));
+            await until(() => doneTurns(events) === 1);
+
+            expect(heard(events, 'cancel')).toBe(true);
+            expect(events.some((event) => event.type === 'approval.requested')).toBe(false);
+            await backend.dispose();
+        }
+    });
+
+    test('a stop withdraws the card, and the server hears a cancel', async () => {
+        const { backend, events } = await started();
+        backend.sendTurn(turn('elicit: Close issue 12?', 'p1'));
+        await until(() => events.some((event) => event.type === 'approval.requested'));
+        backend.interrupt();
+        await until(() => events.some((event) => event.type === 'request.withdrawn'));
+
+        expect(events).toContainEqual({ type: 'request.withdrawn', requestId: 'req-elicit' });
+        expect(backend.respondApproval('req-elicit', 'allow')).toBe(false);
+        await backend.dispose();
+    });
+
+    test('a stopped chat cancels the request it still waits on', async () => {
+        const { backend, events } = await started();
+        backend.sendTurn(turn('elicit: Close issue 12?', 'p1'));
+        await until(() => events.some((event) => event.type === 'approval.requested'));
+
+        expect(backend.declineRequest('req-elicit', 'The user stopped the turn')).toBe(true);
+        await until(() => doneTurns(events) === 1);
+        expect(heard(events, 'cancel')).toBe(true);
+        await backend.dispose();
+    });
+});
+
 describe('the Claude backend letting go', () => {
     test('reports the exit of a CLI whose stdout a process it started still holds open', async () => {
         let exit: ChatSpawnOptions['onExit'] = () => undefined;
