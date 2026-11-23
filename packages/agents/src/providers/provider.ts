@@ -3,6 +3,7 @@ import type { BackendHost, BackendLaunch, ChatBackend } from '../backends/backen
 import type { CliMcpServer } from '../backends/cli-mcp.ts';
 import type { ProbeResult } from '../backends/limits-probe.ts';
 import type { ProviderThreads } from '../backends/threads.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import type { AccountReading } from './accounts/status.ts';
 import type { ModelCatalog } from './catalog.ts';
 import type { CliDetection } from './detect.ts';
@@ -44,6 +45,12 @@ export type SubagentSource = 'claude-transcript' | 'codex-thread';
 
 /* The host's additions to a launch, applied to every start of a CLI before its backend is made. */
 export type LaunchDecorator = (launch: BackendLaunch) => BackendLaunch;
+
+export interface ModelRefresh {
+    maxAgeMs: number;
+    // How the session's process starts; absent starts the command itself.
+    spawn?: SpawnChatProcess;
+}
 
 /* How a terminal starts this CLI, which the host builds a line from. */
 export interface ProviderTerminal {
@@ -122,6 +129,12 @@ export interface ChatProvider {
     enabled?(): boolean;
     /* Asks the CLI, started in an account's environment, who is signed in there. Absent on a CLI that cannot say, whose accounts the host then lists as logins it cannot check. */
     askAccount?(command: readonly string[], env: Record<string, string | undefined>): Promise<AccountReading>;
+    /*
+     * Opens a session of the CLI only to read the models it offers, unless one reported them less than `maxAgeMs` ago;
+     * answers whether it asked. For a CLI whose list changes on the vendor's side while no chat runs. Absent on a CLI
+     * that cannot report its models this way.
+     */
+    refreshModels?(command: readonly string[], env: Record<string, string | undefined>, refresh: ModelRefresh): Promise<boolean>;
     /* Asks the CLI what is left of the plan it runs on. Absent leaves the plan to the host's own reader. */
     probeLimits?(command: readonly string[], env: Record<string, string>): Promise<ProbeResult>;
     /* Puts what the host needs in a config folder of this CLI (rules for its commands, hooks); absent puts nothing there. */

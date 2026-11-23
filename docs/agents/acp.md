@@ -38,7 +38,8 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `usageLog` | A folder to log those turns to. See [Usage](#usage). |
 | `allowToolsArgs(serverName)` | The arguments put on the agent's line for each server that allows its tools, for an agent whose permission requests name no server (Copilot's `--allow-tool=<server>`). |
 | `executable`, `terminal`, `launch`, `leanOneShotArgs` | What the provider says of its terminal, the host's launch additions and its short one-shot run. See [Providers](./providers#what-a-provider-describes). |
-| `accountProbe` | `false` drops `askAccount`, so the host's own reader checks accounts. |
+| `accountProbe` | `false` drops `askAccount` and `refreshModels`, so the host's own reader checks accounts. |
+| `now` | The clock that dates the models a session reports, for `refreshModels`. Absent is `Date.now`. |
 | `adoptModels` | `false` keeps `catalog` instead of adopting the models a session reports. |
 | `catalogStore` | Persists what the agent reported, so a restarted host offers it at once (`AcpCatalogStore`). See [Models](#models). |
 | `onCommands(commands)` | The session's slash commands, without the slash, each time the agent lists them. |
@@ -140,6 +141,8 @@ What `onSession` gets names the session, the agent (name, title and version), it
 The `models` of that report hold the models a session offers, read from a `model` config option or the older `models` field. The backend switches through the option or `session/set_model`. A model the agent does not offer keeps the agent's own, and the thread gets a note. Its `thoughtLevel` holds the reasoning effort as a list of choices. After the model, the backend sets the selection's `effort` when the agent offers that value for the model.
 
 The provider adopts the models a session reports into its `catalog` (`ModelCatalog.adopt`). The agent's current model becomes the default, the rest follow in the agent's order and names. A reported reasoning effort becomes the profile's `effort` option, with the agent's current value as default. A session without models leaves the catalog as it was. Account checks open sessions too, so the list is usually there before the first chat. Set `adoptModels: false` to keep the host's catalog. `onSession` still sees every session.
+
+An agent's list can change on the vendor's side while no chat runs. `refreshModels(command, env, refresh)` takes a `ModelRefresh`, `{ maxAgeMs, spawn? }`, and opens a session only to read the models, unless a session reported them less than `maxAgeMs` ago by the spec's `now` clock, and answers whether it asked. Since the session it opens may stay in the agent's history, a host calls it at moments a person comes back with an age of hours, never in a loop. A provider with `adoptModels: false` or `accountProbe: false` has no `refreshModels`.
 
 The provider calls its `onChange` listeners when the models change. `ProviderRegistry.onChange` passes that on with the provider's kind, so a host can send clients the new list.
 

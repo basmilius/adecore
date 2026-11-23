@@ -473,6 +473,8 @@ export function createAntigravityProvider(options: AntigravityProviderOptions = 
         get capabilities() {
             return server === null || server.launch() !== null ? base.capabilities : { ...base.capabilities, chat: false };
         },
+        // Without a server, `command` is `agy` itself, which opens its own interface instead of a session.
+        refreshModels: async (command, env, refresh) => (server?.launch() == null ? false : ((await base.refreshModels?.(command, env, refresh)) ?? false)),
         createBackend: (backendLaunch, host) => {
             if (server?.launch() == null) {
                 throw new Error(options.installHint ?? 'Install the Antigravity server first.');

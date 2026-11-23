@@ -251,6 +251,7 @@ exports[`the public API ./providers exports these names 1`] = `
   "type CliMcpServer",
   "type CodexRules",
   "type LaunchDecorator",
+  "type ModelRefresh",
   "type ProviderAccountsOptions",
   "type ProviderRegistryOptions",
   "type SecretStore",

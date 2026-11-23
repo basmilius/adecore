@@ -77,6 +77,7 @@ interface AcpAgentStateOptions {
     base: ProviderCapabilities;
     // What the host set itself, which wins over what the agent said.
     overrides: Partial<ProviderCapabilities>;
+    now: () => number;
 }
 
 /*
@@ -94,6 +95,8 @@ export class AcpAgentState {
     private reportsContext = false;
     // The slash commands the last session listed; null until one did.
     private commands: string[] | null = null;
+    // When a session last reported the agent's models, on the host's clock; null until one did.
+    private checkedAt: number | null = null;
 
     constructor(options: AcpAgentStateOptions) {
         this.options = options;
@@ -114,7 +117,25 @@ export class AcpAgentState {
             return;
         }
 
-        this.settle(this.adopt({ defaultModel: info.models.current, models: adoptableModels(info), options: effortOption(info) }));
+        this.checkedAt = this.options.now();
+        const changed = this.adopt({ defaultModel: info.models.current, models: adoptableModels(info), options: effortOption(info) });
+        // Saved when the models stayed too, so a host that starts again knows how recent they are.
+        this.save();
+
+        if (changed) {
+            this.notify();
+        }
+    }
+
+    /* Whether a session reported the agent's models less than `maxAgeMs` ago. A time ahead of the clock counts as never, so a clock set back cannot hold the models still. */
+    checkedWithin(maxAgeMs: number): boolean {
+        if (this.checkedAt === null) {
+            return false;
+        }
+
+        const age = this.options.now() - this.checkedAt;
+
+        return age >= 0 && age < maxAgeMs;
     }
 
     commandsListed(commands: readonly string[]): void {
@@ -165,6 +186,7 @@ export class AcpAgentState {
 
         this.reportsContext = record.reportsContext === true;
         this.commands = storedPart(z.array(z.string()), record.commands);
+        this.checkedAt = storedPart(z.number().nonnegative(), record.checkedAt);
         this.refresh();
     }
 
@@ -234,7 +256,8 @@ export class AcpAgentState {
         return {
             ...(this.adopted === null ? {} : { models: this.adopted }),
             ...(this.reportsContext ? { reportsContext: true } : {}),
-            ...(this.commands === null ? {} : { commands: this.commands })
+            ...(this.commands === null ? {} : { commands: this.commands }),
+            ...(this.checkedAt === null ? {} : { checkedAt: this.checkedAt })
         };
     }
 }

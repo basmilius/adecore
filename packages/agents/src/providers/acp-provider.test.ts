@@ -256,11 +256,54 @@ test('keeps the models a session reported in the host store, so a provider made 
     expect(changes).toBe(1);
     expect(store.saved).toHaveLength(1);
     await oneSession(provider, { reasoningEffort: 'accept' });
+    // The same models again change nothing, and are saved only for when they were reported.
     expect(changes).toBe(1);
+    expect(store.saved).toHaveLength(2);
 
     const restarted = createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), catalogStore: store });
     expect(restarted.catalog.defaultModel).toBe('fake-small');
     expect(restarted.catalog.list()).toEqual(provider.catalog.list());
+});
+
+test('refreshes its models with a session of its own only once the last report is older than the host allows, also after a restart', async () => {
+    let now = 1_000;
+    const store = memoryStore();
+    const spec = { kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), catalogStore: store, now: () => now } as const;
+    const provider = createAcpProvider(spec);
+    const fake = inProcess(fakeAcp);
+    const refresh = { maxAgeMs: 100, spawn: fake.spawn };
+
+    expect(await provider.refreshModels?.(provider.command, {}, refresh)).toBe(true);
+    expect(provider.catalog.list().map((model) => model.slug)).toEqual(['fake-small', 'fake-large']);
+
+    now = 1_099;
+    expect(await provider.refreshModels?.(provider.command, {}, refresh)).toBe(false);
+    expect(await createAcpProvider({ ...spec, catalog: agentDefault() }).refreshModels?.(provider.command, {}, refresh)).toBe(false);
+    expect(fake.started).toHaveLength(1);
+
+    now = 1_100;
+    expect(await provider.refreshModels?.(provider.command, {}, refresh)).toBe(true);
+    expect(fake.started).toHaveLength(2);
+});
+
+test('counts a report dated ahead of the clock as none', async () => {
+    let now = 5_000;
+    const provider = createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), now: () => now });
+    const fake = inProcess(fakeAcp);
+    await provider.refreshModels?.(provider.command, {}, { maxAgeMs: 100, spawn: fake.spawn });
+
+    now = 1_000;
+
+    expect(await provider.refreshModels?.(provider.command, {}, { maxAgeMs: 100, spawn: fake.spawn })).toBe(true);
+});
+
+test('refreshes no models where the spec keeps its catalog or checks no account', () => {
+    expect(
+        createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), adoptModels: false }).refreshModels
+    ).toBeUndefined();
+    expect(
+        createAcpProvider({ kind: 'example', name: 'Example', command: 'example', catalog: agentDefault(), accountProbe: false }).refreshModels
+    ).toBeUndefined();
 });
 
 test('writes the effort names a store kept in lowercase with a capital, and keeps their ids', () => {

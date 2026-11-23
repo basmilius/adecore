@@ -372,6 +372,18 @@ describe('Antigravity', () => {
         expect(() => provider.createBackend({} as BackendLaunch, { onEvent: () => undefined })).toThrow('Install the Antigravity server');
     });
 
+    test('reads its models from the installed server, and asks nothing without one', async () => {
+        const fake = inProcess(fakeAcpWith({}));
+
+        expect(await createAntigravityProvider({ server: missing }).refreshModels?.(['agy'], {}, { maxAgeMs: 0, spawn: fake.spawn })).toBe(false);
+        expect(fake.started).toHaveLength(0);
+
+        const provider = createAntigravityProvider({ server: installed });
+
+        expect(await provider.refreshModels?.(provider.command, {}, { maxAgeMs: 0, spawn: fake.spawn })).toBe(true);
+        expect(provider.catalog.list().map((model) => model.slug)).toEqual(['fake-small', 'fake-large']);
+    });
+
     test('offers a second account, signed in from its chat, in a GEMINI_HOME of its own', async () => {
         const home = await newHome();
 

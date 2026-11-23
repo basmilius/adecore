@@ -66,6 +66,8 @@ export interface AcpProviderSpec extends AcpAgentSpec {
     usageLog?: string;
     // Keeps the models the agent reported across a restart of the host; absent starts from `catalog` every time.
     catalogStore?: AcpCatalogStore;
+    // The clock that dates the models a session reports, for `refreshModels`; absent is the system's.
+    now?: () => number;
 }
 
 /* Agents whose own usage files the scanner reads; a log of their turns would count every one twice. */
@@ -77,7 +79,8 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
         adoptModels: spec.adoptModels !== false,
         store: spec.catalogStore ?? null,
         base: ACP_CAPABILITIES,
-        overrides: spec.capabilities ?? {}
+        overrides: spec.capabilities ?? {},
+        now: spec.now ?? Date.now
     });
 
     const onSession = (info: AcpSessionInfo): void => {
@@ -137,6 +140,28 @@ export function createAcpProvider(spec: AcpProviderSpec): ChatProvider {
                           onSession,
                           onCommands
                       })
+              }),
+        // The account check's session tells the models too; a signed-out agent opens none and leaves them as they were.
+        ...(spec.accountProbe === false || spec.adoptModels === false
+            ? {}
+            : {
+                  refreshModels: async (command, env, refresh) => {
+                      if (state.checkedWithin(refresh.maxAgeMs)) {
+                          return false;
+                      }
+
+                      await askAcpAccount({
+                          name: spec.name,
+                          command,
+                          env: { ...env, ...spec.env },
+                          ...(spec.client ? { client: spec.client } : {}),
+                          ...(refresh.spawn ? { spawn: refresh.spawn } : {}),
+                          onSession,
+                          onCommands
+                      });
+
+                      return true;
+                  }
               }),
         createBackend: createAcpBackend({
             ...spec,

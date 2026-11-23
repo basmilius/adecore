@@ -23,7 +23,7 @@ export { createCodexProvider } from './codex-provider.ts';
 export { type CodexRules, codexRulesText, codexRulesPathIn, defaultCodexHome } from './codex-rules.ts';
 export { codexThreadOptions, codexServiceTier } from '../backends/codex.ts';
 export { type CliDetection, detectCli } from './detect.ts';
-export { type ChatProvider, type ClaudeCodeRuntime, type LaunchDecorator, cliExecutable } from './provider.ts';
+export { type ChatProvider, type ClaudeCodeRuntime, type LaunchDecorator, type ModelRefresh, cliExecutable } from './provider.ts';
 export { nanoGptVendorOf } from './nanogpt-vendor.ts';
 export { ProviderRegistry, type ProviderRegistryOptions } from './registry.ts';
 export { MODE_ORDER, narrowerMode, ceilingForOpening, modeField } from '../modes.ts';
