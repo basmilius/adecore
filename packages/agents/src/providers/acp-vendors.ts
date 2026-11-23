@@ -32,6 +32,8 @@ interface CopilotProviderOptions extends AcpVendorOptions {
 }
 
 interface AntigravityProviderOptions extends AcpVendorOptions {
+    // The folder every turn's usage is logged to (`antigravityUsageDirectory`); absent logs nothing.
+    readonly usageLog?: string;
     // How the version probe starts `agy`; absent spawns it.
     readonly spawn?: SpawnChatProcess;
 }
@@ -460,6 +462,14 @@ export function antigravityOneShotArgs(prompt: string): string[] {
     return ['-p', prompt, '--output-format', 'text'];
 }
 
+/*
+ * Where every Antigravity turn's usage is logged under a host's data folder. agy keeps its conversations in a format of
+ * its own, so the log counts the turns from its prompt responses, under the model the session ran.
+ */
+export function antigravityUsageDirectory(home: string): string {
+    return join(home, 'usage', 'antigravity');
+}
+
 /* Whether an `x.y.z` version is older than the floor; a version that is not one says nothing. */
 function olderThan(version: string, floor: string): boolean {
     const partsOf = (text: string) => /(\d+)\.(\d+)\.(\d+)/.exec(text)?.slice(1).map(Number) ?? null;
@@ -487,7 +497,13 @@ function olderThan(version: string, floor: string): boolean {
  * the version probe found older than the floor offers no chat and starts none.
  */
 export function createAntigravityProvider(options: AntigravityProviderOptions = {}): ChatProvider {
-    const base = createAcpProvider({ ...ANTIGRAVITY_SPEC, catalog: shippedAgentCatalog('antigravity'), ...hostSpec(options) });
+    const base = createAcpProvider({
+        ...ANTIGRAVITY_SPEC,
+        catalog: shippedAgentCatalog('antigravity'),
+        ...hostSpec(options),
+        ...(options.usageLog === undefined ? {} : { usageLog: options.usageLog })
+    });
+
     let version: string | null = null;
     const tooOld = (): boolean => version !== null && olderThan(version, ANTIGRAVITY_MIN_VERSION);
 

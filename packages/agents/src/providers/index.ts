@@ -6,6 +6,7 @@ export {
     type AcpVendorOptions,
     agentDefaultCatalog,
     agentModel,
+    antigravityUsageDirectory,
     copilotUsageDirectory,
     createGrokProvider,
     createCopilotProvider,

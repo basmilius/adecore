@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import type { SpawnChatProcess } from '../chat-process.ts';
+import mcpTurnFixture from '../chat/fixtures/antigravity-1.5.15-mcp-turn.json' with { type: 'json' };
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageService } from '../usage/usage-service.ts';
@@ -14,6 +15,7 @@ import {
     GROK_MODES,
     adoptGrokModels,
     antigravityOneShotArgs,
+    antigravityUsageDirectory,
     copilotUsageDirectory,
     createAntigravityProvider,
     createCopilotProvider,
@@ -40,6 +42,9 @@ async function newHome(): Promise<string> {
 }
 
 const GROK_SESSION_MODES = ['default', 'plan', 'ask'];
+
+// A JSON import widens the frames to every shape the capture holds; only a prompt response's usage is read.
+const mcpTurn = mcpTurnFixture as unknown as { frames: Array<{ frame: { result?: { usage?: Record<string, number> } } }> };
 
 function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial<BackendLaunch> = {}) {
     const events: BackendEvent[] = [];
@@ -459,6 +464,41 @@ describe('Antigravity', () => {
         await turnDone;
         expect(textOf(events)).toBe('echo: hello');
         await backend.dispose();
+    });
+
+    test("a turn's recorded usage lands on the usage page under Antigravity and the session's model, with no price for it", async () => {
+        const home = await newHome();
+        setSystemTime(Date.UTC(2026, 10, 23, 12));
+
+        try {
+            // The first prompt response of agy 1.5.15: its output already holds the thoughts (total = input + cached + output).
+            const response = mcpTurn.frames.map((frame) => frame.frame.result?.usage).find((usage) => usage !== undefined);
+            const { backend, events, turnDone } = run(createAntigravityProvider({ usageLog: antigravityUsageDirectory(home) }), {
+                modes: AGY_MODES,
+                turnUsage: response
+            });
+
+            await backend.start();
+            const model = events.flatMap((event) => (event.type === 'session' ? [event.model] : []))[0];
+            backend.sendTurn(HELLO);
+            await turnDone;
+            await backend.dispose();
+
+            const usage = new UsageService({
+                home,
+                allowPriceFetch: false,
+                knownProjects: async () => [],
+                roots: () => [{ provider: 'antigravity', path: antigravityUsageDirectory(home) }]
+            });
+
+            const summary = await usage.summary({ from: '2026-11-23', to: '2026-11-23', resolution: 'day', timeZone: 'UTC' });
+            usage.stop();
+            expect(model).toBe('fake-small');
+            expect(summary.models).toEqual([expect.objectContaining({ provider: 'antigravity', model, costUsd: null })]);
+            expect(summary.models[0]?.totals).toMatchObject({ calls: 1, input: 13964, cacheRead: 14716, output: 310, reasoning: 214 });
+        } finally {
+            setSystemTime();
+        }
     });
 
     test('each runtime mode runs in a mode agy 1.5 offers, full access in default with the backend answering', async () => {

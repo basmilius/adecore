@@ -17,6 +17,7 @@
     --chart-copilot: #64748b;
     --chart-nanogpt: #34c759;
     --chart-grok: #ff2d55;
+    --chart-antigravity: #5856d6;
     /* What a chat's context holds, one color per part; the rest is the system's and stays gray. */
     --chart-context-tools: #4d7ce6;
     --chart-context-files: #9a63e0;
@@ -45,6 +46,7 @@
     --chart-copilot: #94a3b8;
     --chart-nanogpt: #30d158;
     --chart-grok: #ff375f;
+    --chart-antigravity: #5e5ce6;
     --chart-context-tools: #8aa7f5;
     --chart-context-files: #b98af3;
     --chart-context-conversation: #6dd08b;
@@ -79,6 +81,7 @@
     --color-chart-copilot: var(--chart-copilot);
     --color-chart-nanogpt: var(--chart-nanogpt);
     --color-chart-grok: var(--chart-grok);
+    --color-chart-antigravity: var(--chart-antigravity);
     --color-chart-context-tools: var(--chart-context-tools);
     --color-chart-context-files: var(--chart-context-files);
     --color-chart-context-conversation: var(--chart-context-conversation);

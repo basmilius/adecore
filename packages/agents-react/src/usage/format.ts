@@ -32,7 +32,8 @@ export const PROVIDER_LABELS: Record<UsageProvider, string> = {
     nanogpt: 'NanoGPT',
     grok: 'Grok',
     copilot: 'GitHub Copilot',
-    'anthropic-claude-api': 'Claude API'
+    'anthropic-claude-api': 'Claude API',
+    antigravity: 'Antigravity'
 };
 
 export const PROVIDER_COLORS: Record<UsageProvider, string> = {
@@ -41,7 +42,8 @@ export const PROVIDER_COLORS: Record<UsageProvider, string> = {
     nanogpt: 'var(--chart-nanogpt)',
     grok: 'var(--chart-grok)',
     copilot: 'var(--chart-copilot)',
-    'anthropic-claude-api': 'var(--chart-claude-api)'
+    'anthropic-claude-api': 'var(--chart-claude-api)',
+    antigravity: 'var(--chart-antigravity)'
 };
 
 /*

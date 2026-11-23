@@ -126,7 +126,7 @@ A provider whose chats run Claude Code carries `claudeCode`, a `ClaudeCodeRuntim
 These three ACP agents each have a factory: `createGrokProvider`, `createCopilotProvider` and `createAntigravityProvider`. Each provider runs a chat over ACP and starts as a terminal. The registry does not include them by default, so add the ones you offer:
 
 ```ts
-import { copilotUsageDirectory, createAntigravityProvider, createCopilotProvider, createGrokProvider, ProviderRegistry } from '@adecore/agents/providers';
+import { antigravityUsageDirectory, copilotUsageDirectory, createAntigravityProvider, createCopilotProvider, createGrokProvider, ProviderRegistry } from '@adecore/agents/providers';
 
 const client = {
     name: 'example',
@@ -147,7 +147,8 @@ const registry = new ProviderRegistry({
         }),
         createAntigravityProvider({
             client,
-            launch: withOwnServer
+            launch: withOwnServer,
+            usageLog: antigravityUsageDirectory(dataDir)
         })
     ]
 });
@@ -155,7 +156,7 @@ const registry = new ProviderRegistry({
 
 Every factory takes `AcpVendorOptions`. `client` is how your host names itself in `initialize`. `launch` runs on every launch before its backend starts, for example to add your MCP servers to `mcpServers`. `catalogStore` keeps the models an agent reported across a restart.
 
-`createCopilotProvider` adds `usageLog`, the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
+`createCopilotProvider` and `createAntigravityProvider` add `usageLog`, the folder the provider writes each turn's usage to. Neither CLI keeps a usage file the scanner can read, so add `copilotUsageDirectory(home)` under `copilot` and `antigravityUsageDirectory(home)` under `antigravity` to the usage roots too. A turn counts under the model its session ran, since agy's prompt response names none.
 
 Antigravity's chats run on `agy acp` from the person's own `agy`, which must be 1.5.15 or newer. When the version probe finds an older one, the provider offers no chat and refuses to start one, but still runs as a terminal. Every `agy` the provider starts for a chat, a probe or the version check runs with `AGY_CLI_DISABLE_AUTO_UPDATE=1`, since an update signs out every `agy` on the machine.
 

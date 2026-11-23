@@ -214,6 +214,7 @@ exports[`the public API ./providers exports these names 1`] = `
   "ProviderRegistry",
   "agentDefaultCatalog",
   "agentModel",
+  "antigravityUsageDirectory",
   "ceilingForOpening",
   "chooseAccount",
   "cliExecutable",

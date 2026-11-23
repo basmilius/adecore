@@ -3,7 +3,7 @@ import { AccountDot, AgentIcon, ProviderLogo, CliMark, CliTile } from '@adecore/
 import { DemoChatHost } from '../shared/agents.tsx';
 
 const KINDS: AgentKind[] = ['claude', 'codex', 'grok', 'gemini', 'copilot', 'apple'];
-const PROVIDERS: UsageProvider[] = ['claude', 'codex', 'nanogpt', 'grok', 'copilot'];
+const PROVIDERS: UsageProvider[] = ['claude', 'codex', 'nanogpt', 'grok', 'copilot', 'antigravity'];
 
 export default function MarksDemo() {
     return (
