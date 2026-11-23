@@ -21,6 +21,7 @@ import {
     CircleAlert,
     CircleCheck,
     CircleX,
+    Clock,
     File,
     Info,
     MessageCircleQuestionMark,
@@ -739,14 +740,14 @@ function OpenChatButton({ chatId, label }: { chatId: string; label: 'openFork' |
  * The header of a turn the agent started itself, in place of a message of the person. What the
  * sub-agent came back with lives on its own row, which the header opens when the CLI named it.
  */
-export function AgentTurnRow({ label, onOpen }: { label: string; onOpen?: () => void }) {
+export function AgentTurnRow({ label, wakeup = false, onOpen }: { label: string; wakeup?: boolean; onOpen?: () => void }) {
     const line = 'mb-0.5 flex h-7 w-full items-center gap-2 text-left text-xs text-text-muted';
 
     // A header with nowhere to go is text to read and copy; one that opens a row is a button.
     const content = (
         <>
             <span className={ROW_GUTTER}>
-                <Icon icon={Bot} size={12} />
+                <Icon icon={wakeup ? Clock : Bot} size={12} />
             </span>
             <span className={clsx('min-w-0 truncate', onOpen === undefined && 'select-text')}>{label}</span>
         </>

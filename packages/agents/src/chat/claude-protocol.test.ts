@@ -1506,14 +1506,54 @@ describe('a wakeup the CLI scheduled', () => {
         expect(background(run.protocol.handle(woken[0]))).toEqual([['background.ended', wakeup]]);
     });
 
+    const notified = woken.map((frame) => (frame.type === 'result' ? { ...frame, origin: { kind: 'task-notification' } } : frame));
+
+    /* What the woken turn's events leave in a thread of its own: whether each turn is marked as the wakeup. */
+    const marks = (events: readonly BackendEvent[]) => {
+        const thread = fixtureThread('wakeup-fixture');
+        const projector = new ThreadProjector(thread, { providerName: 'Claude' });
+
+        for (const event of events) {
+            projector.project(1, event);
+        }
+
+        return thread.list().flatMap((item) => (item.kind === 'turn' ? [item.wakeup] : []));
+    };
+
     test('a turn the CLI starts up to two minutes early is the wakeup once its result is not a task notification', () => {
         const early = wake(scheduledFor - 30_000);
-        const notified = woken.map((frame) => (frame.type === 'result' ? { ...frame, origin: { kind: 'task-notification' } } : frame));
 
         expect(background(early)).toEqual([['background.ended', wakeup]]);
-        expect(early.slice(-2).map((event) => event.type)).toEqual(['background.ended', 'turn.done']);
+        expect(early.slice(-3).map((event) => event.type)).toEqual(['background.ended', 'turn.wakeup', 'turn.done']);
         expect(background(wake(scheduledFor - 121_000))).toEqual([]);
         expect(background(wake(scheduledFor - 30_000, notified))).toEqual([]);
+    });
+
+    test('marks the turn it starts, and one that came early once its result settles it', () => {
+        expect(marks(wake(scheduledFor))).toEqual([true]);
+        expect(marks(wake(scheduledFor - 30_000))).toEqual([true]);
+    });
+
+    test('leaves a turn a task notification or nothing it knows of started unmarked', () => {
+        expect(marks(wake(scheduledFor - 30_000, notified))).toEqual([undefined]);
+        expect(marks(wake(scheduledFor - 121_000))).toEqual([undefined]);
+    });
+
+    test("marks nothing for a person's prompt that took it along or a Stop that dropped it", () => {
+        const late = schedule();
+        late.clock.now = scheduledFor;
+        late.protocol.beginPrompt('p2');
+        const joined = woken.flatMap((frame) => late.protocol.handle(frame));
+
+        const stopped = schedule();
+        stopped.protocol.beginPrompt('p2');
+        stopped.protocol.handle({ type: 'assistant', message: { id: 'm-stop', content: [{ type: 'text', text: 'working' }] } });
+        stopped.protocol.noteInterrupt();
+        const dropped = stopped.protocol.handle({ type: 'result', subtype: 'success', is_error: false, user_message_uuids: ['p2'] });
+
+        expect(background(joined)).toEqual([['background.ended', wakeup]]);
+        expect(background(dropped)).toEqual([['background.ended', wakeup]]);
+        expect([...joined, ...dropped].some((event) => event.type === 'turn.wakeup')).toBe(false);
     });
 
     const calls = [

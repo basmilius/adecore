@@ -207,6 +207,10 @@ export function agentTurnLabel(turn: ChatThreadTurn): string {
         return about(i18next.t('agent-chat:turn.wokenByMessage', { count: turn.messageFrom.length }));
     }
 
+    if (turn.wakeup === true) {
+        return i18next.t('agent-chat:activity.wakeup');
+    }
+
     if (!turn.label) {
         return i18next.t('agent-chat:turn.continued');
     }

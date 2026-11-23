@@ -1302,6 +1302,11 @@ export class ClaudeProtocol {
 
         if (now >= this.wakeup.scheduledFor) {
             this.endWakeup(events);
+
+            // A prompt of the person's that starts after the time took the wakeup along; that turn stays theirs.
+            if (this.promptId === null) {
+                events.push({ type: 'turn.wakeup' });
+            }
         } else {
             this.earlyWake = this.promptId === null && now >= this.wakeup.scheduledFor - WAKEUP_EARLY_FIRE_MS;
         }
@@ -1314,6 +1319,7 @@ export class ClaudeProtocol {
 
         if (this.earlyWake && origin !== 'task-notification') {
             this.endWakeup(events);
+            events.push({ type: 'turn.wakeup' });
         }
 
         this.earlyWake = false;

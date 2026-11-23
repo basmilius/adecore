@@ -115,6 +115,8 @@ export type BackendEvent =
     | { type: 'turn.accepted'; promptId: string }
     // The CLI opened a turn, for a CLI that says so before the turn's first item; a turn it opened itself runs from here.
     | { type: 'turn.started' }
+    // The turn the CLI opened by itself is the wakeup the agent scheduled; for one that came early, only at its end.
+    | { type: 'turn.wakeup' }
     // `title` is the name the CLI already has for the thread, as a resumed Codex thread carries it.
     | {
           type: 'session';

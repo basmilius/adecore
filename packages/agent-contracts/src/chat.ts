@@ -728,6 +728,8 @@ export const ChatTurnItemSchema = z.object({
     label: z.string().optional(),
     // The Agent call the CLI woke up about, so the header can point at the subagent row it belongs to.
     taskToolUseId: z.string().optional(),
+    // Set on an agent turn a wakeup the agent scheduled for itself started.
+    wakeup: z.boolean().optional(),
     endedAt: z.number().nullable(),
     costUsd: z.number().nonnegative(),
     // The git tree of the chat's folder when the turn started; absent outside a repository.

@@ -61,7 +61,7 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
         case 'turn-start': {
             const toolUseId = row.turn.taskToolUseId;
 
-            return <AgentTurnRow label={row.label} onOpen={toolUseId ? () => openSubagent(toolUseId) : undefined} />;
+            return <AgentTurnRow label={row.label} wakeup={row.turn.wakeup === true} onOpen={toolUseId ? () => openSubagent(toolUseId) : undefined} />;
         }
         case 'assistant':
             return <AssistantRow chatId={chatId} item={row.item} />;

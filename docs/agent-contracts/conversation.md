@@ -70,7 +70,7 @@ A tool in `error` with `stopped` ended because a person stopped the turn while i
 
 An `assistant` or `tool` item with a `parentToolUseId` is a subagent's work. Draw it under that subagent, not as the chat's answer. A subagent item's `itemsTruncated` means the thread holds only the start, and `chat.subagent` reads the rest. A workflow's agent has no call of its own, so `chat.subagent` names it as `workflowAgentRef(agentId)`. `workflowAgentIdOf(ref)` reads the id back, or returns `null`.
 
-A person started every turn without `origin`. The host aborts a turn a restart could not resume and adds a warning note from `notResumedNote(reason)`. `abortedByMachine(turn, items)` tells it from a person's stop. A turn the host ended because the opening agent was stopped gets a note whose id starts with `ENDED_NOTE_PREFIX`, which `abortedByEnd(turn, items)` recognizes.
+A person started every turn without `origin`. An agent turn with `wakeup` is one a wakeup the agent scheduled for itself started; a turn that ran before the wakeup's time gets it only once its end shows the wakeup started it. The host aborts a turn a restart could not resume and adds a warning note from `notResumedNote(reason)`. `abortedByMachine(turn, items)` tells it from a person's stop. A turn the host ended because the opening agent was stopped gets a note whose id starts with `ENDED_NOTE_PREFIX`, which `abortedByEnd(turn, items)` recognizes.
 
 
 ## Attachments

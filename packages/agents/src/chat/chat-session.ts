@@ -2962,7 +2962,7 @@ export class ChatSession {
         this.watchWorkflows(generation, event);
 
         // A turn the CLI said it started ends with its own `result` too, even before the agent spoke in it.
-        if (isMainAgentOutput(event) || event.type === 'turn.started') {
+        if (isMainAgentOutput(event) || event.type === 'turn.started' || event.type === 'turn.wakeup') {
             this.spokenTurnId = this.thread.info.activeTurnId;
         }
 

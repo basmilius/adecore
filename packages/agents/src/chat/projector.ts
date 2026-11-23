@@ -41,6 +41,7 @@ export function isMainAgentOutput(event: BackendEvent): boolean {
 function startsAgentTurn(event: BackendEvent): boolean {
     return (
         event.type === 'turn.started' ||
+        event.type === 'turn.wakeup' ||
         isMainAgentOutput(event) ||
         ((event.type === 'approval.requested' || event.type === 'question.requested') && event.background !== true)
     );
@@ -199,6 +200,15 @@ export class ThreadProjector {
                 this.appendThinking(generation, event.ref, event.text, false, events);
 
                 break;
+            case 'turn.wakeup': {
+                const turn = info.activeTurnId === null ? undefined : this.thread.get(info.activeTurnId);
+
+                if (turn?.kind === 'turn' && turn.origin === 'agent' && turn.wakeup !== true) {
+                    events.push(this.thread.upsert({ ...turn, wakeup: true }));
+                }
+
+                break;
+            }
             case 'permissions':
                 events.push(this.thread.patchInfo({ permissionMode: event.permissionMode, effectiveRuntimeMode: event.effectiveRuntimeMode }));
 
