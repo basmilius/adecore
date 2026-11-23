@@ -741,7 +741,8 @@ export class CodexProtocol {
             return;
         }
 
-        if (kind === 'command' && this.answersForFullAccess(params) && !asksNetwork(params)) {
+        // Under full access the host answers what Codex still asks, for a subagent's thread as for its own.
+        if (kind === 'command' && this.fullAccess && !asksNetwork(params)) {
             this.replies.push({ rpcId, result: { decision: 'accept' } });
 
             return;
@@ -798,14 +799,6 @@ export class CodexProtocol {
     }
 
     /*
-     * Under full access the host answers what Codex still asks, the way the person who chose it would. A subagent's thread
-     * may run a policy of its own, so its requests still reach the person.
-     */
-    private answersForFullAccess(params: Frame): boolean {
-        return this.fullAccess && !this.isChildRequest(params);
-    }
-
-    /*
      * An MCP server asking the person something, such as computer use asking before it touches an app. Only a yes or no
      * can be answered: full access accepts it, any other mode shows a card. A form with fields or a link gets `cancel`,
      * never `decline`, which an MCP server may keep as the person's refusal.
@@ -817,7 +810,7 @@ export class CodexProtocol {
             return;
         }
 
-        if (this.answersForFullAccess(params)) {
+        if (this.fullAccess) {
             this.replies.push({ rpcId, result: { action: 'accept', content: {} } });
 
             return;

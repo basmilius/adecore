@@ -735,15 +735,21 @@ describe('CodexProtocol', () => {
         expect(protocol.approvalDecision('2-2', 'deny')).toEqual({ rpcId: 2, result: { action: 'decline' } });
     });
 
-    test('under full access a subagent thread, which may run a policy of its own, still asks the person', () => {
+    test('under full access a subagent thread is answered as its parent is', () => {
         const protocol = new CodexProtocol(1);
         protocol.threadReady({ thread: { id: 'main' }, approvalPolicy: FULL_ACCESS_GRANULAR, sandbox: { type: 'dangerFullAccess' } });
         const child = { threadId: 'child', turnId: 'child-turn' };
+        const command = { ...child, itemId: 'c', command: 'rm -f a' };
         const confirm = { ...child, serverName: 's', mode: 'form', message: 'Allow?', requestedSchema: { type: 'object', properties: {} } };
-        expect(
-            protocol.handle({ method: 'item/commandExecution/requestApproval', id: 0, params: { ...child, itemId: 'c', command: 'rm -f a' } })
-        ).toMatchObject([{ type: 'approval.requested', background: true }]);
-        expect(protocol.handle({ method: 'mcpServer/elicitation/request', id: 1, params: confirm })).toMatchObject([
+        expect(protocol.handle({ method: 'item/commandExecution/requestApproval', id: 0, params: command })).toEqual([]);
+        expect(protocol.handle({ method: 'mcpServer/elicitation/request', id: 1, params: confirm })).toEqual([]);
+        expect(protocol.takeReplies()).toEqual([
+            { rpcId: 0, result: { decision: 'accept' } },
+            { rpcId: 1, result: { action: 'accept', content: {} } }
+        ]);
+
+        const network = { ...command, networkApprovalContext: { host: 'example.com' } };
+        expect(protocol.handle({ method: 'item/commandExecution/requestApproval', id: 2, params: network })).toMatchObject([
             { type: 'approval.requested', background: true }
         ]);
         expect(protocol.takeReplies()).toEqual([]);
