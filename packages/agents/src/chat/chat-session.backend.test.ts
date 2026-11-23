@@ -1431,3 +1431,93 @@ describe('a Codex selection changed in the running app-server', () => {
         }
     });
 });
+
+test('a message into a turn the CLI said it started settles that turn, whose own end then leaves the message running', async () => {
+    const run = replacementRig(codexProvider);
+    run.session.send('start');
+    await flush();
+    run.done();
+    run.event({ type: 'turn.started' });
+    const agentTurnId = run.session.info.activeTurnId;
+    const { turnId } = run.session.send('next');
+    await flush();
+    run.done();
+
+    expect(agentTurnId).not.toBeNull();
+    expect(run.session.thread.get(agentTurnId!)).toMatchObject({ origin: 'agent', state: 'done' });
+    expect(run.session.info.activeTurnId).toBe(turnId);
+    await run.session.dispose();
+});
+
+test('a turn Codex opens itself toward a goal runs in the chat from its turn/started, before its first item', async () => {
+    // Codex 0.166.0 sends a goal turn's first item seconds after its `turn/started`; the gate holds back what comes after one.
+    let gate: { armed: boolean; closed: boolean; held: unknown[] } = { armed: false, closed: false, held: [] };
+    let out: (frame: unknown) => void = () => undefined;
+
+    const fake = inProcess((io) => {
+        out = io.out;
+
+        return fakeCodexWith({})({
+            ...io,
+            out: (frame) => {
+                if (gate.closed) {
+                    gate.held.push(frame);
+
+                    return;
+                }
+
+                io.out(frame);
+                gate.closed = gate.armed && typeof frame === 'object' && frame !== null && 'method' in frame && frame.method === 'turn/started';
+            }
+        });
+    });
+
+    const session = new ChatSession({
+        info: { ...info(), provider: 'codex', selection: codexProvider.catalog.normalize(undefined) },
+        provider: {
+            ...codexProvider,
+            createBackend: (launch, host) => new CodexBackend({ ...launch, spawn: fake.spawn }, host, { client: DEFAULT_CODEX_CLIENT, version: '0.166.0' })
+        },
+        env: () => ({}),
+        emit: () => undefined,
+        persist: () => undefined,
+        persistSoon: () => undefined
+    });
+
+    const turns = () => session.thread.list().filter((item): item is Extract<ChatItem, { kind: 'turn' }> => item.kind === 'turn');
+
+    try {
+        session.send('/goal steps:2');
+        await flush();
+        await flush();
+        fake.started[0]!.runLater();
+        await flush();
+        expect(session.info.activeTurnId).toBeNull();
+        gate.armed = true;
+        fake.started[0]!.runLater();
+        await flush();
+        const goalTurn = turns().at(-1)!;
+
+        expect(turns()).toHaveLength(2);
+        expect(goalTurn).toMatchObject({ origin: 'agent', state: 'running' });
+        expect(session.info).toMatchObject({ activeTurnId: goalTurn.id, status: 'running' });
+        expect(session.busy).toBe(true);
+
+        const held = gate.held;
+        gate = { armed: false, closed: false, held: [] };
+
+        for (const frame of held) {
+            out(frame);
+        }
+
+        await flush();
+        const answer = session.thread.list().find((item) => item.kind === 'assistant' && item.text === 'goal step 2');
+
+        expect(turns()).toHaveLength(2);
+        expect(answer?.turnId).toBe(goalTurn.id);
+        expect(session.thread.get(goalTurn.id)).toMatchObject({ state: 'done' });
+        expect(session.info.activeTurnId).toBeNull();
+    } finally {
+        await session.dispose();
+    }
+});

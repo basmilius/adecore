@@ -39,7 +39,11 @@ export function isMainAgentOutput(event: BackendEvent): boolean {
  * the CLI runs no turn at all, and a note or a usage line is not the agent starting to work.
  */
 function startsAgentTurn(event: BackendEvent): boolean {
-    return isMainAgentOutput(event) || ((event.type === 'approval.requested' || event.type === 'question.requested') && event.background !== true);
+    return (
+        event.type === 'turn.started' ||
+        isMainAgentOutput(event) ||
+        ((event.type === 'approval.requested' || event.type === 'question.requested') && event.background !== true)
+    );
 }
 
 /* A markdown code block around text that may hold backticks of its own. */

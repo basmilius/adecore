@@ -2929,7 +2929,8 @@ export class ChatSession {
         this.trackSubagentOwner(generation, event);
         this.watchWorkflows(generation, event);
 
-        if (isMainAgentOutput(event)) {
+        // A turn the CLI said it started ends with its own `result` too, even before the agent spoke in it.
+        if (isMainAgentOutput(event) || event.type === 'turn.started') {
             this.spokenTurnId = this.thread.info.activeTurnId;
         }
 
