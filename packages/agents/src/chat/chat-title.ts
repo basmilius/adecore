@@ -1,4 +1,5 @@
 import type { AgentKind } from '@adecore/agent-contracts';
+import { defaultAccountEnv } from '../providers/accounts/accounts.ts';
 import { cliExecutable, runsClaudeCode, type ChatProvider } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { runProcess } from '../run-process.ts';
@@ -87,8 +88,8 @@ export function namedByOneShot(provider: Pick<ChatProvider, 'claudeCode' | 'oneS
  *
  * The chat's own CLI runs under the chat's account (`env`, else `input.env`), so the first prompt and
  * answer go to the plan the chat itself runs on. When that CLI cannot answer, another installed one
- * may name a chat of the default account, without the account environment, which belongs to the
- * chat's CLI alone. A chat on an extra account is named by its own CLI or by none: another CLI would
+ * may name a chat of the default account, in the environment of its own default account, since the
+ * chat's account belongs to the chat's CLI alone. A chat on an extra account is named by its own CLI or by none: another CLI would
  * send the conversation to a plan the person did not pick for it.
  */
 export async function suggestChatTitle(
@@ -110,8 +111,8 @@ export async function suggestChatTitle(
         return null;
     }
 
-    const accountEnv = own ? (env ?? input.env) : undefined;
-    const runEnv = provider.oneShotEnv === undefined ? accountEnv : { ...(accountEnv ?? process.env), ...provider.oneShotEnv };
+    const accountEnv = (own ? (env ?? input.env) : undefined) ?? defaultAccountEnv(provider, process.env);
+    const runEnv = provider.oneShotEnv === undefined ? accountEnv : { ...accountEnv, ...provider.oneShotEnv };
 
     try {
         const result = await runProcess([cliExecutable(provider), ...args], {
