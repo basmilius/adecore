@@ -66,6 +66,25 @@ describe('the Codex reader', () => {
         expect(records[1]!.totals).toEqual({ calls: 1, input: 500, cacheRead: 1_500, cacheWrite: 0, cacheWrite1h: 0, output: 60, reasoning: 0 });
     });
 
+    test('adds nothing for an older snapshot written again with its old time', () => {
+        const first = counts(1_000, 800, 0, 50);
+        const second = counts(3_000, 2_400, 0, 130);
+
+        const records = feed([
+            meta(0),
+            context(1),
+            tokens(2, first, first),
+            tokens(3, second, counts(2_000, 1_600, 0, 80)),
+            tokens(2, first, first),
+            tokens(4, counts(4_000, 3_200, 0, 150), counts(1_000, 800, 0, 20))
+        ]);
+
+        const sum = (key: 'input' | 'cacheRead' | 'output') => records.reduce((total, record) => total + record.totals[key], 0);
+
+        expect(records).toHaveLength(3);
+        expect([sum('input') + sum('cacheRead'), sum('output')]).toEqual([4_000, 150]);
+    });
+
     test('takes cache reads and writes out of the input Codex reports', () => {
         const records = feed([meta(0), context(1), tokens(2, counts(1_000, 600, 300, 20, 15), counts(1_000, 600, 300, 20, 15))]);
         expect(records[0]!.totals).toEqual({ calls: 1, input: 100, cacheRead: 600, cacheWrite: 300, cacheWrite1h: 0, output: 20, reasoning: 15 });

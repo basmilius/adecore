@@ -27,6 +27,7 @@ export interface CodexParserState {
     cwd: string;
     /* The running cumulative total of the last line, which the next line is a delta against. */
     total: CodexCounts | null;
+    totalAtMs: number | null;
     sawSessionMeta: boolean;
     /* Whether this file opened as a fork or a sub-agent thread, and where its replayed prefix is. */
     suppressing: boolean;
@@ -46,6 +47,7 @@ export function createCodexState(): CodexParserState {
         sessionId: '',
         cwd: '',
         total: null,
+        totalAtMs: null,
         sawSessionMeta: false,
         suppressing: false,
         anchorMs: 0,
@@ -184,9 +186,17 @@ export function parseCodexLine(line: string, state: CodexParserState): UsageReco
     state.lastSignature = signature;
 
     const cumulative = countsOf(total);
+    const delta = deltaOf(cumulative, state.total);
+
+    // Codex writes an older snapshot again with its old time; only a fall that comes later is a restart of the count.
+    if (delta === null && state.totalAtMs !== null && timestampMs <= state.totalAtMs) {
+        return null;
+    }
+
     const last = asObject(info.last_token_usage);
-    const counts = deltaOf(cumulative, state.total) ?? (last === null ? null : countsOf(last));
+    const counts = delta ?? (last === null ? null : countsOf(last));
     state.total = cumulative;
+    state.totalAtMs = timestampMs;
 
     if (counts === null) {
         return null;

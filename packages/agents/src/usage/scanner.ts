@@ -1,11 +1,10 @@
 import { createHash, type Hash } from 'node:crypto';
 import { open, readFile, readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { Readable } from 'node:stream';
-import { createZstdDecompress } from 'node:zlib';
 import type { UsageProvider, UsageRoot } from '@adecore/agent-contracts';
 import { isNotFound } from '@adecore/utils/errors';
 import { errorText } from '../error-text.ts';
+import { readBytes } from './file-bytes.ts';
 import { claudeMightCarryUsage, parseClaudeLine } from './readers/claude.ts';
 import { cloneCodexState, codexMightCarryUsage, createCodexState, parseCodexLine, type CodexParserState } from './readers/codex.ts';
 import { GROK_USAGE_FILE, parseGrokUsage } from './readers/grok.ts';
@@ -16,9 +15,7 @@ import type { ScanState } from './scan-state.ts';
 import { UsageStore } from './usage-store.ts';
 
 const HASH_CHUNK_BYTES = 65536;
-// How much of a transcript is read at once. Codex writes sessions of more than a gigabyte, which read whole held several times their size.
-const READ_CHUNK_BYTES = 1 << 20;
-const CODEX_PARSER_VERSION = 2;
+const CODEX_PARSER_VERSION = 3;
 const NEWLINE = 0x0a;
 
 async function hashPrefix(path: string, length: number, hash: Hash): Promise<Hash> {
@@ -141,42 +138,6 @@ async function listUsageFiles(dir: string, provider: UsageProvider, out: string[
     }
 
     return out;
-}
-
-async function* fileChunks(path: string, from: number): AsyncGenerator<Uint8Array> {
-    const handle = await open(path, 'r');
-
-    try {
-        let position = from;
-
-        for (;;) {
-            // A buffer per chunk: a decompressor may still hold the one before.
-            const chunk = Buffer.alloc(READ_CHUNK_BYTES);
-            const { bytesRead } = await handle.read(chunk, 0, chunk.length, position);
-
-            if (bytesRead === 0) {
-                return;
-            }
-
-            position += bytesRead;
-            yield chunk.subarray(0, bytesRead);
-        }
-    } finally {
-        await handle.close();
-    }
-}
-
-/* The bytes of a file from `from` on, decompressed for a `.zst` one; a failure on either side ends the iteration with it. */
-function readBytes(path: string, from: number, compressed: boolean): AsyncIterable<Uint8Array> {
-    if (!compressed) {
-        return fileChunks(path, from);
-    }
-
-    const source = Readable.from(fileChunks(path, from));
-    const decompressed = createZstdDecompress();
-    source.on('error', (error) => decompressed.destroy(error));
-
-    return source.pipe(decompressed);
 }
 
 function parseLine(raw: string, provider: UsageProvider, codex: CodexParserState | null, format: UsageRootPath['format']): UsageRecord | null {

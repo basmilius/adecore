@@ -9,7 +9,7 @@ export interface SessionFs {
     /* The names in a folder; empty when it is not there. */
     readdir(path: string): Promise<string[]>;
     stat(path: string): Promise<{ mtimeMs: number } | null>;
-    /* The first `maxBytes` of a file as text; the last line may be cut short. */
+    /* The first `maxBytes` of a file as text, decompressed for a `.zst` one; the last line may be cut short. */
     readHead(path: string, maxBytes: number): Promise<string>;
 }
 
@@ -118,15 +118,22 @@ function newestFirst(names: string[]): string[] {
     return [...names].sort().reverse();
 }
 
+/* Codex compresses older rollouts to `.jsonl.zst`; one still beside its plain copy is the same rollout. */
+function rolloutNames(names: string[]): string[] {
+    const plain = new Set(names.filter((name) => name.endsWith('.jsonl')));
+
+    return names.filter(
+        (name) => name.startsWith('rollout-') && (name.endsWith('.jsonl') || (name.endsWith('.jsonl.zst') && !plain.has(name.slice(0, -'.zst'.length))))
+    );
+}
+
 async function rolloutFiles(sessionsDir: string, fs: SessionFs, max: number): Promise<string[]> {
     const files: string[] = [];
 
     for (const year of newestFirst(await fs.readdir(sessionsDir))) {
         for (const month of newestFirst(await fs.readdir(join(sessionsDir, year)))) {
             for (const day of newestFirst(await fs.readdir(join(sessionsDir, year, month)))) {
-                const names = newestFirst(
-                    (await fs.readdir(join(sessionsDir, year, month, day))).filter((name) => name.startsWith('rollout-') && name.endsWith('.jsonl'))
-                );
+                const names = newestFirst(rolloutNames(await fs.readdir(join(sessionsDir, year, month, day))));
 
                 for (const name of names) {
                     files.push(join(sessionsDir, year, month, day, name));
@@ -186,21 +193,39 @@ export async function listCodexSessions({
 /* A `node:fs` behind the seam, for a host that lists the real thing. */
 export async function nodeSessionFs(): Promise<SessionFs> {
     const { readdir, stat, open } = await import('node:fs/promises');
+    const { readBytes } = await import('../usage/file-bytes.ts');
 
     return {
         readdir: async (path) => readdir(path).catch(() => []),
         stat: async (path) => stat(path).catch(() => null),
         readHead: async (path, maxBytes) => {
-            const handle = await open(path, 'r');
+            if (!path.endsWith('.zst')) {
+                const handle = await open(path, 'r');
 
-            try {
-                const buffer = Buffer.alloc(maxBytes);
-                const { bytesRead } = await handle.read(buffer, 0, maxBytes, 0);
+                try {
+                    const buffer = Buffer.alloc(maxBytes);
+                    const { bytesRead } = await handle.read(buffer, 0, maxBytes, 0);
 
-                return buffer.subarray(0, bytesRead).toString('utf8');
-            } finally {
-                await handle.close();
+                    return buffer.subarray(0, bytesRead).toString('utf8');
+                } finally {
+                    await handle.close();
+                }
             }
+
+            const chunks: Uint8Array[] = [];
+            let length = 0;
+
+            // Leaving the loop early closes the file and the decompressor with it.
+            for await (const chunk of readBytes(path, 0, true)) {
+                chunks.push(chunk);
+                length += chunk.length;
+
+                if (length >= maxBytes) {
+                    break;
+                }
+            }
+
+            return Buffer.concat(chunks).subarray(0, maxBytes).toString('utf8');
         }
     };
 }
