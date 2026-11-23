@@ -9,6 +9,8 @@ import resumedTaskCapture from './fixtures/claude-2.1.285-resume-task-notificati
 import goalCapture from './fixtures/claude-2.1.296-goal.json';
 import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
 import compact319 from './fixtures/claude-2.1.319-resume-direct-compact.json';
+import autoBackgroundCapture from './fixtures/claude-2.1.322-auto-background.json';
+import foregroundBashCapture from './fixtures/claude-2.1.322-foreground-bash.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -1169,23 +1171,30 @@ describe('ClaudeProtocol', () => {
         });
     });
 
-    test('a foreground command joins the background only once the CLI moves it there', () => {
-        const protocol = new ClaudeProtocol();
+    test('a foreground command the CLI moves to the background runs there until its task ends, and one that stays in the foreground never does', () => {
+        const backgroundAfter = (frames: readonly unknown[]) => {
+            const protocol = new ClaudeProtocol();
+            const thread = fixtureThread('background-fixture');
+            const projector = new ThreadProjector(thread, { providerName: 'Claude' });
 
-        expect(
-            protocol.handle({
-                type: 'system',
-                subtype: 'task_started',
-                task_id: 'b2',
-                task_type: 'local_bash',
-                tool_use_id: 'toolu_b2',
-                is_backgrounded: false
-            })
-        ).toEqual([]);
-        expect(
-            protocol.handle({ type: 'system', subtype: 'task_updated', task_id: 'b2', patch: { is_backgrounded: true, description: 'Run the tests' } })
-        ).toEqual([{ type: 'background.started', taskId: 'b2', ref: 'toolu_b2', monitor: false, description: 'Run the tests' }]);
-        expect(protocol.stopTaskRequest('b2')).toMatchObject({ type: 'control_request', request: { subtype: 'stop_task', task_id: 'b2' } });
+            return frames.map((frame) => {
+                for (const event of protocol.handle(frame)) {
+                    projector.project(1, event);
+                }
+
+                return (thread.info.background ?? []).map((task) => task.id);
+            });
+        };
+
+        const frames: ReadonlyArray<Record<string, unknown>> = autoBackgroundCapture.frames;
+        const moved = backgroundAfter(frames);
+        const toolResult = frames.findIndex((frame) => frame.tool_use_result !== undefined);
+        const taskEnded = frames.findIndex((frame) => frame.subtype === 'task_updated');
+        expect(moved[toolResult]).toEqual(['bxhe7wgon']);
+        expect(moved[taskEnded - 1]).toEqual(['bxhe7wgon']);
+        expect(moved[taskEnded]).toEqual([]);
+        expect(moved.at(-1)).toEqual([]);
+        expect(backgroundAfter(foregroundBashCapture.frames).every((ids) => ids.length === 0)).toBe(true);
     });
 
     test('an error answer to stop_task is reported once, and a success or a stranger is not', () => {
