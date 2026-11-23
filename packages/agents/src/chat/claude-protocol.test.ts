@@ -858,6 +858,21 @@ describe('ClaudeProtocol', () => {
         expect(protocol.handle({ type: 'prompt_suggestion', suggestion: '  ', uuid: 'u-2', session_id: 's-1' })).toEqual([]);
     });
 
+    test('an informational line is a warning note only under a tag that says something is not in effect', () => {
+        const protocol = new ClaudeProtocol();
+
+        const line = (frame: Record<string, unknown>) =>
+            protocol.handle({ type: 'system', subtype: 'informational', level: 'warning', content: 'Managed hooks did not load', ...frame });
+
+        for (const tag of ['hook_no_verdict', 'managed_mcp_arrived', 'managed_hooks_not_loaded', 'settings_not_in_effect']) {
+            expect(line({ tag })).toEqual([{ type: 'note', level: 'warning', text: 'Managed hooks did not load' }]);
+        }
+
+        expect(line({ tag: 'some_later_tag' })).toEqual([]);
+        expect(line({ level: 'notice', content: 'Stop says: all checks passed' })).toEqual([]);
+        expect(line({ tag: 'hook_no_verdict', content: '  ' })).toEqual([]);
+    });
+
     test('frames it does not know say nothing', () => {
         const protocol = new ClaudeProtocol();
         expect(protocol.handle({ type: 'rate_limit_event' })).toEqual([]);
@@ -1389,6 +1404,24 @@ describe('goals', () => {
         protocol.beginPrompt('next');
         const again = protocol.handle({ type: 'assistant', message: { id: 'm2', model: 'claude', content: [{ type: 'text', text: 'on it' }] } });
         expect(again.find((event) => event.type === 'goal')).toEqual({ type: 'goal', goal: { objective: 'tests pass', status: 'active', checks: 2 } });
+    });
+
+    test('a goal the CLI cleared after an unrecoverable error ends, says why and is not taken up by the next answer', () => {
+        const protocol = new ClaudeProtocol({ objective: 'x', status: 'active', checks: 1 });
+        protocol.beginPrompt('prompt');
+        // The line Claude Code 2.1.323 writes, as quoted from a recording; none of ours holds it yet.
+        const content = 'Goal cleared after an unrecoverable error (context limit reached): "x". Run /goal again to continue.';
+        const cleared = protocol.handle({ type: 'system', subtype: 'informational', level: 'warning', content });
+        expect(cleared).toEqual([
+            { type: 'goal', goal: null },
+            { type: 'note', level: 'warning', text: content }
+        ]);
+
+        const ended = protocol.handle({ type: 'result', subtype: 'error_during_execution', is_error: true, user_message_uuids: ['prompt'] });
+        expect(ended.some((event) => event.type === 'goal')).toBe(false);
+        protocol.beginPrompt('next');
+        const answered = protocol.handle({ type: 'assistant', message: { id: 'm2', model: 'claude', content: [{ type: 'text', text: 'on it' }] } });
+        expect(answered.some((event) => event.type === 'goal')).toBe(false);
     });
 
     test('a turn that ends while a background agent still runs leaves the goal active, since the check waits for it', () => {

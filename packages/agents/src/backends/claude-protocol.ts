@@ -183,6 +183,10 @@ function isConfirmation(request: Frame): boolean {
 const GOAL_SET = 'Goal set: ';
 const GOAL_ACTIVE = /^Goal active: ([\s\S]+?) \(([^)]*)\)(?:\nLast check: ([\s\S]*))?$/;
 const GOAL_GONE = ['Goal cleared: ', 'Goal cleared after ', 'No goal set'];
+const GOAL_CLEARED_AFTER_ERROR = 'Goal cleared after an unrecoverable error';
+// The tags of `informational` lines that tell a person something is not in effect: a hook that gave no verdict, MCP servers
+// or hooks of the organization that came late or not at all, and settings the CLI could not apply.
+const WARNING_TAGS = new Set(['hook_no_verdict', 'managed_mcp_arrived', 'managed_hooks_not_loaded', 'settings_not_in_effect']);
 
 export function claudeGoalFromCommand(text: string, current: ChatGoal | null): ChatGoal | null | undefined {
     const said = text.trim();
@@ -606,6 +610,8 @@ export class ClaudeProtocol {
 
             this.settleTask(done, events);
             this.settleWaitingAgents(events);
+        } else if (frame.subtype === 'informational') {
+            this.handleInformational(frame, events);
         } else if (frame.subtype === 'compact_boundary' && !str(frame.parent_tool_use_id)) {
             // A subagent's fold, should the CLI ever stream one with its parent, is not the size of this chat's context.
             const meta = isRecord(frame.compact_metadata) ? frame.compact_metadata : {};
@@ -717,6 +723,36 @@ export class ClaudeProtocol {
         }
 
         this.settleWaitingAgents(events);
+    }
+
+    /*
+     * A line the CLI shows its own person beside the turn. Most are noise in a chat (a Stop hook's summary, slash command
+     * output), so only a goal the CLI dropped and the tagged warnings of Claude Agent SDK 0.3.326 to 0.3.330 say anything.
+     * An untagged warning, such as a prompt a hook blocked, waits for a recording of its frame.
+     */
+    private handleInformational(frame: Frame, events: BackendEvent[]): void {
+        const content = str(frame.content)?.trim();
+
+        if (!content) {
+            return;
+        }
+
+        // Claude Code 2.1.323 clears the goal after a context, sign-in, credit, disk or model failure, and has no goal to take up again.
+        if (content.startsWith(GOAL_CLEARED_AFTER_ERROR)) {
+            if (this.goal !== null) {
+                this.setGoal(null, events);
+            }
+
+            events.push({ type: 'note', level: 'warning', text: content });
+
+            return;
+        }
+
+        const tag = str(frame.tag);
+
+        if (tag !== null && WARNING_TAGS.has(tag)) {
+            events.push({ type: 'note', level: 'warning', text: content });
+        }
     }
 
     /* The whole set of tasks that run now, which replaces the one before it. */
