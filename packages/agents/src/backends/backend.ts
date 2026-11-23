@@ -207,6 +207,8 @@ export type BackendEvent =
     | { type: 'goal'; goal: ChatGoal | null }
     | { type: 'model'; model: string }
     | { type: 'note'; level: 'info' | 'warning' | 'error'; text: string }
+    // The CLI may go quiet now without ending the turn (a retry it runs itself, a prompt sent); the next event of any kind is word from it.
+    | { type: 'quiet.watch' }
     // The CLI answered a `stopTask` with an error, so the task still runs.
     | { type: 'stop.refused'; taskId: string; message: string }
     // `native` is the CLI's own name for where the turn ended, which a fork of the chat is cut at.

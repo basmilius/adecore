@@ -1656,14 +1656,22 @@ export class ChatCore {
     }
 
     /* The chats with a CLI process, for a process monitor. */
-    processTargets(): { id: string; pid: number; provider: AgentKind; status: ChatInfo['status']; updatedAt: number }[] {
+    /* `quietNoted` is set once the open turn told the person its CLI went quiet. */
+    processTargets(): { id: string; pid: number; provider: AgentKind; status: ChatInfo['status']; updatedAt: number; quietNoted: boolean }[] {
         const targets = [];
 
         for (const [id, session] of this.chats) {
             const pid = session.pid;
 
             if (pid !== null) {
-                targets.push({ id, pid, provider: session.info.provider, status: session.info.status, updatedAt: this.activity.get(id) ?? 0 });
+                targets.push({
+                    id,
+                    pid,
+                    provider: session.info.provider,
+                    status: session.info.status,
+                    updatedAt: this.activity.get(id) ?? 0,
+                    quietNoted: session.quietNoted
+                });
             }
         }
 

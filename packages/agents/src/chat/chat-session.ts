@@ -161,6 +161,7 @@ export interface LimitResumeHooks {
 const TITLE_RECHECK_MS = 10_000;
 // Well inside the 60 seconds a client gives a request; the steer itself goes on after it.
 const STEER_ANSWER_MS = 15_000;
+const QUIET_TURN_MS = 3 * 60_000;
 
 export interface ChatSendExtras {
     uiChoice?: ChatUiChoiceOrigin;
@@ -239,6 +240,9 @@ export class ChatSession {
     // A change a running process is still taking; a second start in the meantime waits for it instead of sending its own.
     private reconfiguring: { backend: ChatBackend; done: Promise<ChatBackend> } | null = null;
     private pendingStart: { turnId: string; warning: unknown } | null = null;
+    // The timer of a turn whose CLI may go quiet, and the turn that already said it did.
+    private quietWatch: unknown = null;
+    private quietTurnId: string | null = null;
     private sendAfterStop = false;
     // A message the person sent while a settings change waited goes out once it applies, paused queue or not.
     private sendAfterReplacement = false;
@@ -1798,6 +1802,7 @@ export class ChatSession {
     freeze(): void {
         this.uiReplies.clear();
         this.clearStartWarning();
+        this.clearQuietWatch();
         this.clearWorkflowWarnings();
         this.frozen = true;
         this.backend?.stop();
@@ -1807,6 +1812,7 @@ export class ChatSession {
     dispose(): Promise<void> {
         this.uiReplies.clear();
         this.clearStartWarning();
+        this.clearQuietWatch();
         this.clearWorkflowWarnings();
 
         if (this.titleTimer !== null) {
@@ -2433,6 +2439,55 @@ export class ChatSession {
         return pending;
     }
 
+    /*
+     * One note in a turn whose CLI went quiet where it may stay so: above Codex's own recovery (about 75 s) and under the
+     * machine's silent-process warning, which leaves the turn alone after it. The turn stays open; the note wakes nobody.
+     */
+    private watchQuiet(): void {
+        const turnId = this.info.activeTurnId;
+
+        if (turnId === null || this.quietTurnId === turnId) {
+            return;
+        }
+
+        const clock = this.clock;
+
+        this.quietWatch = clock.setTimeout(() => {
+            this.quietWatch = null;
+
+            if (this.info.activeTurnId !== turnId || this.frozen) {
+                return;
+            }
+
+            this.quietTurnId = turnId;
+
+            this.emit([
+                this.thread.upsert({
+                    id: newId('note'),
+                    kind: 'note',
+                    createdAt: clock.now(),
+                    turnId,
+                    level: 'warning',
+                    text: 'No word from the agent for 3 minutes. The turn stays open until it answers or you stop it.'
+                })
+            ]);
+
+            this.options.persist();
+        }, QUIET_TURN_MS);
+    }
+
+    private clearQuietWatch(): void {
+        if (this.quietWatch !== null) {
+            this.clock.clearTimeout(this.quietWatch);
+            this.quietWatch = null;
+        }
+    }
+
+    /* Whether the open turn already said its CLI went quiet, so a watch on the process need not say it again. */
+    get quietNoted(): boolean {
+        return this.quietTurnId !== null && this.quietTurnId === this.info.activeTurnId;
+    }
+
     private clearStartWarning(): void {
         if (this.pendingStart === null) {
             return;
@@ -2702,6 +2757,14 @@ export class ChatSession {
 
     private receive(generation: number, event: BackendEvent): void {
         if (this.frozen) {
+            return;
+        }
+
+        this.clearQuietWatch();
+
+        if (event.type === 'quiet.watch') {
+            this.watchQuiet();
+
             return;
         }
 
