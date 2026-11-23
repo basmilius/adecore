@@ -856,6 +856,41 @@ describe('an MCP elicitation', () => {
     });
 });
 
+describe('a Stop beside a background subagent', () => {
+    const stoppedTasks = (events: readonly BackendEvent[]) => events.filter((event) => event.type === 'task.done' && event.taskId === 'task-agent');
+
+    test('ends only the turn, and the subagent runs on until it reports', async () => {
+        const run = open();
+        await run.backend.start();
+        run.backend.sendTurn(turn('background: research', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        run.backend.sendTurn(turn('slow', 'p2'));
+        await until(() => run.events.some((event) => event.type === 'turn.accepted' && event.promptId === 'p2'));
+        run.backend.interrupt();
+        await until(() => doneTurns(run.events) === 2);
+        await quiet(run.events);
+        expect(stoppedTasks(run.events)).toEqual([]);
+        // The subagent's work, then its report.
+        run.cli.started[0]!.runLater();
+        await quiet(run.events);
+        run.cli.started[0]!.runLater();
+        await until(() => stoppedTasks(run.events).length === 1);
+        expect(stoppedTasks(run.events)[0]).toMatchObject({ ok: true, summary: 'research' });
+        await run.backend.dispose();
+    });
+
+    test('a stop of its own ends the subagent', async () => {
+        const run = open();
+        await run.backend.start();
+        run.backend.sendTurn(turn('background: research', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        run.backend.stopTask('task-agent');
+        await until(() => stoppedTasks(run.events).length === 1);
+        expect(stoppedTasks(run.events)[0]).toMatchObject({ ok: false });
+        await run.backend.dispose();
+    });
+});
+
 describe('the Claude backend letting go', () => {
     test('reports the exit of a CLI whose stdout a process it started still holds open', async () => {
         let exit: ChatSpawnOptions['onExit'] = () => undefined;

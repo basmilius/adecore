@@ -174,6 +174,33 @@ export function fakeClaude(io: FakeIo): FakeProgram {
     // What a background agent asked; its answer comes in after the turn that launched it, whenever a person gives one.
     let backgroundAsk: { requestId: string; command: string } | null = null;
     let slow = false;
+    // Whether the host's handshake declared a per-task stop; without it an interrupt kills every background agent.
+    let perTaskStop = false;
+    // The background agents of `background:` that still run, by task id, with the call that launched each.
+    const backgroundAgents = new Map<string, string>();
+
+    const killBackgroundAgent = (taskId: string): void => {
+        const toolUseId = backgroundAgents.get(taskId);
+
+        if (toolUseId === undefined) {
+            return;
+        }
+
+        backgroundAgents.delete(taskId);
+        out({ type: 'system', subtype: 'task_updated', task_id: taskId, patch: { status: 'killed', end_time: 0 }, session_id: sessionId });
+
+        out({
+            type: 'system',
+            subtype: 'task_notification',
+            task_id: taskId,
+            tool_use_id: toolUseId,
+            status: 'stopped',
+            output_file: '',
+            summary: 'Stopped',
+            session_id: sessionId
+        });
+    };
+
     // The two foreground subagents of `two subagents` that have not settled; the turn stays open until both have.
     const openTwo = new Set<string>();
 
@@ -786,12 +813,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                 session_id: sessionId
             });
 
+            backgroundAgents.set('task-agent', 'toolu_agent');
             assistantText('I will report back');
             result();
 
             // What the real CLI does after the turn ended: the subagent works on, and only later come a
             // notification, a fresh init, an assistant message of its own and a result, with no user frame.
             io.later(() => {
+                if (!backgroundAgents.delete('task-agent')) {
+                    return;
+                }
+
                 subagentWork('toolu_agent', `the subagent says: ${summary}`);
 
                 io.later(() => {
@@ -1255,7 +1287,13 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             } else if (frame.type === 'control_response') {
                 handleControlResponse(frame.response as Record<string, unknown>);
             } else if (frame.type === 'control_request') {
-                const request = frame.request as { subtype: string; task_id?: string; appendSystemPrompt?: unknown; model?: unknown };
+                const request = frame.request as {
+                    subtype: string;
+                    task_id?: string;
+                    appendSystemPrompt?: unknown;
+                    model?: unknown;
+                    perTaskStopAffordance?: unknown;
+                };
 
                 // Answers from here on come from the model the host switched to.
                 if (request.subtype === 'set_model' && typeof request.model === 'string') {
@@ -1266,6 +1304,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                 // The handshake a host opens with before its first message; the answer says what this CLI offers.
                 if (request.subtype === 'initialize') {
                     initializedPrompt = typeof request.appendSystemPrompt === 'string' ? request.appendSystemPrompt : null;
+                    perTaskStop = request.perTaskStopAffordance === true;
 
                     out({
                         type: 'control_response',
@@ -1294,6 +1333,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
                 if (request.subtype === 'stop_task' && (request.task_id === 'a-one' || request.task_id === 'a-two')) {
                     settleTwo(request.task_id, true);
+                }
+
+                if (request.subtype === 'stop_task' && request.task_id !== undefined) {
+                    killBackgroundAgent(request.task_id);
+                }
+
+                // An interrupt spares background agents only for a host that declared a stop for each (Claude Agent SDK 0.3.330).
+                if (request.subtype === 'interrupt' && !perTaskStop) {
+                    for (const taskId of [...backgroundAgents.keys()]) {
+                        killBackgroundAgent(taskId);
+                    }
                 }
 
                 // The CLI takes back what the MCP server asked once its turn is interrupted.

@@ -482,6 +482,9 @@ export class ClaudeBackend implements ChatBackend {
             canUseTool: (toolName, input, permission) => this.askPermission(toolName, input, permission),
             // Without it the SDK declines every elicitation, which tells the MCP server the person refused a question nobody saw.
             onElicitation: (request, { requestId, signal }) => this.askElicitation(request, requestId, signal),
+            // Stop ends the turn alone: every background agent and workflow has a stop of its own (`stopTask`), and without
+            // the declaration the CLI kills them all on an interrupt.
+            perTaskStopAffordance: true,
             // EnterWorktree moves the CLI without a `CwdChanged` hook (Claude Code 2.1.317), but every later hook carries the new `cwd`.
             hooks: { PostToolUse: [{ hooks: [async (input) => this.followWorkdir(input)] }] },
             // The echo of a message is what acknowledges a steer, and the SDK leaves the flag out.
