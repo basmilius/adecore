@@ -215,7 +215,9 @@ export class CodexBackend implements ChatBackend {
             cwd: this.launch.cwd,
             model: this.launch.selection.model,
             ...(tier === null ? {} : { serviceTier: tier }),
-            ...codexThreadOptions(this.launch.runtimeMode, this.version)
+            ...codexThreadOptions(this.launch.runtimeMode, this.version),
+            // Codex 0.166.0 has its plan tool off by default and sends no `turn/plan/updated` without it; T3 Code turns it on per thread too.
+            ...(codexFrom0166(this.version) ? { config: { 'tools.update_plan.enabled': true } } : {})
         };
 
         const instructions = this.launch.instructions === null ? {} : { developerInstructions: this.launch.instructions };

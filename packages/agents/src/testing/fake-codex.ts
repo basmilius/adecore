@@ -49,6 +49,8 @@ export interface FakeCodexOptions {
     exitBeforeInit?: string;
     // Collects every error the client answers one of the fake's own requests with.
     errorReplies?: Frame[];
+    // Collects every request the client sends, in order.
+    requests?: Array<{ method: string; params: Frame }>;
 }
 
 // The API's error body as Codex passes it on, in the shape T3 Code's tests hold; no capture of a real one exists yet.
@@ -934,6 +936,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                 const params = (frame.params ?? {}) as Frame;
 
                 if (typeof frame.method === 'string' && frame.id !== undefined) {
+                    options.requests?.push({ method: frame.method, params });
                     handleRequest(frame.id, frame.method, params);
 
                     return;

@@ -30,6 +30,21 @@ test('a Codex that exits before it answers initialize fails the start with its s
     expect(backend.running).toBe(false);
 });
 
+test('a thread on Codex 0.166.0 turns the plan tool on, and one on an unknown version leaves its config alone', async () => {
+    const threadConfig = async (version: string | null): Promise<unknown> => {
+        const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+        const fake = inProcess(fakeCodexWith({ requests }));
+        const backend = new CodexBackend({ ...launch, spawn: fake.spawn }, { onEvent: () => undefined }, { client: DEFAULT_CODEX_CLIENT, version });
+        await backend.start();
+        await backend.dispose();
+
+        return requests.find((request) => request.method === 'thread/start')?.params.config;
+    };
+
+    expect(await threadConfig('0.166.0')).toEqual({ 'tools.update_plan.enabled': true });
+    expect(await threadConfig(null)).toBeUndefined();
+});
+
 test('a server request whose handling throws gets an internal error reply, and the chat fails as before', async () => {
     const errorReplies: Record<string, unknown>[] = [];
     const fake = inProcess(fakeCodexWith({ errorReplies }));

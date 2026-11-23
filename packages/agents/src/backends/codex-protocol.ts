@@ -116,6 +116,48 @@ function collabAgentOutput(states: unknown): string {
         .join('\n');
 }
 
+// A turn plan's step statuses, in the words the TodoWrite row of the other CLIs uses.
+const PLAN_STATUSES: Record<string, string> = { pending: 'pending', inProgress: 'in_progress', completed: 'completed' };
+
+/* The steps of a `turn/plan/updated`, as the todos of a TodoWrite row. */
+function planTodos(plan: unknown): Array<{ content: string; status: string; activeForm: string }> {
+    if (!Array.isArray(plan)) {
+        return [];
+    }
+
+    return plan.filter(isRecord).map((entry) => {
+        const step = str(entry.step) ?? '';
+        const status = str(entry.status) ?? 'pending';
+
+        return { content: step, status: PLAN_STATUSES[status] ?? status, activeForm: step };
+    });
+}
+
+/*
+ * The note a hook that stopped the turn leaves, worded as T3 Code words it. The turn itself ends completed
+ * with no error and no items (measured on 0.166.0), so this is the only sign that a hook stopped it.
+ */
+function hookStopNote(run: Frame): string | null {
+    if (run.status !== 'stopped' || !Array.isArray(run.entries)) {
+        return null;
+    }
+
+    const reason = run.entries
+        .filter(isRecord)
+        .filter((entry) => entry.kind === 'stop')
+        .map((entry) => (str(entry.text) ?? '').trim())
+        .filter((text) => text !== '')
+        .join('\n');
+
+    if (reason === '') {
+        return null;
+    }
+
+    const source = str(run.source);
+
+    return `${str(run.eventName) ?? 'A'} hook${source === null ? '' : ` (${source})`}: ${reason}`;
+}
+
 /* A blocking `request_user_input` question, as far as the person needs to see it. */
 function parseBlockingQuestions(questions: unknown): ChatQuestion[] {
     if (!Array.isArray(questions)) {
@@ -252,6 +294,8 @@ export class CodexProtocol {
     // The input the thread shows for an item, so an approval about it can repeat what it is for.
     private readonly toolInputs = new Map<string, RequestOwner & { input: unknown; changes: ChatFileChange[] }>();
     private codexTurnId: string | null = null;
+    // The row of the turn's plan, which every `turn/plan/updated` replaces and the turn's end settles.
+    private planRef: string | null = null;
     // The code of the turn's last error Codex gave up on, kept for the failed turn, whose own error may lack it.
     private failureCode: string | null = null;
     // Command items with a terminal session of their own, by item id, to the process id that ending one names.
@@ -398,6 +442,22 @@ export class CodexProtocol {
                 events.push({ type: 'goal', goal: codexGoal(params.goal) });
 
                 break;
+            case 'turn/plan/updated': {
+                const turnId = str(params.turnId) ?? this.codexTurnId;
+                this.planRef = `turn-plan-${turnId ?? 'unknown'}`;
+                events.push({ type: 'tool.started', ref: this.planRef, name: 'TodoWrite', input: { todos: planTodos(params.plan) }, parentRef: null });
+
+                break;
+            }
+            case 'hook/completed': {
+                const note = isRecord(params.run) ? hookStopNote(params.run) : null;
+
+                if (note !== null) {
+                    events.push({ type: 'note', level: 'warning', text: note });
+                }
+
+                break;
+            }
             case 'thread/goal/cleared':
                 events.push({ type: 'goal', goal: null });
 
@@ -1114,6 +1174,11 @@ export class CodexProtocol {
         }
 
         this.openTerminals.clear();
+
+        if (this.planRef !== null) {
+            events.push({ type: 'tool.done', ref: this.planRef, output: null, state: 'done' });
+            this.planRef = null;
+        }
 
         events.push({
             type: 'turn.done',

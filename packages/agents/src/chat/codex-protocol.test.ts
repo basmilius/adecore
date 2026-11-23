@@ -16,6 +16,7 @@ import nativeFileApprovalCapture from './fixtures/codex-0.159.2-native-file-appr
 import nativeInteractedCapture from './fixtures/codex-0.159.2-native-interacted.json';
 import usageWindowsCapture from './fixtures/codex-0.159.2-usage-windows.json';
 import compactCapture from './fixtures/codex-0.166.0-compact.json';
+import hookStopPlanCapture from './fixtures/codex-0.166.0-hook-stop-plan.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -342,6 +343,51 @@ describe('CodexProtocol', () => {
             { type: 'usage', contextTokens: 29284, contextWindow: 258400 }
         ]);
         expect(events).toContainEqual({ type: 'usage', contextWindow: 258400 });
+    });
+
+    test("a real 0.166.0 turn plan is one TodoWrite row holding the last plan, settled with its turn, and a stopping hook's reason is a note", () => {
+        const thread = new ChatThread({
+            chatId: 'probe',
+            provider: 'codex',
+            cwd: '/tmp',
+            agentSessionId: 'codex-thread-1',
+            model: null,
+            selection: codexProvider.catalog.normalize(undefined),
+            runtimeMode: 'supervised',
+            running: true,
+            status: 'idle',
+            activeTurnId: null,
+            slashCommands: [],
+            usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
+            createdAt: 1
+        });
+
+        const protocol = new CodexProtocol(1);
+        const projector = new ThreadProjector(thread, { providerName: 'Codex' });
+        protocol.threadReady({ thread: { id: 'codex-thread-1' } });
+
+        for (const { frame } of hookStopPlanCapture.frames.filter((entry) => entry.dir === 'out')) {
+            for (const event of protocol.handle(frame)) {
+                projector.project(1, event);
+            }
+        }
+
+        const plans = thread.list().filter((item) => item.kind === 'tool');
+
+        expect(plans).toHaveLength(1);
+        expect(plans[0]).toMatchObject({
+            name: 'TodoWrite',
+            state: 'done',
+            input: {
+                todos: [
+                    { content: 'Run `pwd`', status: 'completed', activeForm: 'Run `pwd`' },
+                    { content: 'Run `echo done`', status: 'completed', activeForm: 'Run `echo done`' }
+                ]
+            }
+        });
+        expect(thread.list().filter((item) => item.kind === 'note')).toEqual([
+            expect.objectContaining({ text: 'userPromptSubmit hook (sessionFlags): Capture hook stopped this turn on purpose.' })
+        ]);
     });
 
     test('a compaction that ends without its item lets the count it held through', () => {
