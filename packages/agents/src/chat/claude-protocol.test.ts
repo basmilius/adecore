@@ -11,6 +11,7 @@ import interimCapture from './fixtures/claude-2.1.318-interim-subagent.json';
 import compact319 from './fixtures/claude-2.1.319-resume-direct-compact.json';
 import autoBackgroundCapture from './fixtures/claude-2.1.322-auto-background.json';
 import foregroundBashCapture from './fixtures/claude-2.1.322-foreground-bash.json';
+import informationalCapture from './fixtures/claude-2.1.322-informational.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -871,8 +872,25 @@ describe('ClaudeProtocol', () => {
         }
 
         expect(line({ tag: 'some_later_tag' })).toEqual([]);
-        expect(line({ level: 'notice', content: 'Stop says: all checks passed' })).toEqual([]);
         expect(line({ tag: 'hook_no_verdict', content: '  ' })).toEqual([]);
+    });
+
+    test("a prompt a hook blocked is a warning note and ends its turn, and a Stop hook's notice says nothing", () => {
+        const protocol = new ClaudeProtocol();
+        const frames: ReadonlyArray<Record<string, unknown>> = informationalCapture.frames;
+        const [blocked, answered] = frames.filter((frame) => frame.type === 'result').map((frame) => (frame.user_message_uuids as string[])[0]);
+        const secondTurn = frames.findIndex((frame) => frame.isReplay === true);
+
+        protocol.beginPrompt(blocked);
+        expect(frames.slice(0, secondTurn).flatMap((frame) => protocol.handle(frame))).toEqual([
+            { type: 'note', level: 'warning', text: 'A hook blocked this message: Blocked by the capture hook' },
+            { type: 'turn.done', promptId: blocked, state: 'done', costUsd: 0 }
+        ]);
+
+        protocol.beginPrompt(answered);
+        const events = frames.slice(secondTurn).flatMap((frame) => protocol.handle(frame));
+        expect(events.filter((event) => event.type === 'note')).toEqual([]);
+        expect(events.at(-1)).toMatchObject({ type: 'turn.done', promptId: answered, state: 'done' });
     });
 
     test('frames it does not know say nothing', () => {

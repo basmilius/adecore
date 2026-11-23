@@ -727,13 +727,23 @@ export class ClaudeProtocol {
 
     /*
      * A line the CLI shows its own person beside the turn. Most are noise in a chat (a Stop hook's summary, slash command
-     * output), so only a goal the CLI dropped and the tagged warnings of Claude Agent SDK 0.3.326 to 0.3.330 say anything.
-     * An untagged warning, such as a prompt a hook blocked, waits for a recording of its frame.
+     * output), so only a goal the CLI dropped, a prompt a hook blocked and the tagged warnings of Claude Agent SDK 0.3.326
+     * to 0.3.330 say anything.
      */
     private handleInformational(frame: Frame, events: BackendEvent[]): void {
         const content = str(frame.content)?.trim();
 
         if (!content) {
+            return;
+        }
+
+        // Claude Code 2.1.322 echoes no blocked prompt, so this line is all the chat hears of why its turn ended at once.
+        const outcome = isRecord(frame.prompt_submit_outcome) ? frame.prompt_submit_outcome : null;
+
+        if (outcome?.kind === 'blocked_by_hook') {
+            const reason = str(outcome.reason)?.trim();
+            events.push({ type: 'note', level: 'warning', text: reason ? `A hook blocked this message: ${reason}` : 'A hook blocked this message.' });
+
             return;
         }
 
