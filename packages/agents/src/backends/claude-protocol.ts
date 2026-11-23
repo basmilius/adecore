@@ -52,6 +52,9 @@ const INTERIM_TASK_SUMMARY = 'This agent has not reported yet';
 // How long a prompt cache entry lives, by the field of `usage.cache_creation` that counts what a request wrote with it.
 const CACHE_TTL_MS: Record<string, number> = { ephemeral_5m_input_tokens: 5 * 60_000, ephemeral_1h_input_tokens: 60 * 60_000 };
 
+// The CLI may fire a wakeup up to a minute before the time it reports, which it rounds to the minute; the rest is slack.
+const WAKEUP_EARLY_FIRE_MS = 120_000;
+
 /*
  * The lifetime of the cache a response wrote, or null when it wrote none or names no lifetime. A response that wrote
  * with both answers the shorter, which is when the part of its context that goes cold first does.
@@ -311,9 +314,11 @@ export class ClaudeProtocol {
     // Subagents that reported while their own tasks still ran, with what they reported. The CLI does not always
     // wake one when that work ends, and then never notifies for it again, so the end of its last task settles it.
     private readonly waitingAgents = new Map<string, Extract<BackendEvent, { type: 'task.done' }>>();
-    // `ScheduleWakeup` calls whose result has not come in, and the wakeups that wait, by background task id, to when each fires.
+    // `ScheduleWakeup` calls whose result has not come in, and the one wakeup the CLI keeps per session, with when it fires.
     private readonly wakeupCalls = new Set<string>();
-    private readonly wakeups = new Map<string, number>();
+    private wakeup: { taskId: string; scheduledFor: number } | null = null;
+    // A turn the CLI started by itself shortly before the wakeup's time; its result says whether the wakeup started it.
+    private earlyWake = false;
     // Whether the main chain answers in a turn now; the first frame after a result starts the next, whoever asked for it.
     private turnOpen = false;
 
@@ -1145,8 +1150,8 @@ export class ClaudeProtocol {
                     events.push({ type: 'workflow.progress', ref, workflow: { name: null, taskId: workflow, phases: [], agents: [] } });
                 }
 
-                if (this.wakeupCalls.delete(ref) && block.is_error !== true) {
-                    this.noteWakeup(ref, frame.tool_use_result, events);
+                if (this.wakeupCalls.delete(ref)) {
+                    this.noteWakeup(ref, block.is_error === true ? null : frame.tool_use_result, events);
                 }
 
                 events.push({ type: 'tool.done', ref, output, state: block.is_error === true ? 'error' : 'done' });
@@ -1155,48 +1160,52 @@ export class ClaudeProtocol {
     }
 
     /*
-     * A `ScheduleWakeup` the CLI took holds its process until the turn it starts: the CLI keeps the wakeup in
-     * memory, so a process that ends loses it. `stop: true` cancels every wakeup that waits.
+     * A `ScheduleWakeup` the CLI took holds its process until the turn it starts: the CLI keeps the wakeup in memory,
+     * so a process that ends loses it. A new call replaces the one that waits, and `stop: true` reports `scheduledFor`
+     * 0. A failed call clears it as well, since a hold that outlives its wakeup costs more than one lost early.
      */
     private noteWakeup(ref: string, result: unknown, events: BackendEvent[]): void {
-        if (!isRecord(result)) {
+        const scheduledFor = isRecord(result) ? result.scheduledFor : null;
+        this.endWakeup(events);
+
+        if (typeof scheduledFor !== 'number' || !Number.isFinite(scheduledFor) || scheduledFor <= 0) {
             return;
         }
 
-        if (result.stopped === true) {
-            for (const taskId of [...this.wakeups.keys()]) {
-                this.wakeups.delete(taskId);
-                events.push({ type: 'background.ended', taskId });
-            }
-
-            return;
-        }
-
-        const scheduledFor = result.scheduledFor;
-
-        if (typeof scheduledFor !== 'number' || !Number.isFinite(scheduledFor)) {
-            return;
-        }
-
-        const taskId = scheduledWakeupId(ref, scheduledFor);
-        this.wakeups.set(taskId, scheduledFor);
-        events.push({ type: 'background.started', taskId, ref: null, monitor: true, description: 'Scheduled wakeup' });
+        this.wakeup = { taskId: scheduledWakeupId(ref, scheduledFor), scheduledFor };
+        events.push({ type: 'background.started', taskId: this.wakeup.taskId, ref: null, monitor: true, description: 'Scheduled wakeup' });
     }
 
-    /* A turn that starts once a wakeup's time came is that wakeup's turn, or one it would have joined. */
+    private endWakeup(events: BackendEvent[]): void {
+        this.earlyWake = false;
+
+        if (this.wakeup !== null) {
+            events.push({ type: 'background.ended', taskId: this.wakeup.taskId });
+            this.wakeup = null;
+        }
+    }
+
+    /*
+     * A turn that starts once the wakeup's time came is its turn, or one it would have joined. One the CLI starts by
+     * itself shortly before may be the wakeup fired early, which only its result tells apart from a task's notification.
+     */
     private beginTurn(events: BackendEvent[]): void {
         if (this.turnOpen) {
             return;
         }
 
         this.turnOpen = true;
+
+        if (this.wakeup === null) {
+            return;
+        }
+
         const now = this.now();
 
-        for (const [taskId, scheduledFor] of this.wakeups) {
-            if (scheduledFor <= now) {
-                this.wakeups.delete(taskId);
-                events.push({ type: 'background.ended', taskId });
-            }
+        if (now >= this.wakeup.scheduledFor) {
+            this.endWakeup(events);
+        } else {
+            this.earlyWake = this.promptId === null && now >= this.wakeup.scheduledFor - WAKEUP_EARLY_FIRE_MS;
         }
     }
 
@@ -1204,6 +1213,12 @@ export class ClaudeProtocol {
         this.turnOpen = false;
         const echoed = Array.isArray(frame.user_message_uuids) ? frame.user_message_uuids.filter((value): value is string => typeof value === 'string') : [];
         const origin = str(frame.origin) ?? (isRecord(frame.origin) ? str(frame.origin.kind) : null);
+
+        if (this.earlyWake && origin !== 'task-notification') {
+            this.endWakeup(events);
+        }
+
+        this.earlyWake = false;
 
         if (
             this.promptId !== null &&

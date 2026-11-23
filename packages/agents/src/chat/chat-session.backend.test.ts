@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { abortedByEnd, abortedByMachine, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
+import { abortedByEnd, abortedByMachine, scheduledWakeupId, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { ClaudeProtocol } from '../backends/claude-protocol.ts';
 import { CodexBackend } from '../backends/codex-backend.ts';
@@ -814,6 +814,30 @@ describe('backend replacement with live work', () => {
         expect(run.session.thread.pending()).toEqual([]);
         await run.session.dispose();
     });
+
+    const wakeup = scheduledWakeupId('toolu_w', 61_000);
+
+    const changes = [
+        ['a new process, which ends it', undefined, [], 2],
+        ['an in-place change, which keeps it', () => true, [wakeup], 1]
+    ] as const;
+
+    for (const [handling, reconfigure, background, processes] of changes) {
+        test(`a wakeup the CLI scheduled never holds back a mode change by ${handling}`, async () => {
+            const run = replacementRig(claudeProvider, {}, reconfigure);
+            run.session.send('loop');
+            await flush();
+            run.event({ type: 'background.started', taskId: wakeup, ref: null, monitor: true, description: 'Scheduled wakeup' });
+            run.done();
+            run.session.configure({ runtimeMode: 'auto' });
+            run.session.send('next');
+            await flush();
+            expect(run.instances.flatMap((instance) => instance.sent.map((input) => input.text))).toEqual(['loop', 'next']);
+            expect(run.instances).toHaveLength(processes);
+            expect((run.session.info.background ?? []).map((task) => task.id)).toEqual([...background]);
+            await run.session.dispose();
+        });
+    }
 });
 
 describe('a settings change a running process takes in place', () => {

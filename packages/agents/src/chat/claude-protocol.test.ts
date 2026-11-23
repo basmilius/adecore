@@ -1,5 +1,5 @@
 import { describe, expect, jest, test } from 'bun:test';
-import type { ChatSubagentItem } from '@adecore/agent-contracts';
+import { scheduledWakeupId, type ChatSubagentItem } from '@adecore/agent-contracts';
 import type { BackendEvent } from '../backends/backend.ts';
 import { claudeGoalCheck, claudeGoalFromCommand, ClaudeProtocol } from '../backends/claude-protocol.ts';
 import autoFallbackCapture from './fixtures/claude-2.1.285-auto-fallback.json';
@@ -13,6 +13,7 @@ import autoBackgroundCapture from './fixtures/claude-2.1.322-auto-background.jso
 import foregroundBashCapture from './fixtures/claude-2.1.322-foreground-bash.json';
 import informationalCapture from './fixtures/claude-2.1.322-informational.json';
 import textBeforeToolCapture from './fixtures/claude-2.1.322-text-before-tool.json';
+import wakeupCapture from './fixtures/claude-2.1.322-wakeup-cron.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -1416,6 +1417,80 @@ describe('ClaudeProtocol', () => {
             }
         });
     });
+});
+
+describe('a wakeup the CLI scheduled', () => {
+    const frames: ReadonlyArray<Record<string, unknown>> = wakeupCapture.frames;
+    const results = frames.flatMap((frame, index) => (frame.type === 'result' ? [index] : []));
+    const scheduling = frames.slice(0, results[0]! + 1);
+    const woken = frames.slice(results[0]! + 1, results[1]! + 1);
+    const promptId = (frames[results[0]!]!.user_message_uuids as string[])[0]!;
+    const scheduledFor = 1_795_426_260_000;
+    const wakeup = scheduledWakeupId('toolu_015e1RpPacrwWDvNJnRsmZko', scheduledFor);
+
+    const background = (events: readonly BackendEvent[]) =>
+        events.flatMap((event) => (event.type === 'background.started' || event.type === 'background.ended' ? [[event.type, event.taskId]] : []));
+
+    /* The person's turn of the capture, which schedules the wakeup a minute out. */
+    const schedule = () => {
+        const clock = { now: scheduledFor - 60_000 };
+        const protocol = new ClaudeProtocol(null, () => clock.now);
+        protocol.beginPrompt(promptId);
+
+        return { protocol, clock, events: scheduling.flatMap((frame) => protocol.handle(frame)) };
+    };
+
+    /* The turn the CLI opened by itself, starting at `at`. */
+    const wake = (at: number, turn = woken) => {
+        const run = schedule();
+        run.clock.now = at;
+
+        return turn.flatMap((frame) => run.protocol.handle(frame));
+    };
+
+    test('is background work from its result until the turn it starts', () => {
+        const run = schedule();
+        expect(background(run.events)).toEqual([['background.started', wakeup]]);
+        run.clock.now = scheduledFor;
+        expect(background(run.protocol.handle(woken[0]))).toEqual([['background.ended', wakeup]]);
+    });
+
+    test('a turn the CLI starts up to two minutes early is the wakeup once its result is not a task notification', () => {
+        const early = wake(scheduledFor - 30_000);
+        const notified = woken.map((frame) => (frame.type === 'result' ? { ...frame, origin: { kind: 'task-notification' } } : frame));
+
+        expect(background(early)).toEqual([['background.ended', wakeup]]);
+        expect(early.slice(-2).map((event) => event.type)).toEqual(['background.ended', 'turn.done']);
+        expect(background(wake(scheduledFor - 121_000))).toEqual([]);
+        expect(background(wake(scheduledFor - 30_000, notified))).toEqual([]);
+    });
+
+    const calls = [
+        ['a new call replaces it', { scheduledFor: scheduledFor + 60_000, clampedDelaySeconds: 120, wasClamped: false }, false],
+        ['stop: true reports no time and ends it', { scheduledFor: 0, clampedDelaySeconds: 0, wasClamped: false }, false],
+        ['a failed call ends it', 'Error: the wakeup could not be scheduled', true]
+    ] as const;
+
+    for (const [name, result, isError] of calls) {
+        test(name, () => {
+            const { protocol } = schedule();
+            protocol.beginPrompt('p2');
+
+            const events = [
+                { type: 'assistant', message: { id: 'm-next', content: [{ type: 'tool_use', id: 'toolu_next', name: 'ScheduleWakeup', input: {} }] } },
+                {
+                    type: 'user',
+                    message: { content: [{ type: 'tool_result', tool_use_id: 'toolu_next', content: '', is_error: isError }] },
+                    tool_use_result: result
+                }
+            ].flatMap((frame) => protocol.handle(frame));
+
+            const replaced =
+                typeof result === 'string' || result.scheduledFor === 0 ? [] : [['background.started', scheduledWakeupId('toolu_next', result.scheduledFor)]];
+
+            expect(background(events)).toEqual([['background.ended', wakeup], ...replaced]);
+        });
+    }
 });
 
 describe('goals', () => {

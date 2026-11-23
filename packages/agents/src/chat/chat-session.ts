@@ -1473,7 +1473,7 @@ export class ChatSession {
 
     /* Whether a change that needs a new CLI waits now: a turn, work beside it or an open request holds the one there is. */
     get replacementWouldWait(): boolean {
-        return this.backend !== null && (this.info.activeTurnId !== null || this.processInUse());
+        return this.backend !== null && (this.info.activeTurnId !== null || this.processWorks());
     }
 
     /* A limited turn a fork went on with is that fork's to take up, never this chat's. */
@@ -2520,11 +2520,22 @@ export class ChatSession {
     }
 
     private processInUse(): boolean {
-        return this.hasNativeWork() || this.thread.pending().length > 0 || this.awaitingBackgroundReport || this.goalWorks();
+        return (this.info.background?.length ?? 0) > 0 || this.processWorks();
+    }
+
+    /* What a change that needs a new process waits for. A wakeup the CLI scheduled holds none: the new process drops it. */
+    private processWorks(): boolean {
+        return (
+            runningInBackground(this.thread.list()).length > 0 ||
+            (this.info.background ?? []).some((task) => scheduledWakeupAt(task) === null) ||
+            this.thread.pending().length > 0 ||
+            this.awaitingBackgroundReport ||
+            this.goalWorks()
+        );
     }
 
     private replacementWaits(): boolean {
-        return this.requiresReplacement() && (this.info.activeTurnId !== null || this.processInUse());
+        return this.requiresReplacement() && (this.info.activeTurnId !== null || this.processWorks());
     }
 
     /* Whether what changed since the launch is only what a running process may take in place. */
@@ -2575,12 +2586,12 @@ export class ChatSession {
         }
 
         // Work still running in an outdated process keeps it, so a change of the host never holds back a turn.
-        if (this.backend?.outdated?.({ selection: this.info.selection, runtimeMode: this.info.runtimeMode }) === true && !this.processInUse()) {
+        if (this.backend?.outdated?.({ selection: this.info.selection, runtimeMode: this.info.runtimeMode }) === true && !this.processWorks()) {
             this.replaceProcess = true;
         }
 
         if (this.backend && this.requiresReplacement()) {
-            if (this.processInUse()) {
+            if (this.processWorks()) {
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));
             }
 
@@ -2596,6 +2607,11 @@ export class ChatSession {
             this.backend.stop();
             this.backend = null;
             this.starting = null;
+
+            // All that can be left is a wakeup the CLI scheduled, and it ends with its process.
+            if (this.info.background?.length) {
+                this.emit([this.thread.patchInfo({ background: [] })]);
+            }
         }
 
         if (this.backend && this.starting) {
