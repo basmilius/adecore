@@ -48,6 +48,7 @@ describe('Antigravity accounts kept apart', () => {
     let dir: string;
     let env: Env;
     let installs: string[];
+    let services: ProviderAccountsService[];
 
     const make = async (provider: ChatProvider): Promise<ProviderAccountsService> => {
         const signedIn: ChatProvider = { ...provider, askAccount: async () => ({ signedIn: true, email: null, plan: null, organization: null }) };
@@ -67,6 +68,7 @@ describe('Antigravity accounts kept apart', () => {
         });
 
         await service.load();
+        services.push(service);
 
         return service;
     };
@@ -77,12 +79,14 @@ describe('Antigravity accounts kept apart', () => {
         dir = await mkdtemp(join(tmpdir(), 'adecore-apart-'));
         env = { HOME: join(dir, 'person'), USERPROFILE: join(dir, 'person') };
         installs = [];
+        services = [];
         await mkdir(join(dir, 'person', '.gemini', 'config', 'skills'), { recursive: true });
         await writeFile(join(dir, 'person', '.gemini', 'GEMINI.md'), '# mine');
     });
 
     afterEach(async () => {
-        // A check the service started may still hold a file in the folder for a moment, which Windows refuses to remove.
+        // A save starts a check in the background that writes in the folder, and Windows refuses to remove a file it holds. A refresh runs after every check already queued.
+        await Promise.all(services.map((service) => service.refresh()));
         await rm(dir, { recursive: true, force: true, maxRetries: 5 });
     });
 
