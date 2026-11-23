@@ -419,7 +419,7 @@ describe('Antigravity', () => {
         expect(envs[0]).toMatchObject(NO_UPDATE);
     });
 
-    test('offers a second account, signed in from its chat, in a GEMINI_HOME of its own', async () => {
+    test('offers a second account, signed in with `agy acp --login`, in a GEMINI_HOME of its own', async () => {
         const home = await newHome();
 
         const accounts = new ProviderAccountsService({
@@ -434,7 +434,8 @@ describe('Antigravity', () => {
         });
 
         await accounts.load();
-        expect(accounts.snapshot()).toMatchObject({ loginCommands: { grok: 'grok login' }, chatLogins: ['antigravity'] });
+        expect(accounts.snapshot()).toMatchObject({ loginCommands: { grok: 'grok login', antigravity: 'agy acp --login' } });
+        expect(accounts.snapshot().chatLogins).toBeUndefined();
 
         const created = await accounts.create({ kind: 'antigravity', label: 'Work' });
         const folder = join(home, 'accounts', created.id);

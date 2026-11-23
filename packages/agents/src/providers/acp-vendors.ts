@@ -406,10 +406,10 @@ const ANTIGRAVITY_MODES: AcpModeMap = {
 
 /*
  * `agy` keeps its sessions and its sign-in under `GEMINI_HOME` (`~/.gemini` without it), so an account is
- * a folder of its own there. It signs in through ACP `authenticate` in a chat, never from a terminal, so it has
- * no `loginCommand` and its accounts are offered as chat logins.
+ * a folder of its own there. A chat signs it in through ACP `authenticate` where a browser can open; where none
+ * can, `agy acp --login` in a terminal prints a link and waits for the code (agy 1.5.15).
  */
-const ANTIGRAVITY_HOME: ProviderHome = { env: 'GEMINI_HOME', fallback: '.gemini', loginEnv: [] };
+const ANTIGRAVITY_HOME: ProviderHome = { env: 'GEMINI_HOME', fallback: '.gemini', loginEnv: [], loginCommand: 'agy acp --login' };
 
 const ANTIGRAVITY_SPEC: VendorSpec = {
     kind: 'antigravity',
@@ -431,9 +431,9 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     oneShotApart: true,
     model: agentModel,
     modes: ANTIGRAVITY_MODES,
-    // The server runs the browser sign-in itself, on a callback server of its own.
+    // agy runs the browser sign-in itself, on a callback server of its own.
     authMethod: 'oauth-personal',
-    loginHint: 'Sign in to Antigravity in the browser the chat opens.',
+    loginHint: 'Run `agy acp --login` in a terminal on this machine, then send your message again.',
     capabilities: { terminal: true, hooks: true },
     resumeCommand: 'agy {flags} --conversation {id}',
     home: ANTIGRAVITY_HOME,
@@ -445,8 +445,8 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
             win32: 'irm https://antigravity.google/cli/install.ps1 | iex'
         },
         guideUrl: 'https://antigravity.google/docs/cli',
-        // The first start of `agy` signs it in in the browser, and so does a chat's first turn.
-        signIn: [{ kind: 'chat' }, { kind: 'command', command: 'agy' }]
+        // A chat's first turn signs it in in the browser; without one, the command does.
+        signIn: [{ kind: 'chat' }, { kind: 'command', command: 'agy acp --login' }]
     },
     // agy reads a prompt only from `-p` (answers and exits), `-i` (runs it and stays) or stdin.
     firstPromptArgs: (prompt) => ['-i', prompt]
