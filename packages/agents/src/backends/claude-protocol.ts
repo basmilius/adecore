@@ -451,7 +451,7 @@ export class ClaudeProtocol {
             // `/clear` and its kin discard the conversation; the next `init` names the new one.
             case 'conversation_reset':
                 this.cacheMessageId = null;
-                events.push({ type: 'usage', contextTokens: 0 });
+                events.push({ type: 'usage', contextTokens: 0, cacheCleared: true });
 
                 if (this.goal !== null) {
                     this.setGoal(null, events);

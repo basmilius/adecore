@@ -879,10 +879,10 @@ describe('ClaudeProtocol', () => {
         const reset = { type: 'conversation_reset', new_conversation_id: 'b', uuid: 'r1', session_id: 'a', trigger: 'clear' };
 
         expect(protocol.handle(reset)).toEqual([
-            { type: 'usage', contextTokens: 0 },
+            { type: 'usage', contextTokens: 0, cacheCleared: true },
             { type: 'goal', goal: null }
         ]);
-        expect(protocol.handle(reset)).toEqual([{ type: 'usage', contextTokens: 0 }]);
+        expect(protocol.handle(reset)).toEqual([{ type: 'usage', contextTokens: 0, cacheCleared: true }]);
     });
 
     test('a compaction boundary reports the size before the fold', () => {

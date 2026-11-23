@@ -271,6 +271,16 @@ describe('ThreadProjector', () => {
         expect(thread.info.usage).toMatchObject({ cacheTtlMs: 300_000, cacheExpiresAt: 900_000 });
     });
 
+    test('usage that clears the cache drops its lifetime with the context', () => {
+        const { thread, project } = setup();
+        project({ type: 'usage', contextTokens: 30000, cacheTtlMs: 300_000, cacheExpiresAt: 900_000 });
+        project({ type: 'usage', contextTokens: 0, cacheCleared: true });
+
+        expect(thread.info.usage.contextTokens).toBe(0);
+        expect(thread.info.usage).not.toHaveProperty('cacheTtlMs');
+        expect(thread.info.usage).not.toHaveProperty('cacheExpiresAt');
+    });
+
     test('usage that leaves the tokens as they were keeps the estimate, and usage that changes nothing says nothing', () => {
         const { thread, project } = setup();
         project({ type: 'tool.started', ref: 'toolu_1', name: 'Read', input: { file_path: 'a.ts' }, parentRef: null });

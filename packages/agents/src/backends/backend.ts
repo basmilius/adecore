@@ -204,8 +204,9 @@ export type BackendEvent =
     // call did; `monitor` is set when the CLI's own frame already says it is one.
     | { type: 'background.started'; taskId: string; ref: string | null; monitor: boolean; description: string | null }
     | { type: 'background.ended'; taskId: string }
-    // `cacheTtlMs` and `cacheExpiresAt` come together, for a CLI that says how long its prompt cache lives.
-    | { type: 'usage'; contextTokens?: number; contextWindow?: number; costUsd?: number; cacheTtlMs?: number; cacheExpiresAt?: number }
+    // `cacheTtlMs` and `cacheExpiresAt` come together, for a CLI that says how long its prompt cache lives. `cacheCleared`
+    // drops both, for a conversation the CLI discarded.
+    | { type: 'usage'; contextTokens?: number; contextWindow?: number; costUsd?: number; cacheTtlMs?: number; cacheExpiresAt?: number; cacheCleared?: boolean }
     // What the CLI said in passing about the plan it runs on; it belongs to the machine, not the chat.
     | { type: 'limits'; update: LimitsUpdate }
     // `postTokens` is the size the CLI named right after the fold, when it named one.

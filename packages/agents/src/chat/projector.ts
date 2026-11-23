@@ -455,6 +455,11 @@ export class ThreadProjector {
                         : { cacheTtlMs: event.cacheTtlMs, cacheExpiresAt: event.cacheExpiresAt })
                 };
 
+                if (event.cacheCleared) {
+                    delete next.cacheTtlMs;
+                    delete next.cacheExpiresAt;
+                }
+
                 if (
                     next.contextTokens !== usage.contextTokens ||
                     next.contextWindow !== usage.contextWindow ||
