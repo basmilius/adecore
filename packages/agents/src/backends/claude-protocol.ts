@@ -1257,6 +1257,12 @@ export class ClaudeProtocol {
 
         this.apiError = null;
         this.refusedWindows.clear();
+
+        // A Stop drops the wakeup in the CLI too; a turn that failed on a live process leaves it waiting.
+        if (this.interrupting) {
+            this.endWakeup(events);
+        }
+
         // Before the turn ends, so whoever settles work on that end already reads where the goal stands.
         this.settleGoal(failed, events);
 

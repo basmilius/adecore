@@ -174,6 +174,8 @@ export function fakeClaude(io: FakeIo): FakeProgram {
     // What a background agent asked; its answer comes in after the turn that launched it, whenever a person gives one.
     let backgroundAsk: { requestId: string; command: string } | null = null;
     let slow = false;
+    // The one wakeup `wakeup:` keeps per session; a new one, `wakeup: stop` and an interrupt each drop the one that waits.
+    let pendingWakeup: string | null = null;
     // Whether the host's handshake declared a per-task stop; without it an interrupt kills every background agent.
     let perTaskStop = false;
     // The background agents of `background:` that still run, by task id, with the call that launched each.
@@ -782,6 +784,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             const at = text.slice(7).trim();
             const stop = at === 'stop';
             const toolUseId = `toolu_wakeup_${++messageCounter}`;
+            pendingWakeup = stop ? null : toolUseId;
             const input = stop ? { stop: true } : { delaySeconds: 60, reason: 'check the build', prompt: '/loop check the build' };
             const output = stop
                 ? { scheduledFor: 0, clampedDelaySeconds: 0, wasClamped: false, stopped: true, cancelledWakeups: 1 }
@@ -811,6 +814,11 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
             if (!stop) {
                 io.later(() => {
+                    if (pendingWakeup !== toolUseId) {
+                        return;
+                    }
+
+                    pendingWakeup = null;
                     out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
                     assistantText('the build is green');
                     result();
@@ -1390,6 +1398,10 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     for (const taskId of [...backgroundAgents.keys()]) {
                         killBackgroundAgent(taskId);
                     }
+                }
+
+                if (request.subtype === 'interrupt') {
+                    pendingWakeup = null;
                 }
 
                 // The CLI takes back what the MCP server asked once its turn is interrupted.

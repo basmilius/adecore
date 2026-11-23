@@ -935,6 +935,35 @@ describe('a wakeup the CLI scheduled', () => {
         ]);
         await run.backend.dispose();
     });
+
+    test('ends when the person stops a later turn, as the CLI drops it with that turn', async () => {
+        const run = open();
+        await run.backend.start();
+        run.backend.sendTurn(turn('wakeup: 61000', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        run.backend.sendTurn(turn('slow', 'p2'));
+        await until(() => run.events.some((event) => event.type === 'turn.accepted' && event.promptId === 'p2'));
+        run.backend.interrupt();
+        await until(() => doneTurns(run.events) === 2);
+        expect(run.events.findLast((event) => event.type === 'turn.done')).toMatchObject({ state: 'aborted' });
+        expect(background(run.events)).toEqual([
+            ['background.started', wakeup],
+            ['background.ended', wakeup]
+        ]);
+        await run.backend.dispose();
+    });
+
+    test('waits on through a turn that failed while the process lives', async () => {
+        const run = open();
+        await run.backend.start();
+        run.backend.sendTurn(turn('wakeup: 61000', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        run.backend.sendTurn(turn('overloaded', 'p2'));
+        await until(() => doneTurns(run.events) === 2);
+        expect(run.events.findLast((event) => event.type === 'turn.done')).toMatchObject({ state: 'error' });
+        expect(background(run.events)).toEqual([['background.started', wakeup]]);
+        await run.backend.dispose();
+    });
 });
 
 describe("a goal's check while a delegated task owes the chat a wake", () => {
