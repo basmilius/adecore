@@ -118,6 +118,22 @@ export function killProcessTree(pid: number, signal: 'SIGTERM' | 'SIGKILL', opti
     }
 }
 
+/* Whether anything of a process group still runs. Windows has no groups, so there nothing is ever waited for. */
+export function processGroupAlive(pid: number): boolean {
+    if (process.platform === 'win32') {
+        return false;
+    }
+
+    try {
+        process.kill(-pid, 0);
+
+        return true;
+    } catch (error) {
+        // EPERM is a member that runs as another user, which still runs.
+        return (error as NodeJS.ErrnoException).code === 'EPERM';
+    }
+}
+
 function runQuietly([command, ...args]: string[]): void {
     if (command === undefined) {
         return;

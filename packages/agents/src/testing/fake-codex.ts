@@ -41,6 +41,8 @@ export interface FakeCodexOptions {
     mcpStartup?: { name: string; status: 'starting' | 'ready' | 'failed' | 'cancelled'; error: string | null };
     // What `account/rateLimits/read` answers; `late` holds the answer back until the test says later is, as a slow read does.
     rateLimitsRead?: { result: Frame; late?: boolean };
+    // What `account/read` answers; absent refuses it, as a Codex without the method does.
+    account?: Frame;
     // Threads whose every turn fails as the API refusing their encrypted history; a test adds one once it holds a turn.
     rejectsHistory?: ReadonlySet<string>;
 }
@@ -885,6 +887,10 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                     started(item('contextCompaction', {}));
                     completed(item('contextCompaction', {}));
                     turnCompleted('completed');
+
+                    return;
+                case 'account/read':
+                    out(options.account === undefined ? { id, error: { code: -32601, message: `unknown method ${method}` } } : { id, result: options.account });
 
                     return;
                 case 'account/rateLimits/read': {
