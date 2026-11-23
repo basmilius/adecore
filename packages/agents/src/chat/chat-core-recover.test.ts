@@ -3,7 +3,10 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import { AgentHost } from '../host/agent-host.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { claudeStoppingOnResume, fakeClaude } from '../testing/fake-claude.ts';
+import { inProcess, type FakeCli } from '../testing/fake-cli.ts';
 import { claudeProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
@@ -145,3 +148,103 @@ test('a host that throws on hearing the lost work still gets the chat loaded and
         await rm(home, { recursive: true, force: true });
     }
 });
+
+/* A CLI wrapper that refuses a resume of `sessionIds` with only the line on stderr and exit 1, before any frame. */
+function stderrOnResume(sessionIds: ReadonlySet<string>): FakeCli {
+    return (io) => {
+        const resume = io.argv.find((arg) => arg.startsWith('--resume='))?.slice('--resume='.length);
+
+        if (resume === undefined || !sessionIds.has(resume)) {
+            return fakeClaude(io);
+        }
+
+        io.err(`No conversation found with session ID: ${resume}\n`);
+        io.exit(1);
+
+        return { onLine: () => undefined };
+    };
+}
+
+test.each([
+    ['an error result and stderr', (gone: ReadonlySet<string>) => claudeStoppingOnResume(gone, 'missing')],
+    ['stderr alone', stderrOnResume]
+])(
+    'a Claude conversation gone on resume (%s) fails that send with a note, and the next send starts a new session that hears the thread',
+    async (_shape, cli) => {
+        const home = await mkdtemp(join(tmpdir(), 'adecore-recover-'));
+        const gone = new Set<string>();
+        const claude = inProcess(cli(gone));
+        const host = await AgentHost.open({
+            dataDir: home,
+            env: { HOME: home, PATH: process.env.PATH },
+            background: false,
+            command: ['claude'],
+            spawn: claude.spawn
+        });
+        const chats = host.chats;
+        const waiting: Array<() => void> = [];
+        chats.observe(() => queueMicrotask(() => waiting.splice(0).forEach((look) => look())));
+        const settled = (): boolean => chats.get('chat')?.info.activeTurnId === null && (chats.get('chat')?.info.queue ?? []).length === 0;
+        // Looked at after every chat event; no clock is involved.
+        const untilSettled = (): Promise<void> =>
+            new Promise((resolve) => {
+                const look = (): void => {
+                    if (settled()) {
+                        resolve();
+                    } else {
+                        waiting.push(look);
+                    }
+                };
+                look();
+            });
+        const turn = async (text: string): Promise<void> => {
+            await chats.send('chat', text);
+            await untilSettled();
+        };
+
+        try {
+            await chats.create({ chatId: 'chat', provider: 'claude', cwd: home });
+            await turn('the lexer reads tabs wrong');
+            const sessionId = chats.get('chat')!.info.agentSessionId!;
+            // The CLI's store loses the conversation, as an ephemeral home does on a new machine.
+            gone.add(sessionId);
+            await chats.restart('chat');
+
+            await turn('fix it');
+            const failed = chats.get('chat')!;
+            expect(claude.started.at(-1)!.argv).toContain(`--resume=${sessionId}`);
+            expect(
+                failed.thread
+                    .list()
+                    .filter((item) => item.kind === 'turn')
+                    .map((item) => item.kind === 'turn' && item.state)
+            ).toEqual(['done', 'error']);
+            expect(failed.thread.list().some((item) => item.kind === 'note' && item.text.includes('could not resume this conversation'))).toBe(true);
+            expect(failed.info.agentSessionId).toBeNull();
+            const launches = claude.started.length;
+
+            await turn('fix it, please');
+            const fresh = claude.started.at(-1)!;
+            expect(claude.started).toHaveLength(launches + 1);
+            expect(fresh.argv.some((arg) => arg.startsWith('--resume'))).toBe(false);
+            const reply = chats
+                .get('chat')!
+                .thread.list()
+                .findLast((item) => item.kind === 'assistant');
+            expect(reply?.kind === 'assistant' ? reply.text : '').toContain('the lexer reads tabs wrong');
+            expect(reply?.kind === 'assistant' ? reply.text : '').toEndWith('fix it, please');
+            // The failed send went out once and was never resent by itself.
+            expect(
+                chats
+                    .get('chat')!
+                    .thread.list()
+                    .filter((item) => item.kind === 'user' && item.text === 'fix it')
+            ).toHaveLength(1);
+            expect(claude.started.filter((cli) => cli.argv.includes(`--resume=${sessionId}`))).toHaveLength(1);
+            expect(chats.get('chat')!.info.agentSessionId).not.toBe(sessionId);
+        } finally {
+            await host.close();
+            await rm(home, { recursive: true, force: true });
+        }
+    }
+);

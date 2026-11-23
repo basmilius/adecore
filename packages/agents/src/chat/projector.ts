@@ -43,7 +43,7 @@ function startsAgentTurn(event: BackendEvent): boolean {
 }
 
 /* A markdown code block around text that may hold backticks of its own. */
-function fenced(text: string): string {
+export function fenced(text: string): string {
     const longest = Math.max(0, ...(text.match(/`+/g) ?? []).map((run) => run.length));
     const fence = '`'.repeat(Math.max(3, longest + 1));
 

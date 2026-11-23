@@ -36,6 +36,7 @@ import { cleanTitle } from '../title-file.ts';
 import { isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
+import { lostConversationHandoff, lostConversationNote, namesLostConversation } from './lost-conversation.ts';
 import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-work.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
@@ -255,6 +256,8 @@ export class ChatSession {
     private launchedRuntimeMode: RuntimeMode | null = null;
     private launchedFolders: readonly string[] = [];
     private launchedProjectConfig = true;
+    // The session the running CLI was told to resume; null once it started fresh or that session was found gone.
+    private launchedResume: string | null = null;
     // The checkpoint of the turn in flight; everything queued for that turn waits for it.
     private turnReady: Promise<void> = Promise.resolve();
     // Turns we settled ourselves whose `result` is still on its way; it may not close the turn after them.
@@ -2537,6 +2540,7 @@ export class ChatSession {
         const folders = this.options.folders?.() ?? [];
         this.launchedFolders = folders;
         this.launchedProjectConfig = projectConfig;
+        this.launchedResume = info.agentSessionId;
 
         const plain: BackendLaunch = {
             command: this.options.provider.command,
@@ -2568,7 +2572,7 @@ export class ChatSession {
             made.backend = this.options.provider.createBackend(launch, {
                 onEvent: (event) => {
                     if (made.backend === this.backend) {
-                        this.receive(generation, event);
+                        this.receive(generation, this.forgetLostConversation(event));
                     }
                 }
             });
@@ -2615,6 +2619,53 @@ export class ChatSession {
             this.thread.info.activeTurnId === turnId &&
             ((turn.attempt ?? 1) < attempt || (turn.attempt === attempt && turn.resumePending === true))
         );
+    }
+
+    /*
+     * Claude Code answers a `--resume` whose transcript is gone the same way every time, so the chat forgets
+     * that session: this send fails with a note saying why, and the next one starts a new session that hears
+     * the thread as text. The failed send is never resent on its own; the person decides whether it still holds.
+     */
+    private forgetLostConversation(event: BackendEvent): BackendEvent {
+        if (this.frozen || this.launchedResume === null || !runsClaudeCode(this.options.provider) || !namesLostConversation(event)) {
+            return event;
+        }
+
+        const handoff = lostConversationHandoff(this.thread.list(), this.thread.info.activeTurnId);
+        this.launchedResume = null;
+        // The CLI exits after its refusal, which may reach the chat after the next send did.
+        this.replaceProcess = true;
+        // The new session's first prompt is a first turn again, for what the host says as well.
+        this.options.promptNotes?.reset();
+
+        if (handoff !== null) {
+            this.pendingPreambles = [...this.pendingPreambles, handoff];
+        }
+
+        if (event.type === 'turn.done') {
+            this.emit([this.thread.patchInfo({ agentSessionId: null })]);
+            this.options.persist();
+
+            return { ...event, error: lostConversationNote(event.error ?? '') };
+        }
+
+        // An exit without a result frame says only "exited with code 1" itself, so the reason goes in a note of its own first.
+        const turnId = this.thread.info.activeTurnId;
+
+        this.emit([
+            this.thread.patchInfo({ agentSessionId: null }),
+            this.thread.upsert({
+                id: newId('note'),
+                kind: 'note',
+                createdAt: this.clock.now(),
+                turnId,
+                level: 'error',
+                text: lostConversationNote(event.stderr ?? '')
+            })
+        ]);
+        this.options.persist();
+
+        return { type: 'exit', exitCode: event.exitCode };
     }
 
     private receive(generation: number, event: BackendEvent): void {
