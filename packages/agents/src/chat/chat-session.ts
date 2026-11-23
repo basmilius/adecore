@@ -453,6 +453,17 @@ export class ChatSession {
 
         this.emit([this.thread.patchInfo(next)]);
         this.options.persist();
+
+        if (this.backend !== null && this.requiresReplacement() && this.changesDuringGoal()) {
+            this.ensureBackend().then(
+                () => this.drainQueue(),
+                // A process that refused it is replaced once the goal ends, and the queue waits for that as before.
+                () => undefined
+            );
+
+            return this.thread.info;
+        }
+
         this.drainQueue();
 
         return this.thread.info;
@@ -2535,7 +2546,12 @@ export class ChatSession {
     }
 
     private replacementWaits(): boolean {
-        return this.requiresReplacement() && (this.info.activeTurnId !== null || this.processWorks());
+        return this.requiresReplacement() && !this.changesDuringGoal() && (this.info.activeTurnId !== null || this.processWorks());
+    }
+
+    /* A goal goes on in turns the CLI opens itself on the settings it holds, so a change it takes in place cannot wait for the goal. */
+    private changesDuringGoal(): boolean {
+        return this.goalWorks() && this.reconfigurable();
     }
 
     /* Whether what changed since the launch is only what a running process may take in place. */
@@ -2591,7 +2607,7 @@ export class ChatSession {
         }
 
         if (this.backend && this.requiresReplacement()) {
-            if (this.processWorks()) {
+            if (this.processWorks() && !this.changesDuringGoal()) {
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));
             }
 

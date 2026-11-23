@@ -24,6 +24,9 @@ const threadTurns = new Map<string, string[]>();
 // The developer instructions per thread, kept from its start the way Codex keeps them in the rollout.
 const threadInstructions = new Map<string, string | null>();
 
+// The service tier per thread, which a turn Codex opens itself runs on.
+const threadTiers = new Map<string, string>();
+
 // Every `thread/fork` a fake was asked, oldest first, so a test can see what the daemon forked at.
 export const fakeCodexForks: Frame[] = [];
 
@@ -59,6 +62,13 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
         const notify = (method: string, params: unknown): void => {
             out({ method, params, emittedAtMs: Date.now() });
+        };
+
+        // A tier sent with a thread or turn request stays the thread's, as Codex keeps a turn's overrides for the turns after it.
+        const keepTier = (params: Frame): void => {
+            if (typeof params.serviceTier === 'string') {
+                threadTiers.set(threadId, params.serviceTier);
+            }
         };
 
         // Codex item ids are unique across processes (UUIDs and response ids); a nonce keeps the fake honest.
@@ -149,7 +159,8 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
         const goalStep = (): void => {
             goalSteps += 1;
-            agentMessage(`goal step ${goalSteps}`);
+            const tier = threadTiers.get(threadId) ?? 'default';
+            agentMessage(tier === 'default' ? `goal step ${goalSteps}` : `goal step ${goalSteps} on ${tier}`);
             const needed = Number(/steps:(\d+)/.exec(String(goal?.objective ?? ''))?.[1] ?? '1');
 
             if (goal !== null) {
@@ -188,6 +199,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
         const handleTurnStart = (params: Frame): void => {
             turnEffort = typeof params.effort === 'string' ? params.effort : null;
+            keepTier(params);
             const input = Array.isArray(params.input) ? (params.input[0] as { text?: string } | undefined) : undefined;
             const raw = input?.text ?? '';
             const gap = raw.indexOf('\n\n');
@@ -650,6 +662,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                         threadInstructions.set(threadId, typeof params.developerInstructions === 'string' ? params.developerInstructions : null);
                     }
 
+                    keepTier(params);
                     threadModel = typeof params.model === 'string' ? params.model : 'fake-model';
                     threadSandbox = typeof params.sandbox === 'string' ? params.sandbox : '';
                     threadApproval = typeof params.approvalPolicy === 'string' ? params.approvalPolicy : params.approvalPolicy === undefined ? '' : 'granular';
@@ -750,6 +763,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                         return;
                     }
 
+                    keepTier(params);
                     out({ id, result: {} });
 
                     return;

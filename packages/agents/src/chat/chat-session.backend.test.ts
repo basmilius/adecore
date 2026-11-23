@@ -1401,4 +1401,33 @@ describe('a Codex selection changed in the running app-server', () => {
             await run.session.dispose();
         }
     });
+
+    test('the Fast tier picked while a goal works goes to the thread at once, so the next goal turn Codex opens runs on it', async () => {
+        const run = codexRig('0.166.0');
+
+        try {
+            run.session.send('/goal steps:3');
+            await flush();
+            await flush();
+            expect(run.session.info.goal?.status).toBe('active');
+            const selection = run.session.info.selection;
+            run.session.configure({ selection: { ...selection, options: { ...selection.options, serviceTier: true } } });
+            await flush();
+
+            // The first runs the turn the goal started in, the second the turn Codex opens itself after it.
+            for (const _step of [1, 2]) {
+                run.fake.started[0]!.runLater();
+                await flush();
+            }
+
+            const texts = run.session.thread.list().flatMap((item) => (item.kind === 'assistant' ? [item.text] : []));
+
+            expect(run.fake.started).toHaveLength(1);
+            expect(run.sent('thread/settings/update')).toMatchObject([{ serviceTier: 'priority' }]);
+            expect(texts).toHaveLength(2);
+            expect(texts.at(-1)).toBe('goal step 2 on priority');
+        } finally {
+            await run.session.dispose();
+        }
+    });
 });
