@@ -1,5 +1,5 @@
 import type { Stats } from 'node:fs';
-import { mkdir, rmdir, stat, symlink, unlink } from 'node:fs/promises';
+import { copyFile, mkdir, rmdir, stat, symlink, unlink, utimes } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { isNotFound } from '@adecore/utils/errors';
 import { existing } from './shadow-home.ts';
@@ -9,7 +9,7 @@ import { existing } from './shadow-home.ts';
  * run apart from its own folder (`ProviderApart.links`). A link to an entry `from` no longer has is removed, since the
  * CLI makes the entry itself and fails on a dangling link. Answers the entries left alone because content is in the way.
  */
-export async function linkApartEntries(from: string, into: string, names: readonly string[]): Promise<string[]> {
+export async function linkApartEntries(from: string, into: string, names: readonly string[], platform: NodeJS.Platform = process.platform): Promise<string[]> {
     const shared = resolve(from);
     const own = resolve(into);
     const unshared: string[] = [];
@@ -36,8 +36,12 @@ export async function linkApartEntries(from: string, into: string, names: readon
             continue;
         }
 
-        // A file link on Windows needs elevation, and a directory link there is a junction.
-        if (process.platform === 'win32' && !source.isDirectory()) {
+        // A file link on Windows needs elevation, so a file is copied there; a directory link there is a junction.
+        if (platform === 'win32' && !source.isDirectory()) {
+            if (!(await copiedFile(target, source, link, found.kind))) {
+                unshared.push(name);
+            }
+
             continue;
         }
 
@@ -54,6 +58,35 @@ export async function linkApartEntries(from: string, into: string, names: readon
     }
 
     return unshared;
+}
+
+/*
+ * A copy carries the time of the file it was taken from, so a copy older than that file is refreshed and one edited
+ * since it was taken is newer and stays. Answers false when content of the account's own is in the way.
+ */
+async function copiedFile(target: string, source: Stats, copy: string, found: 'missing' | 'link' | 'real'): Promise<boolean> {
+    if (found === 'link') {
+        await unlink(copy);
+    } else if (found === 'real') {
+        const own = await stat(copy);
+        // Whole milliseconds, since a file system keeps a time it is given at a precision of its own.
+        const ownTime = Math.floor(own.mtimeMs);
+        const sourceTime = Math.floor(source.mtimeMs);
+
+        if (!own.isFile() || ownTime > sourceTime) {
+            return false;
+        }
+
+        if (ownTime === sourceTime) {
+            return true;
+        }
+    }
+
+    await mkdir(dirname(copy), { recursive: true });
+    await copyFile(target, copy);
+    await utimes(copy, source.atime, source.mtime);
+
+    return true;
 }
 
 async function statOrNull(path: string): Promise<Stats | null> {

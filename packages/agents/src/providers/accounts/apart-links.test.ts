@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { lstat, mkdir, mkdtemp, readlink, rm, symlink, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, readlink, rm, symlink, utimes, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { linkApartEntries } from './apart-links.ts';
 
-describe.skipIf(process.platform === 'win32')('linkApartEntries', () => {
+const linksFiles = process.platform !== 'win32';
+
+describe('linkApartEntries', () => {
     let dir: string;
     let from: string;
     let into: string;
@@ -22,7 +24,7 @@ describe.skipIf(process.platform === 'win32')('linkApartEntries', () => {
         await rm(dir, { recursive: true, force: true });
     });
 
-    test('links what the CLI folder has, nested or not, and leaves out what it lacks', async () => {
+    test.if(linksFiles)('links what the CLI folder has, nested or not, and leaves out what it lacks', async () => {
         const unshared = await linkApartEntries(from, into, ['config/skills', 'AGENTS.md', 'GEMINI.md']);
 
         expect(unshared).toEqual([]);
@@ -31,7 +33,7 @@ describe.skipIf(process.platform === 'win32')('linkApartEntries', () => {
         await expect(lstat(join(into, 'GEMINI.md'))).rejects.toThrow();
     });
 
-    test("replaces the empty folder the CLI made in a link's place, and keeps one with content", async () => {
+    test.if(linksFiles)("replaces the empty folder the CLI made in a link's place, and keeps one with content", async () => {
         await mkdir(join(into, 'config', 'skills'), { recursive: true });
         await mkdir(join(from, 'antigravity-cli', 'skills'), { recursive: true });
         await mkdir(join(into, 'antigravity-cli', 'skills', 'mine'), { recursive: true });
@@ -43,11 +45,31 @@ describe.skipIf(process.platform === 'win32')('linkApartEntries', () => {
         expect((await lstat(join(into, 'antigravity-cli', 'skills', 'mine'))).isDirectory()).toBe(true);
     });
 
-    test('removes a link whose entry the CLI folder no longer has', async () => {
+    test.if(linksFiles)('removes a link whose entry the CLI folder no longer has', async () => {
         await symlink(join(from, 'GEMINI.md'), join(into, 'GEMINI.md'));
 
         await linkApartEntries(from, into, ['GEMINI.md']);
 
         await expect(lstat(join(into, 'GEMINI.md'))).rejects.toThrow();
+    });
+
+    test('copies a file on Windows, refreshes a copy older than its file and keeps one edited since', async () => {
+        const copy = join(into, 'AGENTS.md');
+
+        expect(await linkApartEntries(from, into, ['AGENTS.md'], 'win32')).toEqual([]);
+        expect((await lstat(copy)).isSymbolicLink()).toBe(false);
+        expect(await readFile(copy, 'utf8')).toBe('# rules');
+
+        await writeFile(join(from, 'AGENTS.md'), '# newer rules');
+        await utimes(join(from, 'AGENTS.md'), new Date(), new Date(Date.UTC(2030, 0, 1)));
+
+        expect(await linkApartEntries(from, into, ['AGENTS.md'], 'win32')).toEqual([]);
+        expect(await readFile(copy, 'utf8')).toBe('# newer rules');
+
+        await writeFile(copy, '# mine');
+        await utimes(copy, new Date(), new Date(Date.UTC(2031, 0, 1)));
+
+        expect(await linkApartEntries(from, into, ['AGENTS.md'], 'win32')).toEqual(['AGENTS.md']);
+        expect(await readFile(copy, 'utf8')).toBe('# mine');
     });
 });

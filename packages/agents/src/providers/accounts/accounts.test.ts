@@ -71,6 +71,11 @@ describe('cliFolder', () => {
         expect(defaultFolder(codex, tilde)).toBe(join(HOME, 'x'));
         expect(cliFolder(codex, { ...env, CODEX_HOME: '~' })).toBe(HOME);
     });
+
+    test('keeps any other value exactly as the variable gives it', () => {
+        expect(cliFolder(codex, { ...env, CODEX_HOME: 'relative/codex' })).toBe('relative/codex');
+        expect(cliFolder(codex, { ...env, CODEX_HOME: '/opt/codex/' })).toBe('/opt/codex/');
+    });
 });
 
 describe('accountProblem', () => {

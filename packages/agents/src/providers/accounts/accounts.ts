@@ -31,11 +31,15 @@ export function expandHome(path: string, env: Env): string {
         return home;
     }
 
-    if (path.startsWith('~/') || (process.platform === 'win32' && path.startsWith('~\\'))) {
+    if (startsAtHome(path)) {
         return join(home, path.slice(2));
     }
 
     return resolve(path);
+}
+
+function startsAtHome(path: string): boolean {
+    return path.startsWith('~/') || (process.platform === 'win32' && path.startsWith('~\\'));
 }
 
 /* A folder the host can resolve the same way whatever folder it was started in. */
@@ -132,7 +136,12 @@ export function cliFolder(provider: ChatProvider, env: Env): string {
 
     const folder = env[provider.home.env];
 
-    return folder === undefined ? join(homeFolder(env), provider.home.fallback) : expandHome(folder, env);
+    if (folder === undefined) {
+        return join(homeFolder(env), provider.home.fallback);
+    }
+
+    // Only the `~` is the CLI's to expand; any other value is the folder exactly as the host was given it.
+    return folder === '~' || startsAtHome(folder) ? expandHome(folder, env) : folder;
 }
 
 /* The folder of the default account: the CLI's own, unless the host keeps every account apart from it. */

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, readlink, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readlink, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { AgentKind, ProviderInfo } from '@adecore/agent-contracts';
@@ -82,7 +82,8 @@ describe('Antigravity accounts kept apart', () => {
     });
 
     afterEach(async () => {
-        await rm(dir, { recursive: true, force: true });
+        // A check the service started may still hold a file in the folder for a moment, which Windows refuses to remove.
+        await rm(dir, { recursive: true, force: true, maxRetries: 5 });
     });
 
     test('every account starts in a folder of its own with SSH_CONNECTION, the default one included', async () => {
@@ -134,7 +135,12 @@ describe('Antigravity accounts kept apart', () => {
 
         expect(installs).toEqual([`antigravity ${defaultHome}`]);
         expect(await readlink(join(defaultHome, 'config', 'skills'))).toBe(join(dir, 'person', '.gemini', 'config', 'skills'));
-        expect(await readlink(join(defaultHome, 'GEMINI.md'))).toBe(join(dir, 'person', '.gemini', 'GEMINI.md'));
+
+        if (process.platform === 'win32') {
+            expect(await readFile(join(defaultHome, 'GEMINI.md'), 'utf8')).toBe('# mine');
+        } else {
+            expect(await readlink(join(defaultHome, 'GEMINI.md'))).toBe(join(dir, 'person', '.gemini', 'GEMINI.md'));
+        }
     });
 
     test("without a default home the default account stays in the CLI's own folder, on its keyring", async () => {
