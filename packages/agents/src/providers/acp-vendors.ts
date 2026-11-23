@@ -419,6 +419,7 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     command: ANTIGRAVITY_CLI,
     args: ['acp'],
     env: ANTIGRAVITY_ENV,
+    mcp: { http: true },
     // agy 1.5's own `--mode` values; plan mode widens nothing.
     terminal: {
         modeArgs: {

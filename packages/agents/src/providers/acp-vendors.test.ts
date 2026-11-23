@@ -466,6 +466,18 @@ describe('Antigravity', () => {
         await backend.dispose();
     });
 
+    test("passes the launch's HTTP MCP server although agy advertises no MCP transport", async () => {
+        const server = { name: 'host', url: 'http://127.0.0.1:4000/mcp', headers: {}, allowTools: true };
+        const { backend, events, requests } = run(createAntigravityProvider(), { modes: AGY_MODES }, { mcpServers: [server] });
+
+        await backend.start();
+        expect(requests.find((request) => request.method === 'session/new')?.params.mcpServers).toEqual([
+            { type: 'http', name: 'host', url: 'http://127.0.0.1:4000/mcp', headers: [] }
+        ]);
+        expect(events.some((event) => event.type === 'note')).toBe(false);
+        await backend.dispose();
+    });
+
     test("a turn's recorded usage lands on the usage page under Antigravity and the session's model, with no price for it", async () => {
         const home = await newHome();
         setSystemTime(Date.UTC(2026, 10, 23, 12));
