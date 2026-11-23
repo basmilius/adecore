@@ -19,6 +19,7 @@ import {
     GROK_QUESTION_METHODS,
     GROK_SESSION_NOTIFICATION,
     interjectionQueued,
+    isReplayed,
     parseInitialize,
     parseSessionInfo,
     promptUsageOf,
@@ -157,8 +158,9 @@ class AcpBackend implements ChatBackend {
     // The launch's MCP servers whose transport the agent takes, which every session request names.
     private mcpServers: readonly ChatMcpServer[] = [];
     private sessionId = '';
-    // A loaded session replays its history as updates the thread already holds.
-    private replaying = false;
+    // A loaded session replays its history as updates the thread already holds. `marked` once the agent marked a frame
+    // as replayed: the first frame after it without the mark is live, and the replay is over before the load answers.
+    private replaying: { marked: boolean } | null = null;
     private contextPending: string | null = null;
     // `started` once the agent said it began this prompt's foreground work, so an idle of an earlier prompt ends nothing.
     private prompt: PromptState | null = null;
@@ -325,7 +327,7 @@ class AcpBackend implements ChatBackend {
                 this.emit({ type: 'note', level: 'warning', text: `${this.spec.name} cannot continue a session it ran before. Started a new one.` });
             } else {
                 try {
-                    this.replaying = method === 'session/load';
+                    this.replaying = method === 'session/load' ? { marked: false } : null;
                     const result = await this.authenticated(transport, method, { sessionId: resume, ...this.sessionParams() });
                     this.sessionId = resume;
                     this.contextPending = [this.launch.resumeInstructions ?? null, this.launch.resumeNote].filter((part) => part !== null).join('\n\n') || null;
@@ -343,7 +345,7 @@ class AcpBackend implements ChatBackend {
                         text: `${this.spec.name} could not continue its session (${errorText(error)}). Started a new one.`
                     });
                 } finally {
-                    this.replaying = false;
+                    this.replaying = null;
                 }
             }
         }
@@ -766,8 +768,16 @@ class AcpBackend implements ChatBackend {
 
         const id = typeof frame.id === 'number' || typeof frame.id === 'string' ? frame.id : null;
 
+        if (this.replaying !== null && id === null) {
+            if (isReplayed(frame.params)) {
+                this.replaying.marked = true;
+            } else if (this.replaying.marked) {
+                this.replaying = null;
+            }
+        }
+
         if (frame.method === 'session/update' && id === null) {
-            if (this.sessionId === '' || this.replaying) {
+            if (this.sessionId === '' || this.replaying !== null) {
                 this.holdEarly(frame.params);
 
                 return;
@@ -950,7 +960,7 @@ class AcpBackend implements ChatBackend {
     private holdEarly(params: unknown): void {
         const update = sessionUpdateOf(params);
 
-        if (update !== null && (!this.replaying || update.commands !== null)) {
+        if (update !== null && (this.replaying === null || update.commands !== null)) {
             this.early.push(params);
         }
     }

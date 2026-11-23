@@ -474,6 +474,11 @@ export function sessionUpdateOf(params: unknown): { sessionId: string; commands:
     };
 }
 
+/* Whether a notification says it replays history, as Grok 1.0.70 marks every frame a `session/load` replays. */
+export function isReplayed(params: unknown): boolean {
+    return isRecord(params) && isRecord(params._meta) && params._meta.isReplay === true;
+}
+
 export function sessionIdOf(result: unknown): string | null {
     const parsed = SessionResponseSchema.safeParse(result);
 
