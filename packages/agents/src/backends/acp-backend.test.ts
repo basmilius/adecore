@@ -473,6 +473,24 @@ test('an effort the agent refuses leaves a note and the session starts', async (
     await fake.backend.dispose();
 });
 
+// Grok over protocol 1, as T3 Code's mock gives it (`_meta.reasoningEfforts` per model); no capture of our own shows it.
+test('an effort a model lists in its `_meta` goes on session/set_model for the model switched to, and a refusal leaves a note', async () => {
+    const fake = run({ legacyModels: true, reasoningEffort: 'accept' }, { selection: { model: 'fake-large', options: { effort: 'xhigh' } } });
+    await fake.backend.start();
+
+    expect(fake.sent.filter((frame) => frame.method === 'session/set_model').map((frame) => frame.params)).toEqual([
+        { sessionId: sessionOf(fake.events), modelId: 'fake-large' },
+        { sessionId: sessionOf(fake.events), modelId: 'fake-large', _meta: { reasoningEffort: 'xhigh' } }
+    ]);
+    expect(fake.events.some((event) => event.type === 'note')).toBe(false);
+    await fake.backend.dispose();
+
+    const refused = run({ legacyModels: true, reasoningEffort: 'reject' }, { selection: { model: 'fake-small', options: { effort: 'high' } } });
+    await refused.backend.start();
+    expect(refused.events).toContainEqual({ type: 'note', level: 'warning', text: 'Fake kept its reasoning at Low instead of High.' });
+    await refused.backend.dispose();
+});
+
 test('models reported the older way are switched with session/set_model, and an unknown one leaves the agent its own', async () => {
     const legacy = run({ legacyModels: true }, { selection: { model: 'fake-large', options: {} } });
     await legacy.backend.start();

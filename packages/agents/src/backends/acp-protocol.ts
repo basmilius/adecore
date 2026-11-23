@@ -211,6 +211,46 @@ const ModelStateSchema = z.looseObject({
 
 const ModelEntrySchema = z.looseObject({ modelId: z.string(), name: z.string(), description: z.string().nullish(), _meta: z.unknown().optional() });
 
+/*
+ * The reasoning effort a model lists in its `_meta` (`reasoningEfforts`, `reasoningEffort`), as Grok does over protocol 1
+ * and T3 Code reads it (`grokReasoningOptionsFromModel`). Absent where the model lists none or none it runs at.
+ */
+function metaThoughtLevel(meta: unknown): AcpThoughtLevel | undefined {
+    if (!isRecord(meta) || meta.supportsReasoningEffort === false || !Array.isArray(meta.reasoningEfforts)) {
+        return undefined;
+    }
+
+    const choices: AcpChoice[] = [];
+    let preset: string | null = null;
+
+    for (const entry of meta.reasoningEfforts) {
+        if (!isRecord(entry)) {
+            continue;
+        }
+
+        const id = nonEmpty(entry.value) ?? nonEmpty(entry.id);
+
+        if (id === null || choices.some((choice) => choice.id === id)) {
+            continue;
+        }
+
+        choices.push({ id, name: nonEmpty(entry.label) ?? id, description: nonEmpty(entry.description) });
+
+        if (preset === null && (entry.default === true || entry.isDefault === true)) {
+            preset = id;
+        }
+    }
+
+    const named = nonEmpty(meta.reasoningEffort);
+    const current = named !== null && choices.some((choice) => choice.id === named) ? named : preset;
+
+    return current === null ? undefined : { configId: null, current, choices };
+}
+
+function nonEmpty(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() !== '' ? value.trim() : null;
+}
+
 /* The context window an agent names for a model in the model's `_meta` (`totalContextTokens`, not part of the protocol); null where it names none. */
 function contextWindowOf(meta: unknown): number | null {
     const tokens = isRecord(meta) ? meta.totalContextTokens : undefined;
@@ -317,6 +357,8 @@ interface AcpModel {
     description: string | null;
     // In tokens, where the agent names it.
     contextWindow: number | null;
+    // The reasoning effort the model lists in its `_meta`, for a model picked with `session/set_model`.
+    thoughtLevel?: AcpThoughtLevel;
 }
 
 /* The models a session offers. `configId` is the config option that picks one, or null where the agent takes `session/set_model`. */
@@ -344,9 +386,12 @@ interface AcpChoice {
     description: string | null;
 }
 
-/* The reasoning effort a session offers: the config option that sets it, the value it runs at and the values it takes. */
+/*
+ * The reasoning effort a session offers: the config option that sets it, the value it runs at and the values it takes.
+ * `configId` is null where the effort goes as `_meta.reasoningEffort` on `session/set_model`.
+ */
 export interface AcpThoughtLevel {
-    configId: string;
+    configId: string | null;
     current: string;
     choices: AcpChoice[];
 }
@@ -422,12 +467,17 @@ function sessionState(options: ConfigOption[], modes: unknown, models: unknown):
             : modelState.success
               ? {
                     current: modelState.data.currentModelId,
-                    models: entries.map((model) => ({
-                        id: model.modelId,
-                        name: model.name,
-                        description: model.description ?? null,
-                        contextWindow: contextWindowOf(model._meta)
-                    })),
+                    models: entries.map((model) => {
+                        const level = metaThoughtLevel(model._meta);
+
+                        return {
+                            id: model.modelId,
+                            name: model.name,
+                            description: model.description ?? null,
+                            contextWindow: contextWindowOf(model._meta),
+                            ...(level === undefined ? {} : { thoughtLevel: level })
+                        };
+                    }),
                     configId: null
                 }
               : null,
@@ -450,7 +500,9 @@ function sessionState(options: ConfigOption[], modes: unknown, models: unknown):
                   current: thought.currentValue as string,
                   choices: selectValues(thought).map((value) => ({ id: value.value, name: value.name, description: value.description ?? null }))
               }
-            : null
+            : modelOption === null && modelState.success
+              ? (metaThoughtLevel(entries.find((model) => model.modelId === modelState.data.currentModelId)?._meta) ?? null)
+              : null
     };
 }
 

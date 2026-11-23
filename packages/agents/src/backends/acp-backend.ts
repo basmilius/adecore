@@ -370,7 +370,7 @@ class AcpBackend implements ChatBackend {
         const modeId = await this.applyMode(transport, info);
         const { model, thoughtLevel } = await this.applyModel(transport, info);
         this.model = model;
-        await this.applyThoughtLevel(transport, thoughtLevel);
+        await this.applyThoughtLevel(transport, thoughtLevel, model);
         this.spec.onSession?.(info);
 
         this.emit({
@@ -565,8 +565,10 @@ class AcpBackend implements ChatBackend {
         try {
             if (models.configId === null) {
                 await transport.request('session/set_model', { sessionId: this.sessionId, modelId: wanted });
+                // An effort a model lists in its own `_meta` is that model's, so the switch brings the new one's.
+                const listed = thoughtLevel === null || thoughtLevel.configId === null;
 
-                return { model: wanted, thoughtLevel };
+                return { model: wanted, thoughtLevel: listed ? (models.models.find((model) => model.id === wanted)?.thoughtLevel ?? null) : thoughtLevel };
             }
 
             const result = await transport.request('session/set_config_option', { sessionId: this.sessionId, configId: models.configId, value: wanted });
@@ -588,17 +590,24 @@ class AcpBackend implements ChatBackend {
         }
     }
 
-    /* Sets the selected effort where the session offers it; a model without one runs as it is. */
-    private async applyThoughtLevel(transport: JsonRpcTransport, level: AcpThoughtLevel | null): Promise<void> {
+    /*
+     * Sets the selected effort where the session offers it; a model without one runs as it is. An effort the model lists
+     * in its `_meta` goes on `session/set_model` for the model the session runs, as T3 Code sends Grok's over protocol 1.
+     */
+    private async applyThoughtLevel(transport: JsonRpcTransport, level: AcpThoughtLevel | null, model: string | null): Promise<void> {
         const effort = this.launch.selection.options.effort;
         const choice = level?.choices.find((entry) => entry.id === effort);
 
-        if (level === null || choice === undefined || effort === level.current) {
+        if (level === null || choice === undefined || effort === level.current || (level.configId === null && model === null)) {
             return;
         }
 
         try {
-            await transport.request('session/set_config_option', { sessionId: this.sessionId, configId: level.configId, value: choice.id });
+            if (level.configId === null) {
+                await transport.request('session/set_model', { sessionId: this.sessionId, modelId: model, _meta: { reasoningEffort: choice.id } });
+            } else {
+                await transport.request('session/set_config_option', { sessionId: this.sessionId, configId: level.configId, value: choice.id });
+            }
         } catch (error) {
             if (!(error instanceof JsonRpcError)) {
                 throw error;

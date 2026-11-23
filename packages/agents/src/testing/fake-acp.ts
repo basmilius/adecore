@@ -27,7 +27,7 @@ export interface FakeAcpOptions {
     // The `usage` every `session/prompt` response carries; absent reports none.
     turnUsage?: Record<string, number>;
     // Offers a reasoning effort as the config option `reasoning_effort`, without a category: Low and High, and
-    // Extra high on `fake-large`. `reject` refuses every change to it.
+    // Extra high on `fake-large`; with `legacyModels`, in each model's `_meta` instead. `reject` refuses every change to it.
     reasoningEffort?: 'accept' | 'reject';
     // Names each model's context window in its `_meta` (`totalContextTokens`): 128000 for `fake-small`, 1000000 for `fake-large`.
     contextWindows?: boolean;
@@ -114,11 +114,27 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                 { value: 'fake-large', name: 'Fake large', ...meta(1000000) }
             ];
 
-            const effortChoices = [
+            const effortsOf = (modelId: string) => [
                 { value: 'low', name: 'Low', description: 'Answers quickly' },
                 { value: 'high', name: 'High' },
-                ...(model === 'fake-large' ? [{ value: 'xhigh', name: 'Extra high' }] : [])
+                ...(modelId === 'fake-large' ? [{ value: 'xhigh', name: 'Extra high' }] : [])
             ];
+
+            const effortChoices = effortsOf(model);
+
+            // Grok over protocol 1: each model lists its efforts in its `_meta`, and the one it runs at.
+            const legacyEffort = (modelId: string): Frame =>
+                options.reasoningEffort === undefined
+                    ? {}
+                    : {
+                          reasoningEffort: modelId === model ? effort : 'low',
+                          reasoningEfforts: effortsOf(modelId).map((choice) => ({
+                              id: choice.value,
+                              value: choice.value,
+                              label: choice.name,
+                              default: choice.value === 'low'
+                          }))
+                      };
 
             const effortOption =
                 options.reasoningEffort === undefined
@@ -128,7 +144,16 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
             return {
                 ...(modes.length === 0 ? {} : { modes: { currentModeId: mode, availableModes: modes.map((id) => ({ id, name: id })) } }),
                 ...(options.legacyModels
-                    ? { models: { currentModelId: model, availableModels: modelChoices.map(({ value, ...choice }) => ({ modelId: value, ...choice })) } }
+                    ? {
+                          models: {
+                              currentModelId: model,
+                              availableModels: modelChoices.map(({ value, ...choice }) => ({
+                                  modelId: value,
+                                  ...choice,
+                                  _meta: { ...((choice as Frame)._meta as Frame | undefined), ...legacyEffort(value) }
+                              }))
+                          }
+                      }
                     : {
                           configOptions: [
                               { id: 'model', name: 'Model', type: 'select', category: 'model', currentValue: model, options: modelChoices },
@@ -440,11 +465,21 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                     update({ sessionUpdate: 'current_mode_update', currentModeId: mode });
 
                     return;
-                case 'session/set_model':
+                case 'session/set_model': {
+                    const wanted = (params._meta as Frame | undefined)?.reasoningEffort;
+
+                    if (wanted !== undefined && options.reasoningEffort === 'reject') {
+                        refuse(id, -32602, 'Reasoning effort is locked');
+
+                        return;
+                    }
+
                     model = String(params.modelId);
+                    effort = wanted === undefined ? effort : String(wanted);
                     respond(id, {});
 
                     return;
+                }
                 case 'session/set_config_option':
                     if (configFailures > 0) {
                         configFailures -= 1;
