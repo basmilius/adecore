@@ -45,6 +45,25 @@ test('a thread on Codex 0.166.0 turns the plan tool on, and one on an unknown ve
     expect(await threadConfig(null)).toBeUndefined();
 });
 
+test("a delegated chat's new thread says it is a subagent's from Codex 0.129.0 on, and a person's chat or a resume does not", async () => {
+    const sentThreadSource = async (version: string | null, extra: Partial<BackendLaunch>): Promise<unknown[]> => {
+        const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+        const fake = inProcess(fakeCodexWith({ requests }));
+        const backend = new CodexBackend({ ...launch, ...extra, spawn: fake.spawn }, { onEvent: () => undefined }, { client: DEFAULT_CODEX_CLIENT, version });
+        await backend.start();
+        await backend.dispose();
+
+        return requests
+            .filter((request) => request.method === 'thread/start' || request.method === 'thread/resume')
+            .map((request) => request.params.threadSource);
+    };
+
+    expect(await sentThreadSource('0.129.0', { subagent: true })).toEqual(['subagent']);
+    expect(await sentThreadSource('0.128.9', { subagent: true })).toEqual([undefined]);
+    expect(await sentThreadSource('0.166.0', {})).toEqual([undefined]);
+    expect(await sentThreadSource('0.166.0', { subagent: true, resume: 'thread-1' })).toEqual([undefined]);
+});
+
 test('a server request whose handling throws gets an internal error reply, and the chat fails as before', async () => {
     const errorReplies: Record<string, unknown>[] = [];
     const fake = inProcess(fakeCodexWith({ errorReplies }));

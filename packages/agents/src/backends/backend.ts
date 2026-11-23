@@ -79,6 +79,8 @@ export interface BackendLaunch {
     mcpServers?: readonly ChatMcpServer[];
     // Whether the CLI predicts the next prompt after each turn, which costs a model request of its own.
     promptSuggestions?: boolean;
+    // Whether another agent delegated this chat its work, for a CLI that marks such a session as a subagent's.
+    subagent?: boolean;
     // Whether a task the chat gave still owes it a wake, asked at the end of a turn, so a CLI whose goal would send the agent on holds off.
     owesWake?(): boolean;
     spawn?: SpawnChatProcess;

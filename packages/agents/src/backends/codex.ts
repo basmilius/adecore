@@ -38,6 +38,11 @@ const FULL_ACCESS_GRANULAR: CodexGranularPolicy = {
  * prerelease of 0.166.0, is not.
  */
 export function codexFrom0166(version: string | null): boolean {
+    return codexFrom(version, 166);
+}
+
+/* Whether a Codex of this `--version` is `0.<minor>.0` or newer; an unknown version, or a prerelease of that one, is not. */
+export function codexFrom(version: string | null, floorMinor: number): boolean {
     const match = version === null ? null : /^v?(\d+)\.(\d+)\.(\d+)(-)?/.exec(version.trim());
 
     if (match === null) {
@@ -46,11 +51,11 @@ export function codexFrom0166(version: string | null): boolean {
 
     const [major, minor, patch] = [Number(match[1]), Number(match[2]), Number(match[3])];
 
-    if (major > 0 || minor > 166) {
+    if (major > 0 || minor > floorMinor) {
         return true;
     }
 
-    return minor === 166 && (patch > 0 || match[4] === undefined);
+    return minor === floorMinor && (patch > 0 || match[4] === undefined);
 }
 
 /*

@@ -158,6 +158,8 @@ export interface ChatCoreHooks {
      * Asked when a process starts; absent predicts none.
      */
     promptSuggestionsFor?(chatId: string): boolean;
+    /* Whether another agent delegated this chat its work, which a CLI may mark its session with. Asked when a process starts; absent is no. */
+    subagentFor?(chatId: string): boolean;
     /* Whether no list of chats shows this one, which `ChatInfo.hidden` says to every client. */
     hiddenFor?(chatId: string): boolean;
     /* What the host says in front of a chat's next real prompt, beside what the chat keeps itself. */
@@ -675,6 +677,7 @@ export class ChatCore {
             folders: () => this.hooks.foldersFor?.(payload.chatId) ?? [],
             projectConfig: () => this.hooks.projectConfigFor?.(payload.chatId) ?? true,
             promptSuggestions: () => this.hooks.promptSuggestionsFor?.(payload.chatId) ?? false,
+            subagent: () => this.hooks.subagentFor?.(payload.chatId) ?? false,
             owesWake: () => (this.hooks.taskRows?.(payload.chatId) ?? []).some((task) => task.wake === 'pending'),
             promptHeard: (text) => this.hooks.promptHeardFor?.(payload.chatId, text) ?? [],
             hostSkills: () => this.hooks.hostSkillsFor?.(payload.chatId) ?? [],

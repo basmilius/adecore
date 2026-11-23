@@ -408,6 +408,8 @@ export class CodexProtocol {
                 );
             } else if (frame.method === 'thread/closed') {
                 this.withdrawOwner(threadId, null, events);
+            } else if (frame.method === 'item/started') {
+                this.childCommandStarted(threadId, params, events);
             }
 
             return events;
@@ -1250,6 +1252,19 @@ export class CodexProtocol {
         if (!this.settleEndedAgents(item.agentsStates, events)) {
             events.push({ type: 'task.progress', ref, summary: summary || null, lastTool: null, usage: null });
         }
+    }
+
+    /* A command a spawned agent starts in its own thread, as progress on the row that stands for that agent. */
+    private childCommandStarted(threadId: string, params: Frame, events: BackendEvent[]): void {
+        const item = isRecord(params.item) ? params.item : null;
+        const row = this.agentRows.get(threadId);
+        const command = item?.type === 'commandExecution' ? str(item.command) : null;
+
+        if (row === undefined || row.settled || command === null) {
+            return;
+        }
+
+        events.push({ type: 'task.progress', ref: row.ref, summary: unwrapCommand(command), lastTool: 'Bash', usage: null });
     }
 
     private settleEndedAgents(states: unknown, events: BackendEvent[]): boolean {

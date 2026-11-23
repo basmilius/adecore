@@ -238,6 +238,15 @@ describe('CodexProtocol', () => {
         expect(protocol.handle({ method: 'item/completed', params: { ...ids, item: { ...completed, agentThreadId: 'other' } } })).toEqual([]);
     });
 
+    test("a command a spawned agent starts in its own thread is progress on the agent's row", async () => {
+        const events = await runCodex({}, 'spawn agent: survey the docs');
+        const opened = events.find((event) => event.type === 'task.started');
+
+        expect(events.filter((event) => event.type === 'task.progress')).toEqual([
+            { type: 'task.progress', ref: opened?.type === 'task.started' ? opened.ref : '', summary: 'echo PONG', lastTool: 'Bash', usage: null }
+        ]);
+    });
+
     test('the name a thread already has comes with the handshake, and a rename after it as a title', () => {
         const protocol = new CodexProtocol(1);
 

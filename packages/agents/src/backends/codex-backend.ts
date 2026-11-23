@@ -8,7 +8,7 @@ import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, Backen
 import { codexMcpArgs } from './cli-mcp.ts';
 import { codexGoal, CodexProtocol, spentUntil } from './codex-protocol.ts';
 import { CodexTransport, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
-import { codexFrom0166, codexServiceTier, codexThreadOptions } from './codex.ts';
+import { codexFrom, codexFrom0166, codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
 import { CODEX_READ_TIMEOUT_MS } from './limits-probe.ts';
 import { readCodexLimitsAnswer } from './limits.ts';
@@ -220,7 +220,13 @@ export class CodexBackend implements ChatBackend {
             ...(codexFrom0166(this.version) ? { config: { 'tools.update_plan.enabled': true } } : {})
         };
 
-        const instructions = this.launch.instructions === null ? {} : { developerInstructions: this.launch.instructions };
+        // `threadSource` exists from 0.129.0 on, and only a new thread takes it.
+        const startParams = {
+            ...params,
+            ...(this.launch.instructions === null ? {} : { developerInstructions: this.launch.instructions }),
+            ...(this.launch.subagent === true && codexFrom(this.version, 129) ? { threadSource: 'subagent' } : {})
+        };
+
         let result: unknown;
 
         if (this.launch.resume) {
@@ -234,10 +240,10 @@ export class CodexBackend implements ChatBackend {
                 }
 
                 this.emit({ type: 'note', level: 'warning', text: `Codex could not resume its thread (${errorText(error)}). Started a new one.` });
-                result = await transport.request('thread/start', { ...params, ...instructions });
+                result = await transport.request('thread/start', startParams);
             }
         } else {
-            result = await transport.request('thread/start', { ...params, ...instructions });
+            result = await transport.request('thread/start', startParams);
         }
 
         this.imageInputSupported = await this.readImageSupport(transport);
