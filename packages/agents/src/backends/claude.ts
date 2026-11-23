@@ -35,15 +35,27 @@ export function claudeEffort(selection: ModelSelection): string | null {
  * takes on a model that offers it, so the catalog puts the option on those models alone.
  * A 200k pick turns auto-compact on over the person's own setting, since `claudeEnv` only moves
  * where it compacts and a CLI under `-p` never stops at a window (measured on Claude Code 2.1.283).
+ * The window rides in the blob's `env` as well: an `env` in the person's own settings.json wins
+ * over the process environment, and this blob wins over that file.
  */
-export function claudeSettings(selection: ModelSelection): Record<string, boolean> | null {
+export function claudeSettings(selection: ModelSelection): ClaudeSettings | null {
+    const env = claudeEnv(selection);
+
     const settings = {
         ...(selection.options.fastMode === true ? { fastMode: true } : {}),
-        ...(selection.options.contextWindow === '200k' ? { autoCompactEnabled: true } : {})
+        ...(selection.options.contextWindow === '200k' ? { autoCompactEnabled: true } : {}),
+        ...(Object.keys(env).length > 0 ? { env } : {})
     };
 
     return Object.keys(settings).length > 0 ? settings : null;
 }
+
+// A type, not an interface: the SDK's `Settings` has an index signature an interface does not meet.
+export type ClaudeSettings = {
+    readonly fastMode?: boolean;
+    readonly autoCompactEnabled?: boolean;
+    readonly env?: Record<string, string>;
+};
 
 /* The CLI's permission mode for a runtime mode; null for supervised, which is the CLI's default. */
 export function claudePermissionMode(mode: RuntimeMode): string | null {
@@ -54,7 +66,7 @@ export function claudePermissionMode(mode: RuntimeMode): string | null {
  * Leaving out `[1m]` does not cap a model the CLI runs natively on 1M on a subscription (Fable,
  * Opus 5.5, Sonnet 5), and `autoCompactWindow` in `--settings` is ignored under `-p`: only this
  * variable holds a 200k pick (measured on Claude Code 2.1.280). It holds it only with auto-compact
- * on, which `claudeSettings` sees to.
+ * on, which `claudeSettings` sees to, and puts it in the settings blob too.
  */
 export function claudeEnv(selection: ModelSelection): Record<string, string> {
     return selection.options.contextWindow === '200k' ? { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '200000' } : {};

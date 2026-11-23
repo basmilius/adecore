@@ -3,9 +3,47 @@
  * compaction, edits, subagents, interrupts and crashes through the real frame shapes.
  */
 import { spawn } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import type { FakeCli, FakeIo, FakeProgram } from './fake-cli.ts';
+
+const COMPACT_WINDOW = 'CLAUDE_CODE_AUTO_COMPACT_WINDOW';
+
+/* The `env` of a settings blob, or of a settings file's JSON; nothing when it holds none. */
+function settingsEnv(json: string | undefined): Record<string, unknown> {
+    if (json === undefined) {
+        return {};
+    }
+
+    try {
+        const settings = JSON.parse(json) as { env?: unknown };
+
+        return typeof settings.env === 'object' && settings.env !== null ? (settings.env as Record<string, unknown>) : {};
+    } catch {
+        return {};
+    }
+}
+
+function readOrUndefined(path: string): string | undefined {
+    try {
+        return readFileSync(path, 'utf8');
+    } catch {
+        return undefined;
+    }
+}
+
+/*
+ * Where the session compacts, in the order Claude Code ranks its sources: the `env` of the `--settings` blob, then that
+ * of the person's settings.json, then the process environment. Reported in `init` as `compact_window`, a field of the fake.
+ */
+function compactWindow(io: FakeIo): number | null {
+    const configDir = io.env.CLAUDE_CONFIG_DIR ?? (io.env.HOME === undefined ? undefined : join(io.env.HOME, '.claude'));
+    const fileEnv = configDir === undefined ? {} : settingsEnv(readOrUndefined(join(configDir, 'settings.json')));
+    const value = settingsEnv(flagValue(io.argv, '--settings'))[COMPACT_WINDOW] ?? fileEnv[COMPACT_WINDOW] ?? io.env[COMPACT_WINDOW];
+    const window = Number(value);
+
+    return value !== undefined && Number.isInteger(window) && window > 0 ? window : null;
+}
 
 /* The value of a flag the CLI takes as `--flag value` or `--flag=value`. */
 function flagValue(args: readonly string[], flag: string): string | undefined {
@@ -1360,7 +1398,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
         result();
     };
 
-    out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: ['compact', 'review'], argv: args });
+    out({
+        type: 'system',
+        subtype: 'init',
+        session_id: sessionId,
+        model,
+        cwd: io.cwd,
+        tools: ['Bash'],
+        slash_commands: ['compact', 'review'],
+        argv: args,
+        compact_window: compactWindow(io)
+    });
 
     return {
         onLine: (line) => {

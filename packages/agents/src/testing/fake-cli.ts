@@ -5,6 +5,7 @@ export interface FakeIo {
     // The arguments after the executable.
     readonly argv: string[];
     readonly cwd: string;
+    readonly env: Readonly<Record<string, string | undefined>>;
     out(frame: unknown): void;
     // What the real CLI says on stderr before it gives up.
     err(text: string): void;
@@ -90,6 +91,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
         const program = cli({
             argv: options.command.slice(1),
             cwd: options.cwd,
+            env: options.env,
             out: (frame) => {
                 if (ended) {
                     return;
@@ -194,6 +196,7 @@ export async function runOverStdio(cli: FakeCli): Promise<void> {
     const program = cli({
         argv: process.argv.slice(2),
         cwd: process.cwd(),
+        env: process.env,
         out: (frame) => {
             process.stdout.write(`${JSON.stringify(frame)}\n`);
         },

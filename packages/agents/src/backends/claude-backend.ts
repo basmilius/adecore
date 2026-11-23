@@ -495,7 +495,7 @@ export class ClaudeBackend implements ChatBackend {
         };
     }
 
-    // The process environment only: an `env` in the person's own Claude settings still wins in the CLI.
+    // An `env` in the person's own Claude settings wins over this in the CLI; `claudeSettings` carries what must hold over it.
     private env(key: string | null): Record<string, string> {
         const entrypoint: Record<string, string> = this.options.entrypoint === undefined ? {} : { CLAUDE_CODE_ENTRYPOINT: this.options.entrypoint };
         // First, so a host that sets the variable itself keeps its choice.

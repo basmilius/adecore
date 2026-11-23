@@ -161,8 +161,9 @@ describe('what a Claude selection asks of the CLI', () => {
 
     test('a 200k pick turns auto-compact on, in the one settings blob it shares with fast mode', () => {
         const settingsOf = (options: Record<string, string | boolean>) => claudeSettings({ model: 'claude-opus-5-5', options });
-        expect(settingsOf({ contextWindow: '200k' })).toEqual({ autoCompactEnabled: true });
-        expect(settingsOf({ contextWindow: '200k', fastMode: true })).toEqual({ fastMode: true, autoCompactEnabled: true });
+        const env = { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '200000' };
+        expect(settingsOf({ contextWindow: '200k' })).toEqual({ autoCompactEnabled: true, env });
+        expect(settingsOf({ contextWindow: '200k', fastMode: true })).toEqual({ fastMode: true, autoCompactEnabled: true, env });
         expect(settingsOf({ contextWindow: '1m', fastMode: true })).toEqual({ fastMode: true });
         expect(settingsOf({ contextWindow: '1m', fastMode: false })).toBeNull();
     });

@@ -1,4 +1,7 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { scheduledWakeupId } from '@adecore/agent-contracts';
 import type { ChatProcess, ChatSpawnOptions } from '../chat-process.ts';
 import autoFallbackCapture from '../chat/fixtures/claude-2.1.285-auto-fallback.json';
@@ -369,8 +372,45 @@ describe('the Claude backend', () => {
 
         await backend.start();
         expect(cli.spawned[0]!.env.CLAUDE_CODE_AUTO_COMPACT_WINDOW).toBe('200000');
-        expect(cli.fake.started[0]!.argv[cli.fake.started[0]!.argv.indexOf('--settings') + 1]).toBe('{"autoCompactEnabled":true}');
+        expect(cli.fake.started[0]!.argv[cli.fake.started[0]!.argv.indexOf('--settings') + 1]).toBe(
+            '{"autoCompactEnabled":true,"env":{"CLAUDE_CODE_AUTO_COMPACT_WINDOW":"200000"}}'
+        );
         await backend.dispose();
+    });
+
+    test("a 200k pick holds over a compact window in the person's settings.json, which outranks the process environment", async () => {
+        const home = await mkdtemp(join(tmpdir(), 'adecore-claude-settings-'));
+        await mkdir(join(home, '.claude'));
+        await writeFile(join(home, '.claude', 'settings.json'), JSON.stringify({ env: { CLAUDE_CODE_AUTO_COMPACT_WINDOW: '500000' } }));
+        const windows: unknown[] = [];
+
+        const tapped: FakeCli = (io) =>
+            fakeClaude({
+                ...io,
+                out: (frame) => {
+                    if ((frame as { subtype?: string }).subtype === 'init') {
+                        windows.push((frame as { compact_window?: unknown }).compact_window);
+                    }
+
+                    io.out(frame);
+                }
+            });
+
+        const windowOf = async (options: Record<string, string>): Promise<unknown> => {
+            const run = open(tapped, { env: { HOME: home }, selection: { model: 'claude-sonnet-5', options } });
+            await run.backend.start();
+            await until(() => windows.length > 0);
+            await run.backend.dispose();
+
+            return windows.splice(0).at(-1);
+        };
+
+        try {
+            expect(await windowOf({ contextWindow: '200k' })).toBe(200_000);
+            expect(await windowOf({ contextWindow: '1m' })).toBe(500_000);
+        } finally {
+            await rm(home, { recursive: true, force: true });
+        }
     });
 
     test('starts the CLI with a first turn that waits for its MCP servers, unless the host chose otherwise', async () => {
