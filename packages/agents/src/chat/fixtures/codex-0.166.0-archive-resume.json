@@ -1,0 +1,222 @@
+{
+    "version": "codex-cli 0.166.0",
+    "capturedAt": "2026-11-23",
+    "source": "Recorded with tee-cli.ts in front of `codex app-server` 0.166.0, driven by hand over JSON-RPC (no model turn), on a thread a supervised capture had made in a throwaway git folder. `archived`: `thread/archive` answers `{}` and sends `thread/archived`; `thread/resume` of the archived thread answers -32600 and names `codex unarchive`. `resumed`: `thread/unarchive` answers the thread and sends `thread/unarchived`, then `thread/resume` works with both turns; `thread/start` with `threadSource: \"subagent\"` and with a made-up value both answer the value back (`ThreadSource` is a plain string in the 0.166.0 schema). `account` is `account/read` on a ChatGPT sign-in, the email replaced; `model` is one `model/list` entry cut to its id and `availableAccessPrograms` (every model on this account lists only `standard`). Threads are cut to id, status and sources; the handshake, MCP status and other notifications are left out.",
+    "archived": [
+        {
+            "t": 53,
+            "dir": "in",
+            "frame": {
+                "id": 1,
+                "method": "thread/archive",
+                "params": {
+                    "threadId": "codex-thread-1"
+                }
+            }
+        },
+        {
+            "t": 84,
+            "dir": "out",
+            "frame": {
+                "id": 1,
+                "result": {}
+            }
+        },
+        {
+            "t": 85,
+            "dir": "out",
+            "frame": {
+                "method": "thread/archived",
+                "params": {
+                    "threadId": "codex-thread-1"
+                },
+                "emittedAtMs": 1795432172009
+            }
+        },
+        {
+            "t": 242,
+            "dir": "in",
+            "frame": {
+                "id": 3,
+                "method": "thread/resume",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "cwd": "/tmp/ruimte-cap/work/cx4"
+                }
+            }
+        },
+        {
+            "t": 244,
+            "dir": "out",
+            "frame": {
+                "error": {
+                    "code": -32600,
+                    "message": "session codex-thread-1 is archived. Run `codex unarchive codex-thread-1` to unarchive it first."
+                },
+                "id": 3
+            }
+        }
+    ],
+    "resumed": [
+        {
+            "t": 52,
+            "dir": "in",
+            "frame": {
+                "id": 1,
+                "method": "thread/unarchive",
+                "params": {
+                    "threadId": "codex-thread-1"
+                }
+            }
+        },
+        {
+            "t": 55,
+            "dir": "out",
+            "frame": {
+                "id": 1,
+                "result": {
+                    "thread": {
+                        "id": "codex-thread-1",
+                        "status": {
+                            "type": "notLoaded"
+                        },
+                        "source": "vscode",
+                        "threadSource": null,
+                        "turns": "<0 turns>"
+                    }
+                }
+            }
+        },
+        {
+            "t": 55,
+            "dir": "out",
+            "frame": {
+                "method": "thread/unarchived",
+                "params": {
+                    "threadId": "codex-thread-1"
+                },
+                "emittedAtMs": 1795432181197
+            }
+        },
+        {
+            "t": 55,
+            "dir": "in",
+            "frame": {
+                "id": 2,
+                "method": "thread/resume",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "cwd": "/tmp/ruimte-cap/work/cx4"
+                }
+            }
+        },
+        {
+            "t": 220,
+            "dir": "out",
+            "frame": {
+                "id": 2,
+                "result": {
+                    "thread": {
+                        "id": "codex-thread-1",
+                        "status": {
+                            "type": "idle"
+                        },
+                        "source": "vscode",
+                        "threadSource": null,
+                        "turns": "<2 turns>"
+                    }
+                }
+            }
+        },
+        {
+            "t": 221,
+            "dir": "in",
+            "frame": {
+                "id": 3,
+                "method": "thread/start",
+                "params": {
+                    "cwd": "/tmp/ruimte-cap/work/cx4",
+                    "threadSource": "subagent",
+                    "approvalPolicy": "untrusted",
+                    "sandbox": "read-only"
+                }
+            }
+        },
+        {
+            "t": 251,
+            "dir": "out",
+            "frame": {
+                "id": 3,
+                "result": {
+                    "thread": {
+                        "id": "codex-thread-2",
+                        "status": {
+                            "type": "idle"
+                        },
+                        "source": "vscode",
+                        "threadSource": "subagent",
+                        "turns": "<0 turns>"
+                    }
+                }
+            }
+        },
+        {
+            "t": 251,
+            "dir": "in",
+            "frame": {
+                "id": 4,
+                "method": "thread/start",
+                "params": {
+                    "cwd": "/tmp/ruimte-cap/work/cx4",
+                    "threadSource": "made-up-source",
+                    "approvalPolicy": "untrusted",
+                    "sandbox": "read-only"
+                }
+            }
+        },
+        {
+            "t": 280,
+            "dir": "out",
+            "frame": {
+                "id": 4,
+                "result": {
+                    "thread": {
+                        "id": "codex-thread-3",
+                        "status": {
+                            "type": "idle"
+                        },
+                        "source": "vscode",
+                        "threadSource": "made-up-source",
+                        "turns": "<0 turns>"
+                    }
+                }
+            }
+        }
+    ],
+    "account": {
+        "t": 384,
+        "dir": "out",
+        "frame": {
+            "id": 1,
+            "result": {
+                "account": {
+                    "type": "chatgpt",
+                    "email": "person@example.com",
+                    "planType": "prolite",
+                    "workspaceName": null
+                },
+                "requiresOpenaiAuth": true,
+                "workspaceRouting": "<cut>"
+            }
+        }
+    },
+    "model": {
+        "id": "gpt-6.2-astra",
+        "model": "gpt-6.2-astra",
+        "availableAccessPrograms": {
+            "cyber": [
+                "standard"
+            ]
+        }
+    }
+}

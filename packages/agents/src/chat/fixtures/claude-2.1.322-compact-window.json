@@ -1,0 +1,168 @@
+{
+    "version": "Claude Code 2.1.322",
+    "capturedAt": "2026-11-23",
+    "source": "Asked with tee-cli.ts in front of Claude Code 2.1.322 through the Agent SDK 0.3.325 on `claude-opus-5-5`, each run a fresh process in a throwaway git folder, answered by `get_context_usage` (`getContextUsage()`) before any turn; `file-pick-flags` also ran one turn of `pwd` and asked again after it. The settings file is the project's `.claude/settings.json`, since the person's own was not changed; with `settingSources` `all` the person's user settings joined in with `autoCompactEnabled: true` and `modelSettings.claude-opus-5-5.autoCompactWindow: 750000`. Order seen: flag settings `env` over a settings file `env` over the process env over `modelSettings.autoCompactWindow`, and the window holds only with auto-compact on (`file-pick-process-isolated`, where nothing turned it on). `contextUsage` is cut to the window fields.",
+    "runs": [
+        {
+            "name": "baseline",
+            "settingSources": "all",
+            "projectSettingsEnv": null,
+            "processEnv": null,
+            "flagSettings": null,
+            "contextUsage": {
+                "t": 2673,
+                "maxTokens": 750000,
+                "rawMaxTokens": 750000,
+                "autoCompactThreshold": 717000,
+                "autocompactSource": "settings",
+                "isAutoCompactEnabled": true
+            }
+        },
+        {
+            "name": "pick-process",
+            "settingSources": "all",
+            "projectSettingsEnv": null,
+            "processEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
+            },
+            "flagSettings": null,
+            "contextUsage": {
+                "t": 2482,
+                "maxTokens": 200000,
+                "rawMaxTokens": 200000,
+                "autoCompactThreshold": 167000,
+                "autocompactSource": "env",
+                "isAutoCompactEnabled": true
+            }
+        },
+        {
+            "name": "pick-flags",
+            "settingSources": "all",
+            "projectSettingsEnv": null,
+            "processEnv": null,
+            "flagSettings": {
+                "autoCompactEnabled": true,
+                "env": {
+                    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
+                }
+            },
+            "contextUsage": {
+                "t": 2738,
+                "maxTokens": 200000,
+                "rawMaxTokens": 200000,
+                "autoCompactThreshold": 167000,
+                "autocompactSource": "env",
+                "isAutoCompactEnabled": true
+            }
+        },
+        {
+            "name": "file-only",
+            "settingSources": "all",
+            "projectSettingsEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"
+            },
+            "processEnv": null,
+            "flagSettings": null,
+            "contextUsage": {
+                "t": 2372,
+                "maxTokens": 500000,
+                "rawMaxTokens": 500000,
+                "autoCompactThreshold": 467000,
+                "autocompactSource": "env",
+                "isAutoCompactEnabled": true
+            }
+        },
+        {
+            "name": "file-pick-process",
+            "settingSources": "all",
+            "projectSettingsEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"
+            },
+            "processEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
+            },
+            "flagSettings": null,
+            "contextUsage": {
+                "t": 2505,
+                "maxTokens": 500000,
+                "rawMaxTokens": 500000,
+                "autoCompactThreshold": 467000,
+                "autocompactSource": "env",
+                "isAutoCompactEnabled": true
+            }
+        },
+        {
+            "name": "file-pick-flags",
+            "settingSources": "all",
+            "projectSettingsEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"
+            },
+            "processEnv": null,
+            "flagSettings": {
+                "autoCompactEnabled": true,
+                "env": {
+                    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
+                }
+            },
+            "contextUsage": [
+                {
+                    "t": 2677,
+                    "maxTokens": 200000,
+                    "rawMaxTokens": 200000,
+                    "autoCompactThreshold": 167000,
+                    "autocompactSource": "env",
+                    "isAutoCompactEnabled": true
+                },
+                {
+                    "t": 4579,
+                    "maxTokens": 200000,
+                    "rawMaxTokens": 200000,
+                    "autoCompactThreshold": 167000,
+                    "autocompactSource": "env",
+                    "isAutoCompactEnabled": true
+                }
+            ]
+        },
+        {
+            "name": "file-pick-process-isolated",
+            "settingSources": "project",
+            "projectSettingsEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"
+            },
+            "processEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
+            },
+            "flagSettings": null,
+            "contextUsage": {
+                "t": 2609,
+                "maxTokens": 500000,
+                "rawMaxTokens": 500000,
+                "autoCompactThreshold": null,
+                "autocompactSource": "env",
+                "isAutoCompactEnabled": false
+            }
+        },
+        {
+            "name": "file-pick-flags-isolated",
+            "settingSources": "project",
+            "projectSettingsEnv": {
+                "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "500000"
+            },
+            "processEnv": null,
+            "flagSettings": {
+                "autoCompactEnabled": true,
+                "env": {
+                    "CLAUDE_CODE_AUTO_COMPACT_WINDOW": "200000"
+                }
+            },
+            "contextUsage": {
+                "t": 2659,
+                "maxTokens": 200000,
+                "rawMaxTokens": 200000,
+                "autoCompactThreshold": 167000,
+                "autocompactSource": "env",
+                "isAutoCompactEnabled": true
+            }
+        }
+    ]
+}

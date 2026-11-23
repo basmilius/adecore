@@ -1,0 +1,333 @@
+{
+    "version": "codex-cli 0.166.0",
+    "capturedAt": "2026-11-23",
+    "source": "Recorded with tee-cli.ts in front of `codex app-server` 0.166.0, driven by ADE CORE's CodexBackend in supervised mode in a throwaway git folder, with three session flags: `tools.update_plan.enabled=true` (the plan tool is off by default in 0.166.0, and without it no `turn/plan/updated` comes), a `UserPromptSubmit` command hook that prints `{\"continue\": false, \"stopReason\": ...}` when the prompt carries a marker, and `hooks.state` trusting that hook (a session-flag hook is `untrusted` and does not run otherwise). Turn 1 asks for a two-step plan running `pwd` and `echo done`: three `turn/plan/updated`, the last 2.9 s before `turn/completed`, and no `plan` item. Turn 2 carries the marker: `hook/completed` with `status: \"stopped\"` and one `stop` entry, then `turn/completed` with `status: \"completed\"`, no items and no error, 1 ms later; no user message item and no model request. The person's own hooks from their Codex home, deltas, items, token counts, rate limits and the handshake are left out. `t` is milliseconds from the start, `dir` is `in` for what went to Codex.",
+    "frames": [
+        {
+            "t": 105,
+            "dir": "in",
+            "frame": {
+                "id": 5,
+                "method": "turn/start",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "input": [
+                        {
+                            "type": "text",
+                            "text": "First make a plan with your plan tool of two steps: run `pwd`, then run `echo done`. Then do both steps one at a time, updating the plan after each, and reply with the two outputs.",
+                            "text_elements": []
+                        }
+                    ],
+                    "model": "gpt-6.2-astra",
+                    "effort": "low"
+                }
+            }
+        },
+        {
+            "t": 261,
+            "dir": "out",
+            "frame": {
+                "method": "turn/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "codex-turn-1",
+                        "rootTurnId": "codex-turn-1",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": 1795432114,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                },
+                "emittedAtMs": 1795432114405
+            }
+        },
+        {
+            "t": 1615,
+            "dir": "out",
+            "frame": {
+                "method": "hook/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-1",
+                    "run": {
+                        "id": "user-prompt-submit:17:/<session-flags>/config.toml",
+                        "eventName": "userPromptSubmit",
+                        "handlerType": "command",
+                        "executionMode": "sync",
+                        "scope": "turn",
+                        "sourcePath": "/<session-flags>/config.toml",
+                        "source": "sessionFlags",
+                        "displayOrder": 17,
+                        "status": "running",
+                        "statusMessage": null,
+                        "startedAt": 1795432115,
+                        "completedAt": null,
+                        "durationMs": null,
+                        "entries": []
+                    }
+                },
+                "emittedAtMs": 1795432115760
+            }
+        },
+        {
+            "t": 1632,
+            "dir": "out",
+            "frame": {
+                "method": "hook/completed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-1",
+                    "run": {
+                        "id": "user-prompt-submit:17:/<session-flags>/config.toml",
+                        "eventName": "userPromptSubmit",
+                        "handlerType": "command",
+                        "executionMode": "sync",
+                        "scope": "turn",
+                        "sourcePath": "/<session-flags>/config.toml",
+                        "source": "sessionFlags",
+                        "displayOrder": 17,
+                        "status": "completed",
+                        "statusMessage": null,
+                        "startedAt": 1795432115,
+                        "completedAt": 1795432115,
+                        "durationMs": 16,
+                        "entries": []
+                    }
+                },
+                "emittedAtMs": 1795432115776
+            }
+        },
+        {
+            "t": 7815,
+            "dir": "out",
+            "frame": {
+                "method": "turn/plan/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-1",
+                    "explanation": null,
+                    "plan": [
+                        {
+                            "step": "Run `pwd`",
+                            "status": "inProgress"
+                        },
+                        {
+                            "step": "Run `echo done`",
+                            "status": "pending"
+                        }
+                    ]
+                },
+                "emittedAtMs": 1795432121960
+            }
+        },
+        {
+            "t": 21544,
+            "dir": "out",
+            "frame": {
+                "method": "turn/plan/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-1",
+                    "explanation": null,
+                    "plan": [
+                        {
+                            "step": "Run `pwd`",
+                            "status": "completed"
+                        },
+                        {
+                            "step": "Run `echo done`",
+                            "status": "inProgress"
+                        }
+                    ]
+                },
+                "emittedAtMs": 1795432135688
+            }
+        },
+        {
+            "t": 35861,
+            "dir": "out",
+            "frame": {
+                "method": "turn/plan/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-1",
+                    "explanation": null,
+                    "plan": [
+                        {
+                            "step": "Run `pwd`",
+                            "status": "completed"
+                        },
+                        {
+                            "step": "Run `echo done`",
+                            "status": "completed"
+                        }
+                    ]
+                },
+                "emittedAtMs": 1795432150006
+            }
+        },
+        {
+            "t": 38774,
+            "dir": "out",
+            "frame": {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "codex-turn-1",
+                        "rootTurnId": "codex-turn-1",
+                        "items": [
+                            {
+                                "type": "agentMessage",
+                                "id": "msg_1",
+                                "text": "```text\n/private/tmp/ruimte-cap/work/cx4\ndone\n```",
+                                "phase": "final_answer",
+                                "memoryCitation": null,
+                                "delivery": null,
+                                "questions": null,
+                                "startedAtMs": 1795432152676,
+                                "completedAtMs": 1795432152892
+                            }
+                        ],
+                        "itemsView": "summary",
+                        "status": "completed",
+                        "error": null,
+                        "startedAt": 1795432114,
+                        "completedAt": 1795432152,
+                        "durationMs": 38663
+                    }
+                },
+                "emittedAtMs": 1795432152919
+            }
+        },
+        {
+            "t": 38775,
+            "dir": "in",
+            "frame": {
+                "id": 6,
+                "method": "turn/start",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "input": [
+                        {
+                            "type": "text",
+                            "text": "STOPMARKER Reply with the single word ok.",
+                            "text_elements": []
+                        }
+                    ],
+                    "model": "gpt-6.2-astra",
+                    "effort": "low"
+                }
+            }
+        },
+        {
+            "t": 38796,
+            "dir": "out",
+            "frame": {
+                "method": "turn/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "codex-turn-2",
+                        "rootTurnId": "codex-turn-2",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": 1795432152,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                },
+                "emittedAtMs": 1795432152940
+            }
+        },
+        {
+            "t": 38802,
+            "dir": "out",
+            "frame": {
+                "method": "hook/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-2",
+                    "run": {
+                        "id": "user-prompt-submit:17:/<session-flags>/config.toml",
+                        "eventName": "userPromptSubmit",
+                        "handlerType": "command",
+                        "executionMode": "sync",
+                        "scope": "turn",
+                        "sourcePath": "/<session-flags>/config.toml",
+                        "source": "sessionFlags",
+                        "displayOrder": 17,
+                        "status": "running",
+                        "statusMessage": null,
+                        "startedAt": 1795432152,
+                        "completedAt": null,
+                        "durationMs": null,
+                        "entries": []
+                    }
+                },
+                "emittedAtMs": 1795432152946
+            }
+        },
+        {
+            "t": 38813,
+            "dir": "out",
+            "frame": {
+                "method": "hook/completed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "codex-turn-2",
+                    "run": {
+                        "id": "user-prompt-submit:17:/<session-flags>/config.toml",
+                        "eventName": "userPromptSubmit",
+                        "handlerType": "command",
+                        "executionMode": "sync",
+                        "scope": "turn",
+                        "sourcePath": "/<session-flags>/config.toml",
+                        "source": "sessionFlags",
+                        "displayOrder": 17,
+                        "status": "stopped",
+                        "statusMessage": null,
+                        "startedAt": 1795432152,
+                        "completedAt": 1795432152,
+                        "durationMs": 10,
+                        "entries": [
+                            {
+                                "kind": "stop",
+                                "text": "Capture hook stopped this turn on purpose."
+                            }
+                        ]
+                    }
+                },
+                "emittedAtMs": 1795432152957
+            }
+        },
+        {
+            "t": 38814,
+            "dir": "out",
+            "frame": {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "codex-turn-2",
+                        "rootTurnId": "codex-turn-2",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "completed",
+                        "error": null,
+                        "startedAt": 1795432152,
+                        "completedAt": 1795432152,
+                        "durationMs": 22
+                    }
+                },
+                "emittedAtMs": 1795432152958
+            }
+        }
+    ]
+}
