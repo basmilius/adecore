@@ -139,9 +139,9 @@ export class CodexBackend implements ChatBackend {
     private interruptOwed = false;
     // The thread's goal as Codex last reported it, which a stop pauses first so Codex opens no turn after it.
     private goalNow: ChatGoal | null = null;
-    // A goal turn Codex opened by itself, which on a resume (Codex 0.166.0) is already running once the handshake ends.
+    // A turn Codex opened by itself, such as a goal turn that on a resume (Codex 0.166.0) is already running once the handshake ends.
     private selfTurnId: string | null = null;
-    // A prompt that came in during that turn; a `turn/start` beside it would collide, so it goes out once the turn ends.
+    // A prompt that came in during that turn while the goal is active; a `turn/start` beside it would collide, so it goes out once the turn ends.
     private heldPrompt: { nativeInput: unknown[]; promptId: string | undefined } | null = null;
 
     constructor(launch: BackendLaunch, host: BackendHost, options: CodexBackendOptions) {
@@ -350,7 +350,8 @@ export class CodexBackend implements ChatBackend {
 
         const nativeInput = this.turnInput(input);
 
-        if (this.selfTurnId !== null) {
+        // Only a goal turn is known to collide (the 0.166.0 goal-resume capture); any other turn Codex opened itself takes the prompt as before.
+        if (this.selfTurnId !== null && this.goalNow?.status === 'active') {
             this.heldPrompt = { nativeInput, promptId: input.promptId };
 
             return;

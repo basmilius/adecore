@@ -293,3 +293,35 @@ test('a Stop during that goal turn ends the prompt waiting for it, which never g
         { type: 'turn.done', promptId: 'prompt-1', state: 'aborted', costUsd: 0, native: { turnId: GOAL_TURN } }
     ]);
 });
+
+test('a prompt sent while Codex runs a turn it opened itself without an active goal goes out at once', async () => {
+    const methods: string[] = [];
+
+    const fake = inProcess((io) => {
+        const program = fakeCodexWith({})(io);
+
+        return {
+            onLine: (line) => {
+                const frame = JSON.parse(line) as Frame;
+                methods.push(frame.method ?? '');
+                program.onLine(line);
+
+                if (frame.method === 'thread/goal/get') {
+                    io.out({
+                        method: 'turn/started',
+                        params: { threadId: 'thread-1', turn: { id: 'background-turn', items: [], status: 'inProgress', error: null } }
+                    });
+                }
+            }
+        };
+    });
+
+    const backend = new CodexBackend({ ...launch, spawn: fake.spawn }, { onEvent: () => undefined }, { client: DEFAULT_CODEX_CLIENT });
+    await backend.start();
+    await settle();
+    backend.sendTurn(PROMPT);
+    await settle();
+    await backend.dispose();
+
+    expect(methods).toContain('turn/start');
+});
