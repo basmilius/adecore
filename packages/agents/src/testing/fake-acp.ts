@@ -40,6 +40,8 @@ export interface FakeAcpOptions {
     // Signed out on a machine where no browser opens, as agy 1.5.15 over SSH: session requests answer "authentication
     // required" and `authenticate` answers -32603 with agy's own message.
     noBrowser?: boolean;
+    // The version `initialize` names in `agentInfo`; absent is `0.0.1`.
+    version?: string;
 }
 
 // What agy 1.5.15 answers `authenticate` with where no browser opens (`antigravity-1.5.15-no-browser.json`).
@@ -338,7 +340,7 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                             }
                         },
                         authMethods: options.authMethod === undefined ? [] : [{ id: options.authMethod, name: 'Sign in' }],
-                        agentInfo: { name: 'fake-acp', title: 'Fake ACP', version: '0.0.1' }
+                        agentInfo: { name: 'fake-acp', title: 'Fake ACP', version: options.version ?? '0.0.1' }
                     });
 
                     return;

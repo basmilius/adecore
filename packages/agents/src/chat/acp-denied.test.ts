@@ -152,7 +152,11 @@ test("leaves naming the chat to the host and takes Grok's own session titles onl
 });
 
 test('an Antigravity chat on a machine where no browser opens asks for a sign-in with `agy acp --login`', async () => {
-    const { chats, items, until } = watch(createAntigravityProvider(), fakeAcpWith({ authMethod: 'oauth-personal', noBrowser: true }), '1.5.15');
+    const { chats, items, until } = watch(
+        createAntigravityProvider(),
+        fakeAcpWith({ authMethod: 'oauth-personal', noBrowser: true, version: '1.5.15' }),
+        '1.5.15'
+    );
     await chats.create({ chatId: 'antigravity-1', cwd: home, provider: 'antigravity', runtimeMode: 'supervised' });
     await chats.send('antigravity-1', 'hello');
     await until(() => items().some((item) => item.kind === 'note' && item.level === 'error'));

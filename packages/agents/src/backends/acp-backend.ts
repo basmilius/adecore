@@ -101,6 +101,31 @@ export interface AcpAgentSpec {
     // command still running when its prompt ends is background work, stopped with `session/cancel` where the agent
     // `cancelsIdle`.
     daemonFlag?: string;
+    // The oldest `x.y.z` the agent names in `initialize.agentInfo.version` that a chat starts on, and what a person does
+    // about an older one. A version the agent does not name, or names otherwise, passes.
+    minVersion?: { version: string; updateHint: string };
+}
+
+/* Whether an `x.y.z` version is older than the floor; a version that is not one says nothing. */
+export function olderThan(version: string, floor: string): boolean {
+    const partsOf = (text: string) => /(\d+)\.(\d+)\.(\d+)/.exec(text)?.slice(1).map(Number) ?? null;
+    const installed = partsOf(version);
+    const minimum = partsOf(floor);
+
+    if (installed === null || minimum === null) {
+        return false;
+    }
+
+    for (let i = 0; i < 3; i++) {
+        const have = installed[i] ?? 0;
+        const need = minimum[i] ?? 0;
+
+        if (have !== need) {
+            return have < need;
+        }
+    }
+
+    return false;
 }
 
 export interface AcpUsageReport extends AcpTurnUsage {
@@ -310,6 +335,14 @@ class AcpBackend implements ChatBackend {
 
         if (capabilities.protocolVersion !== ACP_PROTOCOL_VERSION) {
             throw new Error(`${this.spec.name} speaks ACP version ${capabilities.protocolVersion}; only version ${ACP_PROTOCOL_VERSION} is supported`);
+        }
+
+        const floor = this.spec.minVersion;
+        const version = capabilities.agent?.version;
+
+        // The host's version probe is cached, so an agent updated or downgraded since then is caught here.
+        if (floor !== undefined && version !== undefined && olderThan(version, floor.version)) {
+            throw new Error(`${this.spec.name} ${version} is too old. ${floor.updateHint}`);
         }
 
         this.capabilities = capabilities;

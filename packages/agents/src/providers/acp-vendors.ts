@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { ModelOptionDescriptorSchema } from '@adecore/agent-contracts';
 import { z } from 'zod';
-import type { AcpClientInfo } from '../backends/acp-backend.ts';
+import { olderThan, type AcpClientInfo } from '../backends/acp-backend.ts';
 import type { AcpModeMap } from '../backends/acp-protocol.ts';
 import { copilotMcpAllowArgs, copilotMcpArgs } from '../backends/cli-mcp.ts';
 import type { SpawnChatProcess } from '../chat-process.ts';
@@ -443,6 +443,7 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     cancelsIdle: true,
     mcpToolPrefix: 'mcp_',
     daemonFlag: 'IsDaemon',
+    minVersion: { version: ANTIGRAVITY_MIN_VERSION, updateHint: ANTIGRAVITY_UPDATE_HINT },
     resumeCommand: 'agy {flags} --conversation {id}',
     home: ANTIGRAVITY_HOME,
     install: {
@@ -474,28 +475,6 @@ export function antigravityOneShotArgs(prompt: string): string[] {
  */
 export function antigravityUsageDirectory(home: string): string {
     return join(home, 'usage', 'antigravity');
-}
-
-/* Whether an `x.y.z` version is older than the floor; a version that is not one says nothing. */
-function olderThan(version: string, floor: string): boolean {
-    const partsOf = (text: string) => /(\d+)\.(\d+)\.(\d+)/.exec(text)?.slice(1).map(Number) ?? null;
-    const installed = partsOf(version);
-    const minimum = partsOf(floor);
-
-    if (installed === null || minimum === null) {
-        return false;
-    }
-
-    for (let i = 0; i < 3; i++) {
-        const have = installed[i] ?? 0;
-        const need = minimum[i] ?? 0;
-
-        if (have !== need) {
-            return have < need;
-        }
-    }
-
-    return false;
 }
 
 /*

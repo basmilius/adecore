@@ -59,7 +59,8 @@ function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial
     const done = Promise.withResolvers<void>();
 
     const fake = inProcess((io) => {
-        const program = fakeAcpWith(options)(io);
+        // Antigravity's handshake refuses an agy below its floor, so the fake names the release the chats were recorded on.
+        const program = fakeAcpWith({ version: '1.5.15', ...options })(io);
 
         return {
             onLine: (line) => {
@@ -410,6 +411,14 @@ describe('Antigravity', () => {
 
         await updated.detect('agy', {});
         expect(updated.capabilities.chat).toBe(true);
+    });
+
+    test('an agy that names a version below 1.5.15 in its handshake starts no chat, also when no version probe ran', async () => {
+        const { backend, methods } = run(createAntigravityProvider(), { modes: AGY_MODES, version: '1.5.14' });
+
+        await expect(backend.start()).rejects.toThrow('Antigravity 1.5.14 is too old. Antigravity chats need agy 1.5.15 or newer. Update agy in a terminal');
+        expect(methods).toEqual(['initialize']);
+        await backend.dispose();
     });
 
     test('reads its models from `agy acp`, started without an update', async () => {
