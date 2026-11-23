@@ -161,6 +161,8 @@ Every factory takes `AcpVendorOptions`. `client` is how your host names itself i
 
 Antigravity's chats run on `agy acp` from the person's own `agy`, which must be 1.5.15 or newer. When the version probe finds an older one, the provider offers no chat and refuses to start one, but still runs as a terminal. Every `agy` the provider starts for a chat, a probe or the version check runs with `AGY_CLI_DISABLE_AUTO_UPDATE=1`, since an update signs out every `agy` on the machine.
 
+Give `createAntigravityProvider` a `defaultHome`, such as `antigravityDefaultHome(dataDir)`, to run every account, the default one included, in a folder of the host's own with `SSH_CONNECTION` set. agy then keeps each sign-in in its account's folder instead of one keyring entry, and links the person's global skills and rules from `~/.gemini` (see [Accounts](/agents/accounts#accounts-kept-apart)). A single prompt (`agy -p`) runs in the folder of the account it is for, so it never lands in the conversation list of the person's own `agy`. It does land in that account's list: agy's text output names no session, so the prompt's conversation cannot be told apart and removed afterwards.
+
 The three start from the models in `providers/<kind>-models.json` and take the ones a session reports. A catalog can leave the choice to the agent: `agentModel(selection)` maps that choice to `null`, and `agentDefaultCatalog()` offers only that model.
 
 Grok signs in with `XAI_API_KEY` when the launch has it, and otherwise with the login `grok login` left. The host checks its accounts with `grok models`, which opens no session, and writes that list to the catalog and the store, keeping the names, context windows and options a chat learned.

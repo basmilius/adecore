@@ -6,12 +6,14 @@ export {
     type AcpVendorOptions,
     agentDefaultCatalog,
     agentModel,
+    antigravityDefaultHome,
     antigravityUsageDirectory,
     copilotUsageDirectory,
     createGrokProvider,
     createCopilotProvider,
     createAntigravityProvider
 } from './acp-vendors.ts';
+export { defaultAccountEnv } from './accounts/accounts.ts';
 export { chooseAccount, type AccountUnusable, type ChosenAccount } from './accounts/choose.ts';
 export { AccountError, type AccountLaunches, storedAccount, launchEnv } from './accounts/launch.ts';
 export { ProviderAccountsService, type ProviderAccountsOptions } from './accounts/service.ts';

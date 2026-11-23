@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { ModelOptionDescriptorSchema } from '@adecore/agent-contracts';
+import { ModelOptionDescriptorSchema, type ProviderInstall } from '@adecore/agent-contracts';
 import { z } from 'zod';
 import { olderThan, type AcpClientInfo } from '../backends/acp-backend.ts';
 import type { AcpModeMap } from '../backends/acp-protocol.ts';
@@ -14,7 +14,7 @@ import { ModelCatalog } from './catalog.ts';
 import copilotModels from './copilot-models.json' with { type: 'json' };
 import { detectCli } from './detect.ts';
 import grokModels from './grok-models.json' with { type: 'json' };
-import type { ChatProvider, LaunchDecorator, ProviderHome } from './provider.ts';
+import type { ChatProvider, LaunchDecorator, ProviderApart, ProviderHome } from './provider.ts';
 
 /* What a host decides for every vendor ACP agent it starts. */
 export interface AcpVendorOptions {
@@ -34,6 +34,8 @@ interface CopilotProviderOptions extends AcpVendorOptions {
 interface AntigravityProviderOptions extends AcpVendorOptions {
     // The folder every turn's usage is logged to (`antigravityUsageDirectory`); absent logs nothing.
     readonly usageLog?: string;
+    // The folder the default account runs in (`antigravityDefaultHome`); absent leaves it in `~/.gemini` on the shared keyring.
+    readonly defaultHome?: string;
     // How the version probe starts `agy`; absent spawns it.
     readonly spawn?: SpawnChatProcess;
 }
@@ -406,12 +408,46 @@ const ANTIGRAVITY_MODES: AcpModeMap = {
     'full-access': ['default']
 };
 
+// Prints a link in a terminal and waits for the code (agy 1.5.15).
+const ANTIGRAVITY_LOGIN = 'agy acp --login';
+
+// `agy` keeps its sessions under `GEMINI_HOME` (`~/.gemini` without it), so an account is a folder of its own there.
+const ANTIGRAVITY_HOME: ProviderHome = { env: 'GEMINI_HOME', fallback: '.gemini', loginEnv: [], loginCommand: ANTIGRAVITY_LOGIN };
+
+// Stands in for the address pair of an SSH session when the host runs over none.
+const NO_SSH_CONNECTION = '127.0.0.1 0 127.0.0.1 0';
+
+// The person's global skills and rules in their own `~/.gemini`; the sign-in, hooks and MCP servers stay the account's.
+const ANTIGRAVITY_LINKS = ['config/skills', 'antigravity-cli/skills', 'AGENTS.md', 'GEMINI.md', 'config/skills.json'];
+
 /*
- * `agy` keeps its sessions and its sign-in under `GEMINI_HOME` (`~/.gemini` without it), so an account is
- * a folder of its own there. A chat signs it in through ACP `authenticate` where a browser can open; where none
- * can, `agy acp --login` in a terminal prints a link and waits for the code (agy 1.5.15).
+ * agy 1.5 keeps a Google sign-in in one keyring entry for every `GEMINI_HOME` unless it believes it runs over SSH; then
+ * the sign-in stays in the folder, and a browser never opens, so it signs in through `agy acp --login`.
  */
-const ANTIGRAVITY_HOME: ProviderHome = { env: 'GEMINI_HOME', fallback: '.gemini', loginEnv: [], loginCommand: 'agy acp --login' };
+function antigravityApart(defaultFolder: string | undefined): ProviderApart {
+    return {
+        ...(defaultFolder === undefined ? {} : { defaultFolder }),
+        variables: (env) => ({ SSH_CONNECTION: env.SSH_CONNECTION || NO_SSH_CONNECTION }),
+        links: ANTIGRAVITY_LINKS
+    };
+}
+
+const ANTIGRAVITY_INSTALL: ProviderInstall = {
+    description: "Google's coding agent, in a terminal and in a chat.",
+    commands: {
+        darwin: 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
+        linux: 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
+        win32: 'irm https://antigravity.google/cli/install.ps1 | iex'
+    },
+    guideUrl: 'https://antigravity.google/docs/cli',
+    // A chat's first turn signs it in in the browser; without one, the command does.
+    signIn: [{ kind: 'chat' }, { kind: 'command', command: ANTIGRAVITY_LOGIN }]
+};
+
+/* Where the default Antigravity account runs under a host's data folder, beside the folders of its other accounts. */
+export function antigravityDefaultHome(home: string): string {
+    return join(home, 'accounts', 'antigravity');
+}
 
 const ANTIGRAVITY_SPEC: VendorSpec = {
     kind: 'antigravity',
@@ -430,7 +466,7 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
         }
     },
     oneShotArgs: antigravityOneShotArgs,
-    // Every `agy -p` stays in the person's own conversation list, so it is the last CLI asked and names no chat.
+    // Every `agy -p` stays in the account's conversation list, so it is the last CLI asked and names no chat.
     oneShotApart: true,
     oneShotEnv: ANTIGRAVITY_ENV,
     model: agentModel,
@@ -447,17 +483,7 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     minVersion: { version: ANTIGRAVITY_MIN_VERSION, updateHint: ANTIGRAVITY_UPDATE_HINT },
     resumeCommand: 'agy {flags} --conversation {id}',
     home: ANTIGRAVITY_HOME,
-    install: {
-        description: "Google's coding agent, in a terminal and in a chat.",
-        commands: {
-            darwin: 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
-            linux: 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
-            win32: 'irm https://antigravity.google/cli/install.ps1 | iex'
-        },
-        guideUrl: 'https://antigravity.google/docs/cli',
-        // A chat's first turn signs it in in the browser; without one, the command does.
-        signIn: [{ kind: 'chat' }, { kind: 'command', command: 'agy acp --login' }]
-    },
+    install: ANTIGRAVITY_INSTALL,
     // agy reads a prompt only from `-p` (answers and exits), `-i` (runs it and stays) or stdin.
     firstPromptArgs: (prompt) => ['-i', prompt]
 };
@@ -485,6 +511,9 @@ export function antigravityUsageDirectory(home: string): string {
 export function createAntigravityProvider(options: AntigravityProviderOptions = {}): ChatProvider {
     const base = createAcpProvider({
         ...ANTIGRAVITY_SPEC,
+        home: { ...ANTIGRAVITY_HOME, apart: antigravityApart(options.defaultHome) },
+        // With every account apart no browser opens, so only the command signs one in.
+        ...(options.defaultHome === undefined ? {} : { install: { ...ANTIGRAVITY_INSTALL, signIn: [{ kind: 'command', command: ANTIGRAVITY_LOGIN }] } }),
         catalog: shippedAgentCatalog('antigravity'),
         ...hostSpec(options),
         ...(options.usageLog === undefined ? {} : { usageLog: options.usageLog })

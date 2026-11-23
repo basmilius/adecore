@@ -1,4 +1,4 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, statSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
@@ -22,6 +22,7 @@ import {
     accountEnv,
     accountFolder,
     canContinue,
+    cliFolder,
     defaultFolder,
     expandHome,
     isDefaultAccount,
@@ -30,6 +31,7 @@ import {
     type AccountProviders,
     type Env
 } from './accounts.ts';
+import { linkApartEntries } from './apart-links.ts';
 import { AccountError, isDefaultAccountOf, type AccountLaunches } from './launch.ts';
 import { prepareShadowHome, type ShadowHomeReport } from './shadow-home.ts';
 import { applySharedConfig, removeSharedConfig, type OwnsSettings } from './shared-config.ts';
@@ -71,6 +73,7 @@ export interface ProviderAccountsOptions {
     ownsSettings?: OwnsSettings;
     applyShared?: typeof applySharedConfig;
     removeShared?: typeof removeSharedConfig;
+    linkApart?: typeof linkApartEntries;
     // Where sensitive values are kept; null on a machine without a keychain. Absent is the platform's own.
     secrets?: SecretStore | null;
     now?: () => number;
@@ -147,6 +150,7 @@ export class ProviderAccountsService implements AccountLaunches {
     private readonly ownsSettings: OwnsSettings;
     private readonly applyShared: NonNullable<ProviderAccountsOptions['applyShared']>;
     private readonly removeShared: NonNullable<ProviderAccountsOptions['removeShared']>;
+    private readonly linkApart: NonNullable<ProviderAccountsOptions['linkApart']>;
     private readonly secrets: SecretStore | null;
     // The sensitive values by `secretKey`, read from the keychain once, since a spawn asks for them without waiting.
     private readonly secretValues = new Map<string, string>();
@@ -179,6 +183,7 @@ export class ProviderAccountsService implements AccountLaunches {
         this.ownsSettings = options.ownsSettings ?? (() => false);
         this.applyShared = options.applyShared ?? applySharedConfig;
         this.removeShared = options.removeShared ?? removeSharedConfig;
+        this.linkApart = options.linkApart ?? linkApartEntries;
         this.secrets = options.secrets === undefined ? platformSecrets(this.host, options.home) : options.secrets;
         this.now = options.now ?? Date.now;
         this.sleep = options.sleep ?? sleep;
@@ -264,6 +269,17 @@ export class ProviderAccountsService implements AccountLaunches {
             // Only a start that names it: every turn of a chat on the default account asks with none.
             if (id !== undefined && account.enabled === false) {
                 throw refuse('it is turned off');
+            }
+
+            const apartFolder = provider.home?.apart?.defaultFolder;
+
+            // The host's own folder, so it is there before the first start, which may come before any check.
+            if (apartFolder !== undefined) {
+                try {
+                    mkdirSync(apartFolder, { recursive: true, mode: 0o700 });
+                } catch (e) {
+                    throw refuse(`its folder ${apartFolder} cannot be made: ${errorText(e)}`);
+                }
             }
 
             return accountEnv(kind, account, provider, baseEnv, variables(account));
@@ -821,7 +837,13 @@ export class ProviderAccountsService implements AccountLaunches {
      * home cannot be used.
      */
     private async prepare(id: string, kind: AgentKind, account: ProviderAccount): Promise<string | null> {
-        if (isDefaultAccount(id, account) || account.home === undefined) {
+        const provider = this.providers.get(kind);
+
+        if (isDefaultAccount(id, account)) {
+            return await this.prepareApartDefault(kind, provider);
+        }
+
+        if (account.home === undefined) {
             return null;
         }
 
@@ -829,13 +851,11 @@ export class ProviderAccountsService implements AccountLaunches {
         // Before the hooks, so a settings file the copy writes is one the hooks are then merged into.
         const sharedMessage = await this.prepareShared(id, kind);
         await this.install?.(kind, home).catch((e: unknown) => console.error(`Could not install hooks in ${home}:`, errorText(e)));
-        await this.providers
-            .get(kind)
-            .prepareHome?.(home)
-            .catch((e: unknown) => console.error(`Could not prepare ${home}:`, errorText(e)));
+        await provider.prepareHome?.(home).catch((e: unknown) => console.error(`Could not prepare ${home}:`, errorText(e)));
+        const apartMessage = await this.prepareApart(provider, home);
 
         if (account.shadowHome === undefined) {
-            return sharedMessage;
+            return sharedMessage ?? apartMessage;
         }
 
         const report = await this.prepareShadow(home, expandHome(account.shadowHome, this.env));
@@ -845,6 +865,41 @@ export class ProviderAccountsService implements AccountLaunches {
         }
 
         return report.unshared.length > 0 ? `Not shared with ${home}: ${report.unshared.join(', ')}` : null;
+    }
+
+    /* The default account's folder of the host's own, made and given the hooks before the CLI is asked anything. */
+    private async prepareApartDefault(kind: AgentKind, provider: ChatProvider): Promise<string | null> {
+        const folder = provider.home?.apart?.defaultFolder;
+
+        if (folder === undefined) {
+            return null;
+        }
+
+        await mkdir(folder, { recursive: true, mode: 0o700 });
+        await this.install?.(kind, folder).catch((e: unknown) => console.error(`Could not install hooks in ${folder}:`, errorText(e)));
+
+        return await this.prepareApart(provider, folder);
+    }
+
+    /* Links the person's own setup into an account's folder of a CLI kept apart; a failure is said and never keeps the account from starting. */
+    private async prepareApart(provider: ChatProvider, folder: string): Promise<string | null> {
+        const apart = provider.home?.apart;
+
+        if (apart === undefined) {
+            return null;
+        }
+
+        const from = cliFolder(provider, this.env);
+
+        try {
+            const unshared = await this.linkApart(from, folder, apart.links);
+
+            return unshared.length > 0 ? `Not linked from ${from}: ${unshared.join(', ')}` : null;
+        } catch (e) {
+            console.error(`Could not link the setup of ${from} into ${folder}:`, errorText(e));
+
+            return `Could not link the setup of ${from}: ${errorText(e)}`;
+        }
     }
 
     /* Links and seeds an account that shares the default account's setup; a failure is said and never keeps the account from starting. */

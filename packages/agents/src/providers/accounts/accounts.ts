@@ -100,12 +100,12 @@ export function accountProblem(
     return null;
 }
 
-/* The variables that point a CLI at its folder, which no account may set by hand. */
+/* The variables that point a CLI at its folder or keep its sign-in there, which no account may set by hand. */
 export function folderVariablesOf(providers: AccountProviders): string[] {
     return providers.kinds.flatMap((kind) => {
         const home = providers.get(kind).home;
 
-        return home === undefined ? [] : [home.env];
+        return home === undefined ? [] : [home.env, ...Object.keys(home.apart?.variables({}) ?? {})];
     });
 }
 
@@ -125,12 +125,17 @@ export function withDefaults(accounts: ProviderAccountMap, kinds: readonly Agent
 }
 
 /* The folder the CLI itself falls back on, as the host's own environment sets it. */
-export function defaultFolder(provider: ChatProvider, env: Env): string {
+export function cliFolder(provider: ChatProvider, env: Env): string {
     if (provider.home === undefined) {
         return '';
     }
 
     return env[provider.home.env] ?? join(homeFolder(env), provider.home.fallback);
+}
+
+/* The folder of the default account: the CLI's own, unless the host keeps every account apart from it. */
+export function defaultFolder(provider: ChatProvider, env: Env): string {
+    return provider.home?.apart?.defaultFolder ?? cliFolder(provider, env);
 }
 
 /* The folder a CLI of this account is started with: for a Codex account with a shadow home, that one. */
@@ -152,28 +157,35 @@ export function transcriptFolder(id: string, account: ProviderAccount, provider:
 }
 
 /*
- * The environment of a CLI process of this account. The default account runs in the host's own. Any
- * other gets its folder in the CLI's variable, and loses the variables that would sign the CLI in over
- * that folder's login: an inherited key would win, and only the bill would tell. Never HOME, which
- * moves where Claude Code looks in the keychain. The account's own variables come last, so a key a
- * person set there is the one that counts.
+ * The environment of a CLI process of this account. The default account runs in the host's own, unless
+ * the host keeps it apart. Any other gets its folder in the CLI's variable, and loses the variables that
+ * would sign the CLI in over that folder's login: an inherited key would win, and only the bill would
+ * tell. Never HOME, which moves where Claude Code looks in the keychain. The account's own variables come
+ * next, so a key a person set there is the one that counts, and what keeps a sign-in apart comes last.
  */
 export function accountEnv(id: string, account: ProviderAccount, provider: ChatProvider, baseEnv: Env, variables: Record<string, string> = {}): Env {
     const withVariables = (env: Env): Env => (Object.keys(variables).length === 0 ? env : { ...env, ...variables });
+    const home = provider.home;
+    const ownFolder = isDefaultAccount(id, account) ? home?.apart?.defaultFolder !== undefined : account.home !== undefined;
 
-    if (isDefaultAccount(id, account) || provider.home === undefined || account.home === undefined) {
+    if (home === undefined || !ownFolder) {
         return withVariables(baseEnv);
     }
 
     const env = { ...baseEnv };
 
-    for (const name of provider.home.loginEnv) {
+    for (const name of home.loginEnv) {
         delete env[name];
     }
 
-    env[provider.home.env] = accountFolder(id, account, provider, baseEnv);
+    env[home.env] = accountFolder(id, account, provider, baseEnv);
 
-    return withVariables(env);
+    return { ...withVariables(env), ...home.apart?.variables(baseEnv) };
+}
+
+/* The environment of a CLI started for its default account by a host that keeps no accounts at hand, such as a single prompt. */
+export function defaultAccountEnv(provider: ChatProvider, baseEnv: Env): Env {
+    return accountEnv(provider.kind, { kind: provider.kind }, provider, baseEnv);
 }
 
 interface NamedAccount {

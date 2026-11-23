@@ -19,6 +19,19 @@ export interface ProviderShare {
     readonly seed: { readonly file: string; readonly keys: readonly string[] };
 }
 
+/*
+ * A CLI that keeps one sign-in for all of its folders unless it is told otherwise. Every account then runs in a folder of
+ * the host's own, the default account included, with `variables` on top, and reads the person's own setup through links.
+ */
+export interface ProviderApart {
+    // The folder the default account runs in instead of the CLI's own; absent leaves the default account in the CLI's own.
+    readonly defaultFolder?: string;
+    // Laid over the environment of every account in a folder other than the CLI's own, from the host's own environment.
+    variables(env: Readonly<Record<string, string | undefined>>): Record<string, string>;
+    // Entries of the CLI's own folder, such as a skills folder or a rules file, that every account's folder links to.
+    readonly links: readonly string[];
+}
+
 export interface ProviderHome {
     // The variable the CLI reads its config folder from.
     readonly env: string;
@@ -33,6 +46,8 @@ export interface ProviderHome {
     readonly shadow?: boolean;
     // What an extra account can share with the default one; absent on a CLI that shares nothing this way.
     readonly share?: ProviderShare;
+    // Set on a CLI whose sign-in only stays with an account's folder when every account runs apart from the CLI's own.
+    readonly apart?: ProviderApart;
 }
 
 export interface ClaudeCodeRuntime {

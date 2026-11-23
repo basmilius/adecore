@@ -22,6 +22,18 @@ A person turns it on per account with `accounts.shareConfig`, which sets `shareC
 
 A settings file is replaced by the copy only when it is missing or when the host's `ownsSettings(config)` option says it holds nothing but what the host wrote there, such as its hooks. `config` is the parsed file, or `undefined` when it is not JSON. Without `ownsSettings` the host owns nothing, so an existing file always stays and only a missing one is written.
 
+## Accounts kept apart
+
+Some CLIs keep one sign-in for all of their folders. agy 1.5 keeps a Google sign-in in one keyring entry for every `GEMINI_HOME`, so signing one account out signs every account out. It keeps the sign-in in the folder only when it believes it runs over SSH. A provider whose `home` has an `apart` (`ProviderApart`) runs each account apart from the CLI's own folder:
+
+- `variables(env)` are laid over the environment of every account in a folder other than the CLI's own, after the account's own variables. No account may set them by hand. Antigravity sets `SSH_CONNECTION` to the host's own value, or to a stand-in.
+- `defaultFolder` is the folder the default account runs in instead of the CLI's own. The service makes it on the first start, and a check gives it the host's `install` and the links below. Without it the default account stays in the CLI's own folder.
+- `links` are entries of the CLI's own folder that every account's folder links to, such as the person's global skills and rules. A link whose entry is gone is removed, and an empty folder the CLI made in a link's place gives way to the link. Real content in the way stays and is named in the status message. On Windows only folders are linked, as junctions.
+
+`createAntigravityProvider({ defaultHome })` turns this on for the default account too; `antigravityDefaultHome(dataDir)` puts it beside the folders of the other accounts. A person then signs every account in with `agy acp --login` in a terminal under that account, since no browser opens. The sign-in of the person's own `agy` in `~/.gemini` is no longer shared with the host.
+
+A host that starts a CLI for its default account without its accounts at hand, such as a single prompt, takes the environment from `defaultAccountEnv(provider, env)`. For a CLI kept apart that holds the default account's folder and variables; for any other it is `env`.
+
 ## The types behind it
 
 - `ProviderAccountsOptions` are the options of the service: the data folder, the `AccountsHost`, the providers, the environment and the `secrets`.
