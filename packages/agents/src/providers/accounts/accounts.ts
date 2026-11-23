@@ -124,13 +124,15 @@ export function withDefaults(accounts: ProviderAccountMap, kinds: readonly Agent
     return complete;
 }
 
-/* The folder the CLI itself falls back on, as the host's own environment sets it. */
+/* The folder the CLI itself falls back on, as the host's own environment sets it. A shell leaves `~` in a quoted variable, and the CLI expands it. */
 export function cliFolder(provider: ChatProvider, env: Env): string {
     if (provider.home === undefined) {
         return '';
     }
 
-    return env[provider.home.env] ?? join(homeFolder(env), provider.home.fallback);
+    const folder = env[provider.home.env];
+
+    return folder === undefined ? join(homeFolder(env), provider.home.fallback) : expandHome(folder, env);
 }
 
 /* The folder of the default account: the CLI's own, unless the host keeps every account apart from it. */

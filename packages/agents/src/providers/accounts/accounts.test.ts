@@ -1,7 +1,17 @@
 import { describe, expect, test } from 'bun:test';
 import { join } from 'node:path';
 import { providerFor } from '../../testing/providers.ts';
-import { accountEnv, accountFolder, accountProblem, canContinue, readAccount, withDefaults, type AccountProviders } from './accounts.ts';
+import {
+    accountEnv,
+    accountFolder,
+    accountProblem,
+    canContinue,
+    cliFolder,
+    defaultFolder,
+    readAccount,
+    withDefaults,
+    type AccountProviders
+} from './accounts.ts';
 
 // Windows reads the home from USERPROFILE and joins with backslashes.
 const HOME = process.platform === 'win32' ? 'C:\\Users\\bas' : '/home/bas';
@@ -50,6 +60,16 @@ describe('accountFolder', () => {
         expect(accountFolder('claude', { kind: 'claude' }, claude, env)).toBe(join(HOME, '.claude'));
         expect(accountFolder('codex', { kind: 'codex' }, codex, { ...env, CODEX_HOME: '/opt/codex' })).toBe('/opt/codex');
         expect(accountFolder('gemini', { kind: 'gemini' }, providerFor('gemini'), env)).toBe('');
+    });
+});
+
+describe('cliFolder', () => {
+    test('expands a home folder the variable names with a tilde', () => {
+        const tilde = { ...env, CODEX_HOME: '~/x' };
+
+        expect(cliFolder(codex, tilde)).toBe(join(HOME, 'x'));
+        expect(defaultFolder(codex, tilde)).toBe(join(HOME, 'x'));
+        expect(cliFolder(codex, { ...env, CODEX_HOME: '~' })).toBe(HOME);
     });
 });
 
