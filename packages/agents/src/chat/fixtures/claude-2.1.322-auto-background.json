@@ -1,0 +1,498 @@
+{
+    "version": "Claude Code 2.1.322",
+    "capturedAt": "2026-11-23",
+    "source": "Recorded with tee-cli.ts in front of Claude Code 2.1.322, driven by ADE CORE's ClaudeBackend in supervised mode, in a throwaway git folder, with CLAUDE_CODE_AUTO_BACKGROUND_TIMEOUT_MS=1000 (2.1.322 reads this name, not CLAUDE_CODE_AUTO_BACKGROUND_TIME, and clamps the timeout to 2 s). A foreground Bash of about 40 s moved to the background: `background_tasks_changed` first, then `task_started` with `is_backgrounded: true`, and no `task_updated` patch that flips it. Its end is a `task_updated` patch to completed, the `task_notification` and an empty `background_tasks_changed`, then the turn the notification wakes. Stream events, rate limits, control traffic, hooks and init are left out.",
+    "frames": [
+        {
+            "type": "user",
+            "message": {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Run exactly this Bash command in the foreground, without run_in_background: `ping -c 40 -i 1 127.0.0.1 > /dev/null; echo done`. When it has finished, reply with the single word ok."
+                    }
+                ]
+            },
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "parent_tool_use_id": null,
+            "uuid": "e353e3da-2ff1-4fdc-9b50-e5c892529dc5",
+            "timestamp": "2026-11-23T09:25:52.243Z",
+            "isReplay": true
+        },
+        {
+            "type": "assistant",
+            "message": {
+                "model": "claude-sonnet-5-5",
+                "id": "msg_011ChKcuSMtYY82QnSsTZpv4",
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "toolu_016eGNrLgkfTTnSDnEH7JZjZ",
+                        "name": "Bash",
+                        "input": {
+                            "command": "ping -c 40 -i 1 127.0.0.1 > /dev/null; echo done",
+                            "description": "Ping localhost 40 times",
+                            "timeout": 120000
+                        },
+                        "caller": {
+                            "type": "direct"
+                        }
+                    }
+                ],
+                "container": null,
+                "stop_reason": null,
+                "stop_sequence": null,
+                "stop_details": null,
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 17780,
+                    "cache_read_input_tokens": 12941,
+                    "cache_creation": {
+                        "ephemeral_5m_input_tokens": 0,
+                        "ephemeral_1h_input_tokens": 17780
+                    },
+                    "output_tokens": 16,
+                    "service_tier": "standard",
+                    "inference_geo": "global",
+                    "speed": "standard"
+                },
+                "input_transformations": [],
+                "diagnostics": null,
+                "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "4bf0dedd-4801-4645-a352-00a40fb6842d",
+            "timestamp": "2026-11-23T09:25:54.183Z",
+            "request_id": "req_011ChKcuSDDLKbv7PEzGFzVc",
+            "wire_tool_inputs": {
+                "toolu_016eGNrLgkfTTnSDnEH7JZjZ": {
+                    "command": "ping -c 40 -i 1 127.0.0.1 > /dev/null; echo done",
+                    "description": "Ping localhost 40 times",
+                    "timeout": 120000
+                }
+            },
+            "user_message_uuid": "e353e3da-2ff1-4fdc-9b50-e5c892529dc5",
+            "user_message_uuids": [
+                "e353e3da-2ff1-4fdc-9b50-e5c892529dc5"
+            ]
+        },
+        {
+            "type": "system",
+            "subtype": "background_tasks_changed",
+            "tasks": [
+                {
+                    "task_id": "bxhe7wgon",
+                    "run_id": "0mwt29adn-a86b2b23",
+                    "task_type": "local_bash",
+                    "description": "Ping localhost 40 times"
+                }
+            ],
+            "uuid": "8ed76b90-1a20-4c04-9732-4a91bc850040",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "type": "system",
+            "subtype": "task_started",
+            "task_id": "bxhe7wgon",
+            "run_id": "0mwt29adn-a86b2b23",
+            "tool_use_id": "toolu_016eGNrLgkfTTnSDnEH7JZjZ",
+            "description": "Ping localhost 40 times",
+            "is_backgrounded": true,
+            "task_type": "local_bash",
+            "uuid": "fb6fad95-6280-495d-9ece-abdca7d984a0",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "type": "user",
+            "message": {
+                "role": "user",
+                "content": [
+                    {
+                        "tool_use_id": "toolu_016eGNrLgkfTTnSDnEH7JZjZ",
+                        "type": "tool_result",
+                        "content": "Command did not complete within its 2s timeout and was moved to the background (ID: bxhe7wgon). Output is being written to: /private/tmp/claude-501/-private-tmp-ruimte-cap-work-cl1d/00000000-0000-4000-8000-000000000001/tasks/bxhe7wgon.output. You will be notified when it completes. If it is still running after 30m in the background, it will be stopped and you will be notified. It is running now: do not start a second copy while it runs. If it is no longer needed, stop it with TaskStop. No output had been read from it when it was moved. A program that buffers its output, or a pipe into one such as tail, can keep the output file empty until the command finishes. To check interim output, use Read on that file path.",
+                        "is_error": false
+                    }
+                ]
+            },
+            "parent_tool_use_id": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "a8a236b7-84f1-4bc6-877e-911332f53858",
+            "timestamp": "2026-11-23T09:25:56.588Z",
+            "tool_use_result": {
+                "stdout": "",
+                "stderr": "",
+                "interrupted": false,
+                "isImage": false,
+                "noOutputExpected": false,
+                "backgroundTaskId": "bxhe7wgon",
+                "timedOutAfterMs": 2000
+            },
+            "tool_result_meta": [
+                {
+                    "id": "toolu_016eGNrLgkfTTnSDnEH7JZjZ",
+                    "permission_decision": {
+                        "decision": "accept",
+                        "source": "user_temporary"
+                    }
+                }
+            ]
+        },
+        {
+            "type": "system",
+            "subtype": "thinking_tokens",
+            "estimated_tokens": 50,
+            "estimated_tokens_delta": 50,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "37e0988a-0602-4a43-9210-3628b051ecf5",
+            "user_message_uuid": "e353e3da-2ff1-4fdc-9b50-e5c892529dc5"
+        },
+        {
+            "type": "system",
+            "subtype": "thinking_tokens",
+            "estimated_tokens": 227,
+            "estimated_tokens_delta": 177,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "234722c1-e771-40f2-8a7f-36c536a290a2",
+            "user_message_uuid": "e353e3da-2ff1-4fdc-9b50-e5c892529dc5"
+        },
+        {
+            "type": "assistant",
+            "message": {
+                "model": "claude-sonnet-5-5",
+                "id": "msg_011ChKcukeV9zYbtYrLePuVx",
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "thinking",
+                        "thinking": "",
+                        "signature": "CAQSgwcKEAgUGAI4AUIIdGhpbmtpbmcSDKPZd5OyIbb23x9DAxoM/s00PD8S8hD08dS3IjARz96NXBfpkPlcztexYPClDxQ96WB9+h9FQaXYi1W9wI6I2qdT6jIzSwYiLNczgYwqoAbztgRJODwtrwUgO+gSM4bJAcwyJ2inyH7Oen47PtEfRfn25iCfQkZrSYqpP6eqmkRxsffXscd1h6dO/mljhcEUvBSbRfEgCvs76J/cGEHLMOTYvlQ1wk3cLAc8cceOLdXPPYuiK25dZxpFOH1cygCVwQwvQbOODX9oZgdyzYIuejVxX33whxGju630rzWjpaTVMhj1oTjR5IV4E5Me+gAgBc4ymRFrADQc5NGYCGBTI6jn9sdl6SeOc12j7kATYStHkvHx8qnF8Vs+pKTqdhorxRwLabanaKvdAJuDgh9quTwCuzVHQYLkOo4tVPJdDBd/SyitMtRNaMUkE1xTjnW00tZG0yfmHQb48X6/QLX7gJAvDidyhWl0D0IwlJCku/hnk2ZOVFklQL/VIKPdgmwHsVdyYsJCXZwpk4dSHdlunjS3mWgMakOOQhBYN2R/LUfhEdTBzSpcLOs+xXX62nokJgJviunT+6wIEjjgW7M0Tk9PstThOT3nUuvUD7fZBFCy0PsgdB5Y4UThHoI1pVfURJn66igIKwqktY2sLrgmuL+ZOBWcZLlcYc8gc4I1HHhHf/JI1rxtPdH+4zFVkiZA+08rborZgPCTDzSFGCrpA429R5fPrPItPBZHNxNzjx1jxElYyJN45QPfiMN8LXBgiL5Ezd+sPwKN0Y1sVDYO/rH6n7gi2g1hifRAm1a40BnZdEMGXyuLYDXQOmu1J4Jn7OkW8o5L9jEIzPVItBc2qXxOQrz5PySSX4v1c2/+0bhg25xlC2rBMQGFbZyqFijUXQxar8EYhQYPHzWImCLOya2QtU+jYY1B/o+6MjmBIGXEamJLzmzl33jCoNW4HF+fvEyub8pwPAQEBr6N7G27VzMqtgTNwBhdSmTCJ6HNc9x6nh9VfD+Xd/4h14hMQxgdwJin9ePR81/V/k9ZxhDXm9u+8KNa/IXfouZmigLOoMfOYq4wBUmzg+5z4qioFK7Vl6jV0rvdudLGp0EygAW62d5DlD4e++6av+6y2CSKY3FDelbug0Fo/i/SsiJ03RpAeHs0f7APrwncUgvqLxwkNBgB"
+                    }
+                ],
+                "container": null,
+                "stop_reason": null,
+                "stop_sequence": null,
+                "stop_details": null,
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 425,
+                    "cache_read_input_tokens": 30721,
+                    "cache_creation": {
+                        "ephemeral_5m_input_tokens": 0,
+                        "ephemeral_1h_input_tokens": 425
+                    },
+                    "output_tokens": 4,
+                    "service_tier": "standard",
+                    "inference_geo": "global",
+                    "speed": "standard"
+                },
+                "input_transformations": [],
+                "diagnostics": null,
+                "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "765ffc87-9621-4263-8f11-2fd5e362f71f",
+            "timestamp": "2026-11-23T09:25:58.831Z",
+            "request_id": "req_011ChKcukTa6GnD7qiWzARQQ",
+            "thinking_duration_ms": 1231,
+            "thinking_display": "updates"
+        },
+        {
+            "type": "assistant",
+            "message": {
+                "model": "claude-sonnet-5-5",
+                "id": "msg_011ChKcukeV9zYbtYrLePuVx",
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Het commando draait nu op de achtergrond (ID bxhe7wgon). Ik antwoord \"ok\" zodra het klaar is."
+                    }
+                ],
+                "container": null,
+                "stop_reason": null,
+                "stop_sequence": null,
+                "stop_details": null,
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 425,
+                    "cache_read_input_tokens": 30721,
+                    "cache_creation": {
+                        "ephemeral_5m_input_tokens": 0,
+                        "ephemeral_1h_input_tokens": 425
+                    },
+                    "output_tokens": 4,
+                    "service_tier": "standard",
+                    "inference_geo": "global",
+                    "speed": "standard"
+                },
+                "input_transformations": [],
+                "diagnostics": null,
+                "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "14d65595-6812-4b12-aa6a-ac12ae865a6f",
+            "timestamp": "2026-11-23T09:25:58.837Z",
+            "request_id": "req_011ChKcukTa6GnD7qiWzARQQ"
+        },
+        {
+            "duration_api_ms": 4908,
+            "stop_reason": "end_turn",
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "total_cost_usd": 0.08017510000000001,
+            "usage": {
+                "input_tokens": 4,
+                "cache_creation_input_tokens": 18205,
+                "cache_read_input_tokens": 43662,
+                "output_tokens": 285,
+                "output_tokens_details": {
+                    "thinking_tokens": 106
+                },
+                "server_tool_use": {
+                    "web_search_requests": 0,
+                    "web_fetch_requests": 0
+                },
+                "service_tier": "standard",
+                "cache_creation": {
+                    "ephemeral_1h_input_tokens": 18205,
+                    "ephemeral_5m_input_tokens": 0
+                },
+                "inference_geo": "global",
+                "iterations": [
+                    {
+                        "input_tokens": 2,
+                        "output_tokens": 155,
+                        "cache_read_input_tokens": 30721,
+                        "cache_creation_input_tokens": 425,
+                        "cache_creation": {
+                            "ephemeral_5m_input_tokens": 0,
+                            "ephemeral_1h_input_tokens": 425
+                        },
+                        "type": "message"
+                    }
+                ],
+                "speed": "standard",
+                "fallback_credit": null
+            },
+            "permission_denials": [],
+            "terminal_reason": "completed",
+            "safety_stops": 0,
+            "is_error": false,
+            "num_turns": 2,
+            "subtype": "success",
+            "api_error_status": null,
+            "result": "Het commando draait nu op de achtergrond (ID bxhe7wgon). Ik antwoord \"ok\" zodra het klaar is.",
+            "ttft_ms": 1955,
+            "type": "result",
+            "duration_ms": 6643,
+            "uuid": "bd46561c-c3c4-4012-b351-bcd5911f2015",
+            "ttft_stream_ms": 1385,
+            "time_to_request_ms": 39,
+            "first_content_frame_ms": 1387,
+            "user_message_uuid": "e353e3da-2ff1-4fdc-9b50-e5c892529dc5",
+            "user_message_uuids": [
+                "e353e3da-2ff1-4fdc-9b50-e5c892529dc5"
+            ],
+            "request_sent_wall_ms": 1795425952268,
+            "first_request_input_tokens": 30723,
+            "first_request_cache_read_input_tokens": 12941,
+            "queued_turn_count": 0,
+            "result_index": 0,
+            "model_usage_since_last_result": {
+                "claude-haiku-5-5": {
+                    "inputTokens": 1219,
+                    "outputTokens": 18,
+                    "cacheReadInputTokens": 0,
+                    "cacheCreationInputTokens": 0,
+                    "webSearchRequests": 0,
+                    "costUSD": 0.0001309,
+                    "contextWindow": 1000000,
+                    "maxOutputTokens": 128000,
+                    "thinkingTokens": 0,
+                    "cacheCreationEphemeral5mInputTokens": 0,
+                    "cacheCreationEphemeral1hInputTokens": 0,
+                    "canonicalModel": "claude-haiku-5-5",
+                    "provider": "firstParty",
+                    "costBasis": "list"
+                },
+                "claude-sonnet-5-5": {
+                    "inputTokens": 4,
+                    "outputTokens": 285,
+                    "cacheReadInputTokens": 43662,
+                    "cacheCreationInputTokens": 18205,
+                    "webSearchRequests": 0,
+                    "costUSD": 0.08004420000000001,
+                    "contextWindow": 1000000,
+                    "maxOutputTokens": 128000,
+                    "thinkingTokens": 106,
+                    "cacheCreationEphemeral5mInputTokens": 0,
+                    "cacheCreationEphemeral1hInputTokens": 18205,
+                    "canonicalModel": "claude-sonnet-5-5",
+                    "provider": "firstParty",
+                    "costBasis": "list"
+                }
+            },
+            "credential_expires_at": "2026-11-25T09:25:01.369Z"
+        },
+        {
+            "type": "system",
+            "subtype": "task_updated",
+            "task_id": "bxhe7wgon",
+            "run_id": "0mwt29adn-a86b2b23",
+            "patch": {
+                "status": "completed",
+                "end_time": 1795425993716
+            },
+            "uuid": "3c1a5556-5282-44b5-be9a-b404725c524d",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "type": "system",
+            "subtype": "task_notification",
+            "task_id": "bxhe7wgon",
+            "run_id": "0mwt29adn-a86b2b23",
+            "tool_use_id": "toolu_016eGNrLgkfTTnSDnEH7JZjZ",
+            "status": "completed",
+            "output_file": "/private/tmp/claude-501/-private-tmp-ruimte-cap-work-cl1d/00000000-0000-4000-8000-000000000001/tasks/bxhe7wgon.output",
+            "summary": "Background command \"Ping localhost 40 times\" completed (exit code 0)",
+            "uuid": "44d68e06-066a-48d3-a80d-92da1a81fe01",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "type": "system",
+            "subtype": "background_tasks_changed",
+            "tasks": [],
+            "uuid": "1fc01401-d560-4cd0-97e3-0949ab02af71",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "type": "assistant",
+            "message": {
+                "model": "claude-sonnet-5-5",
+                "id": "msg_011ChKcxVobNpMPYqC2wXqYF",
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "ok"
+                    }
+                ],
+                "container": null,
+                "stop_reason": null,
+                "stop_sequence": null,
+                "stop_details": null,
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 569,
+                    "cache_read_input_tokens": 31146,
+                    "cache_creation": {
+                        "ephemeral_5m_input_tokens": 0,
+                        "ephemeral_1h_input_tokens": 569
+                    },
+                    "output_tokens": 4,
+                    "service_tier": "standard",
+                    "inference_geo": "global",
+                    "speed": "standard"
+                },
+                "input_transformations": [],
+                "diagnostics": null,
+                "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "b2086ed8-09e6-4940-b82c-e931a34f9b49",
+            "timestamp": "2026-11-23T09:26:34.892Z",
+            "request_id": "req_011ChKcxVVziBqsdTnydu2cP"
+        },
+        {
+            "duration_api_ms": 6038,
+            "stop_reason": "end_turn",
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "total_cost_usd": 0.08560970000000001,
+            "usage": {
+                "input_tokens": 2,
+                "cache_creation_input_tokens": 569,
+                "cache_read_input_tokens": 31146,
+                "output_tokens": 4,
+                "output_tokens_details": {
+                    "thinking_tokens": 0
+                },
+                "server_tool_use": {
+                    "web_search_requests": 0,
+                    "web_fetch_requests": 0
+                },
+                "service_tier": "standard",
+                "cache_creation": {
+                    "ephemeral_1h_input_tokens": 569,
+                    "ephemeral_5m_input_tokens": 0
+                },
+                "inference_geo": "global",
+                "iterations": [
+                    {
+                        "input_tokens": 2,
+                        "output_tokens": 4,
+                        "cache_read_input_tokens": 31146,
+                        "cache_creation_input_tokens": 569,
+                        "cache_creation": {
+                            "ephemeral_5m_input_tokens": 0,
+                            "ephemeral_1h_input_tokens": 569
+                        },
+                        "type": "message"
+                    }
+                ],
+                "speed": "standard",
+                "fallback_credit": null
+            },
+            "permission_denials": [],
+            "terminal_reason": "completed",
+            "origin": {
+                "kind": "task-notification",
+                "producer": "session-task",
+                "runId": "0mwt29adn-a86b2b23"
+            },
+            "safety_stops": 0,
+            "is_error": false,
+            "num_turns": 1,
+            "subtype": "success",
+            "api_error_status": null,
+            "result": "ok",
+            "ttft_ms": 1152,
+            "type": "result",
+            "duration_ms": 1179,
+            "uuid": "2f8c3b57-0478-454d-9e58-29be7bee4961",
+            "ttft_stream_ms": 1150,
+            "time_to_request_ms": 51,
+            "first_content_frame_ms": 1150,
+            "queued_turn_count": 0,
+            "result_index": 1,
+            "model_usage_since_last_result": {
+                "claude-sonnet-5-5": {
+                    "inputTokens": 2,
+                    "outputTokens": 4,
+                    "cacheReadInputTokens": 31146,
+                    "cacheCreationInputTokens": 569,
+                    "webSearchRequests": 0,
+                    "costUSD": 0.0054346,
+                    "contextWindow": 1000000,
+                    "maxOutputTokens": 128000,
+                    "thinkingTokens": 0,
+                    "cacheCreationEphemeral5mInputTokens": 0,
+                    "cacheCreationEphemeral1hInputTokens": 569,
+                    "canonicalModel": "claude-sonnet-5-5",
+                    "provider": "firstParty",
+                    "costBasis": "list"
+                }
+            },
+            "credential_expires_at": "2026-11-25T09:25:01.369Z"
+        }
+    ]
+}

@@ -1,0 +1,234 @@
+{
+    "version": "Claude Code 2.1.322",
+    "capturedAt": "2026-11-23",
+    "source": "Recorded with tee-cli.ts in front of Claude Code 2.1.322 through ADE CORE's ClaudeBackend in supervised mode, with two hooks in the throwaway project's `.claude/settings.json`: a UserPromptSubmit hook that blocks a prompt with a marker, and a Stop hook that prints a `systemMessage`. The blocked prompt gives an `informational` frame at level `warning` with `prevent_continuation` and `prompt_submit_outcome`, then a `result` with `num_turns: 0` and no user echo; the Stop hook gives an `informational` notice `Stop says: ...` before the turn's `result`. Stream events, rate limits, control traffic, hooks and init are left out.",
+    "frames": [
+        {
+            "type": "system",
+            "subtype": "informational",
+            "content": "UserPromptSubmit operation blocked by hook:\nBlocked by the capture hook\n\nOriginal prompt: BLOCKME reply with the word blocked",
+            "level": "warning",
+            "prevent_continuation": true,
+            "prompt_submit_outcome": {
+                "kind": "blocked_by_hook",
+                "prompt_kept": false,
+                "reason": "Blocked by the capture hook"
+            },
+            "uuid": "3aa59004-63bf-4e1c-9165-97c8c1878d05",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "is_error": false,
+            "duration_api_ms": 0,
+            "num_turns": 0,
+            "stop_reason": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "total_cost_usd": 0,
+            "usage": {
+                "output_tokens_details": {
+                    "thinking_tokens": 0
+                },
+                "input_tokens": 0,
+                "cache_creation_input_tokens": 0,
+                "cache_read_input_tokens": 0,
+                "output_tokens": 0,
+                "server_tool_use": {
+                    "web_search_requests": 0,
+                    "web_fetch_requests": 0
+                },
+                "service_tier": "standard",
+                "cache_creation": {
+                    "ephemeral_1h_input_tokens": 0,
+                    "ephemeral_5m_input_tokens": 0
+                },
+                "inference_geo": "",
+                "iterations": [],
+                "speed": "standard",
+                "fallback_credit": null
+            },
+            "permission_denials": [],
+            "safety_stops": 0,
+            "subtype": "success",
+            "result": "UserPromptSubmit operation blocked by hook:\nBlocked by the capture hook\n\nOriginal prompt: BLOCKME reply with the word blocked",
+            "user_message_uuid": "79065b5a-3b1a-4984-b9d5-7ecb3d8b9f20",
+            "user_message_uuids": [
+                "79065b5a-3b1a-4984-b9d5-7ecb3d8b9f20"
+            ],
+            "type": "result",
+            "duration_ms": 35,
+            "uuid": "129f6118-2548-4c01-a6d3-26285cad58a5",
+            "queued_turn_count": 0,
+            "result_index": 0,
+            "model_usage_since_last_result": {},
+            "credential_expires_at": "2026-11-25T09:25:01.369Z"
+        },
+        {
+            "type": "user",
+            "message": {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Reply with the single word ok."
+                    }
+                ]
+            },
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "parent_tool_use_id": null,
+            "uuid": "16acec50-7e92-44f9-b342-6c5a504dd558",
+            "timestamp": "2026-11-23T09:29:19.955Z",
+            "isReplay": true
+        },
+        {
+            "type": "assistant",
+            "message": {
+                "model": "claude-sonnet-5-5",
+                "id": "msg_011ChKdAkCraVZFNiqyJj8MH",
+                "type": "message",
+                "role": "assistant",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "ok"
+                    }
+                ],
+                "container": null,
+                "stop_reason": null,
+                "stop_sequence": null,
+                "stop_details": null,
+                "usage": {
+                    "input_tokens": 2,
+                    "cache_creation_input_tokens": 17720,
+                    "cache_read_input_tokens": 12941,
+                    "cache_creation": {
+                        "ephemeral_5m_input_tokens": 0,
+                        "ephemeral_1h_input_tokens": 17720
+                    },
+                    "output_tokens": 4,
+                    "service_tier": "standard",
+                    "inference_geo": "global",
+                    "speed": "standard"
+                },
+                "input_transformations": [],
+                "diagnostics": null,
+                "context_management": null
+            },
+            "parent_tool_use_id": null,
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "uuid": "7b73c0f5-56a5-41ce-8432-468da1e464e2",
+            "timestamp": "2026-11-23T09:29:21.189Z",
+            "request_id": "req_011ChKdAk3SqPkCPzdD4AFhe",
+            "user_message_uuid": "16acec50-7e92-44f9-b342-6c5a504dd558",
+            "user_message_uuids": [
+                "16acec50-7e92-44f9-b342-6c5a504dd558"
+            ]
+        },
+        {
+            "type": "system",
+            "subtype": "informational",
+            "content": "Stop says: capture stop hook ran",
+            "level": "notice",
+            "uuid": "f2d34793-2e03-4329-9a59-27ae2fc96b4c",
+            "session_id": "00000000-0000-4000-8000-000000000001"
+        },
+        {
+            "duration_api_ms": 1867,
+            "stop_reason": "end_turn",
+            "session_id": "00000000-0000-4000-8000-000000000001",
+            "total_cost_usd": 0.0723443,
+            "usage": {
+                "input_tokens": 2,
+                "cache_creation_input_tokens": 17720,
+                "cache_read_input_tokens": 12941,
+                "output_tokens": 4,
+                "output_tokens_details": {
+                    "thinking_tokens": 0
+                },
+                "server_tool_use": {
+                    "web_search_requests": 0,
+                    "web_fetch_requests": 0
+                },
+                "service_tier": "standard",
+                "cache_creation": {
+                    "ephemeral_1h_input_tokens": 17720,
+                    "ephemeral_5m_input_tokens": 0
+                },
+                "inference_geo": "global",
+                "iterations": [
+                    {
+                        "input_tokens": 2,
+                        "output_tokens": 4,
+                        "cache_read_input_tokens": 12941,
+                        "cache_creation_input_tokens": 17720,
+                        "cache_creation": {
+                            "ephemeral_5m_input_tokens": 0,
+                            "ephemeral_1h_input_tokens": 17720
+                        },
+                        "type": "message"
+                    }
+                ],
+                "speed": "standard",
+                "fallback_credit": null
+            },
+            "permission_denials": [],
+            "terminal_reason": "completed",
+            "safety_stops": 0,
+            "is_error": false,
+            "num_turns": 1,
+            "subtype": "success",
+            "api_error_status": null,
+            "result": "ok",
+            "ttft_ms": 1249,
+            "type": "result",
+            "duration_ms": 1281,
+            "uuid": "a6742f97-0a6c-4b34-bdf1-ab97d13e82eb",
+            "ttft_stream_ms": 1246,
+            "time_to_request_ms": 49,
+            "first_content_frame_ms": 1247,
+            "user_message_uuid": "16acec50-7e92-44f9-b342-6c5a504dd558",
+            "user_message_uuids": [
+                "16acec50-7e92-44f9-b342-6c5a504dd558"
+            ],
+            "request_sent_wall_ms": 1795426159990,
+            "first_request_input_tokens": 30663,
+            "first_request_cache_read_input_tokens": 12941,
+            "queued_turn_count": 0,
+            "result_index": 1,
+            "model_usage_since_last_result": {
+                "claude-haiku-5-5": {
+                    "inputTokens": 1162,
+                    "outputTokens": 20,
+                    "cacheReadInputTokens": 0,
+                    "cacheCreationInputTokens": 0,
+                    "webSearchRequests": 0,
+                    "costUSD": 0.0001262,
+                    "contextWindow": 1000000,
+                    "maxOutputTokens": 128000,
+                    "thinkingTokens": 0,
+                    "cacheCreationEphemeral5mInputTokens": 0,
+                    "cacheCreationEphemeral1hInputTokens": 0,
+                    "canonicalModel": "claude-haiku-5-5",
+                    "provider": "firstParty",
+                    "costBasis": "list"
+                },
+                "claude-sonnet-5-5": {
+                    "inputTokens": 2,
+                    "outputTokens": 4,
+                    "cacheReadInputTokens": 12941,
+                    "cacheCreationInputTokens": 17720,
+                    "webSearchRequests": 0,
+                    "costUSD": 0.0722181,
+                    "contextWindow": 1000000,
+                    "maxOutputTokens": 128000,
+                    "thinkingTokens": 0,
+                    "cacheCreationEphemeral5mInputTokens": 0,
+                    "cacheCreationEphemeral1hInputTokens": 17720,
+                    "canonicalModel": "claude-sonnet-5-5",
+                    "provider": "firstParty",
+                    "costBasis": "list"
+                }
+            },
+            "credential_expires_at": "2026-11-25T09:25:01.369Z"
+        }
+    ]
+}

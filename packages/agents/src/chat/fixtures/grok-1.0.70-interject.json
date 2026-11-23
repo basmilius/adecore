@@ -1,0 +1,2237 @@
+{
+    "version": "Grok 1.0.70, `grok --no-auto-update agent stdio`",
+    "capturedAt": "2026-11-23",
+    "source": "Recorded with tee-cli.ts in front of Grok 1.0.70 by a bare ACP client in a throwaway git folder, default mode (the ACP backend has no `steerTurn` to send it). A prompt runs `sleep 15`; 2 s into the running tool the client sends `_x.ai/interject` `{ sessionId, text }`. Grok answers `{ status: \"queued\" }` at once and sends `_x.ai/session/interjection` with the text; the tool runs its full 15 s with no `session/cancel`, the model follows the message in the same turn, and the one `session/prompt` response ends it with `end_turn`. Hook, MCP, announcement, model, setup and summary frames and tool argument chunks are left out; message chunks stay. `t` is milliseconds from the start, `dir` is `in` for what went to Grok.",
+    "frames": [
+        {
+            "t": 2,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": 1,
+                    "clientCapabilities": {
+                        "fs": {
+                            "readTextFile": false,
+                            "writeTextFile": false
+                        },
+                        "terminal": false
+                    },
+                    "clientInfo": {
+                        "name": "capture",
+                        "version": "0.0.1"
+                    }
+                }
+            }
+        },
+        {
+            "t": 126,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                    "protocolVersion": 1,
+                    "agentCapabilities": {
+                        "loadSession": true,
+                        "promptCapabilities": {
+                            "image": true,
+                            "audio": false,
+                            "embeddedContext": true
+                        },
+                        "mcpCapabilities": {
+                            "http": true,
+                            "sse": true
+                        },
+                        "sessionCapabilities": {
+                            "list": {},
+                            "resume": {},
+                            "close": {}
+                        },
+                        "auth": {},
+                        "_meta": {
+                            "x.ai/fs_notify": true,
+                            "x.ai/hooks": {
+                                "blockingEvents": [
+                                    "pre_tool_use",
+                                    "stop",
+                                    "subagent_stop"
+                                ],
+                                "decisions": [
+                                    "deny",
+                                    "block"
+                                ],
+                                "stopSignals": [
+                                    "continue",
+                                    "stopReason",
+                                    "additionalContext"
+                                ]
+                            },
+                            "x.ai/capabilities": {
+                                "toolOverrides": {
+                                    "x_keyword_search": true,
+                                    "x_semantic_search": true,
+                                    "x_user_search": false,
+                                    "x_thread_fetch": false
+                                }
+                            }
+                        }
+                    },
+                    "authMethods": [
+                        {
+                            "id": "cached_token",
+                            "name": "cached_token",
+                            "description": "Cached token from ~/.grok/auth.json"
+                        },
+                        {
+                            "id": "grok.com",
+                            "name": "Grok",
+                            "description": "Sign in with Grok"
+                        }
+                    ],
+                    "_meta": {
+                        "currentWorkingDirectory": "/private/tmp/ruimte-cap/work/gr2",
+                        "agentVersion": "1.0.70",
+                        "agentId": "1fed9811-aa45-51ad-9c63-8287db2797f7",
+                        "agentInstanceId": "a2a5c279-583c-45e6-8c1a-9b5874dbdd05",
+                        "hostname": "person-host.local",
+                        "metadata": null,
+                        "grokShell": true,
+                        "defaultAuthMethodId": "cached_token",
+                        "x.ai/mcp/sdk": true,
+                        "x.ai/pluginDirs": true,
+                        "modelState": {
+                            "currentModelId": "grok-4.7",
+                            "availableModels": [
+                                {
+                                    "modelId": "grok-4.7",
+                                    "name": "Grok 4.7",
+                                    "description": "SpaceXAI's latest frontier model",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "xhigh",
+                                                "value": "xhigh",
+                                                "label": "Extra High",
+                                                "description": "Maximum reasoning for the hardest tasks.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Thorough reasoning and quality. Recommended.",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Strong quality with a faster turnaround.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Fastest responses. Best for simple tasks.",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                },
+                                {
+                                    "modelId": "grok-4.7-build-fast",
+                                    "name": "Grok 4.7 Fast",
+                                    "description": "Fast variant. 2x the price.",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "xhigh",
+                                                "value": "xhigh",
+                                                "label": "Extra High",
+                                                "description": "Maximum reasoning for the hardest tasks.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Thorough reasoning and quality. Recommended.",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Strong quality with a faster turnaround.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Fastest responses. Best for simple tasks.",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                },
+                                {
+                                    "modelId": "grok-4.6",
+                                    "name": "Grok 4.6",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "xhigh",
+                                                "value": "xhigh",
+                                                "label": "Extra High",
+                                                "description": "Highest effort and reasoning level",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Higher implementation quality with extensive reasoning",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Balanced effort with standard implementation and testing",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Quick, fast implementations",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                },
+                                {
+                                    "modelId": "grok-4.5",
+                                    "name": "Grok 4.5",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Highest implementation quality with extensive reasoning",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Balanced effort with standard implementation and testing",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Quick, fast implementations",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "mcpServers": [],
+                        "mcpApps": false,
+                        "availableCommands": [
+                            {
+                                "name": "compact",
+                                "description": "Compress conversation history to save context window",
+                                "input": null
+                            },
+                            {
+                                "name": "always-approve",
+                                "description": "Toggle always-approve mode (skip all permission prompts)",
+                                "input": {
+                                    "hint": "on|off"
+                                }
+                            },
+                            {
+                                "name": "context",
+                                "description": "Show context window usage and session stats",
+                                "input": null
+                            },
+                            {
+                                "name": "session-info",
+                                "description": "Show session details (model, turns, context usage)",
+                                "input": null
+                            },
+                            {
+                                "name": "deep-research",
+                                "description": "Research with bounded parallel agents, cross-check evidence, and write a cited report",
+                                "input": {
+                                    "hint": "<query>"
+                                }
+                            },
+                            {
+                                "name": "workflow",
+                                "description": "Launch a saved workflow, list runs, or manage a run (pause, resume, stop, save)",
+                                "input": {
+                                    "hint": "<name> [--agent-budget N] [--effort LEVEL] [args] | runs | pause|resume|stop|save [name]"
+                                }
+                            },
+                            {
+                                "name": "goal",
+                                "description": "Set, manage, or check an autonomous goal",
+                                "input": {
+                                    "hint": "<objective> [--budget <tokens>] | status | pause | resume | clear"
+                                }
+                            }
+                        ],
+                        "cancelRewind": true,
+                        "sessionRecap": true,
+                        "feedbackTraceOffer": false,
+                        "voiceMode": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 126,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/new",
+                "params": {
+                    "cwd": "/tmp/ruimte-cap/work/gr2",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 355,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session_notification",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "model_changed",
+                        "model_id": "grok-4.7",
+                        "reasoning_effort": "high"
+                    }
+                }
+            }
+        },
+        {
+            "t": 358,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {
+                    "sessionId": "grok-session-1",
+                    "models": {
+                        "currentModelId": "grok-4.7",
+                        "availableModels": [
+                            {
+                                "modelId": "grok-4.7",
+                                "name": "Grok 4.7",
+                                "description": "SpaceXAI's latest frontier model",
+                                "_meta": {
+                                    "totalContextTokens": 256000,
+                                    "agentType": "grok-build-plan",
+                                    "supportsReasoningEffort": true,
+                                    "reasoningEffort": "high",
+                                    "reasoningEfforts": [
+                                        {
+                                            "id": "xhigh",
+                                            "value": "xhigh",
+                                            "label": "Extra High",
+                                            "description": "Maximum reasoning for the hardest tasks.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "high",
+                                            "value": "high",
+                                            "label": "High",
+                                            "description": "Thorough reasoning and quality. Recommended.",
+                                            "default": true
+                                        },
+                                        {
+                                            "id": "medium",
+                                            "value": "medium",
+                                            "label": "Medium",
+                                            "description": "Strong quality with a faster turnaround.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "low",
+                                            "value": "low",
+                                            "label": "Low",
+                                            "description": "Fastest responses. Best for simple tasks.",
+                                            "default": false
+                                        }
+                                    ],
+                                    "contextWindows": [
+                                        256000,
+                                        500000
+                                    ]
+                                }
+                            },
+                            {
+                                "modelId": "grok-4.7-build-fast",
+                                "name": "Grok 4.7 Fast",
+                                "description": "Fast variant. 2x the price.",
+                                "_meta": {
+                                    "totalContextTokens": 256000,
+                                    "agentType": "grok-build-plan",
+                                    "supportsReasoningEffort": true,
+                                    "reasoningEffort": "high",
+                                    "reasoningEfforts": [
+                                        {
+                                            "id": "xhigh",
+                                            "value": "xhigh",
+                                            "label": "Extra High",
+                                            "description": "Maximum reasoning for the hardest tasks.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "high",
+                                            "value": "high",
+                                            "label": "High",
+                                            "description": "Thorough reasoning and quality. Recommended.",
+                                            "default": true
+                                        },
+                                        {
+                                            "id": "medium",
+                                            "value": "medium",
+                                            "label": "Medium",
+                                            "description": "Strong quality with a faster turnaround.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "low",
+                                            "value": "low",
+                                            "label": "Low",
+                                            "description": "Fastest responses. Best for simple tasks.",
+                                            "default": false
+                                        }
+                                    ],
+                                    "contextWindows": [
+                                        256000,
+                                        500000
+                                    ]
+                                }
+                            },
+                            {
+                                "modelId": "grok-4.6",
+                                "name": "Grok 4.6",
+                                "_meta": {
+                                    "totalContextTokens": 256000,
+                                    "agentType": "grok-build-plan",
+                                    "supportsReasoningEffort": true,
+                                    "reasoningEffort": "high",
+                                    "reasoningEfforts": [
+                                        {
+                                            "id": "xhigh",
+                                            "value": "xhigh",
+                                            "label": "Extra High",
+                                            "description": "Highest effort and reasoning level",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "high",
+                                            "value": "high",
+                                            "label": "High",
+                                            "description": "Higher implementation quality with extensive reasoning",
+                                            "default": true
+                                        },
+                                        {
+                                            "id": "medium",
+                                            "value": "medium",
+                                            "label": "Medium",
+                                            "description": "Balanced effort with standard implementation and testing",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "low",
+                                            "value": "low",
+                                            "label": "Low",
+                                            "description": "Quick, fast implementations",
+                                            "default": false
+                                        }
+                                    ],
+                                    "contextWindows": [
+                                        256000,
+                                        500000
+                                    ]
+                                }
+                            },
+                            {
+                                "modelId": "grok-4.5",
+                                "name": "Grok 4.5",
+                                "_meta": {
+                                    "totalContextTokens": 256000,
+                                    "agentType": "grok-build-plan",
+                                    "supportsReasoningEffort": true,
+                                    "reasoningEffort": "high",
+                                    "reasoningEfforts": [
+                                        {
+                                            "id": "high",
+                                            "value": "high",
+                                            "label": "High",
+                                            "description": "Highest implementation quality with extensive reasoning",
+                                            "default": true
+                                        },
+                                        {
+                                            "id": "medium",
+                                            "value": "medium",
+                                            "label": "Medium",
+                                            "description": "Balanced effort with standard implementation and testing",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "low",
+                                            "value": "low",
+                                            "label": "Low",
+                                            "description": "Quick, fast implementations",
+                                            "default": false
+                                        }
+                                    ],
+                                    "contextWindows": [
+                                        256000,
+                                        500000
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "grok-4.7",
+                            "options": [
+                                {
+                                    "value": "grok-4.7",
+                                    "name": "Grok 4.7"
+                                },
+                                {
+                                    "value": "grok-4.7-build-fast",
+                                    "name": "Grok 4.7 Fast"
+                                },
+                                {
+                                    "value": "grok-4.6",
+                                    "name": "Grok 4.6"
+                                },
+                                {
+                                    "value": "grok-4.5",
+                                    "name": "Grok 4.5"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "reasoning_effort",
+                            "name": "Reasoning Effort",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra High",
+                                    "description": "Maximum reasoning for the hardest tasks."
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High",
+                                    "description": "Thorough reasoning and quality. Recommended."
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium",
+                                    "description": "Strong quality with a faster turnaround."
+                                },
+                                {
+                                    "value": "low",
+                                    "name": "Low",
+                                    "description": "Fastest responses. Best for simple tasks."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "currentWorkingDirectory": "/tmp/ruimte-cap/work/gr2",
+                        "isGitRepo": true,
+                        "gitRoot": "/private/tmp/ruimte-cap/work/gr2",
+                        "showNonGitWarning": false,
+                        "feedbackEnabled": true,
+                        "codebaseIndexed": [],
+                        "x.ai/sessionConfig": {
+                            "options": [
+                                {
+                                    "id": "grok-4.7",
+                                    "category": "model",
+                                    "label": "Grok 4.7",
+                                    "selected": true
+                                },
+                                {
+                                    "id": "grok-4.7-build-fast",
+                                    "category": "model",
+                                    "label": "Grok 4.7 Fast",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "grok-4.6",
+                                    "category": "model",
+                                    "label": "Grok 4.6",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "grok-4.5",
+                                    "category": "model",
+                                    "label": "Grok 4.5",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "xhigh",
+                                    "category": "mode",
+                                    "label": "Extra High",
+                                    "description": "Maximum reasoning for the hardest tasks.",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "high",
+                                    "category": "mode",
+                                    "label": "High",
+                                    "description": "Thorough reasoning and quality. Recommended.",
+                                    "selected": true
+                                },
+                                {
+                                    "id": "medium",
+                                    "category": "mode",
+                                    "label": "Medium",
+                                    "description": "Strong quality with a faster turnaround.",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "low",
+                                    "category": "mode",
+                                    "label": "Low",
+                                    "description": "Fastest responses. Best for simple tasks.",
+                                    "selected": false
+                                }
+                            ]
+                        },
+                        "x.ai/sessionDetail": {
+                            "sessionId": "grok-session-1",
+                            "kind": "build",
+                            "cwd": "/tmp/ruimte-cap/work/gr2",
+                            "currentModelId": "grok-4.7"
+                        },
+                        "x.ai/memoryNotesWritable": false
+                    }
+                }
+            }
+        },
+        {
+            "t": 358,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Run the shell command `sleep 15` once and wait for it. Afterwards reply in one short line, and follow any message I send while it runs."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 378,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/queue/changed",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "entries": [
+                        {
+                            "id": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                            "version": 0,
+                            "kind": "prompt",
+                            "text": "Run the shell command `sleep 15` once and wait for it. Afterwards reply in one short line, and follow any message I send while it runs.",
+                            "position": 0
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 378,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/queue/changed",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "entries": [],
+                    "runningPromptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                    "runningText": "Run the shell command `sleep 15` once and wait for it. Afterwards reply in one short line, and follow any message I send while it runs.",
+                    "runningKind": "prompt"
+                }
+            }
+        },
+        {
+            "t": 4406,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "Run sleep 15 and wait for it"
+                    }
+                }
+            }
+        },
+        {
+            "t": 8767,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-25",
+                        "agentTimestampMs": 1795426358147,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 18
+                    }
+                }
+            }
+        },
+        {
+            "t": 8767,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " start"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-26",
+                        "agentTimestampMs": 1795426358147,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 19
+                    }
+                }
+            }
+        },
+        {
+            "t": 8787,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " `"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-27",
+                        "agentTimestampMs": 1795426358168,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 20
+                    }
+                }
+            }
+        },
+        {
+            "t": 8790,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "sleep"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-28",
+                        "agentTimestampMs": 1795426358168,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 21
+                    }
+                }
+            }
+        },
+        {
+            "t": 8803,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " "
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-29",
+                        "agentTimestampMs": 1795426358185,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 22
+                    }
+                }
+            }
+        },
+        {
+            "t": 8807,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "15"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-30",
+                        "agentTimestampMs": 1795426358188,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 23
+                    }
+                }
+            }
+        },
+        {
+            "t": 8815,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-31",
+                        "agentTimestampMs": 1795426358196,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 24
+                    }
+                }
+            }
+        },
+        {
+            "t": 8818,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " en"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-32",
+                        "agentTimestampMs": 1795426358199,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 25
+                    }
+                }
+            }
+        },
+        {
+            "t": 8846,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " w"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-33",
+                        "agentTimestampMs": 1795426358227,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 26
+                    }
+                }
+            }
+        },
+        {
+            "t": 8846,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "acht"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-34",
+                        "agentTimestampMs": 1795426358227,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 27
+                    }
+                }
+            }
+        },
+        {
+            "t": 8855,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " tot"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-35",
+                        "agentTimestampMs": 1795426358236,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 28
+                    }
+                }
+            }
+        },
+        {
+            "t": 8867,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " het"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-36",
+                        "agentTimestampMs": 1795426358246,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 29
+                    }
+                }
+            }
+        },
+        {
+            "t": 8874,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " kla"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-37",
+                        "agentTimestampMs": 1795426358256,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 30
+                    }
+                }
+            }
+        },
+        {
+            "t": 8946,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "ar"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-38",
+                        "agentTimestampMs": 1795426358327,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 31
+                    }
+                }
+            }
+        },
+        {
+            "t": 8976,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " is"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-39",
+                        "agentTimestampMs": 1795426358357,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 32
+                    }
+                }
+            }
+        },
+        {
+            "t": 8994,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-40",
+                        "agentTimestampMs": 1795426358375,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 33
+                    }
+                }
+            }
+        },
+        {
+            "t": 9017,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " E"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-41",
+                        "agentTimestampMs": 1795426358398,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 34
+                    }
+                }
+            }
+        },
+        {
+            "t": 9041,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "erst"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-42",
+                        "agentTimestampMs": 1795426358422,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 35
+                    }
+                }
+            }
+        },
+        {
+            "t": 9067,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " le"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-43",
+                        "agentTimestampMs": 1795426358448,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 36
+                    }
+                }
+            }
+        },
+        {
+            "t": 9093,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "es"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-44",
+                        "agentTimestampMs": 1795426358475,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 37
+                    }
+                }
+            }
+        },
+        {
+            "t": 9116,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " ik"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-45",
+                        "agentTimestampMs": 1795426358498,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 38
+                    }
+                }
+            }
+        },
+        {
+            "t": 9140,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " de"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-46",
+                        "agentTimestampMs": 1795426358521,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 39
+                    }
+                }
+            }
+        },
+        {
+            "t": 9230,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " regels"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-47",
+                        "agentTimestampMs": 1795426358611,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 40
+                    }
+                }
+            }
+        },
+        {
+            "t": 9230,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " voor"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-48",
+                        "agentTimestampMs": 1795426358611,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 41
+                    }
+                }
+            }
+        },
+        {
+            "t": 9230,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " lang"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-49",
+                        "agentTimestampMs": 1795426358611,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 42
+                    }
+                }
+            }
+        },
+        {
+            "t": 9230,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "lop"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-50",
+                        "agentTimestampMs": 1795426358612,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 43
+                    }
+                }
+            }
+        },
+        {
+            "t": 9280,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "ende"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-51",
+                        "agentTimestampMs": 1795426358662,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 44
+                    }
+                }
+            }
+        },
+        {
+            "t": 9281,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " taken"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-52",
+                        "agentTimestampMs": 1795426358662,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 45
+                    }
+                }
+            }
+        },
+        {
+            "t": 9281,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1589,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-53",
+                        "agentTimestampMs": 1795426358662,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426351794,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 46
+                    }
+                }
+            }
+        },
+        {
+            "t": 17243,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                        "title": "run_terminal_command",
+                        "rawInput": {
+                            "command": "sleep 15",
+                            "description": "Wait 15 seconds once",
+                            "block_until_ms": 20000
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25441,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-71",
+                        "agentTimestampMs": 1795426366624,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426360916,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "ToolCall",
+                        "updateParams": {
+                            "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                            "title": "run_terminal_command",
+                            "kind": "Other",
+                            "status": "Pending"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 17301,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                        "kind": "execute",
+                        "title": "Execute `sleep 15`",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Wait 15 seconds once"
+                                }
+                            }
+                        ],
+                        "locations": [],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "sleep 15",
+                            "description": "Wait 15 seconds once",
+                            "is_background": false,
+                            "block_until_ms": 20000
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false,
+                                "input": {
+                                    "command": "sleep 15",
+                                    "description": "Wait 15 seconds once"
+                                }
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25441,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-73",
+                        "agentTimestampMs": 1795426366683,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426360916,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                            "status": null
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 17310,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                        "status": "in_progress",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": ""
+                                }
+                            }
+                        ],
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [],
+                            "output_for_prompt": "",
+                            "exit_code": 0,
+                            "command": "sleep 15",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": null,
+                            "current_dir": "/tmp/ruimte-cap/work/gr2",
+                            "output_file": "",
+                            "total_bytes": 0
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 19313,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "_x.ai/interject",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "text": "While that runs: end your reply with the word banana."
+                }
+            }
+        },
+        {
+            "t": 19315,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "result": {
+                    "result": {
+                        "status": "queued"
+                    }
+                }
+            }
+        },
+        {
+            "t": 19315,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/interjection",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "text": "While that runs: end your reply with the word banana."
+                }
+            }
+        },
+        {
+            "t": 32422,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": ""
+                                }
+                            }
+                        ],
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [],
+                            "output_for_prompt": "exit: 0\n",
+                            "exit_code": 0,
+                            "command": "sleep 15",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Wait 15 seconds once",
+                            "current_dir": "/tmp/ruimte-cap/work/gr2",
+                            "output_file": "/Users/person/.grok/sessions/%2Ftmp%2Fruimte-cap%2Fwork%2Fgr2/grok-session-1/terminal/call-27679439-fd3f-4eae-9fbd-cca8589d51df-1.log",
+                            "total_bytes": 0
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25441,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-74",
+                        "agentTimestampMs": 1795426381804,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426360916,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-27679439-fd3f-4eae-9fbd-cca8589d51df-1",
+                            "status": "Completed"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 36561,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-86",
+                        "agentTimestampMs": 1795426385942,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 8
+                    }
+                }
+            }
+        },
+        {
+            "t": 36561,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "sleep"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-87",
+                        "agentTimestampMs": 1795426385942,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 9
+                    }
+                }
+            }
+        },
+        {
+            "t": 36561,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " "
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-88",
+                        "agentTimestampMs": 1795426385942,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 10
+                    }
+                }
+            }
+        },
+        {
+            "t": 36561,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "15"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-89",
+                        "agentTimestampMs": 1795426385942,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 11
+                    }
+                }
+            }
+        },
+        {
+            "t": 36562,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-90",
+                        "agentTimestampMs": 1795426385943,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 12
+                    }
+                }
+            }
+        },
+        {
+            "t": 36562,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " is"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-91",
+                        "agentTimestampMs": 1795426385943,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 13
+                    }
+                }
+            }
+        },
+        {
+            "t": 36562,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " kla"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-92",
+                        "agentTimestampMs": 1795426385943,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 14
+                    }
+                }
+            }
+        },
+        {
+            "t": 36562,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "ar"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-93",
+                        "agentTimestampMs": 1795426385943,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 15
+                    }
+                }
+            }
+        },
+        {
+            "t": 36562,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-94",
+                        "agentTimestampMs": 1795426385944,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 16
+                    }
+                }
+            }
+        },
+        {
+            "t": 36562,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": " banana"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 25507,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "grok-session-1-95",
+                        "agentTimestampMs": 1795426385944,
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "streamStartMs": 1795426383439,
+                        "turnStartMs": 1795426349760,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 17
+                    }
+                }
+            }
+        },
+        {
+            "t": 36879,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/queue/changed",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "entries": []
+                }
+            }
+        },
+        {
+            "t": 36879,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session_notification",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 71615,
+                            "outputTokens": 1210,
+                            "totalTokens": 72825,
+                            "cachedReadTokens": 25344,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 1099,
+                            "modelCalls": 3,
+                            "apiDurationMs": 20745,
+                            "costUsdTicks": 1124740000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 71615,
+                                    "outputTokens": 1210,
+                                    "totalTokens": 72825,
+                                    "cachedReadTokens": 25344,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 1099,
+                                    "modelCalls": 3,
+                                    "apiDurationMs": 20745,
+                                    "costUsdTicks": 1124740000
+                                }
+                            },
+                            "numTurns": 3
+                        },
+                        "elapsed_ms": 36500
+                    },
+                    "_meta": {
+                        "eventId": "grok-session-1-100",
+                        "agentTimestampMs": 1795426386261
+                    }
+                }
+            }
+        },
+        {
+            "t": 36882,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/prompt_complete",
+                "params": {
+                    "sessionId": "grok-session-1",
+                    "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                    "stopReason": "end_turn",
+                    "agentResult": null
+                }
+            }
+        },
+        {
+            "t": 36886,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "result": {
+                    "stopReason": "end_turn",
+                    "_meta": {
+                        "sessionId": "grok-session-1",
+                        "requestId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "promptId": "209a9d08-ec32-4b86-9853-67fa575c4913",
+                        "totalTokens": 25732,
+                        "modelId": "grok-4.7",
+                        "inputTokens": 25511,
+                        "outputTokens": 212,
+                        "cachedReadTokens": 2176,
+                        "reasoningTokens": 202,
+                        "usage": {
+                            "inputTokens": 71615,
+                            "outputTokens": 1210,
+                            "totalTokens": 72825,
+                            "cachedReadTokens": 25344,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 1099,
+                            "modelCalls": 3,
+                            "apiDurationMs": 20745,
+                            "costUsdTicks": 1124740000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 71615,
+                                    "outputTokens": 1210,
+                                    "totalTokens": 72825,
+                                    "cachedReadTokens": 25344,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 1099,
+                                    "modelCalls": 3,
+                                    "apiDurationMs": 20745,
+                                    "costUsdTicks": 1124740000
+                                }
+                            },
+                            "numTurns": 3
+                        }
+                    }
+                }
+            }
+        }
+    ]
+}

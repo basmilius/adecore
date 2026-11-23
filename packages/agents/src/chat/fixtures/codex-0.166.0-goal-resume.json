@@ -1,0 +1,1801 @@
+{
+    "version": "codex-cli 0.166.0",
+    "capturedAt": "2026-11-23",
+    "source": "Recorded with tee-cli.ts in front of `codex app-server` 0.166.0, driven by ADE CORE's CodexBackend in supervised mode in a throwaway git folder. A `/goal` of four runs of `sleep 15`; the first app-server was killed with SIGKILL during its first goal turn, so the goal stayed active, and a second backend resumed the thread with `resumeInstructions`. `before` is the first process up to the kill, `resumed` the second: `thread/resume` answers, `thread/inject_items` goes out in the same millisecond, Codex sends `thread/goal/updated` (active) and its own `turn/started` 4 ms after the resume answer, with no `turn/start` from the client. The injected instruction holds in that turn, each turn samples once, and the next goal turn starts 12 ms after `turn/completed`. Deltas, token counts, rate limits, hooks, account and model list frames are left out. `t` is milliseconds from the start of each process, `dir` is `in` for what went to Codex.",
+    "before": [
+        {
+            "t": 2,
+            "dir": "in",
+            "frame": {
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "clientInfo": {
+                        "name": "capture",
+                        "title": "Capture",
+                        "version": "0.0.1"
+                    },
+                    "capabilities": {
+                        "experimentalApi": true,
+                        "requestAttestation": false
+                    }
+                }
+            }
+        },
+        {
+            "t": 467,
+            "dir": "out",
+            "frame": {
+                "id": 1,
+                "result": {
+                    "userAgent": "capture/0.166.0 (Mac OS 27.3.0; arm64) unknown (capture; 0.0.1)",
+                    "codexHome": "/Users/person/.codex",
+                    "platformFamily": "unix",
+                    "platformOs": "macos"
+                }
+            }
+        },
+        {
+            "t": 469,
+            "dir": "in",
+            "frame": {
+                "method": "initialized",
+                "params": {}
+            }
+        },
+        {
+            "t": 469,
+            "dir": "in",
+            "frame": {
+                "id": 2,
+                "method": "thread/start",
+                "params": {
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "model": "gpt-6.2-astra",
+                    "approvalPolicy": "untrusted",
+                    "sandbox": "read-only"
+                }
+            }
+        },
+        {
+            "t": 595,
+            "dir": "out",
+            "frame": {
+                "id": 2,
+                "result": {
+                    "thread": {
+                        "id": "codex-thread-1",
+                        "environments": [
+                            {
+                                "environmentId": "local",
+                                "cwd": "/tmp/ruimte-cap/work/cx1b",
+                                "runtimeWorkspaceRoots": [
+                                    "/tmp/ruimte-cap/work/cx1b"
+                                ]
+                            }
+                        ],
+                        "extra": null,
+                        "sessionId": "codex-thread-1",
+                        "forkedFromId": null,
+                        "parentThreadId": null,
+                        "preview": "",
+                        "ephemeral": false,
+                        "section": null,
+                        "sectionEnteredAt": null,
+                        "projectId": null,
+                        "historyMode": "paginated",
+                        "modelProvider": "openai",
+                        "model": "gpt-6.2-astra",
+                        "reasoningEffort": "high",
+                        "createdAt": 1795426468,
+                        "updatedAt": 1795426468,
+                        "recencyAt": 1795426468,
+                        "status": {
+                            "type": "idle"
+                        },
+                        "path": "/Users/person/.codex/sessions/2026/11/23/rollout-2026-11-23T10-34-28-codex-thread-1.jsonl",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "cliVersion": "0.166.0",
+                        "originator": "capture",
+                        "source": "vscode",
+                        "canAcceptDirectInput": true,
+                        "threadSource": null,
+                        "agentNickname": null,
+                        "agentRole": null,
+                        "gitInfo": null,
+                        "name": null,
+                        "daybreakEnabled": null,
+                        "turns": []
+                    },
+                    "model": "gpt-6.2-astra",
+                    "modelProvider": "openai",
+                    "serviceTier": "default",
+                    "disabledPluginIds": [],
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "runtimeWorkspaceRoots": [
+                        "/tmp/ruimte-cap/work/cx1b"
+                    ],
+                    "instructionSources": [],
+                    "approvalPolicy": "untrusted",
+                    "approvalsReviewer": "auto_review",
+                    "sandbox": {
+                        "type": "readOnly",
+                        "networkAccess": false
+                    },
+                    "activePermissionProfile": null,
+                    "reasoningEffort": "high",
+                    "multiAgentMode": "explicitRequestOnly"
+                }
+            }
+        },
+        {
+            "t": 595,
+            "dir": "out",
+            "frame": {
+                "method": "thread/started",
+                "params": {
+                    "thread": {
+                        "id": "codex-thread-1",
+                        "environments": [
+                            {
+                                "environmentId": "local",
+                                "cwd": "/tmp/ruimte-cap/work/cx1b",
+                                "runtimeWorkspaceRoots": [
+                                    "/tmp/ruimte-cap/work/cx1b"
+                                ]
+                            }
+                        ],
+                        "extra": null,
+                        "sessionId": "codex-thread-1",
+                        "forkedFromId": null,
+                        "parentThreadId": null,
+                        "preview": "",
+                        "ephemeral": false,
+                        "section": null,
+                        "sectionEnteredAt": null,
+                        "projectId": null,
+                        "historyMode": "paginated",
+                        "modelProvider": "openai",
+                        "model": "gpt-6.2-astra",
+                        "reasoningEffort": "high",
+                        "createdAt": 1795426468,
+                        "updatedAt": 1795426468,
+                        "recencyAt": 1795426468,
+                        "status": {
+                            "type": "idle"
+                        },
+                        "path": "/Users/person/.codex/sessions/2026/11/23/rollout-2026-11-23T10-34-28-codex-thread-1.jsonl",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "cliVersion": "0.166.0",
+                        "originator": "capture",
+                        "source": "vscode",
+                        "canAcceptDirectInput": true,
+                        "threadSource": null,
+                        "agentNickname": null,
+                        "agentRole": null,
+                        "gitInfo": null,
+                        "name": null,
+                        "daybreakEnabled": null,
+                        "turns": []
+                    }
+                },
+                "emittedAtMs": 1795426468753
+            }
+        },
+        {
+            "t": 598,
+            "dir": "in",
+            "frame": {
+                "id": 4,
+                "method": "thread/goal/get",
+                "params": {
+                    "threadId": "codex-thread-1"
+                }
+            }
+        },
+        {
+            "t": 599,
+            "dir": "out",
+            "frame": {
+                "id": 4,
+                "result": {
+                    "goal": null
+                }
+            }
+        },
+        {
+            "t": 600,
+            "dir": "in",
+            "frame": {
+                "id": 5,
+                "method": "thread/goal/get",
+                "params": {
+                    "threadId": "codex-thread-1"
+                }
+            }
+        },
+        {
+            "t": 600,
+            "dir": "out",
+            "frame": {
+                "id": 5,
+                "result": {
+                    "goal": null
+                }
+            }
+        },
+        {
+            "t": 600,
+            "dir": "in",
+            "frame": {
+                "id": 6,
+                "method": "thread/goal/set",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "origin": "user",
+                    "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                    "status": "paused"
+                }
+            }
+        },
+        {
+            "t": 968,
+            "dir": "out",
+            "frame": {
+                "id": 6,
+                "result": {
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "paused",
+                        "tokenBudget": null,
+                        "tokensUsed": 0,
+                        "timeUsedSeconds": 0,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426469
+                    }
+                }
+            }
+        },
+        {
+            "t": 968,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": null,
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "paused",
+                        "tokenBudget": null,
+                        "tokensUsed": 0,
+                        "timeUsedSeconds": 0,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426469
+                    }
+                },
+                "emittedAtMs": 1795426469128
+            }
+        },
+        {
+            "t": 969,
+            "dir": "in",
+            "frame": {
+                "id": 7,
+                "method": "turn/start",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "input": [
+                        {
+                            "type": "text",
+                            "text": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                            "text_elements": []
+                        }
+                    ],
+                    "model": "gpt-6.2-astra",
+                    "effort": "low"
+                }
+            }
+        },
+        {
+            "t": 986,
+            "dir": "out",
+            "frame": {
+                "method": "thread/settings/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "threadSettings": {
+                        "disabledPluginIds": [],
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "approvalPolicy": "untrusted",
+                        "approvalsReviewer": "auto_review",
+                        "sandboxPolicy": {
+                            "type": "readOnly",
+                            "networkAccess": false
+                        },
+                        "activePermissionProfile": null,
+                        "model": "gpt-6.2-astra",
+                        "modelProvider": "openai",
+                        "serviceTier": "default",
+                        "effort": "low",
+                        "summary": null,
+                        "collaborationMode": {
+                            "mode": "default",
+                            "settings": {
+                                "model": "gpt-6.2-astra",
+                                "reasoning_effort": "low",
+                                "developer_instructions": null
+                            }
+                        },
+                        "multiAgentMode": "explicitRequestOnly",
+                        "personality": null
+                    }
+                },
+                "emittedAtMs": 1795426469146
+            }
+        },
+        {
+            "t": 988,
+            "dir": "out",
+            "frame": {
+                "id": 7,
+                "result": {
+                    "turn": {
+                        "id": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                        "rootTurnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": null,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                }
+            }
+        },
+        {
+            "t": 989,
+            "dir": "in",
+            "frame": {
+                "id": 8,
+                "method": "thread/goal/set",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "origin": "user",
+                    "status": "active"
+                }
+            }
+        },
+        {
+            "t": 997,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426469157
+            }
+        },
+        {
+            "t": 997,
+            "dir": "out",
+            "frame": {
+                "method": "turn/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                        "rootTurnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": 1795426469,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                },
+                "emittedAtMs": 1795426469157
+            }
+        },
+        {
+            "t": 1002,
+            "dir": "out",
+            "frame": {
+                "id": 8,
+                "result": {
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 0,
+                        "timeUsedSeconds": 0,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426469
+                    }
+                }
+            }
+        },
+        {
+            "t": 1002,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": null,
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 0,
+                        "timeUsedSeconds": 0,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426469
+                    }
+                },
+                "emittedAtMs": 1795426469162
+            }
+        },
+        {
+            "t": 2432,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "userMessage",
+                        "id": "01a207c1-cabe-7460-82c3-8b05267626fa",
+                        "clientId": null,
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                                "text_elements": []
+                            }
+                        ],
+                        "startedAtMs": 1795426470591,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                    "startedAtMs": 1795426470591
+                },
+                "emittedAtMs": 1795426470592
+            }
+        },
+        {
+            "t": 2434,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "userMessage",
+                        "id": "01a207c1-cabe-7460-82c3-8b05267626fa",
+                        "clientId": null,
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                                "text_elements": []
+                            }
+                        ],
+                        "startedAtMs": 1795426470591,
+                        "completedAtMs": 1795426470591
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                    "completedAtMs": 1795426470591
+                },
+                "emittedAtMs": 1795426470594
+            }
+        },
+        {
+            "t": 6671,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_07d0768d967ea842016b0408aacdb887d28ed5a13a770e2513",
+                        "text": "",
+                        "phase": "commentary",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426474831,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                    "startedAtMs": 1795426474831
+                },
+                "emittedAtMs": 1795426474831
+            }
+        },
+        {
+            "t": 7016,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_07d0768d967ea842016b0408aacdb887d28ed5a13a770e2513",
+                        "text": "Starting run 1 of 4.",
+                        "phase": "commentary",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426474831,
+                        "completedAtMs": 1795426475173
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                    "completedAtMs": 1795426475173
+                },
+                "emittedAtMs": 1795426475175
+            }
+        },
+        {
+            "t": 7586,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": [
+                            "waitingOnApproval"
+                        ]
+                    }
+                },
+                "emittedAtMs": 1795426475744
+            }
+        },
+        {
+            "t": 7586,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "commandExecution",
+                        "id": "exec-fc6dba46-4b85-4df0-88bd-333f2ef8eaab",
+                        "pluginId": null,
+                        "scriptPath": null,
+                        "command": "/bin/zsh -lc 'sleep 15'",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "processId": null,
+                        "source": "agent",
+                        "status": "inProgress",
+                        "commandActions": [
+                            {
+                                "type": "unknown",
+                                "command": "sleep 15"
+                            }
+                        ],
+                        "aggregatedOutput": null,
+                        "exitCode": null,
+                        "durationMs": null,
+                        "startedAtMs": 1795426475744,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                    "startedAtMs": 1795426475744
+                },
+                "emittedAtMs": 1795426475746
+            }
+        },
+        {
+            "t": 7586,
+            "dir": "out",
+            "frame": {
+                "method": "item/commandExecution/requestApproval",
+                "id": 0,
+                "params": {
+                    "kind": "command",
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-c50e-7641-82ee-d4d512907df3",
+                    "itemId": "exec-fc6dba46-4b85-4df0-88bd-333f2ef8eaab",
+                    "startedAtMs": 1795426475744,
+                    "environmentId": "local",
+                    "command": "/bin/zsh -lc 'sleep 15'",
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "commandActions": [
+                        {
+                            "type": "unknown",
+                            "command": "sleep 15"
+                        }
+                    ],
+                    "proposedExecpolicyAmendment": [
+                        "sleep",
+                        "15"
+                    ],
+                    "availableDecisions": [
+                        "accept",
+                        {
+                            "acceptWithExecpolicyAmendment": {
+                                "execpolicy_amendment": [
+                                    "sleep",
+                                    "15"
+                                ]
+                            }
+                        },
+                        "cancel"
+                    ]
+                }
+            }
+        },
+        {
+            "t": 7587,
+            "dir": "in",
+            "frame": {
+                "id": 0,
+                "result": {
+                    "decision": "accept"
+                }
+            }
+        },
+        {
+            "t": 7588,
+            "dir": "out",
+            "frame": {
+                "method": "serverRequest/resolved",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "requestId": 0
+                },
+                "emittedAtMs": 1795426475748
+            }
+        },
+        {
+            "t": 7589,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426475749
+            }
+        }
+    ],
+    "frames": [
+        {
+            "t": 3,
+            "dir": "in",
+            "frame": {
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "clientInfo": {
+                        "name": "capture",
+                        "title": "Capture",
+                        "version": "0.0.1"
+                    },
+                    "capabilities": {
+                        "experimentalApi": true,
+                        "requestAttestation": false
+                    }
+                }
+            }
+        },
+        {
+            "t": 210,
+            "dir": "out",
+            "frame": {
+                "id": 1,
+                "result": {
+                    "userAgent": "capture/0.166.0 (Mac OS 27.3.0; arm64) unknown (capture; 0.0.1)",
+                    "codexHome": "/Users/person/.codex",
+                    "platformFamily": "unix",
+                    "platformOs": "macos"
+                }
+            }
+        },
+        {
+            "t": 210,
+            "dir": "in",
+            "frame": {
+                "method": "initialized",
+                "params": {}
+            }
+        },
+        {
+            "t": 210,
+            "dir": "in",
+            "frame": {
+                "id": 2,
+                "method": "thread/resume",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "excludeTurns": true,
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "model": "gpt-6.2-astra",
+                    "approvalPolicy": "untrusted",
+                    "sandbox": "read-only"
+                }
+            }
+        },
+        {
+            "t": 370,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "idle"
+                    }
+                },
+                "emittedAtMs": 1795426482132
+            }
+        },
+        {
+            "t": 371,
+            "dir": "out",
+            "frame": {
+                "id": 2,
+                "result": {
+                    "thread": {
+                        "id": "codex-thread-1",
+                        "environments": [
+                            {
+                                "environmentId": "local",
+                                "cwd": "/tmp/ruimte-cap/work/cx1b",
+                                "runtimeWorkspaceRoots": [
+                                    "/tmp/ruimte-cap/work/cx1b"
+                                ]
+                            }
+                        ],
+                        "extra": null,
+                        "sessionId": "codex-thread-1",
+                        "forkedFromId": null,
+                        "parentThreadId": null,
+                        "preview": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "ephemeral": false,
+                        "section": null,
+                        "sectionEnteredAt": null,
+                        "projectId": null,
+                        "historyMode": "paginated",
+                        "modelProvider": "openai",
+                        "model": "gpt-6.2-astra",
+                        "reasoningEffort": "high",
+                        "createdAt": 1795426468,
+                        "updatedAt": 1795426482,
+                        "recencyAt": 1795426469,
+                        "status": {
+                            "type": "idle"
+                        },
+                        "path": "/Users/person/.codex/sessions/2026/11/23/rollout-2026-11-23T10-34-28-codex-thread-1.jsonl",
+                        "cwd": "/private/tmp/ruimte-cap/work/cx1b",
+                        "cliVersion": "0.166.0",
+                        "originator": "capture",
+                        "source": "vscode",
+                        "canAcceptDirectInput": true,
+                        "threadSource": null,
+                        "agentNickname": null,
+                        "agentRole": null,
+                        "gitInfo": {
+                            "sha": "9ec494fff3a1de938fbda6f6d00945fe0c068148",
+                            "branch": "main",
+                            "originUrl": null
+                        },
+                        "name": null,
+                        "daybreakEnabled": null,
+                        "turns": []
+                    },
+                    "model": "gpt-6.2-astra",
+                    "modelProvider": "openai",
+                    "serviceTier": "default",
+                    "disabledPluginIds": [],
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "runtimeWorkspaceRoots": [
+                        "/tmp/ruimte-cap/work/cx1b"
+                    ],
+                    "instructionSources": [],
+                    "approvalPolicy": "untrusted",
+                    "approvalsReviewer": "auto_review",
+                    "sandbox": {
+                        "type": "readOnly",
+                        "networkAccess": false
+                    },
+                    "activePermissionProfile": null,
+                    "reasoningEffort": "high",
+                    "collaborationMode": {
+                        "mode": "default",
+                        "settings": {
+                            "model": "gpt-6.2-astra",
+                            "reasoning_effort": "high",
+                            "developer_instructions": null
+                        }
+                    },
+                    "multiAgentMode": "explicitRequestOnly",
+                    "initialTurnsPage": null,
+                    "turnsBackwardsCursor": "{\"requestedThreadId\":\"codex-thread-1\",\"rolloutOrdinal\":5,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+                    "itemsBackwardsCursor": "{\"requestedThreadId\":\"codex-thread-1\",\"rolloutOrdinal\":21,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+                }
+            }
+        },
+        {
+            "t": 372,
+            "dir": "in",
+            "frame": {
+                "id": 3,
+                "method": "thread/inject_items",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "items": [
+                        {
+                            "type": "message",
+                            "role": "developer",
+                            "content": [
+                                {
+                                    "type": "input_text",
+                                    "text": "Capture instruction: end every reply with the word marker."
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 372,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": null,
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 0,
+                        "timeUsedSeconds": 0,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426469
+                    }
+                },
+                "emittedAtMs": 1795426482134
+            }
+        },
+        {
+            "t": 376,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426482138
+            }
+        },
+        {
+            "t": 376,
+            "dir": "out",
+            "frame": {
+                "method": "turn/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                        "rootTurnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": 1795426482,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                },
+                "emittedAtMs": 1795426482138
+            }
+        },
+        {
+            "t": 377,
+            "dir": "out",
+            "frame": {
+                "id": 3,
+                "result": {}
+            }
+        },
+        {
+            "t": 379,
+            "dir": "in",
+            "frame": {
+                "id": 5,
+                "method": "thread/goal/get",
+                "params": {
+                    "threadId": "codex-thread-1"
+                }
+            }
+        },
+        {
+            "t": 379,
+            "dir": "out",
+            "frame": {
+                "id": 5,
+                "result": {
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 0,
+                        "timeUsedSeconds": 0,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426469
+                    }
+                }
+            }
+        },
+        {
+            "t": 6008,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408b7bea087d283abf64daecff22b",
+                        "text": "",
+                        "phase": "commentary",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426487770,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "startedAtMs": 1795426487770
+                },
+                "emittedAtMs": 1795426487770
+            }
+        },
+        {
+            "t": 6347,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408b7bea087d283abf64daecff22b",
+                        "text": "The previous attempt was interrupted. I’ll retry run 1. marker",
+                        "phase": "commentary",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426487770,
+                        "completedAtMs": 1795426488108
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "completedAtMs": 1795426488108
+                },
+                "emittedAtMs": 1795426488109
+            }
+        },
+        {
+            "t": 6932,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": [
+                            "waitingOnApproval"
+                        ]
+                    }
+                },
+                "emittedAtMs": 1795426488693
+            }
+        },
+        {
+            "t": 6932,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "commandExecution",
+                        "id": "exec-15bc8ac3-48a2-4210-8f55-662a5150f4ce",
+                        "pluginId": null,
+                        "scriptPath": null,
+                        "command": "/bin/zsh -lc 'sleep 15'",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "processId": null,
+                        "source": "agent",
+                        "status": "inProgress",
+                        "commandActions": [
+                            {
+                                "type": "unknown",
+                                "command": "sleep 15"
+                            }
+                        ],
+                        "aggregatedOutput": null,
+                        "exitCode": null,
+                        "durationMs": null,
+                        "startedAtMs": 1795426488693,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "startedAtMs": 1795426488693
+                },
+                "emittedAtMs": 1795426488693
+            }
+        },
+        {
+            "t": 6932,
+            "dir": "out",
+            "frame": {
+                "method": "item/commandExecution/requestApproval",
+                "id": 0,
+                "params": {
+                    "kind": "command",
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "itemId": "exec-15bc8ac3-48a2-4210-8f55-662a5150f4ce",
+                    "startedAtMs": 1795426488693,
+                    "environmentId": "local",
+                    "command": "/bin/zsh -lc 'sleep 15'",
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "commandActions": [
+                        {
+                            "type": "unknown",
+                            "command": "sleep 15"
+                        }
+                    ],
+                    "proposedExecpolicyAmendment": [
+                        "sleep",
+                        "15"
+                    ],
+                    "availableDecisions": [
+                        "accept",
+                        {
+                            "acceptWithExecpolicyAmendment": {
+                                "execpolicy_amendment": [
+                                    "sleep",
+                                    "15"
+                                ]
+                            }
+                        },
+                        "cancel"
+                    ]
+                }
+            }
+        },
+        {
+            "t": 6932,
+            "dir": "in",
+            "frame": {
+                "id": 0,
+                "result": {
+                    "decision": "accept"
+                }
+            }
+        },
+        {
+            "t": 6932,
+            "dir": "out",
+            "frame": {
+                "method": "serverRequest/resolved",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "requestId": 0
+                },
+                "emittedAtMs": 1795426488694
+            }
+        },
+        {
+            "t": 6932,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426488694
+            }
+        },
+        {
+            "t": 21961,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "commandExecution",
+                        "id": "exec-15bc8ac3-48a2-4210-8f55-662a5150f4ce",
+                        "pluginId": null,
+                        "scriptPath": null,
+                        "command": "/bin/zsh -lc 'sleep 15'",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "processId": "77229",
+                        "source": "unifiedExecStartup",
+                        "status": "completed",
+                        "commandActions": [
+                            {
+                                "type": "unknown",
+                                "command": "sleep 15"
+                            }
+                        ],
+                        "aggregatedOutput": null,
+                        "exitCode": 0,
+                        "durationMs": 14873,
+                        "startedAtMs": 1795426488693,
+                        "completedAtMs": 1795426503721
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "completedAtMs": 1795426503721
+                },
+                "emittedAtMs": 1795426503723
+            }
+        },
+        {
+            "t": 21967,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 4689,
+                        "timeUsedSeconds": 21,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426503
+                    }
+                },
+                "emittedAtMs": 1795426503729
+            }
+        },
+        {
+            "t": 26085,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408cbb2cc87d29d3d2c2b97dfda2d",
+                        "text": "",
+                        "phase": "final_answer",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426507846,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "startedAtMs": 1795426507846
+                },
+                "emittedAtMs": 1795426507846
+            }
+        },
+        {
+            "t": 26470,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408cbb2cc87d29d3d2c2b97dfda2d",
+                        "text": "Run 1 of 4 completed successfully. marker",
+                        "phase": "final_answer",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426507846,
+                        "completedAtMs": 1795426508230
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "completedAtMs": 1795426508230
+                },
+                "emittedAtMs": 1795426508232
+            }
+        },
+        {
+            "t": 26489,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 4968,
+                        "timeUsedSeconds": 26,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426508
+                    }
+                },
+                "emittedAtMs": 1795426508250
+            }
+        },
+        {
+            "t": 26489,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "idle"
+                    }
+                },
+                "emittedAtMs": 1795426508251
+            }
+        },
+        {
+            "t": 26489,
+            "dir": "out",
+            "frame": {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                        "rootTurnId": "01a207c1-f7d6-7f02-b160-896948bf28f3",
+                        "items": [
+                            {
+                                "type": "agentMessage",
+                                "id": "msg_0786350f5488eb12016b0408cbb2cc87d29d3d2c2b97dfda2d",
+                                "text": "Run 1 of 4 completed successfully. marker",
+                                "phase": "final_answer",
+                                "memoryCitation": null,
+                                "delivery": null,
+                                "questions": null,
+                                "startedAtMs": 1795426507846,
+                                "completedAtMs": 1795426508230
+                            }
+                        ],
+                        "itemsView": "summary",
+                        "status": "completed",
+                        "error": null,
+                        "startedAt": 1795426482,
+                        "completedAt": 1795426508,
+                        "durationMs": 26113
+                    }
+                },
+                "emittedAtMs": 1795426508251
+            }
+        },
+        {
+            "t": 26501,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426508262
+            }
+        },
+        {
+            "t": 26501,
+            "dir": "out",
+            "frame": {
+                "method": "turn/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                        "rootTurnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": 1795426508,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                },
+                "emittedAtMs": 1795426508262
+            }
+        },
+        {
+            "t": 31165,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408d05b9887d2a22e6ab05582cc41",
+                        "text": "",
+                        "phase": "commentary",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426512926,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "startedAtMs": 1795426512926
+                },
+                "emittedAtMs": 1795426512927
+            }
+        },
+        {
+            "t": 31167,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408d05b9887d2a22e6ab05582cc41",
+                        "text": "Starting run 2 of 4. marker",
+                        "phase": "commentary",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426512926,
+                        "completedAtMs": 1795426512927
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "completedAtMs": 1795426512927
+                },
+                "emittedAtMs": 1795426512929
+            }
+        },
+        {
+            "t": 31338,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": [
+                            "waitingOnApproval"
+                        ]
+                    }
+                },
+                "emittedAtMs": 1795426513100
+            }
+        },
+        {
+            "t": 31338,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "commandExecution",
+                        "id": "exec-0be495ed-ac92-4e2d-b52f-c354f94c4bf4",
+                        "pluginId": null,
+                        "scriptPath": null,
+                        "command": "/bin/zsh -lc 'sleep 15'",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "processId": null,
+                        "source": "agent",
+                        "status": "inProgress",
+                        "commandActions": [
+                            {
+                                "type": "unknown",
+                                "command": "sleep 15"
+                            }
+                        ],
+                        "aggregatedOutput": null,
+                        "exitCode": null,
+                        "durationMs": null,
+                        "startedAtMs": 1795426513100,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "startedAtMs": 1795426513100
+                },
+                "emittedAtMs": 1795426513100
+            }
+        },
+        {
+            "t": 31338,
+            "dir": "out",
+            "frame": {
+                "method": "item/commandExecution/requestApproval",
+                "id": 1,
+                "params": {
+                    "kind": "command",
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "itemId": "exec-0be495ed-ac92-4e2d-b52f-c354f94c4bf4",
+                    "startedAtMs": 1795426513100,
+                    "environmentId": "local",
+                    "command": "/bin/zsh -lc 'sleep 15'",
+                    "cwd": "/tmp/ruimte-cap/work/cx1b",
+                    "commandActions": [
+                        {
+                            "type": "unknown",
+                            "command": "sleep 15"
+                        }
+                    ],
+                    "proposedExecpolicyAmendment": [
+                        "sleep",
+                        "15"
+                    ],
+                    "availableDecisions": [
+                        "accept",
+                        {
+                            "acceptWithExecpolicyAmendment": {
+                                "execpolicy_amendment": [
+                                    "sleep",
+                                    "15"
+                                ]
+                            }
+                        },
+                        "cancel"
+                    ]
+                }
+            }
+        },
+        {
+            "t": 31339,
+            "dir": "in",
+            "frame": {
+                "id": 1,
+                "result": {
+                    "decision": "accept"
+                }
+            }
+        },
+        {
+            "t": 31339,
+            "dir": "out",
+            "frame": {
+                "method": "serverRequest/resolved",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "requestId": 1
+                },
+                "emittedAtMs": 1795426513101
+            }
+        },
+        {
+            "t": 31339,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426513101
+            }
+        },
+        {
+            "t": 46378,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "commandExecution",
+                        "id": "exec-0be495ed-ac92-4e2d-b52f-c354f94c4bf4",
+                        "pluginId": null,
+                        "scriptPath": null,
+                        "command": "/bin/zsh -lc 'sleep 15'",
+                        "cwd": "/tmp/ruimte-cap/work/cx1b",
+                        "processId": "86726",
+                        "source": "unifiedExecStartup",
+                        "status": "completed",
+                        "commandActions": [
+                            {
+                                "type": "unknown",
+                                "command": "sleep 15"
+                            }
+                        ],
+                        "aggregatedOutput": null,
+                        "exitCode": 0,
+                        "durationMs": 14883,
+                        "startedAtMs": 1795426513100,
+                        "completedAtMs": 1795426528138
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "completedAtMs": 1795426528138
+                },
+                "emittedAtMs": 1795426528140
+            }
+        },
+        {
+            "t": 46384,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 10460,
+                        "timeUsedSeconds": 46,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426528
+                    }
+                },
+                "emittedAtMs": 1795426528146
+            }
+        },
+        {
+            "t": 50912,
+            "dir": "out",
+            "frame": {
+                "method": "item/started",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408e4484c87d28043ce48f59639b0",
+                        "text": "",
+                        "phase": "final_answer",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426532674,
+                        "completedAtMs": null
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "startedAtMs": 1795426532674
+                },
+                "emittedAtMs": 1795426532674
+            }
+        },
+        {
+            "t": 51535,
+            "dir": "out",
+            "frame": {
+                "method": "item/completed",
+                "params": {
+                    "item": {
+                        "type": "agentMessage",
+                        "id": "msg_0786350f5488eb12016b0408e4484c87d28043ce48f59639b0",
+                        "text": "Run 2 of 4 completed successfully. marker",
+                        "phase": "final_answer",
+                        "memoryCitation": null,
+                        "delivery": null,
+                        "questions": null,
+                        "startedAtMs": 1795426532674,
+                        "completedAtMs": 1795426533295
+                    },
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "completedAtMs": 1795426533295
+                },
+                "emittedAtMs": 1795426533296
+            }
+        },
+        {
+            "t": 51550,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/updated",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 10774,
+                        "timeUsedSeconds": 51,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426533
+                    }
+                },
+                "emittedAtMs": 1795426533312
+            }
+        },
+        {
+            "t": 51551,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "idle"
+                    }
+                },
+                "emittedAtMs": 1795426533313
+            }
+        },
+        {
+            "t": 51551,
+            "dir": "out",
+            "frame": {
+                "method": "turn/completed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                        "rootTurnId": "01a207c2-5ddb-7920-a1c5-bd3cf202b666",
+                        "items": [
+                            {
+                                "type": "agentMessage",
+                                "id": "msg_0786350f5488eb12016b0408e4484c87d28043ce48f59639b0",
+                                "text": "Run 2 of 4 completed successfully. marker",
+                                "phase": "final_answer",
+                                "memoryCitation": null,
+                                "delivery": null,
+                                "questions": null,
+                                "startedAtMs": 1795426532674,
+                                "completedAtMs": 1795426533295
+                            }
+                        ],
+                        "itemsView": "summary",
+                        "status": "completed",
+                        "error": null,
+                        "startedAt": 1795426508,
+                        "completedAt": 1795426533,
+                        "durationMs": 25053
+                    }
+                },
+                "emittedAtMs": 1795426533313
+            }
+        },
+        {
+            "t": 51551,
+            "dir": "in",
+            "frame": {
+                "id": 6,
+                "method": "thread/goal/get",
+                "params": {
+                    "threadId": "codex-thread-1"
+                }
+            }
+        },
+        {
+            "t": 51551,
+            "dir": "out",
+            "frame": {
+                "id": 6,
+                "result": {
+                    "goal": {
+                        "threadId": "codex-thread-1",
+                        "objective": "Run the shell command `sleep 15` four times, one run per turn, and after each run say which run it was. The goal is met only after the fourth run.",
+                        "status": "active",
+                        "tokenBudget": null,
+                        "tokensUsed": 10774,
+                        "timeUsedSeconds": 51,
+                        "createdAt": 1795426469,
+                        "updatedAt": 1795426533
+                    }
+                }
+            }
+        },
+        {
+            "t": 51551,
+            "dir": "in",
+            "frame": {
+                "id": 7,
+                "method": "thread/goal/clear",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "origin": "user"
+                }
+            }
+        },
+        {
+            "t": 51557,
+            "dir": "out",
+            "frame": {
+                "id": 7,
+                "result": {
+                    "cleared": true
+                }
+            }
+        },
+        {
+            "t": 51558,
+            "dir": "out",
+            "frame": {
+                "method": "thread/goal/cleared",
+                "params": {
+                    "threadId": "codex-thread-1"
+                },
+                "emittedAtMs": 1795426533320
+            }
+        },
+        {
+            "t": 51558,
+            "dir": "out",
+            "frame": {
+                "method": "thread/status/changed",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "status": {
+                        "type": "active",
+                        "activeFlags": []
+                    }
+                },
+                "emittedAtMs": 1795426533320
+            }
+        },
+        {
+            "t": 51558,
+            "dir": "out",
+            "frame": {
+                "method": "turn/started",
+                "params": {
+                    "threadId": "codex-thread-1",
+                    "turn": {
+                        "id": "01a207c2-bfc1-7b72-83b1-ff79878ac730",
+                        "rootTurnId": "01a207c2-bfc1-7b72-83b1-ff79878ac730",
+                        "items": [],
+                        "itemsView": "notLoaded",
+                        "status": "inProgress",
+                        "error": null,
+                        "startedAt": 1795426533,
+                        "completedAt": null,
+                        "durationMs": null
+                    }
+                },
+                "emittedAtMs": 1795426533320
+            }
+        }
+    ]
+}
