@@ -45,6 +45,10 @@ export interface FakeCodexOptions {
     account?: Frame;
     // Threads whose every turn fails as the API refusing their encrypted history; a test adds one once it holds a turn.
     rejectsHistory?: ReadonlySet<string>;
+    // What Codex writes to stderr before it exits with code 1, ahead of answering `initialize`.
+    exitBeforeInit?: string;
+    // Collects every error the client answers one of the fake's own requests with.
+    errorReplies?: Frame[];
 }
 
 // The API's error body as Codex passes it on, in the shape T3 Code's tests hold; no capture of a real one exists yet.
@@ -56,6 +60,13 @@ const REJECTED_HISTORY_BODY = JSON.stringify({
 
 export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
     return (io) => {
+        if (options.exitBeforeInit !== undefined) {
+            io.err(`${options.exitBeforeInit}\n`);
+            io.exit(1);
+
+            return { onLine: () => undefined };
+        }
+
         const out = io.out;
 
         let serverRequestId = 0;
@@ -924,6 +935,12 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
                 if (typeof frame.method === 'string' && frame.id !== undefined) {
                     handleRequest(frame.id, frame.method, params);
+
+                    return;
+                }
+
+                if (frame.id !== undefined && frame.error !== undefined) {
+                    options.errorReplies?.push(frame);
 
                     return;
                 }

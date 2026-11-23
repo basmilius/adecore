@@ -232,7 +232,7 @@ export class JsonRpcTransport {
         const message = frame as JsonRpcFrame;
 
         if (typeof message.method === 'string') {
-            this.options.onFrame(message);
+            this.deliver(message);
 
             return;
         }
@@ -256,13 +256,33 @@ export class JsonRpcTransport {
         }
     }
 
+    /* A server request the consumer threw on still gets an answer, or the agent waits on it forever. */
+    private deliver(message: JsonRpcFrame): void {
+        try {
+            this.options.onFrame(message);
+        } catch (error) {
+            if (typeof message.id === 'number' || typeof message.id === 'string') {
+                try {
+                    this.respondError(message.id, -32603, errorText(error));
+                } catch {
+                    // The pipe is gone, which the throw below reports along with the cause.
+                }
+            }
+
+            throw error;
+        }
+    }
+
     private handleExit(exitCode: number | null, stderr: string | null): void {
         if (this.closed) {
             return;
         }
 
         this.closed = true;
-        this.rejectPending((method) => new Error(`${method} failed: ${this.options.label} exited`));
+        // A CLI that exits before it answers says why only on stderr, so a start that fails on it keeps that.
+        const code = exitCode === null ? '' : ` with code ${exitCode}`;
+        const said = stderr?.trim() ? `\n\n${stderr.trim()}` : '';
+        this.rejectPending((method) => new Error(`${method} failed: ${this.options.label} exited${code}${said}`));
         this.options.onExit(exitCode, stderr);
     }
 
