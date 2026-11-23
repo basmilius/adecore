@@ -937,6 +937,70 @@ describe('a wakeup the CLI scheduled', () => {
     });
 });
 
+describe("a goal's check while a delegated task owes the chat a wake", () => {
+    const goal = { objective: 'ship it', status: 'active' as const, checks: 0 };
+    const goals = (events: readonly BackendEvent[]) => events.flatMap((event) => (event.type === 'goal' ? [event.goal?.status ?? null] : []));
+
+    /* One turn as Claude Code ends it: the model answers, the CLI asks the Stop hooks the SDK registered, and the turn ends. */
+    async function endTurn(run: Run, script: ReturnType<typeof scripted>, promptId: string): Promise<unknown> {
+        run.backend.sendTurn(turn('go on', promptId));
+        await until(() => script.users().includes(promptId));
+        script.out({
+            type: 'assistant',
+            uuid: `${promptId}-a`,
+            message: { id: `${promptId}-m`, model: 'claude-opus-5', content: [{ type: 'text', text: 'Waiting' }] }
+        });
+
+        const initialize = script.sent('initialize')[0]?.request as { hooks?: { Stop?: Array<{ hookCallbackIds: string[] }> } };
+        const requestId = `${promptId}-stop`;
+
+        script.out({
+            type: 'control_request',
+            request_id: requestId,
+            request: {
+                subtype: 'hook_callback',
+                callback_id: initialize.hooks?.Stop?.[0]?.hookCallbackIds[0],
+                input: { hook_event_name: 'Stop', session_id: 'session', transcript_path: '', cwd: '/tmp', stop_hook_active: true }
+            }
+        });
+
+        const answerOf = () =>
+            script.lines.find((line) => line.type === 'control_response' && (line.response as { request_id?: string }).request_id === requestId)?.response as
+                | { response?: unknown }
+                | undefined;
+
+        await until(() => answerOf() !== undefined);
+        const before = doneTurns(run.events);
+        script.out({ type: 'result', subtype: 'success', total_cost_usd: 0, user_message_uuids: [promptId] });
+        await until(() => doneTurns(run.events) === before + 1);
+
+        return answerOf()?.response;
+    }
+
+    test('ends the turn and keeps the goal active until the wake, then lets the check through', async () => {
+        let owed = true;
+        const script = scripted();
+        const run = open(script.cli, { goal, owesWake: () => owed });
+        await run.backend.start();
+
+        expect(await endTurn(run, script, 'p1')).toEqual({ continue: false, stopReason: 'The goal waits for the result of a task it gave.' });
+        expect(goals(run.events)).toEqual([]);
+
+        owed = false;
+        expect(await endTurn(run, script, 'p2')).toEqual({});
+        expect(goals(run.events)).toEqual(['complete']);
+        await run.backend.dispose();
+    });
+
+    test('leaves a turn without a goal alone, whatever is owed', async () => {
+        const script = scripted();
+        const run = open(script.cli, { owesWake: () => true });
+        await run.backend.start();
+        expect(await endTurn(run, script, 'p1')).toEqual({});
+        await run.backend.dispose();
+    });
+});
+
 describe('the Claude backend letting go', () => {
     test('reports the exit of a CLI whose stdout a process it started still holds open', async () => {
         let exit: ChatSpawnOptions['onExit'] = () => undefined;

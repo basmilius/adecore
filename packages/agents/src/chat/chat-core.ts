@@ -196,7 +196,8 @@ export interface ChatCoreHooks {
     recordExtras?(chatId: string): ChatRecordExtras;
     /*
      * The tasks a chat gave. The core lays a row for each in the thread when the chat opens, even when a crash
-     * lost the write of one, and a clear hides the rows of these tasks for good; see `syncTaskRow`.
+     * lost the write of one, and a clear hides the rows of these tasks for good; see `syncTaskRow`. While one still owes
+     * the chat a wake, a goal's check does not send the agent on to poll for it.
      */
     taskRows?(chatId: string): readonly Task[];
     /* A clear is about to start; it waits for this. */
@@ -674,6 +675,7 @@ export class ChatCore {
             folders: () => this.hooks.foldersFor?.(payload.chatId) ?? [],
             projectConfig: () => this.hooks.projectConfigFor?.(payload.chatId) ?? true,
             promptSuggestions: () => this.hooks.promptSuggestionsFor?.(payload.chatId) ?? false,
+            owesWake: () => (this.hooks.taskRows?.(payload.chatId) ?? []).some((task) => task.wake === 'pending'),
             promptHeard: (text) => this.hooks.promptHeardFor?.(payload.chatId, text) ?? [],
             hostSkills: () => this.hooks.hostSkillsFor?.(payload.chatId) ?? [],
             cliTitle: (title) => this.hooks.cliTitleFor?.(payload.chatId, title) ?? title,

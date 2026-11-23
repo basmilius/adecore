@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import type { ChatEvent, ChatInfo, ChatItem } from '@adecore/agent-contracts';
+import type { ChatEvent, ChatInfo, ChatItem, Task } from '@adecore/agent-contracts';
 import type { BackendHost, BackendLaunch } from '../backends/backend.ts';
 import type { AgentEvent } from '../events.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
@@ -126,6 +126,34 @@ describe('the hooks of ChatCore', () => {
             folders: ['/brand/kit'],
             env: { APP_CHAT: 'briefed', PATH: '/bin' }
         });
+    });
+
+    test("tell the chat's CLI whether a task it gave still owes it a wake", async () => {
+        let wakes: Array<Task['wake']> = ['sent', 'pending'];
+
+        const task = (wake: Task['wake'], index: number): Task => ({
+            id: `t${index}`,
+            projectId: 'project',
+            parentId: 'parent',
+            childId: `child-${index}`,
+            title: 'Fix it',
+            prompt: 'fix it',
+            status: wake === 'pending' ? 'open' : 'done',
+            result: null,
+            createdAt: 1,
+            settledAt: null,
+            wake
+        });
+
+        const chats = open({ taskRows: () => wakes.map(task) });
+        await chats.create({ chatId: 'parent', cwd: home });
+        await chats.send('parent', 'hello');
+        await settle();
+        const owesWake = launches.at(-1)?.owesWake;
+
+        expect(owesWake?.()).toBe(true);
+        wakes = ['sent', 'none'];
+        expect(owesWake?.()).toBe(false);
     });
 
     test('run a chat without the configuration of its folder, or refuse a CLI that cannot', async () => {

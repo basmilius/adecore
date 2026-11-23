@@ -72,7 +72,7 @@ new ChatCore({ ...options, sidecars: [plans] });
 
 ## Goals
 
-`/goal <objective>` sets a goal and `/goal` alone shows its state. `/goal pause`, `/goal resume` and `/goal clear` act on it. The goal is `info.goal`. Claude Code pursues it within one turn. Codex opens further turns itself until the goal is met. Stopping a Codex turn pauses its goal first.
+`/goal <objective>` sets a goal and `/goal` alone shows its state. `/goal pause`, `/goal resume` and `/goal clear` act on it. The goal is `info.goal`. Claude Code pursues it within one turn. Its check sees only the CLI's own background work, so while a task the chat gave still owes it a wake (`taskRows`), the turn ends at the check instead of sending the agent on, and the goal stays active until the wake's turn checks it again. Codex opens further turns itself until the goal is met. Stopping a Codex turn pauses its goal first.
 
 While a goal is active, messages queue, `delivery: "steer"` included. `chat.goal` pauses, resumes or clears without a turn on a CLI with goal calls. Otherwise it sends `/goal` as a turn and fails with `chat-busy` during a turn. A met goal clears from `info.goal` on the next message.
 

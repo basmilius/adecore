@@ -102,7 +102,7 @@ const host = await AgentHost.open({ dataDir, core: (options) => new ChatCore({ .
 | `cliTitleFor(chatId, title)`                                   | A title the chat's CLI gave its session, pushed as an event or read from its transcript, as the host wants it stored. Without it the title stays as the CLI wrote it. |
 | `hiddenFor(chatId)`                                            | Leaves the chat out of every list.                                                         |
 | `openingNotes`, `opened`, `recordExtras`                       | What the host lays down in a loaded chat above its task rows and below them, and keeps in its record beside the thread. |
-| `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. |
+| `taskRows(chatId)`                                             | The tasks a chat gave. The core lays a [row](/agents/chats#task-rows) for each when the chat opens and hides them for good on a clear. While one still owes the chat a wake, a goal's check does not send the agent on ([goals](/agents/chats#goals)). |
 | `clearing`, `cleared`, `forgotten`, `deleted`, `removed`, `broadcasted` | What goes along with a clear, with the record of a chat nobody loaded (`deleted`) or a removal, and a look at every event. |
 | `endedAt`, `unownedReason`, `resumeWords`                      | Taking up a turn the host went down in; see [Restarts](/agents/chats#restarts).           |
 | `lostWork(chatId, lost)`                                       | Background work a restart took from a chat that no resumed turn tells; see [Restarts](/agents/chats#restarts). |

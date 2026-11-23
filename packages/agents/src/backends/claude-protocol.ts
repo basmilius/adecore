@@ -303,6 +303,8 @@ export class ClaudeProtocol {
     // set or last checked is what lets a turn that ends normally count as its check passing.
     private goal: ChatGoal | null;
     private goalAnswered = false;
+    // The host held the goal's check back at the end of this turn, so the turn ending says nothing of the goal.
+    private goalCheckHeld = false;
     private interrupting = false;
     // Background subagents still at work; Claude Code holds a goal's check until they report.
     private readonly backgroundAgents = new Set<string>();
@@ -325,6 +327,15 @@ export class ClaudeProtocol {
     /* A stop is on its way; the turn it ends leaves the goal set but nobody working on it. */
     noteInterrupt(): void {
         this.interrupting = true;
+    }
+
+    get goalActive(): boolean {
+        return this.goal?.status === 'active';
+    }
+
+    /* The turn ends without the goal's check sending the agent on, so the goal stays active for the turn that comes next. */
+    holdGoalCheck(): void {
+        this.goalCheckHeld = true;
     }
 
     private setGoal(goal: ChatGoal | null, events: BackendEvent[]): void {
@@ -1069,7 +1080,9 @@ export class ClaudeProtocol {
     private settleGoal(failed: boolean, events: BackendEvent[]): void {
         const goal = this.goal;
         const interrupted = this.interrupting;
+        const held = this.goalCheckHeld;
         this.interrupting = false;
+        this.goalCheckHeld = false;
 
         if (goal?.status !== 'active') {
             return;
@@ -1077,7 +1090,7 @@ export class ClaudeProtocol {
 
         if (failed || interrupted) {
             this.setGoal({ ...goal, status: 'paused' }, events);
-        } else if (this.goalAnswered && this.backgroundTasks.size === 0 && this.workflows.size === 0 && this.backgroundAgents.size === 0) {
+        } else if (!held && this.goalAnswered && this.backgroundTasks.size === 0 && this.workflows.size === 0 && this.backgroundAgents.size === 0) {
             this.setGoal({ ...goal, status: 'complete' }, events);
         }
     }

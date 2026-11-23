@@ -112,6 +112,7 @@ export interface ChatSessionOptions {
     projectConfig?(): boolean;
     // Whether the CLI predicts the next prompt; asked when a process starts, so a change reaches a running one on its next start.
     promptSuggestions?(): boolean;
+    owesWake?: BackendLaunch['owesWake'];
     onSuggestion?(suggestion: string | null): void;
     promptNotes?: PromptNotes;
     // What the agent hears in front of a real prompt, a steered one too, read from its own text; the thread shows none of it.
@@ -2648,6 +2649,7 @@ export class ChatSession {
             ...(folders.length > 0 ? { folders } : {}),
             ...(projectConfig ? {} : { projectConfig }),
             ...(this.options.promptSuggestions?.() ? { promptSuggestions: true } : {}),
+            ...(this.options.owesWake ? { owesWake: this.options.owesWake } : {}),
             ...(this.options.spawn ? { spawn: this.options.spawn } : {})
         };
 

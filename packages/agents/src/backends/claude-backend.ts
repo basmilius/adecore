@@ -486,7 +486,10 @@ export class ClaudeBackend implements ChatBackend {
             // the declaration the CLI kills them all on an interrupt.
             perTaskStopAffordance: true,
             // EnterWorktree moves the CLI without a `CwdChanged` hook (Claude Code 2.1.317), but every later hook carries the new `cwd`.
-            hooks: { PostToolUse: [{ hooks: [async (input) => this.followWorkdir(input)] }] },
+            hooks: {
+                PostToolUse: [{ hooks: [async (input) => this.followWorkdir(input)] }],
+                ...(this.launch.owesWake ? { Stop: [{ hooks: [async () => this.waitForWake()] }] } : {})
+            },
             // The echo of a message is what acknowledges a steer, and the SDK leaves the flag out.
             extraArgs: { 'replay-user-messages': null }
         };
@@ -658,6 +661,22 @@ export class ClaudeBackend implements ChatBackend {
         }
 
         return {};
+    }
+
+    /*
+     * Claude Code's goal check waits only for the CLI's own background work. A task the host delegated runs outside it,
+     * so the check would send the agent on at every turn end and it would poll for the result. While a task still owes
+     * the chat a wake, the turn ends instead (`continue: false` outranks the check's block); the wake brings the result,
+     * and the goal is checked again at the end of that turn.
+     */
+    private waitForWake(): HookJSONOutput {
+        if (!this.protocol.goalActive || this.launch.owesWake?.() !== true) {
+            return {};
+        }
+
+        this.protocol.holdGoalCheck();
+
+        return { continue: false, stopReason: 'The goal waits for the result of a task it gave.' };
     }
 
     private askPermission(toolName: string, input: Record<string, unknown>, options: PermissionOptions): Promise<PermissionResult> {
