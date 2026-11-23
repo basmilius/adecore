@@ -192,6 +192,12 @@ export default {
             notAnswered: '(niet beantwoord)',
             dismissed: '(weggeklikt)'
         },
+        secret: {
+            saved: 'Opgeslagen',
+            declined: 'Geweigerd',
+            'timed-out': 'Niet op tijd beantwoord',
+            cancelled: 'Niet meer nodig'
+        },
         subagent: {
             task: 'Taak',
             label: 'Sub-agent',

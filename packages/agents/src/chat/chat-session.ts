@@ -11,6 +11,7 @@ import type {
     ChatNoteMessage,
     ChatQueuedMessage,
     ChatQuoteSource,
+    ChatSecretItem,
     ChatSkill,
     ChatSubagentItem,
     ChatToolItem,
@@ -1729,6 +1730,25 @@ export class ChatSession {
                 level,
                 text,
                 ...(message === undefined ? {} : { message })
+            })
+        ]);
+        this.options.persist();
+    }
+
+    /*
+     * The record of a request for a secret once a person answered it or did not, in the turn that asked when one runs.
+     * It names what was asked for and never holds the value.
+     */
+    addSecret(secret: Pick<ChatSecretItem, 'label' | 'outcome' | 'fields'>): void {
+        this.emit([
+            this.thread.upsert({
+                id: newId('secret'),
+                kind: 'secret',
+                createdAt: Date.now(),
+                turnId: this.thread.info.activeTurnId,
+                label: secret.label,
+                outcome: secret.outcome,
+                ...(secret.fields === undefined ? {} : { fields: [...secret.fields] })
             })
         ]);
         this.options.persist();

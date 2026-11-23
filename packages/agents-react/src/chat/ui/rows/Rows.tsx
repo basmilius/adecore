@@ -15,6 +15,7 @@ import {
     NoteRow,
     QuestionHistoryRow,
     ReportRow,
+    SecretRow,
     SelectionSwitchRow,
     SentByAgentRow,
     SentMessageRow,
@@ -118,6 +119,8 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
             return <SentByAgentRow chatId={chatId} id={row.id} tool={row.tool} sent={row.sent} />;
         case 'compaction':
             return <CompactionRow preTokens={row.preTokens} postTokens={row.postTokens} />;
+        case 'secret':
+            return <SecretRow item={row.item} />;
         case 'unknown':
             return <UnknownRow id={row.id} waits={row.waits} />;
         case 'selection-switch':

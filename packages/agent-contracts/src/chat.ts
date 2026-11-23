@@ -825,10 +825,20 @@ export const ChatCompactionItemSchema = z.object({
     postTokens: z.number().int().nonnegative().optional()
 });
 
+export const ChatSecretItemSchema = z.object({
+    ...base,
+    kind: z.literal('secret'),
+    // What the person was asked for; the value they gave never appears in the thread.
+    label: z.string(),
+    outcome: z.enum(['saved', 'declined', 'timed-out', 'cancelled']),
+    // The names of the values when one request asked for several.
+    fields: z.array(z.string()).optional()
+});
+
 /*
- * Never a new member here, and never a new value in an enum a chat or a push already carries: the
- * native client validates `chat.attach` and `chat.history` whole, so one item it does not know rejects
- * the entire conversation. Add optional fields instead.
+ * An open union: a client that reads tolerantly keeps a member it does not know as an unknown item in its place, so a
+ * new member is fine. A new value in an enum of an existing member that no `openValues` stamps turns that whole item
+ * unknown to such a client, so add an optional field instead.
  */
 export const ChatItemSchema = openUnion(
     z.discriminatedUnion('kind', [
@@ -841,7 +851,8 @@ export const ChatItemSchema = openUnion(
         ChatQuestionItemSchema,
         ChatTurnItemSchema,
         ChatNoteItemSchema,
-        ChatCompactionItemSchema
+        ChatCompactionItemSchema,
+        ChatSecretItemSchema
     ]),
     'ChatItem',
     { tag: 'kind', base: ['id', 'createdAt', 'turnId'] }
@@ -870,6 +881,7 @@ export type ChatTurnItem = z.infer<typeof ChatTurnItemSchema>;
 export type ChatNoteItem = z.infer<typeof ChatNoteItemSchema>;
 export type ChatNoteMessage = z.infer<typeof ChatNoteMessageSchema>;
 export type ChatCompactionItem = z.infer<typeof ChatCompactionItemSchema>;
+export type ChatSecretItem = z.infer<typeof ChatSecretItemSchema>;
 
 // An item as a host holds it or as a client reads it, where a newer host's item may be unknown or carry a newer word.
 type ThreadItem = { readonly kind: string; readonly createdAt: number };

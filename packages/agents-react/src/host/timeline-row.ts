@@ -4,6 +4,7 @@ import type {
     ChatCheckpointDiff,
     ChatNoteMessage,
     ChatQuestionItem,
+    ChatSecretItem,
     ChatSubagentItem,
     ChatThinkingItem,
     ChatToolItem,
@@ -63,6 +64,8 @@ export type TimelineRow =
     // A message this chat's agent sent another node with a command of a look, drawn as said instead of as its call.
     | { kind: 'sent'; id: string; tool: ChatToolItem; sent: CommandLookSent }
     | { kind: 'compaction'; id: string; preTokens: number | null; postTokens?: number }
+    // What became of a request for a secret; the value never reaches the thread.
+    | { kind: 'secret'; id: string; item: ChatSecretItem }
     // An item of a newer host this version cannot read, one muted line with nothing to act on; `waits` for a request that still does.
     | { kind: 'unknown'; id: string; item: ChatUnknownItem; waits: boolean }
     // The turn below ran on another model or effort than the turn before it.

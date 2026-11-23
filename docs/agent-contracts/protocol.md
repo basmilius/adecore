@@ -96,6 +96,6 @@ Keep the agent names and shapes unchanged, so clients written against the tables
 
 ## Changing a contract
 
-A client may validate a whole thread at once, and one unknown item kind or enum value rejects all of it. So a contract grows only by optional fields, never by a new item kind or a new value in an existing enum. The tables have no version field. An app that needs one puts it in its own protocol.
+A strict parse of a whole thread rejects all of it over one unknown item kind or enum value. A client that reads with [`readTolerant`](/agent-contracts/tolerance) keeps an item of an unknown kind as an unknown item in its place, so a new item kind is allowed. A new value in an existing enum that no `openValues` stamps still turns its whole item unknown, so prefer an optional field there. The tables have no version field. An app that needs one puts it in its own protocol.
 
 Renaming the package changes no wire names or stored shapes. One legacy value stays for that reason: the second value of `origin` on a subagent item, which names a host that opened it with its own task. Read it from [`HOST_TASK_ORIGIN`](https://github.com/basmilius/adecore/blob/main/packages/agent-contracts/src/chat.ts), which `ChatSubagentItemSchema` accepts, and write it back unchanged. The id of such a row is `taskRowId(taskId)` (`task-<id>`), and `taskIdOfRow(row)` reads the task id back, or `null` for a row the CLI opened.

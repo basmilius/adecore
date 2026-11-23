@@ -21,6 +21,7 @@ function rowTime(row: TimelineRow): number | null {
         case 'thinking':
         case 'approval':
         case 'question':
+        case 'secret':
         case 'subagent':
             return row.item.createdAt;
         case 'turn-start':

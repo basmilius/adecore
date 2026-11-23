@@ -991,3 +991,14 @@ describe('runs of a tool look', () => {
         });
     });
 });
+
+describe('the record of a request for a secret', () => {
+    test('is a row of its own with the item, in its place among the turn', () => {
+        const secret: ChatThreadItem = { id: 's1', kind: 'secret', createdAt: 4000, turnId: 't1', label: 'GitHub token', outcome: 'timed-out' };
+        const rows = deriveTimelineRows([thread[0]!, thread[1]!, secret, thread[5]!], { ...options, expandedTurns: new Set(['t1']) });
+
+        expect(rows.map((row) => row.kind)).toEqual(['user', 'turn-fold', 'secret', 'assistant']);
+        expect(rows[2]).toEqual({ kind: 'secret', id: 's1', item: secret });
+        expect(isBlock(rows[2]!)).toBe(false);
+    });
+});

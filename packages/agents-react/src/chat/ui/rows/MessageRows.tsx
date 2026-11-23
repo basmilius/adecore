@@ -4,6 +4,7 @@ import type {
     ChatAssistantItem,
     ChatNoteMessage,
     ChatQuestionItem,
+    ChatSecretItem,
     ChatThinkingItem,
     ChatToolItem,
     ChatUiChoiceOrigin,
@@ -20,6 +21,7 @@ import {
     ChevronDown,
     CircleAlert,
     CircleCheck,
+    CircleMinus,
     CircleX,
     Clock,
     File,
@@ -836,6 +838,27 @@ export function ApprovalHistoryRow({ item }: { item: ChatApprovalItem }) {
                 ) : (
                     toolSummary(item.toolName, item.input)
                 )}
+            </span>
+        </div>
+    );
+}
+
+const SECRET_ICON: Record<ChatSecretItem['outcome'], ReactNode> = {
+    saved: <Icon icon={CircleCheck} size={12} className="text-positive" />,
+    declined: <Icon icon={CircleMinus} size={12} />,
+    'timed-out': <Icon icon={Clock} size={12} />,
+    cancelled: <Icon icon={CircleX} size={12} />
+};
+
+/* What became of a request for a secret, one quiet line; the card that asked for it lived elsewhere and the value is never here. */
+export function SecretRow({ item }: { item: ChatSecretItem }) {
+    const { t } = useTranslation('agent-chat');
+
+    return (
+        <div data-find-item={item.id} className="-mx-1 mb-0.5 flex h-7 items-center gap-2 px-1 text-xs text-text-faint">
+            <span className={ROW_GUTTER}>{SECRET_ICON[item.outcome]}</span>
+            <span data-find-field="summary" className="min-w-0 truncate select-text">
+                <span className="text-text-muted">{item.label}</span> · {t(`rows.secret.${item.outcome}`)}
             </span>
         </div>
     );

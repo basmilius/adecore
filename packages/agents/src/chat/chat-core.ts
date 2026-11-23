@@ -19,6 +19,7 @@ import {
     type ChatItem,
     type ChatNoteMessage,
     type ChatQueuedMessage,
+    type ChatSecretItem,
     type ChatUiChoicePayload,
     type ChatUiQueryPayload,
     type ChatUiLinkPayload,
@@ -1247,6 +1248,21 @@ export class ChatCore {
         }
 
         this.chats.get(chatId)?.addNote(level, text, message);
+    }
+
+    /* The record of a request for a secret in a chat's thread, loading the chat when nobody has; nothing for a chat that is gone. */
+    async addSecret(chatId: string, secret: Pick<ChatSecretItem, 'label' | 'outcome' | 'fields'>): Promise<void> {
+        await this.loaded(chatId);
+
+        if (!(await this.hasStored(chatId))) {
+            return;
+        }
+
+        if (!this.chats.has(chatId)) {
+            await this.create({ chatId });
+        }
+
+        this.chats.get(chatId)?.addSecret(secret);
     }
 
     /*

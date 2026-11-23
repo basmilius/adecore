@@ -192,6 +192,12 @@ export default {
             notAnswered: '(not answered)',
             dismissed: '(dismissed)'
         },
+        secret: {
+            saved: 'Saved',
+            declined: 'Declined',
+            'timed-out': 'Not answered in time',
+            cancelled: 'No longer needed'
+        },
         subagent: {
             task: 'Task',
             label: 'Sub-agent',

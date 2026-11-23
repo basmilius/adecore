@@ -125,6 +125,7 @@ A host holds a `ChatCore` and gives it its hooks; it does not subclass it. What 
 | `findAttachment(chatId, id)`                   | The file behind an attachment id, also of a chat nobody loaded: its thread, its queue or a visual's page.                           |
 | `copySidecars(from, to, kept)`                 | Gives a fork what every [sidecar](/agents/chats#sidecars) keeps of the original; `kept` says which messages and visuals went along. |
 | `syncTaskRow(task)`                            | Writes the [row](/agents/chats#task-rows) of a task into the chat that gave it, when that chat is loaded.                           |
+| `addSecret(chatId, secret)`                    | Records what became of a request for a secret (`ChatSecretItem`), in the running turn if any; also for a chat nobody loaded.        |
 | `uiFence`                                      | The fence name the core compiles replies under, for the note that teaches an agent the UI language.                                 |
 
 `ChatCoreOptions` also takes `checkpoints`, `skills`, `onInterruptedRun`, `limitResume`, `sidecars` and `taskRemovedReason`. `checkpoints` is an object with `take`, `diff` and `settle` for a tree per turn. Its optional `head` records the commit at turn start and end, so a card can show that the branch moved. Without `checkpoints` a turn has none. The package runs no git itself.

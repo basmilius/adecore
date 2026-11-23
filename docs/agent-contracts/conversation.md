@@ -51,6 +51,7 @@ A wakeup the CLI scheduled for itself (Claude Code's `ScheduleWakeup`) is a `mon
 | `turn`       | `ChatTurnItem`, `ChatTurnItemSchema` | A run of the agent: `state` (`running`, `done`, `aborted`, `error`), cost, checkpoints, and the `limit` it hit. |
 | `note`       | `ChatNoteItem`, `ChatNoteItemSchema` | Information, a warning or an error from the host, by `level`. |
 | `compaction` | `ChatCompactionItem`, `ChatCompactionItemSchema` | The moment the context was folded, with the token count before it (`preTokens`) and after it (`postTokens`) when known. |
+| `secret`     | `ChatSecretItem`, `ChatSecretItemSchema` | What became of a request for a secret: the `label` of what was asked for, the `outcome` (`saved`, `declined`, `timed-out`, `cancelled`) and the names of the values in `fields` when it asked for several. The host appends it; the value never appears, and the CLI never receives the item. |
 
 The parts of an item have their own types:
 

@@ -444,6 +444,10 @@ function rowsForItems(items: ChatThreadItem[], options: TimelineOptions, childre
                 });
 
                 break;
+            case 'secret':
+                rows.push({ kind: 'secret', id: item.id, item });
+
+                break;
             case 'unknown':
                 rows.push({ kind: 'unknown', id: item.id, item, waits: waitsOnTheHost(item) });
 

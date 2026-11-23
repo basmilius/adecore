@@ -167,6 +167,7 @@ export function turnIdOfRow(row: TimelineRow): string | null {
         case 'subagent':
         case 'approval':
         case 'question':
+        case 'secret':
             return row.item.turnId;
         default:
             return null;
