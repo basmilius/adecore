@@ -13,6 +13,7 @@ import type {
     RuntimeMode
 } from '@adecore/agent-contracts';
 import type { SpawnChatProcess } from '../chat-process.ts';
+import type { Clock } from '../clock.ts';
 import type { LimitsUpdate } from './limits.ts';
 
 /*
@@ -53,6 +54,8 @@ export interface BackendLaunch {
     generation: number;
     // Shares the host clock with expiry checks when a test advances time by hand.
     now?(): number;
+    // The clock a backend's own timers run on; absent runs them on the system clock.
+    clock?: Clock;
     // What the agent is told once, at the start of a process: a system prompt, or a new thread's developer instructions.
     instructions: string | null;
     // The part of it a resumed thread has to hear again in front of its next prompt, for a CLI that ignores new
@@ -108,6 +111,8 @@ export interface BackendChange {
  */
 export type BackendEvent =
     | { type: 'turn.accepted'; promptId: string }
+    // The CLI opened a turn, for a CLI that says so before the turn's first item; a turn it opened itself runs from here.
+    | { type: 'turn.started' }
     // `title` is the name the CLI already has for the thread, as a resumed Codex thread carries it.
     | {
           type: 'session';

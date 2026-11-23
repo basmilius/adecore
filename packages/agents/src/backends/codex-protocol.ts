@@ -372,6 +372,7 @@ export class CodexProtocol {
             }
             case 'turn/started':
                 this.codexTurnId = isRecord(params.turn) ? str(params.turn.id) : null;
+                events.push({ type: 'turn.started' });
 
                 break;
             case 'turn/completed':

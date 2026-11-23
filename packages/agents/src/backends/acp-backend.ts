@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { attachmentImageMime, type AgentKind, type ChatAttachment, type ModelSelection } from '@adecore/agent-contracts';
 import { isWithin } from '@adecore/utils/path';
+import { systemClock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
 import { MODE_ORDER } from '../modes.ts';
 import {
@@ -83,6 +84,13 @@ export interface AcpAgentSpec {
     // How a message joins the running prompt: `interject` sends Grok's `_x.ai/interject`. Absent leaves the backend
     // without `steerTurn`, so a message waits for the next turn.
     steer?: 'interject';
+    // True for an agent whose every reply ends on a `usage_update`, also one it starts by itself with no prompt open, as
+    // Antigravity 1.5 wakes when a command it runs on past its turn ends. Such a reply ends once no output follows that
+    // update for `WAKE_QUIET_MS`. Absent, a reply the agent starts by itself ends only on its own idle (Copilot's).
+    repliesEndOnUsage?: boolean;
+    // True sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its
+    // turn on it (Antigravity 1.5). Absent sends nothing then, since Copilot ends the whole session on one.
+    cancelsIdle?: boolean;
 }
 
 export interface AcpUsageReport extends AcpTurnUsage {
@@ -98,6 +106,26 @@ interface PromptState {
     promptId: string | undefined;
     cancelled: boolean;
     started: boolean;
+}
+
+// How long a reply the agent started by itself stays open after its `usage_update`. The agent's next step can follow a
+// moment later, and a shorter wait splits one wake in two.
+const WAKE_QUIET_MS = 3_000;
+
+/* What the agent starts a turn of its own with: something the thread shows, or a request for a person. */
+function opensWake(event: BackendEvent): boolean {
+    switch (event.type) {
+        case 'text.delta':
+        case 'text.done':
+        case 'thinking.delta':
+        case 'thinking.done':
+        case 'tool.started':
+        case 'approval.requested':
+        case 'question.requested':
+            return true;
+        default:
+            return false;
+    }
 }
 
 // What a prompt carries of mentioned files; a larger file stays a path the agent opens with its own tools.
@@ -169,6 +197,8 @@ class AcpBackend implements ChatBackend {
     private releasedCount = 0;
     // A turn the agent opened itself with no prompt in flight; `spoken` once it reached the thread.
     private woken: { spoken: boolean } | null = null;
+    // The timer that ends that turn, for an agent whose replies end on a `usage_update`.
+    private wakeEnd: unknown = null;
     private model: string | null = null;
     private contextReported = false;
     private commands: string[] = [];
@@ -582,7 +612,7 @@ class AcpBackend implements ChatBackend {
         const prompt = this.promptBlocks(input);
         const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false };
         this.prompt = turn;
-        this.woken = null;
+        this.forgetWake();
         this.emit({ type: 'quiet.watch' });
 
         transport
@@ -658,7 +688,10 @@ class AcpBackend implements ChatBackend {
         this.emit({ type: 'turn.done', state: 'done', costUsd: 0 });
     }
 
-    /* Cancels the turn: every permission request still open is answered as cancelled, and the turn ends on the prompt's response. */
+    /*
+     * Cancels the turn: every request still open is answered as cancelled. A prompt's turn ends on its response; one the
+     * agent opened itself ends here, and only an agent that `cancelsIdle` hears of it.
+     */
     interrupt(): void {
         const transport = this.transport;
 
@@ -666,14 +699,11 @@ class AcpBackend implements ChatBackend {
             return;
         }
 
-        if (this.prompt === null) {
-            this.woken = null;
-            this.emit({ type: 'turn.done', state: 'aborted', costUsd: 0 });
+        const idle = this.prompt === null;
 
-            return;
+        if (this.prompt !== null) {
+            this.prompt.cancelled = true;
         }
-
-        this.prompt.cancelled = true;
 
         try {
             for (const cancelled of this.protocol.cancelRequests()) {
@@ -681,9 +711,16 @@ class AcpBackend implements ChatBackend {
                 this.emit({ type: 'request.withdrawn', requestId: cancelled.requestId });
             }
 
-            transport.notify('session/cancel', { sessionId: this.sessionId });
+            if (!idle || this.spec.cancelsIdle === true) {
+                transport.notify('session/cancel', { sessionId: this.sessionId });
+            }
         } catch (error) {
             this.fail(error);
+        }
+
+        if (idle) {
+            this.forgetWake();
+            this.emitAll(this.protocol.abort(undefined, null));
         }
     }
 
@@ -736,6 +773,7 @@ class AcpBackend implements ChatBackend {
     dispose(): Promise<void> {
         const transport = this.transport;
         this.transport = null;
+        this.forgetWake();
 
         return transport?.dispose() ?? Promise.resolve();
     }
@@ -784,11 +822,7 @@ class AcpBackend implements ChatBackend {
             }
 
             const events = this.protocol.update(this.sessionId, frame.params);
-
-            if (this.prompt === null && this.woken !== null && events.length > 0) {
-                this.woken.spoken = true;
-            }
-
+            this.heard(events);
             this.emitAll(events);
 
             return;
@@ -852,6 +886,8 @@ class AcpBackend implements ChatBackend {
             return;
         }
 
+        this.heard(permission.events);
+
         if (this.prompt?.cancelled) {
             this.emitAll(permission.events.filter((event) => event.type !== 'approval.requested'));
             const answer = this.protocol.cancelRequests().find((cancelled) => cancelled.requestId === permission.requestId);
@@ -878,6 +914,8 @@ class AcpBackend implements ChatBackend {
     }
 
     private ask(transport: JsonRpcTransport, question: AcpQuestion): void {
+        this.heard(question.events);
+
         if (this.prompt?.cancelled) {
             this.emitAll(question.events.filter((event) => event.type !== 'question.requested'));
             const cancelled = this.protocol.cancelQuestion(question.requestId);
@@ -942,6 +980,63 @@ class AcpBackend implements ChatBackend {
         }
     }
 
+    /*
+     * What the agent said with no prompt open, which may be a turn it opened itself. For an agent whose replies end on a
+     * `usage_update`, that update ends the turn once `WAKE_QUIET_MS` pass without new output, and new output, a tool
+     * that ends included, keeps it open.
+     */
+    private heard(events: readonly BackendEvent[]): void {
+        if (this.prompt !== null || events.length === 0) {
+            return;
+        }
+
+        if (this.spec.repliesEndOnUsage !== true) {
+            if (this.woken !== null) {
+                this.woken.spoken = true;
+            }
+
+            return;
+        }
+
+        if (events.some((event) => opensWake(event) || event.type === 'tool.done')) {
+            this.clearWakeEnd();
+
+            if (events.some(opensWake)) {
+                this.woken = { spoken: true };
+            }
+
+            return;
+        }
+
+        if (this.woken?.spoken !== true || !events.some((event) => event.type === 'usage')) {
+            return;
+        }
+
+        const clock = this.launch.clock ?? systemClock;
+        this.clearWakeEnd();
+
+        this.wakeEnd = clock.setTimeout(() => {
+            this.wakeEnd = null;
+
+            if (this.prompt === null && this.woken !== null) {
+                this.woken = null;
+                this.emitAll(this.protocol.finish({ stopReason: 'end_turn' }, undefined));
+            }
+        }, WAKE_QUIET_MS);
+    }
+
+    private clearWakeEnd(): void {
+        if (this.wakeEnd !== null) {
+            (this.launch.clock ?? systemClock).clearTimeout(this.wakeEnd);
+            this.wakeEnd = null;
+        }
+    }
+
+    private forgetWake(): void {
+        this.woken = null;
+        this.clearWakeEnd();
+    }
+
     /* The response of a prompt whose turn ended on the agent's idle: it ends the background work and closes no newer turn. */
     private endReleased(turn: PromptState): boolean {
         const taskId = this.released.get(turn);
@@ -973,7 +1068,7 @@ class AcpBackend implements ChatBackend {
         this.transport = null;
         this.prompt = null;
         this.released.clear();
-        this.woken = null;
+        this.forgetWake();
         this.protocol.cancelRequests();
         this.emit({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
     }
