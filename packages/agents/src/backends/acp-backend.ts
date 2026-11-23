@@ -12,6 +12,9 @@ import {
     acpErrorLimit,
     acpStopWords,
     autoAllows,
+    COPILOT_CLIENT_META,
+    COPILOT_SESSION_EVENT,
+    copilotForegroundOf,
     GROK_QUESTION_METHODS,
     GROK_SESSION_NOTIFICATION,
     parseInitialize,
@@ -85,6 +88,12 @@ export interface AcpUsageReport extends AcpTurnUsage {
 // What `initialize` and a session request may take; a prompt and a login wait for as long as the agent runs.
 const REQUEST_TIMEOUT_MS = 60_000;
 
+interface PromptState {
+    promptId: string | undefined;
+    cancelled: boolean;
+    started: boolean;
+}
+
 // What a prompt carries of mentioned files; a larger file stays a path the agent opens with its own tools.
 const MAX_EMBEDDED_FILE_BYTES = 256 * 1024;
 const MAX_EMBEDDED_BYTES = 1024 * 1024;
@@ -128,7 +137,8 @@ function mcpNameClash(servers: readonly ChatMcpServer[]): [string, string] | nul
 /*
  * One ACP agent process on JSON-RPC over stdio. `start` runs `initialize` and opens the session
  * (new, or the chat's own resumed or loaded), sets the mode and the model, and only then takes a turn.
- * A turn is one `session/prompt` request and ends on its response. The client advertises no file
+ * A turn is one `session/prompt` request and ends on its response, or for Copilot on its root agent's
+ * `assistant.idle` while the response is still held (`foreground`). The client advertises no file
  * system and no terminal, so the agent works with its own tools.
  */
 class AcpBackend implements ChatBackend {
@@ -145,7 +155,13 @@ class AcpBackend implements ChatBackend {
     // A loaded session replays its history as updates the thread already holds.
     private replaying = false;
     private contextPending: string | null = null;
-    private prompt: { promptId: string | undefined; cancelled: boolean } | null = null;
+    // `started` once the agent said it began this prompt's foreground work, so an idle of an earlier prompt ends nothing.
+    private prompt: PromptState | null = null;
+    // Prompts whose turn ended on the agent's idle while their response is held, each shown as background work until it comes.
+    private readonly released = new Map<PromptState, string>();
+    private releasedCount = 0;
+    // A turn the agent opened itself with no prompt in flight; `spoken` once it reached the thread.
+    private woken: { spoken: boolean } | null = null;
     private model: string | null = null;
     private contextReported = false;
     private commands: string[] = [];
@@ -216,7 +232,11 @@ class AcpBackend implements ChatBackend {
         const capabilities = parseInitialize(
             await transport.request('initialize', {
                 protocolVersion: ACP_PROTOCOL_VERSION,
-                clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false },
+                clientCapabilities: {
+                    fs: { readTextFile: false, writeTextFile: false },
+                    terminal: false,
+                    ...(this.spec.kind === 'copilot' ? { _meta: COPILOT_CLIENT_META } : {})
+                },
                 clientInfo: { name: this.client.name, title: nameOf(this.client), version: this.client.version }
             })
         );
@@ -547,19 +567,30 @@ class AcpBackend implements ChatBackend {
         }
 
         const prompt = this.promptBlocks(input);
-        const turn = { promptId: input.promptId, cancelled: false };
+        const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false };
         this.prompt = turn;
+        this.woken = null;
 
         transport
             .request('session/prompt', { sessionId: this.sessionId, prompt }, { timeoutMs: null })
             .then((result) => {
-                if (this.transport === transport && this.prompt === turn) {
+                if (this.transport !== transport) {
+                    return;
+                }
+
+                if (this.endReleased(turn)) {
+                    this.report(result);
+                } else if (this.prompt === turn) {
                     this.prompt = null;
                     this.report(result);
                     this.emitAll(this.protocol.finish(result, turn.promptId, turn.cancelled));
                 }
             })
             .catch((error: unknown) => {
+                if (this.transport === transport && this.endReleased(turn)) {
+                    return;
+                }
+
                 // A process that went has its exit tell the thread; anything else ends this turn alone.
                 if (this.transport === transport && transport.alive && this.prompt === turn) {
                     this.prompt = null;
@@ -594,6 +625,7 @@ class AcpBackend implements ChatBackend {
         }
 
         if (this.prompt === null) {
+            this.woken = null;
             this.emit({ type: 'turn.done', state: 'aborted', costUsd: 0 });
 
             return;
@@ -701,7 +733,19 @@ class AcpBackend implements ChatBackend {
                 return;
             }
 
-            this.emitAll(this.protocol.update(this.sessionId, frame.params));
+            const events = this.protocol.update(this.sessionId, frame.params);
+
+            if (this.prompt === null && this.woken !== null && events.length > 0) {
+                this.woken.spoken = true;
+            }
+
+            this.emitAll(events);
+
+            return;
+        }
+
+        if (frame.method === COPILOT_SESSION_EVENT && id === null && this.spec.kind === 'copilot') {
+            this.foreground(copilotForegroundOf(frame.params, this.sessionId));
 
             return;
         }
@@ -798,6 +842,70 @@ class AcpBackend implements ChatBackend {
         this.emitAll(question.events);
     }
 
+    /*
+     * Copilot's root agent starting or ending its foreground work. Its idle ends the prompt's turn while a shell it runs
+     * on still holds the response; that shell shows as background work before the turn ends, so a task waiting on this
+     * chat stays open until the response comes. A turn the agent opens itself meanwhile ends on its own idle.
+     */
+    private foreground(state: 'running' | 'idle' | null): void {
+        const turn = this.prompt;
+
+        if (state === 'running') {
+            if (turn !== null) {
+                turn.started = true;
+            } else {
+                this.woken ??= { spoken: false };
+            }
+
+            return;
+        }
+
+        if (state !== 'idle') {
+            return;
+        }
+
+        if (turn !== null && turn.started) {
+            this.prompt = null;
+            const taskId = `held-prompt-${++this.releasedCount}`;
+            const ref = this.protocol.runningAsyncCall;
+            this.released.set(turn, taskId);
+            this.emit({
+                type: 'background.started',
+                taskId,
+                ref,
+                monitor: false,
+                description: ref === null ? `${this.spec.name} works on in the background` : null
+            });
+            this.emitAll(this.protocol.finish({ stopReason: 'end_turn' }, turn.promptId, turn.cancelled));
+
+            return;
+        }
+
+        const woken = this.woken;
+
+        if (turn === null && woken !== null) {
+            this.woken = null;
+
+            if (woken.spoken) {
+                this.emitAll(this.protocol.finish({ stopReason: 'end_turn' }, undefined));
+            }
+        }
+    }
+
+    /* The response of a prompt whose turn ended on the agent's idle: it ends the background work and closes no newer turn. */
+    private endReleased(turn: PromptState): boolean {
+        const taskId = this.released.get(turn);
+
+        if (taskId === undefined) {
+            return false;
+        }
+
+        this.released.delete(turn);
+        this.emit({ type: 'background.ended', taskId });
+
+        return true;
+    }
+
     /* Holds an update until the session is known; of a history a load replays, only the commands, since the thread has the rest. */
     private holdEarly(params: unknown): void {
         const update = sessionUpdateOf(params);
@@ -814,6 +922,8 @@ class AcpBackend implements ChatBackend {
 
         this.transport = null;
         this.prompt = null;
+        this.released.clear();
+        this.woken = null;
         this.protocol.cancelRequests();
         this.emit({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
     }

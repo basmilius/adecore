@@ -98,6 +98,8 @@ test('a turn opens a session, carries the instructions in front of the first pro
         jsonrpc: '2.0',
         params: { protocolVersion: 1, clientCapabilities: { fs: { readTextFile: false, writeTextFile: false }, terminal: false } }
     });
+    // Copilot's opt-in events mean nothing to another agent.
+    expect(fake.sent[0]?.params).not.toHaveProperty(['clientCapabilities', '_meta']);
     expect(fake.events[0]).toMatchObject({ type: 'session', model: 'fake-small', effectiveRuntimeMode: 'supervised', permissionMode: 'ask' });
     fake.backend.sendTurn(turn('hello'));
     const done = await fake.next('turn.done');

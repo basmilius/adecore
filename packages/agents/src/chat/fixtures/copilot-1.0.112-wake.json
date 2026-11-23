@@ -1,0 +1,46 @@
+{
+    "version": "GitHub Copilot CLI 1.0.112, `copilot --acp --stdio`",
+    "source": "Derived from t3code, not recorded: the frame shapes of the replay test in pingdotgg/t3code#37159. The root agent goes idle while a background agent runs and the session/prompt response is held; once that agent finishes, Copilot wakes the root, which reads it, replies and goes idle again, and only then answers the prompt. A test plays this prompt over the recorded handshake of copilot-1.0.101-turn.json.",
+    "prompts": [
+        {
+            "held": true,
+            "updates": [
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.turn_start", "data": {} }
+                    }
+                },
+                { "sessionUpdate": "agent_message_chunk", "content": { "type": "text", "text": "Agents are still working." } },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.idle", "data": {} }
+                    }
+                },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.turn_start", "data": {} }
+                    }
+                },
+                {
+                    "sessionUpdate": "tool_call",
+                    "toolCallId": "read-agent-1",
+                    "title": "read_agent",
+                    "kind": "other",
+                    "status": "completed",
+                    "rawInput": { "agent_id": "agent-1" }
+                },
+                { "sessionUpdate": "agent_message_chunk", "content": { "type": "text", "text": "Agent 1 finished" } },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.idle", "data": {} }
+                    }
+                },
+                { "answer": 0 }
+            ]
+        }
+    ]
+}

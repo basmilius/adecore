@@ -7,13 +7,15 @@ import type { AgentEvent } from '../events.ts';
 import { createAcpProvider } from '../providers/acp-provider.ts';
 import { ModelCatalog } from '../providers/catalog.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
-import { fakeAcpCapture } from '../testing/fake-acp-capture.ts';
+import { fakeAcpCapture, type AcpCapture, type AcpPromptScript } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageScanner } from '../usage/scanner.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
 import capture from './fixtures/copilot-1.0.101-turn.json';
+import heldPrompt from './fixtures/copilot-1.0.110-held-prompt.json';
+import wake from './fixtures/copilot-1.0.112-wake.json';
 
 let home: string;
 let core: ChatCore | null;
@@ -52,8 +54,9 @@ function copilot(options: { usageLog?: string } = {}) {
 // What a host tells every chat first; Copilot names a session after the start of its first prompt, these words included.
 const INSTRUCTIONS = 'You work in a workspace of projects and views, and a shell command lets you read and change them on behalf of the person.';
 
-function open(provider: ReturnType<typeof copilot>) {
-    const fake = inProcess(fakeAcpCapture(capture));
+function open(provider: ReturnType<typeof copilot>, scenario: AcpCapture = capture) {
+    const received: Array<Record<string, unknown>> = [];
+    const fake = inProcess(fakeAcpCapture(scenario, [], received));
     const providers = new ProviderRegistry({ detect: async () => ({ installed: true, version: '1.0.101' }), providers: [provider] });
 
     const chats = new ChatCore({
@@ -70,6 +73,8 @@ function open(provider: ReturnType<typeof copilot>) {
     const items = new Map<string, ChatItem>();
     // What a client would refuse, and so never see: an info it refuses leaves it showing the turn as running.
     const refused: string[] = [];
+    // Every info and item in the order a client read them.
+    const log: Array<ChatInfo | ChatItem> = [];
     const waiters: Array<() => void> = [];
 
     chats.observe((event: AgentEvent) => {
@@ -83,8 +88,10 @@ function open(provider: ReturnType<typeof copilot>) {
 
             if (chatEvent.type === 'info') {
                 info = chatEvent.info;
+                log.push(chatEvent.info);
             } else if (chatEvent.type === 'item') {
                 items.set(chatEvent.item.id, chatEvent.item);
+                log.push(chatEvent.item);
             }
         }
 
@@ -101,8 +108,74 @@ function open(provider: ReturnType<typeof copilot>) {
 
     const turns = () => [...items.values()].filter((item) => item.kind === 'turn');
 
-    return { chats, fake, until, turns, refused, info: () => info, items: () => [...items.values()] };
+    return { chats, fake, until, turns, refused, received, log, info: () => info, items: () => [...items.values()] };
 }
+
+// A scenario derived from t3code, played over the recorded handshake.
+function derived(scenario: { prompts: AcpPromptScript[] }): AcpCapture {
+    return { ...capture, prompts: scenario.prompts };
+}
+
+function texts(chat: ReturnType<typeof open>): string[] {
+    return chat.items().flatMap((item) => (item.kind === 'assistant' ? [item.text] : []));
+}
+
+// Where in what a client read the first entry that passes, -1 for none.
+function firstIn(chat: ReturnType<typeof open>, passes: (entry: ChatInfo | ChatItem) => boolean): number {
+    return chat.log.findIndex(passes);
+}
+
+const isInfo = (entry: ChatInfo | ChatItem): entry is ChatInfo => !('kind' in entry);
+
+test("opts into Copilot's foreground events, ends its turn on the root idle while a shell holds the response, and lets the old prompt close no newer turn", async () => {
+    const chat = open(copilot(), derived(heldPrompt));
+    await chat.chats.create({ chatId: 'copilot', cwd: home, provider: 'copilot' });
+    await chat.chats.send('copilot', 'Run sleep 120 in the background and reply ok.');
+    const queued = await chat.chats.send('copilot', 'Reply with: two');
+    expect(queued.queued).toBe(true);
+
+    await chat.until(
+        () =>
+            chat.turns().filter((turn) => turn.kind === 'turn' && turn.state === 'done').length === 2 &&
+            chat.info()?.activeTurnId === null &&
+            (chat.info()?.background ?? []).length === 0
+    );
+
+    expect(chat.refused).toEqual([]);
+
+    expect(chat.received.find((frame) => frame.method === 'initialize')?.params).toMatchObject({
+        clientCapabilities: { _meta: { 'github.com/copilot': { events: ['assistant.turn_start', 'assistant.idle'] } } }
+    });
+
+    // The queued message went out while the first response was still held, and neither its late response nor its idle took the second turn.
+    expect(chat.received.filter((frame) => frame.method === 'session/prompt')).toHaveLength(2);
+    expect(chat.turns()).toHaveLength(2);
+    expect(texts(chat)).toEqual(['ok', 'two']);
+
+    const shell = firstIn(chat, (entry) => isInfo(entry) && (entry.background ?? []).some((task) => task.kind === 'shell' && task.command === 'sleep 120'));
+    const firstDone = firstIn(chat, (entry) => !isInfo(entry) && entry.kind === 'turn' && entry.state === 'done');
+    expect(shell).toBeGreaterThan(-1);
+    expect(shell).toBeLessThan(firstDone);
+});
+
+test("shows Copilot's reply to a wake once, in a turn of its own that ends on its own idle while the prompt's response is still held", async () => {
+    const chat = open(copilot(), derived(wake));
+    await chat.chats.create({ chatId: 'copilot', cwd: home, provider: 'copilot' });
+    await chat.chats.send('copilot', 'Start a background agent and tell me when it is done.');
+    await chat.until(
+        () => chat.turns().filter((turn) => turn.kind === 'turn' && turn.state === 'done').length === 2 && (chat.info()?.background ?? []).length === 0
+    );
+    expect(chat.refused).toEqual([]);
+    expect(texts(chat)).toEqual(['Agents are still working.', 'Agent 1 finished']);
+    expect(chat.turns().map((turn) => (turn.kind === 'turn' ? (turn.origin ?? 'user') : null))).toEqual(['user', 'agent']);
+
+    const wakeDone = firstIn(chat, (entry) => !isInfo(entry) && entry.kind === 'turn' && entry.origin === 'agent' && entry.state === 'done');
+    const held = firstIn(chat, (entry) => isInfo(entry) && (entry.background ?? []).length > 0);
+    const answered = chat.log.findLastIndex((entry) => isInfo(entry) && (entry.background ?? []).length === 0);
+    expect(held).toBeGreaterThan(-1);
+    expect(wakeDone).toBeLessThan(answered);
+    expect(chat.info()).toMatchObject({ status: 'idle', activeTurnId: null });
+});
 
 test('ends a Copilot turn on its response in what a client reads, and sends the message queued behind it', async () => {
     const chat = open(copilot());

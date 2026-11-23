@@ -1,0 +1,62 @@
+{
+    "version": "GitHub Copilot CLI 1.0.110, `copilot --acp --stdio`",
+    "source": "Derived from t3code, not recorded: the frame shapes of the replay test in pingdotgg/t3code#36122 (github/copilot-cli#5293). Copilot holds the first session/prompt response while an async shell runs and says its root agent is done with the opt-in github.com/copilot/sessionEvent assistant.idle. The second prompt gets the first one's late response and an idle of the first prompt before its own assistant.turn_start. A test plays these prompts over the recorded handshake of copilot-1.0.101-turn.json.",
+    "prompts": [
+        {
+            "held": true,
+            "updates": [
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.idle", "data": {} }
+                    }
+                },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.turn_start", "data": {} }
+                    }
+                },
+                {
+                    "sessionUpdate": "tool_call",
+                    "toolCallId": "shell-1",
+                    "title": "sleep 120",
+                    "kind": "execute",
+                    "status": "completed",
+                    "rawInput": { "command": "sleep 120", "mode": "async", "detach": false }
+                },
+                { "sessionUpdate": "agent_message_chunk", "content": { "type": "text", "text": "ok" } },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.idle", "data": {} }
+                    }
+                }
+            ]
+        },
+        {
+            "updates": [
+                { "answer": 0 },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.idle", "data": {} }
+                    }
+                },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.turn_start", "data": {} }
+                    }
+                },
+                { "sessionUpdate": "agent_message_chunk", "content": { "type": "text", "text": "two" } },
+                {
+                    "notification": {
+                        "method": "github.com/copilot/sessionEvent",
+                        "params": { "sessionId": "copilot-session-1", "type": "assistant.idle", "data": {} }
+                    }
+                }
+            ]
+        }
+    ]
+}

@@ -94,6 +94,33 @@ const GrokCompactedSchema = z.looseObject({
     tokens_after: z.number().int().nonnegative().nullish()
 });
 
+/*
+ * Copilot's own session events, sent only for the types `initialize` lists under `clientCapabilities._meta`. Copilot
+ * holds the `session/prompt` response while an async shell it attached runs (github/copilot-cli#5293), so its root
+ * agent's `assistant.idle` is what ends a foreground turn. Shapes from t3code (#36122, #37159), not from a capture.
+ */
+export const COPILOT_SESSION_EVENT = 'github.com/copilot/sessionEvent';
+
+export const COPILOT_CLIENT_META = { 'github.com/copilot': { events: ['assistant.turn_start', 'assistant.idle'] } };
+
+const CopilotSessionEventSchema = z.looseObject({
+    sessionId: z.string(),
+    type: z.string(),
+    agentId: z.string().optional(),
+    data: z.looseObject({ aborted: z.boolean().optional() }).optional()
+});
+
+/* Whether the root agent of the session starts or ends its foreground work; null for a subagent's event, an aborted one or any other. */
+export function copilotForegroundOf(params: unknown, sessionId: string): 'running' | 'idle' | null {
+    const event = CopilotSessionEventSchema.safeParse(params);
+
+    if (!event.success || event.data.sessionId !== sessionId || event.data.agentId !== undefined || event.data.data?.aborted === true) {
+        return null;
+    }
+
+    return event.data.type === 'assistant.turn_start' ? 'running' : event.data.type === 'assistant.idle' ? 'idle' : null;
+}
+
 const PromptResponseSchema = z.looseObject({ stopReason: z.string() });
 
 const tokenCount = z.number().int().nonnegative();
@@ -950,6 +977,8 @@ export class AcpProtocol {
     private compacting: { preTokens: number; postTokens: number; held: BackendEvent[] } | null = null;
     // The opening prompts of the process, whitespace folded, which an agent may hand back as the session's title.
     private readonly prompts: string[] = [];
+    // This turn's last call that runs its command on past it (`mode: "async"`), which a held prompt waits on.
+    private asyncCall: string | null = null;
 
     private readonly titles: boolean;
 
@@ -989,6 +1018,11 @@ export class AcpProtocol {
         }
 
         return [];
+    }
+
+    /* The call of this turn whose command runs on past it; the end of the turn forgets it. */
+    get runningAsyncCall(): string | null {
+        return this.asyncCall;
     }
 
     /* The next turn is the agent's `/compact`, which ends as one marker in place of its text. */
@@ -1394,6 +1428,7 @@ export class AcpProtocol {
         const stopReason = parsed.success ? parsed.data.stopReason : 'end_turn';
         const reason = cancelled ? 'cancelled' : stopReason === 'cancelled' ? 'end_turn' : stopReason;
         this.refusalLine = false;
+        this.asyncCall = null;
         const events = this.counted([...this.closeText(), ...this.closeThought(), ...this.vendorUsage(isRecord(result) ? result._meta : undefined)]);
         this.spoken.clear();
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
@@ -1438,6 +1473,7 @@ export class AcpProtocol {
     /* A turn that ended without a `stopReason`: the request failed, on a limit its error names, or was cancelled before the agent said so. */
     abort(promptId: string | undefined, error: string | null, limit: ChatTurnLimit | null = null): BackendEvent[] {
         this.refusalLine = false;
+        this.asyncCall = null;
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
         const events = this.counted([...this.closeText(), ...this.closeThought()]);
         this.spoken.clear();
@@ -1575,6 +1611,10 @@ export class AcpProtocol {
         tool.rawInput = call.rawInput ?? tool.rawInput;
         tool.rawOutput = call.rawOutput ?? tool.rawOutput;
         tool.mcp = mark === undefined ? tool.mcp : mark;
+
+        if (isRecord(tool.rawInput) && tool.rawInput.mode === 'async') {
+            this.asyncCall = call.toolCallId;
+        }
 
         if (call.locations) {
             tool.locations = validItems(LocationSchema, call.locations).map((location) => location.path);
