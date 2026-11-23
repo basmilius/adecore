@@ -241,6 +241,8 @@ export class ChatSession {
     // A change a running process is still taking; a second start in the meantime waits for it instead of sending its own.
     private reconfiguring: { backend: ChatBackend; done: Promise<ChatBackend> } | null = null;
     private pendingStart: { turnId: string; warning: unknown } | null = null;
+    // The start whose process exited before it was up; the exit's note already says why it failed.
+    private exitedStart: { turnId: string; warning: unknown } | null = null;
     // The timer of a turn whose CLI may go quiet, and the turn that already said it did.
     private quietWatch: unknown = null;
     private quietTurnId: string | null = null;
@@ -2421,6 +2423,10 @@ export class ChatSession {
                         return;
                     }
 
+                    if (this.exitedStart === pending) {
+                        return;
+                    }
+
                     this.receive(generation, { type: 'failed', message: errorText(error), processAlive: this.running });
                 }
             });
@@ -2889,6 +2895,7 @@ export class ChatSession {
             this.backend = null;
             this.starting = null;
             this.awaitingBackgroundReport = false;
+            this.exitedStart = this.pendingStart;
         }
 
         // A turn we settled ourselves still has its own `result` coming; it may not close the turn after it.

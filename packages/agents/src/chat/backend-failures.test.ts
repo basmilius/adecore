@@ -299,6 +299,31 @@ test('a Codex chat whose app-server never answers fails its turn within a minute
     await session.dispose();
 });
 
+test('a Codex app-server that exits before it starts shows what it said on stderr once', async () => {
+    const fake = inProcess(fakeCodexWith({ exitBeforeInit: 'error: unknown flag --listen' }));
+
+    const session = new ChatSession({
+        info: { ...info(), provider: 'codex', selection: codexProvider.catalog.normalize(undefined) },
+        provider: codexProvider,
+        env: () => ({}),
+        spawn: fake.spawn,
+        emit: () => undefined,
+        persist: () => undefined,
+        persistSoon: () => undefined
+    });
+
+    const { turnId } = session.send('hello');
+    await fake.started[0]!.exited;
+    await flush();
+    expect(session.thread.get(turnId)).toMatchObject({ kind: 'turn', state: 'error' });
+    expect(session.thread.list().filter((item) => item.kind === 'note')).toEqual([
+        expect.objectContaining({ level: 'error', text: 'Codex exited with code 1\n\n```\nerror: unknown flag --listen\n```' })
+    ]);
+    expect(session.info.status).toBe('error');
+    expect(session.running).toBe(false);
+    await session.dispose();
+});
+
 test('Codex keeps a thread it could not resume in time instead of starting another', async () => {
     jest.useFakeTimers();
     const methods: string[] = [];
