@@ -856,6 +856,17 @@ describe('ClaudeProtocol', () => {
         ]);
     });
 
+    test('a conversation reset empties the context and drops the goal of the conversation it discarded', () => {
+        const protocol = new ClaudeProtocol(claudeGoalFromCommand('Goal set: ship it', null) ?? null);
+        const reset = { type: 'conversation_reset', new_conversation_id: 'b', uuid: 'r1', session_id: 'a', trigger: 'clear' };
+
+        expect(protocol.handle(reset)).toEqual([
+            { type: 'usage', contextTokens: 0 },
+            { type: 'goal', goal: null }
+        ]);
+        expect(protocol.handle(reset)).toEqual([{ type: 'usage', contextTokens: 0 }]);
+    });
+
     test('a compaction boundary reports the size before the fold', () => {
         const protocol = new ClaudeProtocol();
 

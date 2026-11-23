@@ -430,6 +430,16 @@ export class ClaudeProtocol {
 
                 break;
             }
+            // `/clear` and its kin discard the conversation; the next `init` names the new one.
+            case 'conversation_reset':
+                this.cacheMessageId = null;
+                events.push({ type: 'usage', contextTokens: 0 });
+
+                if (this.goal !== null) {
+                    this.setGoal(null, events);
+                }
+
+                break;
             case 'tool_progress':
                 this.handleToolProgress(frame, events);
 

@@ -20,7 +20,9 @@ function flagValue(args: readonly string[], flag: string): string | undefined {
 
 export function fakeClaude(io: FakeIo): FakeProgram {
     const args = io.argv;
-    const sessionId = flagValue(args, '--resume') ?? `fake-${Math.random().toString(36).slice(2, 8)}`;
+    const newSessionId = (): string => `fake-${Math.random().toString(36).slice(2, 8)}`;
+    // `/clear` moves the session to a new conversation.
+    let sessionId = flagValue(args, '--resume') ?? newSessionId();
     let model = flagValue(args, '--model') ?? 'fake-model';
     let switched = false;
     const out = io.out;
@@ -31,6 +33,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
     // A real message id is unique across processes, which a fork's thread holding a resumed CLI's replies relies on.
     const nonce = Math.random().toString(36).slice(2, 6);
     const usage = { input_tokens: 10, cache_creation_input_tokens: 100, cache_read_input_tokens: 1000, output_tokens: 5 };
+    const noUsage = { input_tokens: 0, cache_creation_input_tokens: 0, cache_read_input_tokens: 0, output_tokens: 0 };
 
     const assistantText = (text: string): void => {
         const id = `msg_${nonce}_${++messageCounter}`;
@@ -530,6 +533,33 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
         if (text.split('\n').includes('overloaded')) {
             refusal('API Error: Repeated 529 Overloaded errors', 'overloaded', 529);
+
+            return;
+        }
+
+        // A local command answers with a synthetic message and a result that spent nothing, as `/goal` does.
+        if (text.startsWith('/goal ')) {
+            const id = `msg_${nonce}_${++messageCounter}`;
+
+            out({
+                type: 'assistant',
+                message: { id, model: '<synthetic>', role: 'assistant', content: [{ type: 'text', text: `Goal set: ${text.slice(6).trim()}` }] },
+                parent_tool_use_id: null,
+                session_id: sessionId
+            });
+
+            out({ type: 'result', subtype: 'success', is_error: false, num_turns: 0, total_cost_usd: 0, usage: noUsage, session_id: sessionId });
+
+            return;
+        }
+
+        // `/clear` discards the conversation: the reset, a result that spent nothing, and an init under a new session id.
+        if (text === '/clear') {
+            const previous = sessionId;
+            sessionId = newSessionId();
+            out({ type: 'conversation_reset', new_conversation_id: sessionId, uuid: `reset-${nonce}`, session_id: previous, trigger: 'clear' });
+            out({ type: 'result', subtype: 'success', is_error: false, num_turns: 0, total_cost_usd: 0, usage: noUsage, session_id: sessionId });
+            out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
 
             return;
         }
