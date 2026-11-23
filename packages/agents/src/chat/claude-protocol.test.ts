@@ -12,6 +12,7 @@ import compact319 from './fixtures/claude-2.1.319-resume-direct-compact.json';
 import autoBackgroundCapture from './fixtures/claude-2.1.322-auto-background.json';
 import foregroundBashCapture from './fixtures/claude-2.1.322-foreground-bash.json';
 import informationalCapture from './fixtures/claude-2.1.322-informational.json';
+import textBeforeToolCapture from './fixtures/claude-2.1.322-text-before-tool.json';
 import { ThreadProjector } from './projector.ts';
 import { ChatThread } from './thread.ts';
 
@@ -120,6 +121,25 @@ describe('ClaudeProtocol', () => {
         const events = compactCapture.frames.flatMap((frame) => protocol.handle(frame));
         expect(events.filter((event) => event.type === 'turn.done')).toEqual([expect.objectContaining({ promptId, state: 'done' })]);
         expect(events.filter((event) => event.type === 'compaction')).toHaveLength(1);
+    });
+
+    test('the sentence before a tool call is assistant text, and a thinking block with only a signature shows nothing', () => {
+        const protocol = new ClaudeProtocol();
+        const thread = fixtureThread('text-before-tool-fixture');
+        const projector = new ThreadProjector(thread, { providerName: 'Claude' });
+
+        for (const frame of textBeforeToolCapture.frames) {
+            for (const event of protocol.handle(frame)) {
+                projector.project(1, event);
+            }
+        }
+
+        expect(
+            thread
+                .list()
+                .filter((item) => item.kind !== 'turn')
+                .map((item) => (item.kind === 'assistant' ? item.text : item.kind))
+        ).toEqual(['Ik toon eerst de huidige werkmap.', 'tool', 'Nu draai ik het tweede commando.', 'tool', 'ok']);
     });
 
     test('live native children retain nine identities through nesting and SendMessage reuse', () => {
