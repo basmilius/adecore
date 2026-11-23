@@ -356,6 +356,11 @@ export class ChatChild {
         return this.process.pid;
     }
 
+    // Whether this side sent the CLI a signal, so a signal it died of was not news.
+    get signaled(): boolean {
+        return this.ending !== null;
+    }
+
     /* Ends the CLI once the grace is over and it has not left on its own; the caller closed its input. */
     endAfterGrace(): void {
         if (this.hasExited || this.graceTimer !== null || this.ending !== null) {

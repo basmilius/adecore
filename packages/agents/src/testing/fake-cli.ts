@@ -27,6 +27,8 @@ interface StartedFake {
     runLater(): void;
     // Ends the fake in the middle of whatever it does, as a crash would.
     crash(code: number): void;
+    // Ends the fake as a signal from outside would, with no exit code of its own.
+    killBy(signal: string): void;
     // Settles once the backend has heard the exit and read everything written before it.
     readonly exited: Promise<number | null>;
 }
@@ -60,6 +62,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
         const deferred: Array<() => void> = [];
         let ended = false;
         let exitCode: number | null = null;
+        let exitSignal: string | null = null;
         let inputClosed = false;
         let pending = '';
         let wake: (() => void) | null = null;
@@ -76,13 +79,14 @@ export function inProcess(cli: FakeCli): InProcessCli {
             waiting?.();
         };
 
-        const exit = (code: number | null): void => {
+        const exit = (code: number | null, signal: string | null = null): void => {
             if (ended) {
                 return;
             }
 
             ended = true;
             exitCode = code;
+            exitSignal = signal;
             // A pipe closes with the process that held it.
             stderrController?.close();
             nudge();
@@ -129,7 +133,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
                     }
 
                     controller.close();
-                    options.onExit(exitCode);
+                    options.onExit(exitCode, exitSignal);
                     settleExited(exitCode);
                 }
             },
@@ -175,6 +179,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
                 }
             },
             crash: (code) => exit(code),
+            killBy: (signal) => exit(null, signal),
             exited
         });
 
@@ -184,7 +189,7 @@ export function inProcess(cli: FakeCli): InProcessCli {
             stdout,
             stderr,
             // A signal ends a real process without an exit code of its own.
-            kill: () => exit(null)
+            kill: (signal) => exit(null, signal)
         };
     };
 

@@ -377,6 +377,13 @@ describe('ThreadProjector', () => {
         expect(thread.info).toMatchObject({ running: false, status: 'error', activeTurnId: null });
     });
 
+    test('an exit by a signal names the signal', () => {
+        const { thread, project } = setup();
+        project({ type: 'text.delta', ref: 'msg_1:t0', text: 'half' });
+        project({ type: 'exit', exitCode: null, signal: 'SIGABRT' });
+        expect(thread.list().at(-1)).toMatchObject({ kind: 'note', level: 'error', text: 'Test CLI was killed by SIGABRT' });
+    });
+
     test('the last of stderr follows the reason in a code block that its own backticks cannot close', () => {
         const { thread, project } = setup();
         project({ type: 'exit', exitCode: 2, stderr: 'Error: no key\n```oops```' });

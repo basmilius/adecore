@@ -234,8 +234,8 @@ export type BackendEvent =
       }
     // The CLI could not be reached or refused the request; the turn ends and the chat needs a new one.
     | { type: 'failed'; message: string; processAlive?: boolean }
-    // `stderr` is the last of what the CLI wrote there, for an exit with an error code.
-    | { type: 'exit'; exitCode: number | null; stderr?: string };
+    // `stderr` is the last of what the CLI wrote there, for an exit with an error code. `signal` is one the backend did not send.
+    | { type: 'exit'; exitCode: number | null; stderr?: string; signal?: string };
 
 export interface BackendHost {
     onEvent(event: BackendEvent): void;

@@ -54,6 +54,14 @@ export function fenced(text: string): string {
     return `${fence}\n${text}\n${fence}`;
 }
 
+function exitReason(providerName: string, exitCode: number | null, signal: string | null): string {
+    if (signal !== null) {
+        return `${providerName} was killed by ${signal}`;
+    }
+
+    return exitCode === null ? `${providerName} stopped` : `${providerName} exited with code ${exitCode}`;
+}
+
 // The Agent tool is what Claude Code calls a delegation; older builds and other CLIs say Task.
 function isAgentTool(name: string): boolean {
     return name === 'Agent' || name === 'Task';
@@ -518,7 +526,7 @@ export class ThreadProjector {
             case 'exit':
                 this.pendingMetadata.clear();
                 events.push(this.thread.patchInfo({ effectiveRuntimeMode: undefined, permissionMode: undefined }));
-                this.finishProcess(event.exitCode, event.stderr ?? null, events);
+                this.finishProcess(event.exitCode, event.stderr ?? null, event.signal ?? null, events);
 
                 break;
         }
@@ -1172,14 +1180,14 @@ export class ThreadProjector {
         );
     }
 
-    private finishProcess(exitCode: number | null, stderr: string | null, events: ChatEvent[]): void {
+    private finishProcess(exitCode: number | null, stderr: string | null, signal: string | null, events: ChatEvent[]): void {
         this.settleOpenItems(events, true);
         // Waiting on a person between turns is not a turn the process took down with it.
         const { status, activeTurnId } = this.thread.info;
         const busy = status === 'running' || (status === 'needs-you' && activeTurnId !== null);
 
         if (busy || (exitCode !== null && exitCode !== 0)) {
-            const reason = exitCode === null ? `${this.providerName} stopped` : `${this.providerName} exited with code ${exitCode}`;
+            const reason = exitReason(this.providerName, exitCode, signal);
             // A note shows its first line and folds the rest open as markdown.
             events.push(this.note('error', stderr === null ? reason : `${reason}\n\n${fenced(stderr)}`));
         }

@@ -543,7 +543,7 @@ export class ClaudeBackend implements ChatBackend {
                 this.childExited = true;
                 // The SDK may still hold messages read before the exit; they reach the host first, unless a process the
                 // CLI started holds its stdout open, which would keep the stream from ever ending.
-                void Promise.race([this.pumping, settleAfter(EXIT_DRAIN_MS)]).then(() => this.handleExit(child, code, stderr));
+                void Promise.race([this.pumping, settleAfter(EXIT_DRAIN_MS)]).then(() => this.handleExit(child, code, stderr, signal ?? null));
                 events.emit('exit', code, signalCode);
             }
         });
@@ -869,7 +869,7 @@ export class ClaudeBackend implements ChatBackend {
         }
     }
 
-    private handleExit(child: ChatChild, exitCode: number | null, stderr: string | null): void {
+    private handleExit(child: ChatChild, exitCode: number | null, stderr: string | null, signal: string | null): void {
         if (this.child !== child) {
             return;
         }
@@ -884,7 +884,8 @@ export class ClaudeBackend implements ChatBackend {
         this.protocol.forgetPending();
         // Ends a stream a process the CLI started may still hold open; the CLI is gone, so this signals nothing.
         running?.close();
-        this.host.onEvent({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
+        const foreign = signal === null || child.signaled ? {} : { signal };
+        this.host.onEvent({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }), ...foreign });
     }
 
     /* Answers every request the CLI still waits on, so no `canUseTool` or `onElicitation` promise is left hanging once the backend lets go. */

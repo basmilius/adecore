@@ -618,6 +618,17 @@ describe('the Claude backend', () => {
         expect(reason).toContain('Claude stopped before it got your message');
     });
 
+    test('names a signal from outside that killed the CLI mid-turn', async () => {
+        const script = scripted();
+        const run = open(script.cli);
+        await run.backend.start();
+        run.backend.sendTurn(turn('start'));
+        await until(() => script.users().length === 1);
+        run.cli.started[0]!.killBy('SIGABRT');
+        await until(() => run.events.some((event) => event.type === 'exit'));
+        expect(run.events.find((event) => event.type === 'exit')).toEqual({ type: 'exit', exitCode: null, signal: 'SIGABRT' });
+    });
+
     test('waits for a steer through the whole turn, and rejects one it never echoed a grace after the turn ended', async () => {
         const script = scripted();
         const run = open(script.cli);
