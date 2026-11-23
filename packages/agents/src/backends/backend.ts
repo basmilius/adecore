@@ -34,6 +34,8 @@ export interface ChatMcpServer {
     tokenVariable?: string;
     // True runs every tool of the server without asking, in any runtime mode, for a server that checks each call itself.
     allowTools?: boolean;
+    // True offers every tool to the model directly, never from a script or a later search, for a server whose calls may wait long.
+    directTools?: boolean;
 }
 
 export interface BackendLaunch {

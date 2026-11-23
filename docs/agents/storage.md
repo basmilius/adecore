@@ -65,6 +65,6 @@ Atomic writes, serializers and the error checks the stores use come from [`@adec
 
 ## Generated image attachments
 
-The Codex adapter validates generated image bytes (PNG, JPEG, GIF, WebP) and never reads the path where the provider saved them. `AttachmentStore.saveGenerated(chatId, ref, upload)` stores the image under the provider's item id and never overwrites one. A repeated completion reuses the file. A replay with other bytes under the same id fails. `ChatCore.attachment` finds generated images as well as attached files.
+The Codex adapter validates generated image bytes (PNG, JPEG, GIF, WebP). An item that carries them inline is never read from the path where the provider saved it. An item with a `fileId` and no inline bytes is read from its `savedPath`, only when that path lies inside the `codexHome` the app-server named in `initialize`, links resolved; any other path is refused with a message in the thread. `AttachmentStore.saveGenerated(chatId, ref, upload)` stores the image under the provider's item id and never overwrites one. A repeated completion reuses the file. A replay with other bytes under the same id fails. `ChatCore.attachment` finds generated images as well as attached files.
 
 `AttachmentStore.copy(chatId, attachment)` gives a fork its own copy with the same id, so deleting the original leaves the fork's images.

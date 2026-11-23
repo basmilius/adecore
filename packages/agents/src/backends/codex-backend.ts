@@ -1,14 +1,17 @@
 import { randomUUID } from 'node:crypto';
 import { accessSync, constants } from 'node:fs';
 import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill } from '@adecore/agent-contracts';
+import { withTimeout } from '@adecore/utils/async';
 import { isRecord } from '@adecore/utils/record';
 import { errorText } from '../error-text.ts';
 import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { codexMcpArgs } from './cli-mcp.ts';
-import { codexGoal, CodexProtocol } from './codex-protocol.ts';
+import { codexGoal, CodexProtocol, spentUntil } from './codex-protocol.ts';
 import { CodexTransport, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
 import { codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
+import { CODEX_READ_TIMEOUT_MS } from './limits-probe.ts';
+import { readCodexLimitsAnswer } from './limits.ts';
 
 const SUGGESTION_PROMPT = [
     'Predict the next message the user is most likely to send you in this conversation.',
@@ -80,10 +83,12 @@ function goalLine(goal: ChatGoal): string {
 interface CodexBackendOptions {
     // How the host names itself in `initialize`.
     client: CodexClientInfo;
+    // What the installed Codex's `--version` said; absent or null while unknown.
+    version?: string | null;
 }
 
 /* The arguments that load the launch's MCP servers into an app-server, which reads them from its command line and the token from its environment. */
-function mcpArgsOf(launch: BackendLaunch): { args: string[]; skipped: string[] } {
+function mcpArgsOf(launch: BackendLaunch, version: string | null): { args: string[]; skipped: string[] } {
     const args: string[] = [];
     const skipped: string[] = [];
 
@@ -91,7 +96,13 @@ function mcpArgsOf(launch: BackendLaunch): { args: string[]; skipped: string[] }
         if (server.tokenVariable === undefined) {
             skipped.push(server.name);
         } else {
-            args.push(...codexMcpArgs({ name: server.name, url: server.url, tokenVariable: server.tokenVariable }, server.allowTools === true));
+            args.push(
+                ...codexMcpArgs(
+                    { name: server.name, url: server.url, tokenVariable: server.tokenVariable, directTools: server.directTools === true },
+                    server.allowTools === true,
+                    version
+                )
+            );
         }
     }
 
@@ -110,9 +121,11 @@ export class CodexBackend implements ChatBackend {
     private readonly host: BackendHost;
     private readonly protocol: CodexProtocol;
     private readonly client: CodexClientInfo;
+    private readonly version: string | null;
     private promptId: string | null = null;
     private nativePrompt: { turnId: string; promptId: string } | null = null;
-    private imageWrites: Promise<void> | null = null;
+    // Events held in order behind an image being saved or a limit's reset being read.
+    private ordered: Promise<void> | null = null;
     private transport: CodexTransport | null = null;
     private threadId = '';
     // Codex ignores developer instructions on `thread/resume` (measured on 0.154 and 0.163), so the first prompt of a resumed process carries them.
@@ -129,6 +142,7 @@ export class CodexBackend implements ChatBackend {
         this.launch = launch;
         this.host = host;
         this.client = options.client;
+        this.version = options.version ?? null;
         this.protocol = new CodexProtocol(launch.generation);
         this.threadId = launch.resume ?? '';
     }
@@ -146,7 +160,7 @@ export class CodexBackend implements ChatBackend {
             return;
         }
 
-        const mcp = mcpArgsOf(this.launch);
+        const mcp = mcpArgsOf(this.launch, this.version);
 
         const transport = new CodexTransport({
             command: [...this.launch.command, ...mcp.args],
@@ -182,7 +196,11 @@ export class CodexBackend implements ChatBackend {
     }
 
     private async handshake(transport: CodexTransport): Promise<void> {
-        await transport.request('initialize', { clientInfo: this.client, capabilities: { experimentalApi: true, requestAttestation: false } });
+        const initialized = await transport.request('initialize', {
+            clientInfo: this.client,
+            capabilities: { experimentalApi: true, requestAttestation: false }
+        });
+        this.protocol.codexHome = isRecord(initialized) && typeof initialized.codexHome === 'string' ? initialized.codexHome : null;
         transport.notify('initialized', {});
         const tier = codexServiceTier(this.launch.selection);
 
@@ -718,7 +736,7 @@ export class CodexBackend implements ChatBackend {
         const transport = this.transport;
         this.transport = null;
 
-        return Promise.all([transport?.dispose(), this.imageWrites]).then(() => undefined);
+        return Promise.all([transport?.dispose(), this.ordered]).then(() => undefined);
     }
 
     /* A request whose failure the person has to hear about, since it is the turn that cannot go on. */
@@ -814,21 +832,25 @@ export class CodexBackend implements ChatBackend {
             this.nativePrompt = null;
         }
 
-        if (event.type === 'image.generated' || this.imageWrites !== null) {
-            const pending = (this.imageWrites ?? Promise.resolve()).then(async () => {
+        const resetUnknown = event.type === 'turn.done' && event.limit?.kind === 'usage' && event.limit.resetsAt === undefined;
+
+        if (event.type === 'image.generated' || resetUnknown || this.ordered !== null) {
+            const pending = (this.ordered ?? Promise.resolve()).then(async () => {
                 if (event.type === 'image.generated') {
                     await this.storeImage(event);
+                } else if (resetUnknown && event.type === 'turn.done') {
+                    this.host.onEvent(await this.withReset(event));
                 } else {
                     this.host.onEvent(event);
                 }
             });
 
-            this.imageWrites = pending;
+            this.ordered = pending;
 
             void pending
                 .finally(() => {
-                    if (this.imageWrites === pending) {
-                        this.imageWrites = null;
+                    if (this.ordered === pending) {
+                        this.ordered = null;
                     }
                 })
                 .catch(() => undefined);
@@ -837,6 +859,31 @@ export class CodexBackend implements ChatBackend {
         }
 
         this.host.onEvent(event);
+    }
+
+    /*
+     * A usage limit on a first request can come without any window update to say when it lifts, so
+     * the plan is read once before the turn ends; an update that arrives meanwhile wins.
+     */
+    private async withReset(event: Extract<BackendEvent, { type: 'turn.done' }>): Promise<BackendEvent> {
+        let readReset: number | null = null;
+
+        try {
+            const answer = await withTimeout(
+                this.transport?.request('account/rateLimits/read', undefined) ?? Promise.reject(new Error('Codex is gone')),
+                CODEX_READ_TIMEOUT_MS,
+                'Codex did not answer in time'
+            );
+
+            const reading = readCodexLimitsAnswer(answer);
+            readReset = reading === null ? null : spentUntil(reading.windows);
+        } catch {
+            // Without a reset the limit still ends the turn; resuming is then left to a person.
+        }
+
+        const resetsAt = this.protocol.spentResetsAt ?? readReset;
+
+        return resetsAt === null ? event : { ...event, limit: { ...event.limit, kind: 'usage', resetsAt } };
     }
 
     private async storeImage(event: Extract<BackendEvent, { type: 'image.generated' }>): Promise<void> {

@@ -2,9 +2,13 @@
  * Network-free `codex app-server` fake. Prompt commands exercise approvals, edits, questions,
  * interrupts, failures, names, subagents, pagination, forks and goals through the real JSON-RPC shapes.
  */
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import type { FakeCli } from './fake-cli.ts';
 
 type Frame = Record<string, unknown>;
+
+const ONE_PIXEL_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
 
 type PendingApproval = { rpcId: number; entry: Frame; kind: 'command' | 'fileChange' };
 
@@ -28,6 +32,10 @@ export interface FakeCodexOptions {
     resumeLead?: string;
     // False answers `thread/inject_items` the way an app-server without it does.
     injectItems?: boolean;
+    // A startup status Codex sends for an MCP server right after the thread starts, before any turn.
+    mcpStartup?: { name: string; status: 'starting' | 'ready' | 'failed' | 'cancelled'; error: string | null };
+    // What `account/rateLimits/read` answers; `late` holds the answer back until the test says later is, as a slow read does.
+    rateLimitsRead?: { result: Frame; late?: boolean };
 }
 
 export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
@@ -250,6 +258,14 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
             const limit = lines.find((line) => line.startsWith('limit:'));
 
+            // A limit on the first request, where Codex 0.16x sends only an empty `premium` update.
+            if (limit === 'limit:unknown') {
+                notify('account/rateLimits/updated', { rateLimits: { limitId: 'premium', primary: null, secondary: null } });
+                turnCompleted('failed', "You've hit your usage limit.", 'usageLimitExceeded');
+
+                return;
+            }
+
             if (limit !== undefined) {
                 notify('account/rateLimits/updated', {
                     rateLimits: {
@@ -277,6 +293,23 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
                 started(entry);
 
+                // Codex 0.166 names the file in its own store and leaves `result` out; `outside` names one beyond its home.
+                if (scenario === 'fileid' || scenario === 'fileid outside') {
+                    const savedPath = scenario === 'fileid' ? join(io.cwd, 'generated_images', `${String(entry.id)}.png`) : '/never-read-generated-image.png';
+
+                    if (scenario === 'fileid') {
+                        mkdirSync(dirname(savedPath), { recursive: true });
+                        writeFileSync(savedPath, Buffer.from(ONE_PIXEL_PNG, 'base64'));
+                    }
+
+                    const { result: _inline, ...saved } = entry;
+                    completed({ ...saved, status: 'completed', fileId: `file-${nonce}`, savedPath });
+                    agentMessage('Here is the generated image.');
+                    turnCompleted('completed');
+
+                    return;
+                }
+
                 const result =
                     scenario === 'empty'
                         ? ''
@@ -286,7 +319,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                             ? Buffer.from('text').toString('base64')
                             : scenario === 'too-large'
                               ? Buffer.alloc(10 * 1024 * 1024 + 1).toString('base64')
-                              : 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=';
+                              : ONE_PIXEL_PNG;
 
                 const done = {
                     ...entry,
@@ -573,6 +606,10 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
                     notify('thread/started', { thread });
 
+                    if (options.mcpStartup !== undefined) {
+                        notify('mcpServer/startupStatus/updated', options.mcpStartup);
+                    }
+
                     return;
                 }
                 case 'thread/inject_items': {
@@ -740,6 +777,25 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                     turnCompleted('completed');
 
                     return;
+                case 'account/rateLimits/read': {
+                    const read = options.rateLimitsRead;
+
+                    if (read === undefined) {
+                        out({ id, error: { code: -32601, message: `unknown method ${method}` } });
+
+                        return;
+                    }
+
+                    const answer = (): void => out({ id, result: read.result });
+
+                    if (read.late) {
+                        io.later(answer);
+                    } else {
+                        answer();
+                    }
+
+                    return;
+                }
                 default:
                     out({ id, error: { code: -32601, message: `unknown method ${method}` } });
             }

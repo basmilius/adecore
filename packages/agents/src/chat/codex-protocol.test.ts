@@ -1,8 +1,16 @@
-import { describe, expect, test } from 'bun:test';
-import type { BackendEvent } from '../backends/backend.ts';
-import { parseGoalCommand } from '../backends/codex-backend.ts';
+import { afterAll, describe, expect, test } from 'bun:test';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import type { ChatAttachment, ChatAttachmentUpload } from '@adecore/agent-contracts';
+import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
+import { CodexBackend, parseGoalCommand } from '../backends/codex-backend.ts';
 import { codexGoal, CodexProtocol, unwrapCommand } from '../backends/codex-protocol.ts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
+import { inProcess } from '../testing/fake-cli.ts';
+import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
 import { codexProvider } from '../testing/providers.ts';
+import { flush } from './chat-session.fixture.test.ts';
 import nativeApprovalCapture from './fixtures/codex-0.159.2-native-approval.json';
 import nativeFileApprovalCapture from './fixtures/codex-0.159.2-native-file-approval.json';
 import nativeInteractedCapture from './fixtures/codex-0.159.2-native-interacted.json';
@@ -1220,5 +1228,105 @@ describe('goals', () => {
         ]);
         expect(protocol.handle({ method: 'thread/goal/updated', params: { threadId: 'child', turnId: null, goal } })).toEqual([]);
         expect(protocol.handle({ method: 'thread/goal/cleared', params: { threadId: 'own' } })).toEqual([{ type: 'goal', goal: null }]);
+    });
+});
+
+/* Runs a fake app-server through the real backend, with one prompt or none, and answers what the backend emitted. */
+async function runCodex(options: FakeCodexOptions, prompt: string | null, extra: Partial<BackendLaunch> = {}): Promise<BackendEvent[]> {
+    const events: BackendEvent[] = [];
+    const fake = inProcess(fakeCodexWith(options));
+
+    const launch: BackendLaunch = {
+        command: ['codex'],
+        cwd: '/tmp',
+        env: {},
+        selection: codexProvider.catalog.normalize(undefined),
+        modelName: 'Codex',
+        runtimeMode: 'supervised',
+        resume: null,
+        generation: 1,
+        instructions: null,
+        resumeNote: null,
+        spawn: fake.spawn,
+        ...extra
+    };
+
+    const backend = new CodexBackend(launch, { onEvent: (event) => events.push(event) }, { client: DEFAULT_CODEX_CLIENT });
+    await backend.start();
+
+    if (prompt !== null) {
+        backend.sendTurn({ text: prompt, preamble: null, attachments: [], mentions: [], skills: [] });
+    }
+
+    await flush();
+    await backend.dispose();
+
+    return events;
+}
+
+describe('MCP server startup', () => {
+    async function startWith(mcpStartup: FakeCodexOptions['mcpStartup']) {
+        const thread = new ChatThread({
+            chatId: 'probe',
+            provider: 'codex',
+            cwd: '/tmp',
+            agentSessionId: null,
+            model: null,
+            selection: codexProvider.catalog.normalize(undefined),
+            runtimeMode: 'supervised',
+            running: true,
+            status: 'idle',
+            activeTurnId: null,
+            slashCommands: [],
+            usage: { contextTokens: 0, contextWindow: null, costUsd: 0, turns: 0 },
+            createdAt: 1
+        });
+
+        const projector = new ThreadProjector(thread, { providerName: 'Codex' });
+
+        for (const event of await runCodex({ mcpStartup }, null)) {
+            projector.project(1, event);
+        }
+
+        return thread.list().filter((item) => item.kind === 'note');
+    }
+
+    test('a server that failed to start before the first turn leaves one warning with its name and error', async () => {
+        const notes = await startWith({ name: 'ruimte', status: 'failed', error: '401 Unauthorized' });
+
+        expect(notes).toEqual([expect.objectContaining({ level: 'warning', turnId: null, text: expect.stringMatching(/"ruimte".*401 Unauthorized/) })]);
+    });
+
+    test('a server that is ready says nothing', async () => {
+        expect(await startWith({ name: 'ruimte', status: 'ready', error: null })).toEqual([]);
+    });
+});
+
+describe('Codex generated images saved to disk', () => {
+    const home = mkdtempSync(join(tmpdir(), 'fake-codex-home-'));
+    const saved: ChatAttachmentUpload[] = [];
+
+    const saveGeneratedImage = async (ref: string, upload: ChatAttachmentUpload): Promise<ChatAttachment> => {
+        saved.push(upload);
+
+        return { id: ref, name: upload.name, mime: upload.mime, size: 1, path: `/attachments/${upload.name}` };
+    };
+
+    afterAll(() => rmSync(home, { recursive: true, force: true }));
+
+    test('an image Codex saved in its home is stored and shown', async () => {
+        saved.length = 0;
+        const events = await runCodex({}, 'image:fileid', { cwd: home, saveGeneratedImage });
+
+        expect(saved).toEqual([expect.objectContaining({ mime: 'image/png', name: 'a-rabbit.png' })]);
+        expect(events).toContainEqual(expect.objectContaining({ type: 'tool.done', state: 'done' }));
+    });
+
+    test('an image saved outside Codex home is refused and says so', async () => {
+        saved.length = 0;
+        const events = await runCodex({}, 'image:fileid outside', { cwd: home, saveGeneratedImage });
+
+        expect(saved).toEqual([]);
+        expect(events).toContainEqual(expect.objectContaining({ type: 'tool.done', state: 'error', output: expect.stringContaining("outside Codex's home") }));
     });
 });

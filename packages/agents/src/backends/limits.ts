@@ -182,6 +182,16 @@ export function readCodexLimits(snapshot: unknown): ProviderReading | null {
 }
 
 /*
+ * The answer to `account/rateLimits/read`. `rateLimits` mirrors one bucket the way older versions
+ * answered, and can be another than the main allowance, so the main one is taken by its id first.
+ */
+export function readCodexLimitsAnswer(answer: unknown): ProviderReading | null {
+    const byLimitId = isRecord(answer) && isRecord(answer.rateLimitsByLimitId) ? answer.rateLimitsByLimitId : null;
+
+    return readCodexLimits(byLimitId?.codex ?? (isRecord(answer) ? answer.rateLimits : null));
+}
+
+/*
  * A sparse update folded onto what a full read drew. The row keeps its label, its reset and its
  * length when the event leaves them out, which is what makes a mid-turn number land on the bar it
  * belongs to instead of drawing a second one beside it.

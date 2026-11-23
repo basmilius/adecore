@@ -5,7 +5,7 @@ import { cleanTitle } from '../title-file.ts';
 import type { ApprovalDecision, BackendEvent } from './backend.ts';
 import type { CodexFrame } from './codex-transport.ts';
 import { codexRuntimeMode } from './codex.ts';
-import { generatedImage } from './generated-image.ts';
+import { generatedImage, savedGeneratedImage } from './generated-image.ts';
 import { readCodexLimits } from './limits.ts';
 
 type CodexRpcId = number | string;
@@ -219,7 +219,7 @@ function elicitationInput(meta: Frame): Frame {
 }
 
 // The latest reset of every spent window; one without a known reset leaves resuming to a person.
-function spentUntil(windows: readonly UsageWindow[]): number | null {
+export function spentUntil(windows: readonly UsageWindow[]): number | null {
     const spent = windows.filter((window) => window.used >= 1);
 
     if (spent.length === 0 || spent.some((window) => window.resetsAt === null)) {
@@ -247,6 +247,8 @@ export class CodexProtocol {
     private spentUntil: number | null = null;
     // The chat's own thread. A spawned agent's thread streams over the same connection, and none of it is the chat's.
     private ownThreadId: string | null = null;
+    // Codex's `$CODEX_HOME` from `initialize`, the one folder a saved image is read from.
+    codexHome: string | null = null;
     // Per agent thread, the ref of the row that stands for it and whether that row has settled.
     private readonly agentRows = new Map<string, { ref: string; label: string; settled: boolean; interaction?: string }>();
     // The context the last token usage named, so a compaction knows what it folded.
@@ -261,6 +263,11 @@ export class CodexProtocol {
     /* The turn Codex is running, what `turn/interrupt` needs. */
     get turnId(): string | null {
         return this.codexTurnId;
+    }
+
+    /* When the plan's spent windows lift, as the last rate limit update said. */
+    get spentResetsAt(): number | null {
+        return this.spentUntil;
     }
 
     /* The result of `thread/start` or `thread/resume`. The thread id is what a terminal resumes. */
@@ -456,6 +463,22 @@ export class CodexProtocol {
                     if (reading.windows.length > 0) {
                         events.push({ type: 'limits', update: { kind: 'codex', plan: reading.plan, windows: reading.windows } });
                     }
+                }
+
+                break;
+            }
+            case 'mcpServer/startupStatus/updated': {
+                // The only word Codex says about a server that did not start; the turn runs on without its tools.
+                const name = str(params.name);
+
+                if (params.status === 'failed' && name !== null) {
+                    const error = str(params.error);
+
+                    events.push({
+                        type: 'note',
+                        level: 'warning',
+                        text: `The MCP server "${name}" failed to start, so this chat runs without its tools${error === null ? '.' : `: ${error}`}`
+                    });
                 }
 
                 break;
@@ -923,7 +946,13 @@ export class CodexProtocol {
                         );
                     }
 
-                    const image = generatedImage(str(item.result) ?? '', revisedPrompt);
+                    const savedPath = str(item.savedPath);
+
+                    // Newer versions name the file in Codex's store instead of sending it inline; an inline result still wins.
+                    const image =
+                        !str(item.result) && str(item.fileId) && savedPath
+                            ? savedGeneratedImage(savedPath, this.codexHome, revisedPrompt)
+                            : generatedImage(str(item.result) ?? '', revisedPrompt);
                     events.push({ type: 'image.generated', ref, ...image, ...input });
                 } catch (error) {
                     this.tool(ref, 'ImageGeneration', input, true, error instanceof Error ? error.message : 'Image generation failed', false, events);

@@ -1,4 +1,8 @@
+import { readFileSync, realpathSync, statSync } from 'node:fs';
+import { isAbsolute, relative, resolve, sep } from 'node:path';
 import { ChatAttachmentUploadSchema, type ChatAttachmentUpload } from '@adecore/agent-contracts';
+
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 interface ImageInfo {
     mime: string;
@@ -110,4 +114,51 @@ export function generatedImage(data: string, prompt?: string): { upload: ChatAtt
     const upload = { name: `${stem}.${info.extension}`, mime: info.mime, data };
 
     return { upload, ...(info.width === undefined ? {} : { width: info.width }), ...(info.height === undefined ? {} : { height: info.height }) };
+}
+
+/*
+ * An image a CLI saved to disk instead of sending inline. Only a file inside the CLI's own home is
+ * read, after links are resolved, so an item cannot hand over any other file on the machine.
+ */
+export function savedGeneratedImage(
+    savedPath: string,
+    home: string | null,
+    prompt?: string
+): { upload: ChatAttachmentUpload; width?: number; height?: number } {
+    if (home === null) {
+        throw new Error('The generated image was saved to disk, and Codex did not say where its home is, so it is not read');
+    }
+
+    const within = (root: string, file: string): boolean => {
+        const inside = relative(root, file);
+
+        return inside !== '' && inside.split(sep)[0] !== '..' && !isAbsolute(inside);
+    };
+
+    const outside = new Error(`The generated image was saved outside Codex's home, so it is not read: ${savedPath}`);
+
+    // The path as named is checked before the disk is touched, and again once its links are resolved.
+    if (!within(resolve(home), resolve(savedPath))) {
+        throw outside;
+    }
+
+    let file: string;
+
+    try {
+        file = realpathSync(savedPath);
+
+        if (!within(realpathSync(home), file)) {
+            throw outside;
+        }
+    } catch (error) {
+        throw error === outside ? outside : new Error(`The generated image is not where Codex saved it: ${savedPath}`);
+    }
+
+    const stats = statSync(file);
+
+    if (!stats.isFile() || stats.size > MAX_IMAGE_BYTES) {
+        throw new Error('The generated image is not a file of at most 10 MiB');
+    }
+
+    return generatedImage(readFileSync(file).toString('base64'), prompt);
 }

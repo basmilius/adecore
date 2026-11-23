@@ -4,18 +4,18 @@ import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
 import { CodexBackend } from '../backends/codex-backend.ts';
 import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { inProcess } from '../testing/fake-cli.ts';
-import { fakeCodexWith } from '../testing/fake-codex.ts';
+import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
 import { codexProvider } from '../testing/providers.ts';
 import { flush } from './chat-session.fixture.test.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 
-async function rig() {
+async function rig(options: FakeCodexOptions = {}) {
     const requests: Frame[] = [];
     const events: BackendEvent[] = [];
 
     const fake = inProcess((io) => {
-        const program = fakeCodexWith({})(io);
+        const program = fakeCodexWith(options)(io);
 
         return {
             onLine: (line) => {
@@ -129,4 +129,32 @@ test.each(['mentions', 'skills'] as const)('a usage message with chosen %s keeps
     } finally {
         await backend.dispose();
     }
+});
+
+async function limitOnFirstRequest(options: FakeCodexOptions) {
+    const { backend, events } = await rig(options);
+
+    try {
+        backend.sendTurn({ text: 'limit:unknown', preamble: null, attachments: [], mentions: [], skills: [] });
+        await flush();
+
+        return events.find((event) => event.type === 'turn.done');
+    } finally {
+        await backend.dispose();
+    }
+}
+
+test("a usage limit on the first request takes its reset from the plan's main allowance", async () => {
+    const premium = { limitId: 'premium', primary: null, secondary: null };
+    const codex = { limitId: 'codex', primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: 1_800_000_000 }, secondary: null };
+    const done = await limitOnFirstRequest({ rateLimitsRead: { result: { rateLimits: premium, rateLimitsByLimitId: { premium, codex } } } });
+
+    expect(done).toMatchObject({ state: 'error', limit: { kind: 'usage', resetsAt: 1_800_000_000_000 } });
+});
+
+test('a usage limit whose plan cannot be read still ends the turn, without a reset', async () => {
+    const done = await limitOnFirstRequest({});
+
+    expect(done).toMatchObject({ state: 'error', limit: { kind: 'usage' } });
+    expect(done?.type === 'turn.done' ? done.limit?.resetsAt : null).toBeUndefined();
 });

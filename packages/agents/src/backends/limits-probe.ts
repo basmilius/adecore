@@ -1,13 +1,15 @@
 import type { UsageLimitsProvider } from '@adecore/agent-contracts';
-import { withTimeout } from '@adecore/utils/async';
+import { withDeadline, withTimeout } from '@adecore/utils/async';
 import { spawnChatProcess, type ChatProcess, type SpawnChatProcess } from '../chat-process.ts';
+import { systemClock, type Clock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
 import { CodexTransport, type CodexClientInfo } from './codex-transport.ts';
-import { readClaudeUsage, readCodexLimits, type ProviderReading } from './limits.ts';
+import { readClaudeUsage, readCodexLimitsAnswer, type ProviderReading } from './limits.ts';
 
 /* A CLI that has not answered by now is not going to; the next pass tries again. */
 const PROBE_TIMEOUT_MS = 20_000;
-const CODEX_READ_TIMEOUT_MS = 3_000;
+// Codex often takes 2 to 8 seconds to read the plan's windows.
+export const CODEX_READ_TIMEOUT_MS = 10_000;
 
 export type ProbeResult = ProviderReading | { unavailable: UsageLimitsProvider['unavailable'] };
 
@@ -103,7 +105,13 @@ export async function probeClaude(command: readonly string[], env: Record<string
 }
 
 /* The same question to Codex: the app-server answers it over JSON-RPC right after the handshake. */
-export async function probeCodex(command: readonly string[], env: Record<string, string>, client: CodexClientInfo): Promise<ProbeResult> {
+export async function probeCodex(
+    command: readonly string[],
+    env: Record<string, string>,
+    client: CodexClientInfo,
+    seams: { spawn?: SpawnChatProcess; clock?: Clock } = {}
+): Promise<ProbeResult> {
+    const clock = seams.clock ?? systemClock;
     let transport: CodexTransport | null = null;
 
     try {
@@ -111,16 +119,23 @@ export async function probeCodex(command: readonly string[], env: Record<string,
             command: [...command],
             cwd: process.cwd(),
             env,
+            ...(seams.spawn ? { spawn: seams.spawn } : {}),
             onFrame: () => undefined,
             onExit: () => undefined
         });
 
         const open = transport;
-        await timeoutOf(open.request('initialize', { clientInfo: client, capabilities: { experimentalApi: true } }), PROBE_TIMEOUT_MS, 'Codex');
+
+        await withDeadline(
+            open.request('initialize', { clientInfo: client, capabilities: { experimentalApi: true } }),
+            PROBE_TIMEOUT_MS,
+            'Codex did not answer in time',
+            clock
+        );
+
         open.notify('initialized', {});
-        const answer = await timeoutOf(open.request('account/rateLimits/read', undefined), CODEX_READ_TIMEOUT_MS, 'Codex');
-        const snapshot = typeof answer === 'object' && answer !== null ? (answer as { rateLimits?: unknown }).rateLimits : null;
-        const reading = readCodexLimits(snapshot);
+        const answer = await withDeadline(open.request('account/rateLimits/read', undefined), CODEX_READ_TIMEOUT_MS, 'Codex did not answer in time', clock);
+        const reading = readCodexLimitsAnswer(answer);
 
         // An account on an API key has no plan windows; Codex answers, with nothing in it.
         return reading ?? { unavailable: { reason: 'no-subscription', message: null } };

@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+import type { BackendLaunch } from '../backends/backend.ts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { codexServiceTier, codexThreadOptions } from '../backends/codex.ts';
+import { inProcess } from '../testing/fake-cli.ts';
+import { fakeCodex } from '../testing/fake-codex.ts';
+import { createCodexProvider } from './codex-provider.ts';
+import type { ChatProvider } from './provider.ts';
 import { ProviderRegistry } from './registry.ts';
 
 describe('codex catalog', () => {
@@ -49,6 +55,64 @@ describe('codexServiceTier', () => {
 
         expect(options('gpt-6-astra').find((option) => option.id === 'serviceTier')).toMatchObject({ type: 'boolean', defaultValue: false });
         expect(options('gpt-5.3-codex-spark').some((option) => option.id === 'serviceTier')).toBe(false);
+    });
+});
+
+describe('a server marked direct, by the version the registry read', () => {
+    const SERVER = { name: 'own', url: 'http://127.0.0.1:4000/mcp', tokenVariable: 'OWN_TOKEN', directTools: true };
+    const OMIT = 'mcp_servers.own.omit_tools_from=["code_mode","deferred"]';
+
+    async function providerAt(version: string | null): Promise<ChatProvider> {
+        const provider = createCodexProvider({
+            client: DEFAULT_CODEX_CLIENT,
+            help: async () => '',
+            detect: async () => ({ installed: version !== null, version })
+        });
+        await new ProviderRegistry({ providers: [provider], env: {} }).list();
+
+        return provider;
+    }
+
+    async function chatCommand(provider: ChatProvider): Promise<string[]> {
+        const fake = inProcess(fakeCodex);
+        let command: string[] = [];
+
+        const launch: BackendLaunch = {
+            command: ['codex'],
+            cwd: '/tmp',
+            env: {},
+            selection: provider.catalog.normalize(undefined),
+            modelName: 'Codex',
+            runtimeMode: 'supervised',
+            resume: null,
+            generation: 1,
+            instructions: null,
+            resumeNote: null,
+            mcpServers: [{ ...SERVER, allowTools: true }],
+            spawn: (options) => {
+                command = options.command;
+
+                return fake.spawn(options);
+            }
+        };
+
+        const backend = provider.createBackend(launch, { onEvent: () => undefined });
+        await backend.start();
+        await backend.dispose();
+
+        return command;
+    }
+
+    test('a chat on Codex 0.166.0 keeps its tools out of Code Mode, and one on an older or unknown Codex leaves the key out', async () => {
+        expect(await chatCommand(await providerAt('0.166.0'))).toContain(OMIT);
+        expect((await chatCommand(await providerAt('0.165.2'))).join(' ')).not.toContain('omit_tools_from');
+        expect((await chatCommand(await providerAt(null))).join(' ')).not.toContain('omit_tools_from');
+    });
+
+    test('a terminal on Codex 0.166.0 keeps its tools out of Code Mode, and one on an older or unknown Codex leaves the key out', async () => {
+        expect((await providerAt('0.166.0')).terminal!.mcpArgs!(SERVER)).toContain(OMIT);
+        expect((await providerAt('0.165.2')).terminal!.mcpArgs!(SERVER).join(' ')).not.toContain('omit_tools_from');
+        expect((await providerAt(null)).terminal!.mcpArgs!(SERVER).join(' ')).not.toContain('omit_tools_from');
     });
 });
 

@@ -27,6 +27,8 @@ interface CodexProviderOptions {
     rules?: CodexRules;
     // What `codex --help` prints, for the terminal flags a newer Codex takes; a test answers without starting anything.
     help?: (executable: string) => Promise<string>;
+    // How the registry asks the CLI for its version; a test answers without starting anything.
+    detect?: ChatProvider['detect'];
 }
 
 async function codexHelp(executable: string): Promise<string> {
@@ -38,7 +40,7 @@ async function codexHelp(executable: string): Promise<string> {
  * environment of whichever terminal started it: another node's token, or one a restarted host no longer knows. An older
  * Codex refuses the flag, so it rides only once `--help` names it.
  */
-function codexTerminal(executable: string, help: (executable: string) => Promise<string>): ProviderTerminal {
+function codexTerminal(executable: string, help: (executable: string) => Promise<string>, version: () => string | null): ProviderTerminal {
     let noDaemon = false;
     let asked: Promise<void> | null = null;
 
@@ -51,7 +53,7 @@ function codexTerminal(executable: string, help: (executable: string) => Promise
             'full-access': ['--ask-for-approval', 'never', '--sandbox', 'danger-full-access']
         },
         modelFlag: '--model',
-        mcpArgs: (server) => codexMcpArgs(server),
+        mcpArgs: (server) => codexMcpArgs(server, true, version()),
         // Codex parses a `-c` value as TOML, and a JSON string is a valid TOML basic string. Only a fresh launch carries it:
         // Codex 0.154 ignores developer instructions on a resume (measured) and keeps those the session started with.
         noteArgs: (note) => ['-c', `developer_instructions=${JSON.stringify(note)}`],
@@ -69,6 +71,9 @@ function codexTerminal(executable: string, help: (executable: string) => Promise
 export function createCodexProvider(options: CodexProviderOptions): ChatProvider {
     const { client, command, launch, rules } = options;
     const chatCommand = command ?? ['codex', ...CODEX_CHAT_ARGS];
+    const detect = options.detect ?? detectCli;
+    // The version the registry's last probe read, so a launch gates a config key on it without starting Codex again.
+    let version: string | null = null;
 
     return {
         kind: 'codex',
@@ -100,8 +105,13 @@ export function createCodexProvider(options: CodexProviderOptions): ChatProvider
                 { kind: 'env', variable: 'OPENAI_API_KEY' }
             ]
         },
-        terminal: codexTerminal(chatCommand[0]!, options.help ?? codexHelp),
-        detect: detectCli,
+        terminal: codexTerminal(chatCommand[0]!, options.help ?? codexHelp, () => version),
+        detect: async (path, env) => {
+            const detection = await detect(path, env);
+            version = detection.installed ? detection.version : null;
+
+            return detection;
+        },
         askAccount: (path, env) => askCodexAccount(path, env, client),
         probeLimits: (path, env) => probeCodex(path, env, client),
         ...(rules === undefined
@@ -126,6 +136,6 @@ export function createCodexProvider(options: CodexProviderOptions): ChatProvider
         },
         // `codex [OPTIONS] [PROMPT]`: the positional starts the interactive session on that prompt.
         firstPromptArgs: (prompt) => [prompt],
-        createBackend: (launched, host) => new CodexBackend(launched, host, { client })
+        createBackend: (launched, host) => new CodexBackend(launched, host, { client, version })
     };
 }

@@ -43,7 +43,7 @@ Everything one CLI does differently sits on its `ChatProvider`, so no other code
 | `oneShotArgs`, `oneShotStdinArgs`, `leanOneShotArgs` | A single prompt, and the same run made short and cheap for a model asked for an answer alone. |
 | `oneShotApart` | The single prompt runs on a CLI apart from the chats: `oneShotProvider` asks it first only for its own kind and after every other CLI otherwise, and it names no chat. |
 
-`createCodexProvider` requires the `client` that names the host to every app-server it opens: the chat's, the account check, the plan probe and the thread calls. It is given once, there; `wireAgents` is the one place that falls back to "Agents".
+`createCodexProvider` requires the `client` that names the host to every app-server it opens: the chat's, the account check, the plan probe and the thread calls. It is given once, there; `wireAgents` is the one place that falls back to "Agents". Its `detect` replaces the version check, as `help` replaces the help read, so a test hands in a version. The provider keeps the last version it read and sends `omit_tools_from` for a server with `directTools` only from Codex 0.166.0; an unknown version leaves it out.
 
 A provider finds its CLI with `detectCli(command, env?, spawn?, flags?)`, which asks for the version and returns a `CliDetection`, `{ installed, version }`. A missing binary is "not installed", never an error.
 
@@ -227,7 +227,7 @@ const server: CliMcpServer = {
 const args = [...cliMcpArgs('claude', server), ...cliMcpAllowArgs('claude', server.name)];
 ```
 
-The CLI reads the bearer token from `tokenVariable` in its own environment, so set that variable on the process and keep the token off the line. For Codex the name becomes a key of its config, so it may hold only letters, digits, `_` and `-`; another name throws. `cliMcpHeaders(tokenVariable)` is the `Authorization` header that Claude Code and Copilot fill in that way, for a `ChatMcpServer` of a Claude chat.
+The CLI reads the bearer token from `tokenVariable` in its own environment, so set that variable on the process and keep the token off the line. For Codex the name becomes a key of its config, so it may hold only letters, digits, `_` and `-`; another name throws. Set `directTools: true` on a server whose calls may wait long: Codex then offers its tools to the model directly, never from a Code Mode script or a later tool search (`omit_tools_from`), so a long call is not polled. A `ChatMcpServer` takes the same field. `cliMcpHeaders(tokenVariable)` is the `Authorization` header that Claude Code and Copilot fill in that way, for a `ChatMcpServer` of a Claude chat.
 
 `cliMcpAllowArgs(kind, name)` runs every tool of the server without asking, in every mode: `--allowedTools=mcp__<name>` for Claude Code and `--allow-tool=<name>` for Copilot. Codex gets them allowed in its `cliMcpArgs` already. Allow a server only when it checks each call itself.
 

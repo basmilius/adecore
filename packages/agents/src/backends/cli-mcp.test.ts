@@ -37,6 +37,20 @@ describe('an MCP server on a CLI command line', () => {
         ]);
     });
 
+    test('Codex 0.166.0 and newer offer the tools of a server marked direct outside Code Mode and tool search, and only those', () => {
+        const omits = (server: CliMcpServer, version: string | null) => codexMcpArgs(server, true, version).some((arg) => arg.includes('omit_tools_from'));
+
+        for (const version of ['0.166.0', '0.166.1', '0.167.0-alpha.2', '1.0.0']) {
+            expect(codexMcpArgs({ ...SERVER, directTools: true }, true, version)).toContain('mcp_servers.own.omit_tools_from=["code_mode","deferred"]');
+        }
+
+        for (const version of ['0.165.9', '0.166.0-alpha.1', 'unknown', null]) {
+            expect(omits({ ...SERVER, directTools: true }, version)).toBe(false);
+        }
+
+        expect(omits(SERVER, '0.166.0')).toBe(false);
+    });
+
     test('Codex refuses a name that is not a bare key of its config path', () => {
         expect(() => codexMcpArgs({ ...SERVER, name: 'my.server' })).toThrow('bare TOML key');
         expect(() => codexMcpArgs({ ...SERVER, name: 'own"' })).toThrow('bare TOML key');
