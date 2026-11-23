@@ -88,6 +88,22 @@ const SessionNotificationSchema = z.looseObject({ sessionId: z.string(), update:
 /* Grok's own notifications beside `session/update`, in the same shape (Grok CLI 1.0.70). */
 export const GROK_SESSION_NOTIFICATION = '_x.ai/session_notification';
 
+/*
+ * Grok's request that hands a running prompt a message `{ sessionId, text }`. Grok CLI 1.0.70 answers
+ * `{ result: { status: 'queued' } }` at once, lets a running tool finish and has the model read the message at its next step.
+ */
+export const GROK_INTERJECT = '_x.ai/interject';
+
+const GrokInterjectedSchema = z.looseObject({ status: z.string() });
+
+/* Whether Grok took an interjection into the running prompt. Its status sits a level deeper than a result's own field, so both levels count. */
+export function interjectionQueued(result: unknown): boolean {
+    const nested = z.looseObject({ result: GrokInterjectedSchema }).safeParse(result);
+    const answer = nested.success ? nested.data.result : GrokInterjectedSchema.safeParse(result).data;
+
+    return answer?.status === 'queued';
+}
+
 const GrokCompactedSchema = z.looseObject({
     sessionUpdate: z.literal('auto_compact_completed'),
     tokens_before: z.number().int().nonnegative().nullish(),

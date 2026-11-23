@@ -44,6 +44,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `catalogStore` | Persists what the agent reported, so a restarted host offers it at once (`AcpCatalogStore`). See [Models](#models). |
 | `onCommands(commands)` | The session's slash commands, without the slash, each time the agent lists them. |
 | `adoptTitles` | `true` takes the agent's session titles as the chat's suggested title. Absent leaves naming to the host. |
+| `steer` | How a message joins the running turn. `interject` sends Grok's `_x.ai/interject`. Absent leaves the backend without `steerTurn`, so a message queues. Set `capabilities.steer` beside it. See [Steering](#steering). |
 | `onContextReport()` | Called once per process, at the first `usage_update` that names the context window. |
 | `capabilities` | Overrides on top of the ACP defaults and what the agent showed (see [Capabilities](#capabilities)). |
 | `resumeCommand`, `home`, `detect`, `oneShotArgs`, `oneShotApart`, `oneShotStdinArgs`, `firstPromptArgs`, `enabled`, `ignoresProjectConfig` | As on any `ChatProvider`. Without `firstPromptArgs` the agent is chat only. Without `detect` the host runs `--version`. |
@@ -110,6 +111,10 @@ Any other failure stays an error without a limit.
 An approval offers allow, allow always (only when the agent has `allow_always`) and deny. They map to the agent's `allow_once`, `allow_always` and `reject_once` or `reject_always` options. A missing option falls to the narrower one. A denial without any reject option answers `cancelled`.
 
 `interrupt` cancels every open permission request and question and sends `session/cancel`. The turn ends when the agent answers the prompt.
+
+### Steering
+
+With `steer: 'interject'`, `steerTurn` sends `_x.ai/interject` with the session and the message's text, the preamble in front and attachments named by path. Grok CLI answers `queued` at once. A running tool finishes, the model reads the message at its next step, and the one prompt response still ends the turn, so no `session/cancel` goes out. `steerTurn` resolves `false` without a prompt in flight, after `interrupt`, and when the agent refuses the request or answers another status.
 
 ## Questions
 

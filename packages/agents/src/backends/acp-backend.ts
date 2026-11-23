@@ -15,8 +15,10 @@ import {
     COPILOT_CLIENT_META,
     COPILOT_SESSION_EVENT,
     copilotForegroundOf,
+    GROK_INTERJECT,
     GROK_QUESTION_METHODS,
     GROK_SESSION_NOTIFICATION,
+    interjectionQueued,
     parseInitialize,
     parseSessionInfo,
     promptUsageOf,
@@ -77,6 +79,9 @@ export interface AcpAgentSpec {
     // The arguments that make the agent run every tool of one MCP server without asking, for an agent whose permission
     // requests name no server; put on its line for each server of the launch that allows its tools.
     allowToolsArgs?(serverName: string): string[];
+    // How a message joins the running prompt: `interject` sends Grok's `_x.ai/interject`. Absent leaves the backend
+    // without `steerTurn`, so a message waits for the next turn.
+    steer?: 'interject';
 }
 
 export interface AcpUsageReport extends AcpTurnUsage {
@@ -167,6 +172,8 @@ class AcpBackend implements ChatBackend {
     private commands: string[] = [];
     // An agent may send updates for a new session before it answers with the session's id.
     private early: unknown[] = [];
+    // Set only for an agent that takes a message into its running prompt, since a host steers wherever it is set.
+    readonly steerTurn?: (input: TurnInput) => Promise<boolean>;
 
     constructor(launch: BackendLaunch, host: BackendHost, spec: AcpAgentSpec) {
         this.launch = launch;
@@ -174,6 +181,10 @@ class AcpBackend implements ChatBackend {
         this.spec = spec;
         this.client = spec.client ?? DEFAULT_ACP_CLIENT;
         this.protocol = new AcpProtocol(launch.generation, spec.modes ?? {}, acpStopWords(spec.name), spec.adoptTitles === true, launch.now);
+
+        if (spec.steer === 'interject') {
+            this.steerTurn = (input) => this.interject(input);
+        }
     }
 
     get running(): boolean {
@@ -599,6 +610,34 @@ class AcpBackend implements ChatBackend {
                     this.emitAll(this.protocol.abort(turn.promptId, turn.cancelled ? null : errorText(error), limit));
                 }
             });
+    }
+
+    /*
+     * Hands the running prompt a message as Grok takes one: a running tool finishes and the model reads it at its next
+     * step, with no cancel and in the same turn. The request carries text only, so attachments go along by path.
+     */
+    private async interject(input: TurnInput): Promise<boolean> {
+        const transport = this.transport;
+        const turn = this.prompt;
+
+        if (!transport || turn === null || turn.cancelled) {
+            return false;
+        }
+
+        const text = [input.preamble, input.text, attachmentNote(input.attachments)]
+            .filter((part): part is string => part !== null && part !== '')
+            .join('\n\n');
+
+        try {
+            return interjectionQueued(await transport.request(GROK_INTERJECT, { sessionId: this.sessionId, text }));
+        } catch (error) {
+            // A refusal is an answer: the message waits for the next turn. Anything else leaves the outcome unknown.
+            if (error instanceof JsonRpcError) {
+                return false;
+            }
+
+            throw error;
+        }
     }
 
     /* ACP has no call to fold the context, so an agent that lists a `compact` command gets it as a prompt. */

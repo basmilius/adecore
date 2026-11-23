@@ -4,8 +4,10 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { ChatAttachment, RuntimeMode } from '@adecore/agent-contracts';
+import grokInterject from '../chat/fixtures/grok-1.0.70-interject.json';
+import { fakeAcpCapture, recordedCapture } from '../testing/fake-acp-capture.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
-import { inProcess } from '../testing/fake-cli.ts';
+import { inProcess, type FakeCli } from '../testing/fake-cli.ts';
 import { createAcpBackend, type AcpAgentSpec, type AcpUsageReport } from './acp-backend.ts';
 import type { AcpSessionInfo } from './acp-protocol.ts';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
@@ -34,13 +36,13 @@ function turn(text: string): TurnInput {
     return { promptId: `prompt-${text}`, text, preamble: null, attachments: [], mentions: [], skills: [] };
 }
 
-function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {}, spec: AcpAgentSpec = SPEC) {
+function run(options: FakeAcpOptions = {}, overrides: Partial<BackendLaunch> = {}, spec: AcpAgentSpec = SPEC, agent: FakeCli = fakeAcpWith(options)) {
     const sent: Frame[] = [];
     const events: BackendEvent[] = [];
     const waiters: Array<{ match(event: BackendEvent): boolean; resolve(event: BackendEvent): void }> = [];
 
     const fake = inProcess((io) => {
-        const program = fakeAcpWith(options)(io);
+        const program = agent(io);
 
         return {
             onLine: (line) => {
@@ -322,6 +324,44 @@ test('a cancel answers an open permission request as cancelled and withdraws it'
     expect(fake.sent.find((frame) => frame.method === undefined)).toMatchObject({ result: { outcome: { outcome: 'cancelled' } } });
     expect(fake.backend.respondApproval(approval.requestId, 'allow')).toBe(false);
     await fake.backend.dispose();
+});
+
+test("a steer reaches Grok's running tool as `_x.ai/interject`, and the same turn finishes the tool and follows the message without a cancel", async () => {
+    const grok: AcpAgentSpec = { name: 'Grok', kind: 'grok', modes: { supervised: ['default'] }, steer: 'interject' };
+    const fake = run({}, { selection: { model: 'grok-4.7', options: {} } }, grok, fakeAcpCapture(recordedCapture(grokInterject)));
+    const message = 'While that runs: end your reply with the word banana.';
+    await fake.backend.start();
+    fake.backend.sendTurn(turn('Run the shell command `sleep 15` once and wait for it.'));
+    const tool = await fake.next('tool.started');
+    expect(await fake.backend.steerTurn?.(turn(message))).toBe(true);
+    expect(await fake.next('turn.done')).toMatchObject({ state: 'done' });
+
+    const toolDone = fake.events.findIndex((event) => event.type === 'tool.done' && event.ref === tool.ref);
+    const reply = fake.events.findLastIndex((event) => event.type === 'text.done');
+
+    expect(fake.sent).toContainEqual(expect.objectContaining({ method: '_x.ai/interject', params: { sessionId: 'grok-session-1', text: message } }));
+    expect(fake.methods()).not.toContain('session/cancel');
+    expect(fake.events[toolDone]).toMatchObject({ state: 'done' });
+    expect(fake.events[reply]).toMatchObject({ text: expect.stringMatching(/banana$/) });
+    expect(toolDone).toBeLessThan(reply);
+    expect(fake.events.filter((event) => event.type === 'turn.done')).toHaveLength(1);
+    await fake.backend.dispose();
+});
+
+test('a steer between prompts, or one the agent refuses, leaves the message for the next turn', async () => {
+    const fake = run({}, {}, { ...SPEC, steer: 'interject' });
+    await fake.backend.start();
+    expect(await fake.backend.steerTurn?.(turn('between turns'))).toBe(false);
+    expect(fake.methods()).not.toContain('_x.ai/interject');
+    fake.backend.sendTurn(turn('slow'));
+    await fake.next('text.delta');
+    expect(await fake.backend.steerTurn?.(turn('refused'))).toBe(false);
+    expect(fake.methods()).toContain('_x.ai/interject');
+    await fake.backend.dispose();
+});
+
+test('an agent whose spec names no way to steer leaves the backend without steerTurn, so a message queues', () => {
+    expect(run().backend.steerTurn).toBeUndefined();
 });
 
 test('an interrupt between turns ends the turn the session opened', async () => {

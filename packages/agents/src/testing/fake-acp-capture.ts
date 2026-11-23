@@ -7,6 +7,8 @@
  * `titleFromPrompt` a `session_info_update` carries the prompt's own text as its title, as Copilot CLI names a session.
  * With `prompts`, each prompt plays its own script instead, where `{ notification: { method, params } }` is sent as it
  * is, a `held` script leaves its response unsent, and `{ answer: <n> }` sends the response of the nth prompt (from 0).
+ * An `{ awaits: { method, result } }` entry holds the prompt until the client sends that request, which it answers with
+ * `result` before it plays on.
  */
 import type { FakeCli } from './fake-cli.ts';
 
@@ -15,6 +17,11 @@ type Frame = Record<string, unknown>;
 export interface AcpPromptScript {
     updates: unknown[];
     held?: boolean;
+}
+
+/* A session as `tee-cli.ts` recorded it, `dir` being `in` for what went to the agent. */
+export interface AcpRecording {
+    frames: ReadonlyArray<{ dir: string; frame: Frame }>;
 }
 
 export interface AcpCapture {
@@ -46,6 +53,7 @@ export function fakeAcpCapture(capture: AcpCapture, answers: unknown[] = [], rec
         };
 
         let waiting: { rpcId: number; rest: unknown[]; promptId: unknown; text: unknown; held: boolean } | null = null;
+        let awaiting: { method: string; result: unknown; rest: unknown[]; promptId: unknown; text: unknown; held: boolean } | null = null;
         let nextRpcId = 0;
         const promptIds: unknown[] = [];
 
@@ -59,6 +67,13 @@ export function fakeAcpCapture(capture: AcpCapture, answers: unknown[] = [], rec
                 const request = (fields as Frame).request as { method: string; params: unknown } | undefined;
                 const notification = (fields as Frame).notification as { method: string; params: unknown } | undefined;
                 const answer = (fields as Frame).answer;
+                const awaits = (fields as Frame).awaits as { method: string; result: unknown } | undefined;
+
+                if (awaits !== undefined) {
+                    awaiting = { ...awaits, rest: updates.slice(index + 1), promptId, text, held };
+
+                    return;
+                }
 
                 if (permission !== undefined || request !== undefined) {
                     const rpcId = nextRpcId++;
@@ -96,6 +111,16 @@ export function fakeAcpCapture(capture: AcpCapture, answers: unknown[] = [], rec
 
                 if (frame.method !== undefined) {
                     received.push(frame);
+                }
+
+                const awaited = awaiting;
+
+                if (awaited !== null && frame.method === awaited.method && id !== undefined) {
+                    awaiting = null;
+                    send({ id, result: awaited.result });
+                    play(awaited.rest, awaited.promptId, awaited.text, awaited.held);
+
+                    return;
                 }
 
                 switch (frame.method) {
@@ -145,5 +170,51 @@ export function fakeAcpCapture(capture: AcpCapture, answers: unknown[] = [], rec
                 }
             }
         };
+    };
+}
+
+/*
+ * The capture of a recording with one prompt: the answers to `initialize` and `session/new`, and every frame the agent
+ * sent from the prompt to its response. A request the client sent meanwhile becomes an `awaits` entry with the agent's
+ * answer. What the agent sent before it answered `session/new` is left out.
+ */
+export function recordedCapture(recording: AcpRecording): AcpCapture {
+    const frames = recording.frames;
+    const sentByClient = (entry: { dir: string }): boolean => entry.dir === 'in';
+    const answerTo = (id: unknown) => frames.find((entry) => !sentByClient(entry) && entry.frame.method === undefined && entry.frame.id === id)?.frame;
+    const requestOf = (method: string) => frames.find((entry) => sentByClient(entry) && entry.frame.method === method)?.frame;
+    const promptAt = frames.findIndex((entry) => sentByClient(entry) && entry.frame.method === 'session/prompt');
+    const promptId = frames[promptAt]?.frame.id;
+    const responseAt = frames.findIndex((entry) => !sentByClient(entry) && entry.frame.method === undefined && entry.frame.id === promptId);
+    const sessionNew = answerTo(requestOf('session/new')?.id)?.result as Frame;
+
+    if (promptAt === -1 || responseAt === -1) {
+        throw new Error('The recording holds no prompt with its response');
+    }
+
+    const updates = frames.slice(promptAt + 1, responseAt).flatMap(({ dir, frame }) => {
+        if (dir === 'in') {
+            return frame.method === undefined || frame.id === undefined ? [] : [{ awaits: { method: frame.method, result: answerTo(frame.id)?.result } }];
+        }
+
+        if (frame.method === undefined) {
+            return [];
+        }
+
+        if (frame.id !== undefined) {
+            throw new Error(`A request of the agent (${String(frame.method)}) in a recording is not played yet`);
+        }
+
+        return [frame.method === 'session/update' ? frame.params : { notification: { method: frame.method, params: frame.params } }];
+    });
+
+    return {
+        sessionId: String(sessionNew.sessionId),
+        initialize: answerTo(requestOf('initialize')?.id)?.result,
+        sessionNew,
+        commands: [],
+        setConfigOption: {},
+        promptUpdates: updates,
+        promptResponse: frames[responseAt]?.frame.result
     };
 }
