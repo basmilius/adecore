@@ -594,6 +594,8 @@ export const ChatToolItemSchema = z.object({
     input: z.unknown(),
     output: z.string().nullable(),
     state: ChatToolStateSchema,
+    // Set on a call in `error` that ended because a person stopped it, not because it failed.
+    stopped: z.boolean().optional(),
     // Set for a tool call made by a subagent, with the id of the Task call that spawned it.
     parentToolUseId: z.string().nullable(),
     progress: ChatToolProgressSchema.optional(),

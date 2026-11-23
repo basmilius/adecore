@@ -225,6 +225,8 @@ export function fakeClaude(io: FakeIo): FakeProgram {
     // What a background agent asked; its answer comes in after the turn that launched it, whenever a person gives one.
     let backgroundAsk: { requestId: string; command: string } | null = null;
     let slow = false;
+    // The calls of `slow tools`: the first is still running when a stop comes, the second failed on its own.
+    let slowTools: string[] = [];
     // The one wakeup `wakeup:` keeps per session; a new one, `wakeup: stop` and an interrupt each drop the one that waits.
     let pendingWakeup: string | null = null;
     // Whether the host's handshake declared a per-task stop; without it an interrupt kills every background agent.
@@ -501,6 +503,25 @@ export function fakeClaude(io: FakeIo): FakeProgram {
 
             assistantText('the agent runs');
             result();
+
+            return;
+        }
+
+        // Two commands that run until a person stops the turn; the interrupt below answers for them.
+        if (text.split('\n').some((line) => line === 'slow tools')) {
+            slowTools = [`toolu_${nonce}_${++messageCounter}_running`, `toolu_${nonce}_${messageCounter}_failing`];
+
+            out({
+                type: 'assistant',
+                message: {
+                    id: `msg_${nonce}_${messageCounter}`,
+                    model,
+                    role: 'assistant',
+                    content: slowTools.map((id) => ({ type: 'tool_use', id, name: 'Bash', input: { command: 'sleep 60' } })),
+                    usage
+                },
+                session_id: sessionId
+            });
 
             return;
         }
@@ -1523,6 +1544,38 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     slow = false;
                     assistantText('[interrupted]');
                     result();
+                }
+
+                // How Claude Code answers a stop during a call: the running call rejected, then a result for the aborted tools.
+                if (request.subtype === 'interrupt' && slowTools.length > 0) {
+                    const [running = '', failing = ''] = slowTools;
+                    slowTools = [];
+
+                    out({
+                        type: 'user',
+                        message: {
+                            role: 'user',
+                            content: [
+                                { type: 'tool_result', tool_use_id: running, content: "The user doesn't want to proceed with this tool use.", is_error: true },
+                                { type: 'tool_result', tool_use_id: failing, content: 'Process exited with code 1', is_error: true }
+                            ]
+                        },
+                        parent_tool_use_id: null,
+                        tool_result_meta: [{ id: running, non_execution_kind: 'user-rejected' }],
+                        session_id: sessionId
+                    });
+
+                    out({
+                        type: 'result',
+                        subtype: 'error_during_execution',
+                        is_error: true,
+                        terminal_reason: 'aborted_tools',
+                        errors: ['Error: Request was aborted.'],
+                        num_turns: 1,
+                        total_cost_usd: 0.01,
+                        usage,
+                        session_id: sessionId
+                    });
                 }
             }
         }

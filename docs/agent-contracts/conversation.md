@@ -66,6 +66,8 @@ The parts of an item have their own types:
 
 A running tool's `progress.output` holds only the last `TOOL_OUTPUT_TAIL` UTF-16 units. A tool `delta` carries only the new text, so grow the output with `appendToolOutput(output, text)`, which cuts it as the host does. Once the call settles, `output` replaces the progress.
 
+A tool in `error` with `stopped` ended because a person stopped the turn while it ran, not because it failed. Draw it neutral and leave it out of a count of failed calls; a client that ignores the field shows it as failed.
+
 An `assistant` or `tool` item with a `parentToolUseId` is a subagent's work. Draw it under that subagent, not as the chat's answer. A subagent item's `itemsTruncated` means the thread holds only the start, and `chat.subagent` reads the rest. A workflow's agent has no call of its own, so `chat.subagent` names it as `workflowAgentRef(agentId)`. `workflowAgentIdOf(ref)` reads the id back, or returns `null`.
 
 A person started every turn without `origin`. The host aborts a turn a restart could not resume and adds a warning note from `notResumedNote(reason)`. `abortedByMachine(turn, items)` tells it from a person's stop. A turn the host ended because the opening agent was stopped gets a note whose id starts with `ENDED_NOTE_PREFIX`, which `abortedByEnd(turn, items)` recognizes.

@@ -105,6 +105,10 @@ describe('ThreadProjector', () => {
         expect(thread.get('1:toolu_1')).toMatchObject({ state: 'done', output: 'ok' });
         expect(thread.get('1:toolu_1')).not.toHaveProperty('progress');
         expect(project({ type: 'tool.done', ref: 'nope', output: 'x', state: 'done' })).toEqual([]);
+
+        project({ type: 'tool.started', ref: 'toolu_2', name: 'Bash', input: { command: 'sleep 60' }, parentRef: null });
+        project({ type: 'tool.done', ref: 'toolu_2', output: 'rejected', state: 'error', stopped: true });
+        expect(thread.get('1:toolu_2')).toMatchObject({ state: 'error', stopped: true });
         expect(project({ type: 'tool.progress', ref: 'toolu_1', startedAt: 5, description: null })).toEqual([]);
     });
 

@@ -618,6 +618,40 @@ describe('the Claude backend', () => {
         expect(reason).toContain('Claude stopped before it got your message');
     });
 
+    test('marks the call a stop rejected as stopped, and a call that failed beside it as failed', async () => {
+        const run = open();
+        await run.backend.start();
+        run.backend.sendTurn(turn('slow tools'));
+        await until(() => run.events.filter((event) => event.type === 'tool.started').length === 2);
+        run.backend.interrupt();
+        await until(() => doneTurns(run.events) === 1);
+        const settled = run.events.filter((event) => event.type === 'tool.done');
+
+        expect(settled).toHaveLength(2);
+        expect(settled[0]).toMatchObject({ state: 'error', stopped: true });
+        expect(settled[1]).toMatchObject({ state: 'error' });
+        expect(settled[1]).not.toHaveProperty('stopped');
+        await run.backend.dispose();
+    });
+
+    test('marks an interrupted or cancelled call as stopped, and a rejected one only in a stopped turn', () => {
+        const protocol = new ClaudeProtocol(null, launch.now, null);
+
+        const settle = (ref: string, kind: string): unknown =>
+            protocol
+                .handle({
+                    type: 'user',
+                    message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: ref, content: 'no', is_error: true }] },
+                    tool_result_meta: [{ id: ref, non_execution_kind: kind }]
+                })
+                .find((event) => event.type === 'tool.done');
+
+        expect(settle('a', 'interrupted')).toMatchObject({ stopped: true });
+        expect(settle('b', 'cancelled')).toMatchObject({ stopped: true });
+        expect(settle('c', 'user-rejected')).not.toHaveProperty('stopped');
+        expect(settle('d', 'permission-rule')).not.toHaveProperty('stopped');
+    });
+
     test('names a signal from outside that killed the CLI mid-turn', async () => {
         const script = scripted();
         const run = open(script.cli);

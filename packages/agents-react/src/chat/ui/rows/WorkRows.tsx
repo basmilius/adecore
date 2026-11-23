@@ -25,6 +25,7 @@ import {
     readImagePath,
     shellCommand,
     toolCallLines,
+    toolFailed,
     toolStartedAt,
     toolSummary,
     toolSummaryIsPath,
@@ -355,7 +356,7 @@ function DiffBody({ tool, entries, patched, chatId }: { tool: ChatToolItem; entr
                         className="max-h-64"
                         viewportClassName={clsx(
                             'whitespace-pre-wrap font-mono text-code select-text',
-                            tool.state === 'error' ? 'text-chat-removed' : 'text-chat-output'
+                            toolFailed(tool) ? 'text-chat-removed' : 'text-chat-output'
                         )}
                     >
                         <OutputText text={text} whole={whole} stored={tool.outputRef !== undefined} />
@@ -376,7 +377,7 @@ function ToolOutput({ tool, chatId }: { tool: ChatToolItem; chatId: string | und
         return null;
     }
 
-    const failed = tool.state === 'error';
+    const failed = toolFailed(tool);
     const { code, rest } = failed ? exitCodeOf(text) : { code: null, rest: text };
 
     return (
@@ -491,7 +492,7 @@ export function WorkRow({
                 path={detail === undefined && toolSummaryIsPath(tool.name, tool.input)}
                 open={open && opens}
                 onToggle={opens ? () => setOpen((o) => !o) : undefined}
-                failed={failed ?? tool.state === 'error'}
+                failed={failed ?? toolFailed(tool)}
                 time={tool.createdAt}
             />
             {image !== null && ReadImage !== null && <ReadImage path={image} />}
@@ -578,7 +579,7 @@ export function WorkGroupRow({
     const { t } = useTranslation('agent-chat');
     const { commandLooks, toolLooks } = useChatHost();
     const running = tools.filter((tool) => tool.state === 'running').length;
-    const failed = tools.filter((tool) => tool.state === 'error').length;
+    const failed = tools.filter(toolFailed).length;
     const latest = tools.findLast((tool) => tool.state === 'running');
 
     return (

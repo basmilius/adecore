@@ -747,7 +747,7 @@ export class ThreadProjector {
             }
         }
 
-        const settled: ChatToolItem = { ...tool, output: event.output ?? tool.output, state: event.state };
+        const settled: ChatToolItem = { ...tool, output: event.output ?? tool.output, state: event.state, ...(event.stopped ? { stopped: true } : {}) };
         delete settled.progress;
 
         // A stored whole of an earlier output would answer for this one.

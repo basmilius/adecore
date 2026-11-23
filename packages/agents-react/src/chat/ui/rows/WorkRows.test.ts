@@ -67,6 +67,13 @@ describe('WorkGroupRow', () => {
         expect(button.classList.contains('text-status-error')).toBe(false);
         expect(button.querySelector('.text-status-error')?.textContent ?? null).toBe(state === 'error' ? ' · 1 failed' : null);
     });
+
+    test('a call a person stopped does not count as failed', () => {
+        const tools = [tool({ command: 'ls' }, null), { ...tool({ command: 'sleep 60' }, 'rejected'), id: 'second', state: 'error' as const, stopped: true }];
+        const document = render(createElement(WorkGroupRow, { tools, summary: 'Ran 2 commands', expanded: false, onToggle: () => undefined }));
+
+        expect(document.querySelector('.text-status-error')).toBeNull();
+    });
 });
 
 describe('the mark of the call running last', () => {

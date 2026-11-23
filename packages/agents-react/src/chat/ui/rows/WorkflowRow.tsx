@@ -8,7 +8,7 @@ import { useChatHost } from '../../../host/host';
 import { useChatScope } from '../../../scope';
 import { useChats } from '../../../state/chats';
 import { useChatActions } from '../../actions';
-import { hasToolBody } from '../../logic/tools';
+import { hasToolBody, toolFailed } from '../../logic/tools';
 import { workflowCounts, workflowDescription, workflowPhases, type WorkflowCounts, type WorkflowPhaseView } from '../../logic/workflow';
 import { useSubagentSupport } from '../../subagent-support';
 import type { SubagentStep } from '../../subagent-view';
@@ -103,7 +103,7 @@ export function WorkflowRow({
         }
     };
 
-    const failed = tool.state === 'error';
+    const failed = toolFailed(tool);
 
     const header = (
         <>

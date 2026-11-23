@@ -369,7 +369,7 @@ export class ClaudeProtocol {
         this.answeredModel = null;
     }
 
-    /* A stop is on its way; the turn it ends leaves the goal set but nobody working on it. */
+    /* A stop is on its way; the turn it ends leaves the goal set but nobody working on it, and the calls it rejects stopped. */
     noteInterrupt(): void {
         this.interrupting = true;
     }
@@ -1230,9 +1230,24 @@ export class ClaudeProtocol {
                     this.noteWakeup(ref, block.is_error === true ? null : frame.tool_use_result, events);
                 }
 
-                events.push({ type: 'tool.done', ref, output, state: block.is_error === true ? 'error' : 'done' });
+                const failed = block.is_error === true;
+                const stopped = failed && this.stoppedTool(frame, ref);
+                events.push({ type: 'tool.done', ref, output, state: failed ? 'error' : 'done', ...(stopped ? { stopped } : {}) });
             }
         }
+    }
+
+    /*
+     * Whether a call that came back as an error was stopped rather than failed, from the `tool_result_meta` Claude
+     * Code sends beside the results. A stop reports the running call as `user-rejected`, which a person's own
+     * decline reports as well, so that kind counts only in a turn a person stopped.
+     */
+    private stoppedTool(frame: Frame, ref: string): boolean {
+        const metas = Array.isArray(frame.tool_result_meta) ? frame.tool_result_meta : [];
+        const meta = metas.find((entry) => isRecord(entry) && entry.id === ref);
+        const kind = isRecord(meta) ? meta.non_execution_kind : null;
+
+        return kind === 'interrupted' || kind === 'cancelled' || (kind === 'user-rejected' && this.interrupting);
     }
 
     /*

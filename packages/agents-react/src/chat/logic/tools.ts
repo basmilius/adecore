@@ -119,6 +119,11 @@ export function exitCodeOf(output: string): { code: number | null; rest: string 
     return { code: Number(match[1]), rest: output.slice(match[0].length) };
 }
 
+/* A call a person stopped ended in error without failing, so it reads as neutral. */
+export function toolFailed(tool: ChatToolItem): boolean {
+    return tool.state === 'error' && tool.stopped !== true;
+}
+
 export function hasOutput(output: string | null): output is string {
     return output !== null && output.trim() !== '';
 }

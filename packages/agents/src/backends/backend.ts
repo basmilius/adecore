@@ -149,7 +149,7 @@ export type BackendEvent =
     | { type: 'tool.started'; ref: string; name: string; input: unknown; parentRef: string | null; changes?: ChatFileChange[] }
     | { type: 'tool.progress'; ref: string; startedAt: number | null; description: string | null }
     | { type: 'tool.output'; ref: string; text: string }
-    | { type: 'tool.done'; ref: string; output: string | null; state: 'done' | 'error'; changes?: ChatFileChange[] }
+    | { type: 'tool.done'; ref: string; output: string | null; state: 'done' | 'error'; changes?: ChatFileChange[]; stopped?: boolean }
     | {
           type: 'approval.requested';
           requestId: string;
