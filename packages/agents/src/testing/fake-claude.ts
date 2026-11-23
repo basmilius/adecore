@@ -8,6 +8,8 @@ import { join, resolve } from 'node:path';
 import type { FakeCli, FakeIo, FakeProgram } from './fake-cli.ts';
 
 const COMPACT_WINDOW = 'CLAUDE_CODE_AUTO_COMPACT_WINDOW';
+// What every `init` of the fake says it runs.
+export const FAKE_CLAUDE_VERSION = '2.1.322';
 
 /* The `env` of a settings blob, or of a settings file's JSON; nothing when it holds none. */
 function settingsEnv(json: string | undefined): Record<string, unknown> {
@@ -337,7 +339,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             session_id: sessionId
         });
 
-        out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+        out({
+            type: 'system',
+            subtype: 'init',
+            session_id: sessionId,
+            model,
+            claude_code_version: FAKE_CLAUDE_VERSION,
+            cwd: io.cwd,
+            tools: ['Bash'],
+            slash_commands: [],
+            argv: args
+        });
         assistantText(report);
         result();
     };
@@ -627,7 +639,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             sessionId = newSessionId();
             out({ type: 'conversation_reset', new_conversation_id: sessionId, uuid: `reset-${nonce}`, session_id: previous, trigger: 'clear' });
             out({ type: 'result', subtype: 'success', is_error: false, num_turns: 0, total_cost_usd: 0, usage: noUsage, session_id: sessionId });
-            out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+            out({
+                type: 'system',
+                subtype: 'init',
+                session_id: sessionId,
+                model,
+                claude_code_version: FAKE_CLAUDE_VERSION,
+                cwd: io.cwd,
+                tools: ['Bash'],
+                slash_commands: [],
+                argv: args
+            });
 
             return;
         }
@@ -886,7 +908,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     usage: { total_tokens: 1500, tool_uses: 1, duration_ms: 250 }
                 });
 
-                out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+                out({
+                    type: 'system',
+                    subtype: 'init',
+                    session_id: sessionId,
+                    model,
+                    claude_code_version: FAKE_CLAUDE_VERSION,
+                    cwd: io.cwd,
+                    tools: ['Bash'],
+                    slash_commands: [],
+                    argv: args
+                });
                 assistantText(`done: ${summary}`);
                 result();
             });
@@ -937,7 +969,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     }
 
                     pendingWakeup = null;
-                    out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+                    out({
+                        type: 'system',
+                        subtype: 'init',
+                        session_id: sessionId,
+                        model,
+                        claude_code_version: FAKE_CLAUDE_VERSION,
+                        cwd: io.cwd,
+                        tools: ['Bash'],
+                        slash_commands: [],
+                        argv: args
+                    });
                     assistantText('the build is green');
                     result();
                 });
@@ -1011,7 +1053,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                         session_id: sessionId
                     });
 
-                    out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+                    out({
+                        type: 'system',
+                        subtype: 'init',
+                        session_id: sessionId,
+                        model,
+                        claude_code_version: FAKE_CLAUDE_VERSION,
+                        cwd: io.cwd,
+                        tools: ['Bash'],
+                        slash_commands: [],
+                        argv: args
+                    });
                     assistantText(`the subagent says: ${summary}`);
                     result();
                 });
@@ -1062,7 +1114,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     session_id: sessionId
                 });
 
-                out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+                out({
+                    type: 'system',
+                    subtype: 'init',
+                    session_id: sessionId,
+                    model,
+                    claude_code_version: FAKE_CLAUDE_VERSION,
+                    cwd: io.cwd,
+                    tools: ['Bash'],
+                    slash_commands: [],
+                    argv: args
+                });
             };
 
             out({
@@ -1236,7 +1298,17 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                     usage: { total_tokens: 32403, tool_uses: 2, duration_ms: 9000 }
                 });
 
-                out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+                out({
+                    type: 'system',
+                    subtype: 'init',
+                    session_id: sessionId,
+                    model,
+                    claude_code_version: FAKE_CLAUDE_VERSION,
+                    cwd: io.cwd,
+                    tools: ['Bash'],
+                    slash_commands: [],
+                    argv: args
+                });
                 assistantText('the workflow is done');
                 result();
             });
@@ -1433,6 +1505,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
         subtype: 'init',
         session_id: sessionId,
         model,
+        claude_code_version: FAKE_CLAUDE_VERSION,
         cwd: io.cwd,
         tools: ['Bash'],
         slash_commands: ['compact', 'review'],
@@ -1457,6 +1530,7 @@ export function fakeClaude(io: FakeIo): FakeProgram {
                         subtype: 'init',
                         session_id: sessionId,
                         model,
+                        claude_code_version: FAKE_CLAUDE_VERSION,
                         cwd: io.cwd,
                         tools: ['Bash'],
                         slash_commands: ['compact', 'review'],

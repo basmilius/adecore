@@ -16,6 +16,8 @@ interface ClaudeProviderOptions extends ClaudeBackendOptions {
 
 export function createClaudeProvider(options: ClaudeProviderOptions = {}): ChatProvider {
     const { command, launch, ...backend } = options;
+    // The version the registry's last probe read, so a running chat can tell it was started on an older binary.
+    let version: string | null = null;
 
     return {
         kind: 'claude',
@@ -66,7 +68,12 @@ export function createClaudeProvider(options: ClaudeProviderOptions = {}): ChatP
             mcpAllowArgs: claudeMcpAllowArgs
         },
         // The version probe must never be the start that updates the CLI.
-        detect: (path, env) => detectCli(path, { ...env, DISABLE_AUTOUPDATER: '1' }),
+        detect: async (path, env) => {
+            const detection = await detectCli(path, { ...env, DISABLE_AUTOUPDATER: '1' });
+            version = detection.installed ? detection.version : null;
+
+            return detection;
+        },
         askAccount: askClaudeAccount,
         probeLimits: probeClaude,
         oneShotArgs: (prompt) => ['-p', prompt, '--output-format', 'text'],
@@ -87,6 +94,6 @@ export function createClaudeProvider(options: ClaudeProviderOptions = {}): ChatP
         ],
         // `claude [options] [prompt]`: the prompt is the positional, and without -p the session stays.
         firstPromptArgs: (prompt) => [prompt],
-        createBackend: (launched, host) => new ClaudeBackend(launched, host, backend)
+        createBackend: (launched, host) => new ClaudeBackend(launched, host, { installedVersion: () => version, ...backend })
     };
 }

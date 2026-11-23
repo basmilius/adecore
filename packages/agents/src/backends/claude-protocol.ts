@@ -355,6 +355,8 @@ export class ClaudeProtocol {
     // The model the person picked, and the one the main chain last answered with.
     private pickedModel: string | null = null;
     private answeredModel: string | null = null;
+    // The version of Claude Code this process runs, from its last `init`; null before the first.
+    private version: string | null = null;
 
     // `cacheTtlMs` is the lifetime the chat knew before this process, so a resumed CLI that only reads the cache still moves its expiry.
     constructor(goal: ChatGoal | null = null, now: () => number = () => Date.now(), cacheTtlMs: number | null = null) {
@@ -372,6 +374,10 @@ export class ClaudeProtocol {
     /* A stop is on its way; the turn it ends leaves the goal set but nobody working on it, and the calls it rejects stopped. */
     noteInterrupt(): void {
         this.interrupting = true;
+    }
+
+    get runningVersion(): string | null {
+        return this.version;
     }
 
     get goalActive(): boolean {
@@ -580,6 +586,7 @@ export class ClaudeProtocol {
             const skills = Array.isArray(frame.skills) ? frame.skills.filter((skill): skill is string => typeof skill === 'string') : [];
             const permissionMode = str(frame.permissionMode);
             const effectiveRuntimeMode = permissionMode === null ? undefined : claudeRuntimeMode(permissionMode);
+            this.version = str(frame.claude_code_version) ?? this.version;
 
             events.push({
                 type: 'session',

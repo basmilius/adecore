@@ -24,6 +24,7 @@ import type {
 } from '@anthropic-ai/claude-agent-sdk';
 import { ChatChild } from '../chat-process.ts';
 import { errorText } from '../error-text.ts';
+import { olderThan } from './acp-backend.ts';
 import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, ChatMcpServer, TurnInput } from './backend.ts';
 import { ClaudeProtocol } from './claude-protocol.ts';
 import { claudeEffort, claudeEnv, claudeModel, claudePermissionMode, claudeSettings, promptPrefix } from './claude.ts';
@@ -89,6 +90,8 @@ export interface ClaudeBackendOptions {
     apiKey?: ClaudeApiKeyOptions;
     // How the CLI names the host that runs it (`CLAUDE_CODE_ENTRYPOINT`); absent leaves the SDK's `sdk-ts`.
     entrypoint?: string;
+    // The version of Claude Code installed now, as the provider's last probe read it; null when it read none.
+    installedVersion?: () => string | null;
 }
 
 type PermissionOptions = Parameters<CanUseTool>[2];
@@ -388,8 +391,10 @@ export class ClaudeBackend implements ChatBackend {
             claudeSettings(from)?.autoCompactEnabled !== claudeSettings(to)?.autoCompactEnabled;
         const bypass =
             claudePermissionMode(change.runtimeMode) === 'bypassPermissions' && claudePermissionMode(this.launch.runtimeMode) !== 'bypassPermissions';
+        // A process keeps the binary it started on after an update, and only the newer one may know the model picked now.
+        const outdated = claudeModel(from) !== claudeModel(to) && this.runsOlderThanInstalled();
 
-        if (startsOnly || bypass) {
+        if (startsOnly || bypass || outdated) {
             return false;
         }
 
@@ -886,6 +891,13 @@ export class ClaudeBackend implements ChatBackend {
         running?.close();
         const foreign = signal === null || child.signaled ? {} : { signal };
         this.host.onEvent({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }), ...foreign });
+    }
+
+    private runsOlderThanInstalled(): boolean {
+        const installed = this.options.installedVersion?.() ?? null;
+        const running = this.protocol.runningVersion;
+
+        return installed !== null && running !== null && olderThan(running, installed);
     }
 
     /* Answers every request the CLI still waits on, so no `canUseTool` or `onElicitation` promise is left hanging once the backend lets go. */

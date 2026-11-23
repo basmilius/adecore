@@ -11,7 +11,7 @@ import resumedTaskCapture from '../chat/fixtures/claude-2.1.285-resume-task-noti
 import goalCapture from '../chat/fixtures/claude-2.1.296-goal.json';
 import interimCapture from '../chat/fixtures/claude-2.1.318-interim-subagent.json';
 import compact319Capture from '../chat/fixtures/claude-2.1.319-resume-direct-compact.json';
-import { fakeClaude } from '../testing/fake-claude.ts';
+import { FAKE_CLAUDE_VERSION, fakeClaude } from '../testing/fake-claude.ts';
 import { inProcess, type FakeCli, type FakeIo, type InProcessCli } from '../testing/fake-cli.ts';
 import { claudeProvider } from '../testing/providers.ts';
 import type { BackendEvent, BackendLaunch, TurnInput } from './backend.ts';
@@ -817,6 +817,20 @@ describe('a change to a running Claude process', () => {
         run.backend.sendTurn(turn('answer as: claude-opus-5', 'p4'));
         await until(() => doneTurns(run.events) === 4);
         expect(notes()).toHaveLength(1);
+        await run.backend.dispose();
+    });
+
+    test.each([
+        ['2.1.400', false],
+        [FAKE_CLAUDE_VERSION, true]
+    ] as const)('a model switch with %s installed switches in place: %s', async (installed, inPlace) => {
+        const run = open(fakeClaude, { selection: { model: 'claude-sonnet-5', options: {} } }, { installedVersion: () => installed });
+        await run.backend.start();
+        run.backend.sendTurn(turn('hello', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+
+        expect(await run.backend.reconfigure({ selection: { model: 'claude-sonnet-5', options: { effort: 'high' } }, runtimeMode: 'supervised' })).toBe(true);
+        expect(await run.backend.reconfigure({ selection: { model: 'claude-opus-5', options: { effort: 'high' } }, runtimeMode: 'supervised' })).toBe(inPlace);
         await run.backend.dispose();
     });
 
