@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from 'bun:test';
-import type { ChatInfo } from '@adecore/agent-contracts';
+import { scheduledWakeupId, type ChatInfo } from '@adecore/agent-contracts';
 import type { BackendEvent } from '../backends/backend.ts';
 import { ManualClock } from '../testing/manual-clock.ts';
 import { flush, info, rig } from './chat-session.fixture.test.ts';
@@ -509,6 +509,38 @@ describe('stopping one subagent of the CLI', () => {
         run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
         expect(run.session.stopSubagent('t1')).toBe('marked');
         expect(row(run.session, 't1')).toMatchObject({ status: 'failed' });
+        await run.session.dispose();
+    });
+});
+
+describe('a wakeup the CLI scheduled', () => {
+    const wakeup = scheduledWakeupId('toolu_w', 61_000);
+
+    const scheduled = async () => {
+        const run = rig();
+        run.session.send('loop');
+        await flush();
+        run.event({ type: 'background.started', taskId: wakeup, ref: null, monitor: true, description: 'Scheduled wakeup' });
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+
+        return run;
+    };
+
+    test('holds the process, and its Stop ends the process and keeps the conversation', async () => {
+        const run = await scheduled();
+        expect(run.session.info.background).toMatchObject([{ id: wakeup, kind: 'monitor', description: 'Scheduled wakeup' }]);
+        expect(run.session.relocatable).toBe(false);
+        await run.session.stopTask(wakeup);
+        expect(run.session.info).toMatchObject({ background: [], running: false });
+        expect(run.session.relocatable).toBe(true);
+        await run.session.dispose();
+    });
+
+    test('its Stop is refused while the process runs other work that would end with it', async () => {
+        const run = await scheduled();
+        run.event({ type: 'background.started', taskId: 'b1', ref: null, monitor: false, description: 'Serve' });
+        expect(() => run.session.stopTask(wakeup)).toThrow('still runs other work');
+        expect(run.session.info.running).toBe(true);
         await run.session.dispose();
     });
 });

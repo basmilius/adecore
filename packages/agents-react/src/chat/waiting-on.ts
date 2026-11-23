@@ -1,7 +1,7 @@
-import { formatElapsedShort, formatMoment } from '@adecore/ui/format';
+import { formatMoment } from '@adecore/ui/format';
 import i18next from 'i18next';
 import type { ChatThreadInfo } from '../chat-sink';
-import { backgroundTaskName, type ChatThreadBackgroundTask } from './activity';
+import { backgroundTaskName, backgroundTaskTime, type ChatThreadBackgroundTask } from './activity';
 
 /* An open task the chat delegated: whether its child waits out a limit, and that child's info where the client has it. */
 export interface WaitingChild {
@@ -81,10 +81,7 @@ export function waitingOnLabel(waiting: WaitingOn, now: number): string {
         case 'paused':
             return waiting.until === undefined ? t('waitingOn.paused') : t('waitingOn.pausedUntil', { time: formatMoment(waiting.until, now) });
         case 'command':
-            return t('waitingOn.command', {
-                command: backgroundTaskName(waiting.task),
-                age: formatElapsedShort(Math.max(0, now - waiting.task.startedAt))
-            });
+            return t('waitingOn.command', { command: backgroundTaskName(waiting.task), age: backgroundTaskTime(waiting.task, now) });
         case 'background':
             if (waiting.subagents === 0 && waiting.workflows === 0) {
                 return t('waitingOn.background');

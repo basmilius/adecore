@@ -168,6 +168,24 @@ export const ChatBackgroundTaskSchema = z.object({
 });
 export type ChatBackgroundTask = z.infer<typeof ChatBackgroundTaskSchema>;
 
+const SCHEDULED_WAKEUP_ID = /^wakeup-(\d+)-./;
+
+/*
+ * A wakeup the CLI scheduled for itself, which starts a turn of its own at `scheduledFor`, is a monitor in the
+ * chat's background work. Its time rides in the id, so a client that does not know wakeups still draws a
+ * row with a stop, and the wire keeps its shape.
+ */
+export function scheduledWakeupId(ref: string, scheduledFor: number): string {
+    return `wakeup-${Math.round(scheduledFor)}-${ref}`;
+}
+
+/* When a background task that is a scheduled wakeup fires; null for any other task. */
+export function scheduledWakeupAt(task: Pick<ChatBackgroundTask, 'id'>): number | null {
+    const match = SCHEDULED_WAKEUP_ID.exec(task.id);
+
+    return match === null ? null : Number(match[1]);
+}
+
 /*
  * Why a turn stopped short, when its CLI said so in its own stream: the plan's usage limit, or a model
  * too busy to answer. Not a state of its own, since a client that validates `state` knows four.

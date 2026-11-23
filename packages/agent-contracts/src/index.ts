@@ -55,6 +55,8 @@ export {
     type ChatQueuedMessage,
     ChatBackgroundTaskSchema,
     type ChatBackgroundTask,
+    scheduledWakeupId,
+    scheduledWakeupAt,
     ChatTurnLimitSchema,
     type ChatTurnLimit,
     ChatGoalStatusSchema,

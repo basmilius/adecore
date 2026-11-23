@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, jest, test } from 'bun:test';
+import { scheduledWakeupId } from '@adecore/agent-contracts';
 import type { ChatProcess, ChatSpawnOptions } from '../chat-process.ts';
 import autoFallbackCapture from '../chat/fixtures/claude-2.1.285-auto-fallback.json';
 import nativeChildrenCapture from '../chat/fixtures/claude-2.1.285-native-children.json';
@@ -887,6 +888,51 @@ describe('a Stop beside a background subagent', () => {
         run.backend.stopTask('task-agent');
         await until(() => stoppedTasks(run.events).length === 1);
         expect(stoppedTasks(run.events)[0]).toMatchObject({ ok: false });
+        await run.backend.dispose();
+    });
+});
+
+describe('a wakeup the CLI scheduled', () => {
+    const wakeup = scheduledWakeupId('toolu_wakeup_1', 61_000);
+
+    const background = (events: readonly BackendEvent[]) =>
+        events.filter((event) => event.type === 'background.started' || event.type === 'background.ended').map((event) => [event.type, event.taskId]);
+
+    test('waits in the background until the turn it starts', async () => {
+        let now = 1_000;
+        const run = open(fakeClaude, { now: () => now });
+        await run.backend.start();
+        run.backend.sendTurn(turn('wakeup: 61000', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        expect(background(run.events)).toEqual([['background.started', wakeup]]);
+        expect(run.events.find((event) => event.type === 'background.started')).toMatchObject({ monitor: true, description: 'Scheduled wakeup' });
+
+        // A turn of the person's before the wakeup's time leaves it waiting.
+        run.backend.sendTurn(turn('hello', 'p2'));
+        await until(() => doneTurns(run.events) === 2);
+        expect(background(run.events)).toHaveLength(1);
+
+        now = 61_000;
+        run.cli.started[0]!.runLater();
+        await until(() => doneTurns(run.events) === 3);
+        expect(background(run.events)).toEqual([
+            ['background.started', wakeup],
+            ['background.ended', wakeup]
+        ]);
+        await run.backend.dispose();
+    });
+
+    test('ends when the model ends its loop', async () => {
+        const run = open();
+        await run.backend.start();
+        run.backend.sendTurn(turn('wakeup: 61000', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        run.backend.sendTurn(turn('wakeup: stop', 'p2'));
+        await until(() => doneTurns(run.events) === 2);
+        expect(background(run.events)).toEqual([
+            ['background.started', wakeup],
+            ['background.ended', wakeup]
+        ]);
         await run.backend.dispose();
     });
 });

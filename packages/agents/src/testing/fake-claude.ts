@@ -774,6 +774,52 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             return;
         }
 
+        /*
+         * A self-paced loop: `wakeup: <epoch ms>` schedules a wakeup for that time, `wakeup: stop` cancels the one that
+         * waits. The turn the wakeup starts comes later, with no user frame of the host's.
+         */
+        if (text.startsWith('wakeup:')) {
+            const at = text.slice(7).trim();
+            const stop = at === 'stop';
+            const toolUseId = `toolu_wakeup_${++messageCounter}`;
+            const input = stop ? { stop: true } : { delaySeconds: 60, reason: 'check the build', prompt: '/loop check the build' };
+            const output = stop
+                ? { scheduledFor: 0, clampedDelaySeconds: 0, wasClamped: false, stopped: true, cancelledWakeups: 1 }
+                : { scheduledFor: Number(at), clampedDelaySeconds: 60, wasClamped: false };
+
+            out({
+                type: 'assistant',
+                message: {
+                    id: `msg_${nonce}_${++messageCounter}`,
+                    model,
+                    role: 'assistant',
+                    content: [{ type: 'tool_use', id: toolUseId, name: 'ScheduleWakeup', input }],
+                    usage
+                },
+                session_id: sessionId
+            });
+
+            out({
+                type: 'user',
+                message: { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: stop ? 'Loop ended.' : 'Wakeup scheduled.' }] },
+                tool_use_result: output,
+                session_id: sessionId
+            });
+
+            assistantText(stop ? 'loop ended' : 'back soon');
+            result();
+
+            if (!stop) {
+                io.later(() => {
+                    out({ type: 'system', subtype: 'init', session_id: sessionId, model, cwd: io.cwd, tools: ['Bash'], slash_commands: [], argv: args });
+                    assistantText('the build is green');
+                    result();
+                });
+            }
+
+            return;
+        }
+
         if (text.startsWith('background:')) {
             const summary = text.slice(11).trim() || 'done';
             const id = `msg_${nonce}_${++messageCounter}`;

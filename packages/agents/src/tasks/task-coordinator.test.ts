@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bu
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { notResumedNote, type ChatBackgroundTask, type ChatItem, type ChatTurnItem, type Task } from '@adecore/agent-contracts';
+import { notResumedNote, scheduledWakeupId, type ChatBackgroundTask, type ChatItem, type ChatTurnItem, type Task } from '@adecore/agent-contracts';
 import { compileUi } from '@adecore/intelligent-ui';
 import { writeAtomic } from '@adecore/utils/fs';
 import type { AgentEvent } from '../events.ts';
@@ -329,6 +329,18 @@ describe('the coordinator', () => {
         });
         expect(await coordinator.outlasted('chat-child', ['bun dev'])).toBeNull();
         expect(owed).toEqual([task.id]);
+    });
+
+    test('a wakeup the CLI scheduled holds the task with no limit', async () => {
+        const task = await open('chat-lead', 'chat-child');
+        commands.set('chat-child', [
+            { id: scheduledWakeupId('toolu_w', 60 * 60_000), kind: 'monitor', description: 'Scheduled wakeup', command: null, startedAt: 8 }
+        ]);
+        threads.set('chat-child', [turn('t1', 'done'), answer('t1', 'back in an hour')]);
+        ends('chat-child', turn('t1', 'done'));
+        await Promise.resolve();
+        expect(tasks.get(task.id)?.status).toBe('open');
+        expect(limits.size).toBe(0);
     });
 
     test('a subagent beside a command holds the task with no limit, and the limit starts once the command is all that is left', async () => {

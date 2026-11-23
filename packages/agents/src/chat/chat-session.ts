@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
     ChatAttachment,
+    ChatBackgroundTask,
     ChatCheckpointDiff,
     ChatEvent,
     ChatGoalAction,
@@ -21,7 +22,7 @@ import type {
     ModelSelection,
     RuntimeMode
 } from '@adecore/agent-contracts';
-import { ENDED_NOTE_PREFIX, HOST_TASK_ORIGIN, notResumedNote } from '@adecore/agent-contracts';
+import { ENDED_NOTE_PREFIX, HOST_TASK_ORIGIN, notResumedNote, scheduledWakeupAt } from '@adecore/agent-contracts';
 import { resolveUiChoice, UI_FENCE_LANGUAGE, UiFailure } from '@adecore/intelligent-ui';
 import { asError } from '@adecore/utils/errors';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
@@ -1005,7 +1006,14 @@ export class ChatSession {
     }
 
     /* Ends a command or a monitor the CLI runs in the background; the CLI's own report takes it off the list. */
-    stopTask(taskId: string): void {
+    stopTask(taskId: string): Promise<void> {
+        const background = this.thread.info.background ?? [];
+        const wakeup = background.find((task) => task.id === taskId && scheduledWakeupAt(task) !== null);
+
+        if (wakeup !== undefined) {
+            return this.stopWakeup(wakeup);
+        }
+
         const workflow = this.thread
             .list()
             .some((item) => item.kind === 'tool' && item.name === 'Workflow' && item.state === 'running' && item.workflow?.taskId === taskId);
@@ -1019,6 +1027,30 @@ export class ChatSession {
         }
 
         this.backend.stopTask(taskId);
+
+        return Promise.resolve();
+    }
+
+    /*
+     * The CLI takes no request to cancel a wakeup, so stopping one ends its process; the conversation stays and the
+     * next message resumes it. Refused while the process holds anything else, which would end with it.
+     */
+    private stopWakeup(wakeup: ChatBackgroundTask): Promise<void> {
+        const others = (this.thread.info.background ?? []).filter((task) => task.id !== wakeup.id);
+
+        if (
+            this.thread.info.activeTurnId !== null ||
+            others.length > 0 ||
+            runningInBackground(this.thread.list()).length > 0 ||
+            this.thread.pending().length > 0 ||
+            this.goalWorks()
+        ) {
+            throw new ChatError('chat-busy', 'This wakeup ends with the process, which still runs other work; stop that first');
+        }
+
+        this.emit([this.thread.patchInfo({ background: [] })]);
+
+        return this.dropProcess();
     }
 
     /* Answers a pending approval; false when nothing waits under that id. */

@@ -1,12 +1,13 @@
-import type {
-    ChatGoal,
-    ChatQuestion,
-    ChatSubagentStatus,
-    ChatSubagentUsage,
-    ChatTurnLimit,
-    ChatWorkflow,
-    ChatWorkflowAgent,
-    ChatWorkflowPhase
+import {
+    scheduledWakeupId,
+    type ChatGoal,
+    type ChatQuestion,
+    type ChatSubagentStatus,
+    type ChatSubagentUsage,
+    type ChatTurnLimit,
+    type ChatWorkflow,
+    type ChatWorkflowAgent,
+    type ChatWorkflowPhase
 } from '@adecore/agent-contracts';
 import { isRecord } from '@adecore/utils/record';
 import { num, str } from '../fields.ts';
@@ -304,6 +305,11 @@ export class ClaudeProtocol {
     // Subagents that reported while their own tasks still ran, with what they reported. The CLI does not always
     // wake one when that work ends, and then never notifies for it again, so the end of its last task settles it.
     private readonly waitingAgents = new Map<string, Extract<BackendEvent, { type: 'task.done' }>>();
+    // `ScheduleWakeup` calls whose result has not come in, and the wakeups that wait, by background task id, to when each fires.
+    private readonly wakeupCalls = new Set<string>();
+    private readonly wakeups = new Map<string, number>();
+    // Whether the main chain answers in a turn now; the first frame after a result starts the next, whoever asked for it.
+    private turnOpen = false;
 
     // `cacheTtlMs` is the lifetime the chat knew before this process, so a resumed CLI that only reads the cache still moves its expiry.
     constructor(goal: ChatGoal | null = null, now: () => number = () => Date.now(), cacheTtlMs: number | null = null) {
@@ -836,6 +842,7 @@ export class ClaudeProtocol {
         }
 
         if (event.type === 'message_start') {
+            this.beginTurn(events);
             const message = isRecord(event.message) ? event.message : {};
             this.noteCache(str(message.id), message.usage, events);
             this.streamMessageId = str(message.id);
@@ -917,6 +924,10 @@ export class ClaudeProtocol {
             this.lastUuid = uuid;
         }
 
+        if (!parentRef) {
+            this.beginTurn(events);
+        }
+
         if (!parentRef && typeof frame.error === 'string') {
             this.apiError = frame.error;
         }
@@ -946,9 +957,15 @@ export class ClaudeProtocol {
                 const ordinal = nextOrdinal(this.frameThinkingCount, messageId);
                 events.push({ type: 'thinking.done', ref: this.thinkingRef(messageId, ordinal), text: str(block.thinking) ?? '' });
             } else if (block.type === 'tool_use') {
+                const ref = str(block.id) ?? `tool-${Date.now()}`;
+
+                if (!parentRef && block.name === 'ScheduleWakeup') {
+                    this.wakeupCalls.add(ref);
+                }
+
                 events.push({
                     type: 'tool.started',
-                    ref: str(block.id) ?? `tool-${Date.now()}`,
+                    ref,
                     name: str(block.name) ?? 'tool',
                     input: block.input ?? {},
                     parentRef
@@ -1069,12 +1086,63 @@ export class ClaudeProtocol {
                     events.push({ type: 'workflow.progress', ref, workflow: { name: null, taskId: workflow, phases: [], agents: [] } });
                 }
 
+                if (this.wakeupCalls.delete(ref) && block.is_error !== true) {
+                    this.noteWakeup(ref, frame.tool_use_result, events);
+                }
+
                 events.push({ type: 'tool.done', ref, output, state: block.is_error === true ? 'error' : 'done' });
             }
         }
     }
 
+    /*
+     * A `ScheduleWakeup` the CLI took holds its process until the turn it starts: the CLI keeps the wakeup in
+     * memory, so a process that ends loses it. `stop: true` cancels every wakeup that waits.
+     */
+    private noteWakeup(ref: string, result: unknown, events: BackendEvent[]): void {
+        if (!isRecord(result)) {
+            return;
+        }
+
+        if (result.stopped === true) {
+            for (const taskId of [...this.wakeups.keys()]) {
+                this.wakeups.delete(taskId);
+                events.push({ type: 'background.ended', taskId });
+            }
+
+            return;
+        }
+
+        const scheduledFor = result.scheduledFor;
+
+        if (typeof scheduledFor !== 'number' || !Number.isFinite(scheduledFor)) {
+            return;
+        }
+
+        const taskId = scheduledWakeupId(ref, scheduledFor);
+        this.wakeups.set(taskId, scheduledFor);
+        events.push({ type: 'background.started', taskId, ref: null, monitor: true, description: 'Scheduled wakeup' });
+    }
+
+    /* A turn that starts once a wakeup's time came is that wakeup's turn, or one it would have joined. */
+    private beginTurn(events: BackendEvent[]): void {
+        if (this.turnOpen) {
+            return;
+        }
+
+        this.turnOpen = true;
+        const now = this.now();
+
+        for (const [taskId, scheduledFor] of this.wakeups) {
+            if (scheduledFor <= now) {
+                this.wakeups.delete(taskId);
+                events.push({ type: 'background.ended', taskId });
+            }
+        }
+    }
+
     private handleResult(frame: Frame, events: BackendEvent[]): void {
+        this.turnOpen = false;
         const echoed = Array.isArray(frame.user_message_uuids) ? frame.user_message_uuids.filter((value): value is string => typeof value === 'string') : [];
         const origin = str(frame.origin) ?? (isRecord(frame.origin) ? str(frame.origin.kind) : null);
 

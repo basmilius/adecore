@@ -29,6 +29,8 @@ The fields a client reads most:
 
 Read absent optional arrays (`queue`, `background`, `skills`, `requests`) as empty. The `breakdown` is a `ChatContextBreakdown` (`ChatContextBreakdownSchema`): an estimate of how many context tokens are tool output, files read, conversation and system, scaled to add up to the context size.
 
+A wakeup the CLI scheduled for itself (Claude Code's `ScheduleWakeup`) is a `monitor` in `background` until its turn starts. Its time rides in the id: `scheduledWakeupId(ref, scheduledFor)` builds one, and `scheduledWakeupAt(task)` reads the time back, or `null` for any other task. A client that does not know wakeups still shows the row and its stop.
+
 `holdsConversation(info)` says whether the CLI holds a conversation for the chat: it named a session or a turn is in flight. While it does, the chat cannot switch to a CLI or account that cannot read its transcripts. A clear frees the chat again, although `usage.turns` still counts earlier turns.
 
 `chatActivity(info)` is the one answer to whether a chat is busy, from its `ChatInfo`: `waiting` while a person is asked, `working` while a turn is open, `delegating` while a subagent or workflow still works, `background` while only commands the CLI started run, `holding` while a request is open, a goal is active or messages are queued, and `settled` otherwise. A host picks the levels its question counts: keeping a machine awake counts `working` and `delegating`, a restart waits for `working`, `waiting` and `delegating`, and a step that follows a chat's last turn waits for `settled`. `@adecore/agents/chat` re-exports it.

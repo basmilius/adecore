@@ -1119,7 +1119,7 @@ export class ChatCore {
     /* Ends a command or a monitor a chat's CLI runs in the background, for a person who pressed Stop on it. */
     async stopTask(chatId: string, taskId: string): Promise<void> {
         await this.loaded(chatId);
-        this.require(chatId).stopTask(taskId);
+        await this.require(chatId).stopTask(taskId);
     }
 
     async goal(chatId: string, action: ChatGoalAction): Promise<void> {

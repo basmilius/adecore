@@ -495,6 +495,10 @@ export default {
         other: 'Achtergrondtaak',
         others_one: '{{count}} achtergrondtaak',
         others_other: '{{count}} achtergrondtaken',
+        wakeup: 'Geplande wekker',
+        wakeups_one: '{{count}} geplande wekker',
+        wakeups_other: '{{count}} geplande wekkers',
+        wakesAt: 'gaat af om {{time}}',
         stop: 'Stoppen',
         stopFailed: 'Kon de taak niet stoppen'
     },

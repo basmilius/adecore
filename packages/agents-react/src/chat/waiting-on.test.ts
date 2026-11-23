@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import type { ChatBackgroundTask } from '@adecore/agent-contracts';
+import { scheduledWakeupId, type ChatBackgroundTask } from '@adecore/agent-contracts';
 import { formatMoment } from '@adecore/ui/format';
 import { waitingOnLabel, waitingOnOf, type WaitingOnInput } from './waiting-on';
 
@@ -47,6 +47,16 @@ describe('what a chat waits on', () => {
         expect(
             line({ background: [command('m', NOW - 5_000, { kind: 'monitor', command: 'while true; do sleep 2; done', description: 'Watch the log' })] })
         ).toBe('Watch the log · 5s');
+    });
+
+    test('a wakeup the CLI scheduled says when it fires, in the words of the person', () => {
+        const wakeup = command(scheduledWakeupId('toolu_w', NOW + 20 * 60_000), NOW - 5_000, {
+            kind: 'monitor',
+            command: null,
+            description: 'From the machine'
+        });
+
+        expect(line({ background: [wakeup] })).toBe(`Scheduled wakeup · wakes at ${formatMoment(NOW + 20 * 60_000, NOW)}`);
     });
 
     test('then subagents and workflows in the background, counted where known', () => {

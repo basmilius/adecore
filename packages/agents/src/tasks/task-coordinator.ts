@@ -1,5 +1,5 @@
 import type { ChatBackgroundTask, ChatItem, ChatTurnItem, Task, TaskResult } from '@adecore/agent-contracts';
-import { abortedByMachine, clipText } from '@adecore/agent-contracts';
+import { abortedByMachine, clipText, scheduledWakeupAt } from '@adecore/agent-contracts';
 import { BACKGROUND_COMMAND_LIMIT_MS, commandLabel, isBackgroundWork, runningInBackground, runsInBackground } from '../chat/background-work.ts';
 import { errorText } from '../error-text.ts';
 import type { AgentEvent } from '../events.ts';
@@ -407,7 +407,8 @@ export class TaskCoordinator {
      * running beside them holds it with no limit at all.
      */
     private heldInBackground(chatId: string, task: Task, items: readonly ChatItem[]): boolean {
-        if (runningInBackground(items).length > 0) {
+        // A wakeup the CLI scheduled fires within its hour and starts a turn of its own, which is the task's to see.
+        if (runningInBackground(items).length > 0 || this.deps.commandsOf(chatId).some((command) => scheduledWakeupAt(command) !== null)) {
             if (this.deps.limit.owed(task.id)) {
                 this.track(this.deps.limit.lapse(task.id), `Dropping the limit of task ${task.id} failed`);
             }

@@ -1,8 +1,7 @@
-import { taskIdOfRow, type ChatSubagentItem } from '@adecore/agent-contracts';
+import { scheduledWakeupAt, taskIdOfRow, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
-import { formatElapsedShort } from '@adecore/ui/format';
 import clsx from 'clsx';
-import { Activity, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
+import { Activity, AlarmClock, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/shallow';
@@ -12,7 +11,7 @@ import { useHostTask, useHostTasks } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
 import { useChatActions } from '../actions';
-import { backgroundCounts, backgroundTaskName, type ChatThreadBackgroundTask } from '../activity';
+import { backgroundCounts, backgroundTaskName, backgroundTaskTime, type ChatThreadBackgroundTask } from '../activity';
 import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
@@ -64,7 +63,7 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
         return null;
     }
 
-    const { shells, monitors, others } = backgroundCounts(background);
+    const { shells, monitors, wakeups, others } = backgroundCounts(background);
     const Slot = host.SubagentSlot;
     const counting = progress.active > 0 && progress.total > 1;
 
@@ -97,10 +96,11 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
             {workflows.length > 0 && <WorkflowFlyout chatId={chatId} calls={workflows} />}
             {background.length > 0 && (
                 <Flyout
-                    icon={<Icon icon={shells > 0 ? SquareTerminal : Activity} size={14} />}
+                    icon={<Icon icon={shells > 0 ? SquareTerminal : wakeups === background.length ? AlarmClock : Activity} size={14} />}
                     label={[
                         shells > 0 && t('activity.shells', { count: shells }),
                         monitors > 0 && t('activity.monitors', { count: monitors }),
+                        wakeups > 0 && t('activity.wakeups', { count: wakeups }),
                         others > 0 && t('activity.others', { count: others })
                     ]
                         .filter(Boolean)
@@ -273,10 +273,16 @@ function BackgroundTaskRows({ chatId, tasks }: { chatId: string; tasks: readonly
     return tasks.map((task) => (
         <ActivityRow
             key={task.id}
-            icon={<Icon icon={task.kind === 'shell' ? SquareTerminal : Activity} size={14} className="shrink-0 text-text-faint" />}
+            icon={
+                <Icon
+                    icon={scheduledWakeupAt(task) !== null ? AlarmClock : task.kind === 'shell' ? SquareTerminal : Activity}
+                    size={14}
+                    className="shrink-0 text-text-faint"
+                />
+            }
             title={backgroundTaskName(task)}
             detail={task.description ? task.command : null}
-            time={formatElapsedShort(now - task.startedAt)}
+            time={backgroundTaskTime(task, now)}
         >
             <IconButton icon={Square} size="xs" label={t('activity.stop')} className="mr-1.5" onClick={() => stop(task.id)} />
         </ActivityRow>

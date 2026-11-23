@@ -495,6 +495,10 @@ export default {
         other: 'Background task',
         others_one: '{{count}} background task',
         others_other: '{{count}} background tasks',
+        wakeup: 'Scheduled wakeup',
+        wakeups_one: '{{count}} scheduled wakeup',
+        wakeups_other: '{{count}} scheduled wakeups',
+        wakesAt: 'wakes at {{time}}',
         stop: 'Stop',
         stopFailed: 'Could not stop task'
     },
