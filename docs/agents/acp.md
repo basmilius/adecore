@@ -44,7 +44,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `catalogStore` | Persists what the agent reported, so a restarted host offers it at once (`AcpCatalogStore`). See [Models](#models). |
 | `onCommands(commands)` | The session's slash commands, without the slash, each time the agent lists them. |
 | `adoptTitles` | `true` takes the agent's session titles as the chat's suggested title. Absent leaves naming to the host. |
-| `steer` | How a message joins the running turn. `interject` sends Grok's `_x.ai/interject`. Absent leaves the backend without `steerTurn`, so a message queues. Set `capabilities.steer` beside it. See [Steering](#steering). |
+| `steer` | How a message joins the running turn. `interject` sends Grok's `_x.ai/interject`, `prompt` another `session/prompt` (agy 1.5). Absent leaves the backend without `steerTurn`, so a message queues. Set `capabilities.steer` beside it. See [Steering](#steering). |
 | `repliesEndOnUsage` | `true` for an agent whose every reply ends on a `usage_update`, also one it starts by itself with no prompt open. See [Turns the agent opens](#turns-the-agent-opens). |
 | `cancelsIdle` | `true` sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its turn on it. Absent sends nothing then. |
 | `mcp` | MCP transports (`http`, `sse`) the agent takes although its `initialize` does not advertise them. |
@@ -126,6 +126,8 @@ With `daemonFlag`, a command whose input sets that key and still runs when its p
 ### Steering
 
 With `steer: 'interject'`, `steerTurn` sends `_x.ai/interject` with the session and the message's text, the preamble in front and attachments named by path. Grok CLI answers `queued` at once. A running tool finishes, the model reads the message at its next step, and the one prompt response still ends the turn, so no `session/cancel` goes out. `steerTurn` resolves `false` without a prompt in flight, after `interrupt`, and when the agent refuses the request or answers another status.
+
+With `steer: 'prompt'`, `steerTurn` sends the message as another `session/prompt`, attachments and mentions included as in any prompt. agy 1.5 answers the running prompt with `end_turn` at once and works on with both messages, a running command included. That answer ends nothing: the turn ends on the answer of the last prompt sent, and `steerTurn` resolves `true` once the agent answered either. Each answer reports its own usage to `onUsage`.
 
 ## Questions
 

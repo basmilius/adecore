@@ -81,9 +81,9 @@ export interface AcpAgentSpec {
     // The arguments that make the agent run every tool of one MCP server without asking, for an agent whose permission
     // requests name no server; put on its line for each server of the launch that allows its tools.
     allowToolsArgs?(serverName: string): string[];
-    // How a message joins the running prompt: `interject` sends Grok's `_x.ai/interject`. Absent leaves the backend
-    // without `steerTurn`, so a message waits for the next turn.
-    steer?: 'interject';
+    // How a message joins the running prompt: `interject` sends Grok's `_x.ai/interject`, `prompt` another `session/prompt`
+    // (agy 1.5). Absent leaves the backend without `steerTurn`, so a message waits for the next turn.
+    steer?: 'interject' | 'prompt';
     // True for an agent whose every reply ends on a `usage_update`, also one it starts by itself with no prompt open, as
     // Antigravity 1.5 wakes when a command it runs on past its turn ends. Such a reply ends once no output follows that
     // update for `WAKE_QUIET_MS`. Absent, a reply the agent starts by itself ends only on its own idle (Copilot's).
@@ -116,6 +116,10 @@ interface PromptState {
     promptId: string | undefined;
     cancelled: boolean;
     started: boolean;
+    // `session/prompt` requests in flight for this turn: a steer sends one more, and only the last answer ends the turn.
+    requests: number;
+    // Steers waiting for the agent to take them, which it shows by answering a request of the turn.
+    steers: Array<() => void>;
 }
 
 // How long a reply the agent started by itself stays open after its `usage_update`. The agent's next step can follow a
@@ -230,6 +234,8 @@ class AcpBackend implements ChatBackend {
 
         if (spec.steer === 'interject') {
             this.steerTurn = (input) => this.interject(input);
+        } else if (spec.steer === 'prompt') {
+            this.steerTurn = (input) => this.steerPrompt(input);
         }
 
         if (spec.daemonFlag !== undefined && spec.cancelsIdle === true) {
@@ -635,39 +641,92 @@ class AcpBackend implements ChatBackend {
         }
 
         const prompt = this.promptBlocks(input);
-        const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false };
+        const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false, requests: 0, steers: [] };
         this.prompt = turn;
         this.forgetWake();
         this.emit({ type: 'quiet.watch' });
+        void this.requestPrompt(transport, turn, prompt);
+    }
 
-        transport
-            .request('session/prompt', { sessionId: this.sessionId, prompt }, { timeoutMs: null })
-            .then((result) => {
+    /* One `session/prompt` of a turn. Its answer ends the turn unless a later request of the same turn still runs. */
+    private requestPrompt(transport: JsonRpcTransport, turn: PromptState, prompt: unknown[]): Promise<unknown> {
+        turn.requests += 1;
+        const sent = transport.request('session/prompt', { sessionId: this.sessionId, prompt }, { timeoutMs: null });
+
+        sent.then(
+            (result) => {
                 if (this.transport !== transport) {
                     return;
+                }
+
+                turn.requests -= 1;
+
+                for (const take of turn.steers.splice(0)) {
+                    take();
                 }
 
                 if (this.endReleased(turn)) {
                     this.report(result);
                 } else if (this.prompt === turn) {
-                    this.prompt = null;
                     this.report(result);
-                    this.keepDaemons();
-                    this.emitAll(this.protocol.finish(result, turn.promptId, turn.cancelled));
+
+                    if (turn.requests === 0) {
+                        this.prompt = null;
+                        this.keepDaemons();
+                        this.emitAll(this.protocol.finish(result, turn.promptId, turn.cancelled));
+                    }
                 }
-            })
-            .catch((error: unknown) => {
-                if (this.transport === transport && this.endReleased(turn)) {
+            },
+            (error: unknown) => {
+                if (this.transport !== transport) {
+                    return;
+                }
+
+                turn.requests -= 1;
+
+                if (this.endReleased(turn)) {
                     return;
                 }
 
                 // A process that went has its exit tell the thread; anything else ends this turn alone.
-                if (this.transport === transport && transport.alive && this.prompt === turn) {
+                if (transport.alive && this.prompt === turn && turn.requests === 0) {
                     this.prompt = null;
                     const limit = error instanceof JsonRpcError ? acpErrorLimit(error.code, error.data, this.spec.kind ?? null) : null;
                     this.emitAll(this.protocol.abort(turn.promptId, turn.cancelled ? null : errorText(error), limit));
                 }
+            }
+        );
+
+        return sent;
+    }
+
+    /*
+     * Hands the running prompt a message as agy 1.5 takes one: as another `session/prompt`. It answers the running one
+     * with `end_turn` at once, which ends nothing here and shows it took the message, and the model works on with both
+     * messages in the same turn until the later answer. Each answer reports its own usage.
+     */
+    private steerPrompt(input: TurnInput): Promise<boolean> {
+        const transport = this.transport;
+        const turn = this.prompt;
+
+        if (!transport || turn === null || turn.cancelled) {
+            return Promise.resolve(false);
+        }
+
+        const prompt = this.promptBlocks(input);
+
+        return new Promise<boolean>((resolve, reject) => {
+            turn.steers.push(() => resolve(true));
+
+            this.requestPrompt(transport, turn, prompt).catch((error: unknown) => {
+                // A refusal is an answer: the message waits for the next turn. Anything else leaves the outcome unknown.
+                if (error instanceof JsonRpcError) {
+                    resolve(false);
+                } else {
+                    reject(error);
+                }
             });
+        });
     }
 
     /*

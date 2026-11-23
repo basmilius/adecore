@@ -2,12 +2,13 @@ import { expect, test } from 'bun:test';
 import agyDaemonCancel from '../chat/fixtures/antigravity-1.5.15-daemon-cancel.json';
 import agyDaemonWake from '../chat/fixtures/antigravity-1.5.15-daemon-wake.json';
 import agyMcpTurn from '../chat/fixtures/antigravity-1.5.15-mcp-turn.json';
+import agySteer from '../chat/fixtures/antigravity-1.5.15-steer.json';
 import agySubagent from '../chat/fixtures/antigravity-1.5.15-subagent.json';
 import grokLoad from '../chat/fixtures/grok-1.0.70-load.json';
 import { playAcpRecording, recordedAnswer, type AcpTimedFrame } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { ManualClock } from '../testing/manual-clock.ts';
-import { createAcpBackend, type AcpAgentSpec } from './acp-backend.ts';
+import { createAcpBackend, type AcpAgentSpec, type AcpUsageReport } from './acp-backend.ts';
 import type { BackendEvent, BackendLaunch, TurnInput } from './backend.ts';
 
 type Frame = AcpTimedFrame['frame'];
@@ -349,6 +350,31 @@ test('a subagent agy starts is an ordinary tool row that completes once it is sp
     await run.player.playTo(at(frames, isPromptAnswer));
 
     expect(run.events.at(-1)).toMatchObject({ type: 'turn.done', promptId: 'prompt-subagent', state: 'done' });
+
+    await run.backend.dispose();
+});
+
+test('a message steered into a running agy prompt goes as a second session/prompt, and both prompts stay one turn whose usage adds up', async () => {
+    const frames = agySteer.frames as AcpTimedFrame[];
+    const prompts = frames.filter((entry) => entry.frame.method === 'session/prompt');
+    const firstAnswer = frames.find((entry) => isPromptAnswer(entry.frame))!;
+    const reports: AcpUsageReport[] = [];
+    const run = replay(frames, { ...AGY_TOOLS, steer: 'prompt', onUsage: (report) => reports.push(report) }, { runtimeMode: 'full-access' }, AGY_HANDSHAKE);
+    await run.backend.start();
+    run.backend.sendTurn(turn('sleep'));
+    await run.player.playTo(prompts[1]!.t);
+    const steered = run.backend.steerTurn?.(turn('banana'));
+    await run.player.playTo(firstAnswer.t);
+
+    expect(await steered).toBe(true);
+
+    await run.player.playTo(frames.at(-1)!.t);
+
+    expect(run.methods().slice(2)).toEqual(['session/prompt', 'session/prompt']);
+    // The answer follows text, a usage_update and five seconds of quiet before more text: still one reply.
+    expect(timeline(run.events)).toEqual(['text: Waiting for the command to complete.\n\nfinished banana', 'end prompt-sleep done']);
+    expect(run.events.filter((event) => event.type === 'tool.done')).toMatchObject([{ ref: 'call_1538731445954763707', state: 'done' }]);
+    expect(reports.map((report) => report.output)).toEqual([443, 752]);
 
     await run.backend.dispose();
 });
