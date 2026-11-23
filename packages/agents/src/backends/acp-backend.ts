@@ -92,6 +92,9 @@ export interface AcpAgentSpec {
     // runs in the background ends. Such a reply ends once no update follows for `WAKE_QUIET_MS` while none of its calls
     // runs and no request waits.
     repliesEndOnQuiet?: boolean;
+    // True for an agent that can leave a prompt open with no update at all, as Antigravity 1.5 after a 502 from Google.
+    // Every update of the prompt then starts the host's quiet watch again while none of its calls runs and no request waits.
+    silentPrompts?: boolean;
     // True sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its
     // turn on it (Antigravity 1.5). Absent sends nothing then, since Copilot ends the whole session on one.
     cancelsIdle?: boolean;
@@ -149,6 +152,8 @@ interface PromptState {
     requests: number;
     // Steers waiting for the agent to take them, which it shows by answering a request of the turn.
     steers: Array<() => void>;
+    // The calls of the turn that have not ended, which may run long without an update.
+    tools: Set<string>;
 }
 
 // How long a reply the agent started by itself stays open after its `usage_update`. The agent's next step can follow a
@@ -707,7 +712,7 @@ class AcpBackend implements ChatBackend {
         }
 
         const prompt = this.promptBlocks(input);
-        const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false, requests: 0, steers: [] };
+        const turn: PromptState = { promptId: input.promptId, cancelled: false, started: false, requests: 0, steers: [], tools: new Set() };
         this.prompt = turn;
         this.forgetWake();
         this.emit({ type: 'quiet.watch' });
@@ -963,8 +968,9 @@ class AcpBackend implements ChatBackend {
             }
 
             this.transport.respond(rpcId, result);
-            // An answer the agent says nothing more after must not hold its own reply open.
+            // An answer the agent says nothing more after must not hold its own reply open, nor leave its prompt unwatched.
             this.hearQuiet();
+            this.watchSilence([]);
 
             return true;
         } catch (error) {
@@ -1010,6 +1016,8 @@ class AcpBackend implements ChatBackend {
                     this.emit({ type: 'background.ended', taskId: event.ref });
                 }
             }
+
+            this.watchSilence(events);
 
             return;
         }
@@ -1260,6 +1268,31 @@ class AcpBackend implements ChatBackend {
                 this.emitAll(this.protocol.finish({ stopReason: 'end_turn' }, undefined));
             }
         }, WAKE_QUIET_MS);
+    }
+
+    /*
+     * agy can leave a prompt open with no update at all, as after a 502 from Google. Every update starts the host's quiet
+     * watch again while no call of the prompt runs and no request waits. T3 Code then ends the turn and replaces the agent
+     * (`promptInactivityTimeout`); here a person reads a note and decides, since nothing stops a process they did not stop.
+     */
+    private watchSilence(events: readonly BackendEvent[]): void {
+        const turn = this.prompt;
+
+        if (this.spec.silentPrompts !== true || turn === null) {
+            return;
+        }
+
+        for (const event of events) {
+            if (event.type === 'tool.started') {
+                turn.tools.add(event.ref);
+            } else if (event.type === 'tool.done') {
+                turn.tools.delete(event.ref);
+            }
+        }
+
+        if (turn.tools.size === 0 && !this.protocol.asking) {
+            this.emit({ type: 'quiet.watch' });
+        }
     }
 
     private clearWakeEnd(): void {

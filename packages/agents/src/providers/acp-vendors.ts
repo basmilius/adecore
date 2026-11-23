@@ -479,6 +479,7 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     steer: 'prompt',
     repliesEndOnUsage: true,
     cancelsIdle: true,
+    silentPrompts: true,
     mcpToolPrefix: 'mcp_',
     daemonFlag: 'IsDaemon',
     minVersion: { version: ANTIGRAVITY_MIN_VERSION, updateHint: ANTIGRAVITY_UPDATE_HINT },

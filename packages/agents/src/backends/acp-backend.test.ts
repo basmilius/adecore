@@ -349,6 +349,42 @@ test("a steer reaches Grok's running tool as `_x.ai/interject`, and the same tur
     await fake.backend.dispose();
 });
 
+// After T3 Code's `promptInactivityTimeout` for Antigravity; the host's quiet watch gives the note, nothing stops the agent.
+test('an agent whose prompts go silent has the quiet watch start again after each update, but not while a call runs or a request waits', async () => {
+    const types = (events: readonly BackendEvent[]) => events.map((event) => event.type);
+    const silent = run({}, {}, { ...SPEC, silentPrompts: true });
+    await silent.backend.start();
+    silent.events.length = 0;
+    silent.backend.sendTurn(turn('slow'));
+    await silent.next('text.delta');
+
+    expect(types(silent.events).slice(-2)).toEqual(['text.delta', 'quiet.watch']);
+
+    silent.backend.interrupt();
+    await silent.next('turn.done');
+    silent.events.length = 0;
+    silent.backend.sendTurn(turn('tool: ls'));
+    const asked = await silent.next('approval.requested');
+    const waiting = types(silent.events);
+
+    expect(waiting.slice(waiting.indexOf('tool.started'))).not.toContain('quiet.watch');
+
+    silent.backend.respondApproval(asked.requestId, 'allow');
+    await silent.next('turn.done');
+    const answered = types(silent.events);
+
+    expect(answered.slice(answered.indexOf('tool.started'), answered.indexOf('tool.done'))).not.toContain('quiet.watch');
+    expect(answered.slice(answered.indexOf('tool.done'))).toContain('quiet.watch');
+    await silent.backend.dispose();
+
+    const other = run();
+    await other.backend.start();
+    other.backend.sendTurn(turn('slow'));
+    await other.next('text.delta');
+    expect(other.events.at(-1)?.type).toBe('text.delta');
+    await other.backend.dispose();
+});
+
 test('a steer between prompts, or one the agent refuses, leaves the message for the next turn', async () => {
     const fake = run({}, {}, { ...SPEC, steer: 'interject' });
     await fake.backend.start();

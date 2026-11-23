@@ -47,6 +47,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `steer` | How a message joins the running turn. `interject` sends Grok's `_x.ai/interject`, `prompt` another `session/prompt` (agy 1.5). Absent leaves the backend without `steerTurn`, so a message queues. Set `capabilities.steer` beside it. See [Steering](#steering). |
 | `repliesEndOnUsage` | `true` for an agent whose every reply ends on a `usage_update`, also one it starts by itself with no prompt open. See [Turns the agent opens](#turns-the-agent-opens). |
 | `repliesEndOnQuiet` | `true` for an agent that starts replies by itself and ends them with no signal, as Grok does when a background task ends. See [Turns the agent opens](#turns-the-agent-opens). |
+| `silentPrompts` | `true` for an agent that can leave a prompt open with no update at all. Every update of the prompt starts the host's quiet watch again (`quiet.watch`) while none of its calls runs and no request waits, so a silence after the first output also gets the host's note. Nothing stops the agent. |
 | `cancelsIdle` | `true` sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its turn on it. Absent sends nothing then. |
 | `mcp` | MCP transports (`http`, `sse`) the agent takes although its `initialize` does not advertise them. |
 | `mcpToolPrefix` | What the `name` of a tool call that runs an MCP tool starts with, before `<server>_<tool>`, for an agent that marks the call no other way. See [Calls the host guards](#calls-the-host-guards). |
