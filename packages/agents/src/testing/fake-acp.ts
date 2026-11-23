@@ -33,6 +33,11 @@ export interface FakeAcpOptions {
     contextWindows?: boolean;
     // The slash commands a new session lists, sent before the answer that names the session.
     commands?: readonly string[];
+    // Lists `commands` a moment after answering a new or loaded session, as omp does, instead of before.
+    commandsLater?: boolean;
+    // Answers this many `session/set_config_option` requests with -32603 before taking one, counted across every
+    // process of this fake.
+    configFailures?: number;
     // Advertises `promptCapabilities.embeddedContext`, so a prompt may carry files as `resource` blocks.
     embeddedContext?: boolean;
     // The MCP transports `mcpCapabilities` advertises; absent advertises neither.
@@ -49,6 +54,8 @@ const NO_BROWSER_MESSAGE =
     "No browser is available here (this is a remote (SSH) session, so the browser's sign-in redirect can't reach this machine). Run `agy acp --login` in a terminal on this machine, then retry; or use a Gemini API key.";
 
 export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
+    let configFailures = options.configFailures ?? 0;
+
     return (io) => {
         const modes = options.modes ?? ['ask', 'edit', 'yolo'];
         let authenticated = options.authMethod === undefined && options.noBrowser !== true;
@@ -75,6 +82,12 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
 
         const update = (fields: Frame): void => {
             send({ method: 'session/update', params: { sessionId, update: fields } });
+        };
+
+        const listCommands = (): void => {
+            if (options.commands !== undefined) {
+                update({ sessionUpdate: 'available_commands_update', availableCommands: options.commands.map((name) => ({ name, description: name })) });
+            }
         };
 
         const say = (text: string): void => {
@@ -365,14 +378,15 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                     sessionId = `fake-session-${Math.random().toString(36).slice(2, 8)}`;
                     sessionHistory.set(sessionId, []);
 
-                    if (options.commands !== undefined) {
-                        update({
-                            sessionUpdate: 'available_commands_update',
-                            availableCommands: options.commands.map((name) => ({ name, description: name }))
-                        });
+                    if (options.commandsLater !== true) {
+                        listCommands();
                     }
 
                     respond(id, { sessionId, ...sessionState() });
+
+                    if (options.commandsLater === true) {
+                        io.later(listCommands);
+                    }
 
                     return;
                 case 'session/load':
@@ -402,6 +416,10 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
 
                     respond(id, sessionState());
 
+                    if (options.commandsLater === true) {
+                        io.later(listCommands);
+                    }
+
                     return;
                 }
                 case 'session/close':
@@ -428,6 +446,13 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
 
                     return;
                 case 'session/set_config_option':
+                    if (configFailures > 0) {
+                        configFailures -= 1;
+                        refuse(id, -32603, 'Internal error');
+
+                        return;
+                    }
+
                     if (params.configId === 'model') {
                         model = String(params.value);
                     }

@@ -8,6 +8,7 @@ import grokInterject from '../chat/fixtures/grok-1.0.70-interject.json';
 import { fakeAcpCapture, recordedCapture } from '../testing/fake-acp-capture.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess, type FakeCli } from '../testing/fake-cli.ts';
+import { ManualClock } from '../testing/manual-clock.ts';
 import { createAcpBackend, type AcpAgentSpec, type AcpUsageReport } from './acp-backend.ts';
 import type { AcpSessionInfo } from './acp-protocol.ts';
 import type { BackendEvent, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
@@ -538,7 +539,7 @@ test('the commands an agent lists before it names the session reach the thread a
     await fake.backend.dispose();
 });
 
-test('compact sends the agent its own command as a prompt where it lists one, and says it cannot elsewhere', async () => {
+test('compact sends the agent its own command as a prompt where it lists one, and says it cannot where the list has none', async () => {
     const listing = run({ commands: ['compact'] });
     await listing.backend.start();
     listing.backend.compact();
@@ -547,12 +548,62 @@ test('compact sends the agent its own command as a prompt where it lists one, an
     expect(prompt?.params?.prompt).toEqual([{ type: 'text', text: '/compact' }]);
     await listing.backend.dispose();
 
-    const silent = run();
+    const silent = run({ commands: ['goal'] });
     await silent.backend.start();
     silent.backend.compact();
     expect(silent.events.find((event) => event.type === 'note')).toMatchObject({ text: 'Fake cannot compact its context.' });
     expect(silent.methods()).not.toContain('session/prompt');
     await silent.backend.dispose();
+});
+
+test('a compact asked before a loaded session lists its commands waits for the list, and for no longer than a short bound', async () => {
+    const first = run();
+    await first.backend.start();
+    const resume = sessionOf(first.events);
+    await first.backend.dispose();
+
+    const clock = new ManualClock();
+    const listing = run({ commands: ['compact'], commandsLater: true }, { resume, clock });
+    await listing.backend.start();
+    listing.backend.compact();
+    clock.advance(100);
+    expect(listing.methods()).not.toContain('session/prompt');
+    listing.started[0]?.runLater();
+    await listing.next('turn.done');
+    expect(listing.sent.find((frame) => frame.method === 'session/prompt')?.params?.prompt).toEqual([{ type: 'text', text: '/compact' }]);
+    expect(listing.events.some((event) => event.type === 'note')).toBe(false);
+    await listing.backend.dispose();
+
+    const silentClock = new ManualClock();
+    const silent = run({ commandsLater: true }, { resume, clock: silentClock });
+    await silent.backend.start();
+    silent.backend.compact();
+    expect(silent.events.some((event) => event.type === 'note')).toBe(false);
+    silentClock.advance(2_000);
+    expect(silent.events.find((event) => event.type === 'note')).toMatchObject({ text: 'Fake cannot compact its context.' });
+    expect(silent.events.at(-1)).toEqual({ type: 'turn.done', state: 'done', costUsd: 0 });
+    expect(silent.methods()).not.toContain('session/prompt');
+    await silent.backend.dispose();
+});
+
+test('a model switch the agent failed for another reason than a refusal is tried again at the next start', async () => {
+    const fake = run({ configFailures: 1 }, { selection: { model: 'fake-large', options: {} }, modelName: 'Fake large' });
+    await fake.backend.start();
+    expect(fake.events.find((event) => event.type === 'note')).toMatchObject({
+        level: 'warning',
+        text: expect.stringContaining('did not switch to Fake large')
+    });
+    expect(fake.events.find((event) => event.type === 'session')).toMatchObject({ model: 'fake-small' });
+    await fake.backend.dispose();
+
+    const sent = fake.sent.length;
+    const events = fake.events.length;
+    await fake.backend.start();
+    expect(fake.sent.slice(sent).filter((frame) => frame.method === 'session/set_config_option')).toMatchObject([
+        { params: { configId: 'model', value: 'fake-large' } }
+    ]);
+    expect(fake.events.slice(events).find((event) => event.type === 'session')).toMatchObject({ model: 'fake-large' });
+    await fake.backend.dispose();
 });
 
 test('a mentioned text file inside the folder goes along as a resource block where the agent takes embedded context', async () => {

@@ -151,6 +151,10 @@ interface PromptState {
 // moment later, and a shorter wait splits one wake in two.
 const WAKE_QUIET_MS = 3_000;
 
+// How long a compact asked before the session listed its commands waits for that list. An agent may send it a moment
+// after it answers for the session, and one that lists none at all should not hold the compact up for long.
+const COMMANDS_WAIT_MS = 2_000;
+
 /* What the agent starts a turn of its own with: something the thread shows, or a request for a person. */
 function opensWake(event: BackendEvent): boolean {
     switch (event.type) {
@@ -243,6 +247,9 @@ class AcpBackend implements ChatBackend {
     private model: string | null = null;
     private contextReported = false;
     private commands: string[] = [];
+    private commandsListed = false;
+    // The timer of a compact waiting for the session's command list.
+    private compactHeld: unknown = null;
     // An agent may send updates for a new session before it answers with the session's id.
     private early: unknown[] = [];
     // Set only for an agent that takes a message into its running prompt, since a host steers wherever it is set.
@@ -804,6 +811,32 @@ class AcpBackend implements ChatBackend {
 
     /* ACP has no call to fold the context, so an agent that lists a `compact` command gets it as a prompt. */
     compact(): void {
+        if (this.transport && !this.commandsListed) {
+            this.compactHeld ??= (this.launch.clock ?? systemClock).setTimeout(() => this.releaseCompact(), COMMANDS_WAIT_MS);
+
+            return;
+        }
+
+        this.compactNow();
+    }
+
+    private releaseCompact(): void {
+        if (this.compactHeld === null) {
+            return;
+        }
+
+        this.forgetCompact();
+        this.compactNow();
+    }
+
+    private forgetCompact(): void {
+        if (this.compactHeld !== null) {
+            (this.launch.clock ?? systemClock).clearTimeout(this.compactHeld);
+            this.compactHeld = null;
+        }
+    }
+
+    private compactNow(): void {
         if (this.commands.includes('compact')) {
             if (this.transport) {
                 this.protocol.beginCompaction();
@@ -904,6 +937,7 @@ class AcpBackend implements ChatBackend {
         const transport = this.transport;
         this.transport = null;
         this.forgetWake();
+        this.forgetCompact();
 
         return transport?.dispose() ?? Promise.resolve();
     }
@@ -1252,6 +1286,8 @@ class AcpBackend implements ChatBackend {
         this.released.clear();
         this.daemons.clear();
         this.forgetWake();
+        // The exit tells the thread the compact will not come.
+        this.forgetCompact();
         this.protocol.cancelRequests();
         this.emit({ type: 'exit', exitCode, ...(stderr === null ? {} : { stderr }) });
     }
@@ -1282,8 +1318,11 @@ class AcpBackend implements ChatBackend {
             this.model = event.model;
         }
 
+        const listsCommands = event.type === 'session' && event.slashCommands !== undefined;
+
         if (event.type === 'session' && event.slashCommands !== undefined) {
             this.commands = event.slashCommands;
+            this.commandsListed = true;
             this.spec.onCommands?.(event.slashCommands);
         }
 
@@ -1293,6 +1332,10 @@ class AcpBackend implements ChatBackend {
         }
 
         this.host.onEvent(event);
+
+        if (listsCommands) {
+            this.releaseCompact();
+        }
     }
 }
 
