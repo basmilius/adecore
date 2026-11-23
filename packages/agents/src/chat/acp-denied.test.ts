@@ -5,10 +5,13 @@ import { join } from 'node:path';
 import type { AgentKind, ChatInfo, ChatItem } from '@adecore/agent-contracts';
 import type { AgentEvent } from '../events.ts';
 import { createAcpProvider, type AcpProviderSpec } from '../providers/acp-provider.ts';
+import { createAntigravityProvider } from '../providers/acp-vendors.ts';
 import { ModelCatalog } from '../providers/catalog.ts';
+import type { ChatProvider } from '../providers/provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { fakeAcpCapture, type AcpCapture } from '../testing/fake-acp-capture.ts';
-import { inProcess } from '../testing/fake-cli.ts';
+import { fakeAcpWith } from '../testing/fake-acp.ts';
+import { inProcess, type FakeCli } from '../testing/fake-cli.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
 import { ChatStore } from './chat-store.ts';
@@ -62,8 +65,25 @@ function open(kind: keyof typeof AGENTS, options: Partial<AcpProviderSpec> = {})
     });
 
     const answers: unknown[] = [];
-    const fake = inProcess(fakeAcpCapture(agent.capture as AcpCapture, answers));
-    const providers = new ProviderRegistry({ detect: async () => ({ installed: true, version: agent.version }), providers: [provider] });
+    const { chats, info, items, until } = watch(provider, fakeAcpCapture(agent.capture as AcpCapture, answers), agent.version);
+    const chatId = `${kind}-${++opened}`;
+
+    const run = async (): Promise<void> => {
+        await chats.create({ chatId, cwd: home, provider: kind, runtimeMode: 'supervised' });
+        await chats.send(chatId, 'Create probe.txt.');
+        await until(() => items().some((item) => item.kind === 'approval' && item.decision === 'pending'));
+        const approval = items().find((item) => item.kind === 'approval');
+        chats.approve(chatId, approval?.kind === 'approval' ? approval.requestId : '', 'deny');
+        await until(() => info()?.activeTurnId === null && items().some((item) => item.kind === 'turn' && item.state !== 'running'));
+    };
+
+    return { run, answers, info, items };
+}
+
+/* A chat core on one provider and a fake agent, with what it shows of its chats. */
+function watch(provider: ChatProvider, agent: FakeCli, version: string) {
+    const fake = inProcess(agent);
+    const providers = new ProviderRegistry({ detect: async () => ({ installed: true, version }), providers: [provider] });
     const chats = new ChatCore({ providers, store: new ChatStore(home), attachments: new AttachmentStore(home), env: { HOME: home }, spawn: fake.spawn });
     core = chats;
     let info: ChatInfo | null = null;
@@ -92,20 +112,7 @@ function open(kind: keyof typeof AGENTS, options: Partial<AcpProviderSpec> = {})
         }
     };
 
-    const list = () => [...items.values()];
-
-    const chatId = `${kind}-${++opened}`;
-
-    const run = async (): Promise<void> => {
-        await chats.create({ chatId, cwd: home, provider: kind, runtimeMode: 'supervised' });
-        await chats.send(chatId, 'Create probe.txt.');
-        await until(() => list().some((item) => item.kind === 'approval' && item.decision === 'pending'));
-        const approval = list().find((item) => item.kind === 'approval');
-        chats.approve(chatId, approval?.kind === 'approval' ? approval.requestId : '', 'deny');
-        await until(() => info?.activeTurnId === null && list().some((item) => item.kind === 'turn' && item.state !== 'running'));
-    };
-
-    return { run, answers, info: () => info, items: list };
+    return { chats, info: () => info, items: () => [...items.values()], until };
 }
 
 function tools(items: ChatItem[]) {
@@ -142,4 +149,15 @@ test("leaves naming the chat to the host and takes Grok's own session titles onl
     const adopting = open('grok', { adoptTitles: true });
     await adopting.run();
     expect(adopting.info()?.suggestedTitle).toBe('Create probe.txt containing word hi');
+});
+
+test('an Antigravity chat on a machine where no browser opens asks for a sign-in with `agy acp --login`', async () => {
+    const { chats, items, until } = watch(createAntigravityProvider(), fakeAcpWith({ authMethod: 'oauth-personal', noBrowser: true }), '1.5.15');
+    await chats.create({ chatId: 'antigravity-1', cwd: home, provider: 'antigravity', runtimeMode: 'supervised' });
+    await chats.send('antigravity-1', 'hello');
+    await until(() => items().some((item) => item.kind === 'note' && item.level === 'error'));
+    const note = items().find((item) => item.kind === 'note' && item.level === 'error');
+
+    expect(note?.kind === 'note' ? note.text : '').toStartWith('Antigravity is not signed in. authenticate failed: No browser is available here');
+    expect(note?.kind === 'note' ? note.text : '').toEndWith('Run `agy acp --login` in a terminal on this machine, then send your message again.');
 });

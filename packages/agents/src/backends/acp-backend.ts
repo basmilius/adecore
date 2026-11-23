@@ -436,11 +436,23 @@ class AcpBackend implements ChatBackend {
             const methodId = this.spec.authMethod ?? null;
             const offered = this.capabilities?.authMethods ?? [];
 
+            const hint = this.spec.loginHint ? ` ${this.spec.loginHint}` : '';
+
             if (methodId === null || (offered.length > 0 && !offered.includes(methodId))) {
-                throw new Error(`${this.spec.name} is not signed in.${this.spec.loginHint ? ` ${this.spec.loginHint}` : ''}`, { cause: error });
+                throw new Error(`${this.spec.name} is not signed in.${hint}`, { cause: error });
             }
 
-            await transport.request('authenticate', { methodId }, { timeoutMs: null });
+            try {
+                await transport.request('authenticate', { methodId }, { timeoutMs: null });
+            } catch (refusal) {
+                // Every code means the sign-in did not happen (agy 1.5.15 answers -32603 where no browser opens), and the
+                // agent's own message says why, so it is shown as it is.
+                if (!(refusal instanceof JsonRpcError)) {
+                    throw refusal;
+                }
+
+                throw new Error(`${this.spec.name} is not signed in. ${refusal.message}${hint}`, { cause: refusal });
+            }
 
             return transport.request(method, params);
         }

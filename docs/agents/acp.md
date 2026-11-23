@@ -66,7 +66,7 @@ ACP has no system prompt. The launch's `instructions` go before the first prompt
 
 A prompt is one text block with attachments named by path. Images go as `image` blocks when the agent advertises `promptCapabilities.image`. With `promptCapabilities.embeddedContext`, small text files mentioned with `@` inside the chat's folders also go as `resource` blocks. Everything else stays a path for the agent to open.
 
-When a session request answers that authentication is required, the backend calls `authenticate` with `authMethod` and retries once. Without a method, the start fails with `loginHint`.
+When a session request answers that authentication is required, the backend calls `authenticate` with `authMethod` and retries once. Without a method, the start fails with `loginHint`. When the agent refuses `authenticate`, whatever the error code, the start fails with the agent's own message followed by `loginHint`.
 
 ## Modes
 
@@ -203,4 +203,4 @@ A reading carries no email or plan.
 
 Plan limits, file system and terminal client capabilities, MCP servers over stdio, `elicitation/create`, notices and compaction updates. `compaction` is `none` unless the agent lists a `compact` command.
 
-`@adecore/agents/testing` has `fakeAcpWith`, an agent for backend tests that can require a login (`authMethod`), support `session/close` (`closeSession`) or `session/delete` (`deleteSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does. A prompt `continued` sends one message that goes on under its `messageId` after a thought.
+`@adecore/agents/testing` has `fakeAcpWith`, an agent for backend tests that can require a login (`authMethod`) or refuse one where no browser opens (`noBrowser`), support `session/close` (`closeSession`) or `session/delete` (`deleteSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does. A prompt `continued` sends one message that goes on under its `messageId` after a thought.

@@ -37,12 +37,19 @@ export interface FakeAcpOptions {
     embeddedContext?: boolean;
     // The MCP transports `mcpCapabilities` advertises; absent advertises neither.
     mcp?: { http?: boolean; sse?: boolean };
+    // Signed out on a machine where no browser opens, as agy 1.5.15 over SSH: session requests answer "authentication
+    // required" and `authenticate` answers -32603 with agy's own message.
+    noBrowser?: boolean;
 }
+
+// What agy 1.5.15 answers `authenticate` with where no browser opens (`antigravity-1.5.15-no-browser.json`).
+const NO_BROWSER_MESSAGE =
+    "No browser is available here (this is a remote (SSH) session, so the browser's sign-in redirect can't reach this machine). Run `agy acp --login` in a terminal on this machine, then retry; or use a Gemini API key.";
 
 export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
     return (io) => {
         const modes = options.modes ?? ['ask', 'edit', 'yolo'];
-        let authenticated = options.authMethod === undefined;
+        let authenticated = options.authMethod === undefined && options.noBrowser !== true;
         let sessionId = '';
         let mode = modes[0] ?? '';
         let model = 'fake-small';
@@ -336,6 +343,12 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
 
                     return;
                 case 'authenticate':
+                    if (options.noBrowser === true) {
+                        refuse(id, -32603, NO_BROWSER_MESSAGE);
+
+                        return;
+                    }
+
                     authenticated = params.methodId === options.authMethod;
                     respond(id, {});
 
