@@ -1,7 +1,7 @@
 import { scheduledWakeupAt, taskIdOfRow, type ChatSubagentItem } from '@adecore/agent-contracts';
 import { Icon, IconButton, Popover, ScrollArea, Surface, useNow } from '@adecore/ui';
 import clsx from 'clsx';
-import { Activity, AlarmClock, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
+import { Activity, Clock, MessageCircleQuestionMark, Square, SquareTerminal, TriangleAlert } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/shallow';
@@ -96,7 +96,7 @@ export function ChatActivity({ chatId, workflows: showsWorkflows = true }: { cha
             {workflows.length > 0 && <WorkflowFlyout chatId={chatId} calls={workflows} />}
             {background.length > 0 && (
                 <Flyout
-                    icon={<Icon icon={shells > 0 ? SquareTerminal : wakeups === background.length ? AlarmClock : Activity} size={14} />}
+                    icon={<Icon icon={shells > 0 ? SquareTerminal : wakeups === background.length ? Clock : Activity} size={14} />}
                     label={[
                         shells > 0 && t('activity.shells', { count: shells }),
                         monitors > 0 && t('activity.monitors', { count: monitors }),
@@ -275,7 +275,7 @@ function BackgroundTaskRows({ chatId, tasks }: { chatId: string; tasks: readonly
             key={task.id}
             icon={
                 <Icon
-                    icon={scheduledWakeupAt(task) !== null ? AlarmClock : task.kind === 'shell' ? SquareTerminal : Activity}
+                    icon={scheduledWakeupAt(task) !== null ? Clock : task.kind === 'shell' ? SquareTerminal : Activity}
                     size={14}
                     className="shrink-0 text-text-faint"
                 />
