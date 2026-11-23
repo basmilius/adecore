@@ -32,6 +32,8 @@ export interface FakeCodexOptions {
     resumeLead?: string;
     // False answers `thread/inject_items` the way an app-server without it does.
     injectItems?: boolean;
+    // False answers `thread/settings/update` the way an app-server without it does.
+    settingsUpdate?: boolean;
     // A startup status Codex sends for an MCP server right after the thread starts, before any turn.
     mcpStartup?: { name: string; status: 'starting' | 'ready' | 'failed' | 'cancelled'; error: string | null };
     // What `account/rateLimits/read` answers; `late` holds the answer back until the test says later is, as a slow read does.
@@ -741,6 +743,16 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
                     return;
                 }
+                case 'thread/settings/update':
+                    if (options.settingsUpdate === false) {
+                        out({ id, error: { code: -32601, message: `unknown method ${method}` } });
+
+                        return;
+                    }
+
+                    out({ id, result: {} });
+
+                    return;
                 case 'thread/name/set':
                     threadName = String(params.name);
                     out({ id, result: {} });

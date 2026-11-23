@@ -2,6 +2,10 @@ import { describe, expect, test } from 'bun:test';
 import { abortedByEnd, abortedByMachine, type ChatInfo, type ChatItem } from '@adecore/agent-contracts';
 import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from '../backends/backend.ts';
 import { ClaudeProtocol } from '../backends/claude-protocol.ts';
+import { CodexBackend } from '../backends/codex-backend.ts';
+import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
+import { inProcess } from '../testing/fake-cli.ts';
+import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
 import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
@@ -1280,4 +1284,97 @@ test('a launch the host fails to prepare ends the opened turn with the reason, a
     await flush();
     expect(run.sent.map((input) => input.text)).toEqual(['second']);
     await run.session.dispose();
+});
+
+describe('a Codex selection changed in the running app-server', () => {
+    const codexRig = (version: string | null, options: FakeCodexOptions = {}) => {
+        const requests: { method?: string; params?: Record<string, unknown> }[] = [];
+        const program = fakeCodexWith(options);
+
+        const fake = inProcess((io) => {
+            const running = program(io);
+
+            return {
+                onLine: (line) => {
+                    requests.push(JSON.parse(line));
+                    running.onLine(line);
+                }
+            };
+        });
+
+        const session = new ChatSession({
+            info: { ...info(), provider: 'codex', selection: codexProvider.catalog.normalize(undefined) },
+            provider: {
+                ...codexProvider,
+                createBackend: (launch, host) => new CodexBackend({ ...launch, spawn: fake.spawn }, host, { client: DEFAULT_CODEX_CLIENT, version })
+            },
+            env: () => ({}),
+            emit: () => undefined,
+            persist: () => undefined,
+            persistSoon: () => undefined
+        });
+
+        const sent = (method: string) => requests.filter((frame) => frame.method === method).map((frame) => frame.params ?? {});
+
+        // The change comes in while a turn runs, which a person stops before the next message.
+        const changeDuringTurn = async (options: Record<string, string | boolean>) => {
+            session.send('slow');
+            await flush();
+            const selection = session.info.selection;
+            session.configure({ selection: { ...selection, options: { ...selection.options, ...options } } });
+            session.cancel();
+            await flush();
+            session.send('second');
+            await flush();
+        };
+
+        return { session, fake, sent, changeDuringTurn };
+    };
+
+    test('the Fast tier goes to the thread through thread/settings/update, with no new process', async () => {
+        const run = codexRig('0.166.0');
+
+        try {
+            await run.changeDuringTurn({ serviceTier: true });
+            const threadId = run.sent('turn/start')[0]?.threadId;
+
+            expect(run.fake.started).toHaveLength(1);
+            expect(run.sent('thread/settings/update')).toEqual([{ threadId, serviceTier: 'priority' }]);
+            expect(run.sent('turn/start').at(-1)).toMatchObject({ threadId, serviceTier: 'priority' });
+        } finally {
+            await run.session.dispose();
+        }
+    });
+
+    test('an effort change rides on the next turn/start, also on a Codex of unknown version', async () => {
+        const run = codexRig(null);
+
+        try {
+            await run.changeDuringTurn({ effort: 'high' });
+
+            expect(run.fake.started).toHaveLength(1);
+            expect(run.sent('thread/settings/update')).toEqual([]);
+            expect(run.sent('turn/start').map((params) => params.effort)).toEqual(['low', 'high']);
+        } finally {
+            await run.session.dispose();
+        }
+    });
+
+    test.each([
+        ['refuses thread/settings/update', '0.166.0', { settingsUpdate: false }],
+        ['is older than 0.166.0', '0.165.0', {}]
+    ] as const)('a tier change on a Codex that %s resumes the thread in a new process', async (_case, version, options) => {
+        const run = codexRig(version, options);
+
+        try {
+            await run.changeDuringTurn({ serviceTier: true });
+            const threadId = run.sent('turn/start')[0]?.threadId;
+
+            expect(run.fake.started).toHaveLength(2);
+            expect(run.sent('thread/resume')).toMatchObject([{ threadId, serviceTier: 'priority' }]);
+            expect(run.sent('turn/start').at(-1)).toMatchObject({ threadId, serviceTier: 'priority' });
+        } finally {
+            await run.session.dispose();
+        }
+    });
 });

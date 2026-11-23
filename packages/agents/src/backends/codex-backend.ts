@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { accessSync, constants } from 'node:fs';
-import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill } from '@adecore/agent-contracts';
+import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill, type ModelSelection } from '@adecore/agent-contracts';
 import { withTimeout } from '@adecore/utils/async';
 import { isRecord } from '@adecore/utils/record';
 import { errorText } from '../error-text.ts';
-import type { ApprovalDecision, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
+import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { codexMcpArgs } from './cli-mcp.ts';
 import { codexGoal, CodexProtocol, spentUntil } from './codex-protocol.ts';
 import { CodexTransport, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
-import { codexServiceTier, codexThreadOptions } from './codex.ts';
+import { codexFrom0166, codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
 import { CODEX_READ_TIMEOUT_MS } from './limits-probe.ts';
 import { readCodexLimitsAnswer } from './limits.ts';
@@ -122,6 +122,8 @@ export class CodexBackend implements ChatBackend {
     private readonly protocol: CodexProtocol;
     private readonly client: CodexClientInfo;
     private readonly version: string | null;
+    // What the process runs on now, which `reconfigure` moves on from the launch.
+    private selection: ModelSelection;
     private promptId: string | null = null;
     private nativePrompt: { turnId: string; promptId: string } | null = null;
     // Events held in order behind an image being saved or a limit's reset being read.
@@ -147,6 +149,7 @@ export class CodexBackend implements ChatBackend {
         this.host = host;
         this.client = options.client;
         this.version = options.version ?? null;
+        this.selection = launch.selection;
         this.protocol = new CodexProtocol(launch.generation);
         this.threadId = launch.resume ?? '';
     }
@@ -363,13 +366,13 @@ export class CodexBackend implements ChatBackend {
     }
 
     private turnStartParams(nativeInput: unknown[]): Record<string, unknown> {
-        const effort = this.launch.selection.options.effort;
-        const tier = codexServiceTier(this.launch.selection);
+        const effort = this.selection.options.effort;
+        const tier = codexServiceTier(this.selection);
 
         return {
             threadId: this.threadId,
             input: nativeInput,
-            model: this.launch.selection.model,
+            model: this.selection.model,
             ...(typeof effort === 'string' ? { effort } : {}),
             ...(tier === null ? {} : { serviceTier: tier })
         };
@@ -741,6 +744,50 @@ export class CodexBackend implements ChatBackend {
         }
 
         return this.respond(requestId, answer.rpcId, answer.result);
+    }
+
+    /*
+     * Effort and the service tier change in the running app-server. Effort goes out with every `turn/start`; a goal turn
+     * Codex opens itself takes the thread's settings, so the tier goes to the thread as well. Anything else, an older
+     * Codex and one that refuses the request need a new process.
+     */
+    async reconfigure(change: BackendChange): Promise<boolean> {
+        const transport = this.transport;
+        const from = this.selection;
+        const to = change.selection;
+
+        if (transport === null || this.threadId === '' || change.runtimeMode !== this.launch.runtimeMode || from.model !== to.model) {
+            return false;
+        }
+
+        const rest = ({ effort: _effort, serviceTier: _serviceTier, ...options }: ModelSelection['options']) => JSON.stringify(options);
+
+        if (rest(from.options) !== rest(to.options)) {
+            return false;
+        }
+
+        const tier = codexServiceTier(to);
+
+        if (tier !== codexServiceTier(from)) {
+            if (!codexFrom0166(this.version)) {
+                return false;
+            }
+
+            try {
+                // `default` is what Codex 0.166.0 reports for a thread started without a tier.
+                await transport.request('thread/settings/update', { threadId: this.threadId, serviceTier: tier ?? 'default' });
+            } catch {
+                return false;
+            }
+        }
+
+        if (this.transport !== transport) {
+            return false;
+        }
+
+        this.selection = to;
+
+        return true;
     }
 
     stop(): void {
