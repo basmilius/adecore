@@ -4,11 +4,16 @@ import type { BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBacke
 import { ClaudeProtocol } from '../backends/claude-protocol.ts';
 import { CodexBackend } from '../backends/codex-backend.ts';
 import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
+import { createAntigravityProvider } from '../providers/acp-vendors.ts';
+import { playAcpRecording, recordedAnswer, type AcpTimedFrame } from '../testing/fake-acp-capture.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
+import { ManualClock } from '../testing/manual-clock.ts';
 import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { info, flush, rig } from './chat-session.fixture.test.ts';
 import { ChatSession, type ChatSessionOptions } from './chat-session.ts';
+import agyDaemonWake from './fixtures/antigravity-1.5.15-daemon-wake.json';
+import agyMcpTurn from './fixtures/antigravity-1.5.15-mcp-turn.json';
 
 // `reconfigure` is what the backend answers a change it is asked to take in place; absent, it has no such call. `outdated` likewise.
 function replacementRig(
@@ -1517,6 +1522,51 @@ test('a turn Codex opens itself toward a goal runs in the chat from its turn/sta
         expect(answer?.turnId).toBe(goalTurn.id);
         expect(session.thread.get(goalTurn.id)).toMatchObject({ state: 'done' });
         expect(session.info.activeTurnId).toBeNull();
+    } finally {
+        await session.dispose();
+    }
+});
+
+test("an Antigravity wake after a daemon command ends three seconds after its usage_update, on the chat's clock", async () => {
+    const frames = agyDaemonWake.frames as AcpTimedFrame[];
+    const handshakeFrames = agyMcpTurn.frames as AcpTimedFrame[];
+    const answered = frames.find((entry) => entry.dir !== 'in' && (entry.frame.result as { stopReason?: string } | undefined)?.stopReason !== undefined)!.t;
+
+    const wakeUsage = frames.find(
+        (entry) => entry.t > answered && (entry.frame.params as { update?: { sessionUpdate?: string } } | undefined)?.update?.sessionUpdate === 'usage_update'
+    )!.t;
+
+    const clock = new ManualClock();
+
+    const player = playAcpRecording(frames, clock, {
+        initialize: recordedAnswer(handshakeFrames, 'initialize'),
+        'session/new': recordedAnswer(handshakeFrames, 'session/new')
+    });
+
+    const provider = createAntigravityProvider();
+
+    const session = new ChatSession({
+        info: { ...info(), provider: 'antigravity', runtimeMode: 'full-access', selection: provider.catalog.normalize(undefined) },
+        provider,
+        clock,
+        spawn: inProcess(player.cli).spawn,
+        env: () => ({}),
+        emit: () => undefined,
+        persist: () => undefined,
+        persistSoon: () => undefined
+    });
+
+    const turns = () => session.thread.list().filter((item): item is Extract<ChatItem, { kind: 'turn' }> => item.kind === 'turn');
+
+    try {
+        session.send('daemons');
+        await player.playTo(wakeUsage + 2_999);
+
+        expect(turns()).toMatchObject([{ state: 'done' }, { origin: 'agent', state: 'running' }]);
+
+        await player.playTo(wakeUsage + 3_000);
+
+        expect(turns()).toMatchObject([{ state: 'done' }, { origin: 'agent', state: 'done' }]);
     } finally {
         await session.dispose();
     }

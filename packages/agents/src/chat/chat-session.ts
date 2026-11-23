@@ -2672,6 +2672,7 @@ export class ChatSession {
             resume: info.agentSessionId,
             generation,
             now: () => this.options.limitResume?.now() ?? this.clock.now(),
+            clock: this.clock,
             saveGeneratedImage: this.options.saveGeneratedImage,
             instructions: this.options.instructions?.() ?? null,
             resumeNote: this.options.resumeNote?.() ?? null,
