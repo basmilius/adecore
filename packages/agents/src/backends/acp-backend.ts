@@ -88,6 +88,10 @@ export interface AcpAgentSpec {
     // Antigravity 1.5 wakes when a command it runs on past its turn ends. Such a reply ends once no output follows that
     // update for `WAKE_QUIET_MS`. Absent, a reply the agent starts by itself ends only on its own idle (Copilot's).
     repliesEndOnUsage?: boolean;
+    // True for an agent that starts replies by itself and ends them with no signal at all, as Grok wakes when a task it
+    // runs in the background ends. Such a reply ends once no update follows for `WAKE_QUIET_MS` while none of its calls
+    // runs and no request waits.
+    repliesEndOnQuiet?: boolean;
     // True sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its
     // turn on it (Antigravity 1.5). Absent sends nothing then, since Copilot ends the whole session on one.
     cancelsIdle?: boolean;
@@ -238,9 +242,10 @@ class AcpBackend implements ChatBackend {
     // Prompts whose turn ended on the agent's idle while their response is held, each shown as background work until it comes.
     private readonly released = new Map<PromptState, string>();
     private releasedCount = 0;
-    // A turn the agent opened itself with no prompt in flight; `spoken` once it reached the thread.
-    private woken: { spoken: boolean } | null = null;
-    // The timer that ends that turn, for an agent whose replies end on a `usage_update`.
+    // A turn the agent opened itself with no prompt in flight; `spoken` once it reached the thread, `tools` the calls it
+    // started there that have not ended.
+    private woken: { spoken: boolean; tools: Set<string> } | null = null;
+    // The timer that ends that turn, for an agent whose replies end on a `usage_update` or on quiet.
     private wakeEnd: unknown = null;
     // The commands under `daemonFlag` that ran on past their prompt, each shown as background work under its call's id.
     private readonly daemons = new Set<string>();
@@ -949,6 +954,8 @@ class AcpBackend implements ChatBackend {
             }
 
             this.transport.respond(rpcId, result);
+            // An answer the agent says nothing more after must not hold its own reply open.
+            this.hearQuiet();
 
             return true;
         } catch (error) {
@@ -1112,7 +1119,7 @@ class AcpBackend implements ChatBackend {
             if (turn !== null) {
                 turn.started = true;
             } else {
-                this.woken ??= { spoken: false };
+                this.woken ??= { spoken: false, tools: new Set() };
             }
 
             return;
@@ -1153,10 +1160,16 @@ class AcpBackend implements ChatBackend {
     /*
      * What the agent said with no prompt open, which may be a turn it opened itself. For an agent whose replies end on a
      * `usage_update`, that update ends the turn once `WAKE_QUIET_MS` pass without new output, and new output, a tool
-     * that ends included, keeps it open.
+     * that ends included, keeps it open. For one whose replies end on quiet, any update starts that wait again.
      */
     private heard(events: readonly BackendEvent[]): void {
         if (this.prompt !== null || events.length === 0) {
+            return;
+        }
+
+        if (this.spec.repliesEndOnQuiet === true) {
+            this.heardQuiet(events);
+
             return;
         }
 
@@ -1172,7 +1185,7 @@ class AcpBackend implements ChatBackend {
             this.clearWakeEnd();
 
             if (events.some(opensWake)) {
-                this.woken = { spoken: true };
+                this.woken = { spoken: true, tools: new Set() };
             }
 
             return;
@@ -1182,6 +1195,51 @@ class AcpBackend implements ChatBackend {
             return;
         }
 
+        this.endWakeSoon();
+    }
+
+    /*
+     * Grok's own wake has no end signal, so its reply ends once `WAKE_QUIET_MS` pass with no update, while no call it
+     * started there runs and no request waits for a person (as T3 Code's deferred finalize does).
+     */
+    private heardQuiet(events: readonly BackendEvent[]): void {
+        if (events.some(opensWake)) {
+            this.woken ??= { spoken: false, tools: new Set() };
+            this.woken.spoken = true;
+        }
+
+        const woken = this.woken;
+
+        if (woken === null) {
+            return;
+        }
+
+        for (const event of events) {
+            if (event.type === 'tool.started') {
+                woken.tools.add(event.ref);
+            } else if (event.type === 'tool.done') {
+                woken.tools.delete(event.ref);
+            }
+        }
+
+        this.hearQuiet();
+    }
+
+    private hearQuiet(): void {
+        if (this.spec.repliesEndOnQuiet !== true || this.prompt !== null || this.woken?.spoken !== true) {
+            return;
+        }
+
+        if (this.woken.tools.size > 0 || this.protocol.asking) {
+            this.clearWakeEnd();
+
+            return;
+        }
+
+        this.endWakeSoon();
+    }
+
+    private endWakeSoon(): void {
         const clock = this.launch.clock ?? systemClock;
         this.clearWakeEnd();
 

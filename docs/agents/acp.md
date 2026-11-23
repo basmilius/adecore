@@ -46,6 +46,7 @@ Put it in the `ProviderRegistry` beside the others. A `kind` is any name the hos
 | `adoptTitles` | `true` takes the agent's session titles as the chat's suggested title. Absent leaves naming to the host. |
 | `steer` | How a message joins the running turn. `interject` sends Grok's `_x.ai/interject`, `prompt` another `session/prompt` (agy 1.5). Absent leaves the backend without `steerTurn`, so a message queues. Set `capabilities.steer` beside it. See [Steering](#steering). |
 | `repliesEndOnUsage` | `true` for an agent whose every reply ends on a `usage_update`, also one it starts by itself with no prompt open. See [Turns the agent opens](#turns-the-agent-opens). |
+| `repliesEndOnQuiet` | `true` for an agent that starts replies by itself and ends them with no signal, as Grok does when a background task ends. See [Turns the agent opens](#turns-the-agent-opens). |
 | `cancelsIdle` | `true` sends `session/cancel` for a stop with no prompt open, for an agent that stops the commands it runs on past its turn on it. Absent sends nothing then. |
 | `mcp` | MCP transports (`http`, `sse`) the agent takes although its `initialize` does not advertise them. |
 | `mcpToolPrefix` | What the `name` of a tool call that runs an MCP tool starts with, before `<server>_<tool>`, for an agent that marks the call no other way. See [Calls the host guards](#calls-the-host-guards). |
@@ -120,7 +121,7 @@ An approval offers allow, allow always (only when the agent has `allow_always`) 
 
 ### Turns the agent opens
 
-An agent may speak with no prompt open. Copilot's root agent says when it starts and goes idle, and that idle ends its turn. With `repliesEndOnUsage`, every reply ends on a `usage_update`: output with no prompt open is a turn of the agent's own, and it ends once `WAKE_QUIET_MS` (3 seconds) pass after a `usage_update` with no new output. Output in that time, a tool that ends included, keeps the turn open until the next `usage_update`. The backend's timers run on `BackendLaunch.clock`.
+An agent may speak with no prompt open. Copilot's root agent says when it starts and goes idle, and that idle ends its turn. With `repliesEndOnUsage`, every reply ends on a `usage_update`: output with no prompt open is a turn of the agent's own, and it ends once `WAKE_QUIET_MS` (3 seconds) pass after a `usage_update` with no new output. Output in that time, a tool that ends included, keeps the turn open until the next `usage_update`. With `repliesEndOnQuiet`, such a turn ends once `WAKE_QUIET_MS` pass with no update at all, while no tool it started still runs and no permission request or question waits; answering one starts the wait again. The backend's timers run on `BackendLaunch.clock`.
 
 With `daemonFlag`, a command whose input sets that key and still runs when its prompt answers is background work (`background.started` under the call's id), ended by the `tool_call_update` that completes or fails it. With `cancelsIdle`, `stopTask` stops it with `session/cancel`, which stops every such command; with a prompt open it answers `stop.refused`, since the cancel would end that prompt too.
 

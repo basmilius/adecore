@@ -378,3 +378,80 @@ test('a message steered into a running agy prompt goes as a second session/promp
 
     await run.backend.dispose();
 });
+
+/*
+ * Grok's own wake, in the shape T3 Code's tests give it (`_meta.promptId` of `task-completed-…`); no capture of our own
+ * shows one. It sends no end of any kind, so the reply ends on quiet.
+ */
+function grokWake(update: Frame): Frame {
+    return { jsonrpc: '2.0', method: 'session/update', params: { sessionId: 'id-3', update, _meta: { promptId: 'task-completed-bg-1' } } };
+}
+
+const WAKE_AT = PROMPT_DONE + 1_000;
+
+const grokWakeFrames: AcpTimedFrame[] = [
+    { t: WAKE_AT, dir: 'out', frame: grokWake({ sessionUpdate: 'agent_message_chunk', content: { type: 'text', text: 'The build finished.' } }) },
+    {
+        t: WAKE_AT + 100,
+        dir: 'out',
+        frame: grokWake({ sessionUpdate: 'tool_call', toolCallId: 'read-1', title: 'Read log', kind: 'read', status: 'in_progress' })
+    },
+    { t: WAKE_AT + 20_000, dir: 'out', frame: grokWake({ sessionUpdate: 'tool_call_update', toolCallId: 'read-1', status: 'completed' }) }
+];
+
+test('a turn Grok opens itself ends once three seconds pass with no update, but not while a call it started runs', async () => {
+    const run = replay([...grokLoadFrames(), ...grokWakeFrames], { ...GROK, repliesEndOnQuiet: true }, { resume: 'id-3' });
+    const starting = run.backend.start();
+    await run.player.playTo(538);
+    await starting;
+    run.backend.sendTurn(turn('early'));
+    await run.player.playTo(WAKE_AT + 19_999);
+
+    expect(timeline(run.events)).toEqual(['text: early', 'end prompt-early done', 'text: The build finished.']);
+
+    await run.player.playTo(WAKE_AT + 22_999);
+
+    expect(timeline(run.events)).toEqual(['text: early', 'end prompt-early done', 'text: The build finished.']);
+
+    await run.player.playTo(WAKE_AT + 23_000);
+
+    expect(timeline(run.events).slice(3)).toEqual(['end wake done']);
+
+    await run.backend.dispose();
+});
+
+test('a question a Grok wake asks holds its turn open until a person answers, and the quiet wait starts again after the answer', async () => {
+    const asks = {
+        jsonrpc: '2.0',
+        id: 'ask-1',
+        method: '_x.ai/ask_user_question',
+        params: {
+            sessionId: 'id-3',
+            toolCallId: 'call-ask-1',
+            mode: 'default',
+            questions: [{ question: 'Deploy now?', options: [{ label: 'Yes', description: 'Now' }], multiSelect: false }]
+        }
+    };
+    const frames: AcpTimedFrame[] = [...grokLoadFrames(), grokWakeFrames[0]!, { t: WAKE_AT + 100, dir: 'out', frame: asks }];
+    const run = replay(frames, { ...GROK, repliesEndOnQuiet: true }, { resume: 'id-3' });
+    const ends = () => run.events.filter((event) => event.type === 'turn.done').length;
+    const starting = run.backend.start();
+    await run.player.playTo(538);
+    await starting;
+    run.backend.sendTurn(turn('early'));
+    await run.player.playTo(WAKE_AT + 60_000);
+    const asked = run.events.find((event) => event.type === 'question.requested');
+
+    expect(ends()).toBe(1);
+
+    run.backend.respondQuestion(asked?.type === 'question.requested' ? asked.requestId : '', { '0': 'Yes' });
+    await run.player.playTo(WAKE_AT + 62_999);
+
+    expect(ends()).toBe(1);
+
+    await run.player.playTo(WAKE_AT + 63_000);
+
+    expect(ends()).toBe(2);
+
+    await run.backend.dispose();
+});

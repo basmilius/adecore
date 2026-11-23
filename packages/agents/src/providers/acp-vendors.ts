@@ -108,6 +108,7 @@ const GROK_SPEC: VendorSpec = {
     loginHint: 'Run `grok login` in a terminal, or set `XAI_API_KEY`.',
     capabilities: { terminal: true, hooks: true, steer: true },
     steer: 'interject',
+    repliesEndOnQuiet: true,
     resumeCommand: 'grok {flags} --resume {id}',
     home: { env: 'GROK_HOME', fallback: '.grok', loginEnv: ['XAI_API_KEY'], loginCommand: 'grok login' },
     install: {

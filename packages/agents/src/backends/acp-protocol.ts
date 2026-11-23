@@ -1461,6 +1461,11 @@ export class AcpProtocol {
         return cancelled;
     }
 
+    /* Whether a permission request or a question still waits for a person. */
+    get asking(): boolean {
+        return this.permissions.size > 0 || this.questions.size > 0;
+    }
+
     hasPermission(requestId: string): boolean {
         return this.permissions.has(requestId);
     }
