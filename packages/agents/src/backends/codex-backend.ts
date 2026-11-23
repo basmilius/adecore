@@ -133,6 +133,8 @@ export class CodexBackend implements ChatBackend {
     // Codex ignores developer instructions on `thread/resume` (measured on 0.154 and 0.163), so the first prompt of a resumed process carries them.
     private contextPending: string | null = null;
     private imageInputSupported: boolean | null = null;
+    // The cyber access programs `model/list` offers, by model.
+    private readonly cyberPrograms = new Map<string, string[]>();
     /* A turn asked for that Codex has not named yet; `turn/interrupt` needs that name. */
     private turnUnnamed = false;
     /* A stop that came in while the turn was unnamed, sent once `turn/started` names it. */
@@ -377,13 +379,15 @@ export class CodexBackend implements ChatBackend {
     private turnStartParams(nativeInput: unknown[]): Record<string, unknown> {
         const effort = this.selection.options.effort;
         const tier = codexServiceTier(this.selection);
+        const cyber = this.cyberProgram(this.selection.model);
 
         return {
             threadId: this.threadId,
             input: nativeInput,
             model: this.selection.model,
             ...(typeof effort === 'string' ? { effort } : {}),
-            ...(tier === null ? {} : { serviceTier: tier })
+            ...(tier === null ? {} : { serviceTier: tier }),
+            ...(cyber === null ? {} : { cyberAccessProgram: cyber })
         };
     }
 
@@ -559,8 +563,10 @@ export class CodexBackend implements ChatBackend {
         }
     }
 
+    /* Whether the launch's model takes images, read from `model/list`, which also keeps the cyber programs of every model it lists. */
     private async readImageSupport(transport: CodexTransport): Promise<boolean | null> {
         let cursor: string | null = null;
+        let imageSupport: boolean | null = null;
         const seen = new Set<string>();
 
         try {
@@ -568,20 +574,29 @@ export class CodexBackend implements ChatBackend {
                 const result = await transport.request('model/list', { includeHidden: true, ...(cursor === null ? {} : { cursor }) });
 
                 if (!isRecord(result) || !Array.isArray(result.data)) {
-                    return null;
+                    return imageSupport;
                 }
 
-                const model = result.data.find((entry) => isRecord(entry) && entry.model === this.launch.selection.model);
+                for (const model of result.data.filter(isRecord)) {
+                    const programs = isRecord(model.availableAccessPrograms) ? model.availableAccessPrograms.cyber : null;
 
-                if (isRecord(model)) {
-                    return Array.isArray(model.inputModalities) ? model.inputModalities.includes('image') : null;
+                    if (typeof model.model === 'string' && Array.isArray(programs)) {
+                        this.cyberPrograms.set(
+                            model.model,
+                            programs.filter((program): program is string => typeof program === 'string')
+                        );
+                    }
+
+                    if (model.model === this.launch.selection.model && Array.isArray(model.inputModalities)) {
+                        imageSupport = model.inputModalities.includes('image');
+                    }
                 }
 
                 cursor = typeof result.nextCursor === 'string' ? result.nextCursor : null;
 
                 if (cursor !== null) {
                     if (seen.has(cursor)) {
-                        return null;
+                        return imageSupport;
                     }
 
                     seen.add(cursor);
@@ -591,7 +606,18 @@ export class CodexBackend implements ChatBackend {
             // Older app-servers may not report modalities; their turn response remains authoritative.
         }
 
-        return null;
+        return imageSupport;
+    }
+
+    /*
+     * The cyber access program a turn on this model sends, as Codex's own clients and T3 Code pick it: `standard` when
+     * `model/list` offers it, else the first one offered. Null for a model with no list, which leaves Codex its automatic
+     * behavior, and before 0.156.0, which lists none.
+     */
+    private cyberProgram(model: string): string | null {
+        const programs = codexFrom(this.version, 156) ? (this.cyberPrograms.get(model) ?? []) : [];
+
+        return programs.includes('standard') ? 'standard' : (programs[0] ?? null);
     }
 
     compact(): void {

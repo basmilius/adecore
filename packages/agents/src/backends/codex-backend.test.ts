@@ -1,4 +1,5 @@
 import { expect, test } from 'bun:test';
+import { flush } from '../chat/chat-session.fixture.test.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith } from '../testing/fake-codex.ts';
 import { codexProvider } from '../testing/providers.ts';
@@ -62,6 +63,26 @@ test("a delegated chat's new thread says it is a subagent's from Codex 0.129.0 o
     expect(await sentThreadSource('0.128.9', { subagent: true })).toEqual([undefined]);
     expect(await sentThreadSource('0.166.0', {})).toEqual([undefined]);
     expect(await sentThreadSource('0.166.0', { subagent: true, resume: 'thread-1' })).toEqual([undefined]);
+});
+
+test('a turn sends the cyber program model/list offers, standard first, from Codex 0.156.0 on, and none for a model without the list', async () => {
+    const sentProgram = async (model: string, version: string): Promise<unknown> => {
+        const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+        const fake = inProcess(fakeCodexWith({ requests, cyberPrograms: { 'gpt-cyber': ['daybreakBlue', 'standard'], 'gpt-red': ['daybreakRed'] } }));
+        const selection = { ...launch.selection, model };
+        const backend = new CodexBackend({ ...launch, selection, spawn: fake.spawn }, { onEvent: () => undefined }, { client: DEFAULT_CODEX_CLIENT, version });
+        await backend.start();
+        backend.sendTurn({ text: 'hello', preamble: null, attachments: [], mentions: [], skills: [] });
+        await flush();
+        await backend.dispose();
+
+        return requests.find((request) => request.method === 'turn/start')?.params.cyberAccessProgram;
+    };
+
+    expect(await sentProgram('gpt-cyber', '0.156.0')).toBe('standard');
+    expect(await sentProgram('gpt-red', '0.166.0')).toBe('daybreakRed');
+    expect(await sentProgram('gpt-plain', '0.166.0')).toBeUndefined();
+    expect(await sentProgram('gpt-cyber', '0.155.0')).toBeUndefined();
 });
 
 test('a server request whose handling throws gets an internal error reply, and the chat fails as before', async () => {

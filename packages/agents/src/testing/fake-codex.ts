@@ -49,6 +49,8 @@ export interface FakeCodexOptions {
     exitBeforeInit?: string;
     // Collects every error the client answers one of the fake's own requests with.
     errorReplies?: Frame[];
+    // The cyber access programs `model/list` offers, by model; a model left out lists none.
+    cyberPrograms?: Record<string, string[]>;
     // Collects every request the client sends, in order.
     requests?: Array<{ method: string; params: Frame }>;
 }
@@ -675,7 +677,13 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
                     out({
                         id,
                         result: {
-                            data: [{ model: threadModel, inputModalities: threadModel.includes('spark') ? ['text'] : ['text', 'image'] }],
+                            data: [
+                                {
+                                    model: threadModel,
+                                    inputModalities: threadModel.includes('spark') ? ['text'] : ['text', 'image'],
+                                    availableAccessPrograms: options.cyberPrograms?.[threadModel] ? { cyber: options.cyberPrograms[threadModel] } : null
+                                }
+                            ],
                             nextCursor: null
                         }
                     });
