@@ -22,6 +22,8 @@ export interface FakeAcpOptions {
     legacyModels?: boolean;
     // Advertises and answers `session/close`.
     closeSession?: boolean;
+    // Advertises and answers `session/delete`.
+    deleteSession?: boolean;
     // The `usage` every `session/prompt` response carries; absent reports none.
     turnUsage?: Record<string, number>;
     // Offers a reasoning effort as the config option `reasoning_effort`, without a category: Low and High, and
@@ -173,6 +175,20 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                 return;
             }
 
+            // One message that goes on under its id after a thought, as ACP says chunks of one `messageId` append.
+            if (last === 'continued') {
+                const chunk = (sessionUpdate: string, text: string, messageId?: string): void => {
+                    update({ sessionUpdate, content: { type: 'text', text }, ...(messageId === undefined ? {} : { messageId }) });
+                };
+
+                chunk('agent_message_chunk', 'First. ', 'm1');
+                chunk('agent_thought_chunk', 'Then the rest.');
+                chunk('agent_message_chunk', 'Second.', 'm1');
+                endTurn('end_turn');
+
+                return;
+            }
+
             if (last === 'plan') {
                 update({
                     sessionUpdate: 'plan',
@@ -308,7 +324,11 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                             loadSession: options.loadSession ?? true,
                             promptCapabilities: { image: true, audio: false, embeddedContext: options.embeddedContext === true },
                             mcpCapabilities: { http: options.mcp?.http === true, sse: options.mcp?.sse === true },
-                            sessionCapabilities: { ...(options.resumeSession ? { resume: {} } : {}), ...(options.closeSession ? { close: {} } : {}) }
+                            sessionCapabilities: {
+                                ...(options.resumeSession ? { resume: {} } : {}),
+                                ...(options.closeSession ? { close: {} } : {}),
+                                ...(options.deleteSession ? { delete: {} } : {})
+                            }
                         },
                         authMethods: options.authMethod === undefined ? [] : [{ id: options.authMethod, name: 'Sign in' }],
                         agentInfo: { name: 'fake-acp', title: 'Fake ACP', version: '0.0.1' }
@@ -370,8 +390,9 @@ export function fakeAcpWith(options: FakeAcpOptions): FakeCli {
                     return;
                 }
                 case 'session/close':
-                    if (!options.closeSession) {
-                        refuse(id, -32601, 'Method not found: session/close');
+                case 'session/delete':
+                    if (!(frame.method === 'session/close' ? options.closeSession : options.deleteSession)) {
+                        refuse(id, -32601, `Method not found: ${frame.method}`);
 
                         return;
                     }

@@ -198,7 +198,8 @@ const InitializeResponseSchema = z.looseObject({
                 .looseObject({
                     resume: z.unknown().optional(),
                     additionalDirectories: z.unknown().optional(),
-                    close: z.unknown().optional()
+                    close: z.unknown().optional(),
+                    delete: z.unknown().optional()
                 })
                 .optional()
         })
@@ -230,6 +231,8 @@ export interface AcpAgentCapabilities {
     additionalDirectories: boolean;
     // Whether the agent takes `session/close`, which ends a session it would otherwise keep.
     closeSession: boolean;
+    // Whether the agent takes `session/delete`, which also drops a session from the history it lists.
+    deleteSession: boolean;
     images: boolean;
     // Whether a prompt may carry a file's text as a `resource` block.
     embeddedContext: boolean;
@@ -256,6 +259,7 @@ export function parseInitialize(result: unknown): AcpAgentCapabilities {
         resumeSession: sessions?.resume !== undefined && sessions.resume !== null,
         additionalDirectories: sessions?.additionalDirectories !== undefined && sessions.additionalDirectories !== null,
         closeSession: sessions?.close !== undefined && sessions.close !== null,
+        deleteSession: sessions?.delete !== undefined && sessions.delete !== null,
         images: capabilities?.promptCapabilities?.image === true,
         embeddedContext: capabilities?.promptCapabilities?.embeddedContext === true,
         mcp: { http: capabilities?.mcpCapabilities?.http === true, sse: capabilities?.mcpCapabilities?.sse === true },
@@ -927,6 +931,8 @@ export class AcpProtocol {
     private readonly questions = new Map<string, PendingQuestion>();
     // `held` while the message may still be the refusal line or a limit message, whose chunks the thread has not heard yet.
     private text: { ref: string; messageId: string | null; text: string; held: boolean; afterRefusal: boolean } | null = null;
+    // This turn's closed messages by id. A message may go on under its id after a thought or a tool call, and `text.done` replaces an item's text, so the continuation carries all of it.
+    private readonly spoken = new Map<string, string>();
     // Set by a refusal until the next message shows whether it is the refusal line.
     private refusalLine = false;
     // The limit message of this turn, held back from the thread: it ends the turn as a limit, or shows as text when the turn ends otherwise.
@@ -1389,6 +1395,7 @@ export class AcpProtocol {
         const reason = cancelled ? 'cancelled' : stopReason === 'cancelled' ? 'end_turn' : stopReason;
         this.refusalLine = false;
         const events = this.counted([...this.closeText(), ...this.closeThought(), ...this.vendorUsage(isRecord(result) ? result._meta : undefined)]);
+        this.spoken.clear();
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
         const quota = this.quota;
         this.quota = null;
@@ -1433,6 +1440,7 @@ export class AcpProtocol {
         this.refusalLine = false;
         const base = { ...(promptId === undefined ? {} : { promptId }), costUsd: this.costUsd };
         const events = this.counted([...this.closeText(), ...this.closeThought()]);
+        this.spoken.clear();
         events.push(...this.endCompaction(false));
         const quota = this.quota;
         this.quota = null;
@@ -1465,6 +1473,12 @@ export class AcpProtocol {
 
         if (this.text !== null && messageId !== null && this.text.messageId !== messageId) {
             events.push(...this.closeText());
+        }
+
+        const spoken = messageId === null ? undefined : this.spoken.get(messageId);
+
+        if (this.text === null && spoken !== undefined) {
+            this.text = { ref: `message-${messageId}`, messageId, text: spoken, held: false, afterRefusal: false };
         }
 
         if (this.text === null) {
@@ -1517,6 +1531,10 @@ export class AcpProtocol {
             this.quota = { ref: text.ref, text: text.text.trim(), resetsAt: quotaResetOf(text.text, this.now()) };
 
             return [];
+        }
+
+        if (text.messageId !== null) {
+            this.spoken.set(text.messageId, text.text);
         }
 
         return [{ type: 'text.done', ref: text.ref, text: text.text }];

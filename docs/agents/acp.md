@@ -177,7 +177,7 @@ An agent without `usage_update` may send the context size in `_meta.totalTokens`
 
 ## Accounts
 
-ACP cannot say who is signed in, so the provider's account check opens a session to find out. It runs `initialize` and `session/new` in the account's environment, in an empty temporary folder. A session means signed in. The "authentication required" code (`-32000`) means signed out. Any other error, an exit or 20 seconds without answer fails the check. The probe never calls `authenticate`, which could start a login. It closes the session when the agent supports `session/close`, otherwise the agent may keep an empty session in its history. The session's offer goes to `onSession` and `onCommands`, as from a chat.
+ACP cannot say who is signed in, so the provider's account check opens a session to find out. It runs `initialize` and `session/new` in the account's environment, in an empty temporary folder. A session means signed in. The "authentication required" code (`-32000`) means signed out. Any other error, an exit or 20 seconds without answer fails the check. The probe never calls `authenticate`, which could start a login. It deletes the session when the agent supports `session/delete`, which keeps it out of the history the agent lists, and otherwise closes it when the agent supports `session/close`. An agent with neither may keep an empty session in its history. The session's offer goes to `onSession` and `onCommands`, as from a chat.
 
 A reading carries no email or plan.
 
@@ -185,4 +185,4 @@ A reading carries no email or plan.
 
 Plan limits, file system and terminal client capabilities, MCP servers over stdio, `elicitation/create`, notices and compaction updates. `compaction` is `none` unless the agent lists a `compact` command.
 
-`@adecore/agents/testing` has `fakeAcpWith`, an agent for backend tests that can require a login (`authMethod`), support `session/close` (`closeSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does.
+`@adecore/agents/testing` has `fakeAcpWith`, an agent for backend tests that can require a login (`authMethod`), support `session/close` (`closeSession`) or `session/delete` (`deleteSession`), report `usage` per prompt (`turnUsage`), name context windows (`contextWindows`), list slash commands (`commands`) or take MCP servers over HTTP or SSE (`mcp`). A prompt `mcp: <server> <tool>` asks permission for a tool of that server as Antigravity marks it, and `use_tool: <server>__<tool>` as Grok does. A prompt `continued` sends one message that goes on under its `messageId` after a thought.

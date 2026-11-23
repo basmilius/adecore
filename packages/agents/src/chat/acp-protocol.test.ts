@@ -60,6 +60,7 @@ describe('AcpProtocol', () => {
             resumeSession: false,
             additionalDirectories: true,
             closeSession: false,
+            deleteSession: false,
             images: true,
             embeddedContext: true,
             mcp: { http: false, sse: false },

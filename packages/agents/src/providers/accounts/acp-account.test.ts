@@ -69,6 +69,14 @@ describe('askAcpAccount', () => {
         expect(run.methods()).toEqual(['initialize', 'session/new', 'session/close']);
     });
 
+    test('deletes its own session where the agent can, so it stays out of the history the agent lists', async () => {
+        const sessions: AcpSessionInfo[] = [];
+        const run = probe(agent({ closeSession: true, deleteSession: true }), { onSession: (info) => sessions.push(info) });
+        expect(await run.reading).toMatchObject({ signedIn: true });
+        expect(run.methods()).toEqual(['initialize', 'session/new', 'session/delete']);
+        expect(run.sent.at(-1)?.params).toEqual({ sessionId: sessions[0]?.sessionId });
+    });
+
     test('reads "authentication required" as signed out and never starts a login', async () => {
         const run = probe(agent({ authMethod: 'oauth' }));
         expect(await run.reading).toEqual({ signedIn: false, email: null, plan: null, organization: null });

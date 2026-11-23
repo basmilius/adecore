@@ -111,6 +111,24 @@ test('a turn opens a session, carries the instructions in front of the first pro
     await fake.backend.dispose();
 });
 
+test('a message that goes on under its id after a thought keeps its earlier text', async () => {
+    const fake = run();
+    await fake.backend.start();
+    fake.backend.sendTurn(turn('continued'));
+    await fake.next('turn.done');
+    const message = fake.events.filter((event) => 'ref' in event && event.ref === 'message-m1');
+
+    // The thread appends each delta to the item and takes the text of a `text.done` as the whole item.
+    expect(message).toEqual([
+        { type: 'text.delta', ref: 'message-m1', text: 'First. ' },
+        { type: 'text.done', ref: 'message-m1', text: 'First. ' },
+        { type: 'text.delta', ref: 'message-m1', text: 'Second.' },
+        { type: 'text.done', ref: 'message-m1', text: 'First. Second.' }
+    ]);
+
+    await fake.backend.dispose();
+});
+
 test('a turn whose response reports usage hands it to the spec, with the session, folder and model it ran in', async () => {
     const reports: AcpUsageReport[] = [];
     const usage = { totalTokens: 1500, inputTokens: 1100, outputTokens: 400, thoughtTokens: 50, cachedReadTokens: 1000 };

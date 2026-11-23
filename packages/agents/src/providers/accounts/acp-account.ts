@@ -125,8 +125,10 @@ export async function askAcpAccount(probe: AcpAccountProbe): Promise<AccountRead
                 probe.onCommands?.(commands);
             }
 
-            if (capabilities.closeSession) {
-                // The answer is known by now; an agent that cannot close it keeps an empty session, nothing worse.
+            // The answer is known by now. A session left behind would show in the agent's own history; one that cannot be removed stays empty, nothing worse.
+            if (capabilities.deleteSession) {
+                await started.request('session/delete', { sessionId }).catch(() => undefined);
+            } else if (capabilities.closeSession) {
                 await started.request('session/close', { sessionId }).catch(() => undefined);
             }
 
