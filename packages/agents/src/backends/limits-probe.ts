@@ -17,6 +17,63 @@ const GROUP_POLL_MS = 250;
 
 export type ProbeResult = ProviderReading | { unavailable: UsageLimitsProvider['unavailable'] };
 
+export const CLAUDE_EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const;
+export type ClaudeEffortLevel = (typeof CLAUDE_EFFORT_LEVELS)[number];
+
+/* The effort caps of one Claude Code settings layer; `models` keeps the `modelSettings` keys as the person wrote them. */
+export interface ClaudeEffortCapSource {
+    readonly maxEffortLevel?: ClaudeEffortLevel;
+    readonly models?: Readonly<Record<string, ClaudeEffortLevel>>;
+}
+
+export interface ClaudeProbeSeams {
+    readonly spawn?: SpawnChatProcess;
+
+    /* The caps the probe read from `get_settings`; empty when the CLI refused it. Not called when it never answered. */
+    readonly onEffortCaps?: (sources: ClaudeEffortCapSource[]) => void;
+}
+
+function effortLevel(value: unknown): ClaudeEffortLevel | undefined {
+    return CLAUDE_EFFORT_LEVELS.find((level) => level === value);
+}
+
+function capSourceOf(settings: unknown): ClaudeEffortCapSource | null {
+    if (!isRecord(settings)) {
+        return null;
+    }
+
+    const maxEffortLevel = effortLevel(settings.maxEffortLevel);
+    const models: Record<string, ClaudeEffortLevel> = {};
+
+    for (const [key, entry] of Object.entries(isRecord(settings.modelSettings) ? settings.modelSettings : {})) {
+        const level = isRecord(entry) ? effortLevel(entry.maxEffortLevel) : undefined;
+
+        if (level !== undefined) {
+            models[key] = level;
+        }
+    }
+
+    if (maxEffortLevel === undefined && Object.keys(models).length === 0) {
+        return null;
+    }
+
+    return { ...(maxEffortLevel === undefined ? {} : { maxEffortLevel }), ...(Object.keys(models).length === 0 ? {} : { models }) };
+}
+
+/*
+ * The caps of every layer in an answer to `get_settings`. `effective` is a merge in which the later layer wins
+ * (Claude Code 2.1.322), while the CLI clamps to the lowest, so `sources` decides; a CLI without it gives `effective`.
+ */
+export function readEffortCaps(answer: unknown): ClaudeEffortCapSource[] {
+    if (!isRecord(answer)) {
+        return [];
+    }
+
+    const layers = Array.isArray(answer.sources) ? answer.sources.map((source) => (isRecord(source) ? source.settings : null)) : [answer.effective];
+
+    return layers.map(capSourceOf).filter((source) => source !== null);
+}
+
 function failure(message: string): ProbeResult {
     return { unavailable: { reason: 'failed', message } };
 }
@@ -28,9 +85,11 @@ function timeoutOf<T>(work: Promise<T>, ms: number, what: string): Promise<T> {
 /*
  * Asks Claude Code what is left of the plan, without a turn and without a token of our own. A
  * `claude -p` on the stream-json protocol answers `get_usage` before any prompt, but only once it
- * has been initialized: without that first control request the process waits and says nothing.
+ * has been initialized: without that first control request the process waits and says nothing. It asks
+ * `get_settings` first, for the effort caps; the CLI starts in the daemon's folder, so a project's own cap is not among them.
  */
-export async function probeClaude(command: readonly string[], env: Record<string, string>, spawn: SpawnChatProcess = spawnChatProcess): Promise<ProbeResult> {
+export async function probeClaude(command: readonly string[], env: Record<string, string>, seams: ClaudeProbeSeams = {}): Promise<ProbeResult> {
+    const spawn = seams.spawn ?? spawnChatProcess;
     let child: ChatProcess;
 
     try {
@@ -51,7 +110,6 @@ export async function probeClaude(command: readonly string[], env: Record<string
 
     const read = async (): Promise<ProbeResult> => {
         write({ type: 'control_request', request_id: 'probe-init', request: { subtype: 'initialize', hooks: {} } });
-        let asked = false;
         let buffer = '';
         const decoder = new TextDecoder();
 
@@ -74,16 +132,28 @@ export async function probeClaude(command: readonly string[], env: Record<string
                     continue;
                 }
 
-                const envelope = frame as { type?: unknown; request_id?: unknown; response?: { subtype?: unknown; response?: unknown } };
+                const envelope = frame as { type?: unknown; response?: { subtype?: unknown; request_id?: unknown; response?: unknown } };
 
                 if (envelope.type !== 'control_response') {
                     continue;
                 }
 
-                if (!asked) {
-                    asked = true;
+                const answered = envelope.response?.request_id;
+
+                if (answered === 'probe-init') {
+                    write({ type: 'control_request', request_id: 'probe-settings', request: { subtype: 'get_settings' } });
                     write({ type: 'control_request', request_id: 'probe-usage', request: { subtype: 'get_usage' } });
 
+                    continue;
+                }
+
+                if (answered === 'probe-settings') {
+                    seams.onEffortCaps?.(envelope.response?.subtype === 'error' ? [] : readEffortCaps(envelope.response?.response));
+
+                    continue;
+                }
+
+                if (answered !== 'probe-usage') {
                     continue;
                 }
 
