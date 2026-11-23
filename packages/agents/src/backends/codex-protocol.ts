@@ -15,6 +15,18 @@ type CodexAnswer = { kind: 'respond'; rpcId: CodexRpcId; result: unknown } | { k
 
 type Frame = Record<string, unknown>;
 
+/*
+ * The Responses API's code for a thread whose encrypted history it can no longer read. Codex passes the API's
+ * error body on as text, with `codexErrorInfo` only `other`, so the code is found in the text.
+ */
+export const CODEX_REJECTED_HISTORY = 'invalid_encrypted_content';
+
+function rejectedHistoryCode(error: Frame): string | null {
+    const texts = [str(error.message), str(error.additionalDetails)];
+
+    return texts.some((text) => text?.includes(CODEX_REJECTED_HISTORY) === true) ? CODEX_REJECTED_HISTORY : null;
+}
+
 const GOAL_STATUSES: Record<string, ChatGoalStatus> = {
     active: 'active',
     paused: 'paused',
@@ -240,6 +252,8 @@ export class CodexProtocol {
     // The input the thread shows for an item, so an approval about it can repeat what it is for.
     private readonly toolInputs = new Map<string, RequestOwner & { input: unknown; changes: ChatFileChange[] }>();
     private codexTurnId: string | null = null;
+    // The code of the turn's last error Codex gave up on, kept for the failed turn, whose own error may lack it.
+    private failureCode: string | null = null;
     // Command items with a terminal session of their own, by item id, to the process id that ending one names.
     private readonly openTerminals = new Map<string, string>();
     private readonly backgroundTerminals = new Map<string, string>();
@@ -372,6 +386,7 @@ export class CodexProtocol {
             }
             case 'turn/started':
                 this.codexTurnId = isRecord(params.turn) ? str(params.turn.id) : null;
+                this.failureCode = null;
                 events.push({ type: 'turn.started' });
 
                 break;
@@ -462,6 +477,15 @@ export class CodexProtocol {
             }
             case 'error': {
                 const error = isRecord(params.error) ? params.error : {};
+                const code = params.willRetry === true ? null : rejectedHistoryCode(error);
+
+                // The failed turn says why in words of its own; the API's body may carry the request's headers.
+                if (code !== null) {
+                    this.failureCode = code;
+
+                    break;
+                }
+
                 events.push({ type: 'note', level: params.willRetry === true ? 'warning' : 'error', text: str(error.message) ?? 'Codex reported an error' });
 
                 if (params.willRetry === true) {
@@ -1077,8 +1101,10 @@ export class CodexProtocol {
         const status = str(turn.status);
         const error = isRecord(turn.error) ? str(turn.error.message) : null;
         const limit = status === 'failed' && isRecord(turn.error) ? this.limitOf(turn.error.codexErrorInfo) : null;
+        const code = status === 'failed' ? ((isRecord(turn.error) ? rejectedHistoryCode(turn.error) : null) ?? this.failureCode) : null;
         const turnId = str(turn.id) ?? this.codexTurnId;
         this.codexTurnId = null;
+        this.failureCode = null;
         this.withdrawOwner(str(params.threadId) ?? this.ownThreadId, turnId, events, status === 'completed');
 
         // A terminal session still open as the turn ends is one Codex left running; it only completes once its process does.
@@ -1095,6 +1121,7 @@ export class CodexProtocol {
             // Codex reports no cost; the turn keeps a zero so the fold label can still say how long it took.
             costUsd: 0,
             ...(status === 'failed' ? { error: error ?? 'The turn failed' } : {}),
+            ...(code === null ? {} : { code }),
             ...(turnId === null ? {} : { native: { turnId } }),
             ...(limit === null ? {} : { limit })
         });

@@ -41,7 +41,16 @@ export interface FakeCodexOptions {
     mcpStartup?: { name: string; status: 'starting' | 'ready' | 'failed' | 'cancelled'; error: string | null };
     // What `account/rateLimits/read` answers; `late` holds the answer back until the test says later is, as a slow read does.
     rateLimitsRead?: { result: Frame; late?: boolean };
+    // Threads whose every turn fails as the API refusing their encrypted history; a test adds one once it holds a turn.
+    rejectsHistory?: ReadonlySet<string>;
 }
+
+// The API's error body as Codex passes it on, in the shape T3 Code's tests hold; no capture of a real one exists yet.
+const REJECTED_HISTORY_BODY = JSON.stringify({
+    error: { type: 'invalid_request_error', code: 'invalid_encrypted_content', message: 'Encrypted content could not be decrypted or parsed.' },
+    headers: { 'x-codex-turn-state': 'opaque' },
+    status: 400
+});
 
 export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
     return (io) => {
@@ -234,6 +243,18 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
 
             if (goal !== null && (text === goal.objective || text === '')) {
                 io.later(goalStep);
+
+                return;
+            }
+
+            if (options.rejectsHistory?.has(threadId) === true) {
+                notify('error', {
+                    threadId,
+                    turnId,
+                    willRetry: false,
+                    error: { message: REJECTED_HISTORY_BODY, codexErrorInfo: 'other', additionalDetails: null }
+                });
+                turnCompleted('failed', REJECTED_HISTORY_BODY, 'other');
 
                 return;
             }

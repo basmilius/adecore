@@ -225,6 +225,8 @@ export type BackendEvent =
           state: 'done' | 'aborted' | 'error';
           costUsd: number;
           error?: string;
+          // The CLI's own code for why the turn failed, where the chat acts on one.
+          code?: string;
           native?: { turnId?: string; lastUuid?: string };
           limit?: ChatTurnLimit;
           // The next prompt needs fresh process credentials, once native work and requests have settled.

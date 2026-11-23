@@ -37,7 +37,7 @@ import { cleanTitle } from '../title-file.ts';
 import { isBackgroundWork, reportsOnBackgroundWork, runningInBackground, type BackgroundWork } from './background-work.ts';
 import type { ChatTitleInput } from './chat-title.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
-import { lostConversationHandoff, lostConversationNote, namesLostConversation } from './lost-conversation.ts';
+import { LOST_CONVERSATION_WAIT, lostConversationHandoff, lostConversationNote, namesLostConversation } from './lost-conversation.ts';
 import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-work.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
@@ -264,6 +264,8 @@ export class ChatSession {
     private launchedProjectConfig = true;
     // The session the running CLI was told to resume; null once it started fresh or that session was found gone.
     private launchedResume: string | null = null;
+    // Set once the CLI's conversation is lost, until the new session launches.
+    private conversationLost = false;
     // The checkpoint of the turn in flight; everything queued for that turn waits for it.
     private turnReady: Promise<void> = Promise.resolve();
     // Turns we settled ourselves whose `result` is still on its way; it may not close the turn after them.
@@ -891,7 +893,9 @@ export class ChatSession {
                         createdAt: Date.now(),
                         turnId: null,
                         level: 'info',
-                        text: 'Your message is queued until the current work and open requests finish. The changes to this chat will apply then.'
+                        text: this.conversationLost
+                            ? LOST_CONVERSATION_WAIT
+                            : 'Your message is queued until the current work and open requests finish. The changes to this chat will apply then.'
                     })
                 ]);
 
@@ -2661,6 +2665,7 @@ export class ChatSession {
         this.launchedFolders = folders;
         this.launchedProjectConfig = projectConfig;
         this.launchedResume = info.agentSessionId;
+        this.conversationLost = false;
 
         const plain: BackendLaunch = {
             command: this.options.provider.command,
@@ -2744,18 +2749,30 @@ export class ChatSession {
     }
 
     /*
-     * Claude Code answers a `--resume` whose transcript is gone the same way every time, so the chat forgets
-     * that session: this send fails with a note saying why, and the next one starts a new session that hears
-     * the thread as text. The failed send is never resent on its own; the person decides whether it still holds.
+     * Claude Code answers a `--resume` whose transcript is gone the same way every time, and the API refuses a
+     * Codex thread's encrypted history on every turn, so the chat forgets that session: this send fails with a
+     * note saying why, and the next one starts a new session that hears the thread as text. The failed send is
+     * never resent on its own; the person decides whether it still holds.
      */
     private forgetLostConversation(event: BackendEvent): BackendEvent {
-        if (this.frozen || this.launchedResume === null || !runsClaudeCode(this.options.provider) || !namesLostConversation(event)) {
+        const cause = this.frozen ? null : namesLostConversation(event);
+
+        if (cause === null) {
+            return event;
+        }
+
+        // Claude Code says its transcript is gone only for a session it was asked to resume; a Codex thread fails wherever it started.
+        const lost =
+            cause === 'transcript-gone' ? this.launchedResume !== null && runsClaudeCode(this.options.provider) : this.thread.info.agentSessionId !== null;
+
+        if (!lost) {
             return event;
         }
 
         const handoff = lostConversationHandoff(this.thread.list(), this.thread.info.activeTurnId);
         this.launchedResume = null;
-        // The CLI exits after its refusal, which may reach the chat after the next send did.
+        this.conversationLost = true;
+        // Claude Code exits after its refusal, which may reach the chat after the next send did; Codex keeps the thread loaded.
         this.replaceProcess = true;
         // The new session's first prompt is a first turn again, for what the host says as well.
         this.options.promptNotes?.reset();
@@ -2768,7 +2785,11 @@ export class ChatSession {
             this.emit([this.thread.patchInfo({ agentSessionId: null })]);
             this.options.persist();
 
-            return { ...event, error: lostConversationNote(event.error ?? '') };
+            return { ...event, error: lostConversationNote(cause, event.error ?? '') };
+        }
+
+        if (event.type !== 'exit') {
+            return event;
         }
 
         // An exit without a result frame says only "exited with code 1" itself, so the reason goes in a note of its own first.
@@ -2782,7 +2803,7 @@ export class ChatSession {
                 createdAt: this.clock.now(),
                 turnId,
                 level: 'error',
-                text: lostConversationNote(event.stderr ?? '')
+                text: lostConversationNote(cause, event.stderr ?? '')
             })
         ]);
         this.options.persist();

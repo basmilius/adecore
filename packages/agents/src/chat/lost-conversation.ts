@@ -1,7 +1,14 @@
 import type { ChatItem } from '@adecore/agent-contracts';
 import type { BackendEvent } from '../backends/backend.ts';
+import { CODEX_REJECTED_HISTORY } from '../backends/codex-protocol.ts';
 import { renderTranscript } from '../context/transcript.ts';
 import { fenced } from './projector.ts';
+
+/*
+ * Why a CLI can no longer go on in its conversation: Claude Code's transcript is gone on a resume, or
+ * the API refuses the encrypted history of a Codex thread on every turn.
+ */
+export type LostConversation = 'transcript-gone' | 'history-rejected';
 
 // What Claude Code answers a `--resume` whose transcript is gone, in its error result and on stderr.
 const CONVERSATION_NOT_FOUND = 'No conversation found with session ID:';
@@ -12,20 +19,37 @@ const HANDOFF_BYTES = 24 * 1024;
 const LOST_CONVERSATION_NOTE =
     'Claude Code could not resume this conversation: its transcript is gone. Send your message again to go on in a new session, which reads this thread as text first.';
 
+const REJECTED_HISTORY_NOTE =
+    "Codex could not verify this conversation's encrypted history. Send your message again to go on in a new session, which reads this thread as text first.";
+
+/* Why a send waits while the chat owes a new session but background work still runs in the old one, which a new session would leave behind. */
+export const LOST_CONVERSATION_WAIT =
+    'Your message is queued until the background work of the old session ends, since the new session would leave it behind. Stop that work to go on now.';
+
 const encoder = new TextEncoder();
 
-/* The note a person reads under the send that found the conversation gone; the CLI's own words fold open below it. */
-export function lostConversationNote(said: string): string {
-    return `${LOST_CONVERSATION_NOTE}\n\n${fenced(said.trim())}`;
+/*
+ * The note a person reads under the send that found the conversation lost. Claude Code's own words fold
+ * open below it; Codex passes on the API's error body, which may hold the request's headers, so none go.
+ */
+export function lostConversationNote(cause: LostConversation, said: string): string {
+    return cause === 'history-rejected' ? REJECTED_HISTORY_NOTE : `${LOST_CONVERSATION_NOTE}\n\n${fenced(said.trim())}`;
 }
 
-/* Whether a backend event is Claude Code refusing a resume, as an error result or as an exit that wrote only stderr. */
-export function namesLostConversation(event: BackendEvent): event is Extract<BackendEvent, { type: 'turn.done' | 'exit' }> {
-    if (event.type === 'turn.done') {
-        return event.state === 'error' && event.error?.includes(CONVERSATION_NOT_FOUND) === true;
+/*
+ * Whether a backend event says the conversation is lost: Claude Code refusing a resume, as an error result or
+ * as an exit that wrote only stderr, or a Codex turn failing on its history.
+ */
+export function namesLostConversation(event: BackendEvent): LostConversation | null {
+    if (event.type === 'turn.done' && event.state === 'error') {
+        if (event.code === CODEX_REJECTED_HISTORY) {
+            return 'history-rejected';
+        }
+
+        return event.error?.includes(CONVERSATION_NOT_FOUND) === true ? 'transcript-gone' : null;
     }
 
-    return event.type === 'exit' && event.stderr?.includes(CONVERSATION_NOT_FOUND) === true;
+    return event.type === 'exit' && event.stderr?.includes(CONVERSATION_NOT_FOUND) === true ? 'transcript-gone' : null;
 }
 
 /*

@@ -7,6 +7,7 @@ import { AgentHost } from '../host/agent-host.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
 import { claudeStoppingOnResume, fakeClaude } from '../testing/fake-claude.ts';
 import { inProcess, type FakeCli } from '../testing/fake-cli.ts';
+import { fakeCodexWith } from '../testing/fake-codex.ts';
 import { claudeProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
 import { ChatCore } from './chat-core.ts';
@@ -242,6 +243,99 @@ test.each([
             ).toHaveLength(1);
             expect(claude.started.filter((cli) => cli.argv.includes(`--resume=${sessionId}`))).toHaveLength(1);
             expect(chats.get('chat')!.info.agentSessionId).not.toBe(sessionId);
+        } finally {
+            await host.close();
+            await rm(home, { recursive: true, force: true });
+        }
+    }
+);
+
+test.each([
+    ['at once', false],
+    ['once the command it left running in the background ended', true]
+])(
+    'a Codex thread whose history the API rejects fails that send with a note, and the next send starts a new thread that hears the thread %s',
+    async (_shape, serving) => {
+        const home = await mkdtemp(join(tmpdir(), 'adecore-recover-'));
+        const rejected = new Set<string>();
+        const codex = inProcess(fakeCodexWith({ rejectsHistory: rejected }));
+        const host = await AgentHost.open({
+            dataDir: home,
+            env: { HOME: home, PATH: process.env.PATH },
+            background: false,
+            command: ['claude'],
+            codexCommand: ['codex'],
+            spawn: codex.spawn
+        });
+        const chats = host.chats;
+        const waiting: Array<() => void> = [];
+        chats.observe(() => queueMicrotask(() => waiting.splice(0).forEach((look) => look())));
+        const settled = (): boolean => chats.get('chat')?.info.activeTurnId === null && (chats.get('chat')?.info.queue ?? []).length === 0;
+        // Looked at after every chat event; no clock is involved.
+        const untilSettled = (): Promise<void> =>
+            new Promise((resolve) => {
+                const look = (): void => {
+                    if (settled()) {
+                        resolve();
+                    } else {
+                        waiting.push(look);
+                    }
+                };
+                look();
+            });
+        const turn = async (text: string): Promise<void> => {
+            await chats.send('chat', text);
+            await untilSettled();
+        };
+        const notes = (): string[] =>
+            chats
+                .get('chat')!
+                .thread.list()
+                .flatMap((item) => (item.kind === 'note' ? [item.text] : []));
+
+        try {
+            await chats.create({ chatId: 'chat', provider: 'codex', cwd: home });
+            await turn(serving ? 'the lexer reads tabs wrong\nserve' : 'the lexer reads tabs wrong');
+            const threadId = chats.get('chat')!.info.agentSessionId!;
+            rejected.add(threadId);
+
+            await turn('fix it');
+            const failed = chats.get('chat')!;
+            expect(
+                failed.thread
+                    .list()
+                    .filter((item) => item.kind === 'turn')
+                    .map((item) => item.kind === 'turn' && item.state)
+            ).toEqual(['done', 'error']);
+            expect(notes().filter((text) => text.includes("could not verify this conversation's encrypted history"))).toHaveLength(1);
+            // The API's body, headers and all, stays out of the thread.
+            expect(notes().some((text) => text.includes('x-codex-turn-state'))).toBe(false);
+            expect(failed.info.agentSessionId).toBeNull();
+            const launches = codex.started.length;
+
+            if (serving) {
+                // A new thread would leave the dev server behind, so the send waits for it and says why.
+                expect(await chats.send('chat', 'fix it, please')).toMatchObject({ queued: true });
+                expect(codex.started).toHaveLength(launches);
+                expect(notes().some((text) => text.includes('background work of the old session'))).toBe(true);
+                expect(chats.get('chat')!.info.agentSessionId).toBeNull();
+
+                codex.started.at(-1)!.runLater();
+                await untilSettled();
+            } else {
+                await turn('fix it, please');
+            }
+
+            const items = chats.get('chat')!.thread.list();
+            expect(codex.started).toHaveLength(launches + 1);
+            const reply = items.findLast((item) => item.kind === 'assistant');
+            expect(reply?.kind === 'assistant' ? reply.text : '').toContain('the lexer reads tabs wrong');
+            expect(reply?.kind === 'assistant' ? reply.text : '').toContain('fix it, please');
+            // A resume keeps the thread's id; only a new thread has another.
+            expect(chats.get('chat')!.info.agentSessionId).not.toBeNull();
+            expect(chats.get('chat')!.info.agentSessionId).not.toBe(threadId);
+            // The failed send went out once and was never resent by itself.
+            expect(items.filter((item) => item.kind === 'user' && item.text === 'fix it')).toHaveLength(1);
         } finally {
             await host.close();
             await rm(home, { recursive: true, force: true });
