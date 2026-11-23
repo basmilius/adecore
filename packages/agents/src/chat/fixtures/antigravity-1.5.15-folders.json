@@ -1,0 +1,570 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder under the temp folder. agy advertises `sessionCapabilities.additionalDirectories`, so the backend passes two Ruimte folders under the home folder (skills and a chat's visuals), both sorting before the temp folder. `run_command` `pwd` with no Cwd still runs in the session `cwd` (shown as its /private real path), not in the lexicographically smallest folder. `plain` is the same prompt with no additional folders: same result. Thought chunks are left out, consecutive message chunks are merged into one and the model list is cut to two. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 57,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/new",
+                "params": {
+                    "cwd": "/tmp/capture",
+                    "mcpServers": [],
+                    "additionalDirectories": [
+                        "/home/person/.ruimte/skills",
+                        "/home/person/.ruimte/chats/chat-9e3i5kt1.visuals"
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1212,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "sessionId": "id-1",
+                    "models": {
+                        "availableModels": [
+                            {
+                                "modelId": "gemini-4-neon-high",
+                                "name": "Gemini 4 Neon (High)"
+                            },
+                            {
+                                "modelId": "gemini-4-neon-xhigh",
+                                "name": "Gemini 4 Neon (XHigh)"
+                            }
+                        ],
+                        "currentModelId": "gemini-4-neon-high"
+                    },
+                    "modes": {
+                        "currentModeId": "default",
+                        "availableModes": [
+                            {
+                                "id": "default",
+                                "name": "Default",
+                                "description": "Ask before edits and commands, per your permission settings."
+                            },
+                            {
+                                "id": "accept-edits",
+                                "name": "Accept edits",
+                                "description": "Approve file edits in the workspace without asking."
+                            },
+                            {
+                                "id": "auto",
+                                "name": "Auto",
+                                "description": "Approve edits and safe commands; ask before irreversible actions."
+                            },
+                            {
+                                "id": "plan",
+                                "name": "Plan",
+                                "description": "Plan carefully before executing a task."
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "gemini-4-neon",
+                            "options": [
+                                {
+                                    "value": "gemini-4-neon",
+                                    "name": "Gemini 4 Neon"
+                                },
+                                {
+                                    "value": "gemini-4-argon",
+                                    "name": "Gemini 4 Argon"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "thought_level",
+                            "name": "Thinking Level",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "low",
+                                    "name": "Low"
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium"
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High"
+                                },
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "mode",
+                            "name": "Mode",
+                            "category": "mode",
+                            "type": "select",
+                            "currentValue": "default",
+                            "options": [
+                                {
+                                    "value": "default",
+                                    "name": "Default",
+                                    "description": "Ask before edits and commands, per your permission settings."
+                                },
+                                {
+                                    "value": "accept-edits",
+                                    "name": "Accept edits",
+                                    "description": "Approve file edits in the workspace without asking."
+                                },
+                                {
+                                    "value": "auto",
+                                    "name": "Auto",
+                                    "description": "Approve edits and safe commands; ask before irreversible actions."
+                                },
+                                {
+                                    "value": "plan",
+                                    "name": "Plan",
+                                    "description": "Plan carefully before executing a task."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "antigravity": {
+                            "tier": {
+                                "name": "<tier name>",
+                                "id": "<tier id>",
+                                "upgradeUri": "<upgrade link>"
+                            }
+                        }
+                    }
+                },
+                "id": 2
+            }
+        },
+        {
+            "t": 1215,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Run the shell command `pwd` exactly once, without a Cwd argument, and answer with its output only."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1220,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1220,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 0,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 2082,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "Run Pwd Shell Command"
+                    }
+                }
+            }
+        },
+        {
+            "t": 5274,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 8935,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 5282,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_10744629143682326330",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 5287,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_10744629143682326330",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 5287,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_10744629143682326330",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "1"
+            }
+        },
+        {
+            "t": 5290,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 5291,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_10744629143682326330",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 5312,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_10744629143682326330",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "rawOutput": {
+                            "output": "Created At: 2026-11-23T10:46:04+01:00\nCompleted At: 2026-11-23T10:46:04+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Created At: 2026-11-23T10:46:04+01:00\nCompleted At: 2026-11-23T10:46:04+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 8862,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "/private/tmp/capture"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 9175,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9203,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 9213,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 11134,
+                        "outputTokens": 259,
+                        "cachedReadTokens": 6745,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 170,
+                        "totalTokens": 18138
+                    }
+                },
+                "id": 3
+            }
+        }
+    ],
+    "plain": [
+        {
+            "t": 58,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/new",
+                "params": {
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 4696,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-2",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_12953499981642240036",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Run pwd command"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Run pwd command"
+                        },
+                        "rawOutput": {
+                            "output": "Created At: 2026-11-23T10:46:04+01:00\nCompleted At: 2026-11-23T10:46:04+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Created At: 2026-11-23T10:46:04+01:00\nCompleted At: 2026-11-23T10:46:04+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}

@@ -1,0 +1,301 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder. The prompt asks for one subagent that runs `echo from-subagent`. agy sends `tool_call` `invoke_subagent` (kind other, title `Run invoke_subagent`, args Prompt, Role, TypeName self) and, about a second later and without asking permission, `tool_call_update` completed: completed means the subagent started, not that it ended. Nothing of the subagent comes over ACP: no frames, and its own `run_command` never reached the client as `session/request_permission`; the subagent reports that its permission prompt timed out after 60 s. The parent says it waits, its Stop hook fires (fullyIdle false), and the prompt stays open until the subagent is done; then the parent answers and `end_turn` closes the prompt at 86 s. `hooks` holds the parent's two Stop hooks and one from the subagent's own conversation id (fullyIdle true). Thought chunks are left out, consecutive message chunks are merged into one. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 1323,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Use the invoke_subagent tool to start exactly one subagent with this task: run the shell command `echo from-subagent` once and report what it printed. Wait until it has finished, then answer in one sentence with what it reported."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1327,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1327,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 0,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 2082,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "Invoke Subagent Tool Usage"
+                    }
+                }
+            }
+        },
+        {
+            "t": 6964,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9612,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 6971,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_14102393744959301103",
+                        "name": "invoke_subagent",
+                        "args": {
+                            "Prompt": "Run the shell command `echo from-subagent` once and report the exact output it printed.",
+                            "Role": "Shell Command Runner",
+                            "TypeName": "self"
+                        },
+                        "status": "in_progress",
+                        "kind": "other",
+                        "title": "Run invoke_subagent",
+                        "rawInput": {
+                            "Prompt": "Run the shell command `echo from-subagent` once and report the exact output it printed.",
+                            "Role": "Shell Command Runner",
+                            "TypeName": "self"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 8022,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_14102393744959301103",
+                        "name": "invoke_subagent",
+                        "args": {
+                            "Prompt": "Run the shell command `echo from-subagent` once and report the exact output it printed.",
+                            "Role": "Shell Command Runner",
+                            "TypeName": "self"
+                        },
+                        "status": "completed",
+                        "kind": "other",
+                        "title": "Run invoke_subagent",
+                        "rawInput": {
+                            "Prompt": "Run the shell command `echo from-subagent` once and report the exact output it printed.",
+                            "Role": "Shell Command Runner",
+                            "TypeName": "self"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 14426,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Waiting for the subagent to finish running `echo from-subagent`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 14512,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10140,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 85421,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "\n\nThe subagent reported that it could not run `echo from-subagent` because the command execution permission prompt timed out after 60 seconds waiting for user approval, producing no output."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 85727,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10591,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 86651,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 13709,
+                        "outputTokens": 793,
+                        "cachedReadTokens": 15841,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 684,
+                        "totalTokens": 30343
+                    }
+                },
+                "id": 3
+            }
+        }
+    ],
+    "hooks": [
+        {
+            "t": 14573,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": false,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        },
+        {
+            "t": 85792,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": false,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        },
+        {
+            "t": 86669,
+            "hookEventName": "Stop",
+            "conversationId": "id-2",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        }
+    ]
+}

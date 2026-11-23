@@ -1,0 +1,176 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15 by a bare ACP client, with an empty GEMINI_HOME and SSH_CONNECTION set, so agy treats the machine as reached over SSH and has no sign-in. `session/new` answers -32000 \"Authentication required\". `authenticate` with oauth-personal answers at once -32603 \"No browser is available here (this is a remote (SSH) session, so the browser's sign-in redirect can't reach this machine). Run `agy acp --login` in a terminal on this machine, then retry; or use a Gemini API key.\"; a second `session/new` is still -32000. `login` is what `agy acp --login` printed in the same home: a Google link and a prompt to paste the authorization code or the full URL of the page one lands on, then Enter. It waits on stdin; the capture stopped it after 10 s, so nothing was signed in and the home stayed empty. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 1,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": 1,
+                    "clientCapabilities": {
+                        "fs": {
+                            "readTextFile": false,
+                            "writeTextFile": false
+                        },
+                        "terminal": false
+                    },
+                    "clientInfo": {
+                        "name": "capture",
+                        "version": "0.0.1"
+                    }
+                }
+            }
+        },
+        {
+            "t": 47,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "protocolVersion": 1,
+                    "agentCapabilities": {
+                        "loadSession": true,
+                        "load_session": true,
+                        "promptCapabilities": {
+                            "image": true,
+                            "audio": false,
+                            "embeddedContext": true
+                        },
+                        "sessionCapabilities": {
+                            "resume": {},
+                            "close": {},
+                            "load": {},
+                            "list": {},
+                            "additionalDirectories": {}
+                        },
+                        "session_capabilities": {
+                            "resume": {},
+                            "close": {},
+                            "load": {},
+                            "list": {},
+                            "additionalDirectories": {}
+                        },
+                        "auth": {
+                            "logout": {}
+                        },
+                        "_meta": {
+                            "antigravity": {
+                                "tier": true,
+                                "systemPrompt": {
+                                    "append": true
+                                }
+                            }
+                        }
+                    },
+                    "agentInfo": {
+                        "name": "Antigravity ACP Server",
+                        "version": "1.5.15"
+                    },
+                    "authMethods": [
+                        {
+                            "id": "oauth-personal",
+                            "name": "Log in with Google",
+                            "description": "Log in with your Google account"
+                        },
+                        {
+                            "id": "oauth-business",
+                            "name": "Log in with Gemini Enterprise",
+                            "description": "Log in with your Gemini Enterprise account"
+                        },
+                        {
+                            "id": "gemini-api-key",
+                            "name": "Gemini API key",
+                            "description": "Use an API key with Gemini Developer API"
+                        },
+                        {
+                            "id": "agent-platform",
+                            "name": "Gemini Enterprise Agent Platform",
+                            "description": "Use Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials"
+                        }
+                    ]
+                },
+                "id": 1
+            }
+        },
+        {
+            "t": 48,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/new",
+                "params": {
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 81,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32000,
+                    "message": "Authentication required"
+                },
+                "id": 2
+            }
+        },
+        {
+            "t": 81,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "authenticate",
+                "params": {
+                    "methodId": "oauth-personal"
+                }
+            }
+        },
+        {
+            "t": 81,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32603,
+                    "message": "No browser is available here (this is a remote (SSH) session, so the browser's sign-in redirect can't reach this machine). Run `agy acp --login` in a terminal on this machine, then retry; or use a Gemini API key."
+                },
+                "id": 3
+            }
+        },
+        {
+            "t": 81,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "session/new",
+                "params": {
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 81,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32000,
+                    "message": "Authentication required"
+                },
+                "id": 4
+            }
+        }
+    ],
+    "login": "Open this link in a browser to log in with Google:\n\n  https://accounts.google.com/o/oauth2/auth?access_type=offline&client_id=<client-id>&code_challenge=<challenge>&code_challenge_method=S256&prompt=consent&redirect_uri=https%3A%2F%2Fantigravity.google%2Foauth-callback&response_type=code&scope=https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcloud-platform+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fcclog+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fexperimentsandconfigs+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Faicode+openid&state=<state>\n\nThen paste the authorization code, or the full URL of the page you land on, and press Enter:\n"
+}

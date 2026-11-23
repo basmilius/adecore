@@ -1,0 +1,429 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder. The prompt asks for `sleep 20 && echo bg-done` in the background and an immediate end. agy runs it as `run_command` with `IsDaemon` false and `WaitMsBeforeAsync` 500, says \"started\" and sends `usage_update`, but does not answer `session/prompt`: the call stays open while the command runs. When the command completes (`tool_call_update` completed, 17 s later), the model reacts inside the same prompt and only then the one `session/prompt` response ends it with `end_turn`. agy's Stop hook fires twice (`hooks`), after \"started\" with fullyIdle false (the command still runs) and at the real end with fullyIdle true. The same held prompt showed in two more runs not kept as frames: two such commands (each completion woke the model inside the prompt, with a permission each; Stop fired three times with fullyIdle false, false, true, and the response came after the second), and `/schedule` with a 30 s timer (the `schedule` tool call completes when the timer fires, the model acts, then `end_turn` at 45 s). No output came outside a prompt in any of them. Thought chunks are left out, consecutive message chunks are merged into one. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 1580,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Run the shell command `sleep 20 && echo bg-done` in the background without waiting for it. Then end your turn right away with the single word started. Do nothing else."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1585,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1585,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 0,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 2083,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "Run Background Shell Command"
+                    }
+                }
+            }
+        },
+        {
+            "t": 8377,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9539,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 8384,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_13573390269165609334",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 20 && echo bg-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 9501,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_13573390269165609334",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 20 && echo bg-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 9501,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_13573390269165609334",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 20 && echo bg-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "1"
+            }
+        },
+        {
+            "t": 9504,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 9505,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_13573390269165609334",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 20 && echo bg-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 12588,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "started"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 12607,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9702,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 29533,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_13573390269165609334",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "sleep 20 && echo bg-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 20 && echo bg-done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Background sleep command"
+                        },
+                        "rawOutput": {
+                            "output": "Command exited with code 0.\n\nCommand output:\nbg-done\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Command exited with code 0.\n\nCommand output:\nbg-done\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 33953,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "\n\nThe background command finished with exit code `0`:\n\n```\nbg-done\n```\n\nLog: [task-2.log](file:///home/person/.gemini/antigravity-cli/brain/id-1/.system_generated/tasks/task-2.log)"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 34730,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10105,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 34746,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 14057,
+                        "outputTokens": 450,
+                        "cachedReadTokens": 14839,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 308,
+                        "totalTokens": 29346
+                    }
+                },
+                "id": 3
+            }
+        }
+    ],
+    "hooks": [
+        {
+            "t": 12657,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": false,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        },
+        {
+            "t": 34764,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        }
+    ]
+}

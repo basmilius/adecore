@@ -1,0 +1,667 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder. The prompt starts two commands with `IsDaemon` true (`sleep 12 && echo one-done`, `sleep 24 && echo two-done`), each asked and allowed, and ends: the `session/prompt` response comes with `end_turn` while both `tool_call`s are still in_progress. Later, with no prompt open, each completion arrives as `tool_call_update` completed, then agy wakes on its own: the model's text and a `usage_update`, never a prompt response. Each wake ends with a `usage_update` after its last output, and agy's Stop hook fires once per wake (`hooks`, fullyIdle true each time). A single daemon run (not kept) showed the same with a tool call and its `session/request_permission` inside the wake. Thought chunks are left out, consecutive message chunks are merged into one. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 1099,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Start two shell commands as long-running daemon processes (IsDaemon true, do not wait for them): `sleep 12 && echo one-done` and `sleep 24 && echo two-done`. End your turn right away with the word started. Each time one of them finishes, say in one short sentence which one finished. Run no other commands."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1102,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1102,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 0,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 2058,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "Run Long-Running Daemon Processes"
+                    }
+                }
+            }
+        },
+        {
+            "t": 6412,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9654,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 6420,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_6277534760079186108",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 12 && echo one-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 8410,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_6277534760079186108",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 12 && echo one-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 8410,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_6277534760079186108",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 12 && echo one-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "1"
+            }
+        },
+        {
+            "t": 8416,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 8419,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_6277534760079186108",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 12 && echo one-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 8944,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_6277534760079186735",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 24 && echo two-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 10679,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_6277534760079186735",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 24 && echo two-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 10680,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_6277534760079186735",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 24 && echo two-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "2"
+            }
+        },
+        {
+            "t": 10682,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "2",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 10684,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_6277534760079186735",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 24 && echo two-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 14057,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "started"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 14081,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9981,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 14097,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 4170,
+                        "outputTokens": 400,
+                        "cachedReadTokens": 15065,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 297,
+                        "totalTokens": 19635
+                    }
+                },
+                "id": 3
+            }
+        },
+        {
+            "t": 20462,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_6277534760079186108",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "sleep 12 && echo one-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 12 && echo one-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "First sleep daemon"
+                        },
+                        "rawOutput": {
+                            "output": "Command exited with code 0.\n\nCommand output:\none-done\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Command exited with code 0.\n\nCommand output:\none-done\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 24237,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "\n\nThe first command (`sleep 12 && echo one-done`) finished with `one-done`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 24240,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10331,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 34724,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_6277534760079186735",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "sleep 24 && echo two-done",
+                        "rawInput": {
+                            "CommandLine": "sleep 24 && echo two-done",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Second sleep daemon"
+                        },
+                        "rawOutput": {
+                            "output": "Command exited with code 0.\n\nCommand output:\ntwo-done\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Command exited with code 0.\n\nCommand output:\ntwo-done\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 38089,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "\n\nThe second command (`sleep 24 && echo two-done`) finished with `two-done`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 38129,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10645,
+                        "size": 1048576
+                    }
+                }
+            }
+        }
+    ],
+    "hooks": [
+        {
+            "t": 14109,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        },
+        {
+            "t": 24296,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        },
+        {
+            "t": 38170,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        }
+    ]
+}

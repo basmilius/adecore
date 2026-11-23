@@ -1,0 +1,2364 @@
+{
+    "version": "Grok 1.0.70, `grok --no-auto-update agent stdio`",
+    "source": "Recorded with tee-cli.ts in front of Grok 1.0.70 (`grok --no-auto-update agent stdio`) by a bare ACP client in a throwaway git folder, default mode. The session had seven turns (six with a `echo` and a paragraph, one \"ok\"). `session/load` starts the replay 18 ms later; every replayed frame, `session/update` and `_x.ai/session/update` alike, carries `_meta.isReplay: true`, and each replayed turn ends with an `_x.ai/session/update` `turn_completed`. The replay ends with a replayed `background_tasks`. A `session/prompt` sent at the first replayed frame is accepted and queued (`_x.ai/queue/changed`). After the replay come live frames without `isReplay` (MCP start-up, left out here, a live `background_tasks`, `model_changed`) and the `session/load` answer about 390 ms after the request. The queued prompt then runs and ends with `end_turn`. The load answered; no silence followed the replay in this run. `resume` is what ADE CORE's backend sent for the same session: `session/resume` (Grok advertises it), answered in 400 ms with no replay. Thought chunks, hook, MCP, announcement, model list and sessions frames are left out, and the model list is cut to one. `t` is milliseconds from the start of each process, `dir` is `in` for what went to Grok.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 4,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": 1,
+                    "clientCapabilities": {
+                        "fs": {
+                            "readTextFile": false,
+                            "writeTextFile": false
+                        },
+                        "terminal": false
+                    },
+                    "clientInfo": {
+                        "name": "capture",
+                        "version": "0.0.1"
+                    }
+                }
+            }
+        },
+        {
+            "t": 125,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "result": {
+                    "protocolVersion": 1,
+                    "agentCapabilities": {
+                        "loadSession": true,
+                        "promptCapabilities": {
+                            "image": true,
+                            "audio": false,
+                            "embeddedContext": true
+                        },
+                        "mcpCapabilities": {
+                            "http": true,
+                            "sse": true
+                        },
+                        "sessionCapabilities": {
+                            "list": {},
+                            "resume": {},
+                            "close": {}
+                        },
+                        "auth": {}
+                    },
+                    "authMethods": [
+                        {
+                            "id": "cached_token",
+                            "name": "cached_token",
+                            "description": "Cached token from ~/.grok/auth.json"
+                        },
+                        {
+                            "id": "grok.com",
+                            "name": "Grok",
+                            "description": "Sign in with Grok"
+                        }
+                    ],
+                    "_meta": {
+                        "currentWorkingDirectory": "/private/tmp/capture",
+                        "agentVersion": "1.0.70",
+                        "agentId": "id-1",
+                        "agentInstanceId": "id-2",
+                        "hostname": "person-host.local",
+                        "metadata": null,
+                        "grokShell": true,
+                        "defaultAuthMethodId": "cached_token",
+                        "x.ai/mcp/sdk": true,
+                        "x.ai/pluginDirs": true,
+                        "modelState": {
+                            "currentModelId": "grok-4.7",
+                            "availableModels": [
+                                {
+                                    "modelId": "grok-4.7",
+                                    "name": "Grok 4.7",
+                                    "description": "SpaceXAI's latest frontier model",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "xhigh",
+                                                "value": "xhigh",
+                                                "label": "Extra High",
+                                                "description": "Maximum reasoning for the hardest tasks.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Thorough reasoning and quality. Recommended.",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Strong quality with a faster turnaround.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Fastest responses. Best for simple tasks.",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                },
+                                {
+                                    "modelId": "grok-4.7-build-fast",
+                                    "name": "Grok 4.7 Fast",
+                                    "description": "Fast variant. 2x the price.",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "xhigh",
+                                                "value": "xhigh",
+                                                "label": "Extra High",
+                                                "description": "Maximum reasoning for the hardest tasks.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Thorough reasoning and quality. Recommended.",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Strong quality with a faster turnaround.",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Fastest responses. Best for simple tasks.",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                },
+                                {
+                                    "modelId": "grok-4.6",
+                                    "name": "Grok 4.6",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "xhigh",
+                                                "value": "xhigh",
+                                                "label": "Extra High",
+                                                "description": "Highest effort and reasoning level",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Higher implementation quality with extensive reasoning",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Balanced effort with standard implementation and testing",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Quick, fast implementations",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                },
+                                {
+                                    "modelId": "grok-4.5",
+                                    "name": "Grok 4.5",
+                                    "_meta": {
+                                        "totalContextTokens": 256000,
+                                        "agentType": "grok-build-plan",
+                                        "supportsReasoningEffort": true,
+                                        "reasoningEffort": "high",
+                                        "reasoningEfforts": [
+                                            {
+                                                "id": "high",
+                                                "value": "high",
+                                                "label": "High",
+                                                "description": "Highest implementation quality with extensive reasoning",
+                                                "default": true
+                                            },
+                                            {
+                                                "id": "medium",
+                                                "value": "medium",
+                                                "label": "Medium",
+                                                "description": "Balanced effort with standard implementation and testing",
+                                                "default": false
+                                            },
+                                            {
+                                                "id": "low",
+                                                "value": "low",
+                                                "label": "Low",
+                                                "description": "Quick, fast implementations",
+                                                "default": false
+                                            }
+                                        ],
+                                        "contextWindows": [
+                                            256000,
+                                            500000
+                                        ]
+                                    }
+                                }
+                            ]
+                        },
+                        "mcpServers": [],
+                        "mcpApps": false,
+                        "availableCommands": [
+                            {
+                                "name": "compact",
+                                "description": "Compress conversation history to save context window",
+                                "input": null
+                            },
+                            {
+                                "name": "always-approve",
+                                "description": "Toggle always-approve mode (skip all permission prompts)",
+                                "input": {
+                                    "hint": "on|off"
+                                }
+                            },
+                            {
+                                "name": "context",
+                                "description": "Show context window usage and session stats",
+                                "input": null
+                            },
+                            {
+                                "name": "session-info",
+                                "description": "Show session details (model, turns, context usage)",
+                                "input": null
+                            },
+                            {
+                                "name": "deep-research",
+                                "description": "Research with bounded parallel agents, cross-check evidence, and write a cited report",
+                                "input": {
+                                    "hint": "<query>"
+                                }
+                            },
+                            {
+                                "name": "workflow",
+                                "description": "Launch a saved workflow, list runs, or manage a run (pause, resume, stop, save)",
+                                "input": {
+                                    "hint": "<name> [--agent-budget N] [--effort LEVEL] [args] | runs | pause|resume|stop|save [name]"
+                                }
+                            },
+                            {
+                                "name": "goal",
+                                "description": "Set, manage, or check an autonomous goal",
+                                "input": {
+                                    "hint": "<objective> [--budget <tokens>] | status | pause | resume | clear"
+                                }
+                            }
+                        ],
+                        "cancelRewind": true,
+                        "sessionRecap": true,
+                        "feedbackTraceOffer": false,
+                        "voiceMode": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 126,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/load",
+                "params": {
+                    "sessionId": "id-3",
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 144,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Turn 1: run the shell command `echo turn 1` and then write a paragraph of about 120 words on why small tests matter."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 0
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-4",
+                        "agentTimestampMs": 1795426449420,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 145,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-3",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Reply with the single word early."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 145,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik voer het commando uit en schrijf daarna de alinea."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 1584,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-24",
+                        "agentTimestampMs": 1795426453510,
+                        "promptId": "id-4",
+                        "streamStartMs": 1795426451995,
+                        "turnStartMs": 1795426449354,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 19,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 145,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-id-5-0",
+                        "title": "Execute `echo turn 1`",
+                        "kind": "execute",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "turn 1\n"
+                                }
+                            }
+                        ],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "echo turn 1",
+                            "description": "Echo turn 1 marker",
+                            "is_background": false
+                        },
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [
+                                116,
+                                117,
+                                114,
+                                110,
+                                32,
+                                49,
+                                10
+                            ],
+                            "output_for_prompt": "exit: 0\nturn 1\n",
+                            "exit_code": 0,
+                            "command": "echo turn 1",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Echo turn 1 marker",
+                            "current_dir": "/tmp/capture",
+                            "output_file": "/home/person/.grok/sessions/%2Ftmp%2Fcapture/id-3/terminal/call-id-5-0.log",
+                            "total_bytes": 7,
+                            "was_bare_echo": true
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 21278,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-29",
+                        "agentTimestampMs": 1795426453778,
+                        "promptId": "id-4",
+                        "streamStartMs": 1795426451995,
+                        "turnStartMs": 1795426449354,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-id-5-0",
+                            "status": "Completed"
+                        },
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 145,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`echo turn 1` gaf `turn 1`.\n\nKleine tests houden een codebase eerlijk. Een test die één gedrag controleert faalt op één plek, met een melding die meteen naar de oorzaak wijst. Grote tests raken veel lagen tegelijk, dus een rode run zegt alleen dat ergens iets stuk is. Kleine tests zijn snel. Je draait ze bij elke wijziging, nog voor je commit, en je ziet meteen of de functie nog doet wat je afsprak. Je verandert een naam, splitst een tak of voegt een randgeval toe, en de tests vertellen of het contract hetzelfde bleef. Ze documenteren dat contract beter dan een commentaar, omdat ze meedraaien met de code. Elke nieuwe bug wordt één extra geval. Zo blijft de feedback kort en de code veranderbaar."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 21281,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-260",
+                        "agentTimestampMs": 1795426481189,
+                        "promptId": "id-4",
+                        "streamStartMs": 1795426455764,
+                        "turnStartMs": 1795426449354,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 228,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 145,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-4",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 42397,
+                            "outputTokens": 3012,
+                            "totalTokens": 45409,
+                            "cachedReadTokens": 23168,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 2791,
+                            "modelCalls": 2,
+                            "apiDurationMs": 30647,
+                            "costUsdTicks": 681140000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 42397,
+                                    "outputTokens": 3012,
+                                    "totalTokens": 45409,
+                                    "cachedReadTokens": 23168,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 2791,
+                                    "modelCalls": 2,
+                                    "apiDurationMs": 30647,
+                                    "costUsdTicks": 681140000
+                                }
+                            },
+                            "numTurns": 2
+                        },
+                        "elapsed_ms": 32069
+                    },
+                    "_meta": {
+                        "eventId": "id-3-265",
+                        "agentTimestampMs": 1795426481424,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Turn 2: run the shell command `echo turn 2` and then write a paragraph of about 120 words on why small tests matter."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 1
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-267",
+                        "agentTimestampMs": 1795426481489,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik voer het commando uit en schrijf daarna een nieuwe alinea."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 24182,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-289",
+                        "agentTimestampMs": 1795426483535,
+                        "promptId": "id-6",
+                        "streamStartMs": 1795426482961,
+                        "turnStartMs": 1795426481440,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 21,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-id-7-1",
+                        "title": "Execute `echo turn 2`",
+                        "kind": "execute",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "turn 2\n"
+                                }
+                            }
+                        ],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "echo turn 2",
+                            "description": "Echo turn 2 marker",
+                            "is_background": false
+                        },
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [
+                                116,
+                                117,
+                                114,
+                                110,
+                                32,
+                                50,
+                                10
+                            ],
+                            "output_for_prompt": "exit: 0\nturn 2\n",
+                            "exit_code": 0,
+                            "command": "echo turn 2",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Echo turn 2 marker",
+                            "current_dir": "/tmp/capture",
+                            "output_file": "/home/person/.grok/sessions/%2Ftmp%2Fcapture/id-3/terminal/call-id-7-1.log",
+                            "total_bytes": 7,
+                            "was_bare_echo": true
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 24341,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-294",
+                        "agentTimestampMs": 1795426483800,
+                        "promptId": "id-6",
+                        "streamStartMs": 1795426482961,
+                        "turnStartMs": 1795426481440,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-id-7-1",
+                            "status": "Completed"
+                        },
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`echo turn 2` gaf `turn 2`.\n\nEen kleine test bekijkt één afspraak. Slaagt hij, dan weet je dat die afspraak klopt. Faalt hij, dan wijst de naam van de test naar het gedrag dat brak, zonder dat je eerst een lange log hoeft te lezen. Die precisie bespaart tijd bij elke wijziging. Je past een functie aan, draait de tests die erbij horen, en hoort binnen een seconde of de belofte nog geldt. Grote tests verbergen die belofte in een keten van aanroepen. Een fout kan in de setup zitten, in een mock, of in code die je niet aanraakte. Kleine tests houden die keten uit de weg. Ze maken een regressie zichtbaar op het moment dat je hem veroorzaakt. Zo blijft het product veilig om te veranderen."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 24344,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-520",
+                        "agentTimestampMs": 1795426512133,
+                        "promptId": "id-6",
+                        "streamStartMs": 1795426485490,
+                        "turnStartMs": 1795426481440,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 223,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-6",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 48543,
+                            "outputTokens": 3381,
+                            "totalTokens": 51924,
+                            "cachedReadTokens": 45312,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 3150,
+                            "modelCalls": 2,
+                            "apiDurationMs": 30560,
+                            "costUsdTicks": 494040000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 48543,
+                                    "outputTokens": 3381,
+                                    "totalTokens": 51924,
+                                    "cachedReadTokens": 45312,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 3150,
+                                    "modelCalls": 2,
+                                    "apiDurationMs": 30560,
+                                    "costUsdTicks": 494040000
+                                }
+                            },
+                            "numTurns": 2
+                        },
+                        "elapsed_ms": 30927
+                    },
+                    "_meta": {
+                        "eventId": "id-3-525",
+                        "agentTimestampMs": 1795426512368,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Turn 3: run the shell command `echo turn 3` and then write a paragraph of about 120 words on why small tests matter."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 2
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-527",
+                        "agentTimestampMs": 1795426512441,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik voer het commando uit en schrijf daarna een nieuwe alinea."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 27634,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-547",
+                        "agentTimestampMs": 1795426514854,
+                        "promptId": "id-8",
+                        "streamStartMs": 1795426514526,
+                        "turnStartMs": 1795426512381,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 19,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-id-9-2",
+                        "title": "Execute `echo turn 3`",
+                        "kind": "execute",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "turn 3\n"
+                                }
+                            }
+                        ],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "echo turn 3",
+                            "description": "Echo turn 3 marker",
+                            "is_background": false
+                        },
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [
+                                116,
+                                117,
+                                114,
+                                110,
+                                32,
+                                51,
+                                10
+                            ],
+                            "output_for_prompt": "exit: 0\nturn 3\n",
+                            "exit_code": 0,
+                            "command": "echo turn 3",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Echo turn 3 marker",
+                            "current_dir": "/tmp/capture",
+                            "output_file": "/home/person/.grok/sessions/%2Ftmp%2Fcapture/id-3/terminal/call-id-9-2.log",
+                            "total_bytes": 7,
+                            "was_bare_echo": true
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 27755,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-552",
+                        "agentTimestampMs": 1795426515099,
+                        "promptId": "id-8",
+                        "streamStartMs": 1795426514526,
+                        "turnStartMs": 1795426512381,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-id-9-2",
+                            "status": "Completed"
+                        },
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`echo turn 3` gaf `turn 3`.\n\nKleine tests maken een fout klein. Eén test dekt één gedrag, dus een rode regel noemt meteen de afspraak die brak. Je opent het bestand, leest de invoer en de verwachte uitkomst, en je ziet het verschil. Een brede test faalt ergens in een keten, en jij zoekt daarna waar. Een kleine test draait in milliseconden. Je houdt hem aan tijdens het typen, en je merkt een regressie voordat je naar het volgende bestand gaat. Je splitst een functie of vernauwt een voorwaarde, en dezelfde tests blijven groen zolang het gedrag gelijk blijft. De namen van die tests zijn ook documentatie. Een nieuwe lezer ziet welk randgeval geldt en welk geval geweigerd wordt. Zo durft iemand de code te wijzigen."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 27758,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-800",
+                        "agentTimestampMs": 1795426547236,
+                        "promptId": "id-8",
+                        "streamStartMs": 1795426516652,
+                        "turnStartMs": 1795426512381,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 245,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-8",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 55409,
+                            "outputTokens": 3055,
+                            "totalTokens": 58464,
+                            "cachedReadTokens": 51840,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 2825,
+                            "modelCalls": 2,
+                            "apiDurationMs": 34698,
+                            "costUsdTicks": 513880000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 55409,
+                                    "outputTokens": 3055,
+                                    "totalTokens": 58464,
+                                    "cachedReadTokens": 51840,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 2825,
+                                    "modelCalls": 2,
+                                    "apiDurationMs": 34698,
+                                    "costUsdTicks": 513880000
+                                }
+                            },
+                            "numTurns": 2
+                        },
+                        "elapsed_ms": 35116
+                    },
+                    "_meta": {
+                        "eventId": "id-3-805",
+                        "agentTimestampMs": 1795426547498,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Turn 4: run the shell command `echo turn 4` and then write a paragraph of about 120 words on why small tests matter."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 3
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-807",
+                        "agentTimestampMs": 1795426547556,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik voer het commando uit en schrijf daarna een nieuwe alinea."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 30760,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-825",
+                        "agentTimestampMs": 1795426549983,
+                        "promptId": "id-10",
+                        "streamStartMs": 1795426549781,
+                        "turnStartMs": 1795426547510,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 17,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 149,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-id-11-3",
+                        "title": "Execute `echo turn 4`",
+                        "kind": "execute",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "turn 4\n"
+                                }
+                            }
+                        ],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "echo turn 4",
+                            "description": "Echo turn 4 marker",
+                            "is_background": false
+                        },
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [
+                                116,
+                                117,
+                                114,
+                                110,
+                                32,
+                                52,
+                                10
+                            ],
+                            "output_for_prompt": "exit: 0\nturn 4\n",
+                            "exit_code": 0,
+                            "command": "echo turn 4",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Echo turn 4 marker",
+                            "current_dir": "/tmp/capture",
+                            "output_file": "/home/person/.grok/sessions/%2Ftmp%2Fcapture/id-3/terminal/call-id-11-3.log",
+                            "total_bytes": 7,
+                            "was_bare_echo": true
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 30878,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-830",
+                        "agentTimestampMs": 1795426550259,
+                        "promptId": "id-10",
+                        "streamStartMs": 1795426549781,
+                        "turnStartMs": 1795426547510,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-id-11-3",
+                            "status": "Completed"
+                        },
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`echo turn 4` gaf `turn 4`.\n\nEen kleine test legt één afspraak vast en controleert die bij elke run. Faalt hij, dan is de oorzaak meestal de laatste wijziging, en de testnaam wijst naar het gedrag dat anders werd. Je herstelt die afspraak voordat hij andere modules raakt. Een brede run vraagt dan eerst onderzoek. Kleine tests laten je de breuk meteen zien. Je past de code aan en draait dezelfde test opnieuw tot hij groen is. Omdat ze snel zijn, horen ze bij het schrijven zelf. Je typt een voorwaarde, slaat op, en de suite antwoordt terwijl de redenering nog vers is. Een functie die moeilijk te testen is in isolatie, is vaak ook moeilijk te begrijpen. Elke gevangen bug blijft een klein, leesbaar geval."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 30881,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1061",
+                        "agentTimestampMs": 1795426577239,
+                        "promptId": "id-10",
+                        "streamStartMs": 1795426552170,
+                        "turnStartMs": 1795426547510,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 228,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-10",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 61658,
+                            "outputTokens": 2726,
+                            "totalTokens": 64384,
+                            "cachedReadTokens": 32384,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 2500,
+                            "modelCalls": 2,
+                            "apiDurationMs": 29494,
+                            "costUsdTicks": 910960000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 61658,
+                                    "outputTokens": 2726,
+                                    "totalTokens": 64384,
+                                    "cachedReadTokens": 32384,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 2500,
+                                    "modelCalls": 2,
+                                    "apiDurationMs": 29494,
+                                    "costUsdTicks": 910960000
+                                }
+                            },
+                            "numTurns": 2
+                        },
+                        "elapsed_ms": 29849
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1066",
+                        "agentTimestampMs": 1795426577360,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Turn 5: run the shell command `echo turn 5` and then write a paragraph of about 120 words on why small tests matter."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 4
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1068",
+                        "agentTimestampMs": 1795426577420,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik voer het commando uit en schrijf daarna een nieuwe alinea."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 33556,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1086",
+                        "agentTimestampMs": 1795426579028,
+                        "promptId": "id-12",
+                        "streamStartMs": 1795426578853,
+                        "turnStartMs": 1795426577376,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 17,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-id-13-4",
+                        "title": "Execute `echo turn 5`",
+                        "kind": "execute",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "turn 5\n"
+                                }
+                            }
+                        ],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "echo turn 5",
+                            "description": "Echo turn 5 marker",
+                            "is_background": false
+                        },
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [
+                                116,
+                                117,
+                                114,
+                                110,
+                                32,
+                                53,
+                                10
+                            ],
+                            "output_for_prompt": "exit: 0\nturn 5\n",
+                            "exit_code": 0,
+                            "command": "echo turn 5",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Echo turn 5 marker",
+                            "current_dir": "/tmp/capture",
+                            "output_file": "/home/person/.grok/sessions/%2Ftmp%2Fcapture/id-3/terminal/call-id-13-4.log",
+                            "total_bytes": 7,
+                            "was_bare_echo": true
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 33670,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1091",
+                        "agentTimestampMs": 1795426579346,
+                        "promptId": "id-12",
+                        "streamStartMs": 1795426578853,
+                        "turnStartMs": 1795426577376,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-id-13-4",
+                            "status": "Completed"
+                        },
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`echo turn 5` gaf `turn 5`.\n\nEen kleine test bewaakt één grens. Je geeft een invoer, je noemt de uitkomst, en de test zegt ja of nee. Dat antwoord is het hele bericht. Er zit geen keten van schermen of externe diensten tussen jouw wijziging en het resultaat. Daardoor weet je bij een fout meteen welke belofte brak. Een test die in een oogwenk draait, kun je na elke regel aanroepen. De feedback komt terug terwijl je de functie nog in je hoofd hebt. Wacht je op een zware suite, dan is die context al weg en begin je opnieuw met zoeken. Kleine tests maken delen los van elkaar. Een module die je apart kunt controleren, kun je apart vervangen. Zo blijft elke wijziging echt lokaal."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 33673,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1301",
+                        "agentTimestampMs": 1795426602659,
+                        "promptId": "id-12",
+                        "streamStartMs": 1795426581232,
+                        "turnStartMs": 1795426577376,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 207,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-12",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 67247,
+                            "outputTokens": 2691,
+                            "totalTokens": 69938,
+                            "cachedReadTokens": 64384,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 2470,
+                            "modelCalls": 2,
+                            "apiDurationMs": 25079,
+                            "costUsdTicks": 540640000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 67247,
+                                    "outputTokens": 2691,
+                                    "totalTokens": 69938,
+                                    "cachedReadTokens": 64384,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 2470,
+                                    "modelCalls": 2,
+                                    "apiDurationMs": 25079,
+                                    "costUsdTicks": 540640000
+                                }
+                            },
+                            "numTurns": 2
+                        },
+                        "elapsed_ms": 25471
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1307",
+                        "agentTimestampMs": 1795426602848,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Turn 6: run the shell command `echo turn 6` and then write a paragraph of about 120 words on why small tests matter."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 5
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1309",
+                        "agentTimestampMs": 1795426602915,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Ik voer het commando uit en schrijf daarna een nieuwe alinea."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 36317,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1327",
+                        "agentTimestampMs": 1795426604612,
+                        "promptId": "id-14",
+                        "streamStartMs": 1795426604503,
+                        "turnStartMs": 1795426602857,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 17,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call-id-15-5",
+                        "title": "Execute `echo turn 6`",
+                        "kind": "execute",
+                        "status": "completed",
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "turn 6\n"
+                                }
+                            }
+                        ],
+                        "rawInput": {
+                            "variant": "Bash",
+                            "command": "echo turn 6",
+                            "description": "Echo turn 6 marker",
+                            "is_background": false
+                        },
+                        "rawOutput": {
+                            "type": "Bash",
+                            "output": [
+                                116,
+                                117,
+                                114,
+                                110,
+                                32,
+                                54,
+                                10
+                            ],
+                            "output_for_prompt": "exit: 0\nturn 6\n",
+                            "exit_code": 0,
+                            "command": "echo turn 6",
+                            "truncated": false,
+                            "signal": null,
+                            "timed_out": false,
+                            "description": "Echo turn 6 marker",
+                            "current_dir": "/tmp/capture",
+                            "output_file": "/home/person/.grok/sessions/%2Ftmp%2Fcapture/id-3/terminal/call-id-15-5.log",
+                            "total_bytes": 7,
+                            "was_bare_echo": true
+                        },
+                        "_meta": {
+                            "x.ai/tool": {
+                                "version": 1,
+                                "name": "run_terminal_command",
+                                "kind": "execute",
+                                "namespace": "grok_build",
+                                "label": "Run Command",
+                                "read_only": false
+                            }
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 36423,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1332",
+                        "agentTimestampMs": 1795426604901,
+                        "promptId": "id-14",
+                        "streamStartMs": 1795426604503,
+                        "turnStartMs": 1795426602857,
+                        "updateType": "ToolCallUpdate",
+                        "updateParams": {
+                            "toolCallId": "call-id-15-5",
+                            "status": "Completed"
+                        },
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 153,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`echo turn 6` gaf `turn 6`.\n\nKleine tests houden de kosten van een fout laag. Eén geval hoort bij één verwachting in de test. Je leest de naam en je weet welk gedrag afweek. Daarna is de reparatie vaak een paar regels, omdat de test de omgeving al klein heeft gemaakt. Zonder die begrenzing groeit een bug uit tot een lang verhaal over data en timing. Je repareert dan een symptoom en hoopt dat de oorzaak mee verdwijnt. Een kleine test dwingt de oorzaak naar voren. Hij vraagt om een functie die je kunt aanroepen zonder de hele applicatie op te starten. Code die je apart voedt en uitleest, volg je later nog. Je draait de suite voor je commit en levert werk af zonder breuk."
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 36426,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1596",
+                        "agentTimestampMs": 1795426638809,
+                        "promptId": "id-14",
+                        "streamStartMs": 1795426606476,
+                        "turnStartMs": 1795426602857,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 261,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 154,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-14",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 72763,
+                            "outputTokens": 3574,
+                            "totalTokens": 76337,
+                            "cachedReadTokens": 69888,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 3353,
+                            "modelCalls": 2,
+                            "apiDurationMs": 35770,
+                            "costUsdTicks": 621380000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 72763,
+                                    "outputTokens": 3574,
+                                    "totalTokens": 76337,
+                                    "cachedReadTokens": 69888,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 3353,
+                                    "modelCalls": 2,
+                                    "apiDurationMs": 35770,
+                                    "costUsdTicks": 621380000
+                                }
+                            },
+                            "numTurns": 2
+                        },
+                        "elapsed_ms": 36179
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1601",
+                        "agentTimestampMs": 1795426639037,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 154,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "background_tasks",
+                        "tasks": []
+                    },
+                    "_meta": {
+                        "eventId": "id-3-3",
+                        "agentTimestampMs": 1795426639954,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 154,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Reply with the single word ok."
+                        },
+                        "_meta": {
+                            "modelId": "grok-4.7",
+                            "promptIndex": 6
+                        }
+                    },
+                    "_meta": {
+                        "eventId": "id-3-6",
+                        "agentTimestampMs": 1795426640013,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 154,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "ok"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 36440,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-10",
+                        "agentTimestampMs": 1795426642256,
+                        "promptId": "id-16",
+                        "streamStartMs": 1795426641480,
+                        "turnStartMs": 1795426639982,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 3,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 154,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-16",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 39948,
+                            "outputTokens": 108,
+                            "totalTokens": 40056,
+                            "cachedReadTokens": 36352,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 107,
+                            "modelCalls": 1,
+                            "apiDurationMs": 2214,
+                            "costUsdTicks": 260160000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 39948,
+                                    "outputTokens": 108,
+                                    "totalTokens": 40056,
+                                    "cachedReadTokens": 36352,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 107,
+                                    "modelCalls": 1,
+                                    "apiDurationMs": 2214,
+                                    "costUsdTicks": 260160000
+                                }
+                            },
+                            "numTurns": 1
+                        },
+                        "elapsed_ms": 2438
+                    },
+                    "_meta": {
+                        "eventId": "id-3-15",
+                        "agentTimestampMs": 1795426642421,
+                        "isReplay": true
+                    }
+                }
+            }
+        },
+        {
+            "t": 520,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session_notification",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "background_tasks",
+                        "tasks": []
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1605",
+                        "agentTimestampMs": 1795426643118
+                    }
+                }
+            }
+        },
+        {
+            "t": 524,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session_notification",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "model_changed",
+                        "model_id": "grok-4.7",
+                        "reasoning_effort": "high"
+                    }
+                }
+            }
+        },
+        {
+            "t": 538,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {
+                    "models": {
+                        "currentModelId": "grok-4.7",
+                        "availableModels": [
+                            {
+                                "modelId": "grok-4.7",
+                                "name": "Grok 4.7",
+                                "description": "SpaceXAI's latest frontier model",
+                                "_meta": {
+                                    "totalContextTokens": 256000,
+                                    "agentType": "grok-build-plan",
+                                    "supportsReasoningEffort": true,
+                                    "reasoningEffort": "high",
+                                    "reasoningEfforts": [
+                                        {
+                                            "id": "xhigh",
+                                            "value": "xhigh",
+                                            "label": "Extra High",
+                                            "description": "Maximum reasoning for the hardest tasks.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "high",
+                                            "value": "high",
+                                            "label": "High",
+                                            "description": "Thorough reasoning and quality. Recommended.",
+                                            "default": true
+                                        },
+                                        {
+                                            "id": "medium",
+                                            "value": "medium",
+                                            "label": "Medium",
+                                            "description": "Strong quality with a faster turnaround.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "low",
+                                            "value": "low",
+                                            "label": "Low",
+                                            "description": "Fastest responses. Best for simple tasks.",
+                                            "default": false
+                                        }
+                                    ],
+                                    "contextWindows": [
+                                        256000,
+                                        500000
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "grok-4.7",
+                            "options": [
+                                {
+                                    "value": "grok-4.7",
+                                    "name": "Grok 4.7"
+                                },
+                                {
+                                    "value": "grok-4.7-build-fast",
+                                    "name": "Grok 4.7 Fast"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "reasoning_effort",
+                            "name": "Reasoning Effort",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra High",
+                                    "description": "Maximum reasoning for the hardest tasks."
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High",
+                                    "description": "Thorough reasoning and quality. Recommended."
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium",
+                                    "description": "Strong quality with a faster turnaround."
+                                },
+                                {
+                                    "value": "low",
+                                    "name": "Low",
+                                    "description": "Fastest responses. Best for simple tasks."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "sessionId": "id-3",
+                        "codebaseIndexed": [],
+                        "x.ai/sessionConfig": {
+                            "options": [
+                                {
+                                    "id": "grok-4.7",
+                                    "category": "model",
+                                    "label": "Grok 4.7",
+                                    "selected": true
+                                },
+                                {
+                                    "id": "grok-4.7-build-fast",
+                                    "category": "model",
+                                    "label": "Grok 4.7 Fast",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "grok-4.6",
+                                    "category": "model",
+                                    "label": "Grok 4.6",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "grok-4.5",
+                                    "category": "model",
+                                    "label": "Grok 4.5",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "xhigh",
+                                    "category": "mode",
+                                    "label": "Extra High",
+                                    "description": "Maximum reasoning for the hardest tasks.",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "high",
+                                    "category": "mode",
+                                    "label": "High",
+                                    "description": "Thorough reasoning and quality. Recommended.",
+                                    "selected": true
+                                },
+                                {
+                                    "id": "medium",
+                                    "category": "mode",
+                                    "label": "Medium",
+                                    "description": "Strong quality with a faster turnaround.",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "low",
+                                    "category": "mode",
+                                    "label": "Low",
+                                    "description": "Fastest responses. Best for simple tasks.",
+                                    "selected": false
+                                }
+                            ]
+                        },
+                        "x.ai/sessionDetail": {
+                            "sessionId": "id-3",
+                            "kind": "build",
+                            "cwd": "/tmp/capture",
+                            "currentModelId": "grok-4.7",
+                            "title": "Vijf beurten over kleine tests en echo-commando's"
+                        },
+                        "x.ai/memoryNotesWritable": false
+                    }
+                }
+            }
+        },
+        {
+            "t": 543,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/queue/changed",
+                "params": {
+                    "sessionId": "id-3",
+                    "entries": [
+                        {
+                            "id": "id-17",
+                            "version": 0,
+                            "kind": "prompt",
+                            "text": "Reply with the single word early.",
+                            "position": 0
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 546,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/queue/changed",
+                "params": {
+                    "sessionId": "id-3",
+                    "entries": [],
+                    "runningPromptId": "id-17",
+                    "runningText": "Reply with the single word early.",
+                    "runningKind": "prompt"
+                }
+            }
+        },
+        {
+            "t": 2906,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "early"
+                        }
+                    },
+                    "_meta": {
+                        "totalTokens": 36455,
+                        "requestTrimmedTokens": 0,
+                        "eventId": "id-3-1610",
+                        "agentTimestampMs": 1795426645504,
+                        "promptId": "id-17",
+                        "streamStartMs": 1795426645396,
+                        "turnStartMs": 1795426643144,
+                        "updateType": "AgentMessageChunk",
+                        "chunkId": 1
+                    }
+                }
+            }
+        },
+        {
+            "t": 3007,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session_notification",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "response_completed",
+                        "usage": {
+                            "input_tokens": 148,
+                            "output_tokens": 29,
+                            "cache_read_input_tokens": 39936,
+                            "cache_creation_input_tokens": 0,
+                            "reasoning_tokens": 28
+                        },
+                        "signature": "<signature>"
+                    }
+                }
+            }
+        },
+        {
+            "t": 3119,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/queue/changed",
+                "params": {
+                    "sessionId": "id-3",
+                    "entries": []
+                }
+            }
+        },
+        {
+            "t": 3120,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session_notification",
+                "params": {
+                    "sessionId": "id-3",
+                    "update": {
+                        "sessionUpdate": "turn_completed",
+                        "prompt_id": "id-17",
+                        "stop_reason": "end_turn",
+                        "usage": {
+                            "inputTokens": 40084,
+                            "outputTokens": 29,
+                            "totalTokens": 40113,
+                            "cachedReadTokens": 39936,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 28,
+                            "modelCalls": 1,
+                            "apiDurationMs": 2383,
+                            "costUsdTicks": 204380000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 40084,
+                                    "outputTokens": 29,
+                                    "totalTokens": 40113,
+                                    "cachedReadTokens": 39936,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 28,
+                                    "modelCalls": 1,
+                                    "apiDurationMs": 2383,
+                                    "costUsdTicks": 204380000
+                                }
+                            },
+                            "numTurns": 1
+                        },
+                        "elapsed_ms": 2573
+                    },
+                    "_meta": {
+                        "eventId": "id-3-1615",
+                        "agentTimestampMs": 1795426645718
+                    }
+                }
+            }
+        },
+        {
+            "t": 3120,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "_x.ai/session/prompt_complete",
+                "params": {
+                    "sessionId": "id-3",
+                    "promptId": "id-17",
+                    "stopReason": "end_turn",
+                    "agentResult": null
+                }
+            }
+        },
+        {
+            "t": 3124,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "result": {
+                    "stopReason": "end_turn",
+                    "_meta": {
+                        "sessionId": "id-3",
+                        "requestId": "id-17",
+                        "promptId": "id-17",
+                        "totalTokens": 40120,
+                        "modelId": "grok-4.7",
+                        "inputTokens": 40084,
+                        "outputTokens": 29,
+                        "cachedReadTokens": 39936,
+                        "reasoningTokens": 28,
+                        "usage": {
+                            "inputTokens": 40084,
+                            "outputTokens": 29,
+                            "totalTokens": 40113,
+                            "cachedReadTokens": 39936,
+                            "cacheCreationTokens": 0,
+                            "reasoningTokens": 28,
+                            "modelCalls": 1,
+                            "apiDurationMs": 2383,
+                            "costUsdTicks": 204380000,
+                            "modelUsage": {
+                                "grok-4.7-build": {
+                                    "inputTokens": 40084,
+                                    "outputTokens": 29,
+                                    "totalTokens": 40113,
+                                    "cachedReadTokens": 39936,
+                                    "cacheCreationTokens": 0,
+                                    "reasoningTokens": 28,
+                                    "modelCalls": 1,
+                                    "apiDurationMs": 2383,
+                                    "costUsdTicks": 204380000
+                                }
+                            },
+                            "numTurns": 1
+                        }
+                    }
+                }
+            }
+        }
+    ],
+    "resume": [
+        {
+            "t": 120,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/resume",
+                "params": {
+                    "sessionId": "id-3",
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 527,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "result": {
+                    "models": {
+                        "currentModelId": "grok-4.7",
+                        "availableModels": [
+                            {
+                                "modelId": "grok-4.7",
+                                "name": "Grok 4.7",
+                                "description": "SpaceXAI's latest frontier model",
+                                "_meta": {
+                                    "totalContextTokens": 256000,
+                                    "agentType": "grok-build-plan",
+                                    "supportsReasoningEffort": true,
+                                    "reasoningEffort": "high",
+                                    "reasoningEfforts": [
+                                        {
+                                            "id": "xhigh",
+                                            "value": "xhigh",
+                                            "label": "Extra High",
+                                            "description": "Maximum reasoning for the hardest tasks.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "high",
+                                            "value": "high",
+                                            "label": "High",
+                                            "description": "Thorough reasoning and quality. Recommended.",
+                                            "default": true
+                                        },
+                                        {
+                                            "id": "medium",
+                                            "value": "medium",
+                                            "label": "Medium",
+                                            "description": "Strong quality with a faster turnaround.",
+                                            "default": false
+                                        },
+                                        {
+                                            "id": "low",
+                                            "value": "low",
+                                            "label": "Low",
+                                            "description": "Fastest responses. Best for simple tasks.",
+                                            "default": false
+                                        }
+                                    ],
+                                    "contextWindows": [
+                                        256000,
+                                        500000
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "grok-4.7",
+                            "options": [
+                                {
+                                    "value": "grok-4.7",
+                                    "name": "Grok 4.7"
+                                },
+                                {
+                                    "value": "grok-4.7-build-fast",
+                                    "name": "Grok 4.7 Fast"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "reasoning_effort",
+                            "name": "Reasoning Effort",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra High",
+                                    "description": "Maximum reasoning for the hardest tasks."
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High",
+                                    "description": "Thorough reasoning and quality. Recommended."
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium",
+                                    "description": "Strong quality with a faster turnaround."
+                                },
+                                {
+                                    "value": "low",
+                                    "name": "Low",
+                                    "description": "Fastest responses. Best for simple tasks."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "sessionId": "id-3",
+                        "codebaseIndexed": [],
+                        "x.ai/sessionConfig": {
+                            "options": [
+                                {
+                                    "id": "grok-4.7",
+                                    "category": "model",
+                                    "label": "Grok 4.7",
+                                    "selected": true
+                                },
+                                {
+                                    "id": "grok-4.7-build-fast",
+                                    "category": "model",
+                                    "label": "Grok 4.7 Fast",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "grok-4.6",
+                                    "category": "model",
+                                    "label": "Grok 4.6",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "grok-4.5",
+                                    "category": "model",
+                                    "label": "Grok 4.5",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "xhigh",
+                                    "category": "mode",
+                                    "label": "Extra High",
+                                    "description": "Maximum reasoning for the hardest tasks.",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "high",
+                                    "category": "mode",
+                                    "label": "High",
+                                    "description": "Thorough reasoning and quality. Recommended.",
+                                    "selected": true
+                                },
+                                {
+                                    "id": "medium",
+                                    "category": "mode",
+                                    "label": "Medium",
+                                    "description": "Strong quality with a faster turnaround.",
+                                    "selected": false
+                                },
+                                {
+                                    "id": "low",
+                                    "category": "mode",
+                                    "label": "Low",
+                                    "description": "Fastest responses. Best for simple tasks.",
+                                    "selected": false
+                                }
+                            ]
+                        },
+                        "x.ai/sessionDetail": {
+                            "sessionId": "id-3",
+                            "kind": "build",
+                            "cwd": "/tmp/capture",
+                            "currentModelId": "grok-4.7",
+                            "title": "Vijf beurten over kleine tests en echo-commando's"
+                        },
+                        "x.ai/memoryNotesWritable": false
+                    }
+                }
+            }
+        }
+    ]
+}

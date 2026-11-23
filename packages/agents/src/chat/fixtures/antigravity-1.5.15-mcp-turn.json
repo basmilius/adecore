@@ -1,0 +1,1267 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15 (AGY_CLI_DISABLE_AUTO_UPDATE=1), driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder, with a local stand-in for Ruimte's MCP route. `initialize` answers protocol 1, `agentInfo` \"Antigravity ACP Server\" 1.5.15, `loadSession` and `sessionCapabilities` resume, close, load, list and additionalDirectories (each also under snake_case keys), `auth.logout`, four auth methods, and no `mcpCapabilities`, although an http server passed in `session/new` is used. `session/new` answers modes default, accept-edits, auto and plan (no yolo, no auto_edit) and config options model, thought_level (low to xhigh) and mode; only two models are kept here. A Ruimte tool comes as a `tool_call` with `name` `mcp_ruimte_node_list`, title `Run mcp_ruimte_node_list`, kind `other`, `rawInput` holding only agy's `toolSummary`; agy asks `session/request_permission` (allow, deny) for it in default mode, then sends in_progress and completed with no output content. There is no `call_mcp_tool` in this session: asked for the other call shape, the model says so and calls `mcp_ruimte_echo_text` again. A command is `name` `run_command`, kind `execute`, title the command line, with `rawOutput.output` and `exit_code`. Usage: `usage_update` (used, size 1048576) after each step, and the prompt response carries `usage` with inputTokens, outputTokens, cachedReadTokens, cachedWriteTokens, thoughtTokens and totalTokens, where totalTokens is input + cachedRead + output (output already holds the thoughts). `mcp` is what the MCP route received: first `server/discover` with header MCP-Protocol-Version 2026-07-28 and no `initialize` before it; on a JSON-RPC error agy sends `initialize` with protocolVersion 2025-11-25, `notifications/initialized`, two GETs, `tools/list`, and `notifications/roots/list_changed` twice at each session start and turn end, never an MCP session id. `mcpAfter400` is a second agy (session/new only) whose server answers `server/discover` with HTTP 400 as Ruimte's route does: agy falls back to `initialize` 2025-11-25 within 1 ms. `hooks` are the Stop hooks agy's global hook config posted during the run, one per turn. `agy --help` (1.5.15) still has `--conversation <id>`, `-i`/`--prompt-interactive`, `--mode` (accept-edits, auto, plan) and `--dangerously-skip-permissions`; `agy acp --help` adds `--login` (\"Log in with Google interactively, then exit (ACP terminal auth)\"), `--add-dir` and `--process-per-session`. Thought chunks are left out, consecutive message chunks are merged into one. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 2,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": 1,
+                    "clientCapabilities": {
+                        "fs": {
+                            "readTextFile": false,
+                            "writeTextFile": false
+                        },
+                        "terminal": false
+                    },
+                    "clientInfo": {
+                        "name": "agents",
+                        "title": "Agents",
+                        "version": "0.1.0"
+                    }
+                }
+            }
+        },
+        {
+            "t": 51,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "protocolVersion": 1,
+                    "agentCapabilities": {
+                        "loadSession": true,
+                        "load_session": true,
+                        "promptCapabilities": {
+                            "image": true,
+                            "audio": false,
+                            "embeddedContext": true
+                        },
+                        "sessionCapabilities": {
+                            "resume": {},
+                            "close": {},
+                            "load": {},
+                            "list": {},
+                            "additionalDirectories": {}
+                        },
+                        "session_capabilities": {
+                            "resume": {},
+                            "close": {},
+                            "load": {},
+                            "list": {},
+                            "additionalDirectories": {}
+                        },
+                        "auth": {
+                            "logout": {}
+                        },
+                        "_meta": {
+                            "antigravity": {
+                                "tier": true,
+                                "systemPrompt": {
+                                    "append": true
+                                }
+                            }
+                        }
+                    },
+                    "agentInfo": {
+                        "name": "Antigravity ACP Server",
+                        "version": "1.5.15"
+                    },
+                    "authMethods": [
+                        {
+                            "id": "oauth-personal",
+                            "name": "Log in with Google",
+                            "description": "Log in with your Google account"
+                        },
+                        {
+                            "id": "oauth-business",
+                            "name": "Log in with Gemini Enterprise",
+                            "description": "Log in with your Gemini Enterprise account"
+                        },
+                        {
+                            "id": "gemini-api-key",
+                            "name": "Gemini API key",
+                            "description": "Use an API key with Gemini Developer API"
+                        },
+                        {
+                            "id": "agent-platform",
+                            "name": "Gemini Enterprise Agent Platform",
+                            "description": "Use Gemini Enterprise Agent Platform (formerly Vertex AI) with Application Default Credentials"
+                        }
+                    ]
+                },
+                "id": 1
+            }
+        },
+        {
+            "t": 53,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/new",
+                "params": {
+                    "cwd": "/tmp/capture",
+                    "mcpServers": [
+                        {
+                            "type": "http",
+                            "name": "ruimte",
+                            "url": "http://127.0.0.1:50000/mcp",
+                            "headers": [
+                                {
+                                    "name": "Authorization",
+                                    "value": "Bearer harness-token"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1120,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "sessionId": "id-1",
+                    "models": {
+                        "availableModels": [
+                            {
+                                "modelId": "gemini-4-neon-high",
+                                "name": "Gemini 4 Neon (High)"
+                            },
+                            {
+                                "modelId": "gemini-4-neon-xhigh",
+                                "name": "Gemini 4 Neon (XHigh)"
+                            }
+                        ],
+                        "currentModelId": "gemini-4-neon-high"
+                    },
+                    "modes": {
+                        "currentModeId": "default",
+                        "availableModes": [
+                            {
+                                "id": "default",
+                                "name": "Default",
+                                "description": "Ask before edits and commands, per your permission settings."
+                            },
+                            {
+                                "id": "accept-edits",
+                                "name": "Accept edits",
+                                "description": "Approve file edits in the workspace without asking."
+                            },
+                            {
+                                "id": "auto",
+                                "name": "Auto",
+                                "description": "Approve edits and safe commands; ask before irreversible actions."
+                            },
+                            {
+                                "id": "plan",
+                                "name": "Plan",
+                                "description": "Plan carefully before executing a task."
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "gemini-4-neon",
+                            "options": [
+                                {
+                                    "value": "gemini-4-neon",
+                                    "name": "Gemini 4 Neon"
+                                },
+                                {
+                                    "value": "gemini-4-argon",
+                                    "name": "Gemini 4 Argon"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "thought_level",
+                            "name": "Thinking Level",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "low",
+                                    "name": "Low"
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium"
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High"
+                                },
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "mode",
+                            "name": "Mode",
+                            "category": "mode",
+                            "type": "select",
+                            "currentValue": "default",
+                            "options": [
+                                {
+                                    "value": "default",
+                                    "name": "Default",
+                                    "description": "Ask before edits and commands, per your permission settings."
+                                },
+                                {
+                                    "value": "accept-edits",
+                                    "name": "Accept edits",
+                                    "description": "Approve file edits in the workspace without asking."
+                                },
+                                {
+                                    "value": "auto",
+                                    "name": "Auto",
+                                    "description": "Approve edits and safe commands; ask before irreversible actions."
+                                },
+                                {
+                                    "value": "plan",
+                                    "name": "Plan",
+                                    "description": "Plan carefully before executing a task."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "antigravity": {
+                            "tier": {
+                                "name": "<tier name>",
+                                "id": "<tier id>",
+                                "upgradeUri": "<upgrade link>"
+                            }
+                        }
+                    }
+                },
+                "id": 2
+            }
+        },
+        {
+            "t": 1123,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Call the tool node_list of the MCP server named ruimte once. Then run the shell command `pwd` once. Then answer with one short sentence that names what node_list returned."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1131,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1131,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 0,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 2060,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "MCP Node List Execution"
+                    }
+                }
+            }
+        },
+        {
+            "t": 5084,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9440,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 5091,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_14893846054279030753",
+                        "name": "mcp_ruimte_node_list",
+                        "args": {
+                            "toolSummary": "List canvas nodes"
+                        },
+                        "status": "in_progress",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_node_list",
+                        "rawInput": {
+                            "toolSummary": "List canvas nodes"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 5947,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_14893846054279030753",
+                        "name": "mcp_ruimte_node_list",
+                        "args": {
+                            "toolSummary": "List canvas nodes"
+                        },
+                        "status": "pending",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_node_list",
+                        "rawInput": {
+                            "toolSummary": "List canvas nodes"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 5947,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_14893846054279030753",
+                        "name": "mcp_ruimte_node_list",
+                        "args": {
+                            "toolSummary": "List canvas nodes"
+                        },
+                        "status": "pending",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_node_list",
+                        "rawInput": {
+                            "toolSummary": "List canvas nodes"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "1"
+            }
+        },
+        {
+            "t": 5948,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 5949,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_14893846054279030753",
+                        "name": "mcp_ruimte_node_list",
+                        "args": {
+                            "toolSummary": "List canvas nodes"
+                        },
+                        "status": "in_progress",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_node_list",
+                        "rawInput": {
+                            "toolSummary": "List canvas nodes"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 5950,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_14893846054279030753",
+                        "name": "mcp_ruimte_node_list",
+                        "args": {
+                            "toolSummary": "List canvas nodes"
+                        },
+                        "status": "completed",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_node_list",
+                        "rawInput": {
+                            "toolSummary": "List canvas nodes"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 13887,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9593,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 13888,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_9626671480955343514",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 13889,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_9626671480955343514",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 13889,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_9626671480955343514",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "2"
+            }
+        },
+        {
+            "t": 13890,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "2",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 13890,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_9626671480955343514",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 13898,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_9626671480955343514",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "rawOutput": {
+                            "output": "Created At: 2026-11-23T10:29:45+01:00\nCompleted At: 2026-11-23T10:29:46+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Created At: 2026-11-23T10:29:45+01:00\nCompleted At: 2026-11-23T10:29:46+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 16806,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`node_list` returned two nodes: `note \"Plan\" (note-1)` and `terminal \"Shell\" (term-1)`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 16928,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9957,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 16959,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 13964,
+                        "outputTokens": 310,
+                        "cachedReadTokens": 14716,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 214,
+                        "totalTokens": 28990
+                    }
+                },
+                "id": 3
+            }
+        },
+        {
+            "t": 16960,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Now call the tool echo_text of the ruimte MCP server with the text \"hello\", the other way you can call an MCP tool if there is one (call_mcp_tool versus a direct mcp_ruimte_ tool). Answer with what it returned."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 23432,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10348,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 23441,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_10476135437613561258",
+                        "name": "mcp_ruimte_echo_text",
+                        "args": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        },
+                        "status": "in_progress",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_echo_text",
+                        "rawInput": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 24187,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_10476135437613561258",
+                        "name": "mcp_ruimte_echo_text",
+                        "args": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        },
+                        "status": "pending",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_echo_text",
+                        "rawInput": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 24187,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_10476135437613561258",
+                        "name": "mcp_ruimte_echo_text",
+                        "args": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        },
+                        "status": "pending",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_echo_text",
+                        "rawInput": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "3"
+            }
+        },
+        {
+            "t": 24188,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "3",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 24189,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_10476135437613561258",
+                        "name": "mcp_ruimte_echo_text",
+                        "args": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        },
+                        "status": "in_progress",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_echo_text",
+                        "rawInput": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 24192,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_10476135437613561258",
+                        "name": "mcp_ruimte_echo_text",
+                        "args": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        },
+                        "status": "completed",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_echo_text",
+                        "rawInput": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 31122,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "There is no `call_mcp_tool` available in this session, so I called `mcp_ruimte_echo_text` directly, and it returned `hello`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 31133,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10480,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 31172,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 4179,
+                        "outputTokens": 315,
+                        "cachedReadTokens": 16334,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 248,
+                        "totalTokens": 20828
+                    }
+                },
+                "id": 4
+            }
+        }
+    ],
+    "mcp": [
+        {
+            "t": 1118,
+            "protocolVersionHeader": "2026-07-28",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "server/discover",
+                "params": {
+                    "_meta": {
+                        "io.modelcontextprotocol/clientCapabilities": "<value>",
+                        "io.modelcontextprotocol/clientInfo": "<value>",
+                        "io.modelcontextprotocol/protocolVersion": "<value>"
+                    }
+                }
+            }
+        },
+        {
+            "t": 1119,
+            "protocolVersionHeader": null,
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "initialize",
+                "params": {
+                    "clientInfo": {
+                        "name": "antigravity-client",
+                        "version": "v1.0.0"
+                    },
+                    "protocolVersion": "2025-11-25",
+                    "capabilities": {
+                        "elicitation": {
+                            "form": {},
+                            "url": {}
+                        },
+                        "roots": {
+                            "listChanged": true
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1120,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {}
+            }
+        },
+        {
+            "t": 1121,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/list",
+                "params": {}
+            }
+        },
+        {
+            "t": 1146,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "method": "notifications/roots/list_changed",
+                "params": {}
+            }
+        },
+        {
+            "t": 1147,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "method": "notifications/roots/list_changed",
+                "params": {}
+            }
+        },
+        {
+            "t": 5964,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "tools/call",
+                "params": {
+                    "_meta": {
+                        "antigravity.google/artifacts_dir": "<value>",
+                        "antigravity.google/conversation_id": "<value>",
+                        "antigravity.google/root_conversation_id": "<value>",
+                        "progressToken": "<value>"
+                    },
+                    "name": "node_list",
+                    "arguments": {}
+                }
+            }
+        },
+        {
+            "t": 16980,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "method": "notifications/roots/list_changed",
+                "params": {}
+            }
+        },
+        {
+            "t": 16981,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "method": "notifications/roots/list_changed",
+                "params": {}
+            }
+        },
+        {
+            "t": 24205,
+            "protocolVersionHeader": "2025-11-25",
+            "sessionIdHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 5,
+                "method": "tools/call",
+                "params": {
+                    "_meta": {
+                        "antigravity.google/artifacts_dir": "<value>",
+                        "antigravity.google/conversation_id": "<value>",
+                        "antigravity.google/root_conversation_id": "<value>",
+                        "progressToken": "<value>"
+                    },
+                    "name": "echo_text",
+                    "arguments": {
+                        "text": "hello"
+                    }
+                }
+            }
+        }
+    ],
+    "mcpAfter400": [
+        {
+            "t": 2588,
+            "protocolVersionHeader": "2026-07-28",
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "server/discover",
+                "params": {
+                    "_meta": {
+                        "io.modelcontextprotocol/clientCapabilities": "<value>",
+                        "io.modelcontextprotocol/clientInfo": "<value>",
+                        "io.modelcontextprotocol/protocolVersion": "<value>"
+                    }
+                }
+            },
+            "answered": "HTTP 400, JSON-RPC error -32600"
+        },
+        {
+            "t": 2589,
+            "protocolVersionHeader": null,
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "initialize",
+                "params": {
+                    "clientInfo": {
+                        "name": "antigravity-client",
+                        "version": "v1.0.0"
+                    },
+                    "protocolVersion": "2025-11-25",
+                    "capabilities": {
+                        "elicitation": {
+                            "form": {},
+                            "url": {}
+                        },
+                        "roots": {
+                            "listChanged": true
+                        }
+                    }
+                }
+            },
+            "answered": "as the 2025-11-25 server answers"
+        },
+        {
+            "t": 2590,
+            "protocolVersionHeader": "2025-11-25",
+            "body": {
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {}
+            },
+            "answered": "as the 2025-11-25 server answers"
+        },
+        {
+            "t": 2591,
+            "protocolVersionHeader": "2025-11-25",
+            "body": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "tools/list",
+                "params": {}
+            },
+            "answered": "as the 2025-11-25 server answers"
+        }
+    ],
+    "hooks": [
+        {
+            "t": 16972,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        },
+        {
+            "t": 31182,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        }
+    ]
+}

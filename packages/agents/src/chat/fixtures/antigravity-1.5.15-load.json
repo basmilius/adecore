@@ -1,0 +1,677 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in a throwaway git folder. `frames`: `session/load` of the session agy 1.5.15 made in the MCP turn capture; agy replays both turns (user_message_chunk, tool_call with its final status, agent_message_chunk, usage_update) in the 2 ms before it answers, with no marker on the replayed frames, then answers with models, modes and config options and sends `session_info_update` with the title after the answer. `resume`: `session/resume` of the same session answers after about a second with no replay, then `session_info_update`. `load141`: `session/load` of a session the 1.4.1 server made in the same folder answers -32002 \"Session not found\" after 6.2 s; `resume141`: `session/resume` of it answers -32603 \"Failed to read session ...; retry, or load it with session/load\". A 1.4.1 session does not carry over to 1.5. Thought chunks are left out, consecutive message chunks are merged into one and the model list is cut to two. `t` is milliseconds from the start of each process.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 52,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/load",
+                "params": {
+                    "sessionId": "id-1",
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Call the tool node_list of the MCP server named ruimte once. Then run the shell command `pwd` once. Then answer with one short sentence that names what node_list returned."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_14893846054279030753",
+                        "name": "mcp_ruimte_node_list",
+                        "args": {
+                            "toolSummary": "List canvas nodes"
+                        },
+                        "status": "completed",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_node_list",
+                        "rawInput": {
+                            "toolSummary": "List canvas nodes"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_9626671480955343514",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "pwd",
+                        "rawInput": {
+                            "CommandLine": "pwd",
+                            "WaitMsBeforeAsync": 5000,
+                            "toolSummary": "Print working directory"
+                        },
+                        "rawOutput": {
+                            "output": "Created At: 2026-11-23T10:29:45+01:00\nCompleted At: 2026-11-23T10:29:46+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Created At: 2026-11-23T10:29:45+01:00\nCompleted At: 2026-11-23T10:29:46+01:00\nCommand exited with code 0.\n\nCommand output:\n/private/tmp/capture\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "`node_list` returned two nodes: `note \"Plan\" (note-1)` and `terminal \"Shell\" (term-1)`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "user_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Now call the tool echo_text of the ruimte MCP server with the text \"hello\", the other way you can call an MCP tool if there is one (call_mcp_tool versus a direct mcp_ruimte_ tool). Answer with what it returned."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_10476135437613561258",
+                        "name": "mcp_ruimte_echo_text",
+                        "args": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        },
+                        "status": "completed",
+                        "kind": "other",
+                        "title": "Run mcp_ruimte_echo_text",
+                        "rawInput": {
+                            "text": "hello",
+                            "toolSummary": "Echo hello text"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1173,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "There is no `call_mcp_tool` available in this session, so I called `mcp_ruimte_echo_text` directly, and it returned `hello`."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 1175,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "sessionId": "id-1",
+                    "models": {
+                        "availableModels": [
+                            {
+                                "modelId": "gemini-4-neon-high",
+                                "name": "Gemini 4 Neon (High)"
+                            },
+                            {
+                                "modelId": "gemini-4-neon-xhigh",
+                                "name": "Gemini 4 Neon (XHigh)"
+                            }
+                        ],
+                        "currentModelId": "gemini-4-neon-high"
+                    },
+                    "modes": {
+                        "currentModeId": "default",
+                        "availableModes": [
+                            {
+                                "id": "default",
+                                "name": "Default",
+                                "description": "Ask before edits and commands, per your permission settings."
+                            },
+                            {
+                                "id": "accept-edits",
+                                "name": "Accept edits",
+                                "description": "Approve file edits in the workspace without asking."
+                            },
+                            {
+                                "id": "auto",
+                                "name": "Auto",
+                                "description": "Approve edits and safe commands; ask before irreversible actions."
+                            },
+                            {
+                                "id": "plan",
+                                "name": "Plan",
+                                "description": "Plan carefully before executing a task."
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "gemini-4-neon",
+                            "options": [
+                                {
+                                    "value": "gemini-4-neon",
+                                    "name": "Gemini 4 Neon"
+                                },
+                                {
+                                    "value": "gemini-4-argon",
+                                    "name": "Gemini 4 Argon"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "thought_level",
+                            "name": "Thinking Level",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "low",
+                                    "name": "Low"
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium"
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High"
+                                },
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "mode",
+                            "name": "Mode",
+                            "category": "mode",
+                            "type": "select",
+                            "currentValue": "default",
+                            "options": [
+                                {
+                                    "value": "default",
+                                    "name": "Default",
+                                    "description": "Ask before edits and commands, per your permission settings."
+                                },
+                                {
+                                    "value": "accept-edits",
+                                    "name": "Accept edits",
+                                    "description": "Approve file edits in the workspace without asking."
+                                },
+                                {
+                                    "value": "auto",
+                                    "name": "Auto",
+                                    "description": "Approve edits and safe commands; ask before irreversible actions."
+                                },
+                                {
+                                    "value": "plan",
+                                    "name": "Plan",
+                                    "description": "Plan carefully before executing a task."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "antigravity": {
+                            "tier": {
+                                "name": "<tier name>",
+                                "id": "<tier id>",
+                                "upgradeUri": "<upgrade link>"
+                            }
+                        }
+                    }
+                },
+                "id": 2
+            }
+        },
+        {
+            "t": 1187,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1187,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10480,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 1187,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "MCP Node List Execution"
+                    }
+                }
+            }
+        }
+    ],
+    "resume": [
+        {
+            "t": 52,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/resume",
+                "params": {
+                    "sessionId": "id-1",
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 1126,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "sessionId": "id-1",
+                    "models": {
+                        "availableModels": [
+                            {
+                                "modelId": "gemini-4-neon-high",
+                                "name": "Gemini 4 Neon (High)"
+                            },
+                            {
+                                "modelId": "gemini-4-neon-xhigh",
+                                "name": "Gemini 4 Neon (XHigh)"
+                            }
+                        ],
+                        "currentModelId": "gemini-4-neon-high"
+                    },
+                    "modes": {
+                        "currentModeId": "default",
+                        "availableModes": [
+                            {
+                                "id": "default",
+                                "name": "Default",
+                                "description": "Ask before edits and commands, per your permission settings."
+                            },
+                            {
+                                "id": "accept-edits",
+                                "name": "Accept edits",
+                                "description": "Approve file edits in the workspace without asking."
+                            },
+                            {
+                                "id": "auto",
+                                "name": "Auto",
+                                "description": "Approve edits and safe commands; ask before irreversible actions."
+                            },
+                            {
+                                "id": "plan",
+                                "name": "Plan",
+                                "description": "Plan carefully before executing a task."
+                            }
+                        ]
+                    },
+                    "configOptions": [
+                        {
+                            "id": "model",
+                            "name": "Model",
+                            "category": "model",
+                            "type": "select",
+                            "currentValue": "gemini-4-neon",
+                            "options": [
+                                {
+                                    "value": "gemini-4-neon",
+                                    "name": "Gemini 4 Neon"
+                                },
+                                {
+                                    "value": "gemini-4-argon",
+                                    "name": "Gemini 4 Argon"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "thought_level",
+                            "name": "Thinking Level",
+                            "category": "thought_level",
+                            "type": "select",
+                            "currentValue": "high",
+                            "options": [
+                                {
+                                    "value": "low",
+                                    "name": "Low"
+                                },
+                                {
+                                    "value": "medium",
+                                    "name": "Medium"
+                                },
+                                {
+                                    "value": "high",
+                                    "name": "High"
+                                },
+                                {
+                                    "value": "xhigh",
+                                    "name": "Extra"
+                                }
+                            ]
+                        },
+                        {
+                            "id": "mode",
+                            "name": "Mode",
+                            "category": "mode",
+                            "type": "select",
+                            "currentValue": "default",
+                            "options": [
+                                {
+                                    "value": "default",
+                                    "name": "Default",
+                                    "description": "Ask before edits and commands, per your permission settings."
+                                },
+                                {
+                                    "value": "accept-edits",
+                                    "name": "Accept edits",
+                                    "description": "Approve file edits in the workspace without asking."
+                                },
+                                {
+                                    "value": "auto",
+                                    "name": "Auto",
+                                    "description": "Approve edits and safe commands; ask before irreversible actions."
+                                },
+                                {
+                                    "value": "plan",
+                                    "name": "Plan",
+                                    "description": "Plan carefully before executing a task."
+                                }
+                            ]
+                        }
+                    ],
+                    "_meta": {
+                        "antigravity": {
+                            "tier": {
+                                "name": "<tier name>",
+                                "id": "<tier id>",
+                                "upgradeUri": "<upgrade link>"
+                            }
+                        }
+                    }
+                },
+                "id": 2
+            }
+        },
+        {
+            "t": 1144,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1144,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "MCP Node List Execution"
+                    }
+                }
+            }
+        }
+    ],
+    "load141": [
+        {
+            "t": 49,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/load",
+                "params": {
+                    "sessionId": "id-2",
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 6289,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32002,
+                    "message": "Session not found: id-2"
+                },
+                "id": 2
+            }
+        }
+    ],
+    "resume141": [
+        {
+            "t": 69,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 2,
+                "method": "session/resume",
+                "params": {
+                    "sessionId": "id-2",
+                    "cwd": "/tmp/capture",
+                    "mcpServers": []
+                }
+            }
+        },
+        {
+            "t": 943,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "error": {
+                    "code": -32603,
+                    "message": "Failed to read session id-2; retry, or load it with session/load"
+                },
+                "id": 2
+            }
+        }
+    ]
+}

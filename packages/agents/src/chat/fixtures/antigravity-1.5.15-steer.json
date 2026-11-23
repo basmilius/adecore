@@ -1,0 +1,457 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder; the second prompt went straight to the transport. The first prompt runs `sleep 15 && echo done` in the foreground. 2.7 s into the running command a second `session/prompt` asks to end the answer with \"banana\". agy answers the first prompt within 9 ms with `end_turn` and the usage so far, does not cancel the command, completes it, and the model answers \"finished banana\", following both messages; the second prompt's response ends that with `end_turn` and its own usage. No `session/cancel` went out. The Stop hook fired once, at the end. Thought chunks are left out, consecutive message chunks are merged into one. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 1370,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 3,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Run the shell command `sleep 15 && echo done` in the foreground and wait for it to finish, then answer with the word finished."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 1373,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "available_commands_update",
+                        "availableCommands": [
+                            {
+                                "name": "goal"
+                            },
+                            {
+                                "name": "compact"
+                            },
+                            {
+                                "name": "schedule"
+                            },
+                            {
+                                "name": "browser"
+                            },
+                            {
+                                "name": "plan"
+                            },
+                            {
+                                "name": "grill-me"
+                            },
+                            {
+                                "name": "teamwork"
+                            },
+                            {
+                                "name": "learn"
+                            },
+                            {
+                                "name": "boost"
+                            },
+                            {
+                                "name": "agy-customizations"
+                            },
+                            {
+                                "name": "antigravity-guide"
+                            },
+                            {
+                                "name": "run-workflow"
+                            },
+                            {
+                                "name": "swarm"
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 1373,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 0,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 3071,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "session_info_update",
+                        "title": "Run Shell Command Sleep"
+                    }
+                }
+            }
+        },
+        {
+            "t": 7923,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 9705,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 7934,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_1538731445954763707",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 15 && echo done",
+                        "rawInput": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 9180,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_1538731445954763707",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 15 && echo done",
+                        "rawInput": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 9180,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_1538731445954763707",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 15 && echo done",
+                        "rawInput": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "1"
+            }
+        },
+        {
+            "t": 9185,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "1",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 9187,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_1538731445954763707",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 15 && echo done",
+                        "rawInput": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 11941,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Also: end your answer with the word banana."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 11950,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 9262,
+                        "outputTokens": 443,
+                        "cachedReadTokens": 0,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 387,
+                        "totalTokens": 9705
+                    }
+                },
+                "id": 3
+            }
+        },
+        {
+            "t": 24213,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_1538731445954763707",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        },
+                        "status": "completed",
+                        "kind": "execute",
+                        "title": "sleep 15 && echo done",
+                        "rawInput": {
+                            "CommandLine": "sleep 15 && echo done",
+                            "IsDaemon": false,
+                            "WaitMsBeforeAsync": 10000,
+                            "toolSummary": "Sleep 15 seconds and echo done"
+                        },
+                        "rawOutput": {
+                            "output": "Command exited with code 0.\n\nCommand output:\ndone\r\n",
+                            "exit_code": 0
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": "Command exited with code 0.\n\nCommand output:\ndone\r\n"
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        },
+        {
+            "t": 26232,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "Waiting for the command to complete."
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 26552,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10508,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 31259,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "\n\nfinished banana"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 31567,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 10910,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 31599,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 5596,
+                        "outputTokens": 752,
+                        "cachedReadTokens": 15070,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 741,
+                        "totalTokens": 21418
+                    }
+                },
+                "id": 4
+            }
+        }
+    ],
+    "hooks": [
+        {
+            "t": 31616,
+            "hookEventName": "Stop",
+            "conversationId": "id-1",
+            "fullyIdle": true,
+            "continuationActive": false,
+            "terminationReason": "NO_TOOL_CALL",
+            "executionNum": 0
+        }
+    ]
+}

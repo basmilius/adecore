@@ -1,0 +1,299 @@
+{
+    "version": "Antigravity CLI 1.5.15, `agy acp`",
+    "source": "Recorded with tee-cli.ts in front of `agy acp` 1.5.15, driven by ADE CORE's ACP backend in supervised mode in a throwaway git folder. A prompt starts `sleep 300` with `IsDaemon` true; the prompt ends with `end_turn` while the `tool_call` stays in_progress. 5 s later the client sends `session/cancel` with no prompt open: agy answers nothing and at once sends `tool_call_update` failed for the command, which stops it. Nothing else follows. Thought chunks are left out, consecutive message chunks are merged into one. `t` is milliseconds from the start, `dir` is `in` for what went to agy.",
+    "capturedAt": "2026-11-23",
+    "frames": [
+        {
+            "t": 99652,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": 4,
+                "method": "session/prompt",
+                "params": {
+                    "sessionId": "id-1",
+                    "prompt": [
+                        {
+                            "type": "text",
+                            "text": "Start the shell command `sleep 300` as a long-running daemon process (IsDaemon true, do not wait for it). End your turn right away with the word started."
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "t": 107014,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 11436,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 107022,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_15227589526489405582",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 300",
+                        "rawInput": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 107026,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_15227589526489405582",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 300",
+                        "rawInput": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 107026,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/request_permission",
+                "params": {
+                    "sessionId": "id-1",
+                    "toolCall": {
+                        "sessionUpdate": "tool_call",
+                        "toolCallId": "call_15227589526489405582",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        },
+                        "status": "pending",
+                        "kind": "execute",
+                        "title": "sleep 300",
+                        "rawInput": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        }
+                    },
+                    "options": [
+                        {
+                            "optionId": "allow",
+                            "name": "Allow",
+                            "kind": "allow_once"
+                        },
+                        {
+                            "optionId": "deny",
+                            "name": "Deny",
+                            "kind": "reject_once"
+                        }
+                    ]
+                },
+                "id": "5"
+            }
+        },
+        {
+            "t": 107028,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "id": "5",
+                "result": {
+                    "outcome": {
+                        "outcome": "selected",
+                        "optionId": "allow"
+                    }
+                }
+            }
+        },
+        {
+            "t": 107029,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_15227589526489405582",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        },
+                        "status": "in_progress",
+                        "kind": "execute",
+                        "title": "sleep 300",
+                        "rawInput": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 110563,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "agent_message_chunk",
+                        "content": {
+                            "type": "text",
+                            "text": "started"
+                        }
+                    }
+                }
+            }
+        },
+        {
+            "t": 110643,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "usage_update",
+                        "used": 11586,
+                        "size": 1048576
+                    }
+                }
+            }
+        },
+        {
+            "t": 110676,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "result": {
+                    "stopReason": "end_turn",
+                    "usage": {
+                        "inputTokens": 4634,
+                        "outputTokens": 156,
+                        "cachedReadTokens": 18232,
+                        "cachedWriteTokens": 0,
+                        "thoughtTokens": 104,
+                        "totalTokens": 23022
+                    }
+                },
+                "id": 4
+            }
+        },
+        {
+            "t": 115678,
+            "dir": "in",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/cancel",
+                "params": {
+                    "sessionId": "id-1"
+                }
+            }
+        },
+        {
+            "t": 115692,
+            "dir": "out",
+            "frame": {
+                "jsonrpc": "2.0",
+                "method": "session/update",
+                "params": {
+                    "sessionId": "id-1",
+                    "update": {
+                        "sessionUpdate": "tool_call_update",
+                        "toolCallId": "call_15227589526489405582",
+                        "name": "run_command",
+                        "args": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        },
+                        "status": "failed",
+                        "kind": "execute",
+                        "title": "sleep 300",
+                        "rawInput": {
+                            "CommandLine": "sleep 300",
+                            "IsDaemon": true,
+                            "WaitMsBeforeAsync": 500,
+                            "toolSummary": "Long-running daemon sleep process"
+                        },
+                        "rawOutput": {
+                            "output": ""
+                        },
+                        "content": [
+                            {
+                                "type": "content",
+                                "content": {
+                                    "type": "text",
+                                    "text": ""
+                                }
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ]
+}
