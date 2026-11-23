@@ -41,6 +41,8 @@ export interface FakeCodexOptions {
     mcpStartup?: { name: string; status: 'starting' | 'ready' | 'failed' | 'cancelled'; error: string | null };
     // What `account/rateLimits/read` answers; `late` holds the answer back until the test says later is, as a slow read does.
     rateLimitsRead?: { result: Frame; late?: boolean };
+    // The text a `limit:unknown` turn fails with, which may name when the limit lifts.
+    limitText?: string;
     // What `account/read` answers; absent refuses it, as a Codex without the method does.
     account?: Frame;
     // Threads whose every turn fails as the API refusing their encrypted history; a test adds one once it holds a turn.
@@ -316,7 +318,7 @@ export function fakeCodexWith(options: FakeCodexOptions): FakeCli {
             // A limit on the first request, where Codex 0.16x sends only an empty `premium` update.
             if (limit === 'limit:unknown') {
                 notify('account/rateLimits/updated', { rateLimits: { limitId: 'premium', primary: null, secondary: null } });
-                turnCompleted('failed', "You've hit your usage limit.", 'usageLimitExceeded');
+                turnCompleted('failed', options.limitText ?? "You've hit your usage limit.", 'usageLimitExceeded');
 
                 return;
             }

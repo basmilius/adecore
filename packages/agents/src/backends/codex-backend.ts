@@ -3,10 +3,12 @@ import { accessSync, constants } from 'node:fs';
 import { attachmentImageMime, type ChatGoal, type ChatGoalAction, type ChatSkill, type ModelSelection } from '@adecore/agent-contracts';
 import { withTimeout } from '@adecore/utils/async';
 import { isRecord } from '@adecore/utils/record';
+import { systemClock } from '../clock.ts';
 import { errorText } from '../error-text.ts';
 import type { ApprovalDecision, BackendChange, BackendEvent, BackendHost, BackendLaunch, ChatBackend, TurnInput } from './backend.ts';
 import { codexMcpArgs } from './cli-mcp.ts';
 import { codexGoal, CodexProtocol, spentUntil } from './codex-protocol.ts';
+import { codexTextResetAt, codexTimeZone } from './codex-reset.ts';
 import { CodexTransport, type CodexClientInfo, type CodexFrame } from './codex-transport.ts';
 import { codexFrom, codexFrom0166, codexServiceTier, codexThreadOptions } from './codex.ts';
 import { attachmentNote } from './input.ts';
@@ -990,10 +992,17 @@ export class CodexBackend implements ChatBackend {
     }
 
     /*
-     * A usage limit on a first request can come without any window update to say when it lifts, so
-     * the plan is read once before the turn ends; an update that arrives meanwhile wins.
+     * A usage limit on a first request can come without any window update to say when it lifts. The time its text
+     * names comes first, then the plan is read once before the turn ends; an update that arrives meanwhile wins.
      */
     private async withReset(event: Extract<BackendEvent, { type: 'turn.done' }>): Promise<BackendEvent> {
+        const failedAt = (this.launch.clock ?? systemClock).now();
+        const textReset = event.error === undefined ? null : codexTextResetAt(event.error, failedAt, codexTimeZone(this.launch.env.TZ));
+
+        if (textReset !== null) {
+            return { ...event, limit: { ...event.limit, kind: 'usage', resetsAt: this.protocol.spentResetsAt ?? textReset } };
+        }
+
         let readReset: number | null = null;
 
         try {

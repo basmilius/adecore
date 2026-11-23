@@ -5,12 +5,13 @@ import { CodexBackend } from '../backends/codex-backend.ts';
 import { DEFAULT_CODEX_CLIENT } from '../backends/codex-transport.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { fakeCodexWith, type FakeCodexOptions } from '../testing/fake-codex.ts';
+import { ManualClock } from '../testing/manual-clock.ts';
 import { codexProvider } from '../testing/providers.ts';
 import { flush } from './chat-session.fixture.test.ts';
 
 type Frame = { method?: string; params?: Record<string, unknown> };
 
-async function rig(options: FakeCodexOptions = {}) {
+async function rig(options: FakeCodexOptions = {}, overrides: Partial<BackendLaunch> = {}) {
     const requests: Frame[] = [];
     const events: BackendEvent[] = [];
 
@@ -36,7 +37,8 @@ async function rig(options: FakeCodexOptions = {}) {
         generation: 1,
         instructions: 'Original instructions.',
         resumeNote: 'Linked context.',
-        spawn: fake.spawn
+        spawn: fake.spawn,
+        ...overrides
     };
 
     const backend = new CodexBackend(launch, { onEvent: (event) => events.push(event) }, { client: DEFAULT_CODEX_CLIENT });
@@ -131,8 +133,8 @@ test.each(['mentions', 'skills'] as const)('a usage message with chosen %s keeps
     }
 });
 
-async function limitOnFirstRequest(options: FakeCodexOptions) {
-    const { backend, events } = await rig(options);
+async function limitOnFirstRequest(options: FakeCodexOptions, launch: Partial<BackendLaunch> = {}) {
+    const { backend, events } = await rig(options, launch);
 
     try {
         backend.sendTurn({ text: 'limit:unknown', preamble: null, attachments: [], mentions: [], skills: [] });
@@ -150,6 +152,22 @@ test("a usage limit on the first request takes its reset from the plan's main al
     const done = await limitOnFirstRequest({ rateLimitsRead: { result: { rateLimits: premium, rateLimitsByLimitId: { premium, codex } } } });
 
     expect(done).toMatchObject({ state: 'error', limit: { kind: 'usage', resetsAt: 1_800_000_000_000 } });
+});
+
+// Derived from T3 Code (`codexMessageResetAt`); no capture of our own shows Codex's text.
+test('a usage limit without a spent window takes its reset from the time its text names, in the zone Codex runs in', async () => {
+    const clock = new ManualClock();
+    clock.advance(Date.UTC(2026, 10, 11, 10, 0) - clock.now());
+
+    const done = await limitOnFirstRequest(
+        {
+            limitText: "You've hit your usage limit. Upgrade to Pro or try again at Nov 11th, 2026 3:37 PM.",
+            rateLimitsRead: { result: { rateLimits: { limitId: 'codex', primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: 1_800_000_000 } } } }
+        },
+        { env: { TZ: 'Europe/Amsterdam' }, clock }
+    );
+
+    expect(done).toMatchObject({ state: 'error', limit: { kind: 'usage', resetsAt: Date.UTC(2026, 10, 11, 14, 38) } });
 });
 
 test('a usage limit whose plan cannot be read still ends the turn, without a reset', async () => {
