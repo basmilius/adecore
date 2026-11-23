@@ -4,6 +4,7 @@ import { z } from 'zod';
 import type { AcpClientInfo } from '../backends/acp-backend.ts';
 import type { AcpModeMap } from '../backends/acp-protocol.ts';
 import { copilotMcpAllowArgs, copilotMcpArgs } from '../backends/cli-mcp.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { runProcess } from '../run-process.ts';
 import type { AccountReading } from './accounts/status.ts';
 import type { AcpCatalogStore } from './acp-agent-state.ts';
@@ -30,17 +31,9 @@ interface CopilotProviderOptions extends AcpVendorOptions {
     readonly usageLog?: string;
 }
 
-/* Where the chat server of an agent that ships it apart from its CLI is, once a person installed it. */
-export interface AcpServerLaunch {
-    // The executable and its arguments, or null while nothing is installed.
-    launch(): string[] | null;
-}
-
 interface AntigravityProviderOptions extends AcpVendorOptions {
-    // The installed chat server; absent or null leaves the provider as it would be once one is there.
-    readonly server?: AcpServerLaunch | null;
-    // What a chat that starts without an installed server is refused with, in the host's words.
-    readonly installHint?: string;
+    // How the version probe starts `agy`; absent spawns it.
+    readonly spawn?: SpawnChatProcess;
 }
 
 type VendorSpec = Omit<AcpProviderSpec, 'catalog'>;
@@ -389,19 +382,30 @@ export function createCopilotProvider(options: CopilotProviderOptions = {}): Cha
     });
 }
 
-// Google's CLI, which a terminal starts and a single prompt goes to; the chat runs on a server of its own.
+// Google's CLI, which a terminal starts and a single prompt goes to; `agy acp` runs its chats.
 const ANTIGRAVITY_CLI = 'agy';
 
-/* The server's session modes (`default`, `auto_edit`, `yolo`); it has none between accepting edits and accepting everything. */
-export const ANTIGRAVITY_MODES: AcpModeMap = {
+// The release the chats were recorded against; an older `agy` has no `agy acp` that behaves the same.
+const ANTIGRAVITY_MIN_VERSION = '1.5.15';
+
+// An `agy` the host starts must never update itself: an update signs out every `agy` on the machine. A terminal is the person's.
+const ANTIGRAVITY_ENV = { AGY_CLI_DISABLE_AUTO_UPDATE: '1' };
+
+const ANTIGRAVITY_UPDATE_HINT = `Antigravity chats need agy ${ANTIGRAVITY_MIN_VERSION} or newer. Update agy in a terminal; the update signs out every agy on this machine.`;
+
+/*
+ * agy 1.5's session modes (`default`, `accept-edits`, `auto`, `plan`). Full access runs in `default` and the backend
+ * answers every request itself, so no agent mode decides on its own what a full-access chat may do.
+ */
+const ANTIGRAVITY_MODES: AcpModeMap = {
     supervised: ['default'],
-    'auto-accept-edits': ['auto_edit'],
-    auto: ['auto_edit'],
-    'full-access': ['yolo']
+    'auto-accept-edits': ['accept-edits'],
+    auto: ['auto'],
+    'full-access': ['default']
 };
 
 /*
- * The server keeps its sessions and its sign-in under `GEMINI_HOME` (`~/.gemini` without it), so an account is
+ * `agy` keeps its sessions and its sign-in under `GEMINI_HOME` (`~/.gemini` without it), so an account is
  * a folder of its own there. It signs in through ACP `authenticate` in a chat, never from a terminal, so it has
  * no `loginCommand` and its accounts are offered as chat logins.
  */
@@ -410,20 +414,20 @@ const ANTIGRAVITY_HOME: ProviderHome = { env: 'GEMINI_HOME', fallback: '.gemini'
 const ANTIGRAVITY_SPEC: VendorSpec = {
     kind: 'antigravity',
     name: 'Antigravity',
-    // Only stands in until the server is installed; a terminal and a single prompt start `agy` itself.
     command: ANTIGRAVITY_CLI,
-    executable: ANTIGRAVITY_CLI,
-    // Antigravity CLI 1.4 has no `--mode` for `auto`, so it shares the narrower accept-edits; plan mode widens nothing.
+    args: ['acp'],
+    env: ANTIGRAVITY_ENV,
+    // agy 1.5's own `--mode` values; plan mode widens nothing.
     terminal: {
         modeArgs: {
             supervised: [],
             'auto-accept-edits': ['--mode=accept-edits'],
-            auto: ['--mode=accept-edits'],
+            auto: ['--mode=auto'],
             'full-access': ['--dangerously-skip-permissions']
         }
     },
     oneShotArgs: antigravityOneShotArgs,
-    // `agy` answers apart from the chat's server, so it is the last CLI asked and names no chat.
+    // Every `agy -p` stays in the person's own conversation list, so it is the last CLI asked and names no chat.
     oneShotApart: true,
     model: agentModel,
     modes: ANTIGRAVITY_MODES,
@@ -433,7 +437,6 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
     capabilities: { terminal: true, hooks: true },
     resumeCommand: 'agy {flags} --conversation {id}',
     home: ANTIGRAVITY_HOME,
-    // The CLI only; the chat's server is the step after it, which the host installs apart.
     install: {
         description: "Google's coding agent, in a terminal and in a chat.",
         commands: {
@@ -445,40 +448,64 @@ const ANTIGRAVITY_SPEC: VendorSpec = {
         // The first start of `agy` signs it in in the browser, and so does a chat's first turn.
         signIn: [{ kind: 'chat' }, { kind: 'command', command: 'agy' }]
     },
-    // Antigravity CLI 1.4 reads a prompt only from `-p` (answers and exits), `-i` (runs it and stays) or stdin.
+    // agy reads a prompt only from `-p` (answers and exits), `-i` (runs it and stays) or stdin.
     firstPromptArgs: (prompt) => ['-i', prompt]
 };
 
 /*
- * A single prompt to `agy`, which is apart from the chat's server. Headless it soft-denies every call that would ask
- * (antigravity.google/docs/cli/headless), so it reads and answers.
+ * A single prompt to `agy`. Headless it soft-denies every call that would ask (antigravity.google/docs/cli/headless),
+ * so it reads and answers.
  */
 export function antigravityOneShotArgs(prompt: string): string[] {
     return ['-p', prompt, '--output-format', 'text'];
 }
 
+/* Whether an `x.y.z` version is older than the floor; a version that is not one says nothing. */
+function olderThan(version: string, floor: string): boolean {
+    const partsOf = (text: string) => /(\d+)\.(\d+)\.(\d+)/.exec(text)?.slice(1).map(Number) ?? null;
+    const installed = partsOf(version);
+    const minimum = partsOf(floor);
+
+    if (installed === null || minimum === null) {
+        return false;
+    }
+
+    for (let i = 0; i < 3; i++) {
+        const have = installed[i] ?? 0;
+        const need = minimum[i] ?? 0;
+
+        if (have !== need) {
+            return have < need;
+        }
+    }
+
+    return false;
+}
+
 /*
- * Antigravity is installed once `agy` is, which is all its terminal needs. Its chat runs on the server a person
- * installed apart from it, so without one it offers no chat and starts none.
+ * Antigravity is installed once `agy` is, which is all its terminal needs. Its chats run on `agy acp`, so an `agy`
+ * the version probe found older than the floor offers no chat and starts none.
  */
 export function createAntigravityProvider(options: AntigravityProviderOptions = {}): ChatProvider {
-    const server = options.server ?? null;
     const base = createAcpProvider({ ...ANTIGRAVITY_SPEC, catalog: shippedAgentCatalog('antigravity'), ...hostSpec(options) });
+    let version: string | null = null;
+    const tooOld = (): boolean => version !== null && olderThan(version, ANTIGRAVITY_MIN_VERSION);
 
     return {
         ...base,
-        get command() {
-            return server?.launch() ?? base.command;
-        },
-        // A host without a server at hand keeps what the CLI can do once one is there.
         get capabilities() {
-            return server === null || server.launch() !== null ? base.capabilities : { ...base.capabilities, chat: false };
+            return tooOld() ? { ...base.capabilities, chat: false } : base.capabilities;
         },
-        // Without a server, `command` is `agy` itself, which opens its own interface instead of a session.
-        refreshModels: async (command, env, refresh) => (server?.launch() == null ? false : ((await base.refreshModels?.(command, env, refresh)) ?? false)),
+        detect: async (command, env) => {
+            const detection = await detectCli(command, { ...env, ...ANTIGRAVITY_ENV }, options.spawn);
+            version = detection.installed ? detection.version : null;
+
+            return detection;
+        },
+        refreshModels: async (command, env, refresh) => (tooOld() ? false : ((await base.refreshModels?.(command, env, refresh)) ?? false)),
         createBackend: (backendLaunch, host) => {
-            if (server?.launch() == null) {
-                throw new Error(options.installHint ?? 'Install the Antigravity server first.');
+            if (tooOld()) {
+                throw new Error(ANTIGRAVITY_UPDATE_HINT);
             }
 
             return base.createBackend(backendLaunch, host);

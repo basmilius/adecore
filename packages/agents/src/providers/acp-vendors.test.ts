@@ -3,13 +3,13 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { BackendEvent, BackendLaunch } from '../backends/backend.ts';
+import type { SpawnChatProcess } from '../chat-process.ts';
 import { fakeAcpWith, type FakeAcpOptions } from '../testing/fake-acp.ts';
 import { inProcess } from '../testing/fake-cli.ts';
 import { UsageService } from '../usage/usage-service.ts';
 import { ProviderAccountsService } from './accounts/service.ts';
 import {
     AGENT_DEFAULT_MODEL,
-    ANTIGRAVITY_MODES,
     COPILOT_MODES,
     GROK_MODES,
     adoptGrokModels,
@@ -20,11 +20,10 @@ import {
     createGrokProvider,
     grokAuthMethod,
     readGrokModels,
-    shippedAgentCatalog,
-    type AcpServerLaunch
+    shippedAgentCatalog
 } from './acp-vendors.ts';
 import { ModelCatalog } from './catalog.ts';
-import type { ChatProvider } from './provider.ts';
+import { cliExecutable, type ChatProvider } from './provider.ts';
 import { ProviderRegistry } from './registry.ts';
 
 const homes: string[] = [];
@@ -46,6 +45,7 @@ function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial
     const events: BackendEvent[] = [];
     const methods: string[] = [];
     const requests: Array<{ method: string; params: Record<string, unknown> }> = [];
+    const envs: Array<Record<string, string>> = [];
     const done = Promise.withResolvers<void>();
 
     const fake = inProcess((io) => {
@@ -76,7 +76,11 @@ function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial
         generation: 1,
         instructions: null,
         resumeNote: null,
-        spawn: fake.spawn,
+        spawn: (spawnOptions) => {
+            envs.push(spawnOptions.env);
+
+            return fake.spawn(spawnOptions);
+        },
         ...overrides
     };
 
@@ -90,7 +94,7 @@ function run(provider: ChatProvider, options: FakeAcpOptions, overrides: Partial
         }
     });
 
-    return { backend, events, methods, requests, fake, turnDone: done.promise };
+    return { backend, events, methods, requests, envs, fake, turnDone: done.promise };
 }
 
 const HELLO = { promptId: 'p1', text: 'hello', preamble: null, attachments: [], mentions: [], skills: [] };
@@ -347,41 +351,72 @@ describe('a catalog store', () => {
 });
 
 describe('Antigravity', () => {
-    const SERVER_MODES = ['default', 'auto_edit', 'yolo'];
-    const installed: AcpServerLaunch = { launch: () => ['/home/agent-servers/antigravity/1.4.1/agy_acp_server.par', '--uid='] };
-    const missing: AcpServerLaunch = { launch: () => null };
+    const AGY_MODES = ['default', 'accept-edits', 'auto', 'plan'];
+    const NO_UPDATE = { AGY_CLI_DISABLE_AUTO_UPDATE: '1' };
 
-    test('chats on the installed server, keeps its accounts apart in GEMINI_HOME and runs `agy` as a terminal', () => {
-        const provider = createAntigravityProvider({ server: installed });
+    // `agy --version` as an installed agy answers it, with the environment it was started in.
+    const versionProbe = (version: string) => {
+        const envs: Array<Record<string, string>> = [];
+
+        const fake = inProcess((io) => {
+            io.out(`agy ${version}`);
+
+            return { onLine: () => undefined };
+        });
+
+        const spawn: SpawnChatProcess = (spawnOptions) => {
+            envs.push(spawnOptions.env);
+
+            return fake.spawn(spawnOptions);
+        };
+
+        return { spawn, envs };
+    };
+
+    test('chats on `agy acp`, keeps its accounts apart in GEMINI_HOME and runs `agy` as a terminal', () => {
+        const provider = createAntigravityProvider();
 
         expect(provider.kind).toBe('antigravity');
-        expect(provider.command).toEqual(['/home/agent-servers/antigravity/1.4.1/agy_acp_server.par', '--uid=']);
+        expect(provider.command).toEqual(['agy', 'acp']);
+        expect(cliExecutable(provider)).toBe('agy');
         expect([provider.capabilities.chat, provider.capabilities.terminal, provider.capabilities.hooks]).toEqual([true, true, true]);
         expect(provider.home).toMatchObject({ env: 'GEMINI_HOME', fallback: '.gemini', loginEnv: [] });
-        expect(provider.home?.loginCommand).toBeUndefined();
         expect(provider.firstPromptArgs('go')).toEqual(['-i', 'go']);
         expect(provider.resumeCommand).toBe('agy {flags} --conversation {id}');
+        expect(provider.terminal?.modeArgs?.auto).toEqual(['--mode=auto']);
         expect(antigravityOneShotArgs('hi')).toEqual(['-p', 'hi', '--output-format', 'text']);
     });
 
-    test('without an installed server it offers no chat and starts none, but stays a terminal', () => {
-        const provider = createAntigravityProvider({ server: missing });
+    test('an agy older than 1.5.15 offers no chat and starts none, and its version probe never updates it', async () => {
+        const old = versionProbe('1.5.14');
+        const provider = createAntigravityProvider({ spawn: old.spawn });
 
+        expect(await provider.detect('agy', {})).toEqual({ installed: true, version: '1.5.14' });
+        expect(old.envs).toEqual([NO_UPDATE]);
         expect([provider.capabilities.chat, provider.capabilities.terminal]).toEqual([false, true]);
-        expect(createAntigravityProvider().capabilities.chat).toBe(true);
-        expect(() => provider.createBackend({} as BackendLaunch, { onEvent: () => undefined })).toThrow('Install the Antigravity server');
+        expect(() => provider.createBackend({} as BackendLaunch, { onEvent: () => undefined })).toThrow('Antigravity chats need agy 1.5.15 or newer');
+
+        const updated = createAntigravityProvider({ spawn: versionProbe('1.5.15').spawn });
+
+        await updated.detect('agy', {});
+        expect(updated.capabilities.chat).toBe(true);
     });
 
-    test('reads its models from the installed server, and asks nothing without one', async () => {
+    test('reads its models from `agy acp`, started without an update', async () => {
         const fake = inProcess(fakeAcpWith({}));
+        const envs: Array<Record<string, string>> = [];
+        const provider = createAntigravityProvider();
 
-        expect(await createAntigravityProvider({ server: missing }).refreshModels?.(['agy'], {}, { maxAgeMs: 0, spawn: fake.spawn })).toBe(false);
-        expect(fake.started).toHaveLength(0);
+        const spawn: SpawnChatProcess = (spawnOptions) => {
+            envs.push(spawnOptions.env);
 
-        const provider = createAntigravityProvider({ server: installed });
+            return fake.spawn(spawnOptions);
+        };
 
-        expect(await provider.refreshModels?.(provider.command, {}, { maxAgeMs: 0, spawn: fake.spawn })).toBe(true);
+        expect(await provider.refreshModels?.(provider.command, {}, { maxAgeMs: 0, spawn })).toBe(true);
         expect(provider.catalog.list().map((model) => model.slug)).toEqual(['fake-small', 'fake-large']);
+        expect(fake.started[0]?.argv).toEqual(['acp']);
+        expect(envs[0]).toMatchObject(NO_UPDATE);
     });
 
     test('offers a second account, signed in from its chat, in a GEMINI_HOME of its own', async () => {
@@ -390,7 +425,7 @@ describe('Antigravity', () => {
         const accounts = new ProviderAccountsService({
             home,
             providers: new ProviderRegistry({
-                providers: [createGrokProvider(), createAntigravityProvider({ server: installed })],
+                providers: [createGrokProvider(), createAntigravityProvider()],
                 detect: async () => ({ installed: true, version: null })
             }),
             env: { HOME: home },
@@ -408,18 +443,15 @@ describe('Antigravity', () => {
         expect(accounts.envFor('antigravity', created.id, { HOME: home }).GEMINI_HOME).toBe(folder);
     });
 
-    test("each runtime mode names the server's own mode, the two between sharing auto_edit", () => {
-        expect(ANTIGRAVITY_MODES).toEqual({ supervised: ['default'], 'auto-accept-edits': ['auto_edit'], auto: ['auto_edit'], 'full-access': ['yolo'] });
-    });
-
-    test("a turn goes through and back, signed in through the server's own browser sign-in", async () => {
-        const { backend, events, methods, fake, turnDone } = run(createAntigravityProvider({ server: installed }), {
+    test("a turn goes through `agy acp` and back, signed in through agy's own browser sign-in, without an update", async () => {
+        const { backend, events, methods, envs, fake, turnDone } = run(createAntigravityProvider(), {
             authMethod: 'oauth-personal',
-            modes: SERVER_MODES
+            modes: AGY_MODES
         });
 
         await backend.start();
-        expect(fake.started[0]?.argv).toEqual(['--uid=']);
+        expect(fake.started[0]?.argv).toEqual(['acp']);
+        expect(envs[0]).toMatchObject(NO_UPDATE);
         expect(methods).toEqual(['initialize', 'session/new', 'authenticate', 'session/new']);
 
         backend.sendTurn(HELLO);
@@ -428,15 +460,24 @@ describe('Antigravity', () => {
         await backend.dispose();
     });
 
-    test('a full-access chat switches the server to yolo, and an auto chat to auto_edit', async () => {
+    test('each runtime mode runs in a mode agy 1.5 offers, full access in default with the backend answering', async () => {
         for (const [runtimeMode, mode] of [
-            ['full-access', 'yolo'],
-            ['auto', 'auto_edit']
+            ['supervised', 'default'],
+            ['auto-accept-edits', 'accept-edits'],
+            ['auto', 'auto'],
+            ['full-access', 'default']
         ] as const) {
-            const { backend, events } = run(createAntigravityProvider({ server: installed }), { modes: SERVER_MODES }, { runtimeMode });
+            const { backend, events, turnDone } = run(createAntigravityProvider(), { modes: AGY_MODES }, { runtimeMode });
 
             await backend.start();
-            expect(events).toContainEqual(expect.objectContaining({ type: 'permissions', permissionMode: mode, effectiveRuntimeMode: runtimeMode }));
+            expect(events).toContainEqual(expect.objectContaining({ type: 'session', permissionMode: mode, effectiveRuntimeMode: runtimeMode }));
+
+            if (runtimeMode === 'full-access') {
+                backend.sendTurn({ ...HELLO, text: 'mcp: elsewhere node_new' });
+                await turnDone;
+                expect(events.some((event) => event.type === 'approval.requested')).toBe(false);
+            }
+
             await backend.dispose();
         }
     });
@@ -445,7 +486,6 @@ describe('Antigravity', () => {
 describe("the host's seams", () => {
     const HOST_ENV = { HOST_MCP_URL: 'http://127.0.0.1:4000/mcp', HOST_TOKEN: 'chat-token' };
     const HOST_SERVER = { type: 'http', name: 'host', url: 'http://127.0.0.1:4000/mcp', headers: [{ name: 'Authorization', value: 'Bearer chat-token' }] };
-    const installed: AcpServerLaunch = { launch: () => ['agy_acp_server.par'] };
 
     // Adds the host's MCP server to a launch whose environment names it, as a host's `launch` would.
     const withHostServer = (launch: BackendLaunch): BackendLaunch => {
@@ -464,7 +504,7 @@ describe("the host's seams", () => {
     const chats: Array<[string, () => ChatProvider]> = [
         ['Grok', () => createGrokProvider({ launch: withHostServer })],
         ['Copilot', () => createCopilotProvider({ launch: withHostServer })],
-        ['Antigravity', () => createAntigravityProvider({ server: installed, launch: withHostServer })]
+        ['Antigravity', () => createAntigravityProvider({ launch: withHostServer })]
     ];
 
     for (const [name, provider] of chats) {

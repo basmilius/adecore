@@ -4,7 +4,6 @@ export { createApiChatProvider } from './api-chat-provider.ts';
 export { createAcpProvider } from './acp-provider.ts';
 export {
     type AcpVendorOptions,
-    type AcpServerLaunch,
     agentDefaultCatalog,
     agentModel,
     copilotUsageDirectory,

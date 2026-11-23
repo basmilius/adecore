@@ -147,8 +147,7 @@ const registry = new ProviderRegistry({
         }),
         createAntigravityProvider({
             client,
-            launch: withOwnServer,
-            server: antigravityServer
+            launch: withOwnServer
         })
     ]
 });
@@ -158,7 +157,7 @@ Every factory takes `AcpVendorOptions`. `client` is how your host names itself i
 
 `createCopilotProvider` adds `usageLog`, the folder the provider writes each turn's usage to. Copilot keeps no usage file of its own, so add `copilotUsageDirectory(home)` to the usage roots too.
 
-Antigravity's chat runs on a server installed apart from the `agy` CLI. The `server` option of `createAntigravityProvider` is an `AcpServerLaunch`: its `launch()` returns the server's command, or `null` while none is installed. Without an installed server the provider offers no chat and refuses to start one, but still runs as a terminal. An absent or `null` server keeps the chat capability, for a host that only reads what the CLI can do.
+Antigravity's chats run on `agy acp` from the person's own `agy`, which must be 1.5.15 or newer. When the version probe finds an older one, the provider offers no chat and refuses to start one, but still runs as a terminal. Every `agy` the provider starts for a chat, a probe or the version check runs with `AGY_CLI_DISABLE_AUTO_UPDATE=1`, since an update signs out every `agy` on the machine.
 
 The three start from the models in `providers/<kind>-models.json` and take the ones a session reports. A catalog can leave the choice to the agent: `agentModel(selection)` maps that choice to `null`, and `agentDefaultCatalog()` offers only that model.
 

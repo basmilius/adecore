@@ -242,7 +242,6 @@ exports[`the public API ./providers exports these names 1`] = `
   "type AccountUnusable",
   "type AccountsHost",
   "type AcpCatalogStore",
-  "type AcpServerLaunch",
   "type AcpVendorOptions",
   "type ChatProvider",
   "type ChosenAccount",
