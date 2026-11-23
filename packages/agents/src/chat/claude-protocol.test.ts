@@ -856,6 +856,24 @@ describe('ClaudeProtocol', () => {
         ]);
     });
 
+    test('the model the main chain answers with is held to the pick only as a plain model id', () => {
+        const notesFor = (picked: string, answered: string): unknown[] => {
+            const protocol = new ClaudeProtocol();
+            protocol.expectModel(picked);
+
+            return protocol
+                .handle({ type: 'assistant', message: { id: 'msg_1', model: answered, content: [{ type: 'text', text: 'hi' }] } })
+                .filter((event) => event.type === 'note');
+        };
+
+        expect(notesFor('claude-sonnet-5', 'claude-haiku-4-5')).toHaveLength(1);
+        expect(notesFor('claude-haiku-4-5', 'claude-haiku-4-5-20251001')).toEqual([]);
+        expect(notesFor('claude-opus-5-5[1m]', 'claude-opus-5-5')).toEqual([]);
+        expect(notesFor('opus', 'claude-opus-5-5')).toEqual([]);
+        expect(notesFor('us.anthropic.claude-opus-5-5-v1:0', 'claude-opus-5-5')).toEqual([]);
+        expect(notesFor('claude-sonnet-5', '<synthetic>')).toEqual([]);
+    });
+
     test('a conversation reset empties the context and drops the goal of the conversation it discarded', () => {
         const protocol = new ClaudeProtocol(claudeGoalFromCommand('Goal set: ship it', null) ?? null);
         const reset = { type: 'conversation_reset', new_conversation_id: 'b', uuid: 'r1', session_id: 'a', trigger: 'clear' };

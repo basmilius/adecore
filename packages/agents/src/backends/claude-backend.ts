@@ -239,6 +239,7 @@ export class ClaudeBackend implements ChatBackend {
         this.selection = launch.selection;
         this.runtimeMode = launch.runtimeMode;
         this.protocol = new ClaudeProtocol(launch.goal ?? null, launch.now, launch.cacheTtlMs ?? null);
+        this.protocol.expectModel(claudeModel(launch.selection));
     }
 
     get running(): boolean {
@@ -395,6 +396,7 @@ export class ClaudeBackend implements ChatBackend {
         try {
             if (claudeModel(from) !== claudeModel(to)) {
                 await running.setModel(claudeModel(to));
+                this.protocol.expectModel(claudeModel(to));
             }
 
             const flags = {

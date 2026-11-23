@@ -238,6 +238,19 @@ function scripted(answer: (request: Record<string, unknown>) => unknown = () => 
     return { cli, lines, out, sent, users: () => lines.filter((line) => line.type === 'user').map((line) => line.uuid) };
 }
 
+// The model the person ran the capture on, as its main chain answered without the snapshot date.
+function capturedModel(frames: readonly unknown[]): string | null {
+    for (const frame of frames as Array<{ type?: string; parent_tool_use_id?: unknown; message?: { model?: unknown } }>) {
+        const model = frame.message?.model;
+
+        if (frame.type === 'assistant' && !frame.parent_tool_use_id && typeof model === 'string' && model !== '<synthetic>') {
+            return model.replace(/-\d{8}$/, '');
+        }
+    }
+
+    return null;
+}
+
 describe('a captured run', () => {
     const captures: Record<string, { frames: readonly unknown[] }> = {
         'claude-2.1.285-auto-fallback': autoFallbackCapture,
@@ -251,12 +264,14 @@ describe('a captured run', () => {
 
     for (const [name, capture] of Object.entries(captures)) {
         test(`${name} reaches the session as the protocol reads it`, async () => {
+            const selection = { model: capturedModel(capture.frames) ?? launch.selection.model, options: {} };
             const protocol = new ClaudeProtocol(null, launch.now, null);
+            protocol.expectModel(selection.model);
             protocol.beginPrompt('captured-prompt');
             const expected = capture.frames.flatMap((frame) => protocol.handle(frame));
 
             const script = scripted();
-            const run = open(script.cli);
+            const run = open(script.cli, { selection });
             await run.backend.start();
             run.backend.sendTurn(turn('go', 'captured-prompt'));
             await until(() => script.users().length === 1);
@@ -737,6 +752,28 @@ describe('the Claude backend on an API key', () => {
 
 describe('a change to a running Claude process', () => {
     const sonnet = { model: 'claude-sonnet-5', options: { effort: 'high', contextWindow: '1m' } };
+
+    test('a root answer from another model than the pick leaves one note naming both, and a switch to it leaves none', async () => {
+        const run = open(fakeClaude, { selection: { model: 'claude-sonnet-5', options: {} } });
+        const notes = (): string[] => run.events.flatMap((event) => (event.type === 'note' ? [event.text] : []));
+        await run.backend.start();
+
+        run.backend.sendTurn(turn('hello', 'p1'));
+        await until(() => doneTurns(run.events) === 1);
+        expect(notes()).toEqual([]);
+
+        run.backend.sendTurn(turn('answer as: claude-opus-5-20261001', 'p2'));
+        await until(() => doneTurns(run.events) === 2);
+        run.backend.sendTurn(turn('hello again', 'p3'));
+        await until(() => doneTurns(run.events) === 3);
+        expect(notes()).toEqual(['Claude Code runs claude-opus-5, not claude-sonnet-5 as picked.']);
+
+        expect(await run.backend.reconfigure({ selection: { model: 'claude-opus-5', options: {} }, runtimeMode: 'supervised' })).toBe(true);
+        run.backend.sendTurn(turn('answer as: claude-opus-5', 'p4'));
+        await until(() => doneTurns(run.events) === 4);
+        expect(notes()).toHaveLength(1);
+        await run.backend.dispose();
+    });
 
     test('takes the model, the effort, fast mode and the permission mode without a new process', async () => {
         const script = scripted();

@@ -575,6 +575,15 @@ export function fakeClaude(io: FakeIo): FakeProgram {
             return;
         }
 
+        // From here on the API answers with another model than the CLI was asked for, as an allowlist on Bedrock or Vertex does.
+        if (text.startsWith('answer as:')) {
+            model = text.slice(10).trim();
+            assistantText('swapped');
+            result();
+
+            return;
+        }
+
         // A local command answers with a synthetic message and a result that spent nothing, as `/goal` does.
         if (text.startsWith('/goal ')) {
             const id = `msg_${nonce}_${++messageCounter}`;

@@ -53,6 +53,15 @@ function subagentReport(output: string): string {
     return report.slice(frame[0].length).replace(HAND_BACK_INDENT, '');
 }
 
+// The API names a model with its snapshot date (`claude-haiku-4-5-20251001`), the CLI's init and a pick without it.
+const DATED_MODEL = /-\d{8}$/;
+const MILLION_CONTEXT = /\[1m\]$/;
+const PLAIN_MODEL_ID = /^claude-[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+function plainModelId(model: string): string | null {
+    return PLAIN_MODEL_ID.test(model) ? model : null;
+}
+
 // What a subagent spent, as `task_progress` and `task_notification` report it.
 function taskUsage(usage: unknown): ChatSubagentUsage | null {
     return isRecord(usage) ? { totalTokens: num(usage.total_tokens), toolUses: num(usage.tool_uses), durationMs: num(usage.duration_ms) } : null;
@@ -343,12 +352,21 @@ export class ClaudeProtocol {
     private earlyWake = false;
     // Whether the main chain answers in a turn now; the first frame after a result starts the next, whoever asked for it.
     private turnOpen = false;
+    // The model the person picked, and the one the main chain last answered with.
+    private pickedModel: string | null = null;
+    private answeredModel: string | null = null;
 
     // `cacheTtlMs` is the lifetime the chat knew before this process, so a resumed CLI that only reads the cache still moves its expiry.
     constructor(goal: ChatGoal | null = null, now: () => number = () => Date.now(), cacheTtlMs: number | null = null) {
         this.goal = goal;
         this.now = now;
         this.cacheTtlMs = cacheTtlMs;
+    }
+
+    /* The model the person picked, as the CLI was handed it; a root answer from another model is noted once. */
+    expectModel(model: string): void {
+        this.pickedModel = model;
+        this.answeredModel = null;
     }
 
     /* A stop is on its way; the turn it ends leaves the goal set but nobody working on it. */
@@ -1030,6 +1048,7 @@ export class ClaudeProtocol {
 
         if (!parentRef) {
             this.trackGoal(model, content, events);
+            this.noteModel(model, events);
         }
 
         // The CLI answers some frames itself and names them `<synthetic>`; no model wrote those.
@@ -1085,6 +1104,26 @@ export class ClaudeProtocol {
 
         if (error) {
             events.push({ type: 'note', level: 'error', text: `The request failed: ${error.replaceAll('_', ' ')}` });
+        }
+    }
+
+    /*
+     * Bedrock or Vertex with an `availableModels` allowlist swaps a pick that is not on it for the default without an
+     * error, and only `message.model` shows it. A pick or an answer that is not a plain model id (an alias, an inference
+     * profile) says nothing, since a wrong note is worse than none.
+     */
+    private noteModel(model: string | null, events: BackendEvent[]): void {
+        const answered = model === null ? null : plainModelId(model.replace(DATED_MODEL, ''));
+        const picked = this.pickedModel === null ? null : plainModelId(this.pickedModel.replace(MILLION_CONTEXT, ''));
+
+        if (answered === null || picked === null || answered === this.answeredModel) {
+            return;
+        }
+
+        this.answeredModel = answered;
+
+        if (answered !== picked) {
+            events.push({ type: 'note', level: 'warning', text: `Claude Code runs ${answered}, not ${picked} as picked.` });
         }
     }
 
