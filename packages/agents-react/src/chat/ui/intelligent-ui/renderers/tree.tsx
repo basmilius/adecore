@@ -23,9 +23,10 @@ export function TreeRenderer({ children }: UiRendererProps<UiProps<'Tree'>>) {
     );
 }
 
-/* Open unless it arrives closed; what a person folds stays folded as long as the page lasts. */
+/* Open unless `open` says closed, read on every draw since the tag may still be streaming in; what a person folds stays folded as long as the page lasts. */
 export function BranchRenderer({ node, children, context }: UiRendererProps<UiProps<'Branch'>>) {
-    const [open, setOpen] = useBlockLocal(context, node.id, () => node.props.open !== false);
+    const [chosen, setChosen] = useBlockLocal<boolean | null>(context, node.id, () => null);
+    const open = chosen ?? node.props.open !== false;
     const contentId = useId();
 
     return (
@@ -35,7 +36,7 @@ export function BranchRenderer({ node, children, context }: UiRendererProps<UiPr
                 aria-expanded={open}
                 aria-controls={contentId}
                 className={clsx(ROW, '-mx-1.5 rounded-md px-1.5 text-left text-text hover:bg-text/4')}
-                onClick={() => setOpen(!open)}
+                onClick={() => setChosen(!open)}
             >
                 <Icon icon={open ? FolderOpen : Folder} size={14} className="shrink-0 text-text-muted" />
                 <span className="min-w-0 truncate">{node.props.label}</span>

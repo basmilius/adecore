@@ -2,7 +2,7 @@ import type { UiProps } from '@adecore/intelligent-ui';
 import { Icon, Pill, Tabs } from '@adecore/ui';
 import clsx from 'clsx';
 import { ChevronRight } from 'lucide-react';
-import { createContext, useContext, useId } from 'react';
+import { createContext, useContext, useId, useState } from 'react';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf } from '../node-text';
 import type { UiRendererProps } from '../render-context';
@@ -61,12 +61,15 @@ export function SectionsRenderer({ node, children, context }: UiRendererProps<Ui
 
 /*
  * Arrives as `open` says. Without it a section arrives open until the person folds one of the set themselves.
- * The badge is a tag at the end of the header, in the section's tone; the content keeps one margin on both sides.
+ * The prop is read on every draw, since a section stands before its tag has streamed in whole; only what the
+ * person chose is kept. The badge is a tag at the end of the header, in the section's tone.
  */
 export function SectionRenderer({ node, children, context }: UiRendererProps<UiProps<'Section'>>) {
     const fold = useContext(SectionsContext);
     const { title, badge, tone } = node.props;
-    const [open, setOpen] = useBlockLocal(context, node.id, () => node.props.open ?? !fold.touched);
+    const [arrivedOpen] = useState(() => !fold.touched);
+    const [chosen, setChosen] = useBlockLocal<boolean | null>(context, node.id, () => null);
+    const open = chosen ?? node.props.open ?? arrivedOpen;
     const contentId = useId();
 
     return (
@@ -79,7 +82,7 @@ export function SectionRenderer({ node, children, context }: UiRendererProps<UiP
                 className="flex min-h-10 w-full items-center gap-2 rounded-xl px-3 text-left text-xs font-medium text-text hover:bg-text/4"
                 onClick={() => {
                     fold.touch();
-                    setOpen(!open);
+                    setChosen(!open);
                 }}
             >
                 <Icon

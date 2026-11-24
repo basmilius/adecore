@@ -34,7 +34,8 @@ async function mount(source: string, intelligentUi: Partial<UiHost> = {}) {
     const observer = globalThis.IntersectionObserver;
     Object.defineProperty(globalThis, 'IntersectionObserver', { configurable: true, writable: true, value: undefined });
     const text = '```ui\n' + source + '\n```';
-    const blocks = compileUi(text, { id: 'components', final: true }).map((block) => ({ ...block, revision: 'revision' }));
+    const compiled = (reply: string, final: boolean) => compileUi(reply, { id: 'components', final }).map((block) => ({ ...block, revision: 'revision' }));
+    const blocks = compiled(text, true);
     const host: Partial<ChatHost> = { intelligentUi: { sendChoice: async () => 'sent', ...intelligentUi } };
     paths.clear();
     recordPaths(blocks[0]!.nodes);
@@ -43,18 +44,24 @@ async function mount(source: string, intelligentUi: Partial<UiHost> = {}) {
     const root = createRoot(element);
     const scopeId = `components-${scopes++}`;
 
-    await act(async () =>
-        root.render(
-            createElement(
-                ChatHostProvider,
-                { host },
-                createElement(UiReply, { text, blocks, context: { scopeId, chatId: 'chat', itemId: 'item', phase: 'final' } })
+    const draw = (reply: string, drawn: typeof blocks, phase: 'streaming' | 'final') =>
+        act(async () =>
+            root.render(
+                createElement(
+                    ChatHostProvider,
+                    { host },
+                    createElement(UiReply, { text: reply, blocks: drawn, context: { scopeId, chatId: 'chat', itemId: 'item', phase } })
+                )
             )
-        )
-    );
+        );
+
+    await draw(text, blocks, 'final');
 
     return {
         element,
+        /* Draws the block again as a reply that has streamed in only as far as `partial`. */
+        streamed: (partial: string) => draw('```ui\n' + partial, compiled('```ui\n' + partial, false), 'streaming'),
+        finished: () => draw(text, blocks, 'final'),
         button: (label: string) => [...element.querySelectorAll('button')].find((button) => button.textContent?.trim() === label),
         /* Lets a timer of no delay run, which is how a block first checks its links. */
         settle: () => act(async () => void (await new Promise((resolve) => setTimeout(resolve, 0)))),
@@ -334,6 +341,25 @@ test('a column head sorts the table by its column, up and then down, and says so
         expect(jobs()).toEqual(['DOM', 'Types', 'Unit']);
         expect(head('Job').getAttribute('aria-sort')).toBe('ascending');
         expect(head('Duration').hasAttribute('aria-sort')).toBe(false);
+    } finally {
+        await view.unmount();
+    }
+});
+
+test('a section and a branch whose tag streams in follow open once it is read, until a person folds them', async () => {
+    const view = await mount(
+        '<Sections><Section title="Risks" open={false}>None found</Section></Sections><Tree><Branch label="src" open={false}><Leaf>a.ts</Leaf></Branch></Tree>'
+    );
+
+    try {
+        await view.streamed('<Sections><Section title="Risks"');
+        expect(view.button('Risks')!.getAttribute('aria-expanded')).toBe('true');
+        await view.finished();
+        expect(view.button('Risks')!.getAttribute('aria-expanded')).toBe('false');
+        expect(view.button('src')!.getAttribute('aria-expanded')).toBe('false');
+        await act(async () => view.button('Risks')!.click());
+        await view.finished();
+        expect(view.button('Risks')!.getAttribute('aria-expanded')).toBe('true');
     } finally {
         await view.unmount();
     }
