@@ -318,7 +318,11 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
             }
 
             view.error = error instanceof UiFailure ? error.code : 'invalid_value';
-            report(error, node);
+
+            // The compiler already said what is wrong with a node it refused; a second line here would only say less.
+            if (node.error === undefined) {
+                report(error, node);
+            }
 
             return [view];
         }

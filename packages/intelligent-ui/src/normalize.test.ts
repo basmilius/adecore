@@ -307,6 +307,15 @@ describe('a prop nothing can read', () => {
         ]);
     });
 
+    test('a part the compiler refused is reported once, in the words of the compiler', () => {
+        const compiled = block('<Chart kind="pie" data={[{"label": "A", "v": 1}]}/>');
+        const evaluated = evaluateUiBlock(compiled);
+        expect(evaluated.nodes[0].error).toBe('invalid_props');
+        expect([...compiled.diagnostics, ...evaluated.diagnostics].map((item) => item.message)).toEqual([
+            'Chart kind is one of bar, hbar, stacked, line; got "pie".'
+        ]);
+    });
+
     test('a prop of a newer catalog is ignored where the block is drawn', () => {
         const compiled = block('<Stats><Stat label="Tests" value={42}/></Stats>');
         compiled.nodes[0].children[0].props.trend = [1, 2, 3];
