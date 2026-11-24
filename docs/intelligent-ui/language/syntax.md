@@ -60,17 +60,17 @@ An unknown prop is dropped with `refused_prop`, and the rest of the node still d
 
 An agent writes HTML and JSX from habit, so the compiler reads the forms below as what they mean. Each one draws, and each one comes with a warning that says how the prop is written, so the agent learns the form. The block that goes over the wire holds the corrected value, so a client draws it without knowing the rule.
 
-| Written | Read as | Warning |
-| --- | --- | --- |
-| `value="42"`, `when="true"`, `unit={5}`, `rows='[{"a": 1}]'` | The number, boolean, text or list the schema asks for | `coerced_prop` |
-| `value=42`, `primary=true` | A bare number or boolean, as if in braces | None |
-| `value="12 min"` on a `Stat` | `value={12} unit="min"` | `coerced_prop` |
-| `tone="error"`, `state="active"` | `danger`, `running`: a synonym of an enum value | `renamed_value` |
-| `<Tab label="A">`, `<Place lng={5.1}>` | `title`, `lon`: an alias of the prop in the catalog | `renamed_prop` |
-| `<Step label="Build"/>` | `<Step>Build</Step>`: the words of a component written as a prop | `renamed_prop` |
-| `<Stat label="Tests">42</Stat>` | `value={42}` | `renamed_prop` |
-| `<Badge>` | `<Tag>` | `renamed_component` |
-| `<Column as="percent"/>` | The column without `as`: an optional prop nothing could read is left out | `dropped_prop` |
+| Written                                                      | Read as                                                                  | Warning             |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------ | ------------------- |
+| `value="42"`, `when="true"`, `unit={5}`, `rows='[{"a": 1}]'` | The number, boolean, text or list the schema asks for                    | `coerced_prop`      |
+| `value=42`, `primary=true`                                   | A bare number or boolean, as if in braces                                | None                |
+| `value="12 min"` on a `Stat`                                 | `value={12} unit="min"`                                                  | `coerced_prop`      |
+| `tone="error"`, `state="active"`                             | `danger`, `running`: a synonym of an enum value                          | `renamed_value`     |
+| `<Tab label="A">`, `<Place lng={5.1}>`                       | `title`, `lon`: an alias of the prop in the catalog                      | `renamed_prop`      |
+| `<Step label="Build"/>`                                      | `<Step>Build</Step>`: the words of a component written as a prop         | `renamed_prop`      |
+| `<Stat label="Tests">42</Stat>`                              | `value={42}`                                                             | `renamed_prop`      |
+| `<Badge>`                                                    | `<Tag>`                                                                  | `renamed_component` |
+| `<Column as="percent"/>`                                     | The column without `as`: an optional prop nothing could read is left out | `dropped_prop`      |
 
 A value is converted only where one reading exists. A number is digits with an optional sign and decimal point: `"1,5"`, `"1e3"` and `"ten"` are never numbers. A scalar prop, such as the `value` of an `Option`, is never converted, since `"1"` and `1` are two values there.
 
@@ -117,22 +117,22 @@ Once the reply is final, anything still open is reported: `unclosed_tag` for a t
 
 Every problem becomes a `UiDiagnostic` with a `code`, a `message`, a source range and, where it has one, the node id. A block keeps at most `UI_LIMITS.diagnostics` of them.
 
-| Code                                         | Cause                                                        |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| `invalid_syntax`, `invalid_tag`, `invalid_prop` | A character where a tag, a prop name or a value was expected |
-| `invalid_declaration`, `duplicate_declaration`, `invalid_default` | A declaration that is malformed, repeated or not a literal |
-| `unclosed_tag`, `unmatched_tag`              | Tags that do not pair                                        |
-| `duplicate_prop`, `refused_prop`, `invalid_props` | A prop written twice, unknown, or failing its schema    |
-| `renamed_prop`                               | A prop written under an alias from the catalog, or the words of a component written as a prop |
-| `renamed_value`, `renamed_component`        | A synonym of an enum value or of a component name, read as the real one |
-| `coerced_prop`                               | A value written in another type, read as the type the schema asks for |
-| `dropped_prop`                               | An optional prop with a value nothing could read, left out   |
-| `too_many_series`                            | A Chart with more numeric series than a drawing holds; the rest stay in its values |
-| `unknown_component`                          | A name outside the catalog                                   |
-| `invalid_parent`, `invalid_child`            | A component in the wrong place                               |
-| `invalid_expression`, `incomplete_expression`, `invalid_value` | An expression that does not parse or evaluate |
-| `refused_call`, `refused_access`             | An unknown helper, or a forbidden or inherited field         |
-| `query_only`, `action_only`                  | `@Query` outside a declaration, or `@Set`/`@Reset` as a value |
-| `invalid_query`, `unknown_query`             | A query the host did not register or does not accept         |
-| `refused_action`, `refused_binding`          | A Button action or a binding on something other than local state |
-| `budget_exceeded`                            | The block or the reply ran out of budget                     |
+| Code                                                              | Cause                                                                                         |
+| ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `invalid_syntax`, `invalid_tag`, `invalid_prop`                   | A character where a tag, a prop name or a value was expected                                  |
+| `invalid_declaration`, `duplicate_declaration`, `invalid_default` | A declaration that is malformed, repeated or not a literal                                    |
+| `unclosed_tag`, `unmatched_tag`                                   | Tags that do not pair                                                                         |
+| `duplicate_prop`, `refused_prop`, `invalid_props`                 | A prop written twice, unknown, or failing its schema                                          |
+| `renamed_prop`                                                    | A prop written under an alias from the catalog, or the words of a component written as a prop |
+| `renamed_value`, `renamed_component`                              | A synonym of an enum value or of a component name, read as the real one                       |
+| `coerced_prop`                                                    | A value written in another type, read as the type the schema asks for                         |
+| `dropped_prop`                                                    | An optional prop with a value nothing could read, left out                                    |
+| `too_many_series`                                                 | A Chart with more numeric series than a drawing holds; the rest stay in its values            |
+| `unknown_component`                                               | A name outside the catalog                                                                    |
+| `invalid_parent`, `invalid_child`                                 | A component in the wrong place                                                                |
+| `invalid_expression`, `incomplete_expression`, `invalid_value`    | An expression that does not parse or evaluate                                                 |
+| `refused_call`, `refused_access`                                  | An unknown helper, or a forbidden or inherited field                                          |
+| `query_only`, `action_only`                                       | `@Query` outside a declaration, or `@Set`/`@Reset` as a value                                 |
+| `invalid_query`, `unknown_query`                                  | A query the host did not register or does not accept                                          |
+| `refused_action`, `refused_binding`                               | A Button action or a binding on something other than local state                              |
+| `budget_exceeded`                                                 | The block or the reply ran out of budget                                                      |

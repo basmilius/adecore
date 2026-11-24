@@ -1,7 +1,5 @@
-import type { UiComponentName } from './catalog.ts';
-
 /* A name an agent writes for a component that has another one, read as that one. */
-export const UI_COMPONENT_ALIASES: Readonly<Record<string, UiComponentName>> = { Badge: 'Tag', Pill: 'Tag', Status: 'Tag', Chip: 'Tag' };
+export const UI_COMPONENT_ALIASES: Readonly<Record<string, string>> = { Badge: 'Tag', Pill: 'Tag', Status: 'Tag', Chip: 'Tag' };
 
 /* Per prop, the words an agent writes for one of its values, in lower case, read as that value where the written word is none of them. */
 export const UI_VALUE_ALIASES: Readonly<Record<string, Readonly<Record<string, string>>>> = {

@@ -25,13 +25,13 @@ Compare values and records. Give numbers as numbers, never as text, so a rendere
 
 A small set of key numbers. `Stats` has no props and holds only `Stat`. A `Stat` stands only inside `Stats` and has no children.
 
-| Prop       | Type     | Required | Notes                                                         |
-| ---------- | -------- | -------- | ------------------------------------------------------------- |
-| `label`    | string   | Yes      |                                                               |
-| `value`    | number or string | Yes | A number, or a value in words that is shown as written and compares with nothing |
-| `previous` | number   | No       | The value to compare with; the tile shows the change          |
-| `unit`     | string   | No       | Written after the number, a percent sign without a space      |
-| `tone`     | `UiTone` | No       | Colors the change; without it the change stays neutral        |
+| Prop       | Type             | Required | Notes                                                                            |
+| ---------- | ---------------- | -------- | -------------------------------------------------------------------------------- |
+| `label`    | string           | Yes      |                                                                                  |
+| `value`    | number or string | Yes      | A number, or a value in words that is shown as written and compares with nothing |
+| `previous` | number           | No       | The value to compare with; the tile shows the change                             |
+| `unit`     | string           | No       | Written after the number, a percent sign without a space                         |
+| `tone`     | `UiTone`         | No       | Colors the change; without it the change stays neutral                           |
 
 ## EntityList and Entry
 
@@ -45,16 +45,16 @@ Labeled facts about one thing. `EntityList` has no props and holds only `Entry`.
 
 Rows with named columns. `Table` holds only `Column`, which describes a field of the rows. Without Columns, the table shows the row keys.
 
-| Prop   | Type             | Required | Notes                         |
-| ------ | ---------------- | -------- | ----------------------------- |
-| `rows` | array of records | Yes      | At most 1,000 rows            |
+| Prop   | Type             | Required | Notes              |
+| ------ | ---------------- | -------- | ------------------ |
+| `rows` | array of records | Yes      | At most 1,000 rows |
 
-| Column prop | Type   | Required | Notes                                                                        |
-| ----------- | ------ | -------- | ---------------------------------------------------------------------------- |
-| `key`       | string | Yes      | The field of each row, 1 to 256 characters                                   |
-| `title`     | string | No       | The heading; the key without one                                             |
-| `unit`      | string | No       | Written after each number                                                    |
-| `as`        | string | No       | `text`, `number`, `bytes`, `duration`, `date`, `file` or `tag`                |
+| Column prop | Type   | Required | Notes                                                          |
+| ----------- | ------ | -------- | -------------------------------------------------------------- |
+| `key`       | string | Yes      | The field of each row, 1 to 256 characters                     |
+| `title`     | string | No       | The heading; the key without one                               |
+| `unit`      | string | No       | Written after each number                                      |
+| `as`        | string | No       | `text`, `number`, `bytes`, `duration`, `date`, `file` or `tag` |
 
 A `duration` is in milliseconds. A `date` is milliseconds since the epoch or an ISO string. A `file` is a path in mono text. A value of the wrong kind reads as text, and a missing one as nothing.
 
@@ -62,11 +62,11 @@ A `duration` is in milliseconds. A `date` is milliseconds since the epoch or an 
 
 Labeled numeric series. Each row of `data` has a `label` and up to six numeric series by name. Chart has no children.
 
-| Prop   | Type             | Required | Notes                                              |
-| ------ | ---------------- | -------- | -------------------------------------------------- |
-| `kind` | string           | Yes      | `bar`, `hbar` (horizontal), `stacked` or `line`    |
-| `data` | array of records | Yes      | At most 1,000 rows of scalars                      |
-| `unit` | string           | No       | Written after each value                           |
+| Prop   | Type             | Required | Notes                                           |
+| ------ | ---------------- | -------- | ----------------------------------------------- |
+| `kind` | string           | Yes      | `bar`, `hbar` (horizontal), `stacked` or `line` |
+| `data` | array of records | Yes      | At most 1,000 rows of scalars                   |
+| `unit` | string           | No       | Written after each value                        |
 
 A value that is not a finite number is a gap. A chart without a usable series, or with numbers it cannot scale, draws as its data.
 

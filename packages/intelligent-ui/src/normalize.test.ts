@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, setSystemTime, test } from 'bun:test';
-import { UI_CATALOG } from './catalog.ts';
+import { UI_COMPONENT_ALIASES } from './aliases.ts';
+import { isUiComponent, UI_CATALOG } from './catalog.ts';
 import { compileUiBlock } from './compiler.ts';
 import type { UiViewNode } from './model.ts';
 import { evaluateUiBlock } from './runtime.ts';
@@ -317,6 +318,13 @@ describe('a prop nothing can read', () => {
 });
 
 describe('the catalog', () => {
+    test('every other name of a component stands for one the catalog has', () => {
+        for (const [written, name] of Object.entries(UI_COMPONENT_ALIASES)) {
+            expect(isUiComponent(name), written).toBe(true);
+            expect(isUiComponent(written), written).toBe(false);
+        }
+    });
+
     test('every component that is no child of another carries an example that compiles without a diagnostic', () => {
         for (const [name, entry] of Object.entries(UI_CATALOG)) {
             if (!('parent' in entry)) {

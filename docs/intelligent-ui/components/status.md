@@ -27,19 +27,19 @@ Every `tone` is a `UiTone`: `neutral`, `info`, `success`, `warning` or `danger`.
 
 The result in one sentence, as its children. The first Summary heads the block and names it for a screen reader; later ones are subheadings.
 
-| Prop    | Type     | Required | Notes                               |
-| ------- | -------- | -------- | ----------------------------------- |
-| `tone`  | `UiTone` | No       | Gives the sentence an icon          |
-| `badge` | string   | No       | A short label beside it, as a pill  |
+| Prop    | Type     | Required | Notes                              |
+| ------- | -------- | -------- | ---------------------------------- |
+| `tone`  | `UiTone` | No       | Gives the sentence an icon         |
+| `badge` | string   | No       | A short label beside it, as a pill |
 
 ## Callout
 
 A note that needs attention. Its children are the note.
 
-| Prop    | Type     | Required | Notes                  |
-| ------- | -------- | -------- | ---------------------- |
+| Prop    | Type     | Required | Notes                                    |
+| ------- | -------- | -------- | ---------------------------------------- |
 | `tone`  | `UiTone` | No       | The surface and icon; `info` without one |
-| `title` | string   | No       | A line above the note  |
+| `title` | string   | No       | A line above the note                    |
 
 ## Tag
 
@@ -53,29 +53,29 @@ A short status label. Its children are the label. A Tag may stand inside text.
 
 Progress with a label. Its children are the label. Without `value` the progress is indeterminate; without `max` the value reads as a percentage.
 
-| Prop    | Type   | Required | Notes          |
-| ------- | ------ | -------- | -------------- |
-| `value` | number | No       | Zero or more   |
-| `max`   | number | No       | Above zero     |
+| Prop    | Type   | Required | Notes        |
+| ------- | ------ | -------- | ------------ |
+| `value` | number | No       | Zero or more |
+| `max`   | number | No       | Above zero   |
 
 ## Steps and Step
 
 An ordered sequence. `Steps` has no props and holds only `Step`. A `Step` stands only inside `Steps`; its children are the step's label.
 
-| Prop     | Type   | Required | Notes                                                  |
-| -------- | ------ | -------- | ------------------------------------------------------ |
+| Prop     | Type   | Required | Notes                                                                      |
+| -------- | ------ | -------- | -------------------------------------------------------------------------- |
 | `state`  | string | No       | `done`, `running`, `pending`, `failed` or `skipped`; `pending` without one |
-| `detail` | string | No       | Faint text beside the label, such as a file or a time  |
+| `detail` | string | No       | Faint text beside the label, such as a file or a time                      |
 
 ## Timeline and Event
 
 Events in time order. `Timeline` has no props and holds only `Event`, at least one. An `Event` stands only inside `Timeline`; its children are the title.
 
-| Prop     | Type     | Required | Notes                                                              |
-| -------- | -------- | -------- | ------------------------------------------------------------------ |
-| `at`     | string   | Yes      | `HH:MM[:SS]`, `YYYY-MM-DD` or an ISO date-time with an optional offset  |
-| `tone`   | `UiTone` | No       | The color of the dot; the tone is also spoken to a screen reader   |
-| `detail` | string   | No       | Faint text under the title                                         |
+| Prop     | Type     | Required | Notes                                                                  |
+| -------- | -------- | -------- | ---------------------------------------------------------------------- |
+| `at`     | string   | Yes      | `HH:MM[:SS]`, `YYYY-MM-DD` or an ISO date-time with an optional offset |
+| `tone`   | `UiTone` | No       | The color of the dot; the tone is also spoken to a screen reader       |
+| `detail` | string   | No       | Faint text under the title                                             |
 
 The host formats the time for the reader's language and region, with the year when it is not the current one. Without an offset, a time, date or date-time reads as written in every time zone. A lone `HH:MM:SS` keeps its seconds; fractions are dropped. With an offset (`Z`, `+02:00`, from `-12:00` to `+14:00`), it is an instant shown in the reader's time zone. Other offsets are refused.
 
