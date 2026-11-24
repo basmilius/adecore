@@ -19,8 +19,18 @@ export interface UiNormalized {
     warnings: UiFailure[];
 }
 
-interface Inner {
-    def: { type: string; innerType?: z.ZodType; entries?: Record<string, unknown>; values?: readonly unknown[]; options?: readonly z.ZodType[] };
+/* The part of a zod schema's definition this package reads. Zod has no public way to ask what a schema takes, so every such read goes through here. */
+export interface UiSchemaDef {
+    type: string;
+    innerType?: z.ZodType;
+    entries?: Record<string, unknown>;
+    values?: readonly unknown[];
+    options?: readonly z.ZodType[];
+    defaultValue?: unknown;
+}
+
+export function uiSchemaDef(schema: z.ZodType): UiSchemaDef {
+    return (schema as unknown as { def: UiSchemaDef }).def;
 }
 
 const TYPE_WORDS: Readonly<Record<string, string>> = { number: 'a number', boolean: 'true or false', string: 'text', array: 'a list', record: 'a record' };
@@ -30,25 +40,26 @@ const QUANTITY = /^(-?\d+(?:\.\d+)?)\s*([^\d\s.,-][^\d]*)?$/;
 
 /* The schema a prop is checked against once it is given: an optional or defaulted one without its wrapper. */
 export function uiInnerSchema(schema: z.ZodType): z.ZodType {
-    const { def } = schema as unknown as Inner;
+    const def = uiSchemaDef(schema);
+    const wrapped = def.type === 'optional' || def.type === 'default' || def.type === 'nullable';
 
-    return (def.type === 'optional' || def.type === 'default' || def.type === 'nullable') && def.innerType ? uiInnerSchema(def.innerType) : schema;
+    return wrapped && def.innerType ? uiInnerSchema(def.innerType) : schema;
 }
 
 function typeOf(schema: z.ZodType): string {
-    return (uiInnerSchema(schema) as unknown as Inner).def.type;
+    return uiSchemaDef(uiInnerSchema(schema)).type;
 }
 
 /* What a prop takes, in the words of a message. */
 function described(schema: z.ZodType): string {
-    const { def } = uiInnerSchema(schema) as unknown as Inner;
+    const def = uiSchemaDef(uiInnerSchema(schema));
 
     return def.type === 'union' ? [...new Set((def.options ?? []).map(described))].join(' or ') : (TYPE_WORDS[def.type] ?? def.type);
 }
 
 /* The values an enum or a literal prop takes, or null for any other prop. */
 export function uiPropOptions(schema: z.ZodType): string[] | null {
-    const { def } = uiInnerSchema(schema) as unknown as Inner;
+    const def = uiSchemaDef(uiInnerSchema(schema));
 
     if (def.type === 'enum') {
         return Object.keys(def.entries ?? {});
@@ -151,8 +162,9 @@ function readQuantities(type: string, entry: UiNormalEntry, props: Record<string
 
     for (const item of read) {
         const written = props[item.key];
-        props[item.key] = item.value;
         const both = quantity.unit !== undefined && unit !== undefined ? ` ${uiWritten(quantity.unit, unit)}` : '';
+
+        props[item.key] = item.value;
 
         warnings.push(
             new UiFailure(
@@ -180,17 +192,18 @@ function readSeries(type: string, entry: UiNormalEntry, props: Record<string, Ui
     const keys = new Set(records.flatMap((row) => Object.keys(row)));
     const units = new Set<string>();
     const columns: string[] = [];
+
     keys.delete(series.label);
 
     for (const key of keys) {
         const values = records.map((row) => row[key]).filter((value) => value !== undefined && value !== null && value !== '');
-        const read = values.map((value) => (typeof value === 'number' ? { value, unit: '' } : quantityOf(value)));
+        const read = values.flatMap((value) => (typeof value === 'number' ? [{ value, unit: '' }] : (quantityOf(value) ?? [])));
 
-        if (values.some((value) => typeof value === 'string') && read.every((item) => item !== null)) {
+        if (values.some((value) => typeof value === 'string') && read.length === values.length) {
             columns.push(key);
 
             for (const item of read) {
-                units.add(item!.unit);
+                units.add(item.unit);
             }
         }
     }
@@ -245,6 +258,7 @@ export function normalizeUiProps(type: string, entry: UiNormalEntry, written: Re
     const warnings: UiFailure[] = [];
     const { shape } = entry.schema;
     let dropped = false;
+
     readQuantities(type, entry, props, warnings);
     readSeries(type, entry, props, warnings);
 
@@ -312,7 +326,11 @@ export function normalizeUiProps(type: string, entry: UiNormalEntry, written: Re
 function ofType(schema: z.ZodType, value: unknown): boolean {
     const type = typeOf(schema);
 
-    return type === 'array' ? Array.isArray(value) : type === 'string' || type === 'number' || type === 'boolean' ? typeof value === type : true;
+    if (type === 'array') {
+        return Array.isArray(value);
+    }
+
+    return type === 'string' || type === 'number' || type === 'boolean' ? typeof value === type : true;
 }
 
 /* What the schema refused, said per prop with the component's name and what the prop takes. */

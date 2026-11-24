@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { uiInnerSchema, uiPropOptions } from './normalize.ts';
+import { uiInnerSchema, uiPropOptions, uiSchemaDef } from './normalize.ts';
 
 export const UI_TONES = ['neutral', 'info', 'success', 'warning', 'danger'] as const;
 
@@ -21,14 +21,10 @@ interface UiPrintedEntry {
     readonly lookup?: UiLookup;
 }
 
-interface Inner {
-    def: { type: string; options?: readonly z.ZodType[]; defaultValue?: unknown };
-}
-
 /* What a prop takes, as the catalog prints it: `text`, `number`, `boolean`, `list`, `scalar`, `tone` or the values of an enum. */
 export function uiPropType(schema: z.ZodType): string {
     const inner = uiInnerSchema(schema);
-    const { def } = inner as unknown as Inner;
+    const def = uiSchemaDef(inner);
     const options = uiPropOptions(inner);
 
     if (options !== null) {
@@ -51,7 +47,7 @@ export function uiPropType(schema: z.ZodType): string {
 }
 
 function defaultOf(schema: z.ZodType): string {
-    const { def } = schema as unknown as Inner;
+    const def = uiSchemaDef(schema);
 
     return def.type === 'default' ? ` = ${String(def.defaultValue)}` : '';
 }

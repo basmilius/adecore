@@ -203,8 +203,8 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                 }
             }
 
-            const normal = normalizeUiProps(node.type, entry, props);
-            props = normal.props;
+            props = normalizeUiProps(node.type, entry, props).props;
+
             const parsed = entry.schema.safeParse(props);
 
             if (!parsed.success) {

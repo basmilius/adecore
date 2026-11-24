@@ -6,7 +6,7 @@ import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { unreadableEventTime } from './event-warning.ts';
 import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
-import { normalizeUiProps, uiPropsMessage, type UiNormalEntry } from './normalize.ts';
+import { normalizeUiProps, uiPropsMessage, uiSchemaDef, type UiNormalEntry } from './normalize.ts';
 import { aliasedProp } from './prop-alias.ts';
 import type { UiBlock, UiNode, UiQuery } from './protocol.ts';
 import { rethrowBudget } from './rethrow.ts';
@@ -258,6 +258,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
 
     const compile = (original: UiSyntaxNode, depth: number, parent?: string): UiNode => {
         budget.depth(depth);
+
         const alias = isUiComponent(original.type) || original.type === '$text' ? undefined : UI_COMPONENT_ALIASES[original.type];
         const syntax = alias === undefined ? original : { ...original, type: alias };
 
@@ -359,6 +360,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                     // The words a component takes between its tags, written as a prop instead.
                     if (words !== undefined && UI_TEXT_PROPS.includes(key) && wordsProp === undefined && !children.some(isWords)) {
                         wordsProp = key;
+
                         const child = {
                             id: `${syntax.id}:${key}`,
                             type: '$text',
@@ -368,10 +370,12 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                             start: syntax.start,
                             end: syntax.end
                         };
+
                         children = [
                             isConstant(expression) ? { ...child, text: uiPlainText(evaluateUiExpression(expression, {}, budget)) } : { ...child, expression },
                             ...children
                         ];
+
                         warn(new UiFailure('renamed_prop', `${syntax.type} takes its ${words} between the tags, not as ${written}; read as that.`));
 
                         continue;
@@ -426,20 +430,23 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             // An input that binds no state still holds what a person picks, in state of its own.
             if ('implicit' in entry && !given(entry.binding) && syntax.complete) {
                 const name = implicitState(syntax.type, [...entry.implicit]);
+
                 node.expressions[entry.binding] = { kind: 'reference', name };
                 node.bindings[entry.binding] = name;
             }
 
             // Written into the block, so a client that knows no default for the prop reads the same component.
             for (const [key, schema] of Object.entries(normal.schema.shape)) {
-                if (!given(key) && schema.def.type === 'default') {
+                if (!given(key) && uiSchemaDef(schema).type === 'default') {
                     node.props[key] = schema.parse(undefined) as UiValue;
                 }
             }
 
             const constants = normalizeUiProps(syntax.type, normal, node.props);
+
             node.props = Object.assign(Object.create(null), constants.props);
             constants.warnings.forEach(warn);
+
             let evaluated: Record<string, UiValue> = { ...node.props };
             fallbackProps = evaluated;
             let unresolved = false;
@@ -461,9 +468,11 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             if (!unresolved && syntax.complete) {
                 // What state and an Each hand a prop is read as leniently as what is written, here and where the block is drawn.
                 const resolved = normalizeUiProps(syntax.type, normal, evaluated);
+
                 resolved.warnings.forEach(warn);
                 evaluated = resolved.props;
                 fallbackProps = evaluated;
+
                 const parsed = entry.schema.safeParse(evaluated);
 
                 if (!parsed.success) {
