@@ -16,6 +16,20 @@ describe('the settings a host changes after mounting', () => {
         expect(guides()).toBeGreaterThan(0);
     });
 
+    test('read nothing from the whole text of a fragment, until a setter turns it back on', () => {
+        const { editor, page } = mountEditor({ text: '}\nf {\n    b\n}', partial: true });
+        const root = page.host.querySelector('.se-editor') as HTMLElement;
+
+        const count = (selector: string): number => page.host.querySelectorAll(selector).length;
+
+        editor.setSelections([{ start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }]);
+        expect(count('.se-bracket-unmatched')).toBe(0);
+        expect(count('.se-guide')).toBe(0);
+        expect(root.dataset.foldOutline).toBe('off');
+        editor.setGuides(true);
+        expect(count('.se-guide')).toBeGreaterThan(0);
+    });
+
     test('draw the right margin at its column, and none without one', () => {
         const { editor, page } = mountEditor();
 

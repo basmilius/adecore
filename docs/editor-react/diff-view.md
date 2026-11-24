@@ -28,7 +28,7 @@ const document = diffDocument(patchOf(before, after), { old: before, new: after 
 
 Removed and added lines are document text, so selection, copy, find and wrapping work as in the editor. Line numbers stay out of copied text, and copy joins lines with LF. Hidden context unfolds on click, within `unfoldLimits`; a gap that cannot unfold within them is disabled. A partial patch cannot unfold omitted text. In split, each side holds only its own text, and filler rows take no part in it. A side that is wholly absent falls back to unified.
 
-The view keeps its editor when the document, tokens, theme or wrap change. Folding, sticky blocks and indentation guides are off. Replaced words get a stronger tint; large changes keep only line tints. Mod+Enter passes to the container, so a prompt card's primary action still works.
+The view keeps its editor when the document, tokens, theme or wrap change. The editor is `partial`, so folding, sticky blocks, indentation guides and bracket marks are off: a hunk is only part of the file. Replaced words get a stronger tint; large changes keep only line tints. Mod+Enter passes to the container, so a prompt card's primary action still works.
 
 `DiffView` throws asynchronous alignment failures during render, so an error boundary can replace it. `unfoldLimits` does not bound the initial changes; the caller does.
 

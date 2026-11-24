@@ -116,6 +116,8 @@ class SmartEditor implements Editor {
         this.language = options.language;
         this.theme = options.theme;
 
+        const whole = options.partial !== true;
+
         this.settings = {
             searchWorker: engine.searchWorker,
             language: options.language,
@@ -127,16 +129,21 @@ class SmartEditor implements Editor {
             smartKeys: resolveSmartKeys(options.smartKeys),
             messages: options.messages ?? {},
             label: options.label ?? DEFAULT_LABEL,
-            guides: options.guides !== false,
-            stickyScroll: options.stickyScroll !== false,
+            guides: whole && options.guides !== false,
+            brackets: whole,
+            stickyScroll: whole && options.stickyScroll !== false,
             whitespace: options.whitespace === true,
             rightMargin: options.rightMargin ?? null,
-            foldOutline: options.foldOutline ?? 'hover',
-            folding: options.folding !== false,
+            foldOutline: whole ? (options.foldOutline ?? 'hover') : 'off',
+            folding: whole && options.folding !== false,
             todoWords: options.todoWords
         };
 
         this.view = new EditorView(element, this.model, this.settings);
+
+        if (!whole) {
+            this.view.setBlocks([]);
+        }
         this.grammarPreparation = new GrammarPreparation(this.model, () => this.view.grammarChanged());
 
         const engineHandBack = live(engine.handBack ?? []);

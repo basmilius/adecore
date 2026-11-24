@@ -34,6 +34,7 @@ describe('scrolling the view', () => {
         messages: {},
         label: 'Code editor',
         guides: true,
+        brackets: true,
         whitespace: false,
         rightMargin: null,
         foldOutline: 'hover'

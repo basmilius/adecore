@@ -82,6 +82,12 @@ export interface EditorOptions {
     readonly smartKeys?: Partial<EditorSmartKeys>;
     /* A line at each indentation level, the one of the scope around the caret stronger; on unless false. */
     readonly guides?: boolean;
+    /*
+     * The text is a fragment of a file, such as the hunks of a diff, so whatever the editor would read from the whole
+     * text is wrong: no bracket marks, guides, folds or sticky blocks, and no blocks for the breadcrumb until the host
+     * sets them. A setter turns one back on. Off unless true.
+     */
+    readonly partial?: boolean;
     /* The headers of the blocks scrolled out of sight stay pinned on top; on unless false. */
     readonly stickyScroll?: boolean;
     /* Spaces drawn as dots and tabs as arrows; off unless true. */

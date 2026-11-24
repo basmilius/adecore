@@ -85,13 +85,9 @@ export function SplitDiffView({
                 wrap: initial.wrap,
                 label: initial.label,
                 readOnly: true,
-                guides: false,
-                folding: false,
-                foldOutline: 'off',
+                partial: true,
                 handBack: [parseChord('Mod+Enter')]
             });
-
-            editor.setBlocks([]);
 
             editor.setLineTokens((line) => {
                 const row = current.current.display[side].rows[line];

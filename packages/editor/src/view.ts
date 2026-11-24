@@ -111,6 +111,7 @@ export interface ViewSettings {
     messages: Partial<EditorMessages>;
     label: string;
     guides: boolean;
+    brackets: boolean;
     whitespace: boolean;
     rightMargin: number | null;
     foldOutline: 'off' | 'hover' | 'always';
@@ -1647,7 +1648,7 @@ export class EditorView {
     }
 
     private bracketAt({ anchor, head }: EditorSelection): number | undefined {
-        if (Math.abs(head - anchor) > 1) {
+        if (!this.settings.brackets || Math.abs(head - anchor) > 1) {
             return undefined;
         }
 

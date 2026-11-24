@@ -14,6 +14,7 @@ const SETTINGS: ViewSettings = {
     messages: {},
     label: 'Code editor',
     guides: true,
+    brackets: true,
     whitespace: false,
     rightMargin: null,
     foldOutline: 'hover'

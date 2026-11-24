@@ -65,15 +65,12 @@ function UnifiedDiffView({
             wrap: initial.wrap,
             label: initial.label,
             readOnly: true,
-            guides: false,
-            foldOutline: 'off',
-            folding: false,
+            partial: true,
             // Prompt cards use this chord for their primary action; a read-only review has no split-line action.
             handBack: [parseChord('Mod+Enter')]
         });
 
         applied.current = { theme: initial.theme, wrap: initial.wrap, label: initial.label };
-        editor.setBlocks([]);
 
         editor.setLineTokens((line) => {
             const { display, tokens } = current.current;
