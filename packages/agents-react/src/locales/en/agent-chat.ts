@@ -718,7 +718,15 @@ export default {
         },
         stat: {
             change: '{{change}} from {{previous}}',
-            from: 'from {{previous}}'
+            from: 'from {{previous}}',
+            trend: 'Trend from {{first}} to {{last}}'
+        },
+        node: {
+            status: {
+                running: 'Running',
+                needsYou: 'Needs you',
+                done: 'Done'
+            }
         },
         meter: {
             label: 'Meter',

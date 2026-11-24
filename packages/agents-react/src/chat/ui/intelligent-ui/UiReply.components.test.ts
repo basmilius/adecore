@@ -237,3 +237,35 @@ describe('a clipped patch', () => {
         expect(uiClipPatch(added, 2).patch.split('\n')[0]).toBe('@@ -4,0 +5,2 @@');
     });
 });
+
+describe('CodeBlock', () => {
+    test('numbers its lines from start and marks the highlighted ones, before it is highlighted too', () => {
+        const markup = drawn('<CodeBlock language="ts" start={98} highlight={[99, 100]}>const a = 1;\nconst b = 2;\nconst c = 3;</CodeBlock>');
+        expect(markup).toContain('data-lined=""');
+        expect(markup).toContain('--chat-code-digits:3');
+        expect(markup).toContain('<span class="line" data-line="98">const a = 1;</span>');
+        expect(markup).toContain('<span class="line" data-line="99" data-marked="">const b = 2;</span>');
+        expect(markup).toContain('<span class="line" data-line="100" data-marked="">const c = 3;</span>');
+    });
+
+    test('marks lines counted from 1 without a start, and shows no number', () => {
+        const markup = drawn('<CodeBlock highlight={[2]}>one\ntwo</CodeBlock>');
+        expect(markup).toContain('<span class="line">one</span>');
+        expect(markup).toContain('<span class="line" data-marked="">two</span>');
+        expect(markup).not.toContain('data-line=');
+    });
+
+    test('stays one run of text without a start or a highlight', () => {
+        const markup = drawn('<CodeBlock language="ts">one\ntwo</CodeBlock>');
+        expect(markup).not.toContain('data-lined');
+        expect(markup).not.toContain('class="line"');
+        expect(markup).toContain('>ts</span>');
+    });
+
+    test('shows its file in place of the language, as text with the line while no host opens it', () => {
+        const markup = drawn('<CodeBlock language="ts" file="src/total.ts" start={12}>const total = rows.length;</CodeBlock>');
+        expect(markup).toContain('src/total.ts:12');
+        expect(markup).not.toContain('>ts</span>');
+        expect(markup).not.toContain('<button type="button" class="inline-flex');
+    });
+});

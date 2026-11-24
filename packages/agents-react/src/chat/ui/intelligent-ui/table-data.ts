@@ -1,4 +1,5 @@
-import type { UiProps, UiViewNode } from '@adecore/intelligent-ui';
+import type { UiProps, UiTone, UiViewNode } from '@adecore/intelligent-ui';
+import { labelCollator } from '@adecore/ui/format';
 import { uiChildrenOf } from './node-text';
 
 type UiColumnKind = NonNullable<UiProps<'Column'>['as']>;
@@ -8,6 +9,9 @@ export interface UiTableColumn {
     title: string;
     unit?: string;
     as: UiColumnKind;
+
+    /* The tone of a tag cell, by the text it shows. */
+    tones?: Readonly<Record<string, UiTone>>;
 }
 
 /* What one cell shows, decided before drawing so a value of the wrong kind never reaches a formatter. */
@@ -52,7 +56,7 @@ export function uiTableColumns(node: UiViewNode<UiProps<'Table'>>): UiTableColum
 
             seen.add(props.key);
 
-            return [{ key: props.key, title: props.title ?? props.key, unit: props.unit, as: props.as ?? 'text' }];
+            return [{ key: props.key, title: props.title ?? props.key, unit: props.unit, as: props.as ?? 'text', tones: props.tones }];
         });
     }
 
@@ -122,4 +126,74 @@ export function uiTableCell(value: unknown, column: UiTableColumn): UiTableCell 
         case 'text':
             return { kind: 'text', text: textOf(value) };
     }
+}
+
+/* The order of a table: one of its columns, the largest first when `descending`. */
+export interface UiTableSort {
+    key: string;
+    descending: boolean;
+}
+
+/* What `sort` on a Table asks for: a column key, with ` desc` behind it for the largest first. Null for a key the table draws no column of. */
+export function uiTableSort(sort: string | undefined, columns: readonly UiTableColumn[]): UiTableSort | null {
+    if (sort === undefined) {
+        return null;
+    }
+
+    const written = sort.trim();
+    const drawn = (key: string): boolean => columns.some((column) => column.key === key);
+
+    // A key that itself ends in a direction is that key.
+    if (drawn(written)) {
+        return { key: written, descending: false };
+    }
+
+    const [, key, direction] = /^(.*?)\s+(asc|desc)$/i.exec(written) ?? [];
+
+    return key !== undefined && drawn(key) ? { key, descending: direction!.toLowerCase() === 'desc' } : null;
+}
+
+function sortValue(cell: UiTableCell): number | string | null {
+    switch (cell.kind) {
+        case 'empty':
+            return null;
+        case 'number':
+            return cell.value;
+        case 'date':
+            return cell.at;
+        case 'file':
+            return cell.path;
+        case 'text':
+        case 'tag':
+            return cell.text;
+    }
+}
+
+/*
+ * The places of `rows` in the order of one column, so a row keeps the index live readings address it by.
+ * Numbers, bytes, durations, percentages and dates order by value and text by the reader's language. In
+ * either direction a number stands before text and an empty cell last, and equal rows keep their order.
+ */
+export function uiTableOrder(rows: UiProps<'Table'>['rows'], column: UiTableColumn, descending: boolean): number[] {
+    const collator = labelCollator();
+    const direction = descending ? -1 : 1;
+
+    return rows
+        .map((row, index) => ({ index, value: sortValue(uiTableCell(row[column.key], column)) }))
+        .sort((left, right) => {
+            if (left.value === null || right.value === null) {
+                return left.value === right.value ? left.index - right.index : left.value === null ? 1 : -1;
+            }
+
+            if (typeof left.value === 'string' || typeof right.value === 'string') {
+                if (typeof left.value !== typeof right.value) {
+                    return typeof left.value === 'number' ? -1 : 1;
+                }
+
+                return direction * collator.compare(left.value as string, right.value as string) || left.index - right.index;
+            }
+
+            return direction * (left.value - right.value) || left.index - right.index;
+        })
+        .map((entry) => entry.index);
 }

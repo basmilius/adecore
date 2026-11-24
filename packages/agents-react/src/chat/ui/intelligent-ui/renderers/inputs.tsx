@@ -1,5 +1,5 @@
 import type { UiProps } from '@adecore/intelligent-ui';
-import { Button, Checkbox, Input, Segmented, Select, Slider, Switch, Tooltip } from '@adecore/ui';
+import { Button, Checkbox, Input, Segmented, Select, Slider, Switch, TextArea, Tooltip } from '@adecore/ui';
 import { formatNumber, formatRounded } from '@adecore/ui/format';
 import clsx from 'clsx';
 import { createContext, useContext, useId, useState, type MouseEvent, type ReactNode } from 'react';
@@ -116,20 +116,23 @@ export function SliderRenderer({ node, context }: UiRendererProps<UiProps<'Slide
 /* A label longer than this reads as a sentence, which wraps badly beside another; the options then stand in a column. */
 const SIDE_BY_SIDE_LABEL = 24;
 
-/* Left aligned, never the full width. Each Option is a segment by its place, since a value may be any scalar. */
+/* Left aligned, never the full width, under its label where it has one. Each Option is a segment by its place, since a value may be any scalar. */
 export function SegmentedRenderer({ node, context }: UiRendererProps<UiProps<'Segmented'>>) {
     const { t } = useTranslation('agent-chat');
     const binding = bindingOf(node, context);
     const current = binding?.value ?? node.props.value;
     const options = uiChildrenOf(node, 'Option').map((option, index) => ({ id: String(index), label: uiNodeLabel(option), value: option.props.value }));
     const picked = options.find((option) => option.value === current)?.id ?? '';
+    const { label } = node.props;
+    const named = label !== undefined && label !== '';
 
     return (
-        <div className={clsx(!node.complete && PENDING)}>
+        <div className={clsx('flex flex-col items-start gap-1.5', !node.complete && PENDING)}>
+            {named && <span className="px-0.5 text-2xs text-text-muted">{label}</span>}
             <Segmented
                 value={picked}
                 options={options}
-                label={t('blocks.options')}
+                label={named ? label : t('blocks.options')}
                 orientation={options.some((option) => option.label.length > SIDE_BY_SIDE_LABEL) ? 'vertical' : 'horizontal'}
                 disabled={binding === null}
                 onValueChange={(id) => {
@@ -151,14 +154,15 @@ const DEFAULT_MAX_LENGTH = 256;
 const COUNT_FROM = 0.8;
 
 /*
- * A line of text: the label above the field, which stops taking characters at its limit. Nothing here binds
- * a key or submits on Enter, so the value reaches the agent only through a Choice.
+ * A line of text, or with `multiline` a few lines that grow with what is typed: the label above the field,
+ * which stops taking characters at its limit. Nothing here binds a key or submits on Enter, so the value
+ * reaches the agent only through a Choice.
  */
 export function TextFieldRenderer({ node, children, context }: UiRendererProps<UiProps<'TextField'>>) {
     const { t } = useTranslation('agent-chat');
     const id = useId();
     const binding = bindingOf(node, context);
-    const { maxLength = DEFAULT_MAX_LENGTH, placeholder } = node.props;
+    const { maxLength = DEFAULT_MAX_LENGTH, placeholder, multiline } = node.props;
     const value = binding?.value ?? node.props.value;
     const countId = `${id}-count`;
     const counting = value.length >= maxLength * COUNT_FROM;
@@ -168,17 +172,32 @@ export function TextFieldRenderer({ node, children, context }: UiRendererProps<U
             <label htmlFor={id} className="px-0.5 text-2xs text-text-muted">
                 {children}
             </label>
-            <Input
-                id={id}
-                value={value}
-                size="sm"
-                maxLength={maxLength}
-                placeholder={placeholder}
-                disabled={binding === null}
-                aria-describedby={counting ? countId : undefined}
-                className="border-transparent bg-ui-tile"
-                onChange={(event) => binding?.onValueChange(event.target.value)}
-            />
+            {multiline === true ? (
+                <TextArea
+                    id={id}
+                    value={value}
+                    size="sm"
+                    rows={2}
+                    maxLength={maxLength}
+                    placeholder={placeholder}
+                    disabled={binding === null}
+                    aria-describedby={counting ? countId : undefined}
+                    className="max-h-40 field-sizing-content border-transparent bg-ui-tile"
+                    onChange={(event) => binding?.onValueChange(event.target.value)}
+                />
+            ) : (
+                <Input
+                    id={id}
+                    value={value}
+                    size="sm"
+                    maxLength={maxLength}
+                    placeholder={placeholder}
+                    disabled={binding === null}
+                    aria-describedby={counting ? countId : undefined}
+                    className="border-transparent bg-ui-tile"
+                    onChange={(event) => binding?.onValueChange(event.target.value)}
+                />
+            )}
             {counting && (
                 <span id={countId} className="text-xs text-text-muted tabular-nums">
                     {t('blocks.textField.count', { used: formatNumber(value.length), max: formatNumber(maxLength) })}

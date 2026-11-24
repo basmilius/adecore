@@ -718,7 +718,15 @@ export default {
         },
         stat: {
             change: '{{change}} vanaf {{previous}}',
-            from: 'vanaf {{previous}}'
+            from: 'vanaf {{previous}}',
+            trend: 'Verloop van {{first}} naar {{last}}'
+        },
+        node: {
+            status: {
+                running: 'Bezig',
+                needsYou: 'Wacht op jou',
+                done: 'Klaar'
+            }
         },
         meter: {
             label: 'Meter',

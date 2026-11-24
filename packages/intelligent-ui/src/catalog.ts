@@ -308,6 +308,7 @@ export const UI_CATALOG = {
             highlight: z.array(number.int().positive()).max(64).optional()
         }),
         aliases: { lang: 'language', path: 'file' },
+        link: { type: 'File', props: { path: 'file', line: 'start' } },
         example: '<CodeBlock language="ts" file="src/total.ts" start={12} highlight={[12]}>const total = rows.length;</CodeBlock>'
     },
     Quote: {

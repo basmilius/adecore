@@ -11,17 +11,19 @@ $limit = 20
 $scope = "failed"
 $name = "Ada"
 $kind = "bug"
+$note = ""
 <Checklist value={$selected}>
 <Item value="links">Fix the link parser</Item>
 <Item value="preload">Make the bridge method optional</Item>
 </Checklist>
 <Switch value={$notify}>Notify me when it lands</Switch>
 <Slider value={$limit} min={10} max={100} step={10} unit="runs">Runs to compare</Slider>
-<Segmented value={$scope}>
+<Segmented value={$scope} label="Tests to run">
 <Option value="failed">Failed</Option>
 <Option value="all">All</Option>
 </Segmented>
 <TextField value={$name} maxLength={40} placeholder="Your name">Name</TextField>
+<TextField value={$note} maxLength={200} placeholder="What should change" multiline>Note</TextField>
 <Select value={$kind}>
 <Option value="bug">Bug</Option>
 <Option value="idea">Idea</Option>
@@ -69,10 +71,10 @@ A local number in a range. Its children are the label.
 
 Choose one value. `Segmented` holds only `Option`, and binds the chosen option's value. An `Option` stands inside `Segmented`, [`Select`](#select) or [`Radio`](#radio); its children are its label. Keep labels to a few words. Longer ones make the renderer stack the options in a column.
 
-| Prop    | Type   | Required | Notes                   |
-| ------- | ------ | -------- | ----------------------- |
-| `value` | scalar | Yes      | Bindable                |
-| `label` | string | No       | What the options choose |
+| Prop    | Type   | Required | Notes                                                              |
+| ------- | ------ | -------- | ------------------------------------------------------------------ |
+| `value` | scalar | Yes      | Bindable                                                           |
+| `label` | string | No       | A line above the options, and the group's name for a screen reader |
 
 | Option prop | Type   | Required | Notes                                                                             |
 | ----------- | ------ | -------- | --------------------------------------------------------------------------------- |
@@ -108,7 +110,7 @@ A dropdown, for more or longer options than a `Segmented` holds. `Select` holds 
 
 ## TextField
 
-A line of text, up to `maxLength` characters. Its children are the label. It does not submit; the text reaches the agent only through a Choice.
+A line of text, up to `maxLength` characters, or with `multiline` a field that grows to a few lines and scrolls after that. Its children are the label. It does not submit; the text reaches the agent only through a Choice.
 
 | Prop          | Type    | Required | Notes                                                        |
 | ------------- | ------- | -------- | ------------------------------------------------------------ |

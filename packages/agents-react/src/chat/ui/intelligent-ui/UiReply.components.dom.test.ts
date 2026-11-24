@@ -66,7 +66,7 @@ async function mount(source: string, intelligentUi: Partial<UiHost> = {}) {
     };
 }
 
-function type(input: HTMLInputElement, value: string): void {
+function type(input: HTMLInputElement | HTMLTextAreaElement, value: string): void {
     // React tracks the value through the prototype's setter, so a plain assignment would not look like typing.
     Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value')!.set!.call(input, value);
     input.dispatchEvent(new Event('input', { bubbles: true }));
@@ -308,6 +308,95 @@ test('a host that reads no diffs is never asked, and a block opens only its firs
 
     try {
         expect(asked).toHaveLength(UI_OPEN_DIFFS);
+    } finally {
+        await view.unmount();
+    }
+});
+
+test('a column head sorts the table by its column, up and then down, and says so', async () => {
+    const view = await mount(
+        '<Table rows={[{"job": "Unit", "ms": 262000}, {"job": "DOM", "ms": 41000}, {"job": "Types", "ms": 97000}]}><Column key="job" title="Job"/><Column key="ms" title="Duration" as="duration"/></Table>'
+    );
+
+    try {
+        const jobs = () => [...view.element.querySelectorAll('tbody tr')].map((row) => row.querySelector('td')!.textContent);
+        const head = (title: string) => view.button(title)!.closest('th')!;
+
+        expect(jobs()).toEqual(['Unit', 'DOM', 'Types']);
+        expect(head('Duration').hasAttribute('aria-sort')).toBe(false);
+        await act(async () => view.button('Duration')!.click());
+        expect(jobs()).toEqual(['DOM', 'Types', 'Unit']);
+        expect(head('Duration').getAttribute('aria-sort')).toBe('ascending');
+        await act(async () => view.button('Duration')!.click());
+        expect(jobs()).toEqual(['Unit', 'Types', 'DOM']);
+        expect(head('Duration').getAttribute('aria-sort')).toBe('descending');
+        await act(async () => view.button('Job')!.click());
+        expect(jobs()).toEqual(['DOM', 'Types', 'Unit']);
+        expect(head('Job').getAttribute('aria-sort')).toBe('ascending');
+        expect(head('Duration').hasAttribute('aria-sort')).toBe(false);
+    } finally {
+        await view.unmount();
+    }
+});
+
+test('a section that arrives closed opens on a press, and leaves the one beside it as it was', async () => {
+    const view = await mount('<Sections><Section title="Risks" open={false}>None found</Section><Section title="Details">Three handlers</Section></Sections>');
+
+    try {
+        const body = (title: string) => view.element.querySelector<HTMLElement>(`#${CSS.escape(view.button(title)!.getAttribute('aria-controls')!)}`)!;
+
+        expect(view.button('Risks')!.getAttribute('aria-expanded')).toBe('false');
+        expect(body('Risks').hidden).toBe(true);
+        expect(body('Details').hidden).toBe(false);
+        await act(async () => view.button('Risks')!.click());
+        expect(view.button('Risks')!.getAttribute('aria-expanded')).toBe('true');
+        expect(body('Risks').hidden).toBe(false);
+        expect(body('Details').hidden).toBe(false);
+    } finally {
+        await view.unmount();
+    }
+});
+
+test('a multiline text field keeps its lines up to its limit, and a Choice carries them', async () => {
+    const sent: unknown[] = [];
+
+    const view = await mount(
+        '$note = ""\n<TextField value={$note} maxLength={12} multiline>Note</TextField><Choices><Choice context={"Note: " + $note}>Send</Choice></Choices>',
+        {
+            sendChoice: async (_scope, payload) => {
+                sent.push(payload.values);
+
+                return 'sent';
+            }
+        }
+    );
+
+    try {
+        const field = () => view.element.querySelector('textarea')!;
+
+        await act(async () => type(field(), 'one\ntwo'));
+        expect(field().value).toBe('one\ntwo');
+        expect(field().maxLength).toBe(12);
+        await act(async () => view.element.querySelector<HTMLButtonElement>('[role="group"][aria-label="Choices"] button')!.click());
+        expect(sent).toEqual([{ $note: 'one\ntwo' }]);
+        expect(field().disabled).toBe(true);
+    } finally {
+        await view.unmount();
+    }
+});
+
+test('the file of a code block opens through the host at its first line once the host resolved it', async () => {
+    const opened: unknown[] = [];
+
+    const view = await mount('<CodeBlock language="ts" file="src/total.ts" start={12}>const total = rows.length;</CodeBlock>', {
+        link: async () => ({ state: 'chip', target: { type: 'File', path: 'src/total.ts', line: 12 } }),
+        openLink: (_scope, reading) => opened.push(reading.target)
+    });
+
+    try {
+        await view.settle();
+        await act(async () => view.button('total.ts:12')!.click());
+        expect(opened).toEqual([{ type: 'File', path: 'src/total.ts', line: 12 }]);
     } finally {
         await view.unmount();
     }

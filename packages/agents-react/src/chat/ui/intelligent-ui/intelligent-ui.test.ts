@@ -13,7 +13,7 @@ import { UI_RENDERERS } from './registry';
 import type { UiRenderContext, UiRenderer, UiRendererProps } from './render-context';
 import { UiSourceCitation } from './renderers/content';
 import { ChecklistRenderer } from './renderers/inputs';
-import { uiTableCell, uiTableColumns } from './table-data';
+import { uiTableCell, uiTableColumns, uiTableOrder, uiTableSort } from './table-data';
 import { UiBlockFrame, type UiBlockFrameProps } from './UiBlockFrame';
 
 // A stopped clock, so a slow runner cannot spend the time budget of a UI block before it is built.
@@ -241,10 +241,18 @@ describe('long text', () => {
         expect(step).toContain(long);
         const summary = markup(`<Summary badge="${long}">Result of the research</Summary>`);
         expect(summary).toContain(`<p class="text-2xs font-medium wrap-anywhere text-text-muted">${long}</p>`);
+        expect(summary).not.toContain('whitespace-nowrap');
+    });
 
-        expect(markup('<Summary badge="Draft">Release overview</Summary>')).toContain(
-            '<p class="text-2xs font-medium wrap-anywhere text-text-muted">Draft</p>'
+    test('a short badge of a summary is a tag in its tone at the end of the row, and its detail a muted line under the title', () => {
+        const html = markup('<Summary tone="success" badge="v2.4.0" detail="Published 4 minutes ago">The release is live</Summary>');
+        expect(html).toMatch(/<\/div><span class="[^"]*whitespace-nowrap[^"]*bg-status-idle\/15 text-status-idle[^"]*">v2\.4\.0<\/span><\/div>/);
+        // On the surface of a tone the detail is the full text color, which muted text does not read on.
+        expect(html).toContain('<p class="text-xs wrap-break-word text-text">Published 4 minutes ago</p>');
+        expect(markup('<Summary detail="Since Monday">Release overview</Summary>')).toContain(
+            '<p class="text-xs wrap-break-word text-text-muted">Since Monday</p>'
         );
+        expect(markup('<Summary badge="Draft">Release overview</Summary>')).toMatch(/bg-text\/7 text-text-muted[^"]*">Draft<\/span>/);
     });
 });
 
@@ -323,6 +331,27 @@ describe('local inputs', () => {
         expect(markup('$q = "Ada"\n<TextField value={$q}>Who', {}, false)).toContain('opacity-60');
     });
 
+    test('a multiline text field is a textarea with the same label, limit and count', () => {
+        const html = markup('$note = "Line one"\n<TextField value={$note} maxLength={10} placeholder="Why" multiline>Note</TextField>');
+        expect(html).toMatch(/<label for="([^"]+)" class="px-0.5 text-2xs text-text-muted">Note<\/label><textarea id="\1"/);
+        expect(html).toContain('maxLength="10"');
+        expect(html).toContain('placeholder="Why"');
+        expect(html).toContain('>Line one</textarea>');
+        expect(html).toContain('8 of 10 characters');
+        expect(html).not.toContain('<input');
+        expect(markup('$note = ""\n<TextField value={$note} multiline={false}>Note</TextField>')).toContain('<input');
+    });
+
+    test('a segmented control stands under its label and is named by it', () => {
+        const source = (label: string) =>
+            `$env = "dev"\n<Segmented value={$env}${label}><Option value="dev">Dev</Option><Option value="prod">Prod</Option></Segmented>`;
+        const html = markup(source(' label="Environment"'));
+        expect(html).toContain('<span class="px-0.5 text-2xs text-text-muted">Environment</span>');
+        expect(html).toContain('aria-label="Environment"');
+        expect(markup(source(''))).toContain('aria-label="Options"');
+        expect(markup(source(''))).not.toContain('px-0.5 text-2xs');
+    });
+
     test('a select shows the label of the chosen option, stays a trigger, and closes without a binding or an option', () => {
         const source = '$kind = "idea"\n<Select value={$kind}><Option value="bug">Bug</Option><Option value="idea">Idea</Option></Select>';
         const html = markup(source);
@@ -358,6 +387,31 @@ describe('text and status', () => {
     test('progress reads its value against its max, or as a percentage', () => {
         expect(markup('<Progress value={312} max={500}>Indexing files</Progress>')).toContain('312 of 500');
         expect(markup('<Progress value={46}>Share</Progress>')).toContain('46%');
+    });
+
+    test('progress wears its tone on the reading, with the icon and the word of the tone, and a detail under the bar', () => {
+        const html = markup('<Progress value={7} max={12} tone="warning" detail="Two files need a hand">Files migrated</Progress>');
+        expect(html).toContain('<span class="text-status-needs-you">7 of 12</span>');
+        expect(html).toContain('lucide-triangle-alert');
+        expect(html).toContain('aria-valuetext="7 of 12, Warning"');
+        expect(html).toContain('<p class="text-2xs wrap-anywhere text-text-muted">Two files need a hand</p>');
+        const quiet = markup('<Progress value={46}>Share</Progress>');
+        expect(quiet).toContain('<span class="text-text-muted">46%</span>');
+        expect(quiet).toContain('aria-valuetext="46%"');
+        expect(quiet).not.toContain('lucide-');
+    });
+
+    test('steps stand in one tile on a rail, and only a failed step says its state in sight', () => {
+        const html = markup('<Steps><Step state="done" detail="4 min">Unit tests</Step><Step state="failed">Integration</Step><Step>Release</Step></Steps>');
+        expect(html.match(/bg-ui-tile/g)).toHaveLength(1);
+        expect(html).toContain('<ol class="chat-ui-nodes chat-ui-flat flex flex-col rounded-xl bg-ui-tile p-3">');
+        expect(html.match(/<li /g)).toHaveLength(3);
+        expect(html.match(/w-px grow bg-border group-last:hidden/g)).toHaveLength(3);
+        expect(html).toContain('<span class="text-2xs text-status-error">Failed</span>');
+        expect(html).toContain('<span class="sr-only">Done</span>');
+        expect(html).toContain('<span class="sr-only">Waiting</span>');
+        expect(html).toContain('text-2xs wrap-anywhere text-text-muted tabular-nums">4 min</span>');
+        expect(html).not.toContain('whitespace-nowrap');
     });
 
     test('a running step spins only while the block is live', () => {
@@ -440,8 +494,33 @@ describe('text and status', () => {
     test('a stat says how it changed without coloring it unless it has a tone', () => {
         const html = markup('<Stats><Stat label="Cold start" value={1.42} previous={1.9} unit="s"/></Stats>');
         expect(html).toContain('25% from 1.9 s');
-        expect(html).toContain('bg-text/7 text-text-muted');
-        expect(markup('<Stats><Stat label="Tests" value={3} previous={0} tone="danger"/></Stats>')).toContain('text-status-error');
+        expect(html).toContain('tabular-nums text-text-muted');
+        expect(html).toContain('<span aria-hidden="true">-25%</span>');
+        expect(html).toContain('lucide-arrow-down');
+        // A change from zero has no percentage, so it shows what it came from.
+        const fromZero = markup('<Stats><Stat label="Tests" value={3} previous={0} tone="danger"/></Stats>');
+        expect(fromZero).toContain('tabular-nums text-status-error');
+        expect(fromZero).toContain('<span aria-hidden="true">0</span>');
+        expect(markup('<Stats><Stat label="Tests" value={6777} previous={6412}/></Stats>')).toContain('<span aria-hidden="true">+5.7%</span>');
+    });
+
+    test('a stat sets its unit apart from the value, except a percent sign, and a value in words stands as written', () => {
+        const html = markup('<Stats><Stat label="CI" value={21.6} unit="min"/><Stat label="Coverage" value={71} unit="%"/></Stats>');
+        expect(html).toContain('tabular-nums">21.6</span><span class="max-w-1/2 shrink-0 truncate text-xs text-text-muted">min</span>');
+        expect(html).toContain('tabular-nums">71%</span></div>');
+        const words = markup('<Stats><Stat label="State" value="Ready" unit="min" previous={3}/></Stats>');
+        expect(words).toContain('tabular-nums">Ready</span></div>');
+        expect(words).not.toContain('lucide-arrow');
+    });
+
+    test('a stat draws its trend as a line in the color of its tone, named by its first and last value', () => {
+        const html = markup('<Stats><Stat label="Latency" value={48} unit="ms" tone="success" trend={[60, 55, 48]}/></Stats>');
+        expect(html).toContain('<svg role="img" aria-label="Trend from 60 ms to 48 ms" viewBox="0 0 100 24"');
+        expect(html).toContain('class="h-6 w-full text-positive"');
+        expect(html).toContain('d="M0,2 L50,10.33 L100,22"');
+        // A course that never moves is a level line, not a division by nothing.
+        expect(markup('<Stats><Stat label="Errors" value={0} trend={[0, 0]}/></Stats>')).toContain('d="M0,12 L100,12"');
+        expect(markup('<Stats><Stat label="Errors" value={0}/></Stats>')).not.toContain('<svg role="img"');
     });
 
     test('a live stat lights up once it changed, stays dark when stale and keeps the comparison the agent wrote', () => {
@@ -457,12 +536,12 @@ describe('text and status', () => {
         });
 
         expect(asked.map(([, prop]) => prop)).toEqual(['value']);
-        expect(changed).toMatch(/<span class="chat-ui-changed max-w-full truncate text-lg font-semibold text-text tabular-nums">4<\/span>/);
+        expect(changed).toMatch(/<span class="chat-ui-changed min-w-0 truncate text-lg font-semibold text-text tabular-nums">4<\/span>/);
         expect(changed).toContain('100% from 2');
         expect(markup(source, { liveValue: () => ({ previous: 4.001, changed: true, stale: false }) })).not.toContain('chat-ui-changed');
         // The node around a stale value dims it; the value itself keeps its color.
         const stale = markup(source, { liveValue: () => ({ changed: true, stale: true }) });
-        expect(stale).not.toContain('text-text-muted max-w-full');
+        expect(stale).not.toContain('text-text-muted min-w-0');
         expect(stale).not.toContain('chat-ui-changed');
         expect(markup(source)).not.toContain('chat-ui-changed');
     });
@@ -549,6 +628,89 @@ describe('tables', () => {
         const html = markup('<Table rows={[{path: "src/a.ts"}]}><Column key="path" as="file"/></Table>', { link: () => ({ state: 'plain' }) });
         expect(html).toContain('<span class="font-mono text-code break-all">src/a.ts</span>');
         expect(html).not.toContain('tabindex');
+    });
+
+    test('a tag cell wears the tone its column gives its text, and stays quiet for a text the column does not name', () => {
+        const html = markup(
+            '<Table rows={[{state: "passed"}, {state: "failed"}, {state: "constructor"}]}><Column key="state" as="tag" tones={{"passed": "success", "failed": "danger"}}/></Table>'
+        );
+
+        expect(html).toMatch(/bg-status-idle\/15 text-status-idle">passed<\/span>/);
+        expect(html).toMatch(/bg-status-error\/15 text-status-error">failed<\/span>/);
+        expect(html).toMatch(/bg-text\/7 text-text-muted">constructor<\/span>/);
+    });
+
+    test('order a column by value or by the language, with empty cells last and each row at its own place', () => {
+        const rows = [{ ms: 900, name: 'b' }, { ms: '1200', name: 'A' }, { name: 'c' }, { ms: 30, name: 'a10' }, { ms: 'n/a', name: 'a9' }];
+        const duration = { key: 'ms', title: 'ms', as: 'duration' as const };
+        const name = { key: 'name', title: 'name', as: 'text' as const };
+
+        expect(uiTableOrder(rows, duration, false)).toEqual([3, 0, 1, 4, 2]);
+        expect(uiTableOrder(rows, duration, true)).toEqual([1, 0, 3, 4, 2]);
+        expect(uiTableOrder(rows, name, false)).toEqual([1, 4, 3, 0, 2]);
+        expect(uiTableOrder([{ at: '2026-10-11' }, { at: 0 }], { key: 'at', title: 'at', as: 'date' }, false)).toEqual([1, 0]);
+        // Equal values keep the order they arrived in, in both directions.
+        expect(uiTableOrder([{ n: 1 }, { n: 1 }], { key: 'n', title: 'n', as: 'number' }, true)).toEqual([0, 1]);
+    });
+
+    test('read the order a table asks for, and none for a key it draws no column of', () => {
+        const columns = [
+            { key: 'size', title: 'Size', as: 'bytes' as const },
+            { key: 'last desc', title: 'Last', as: 'text' as const }
+        ];
+
+        expect(uiTableSort('size', columns)).toEqual({ key: 'size', descending: false });
+        expect(uiTableSort(' size  DESC ', columns)).toEqual({ key: 'size', descending: true });
+        expect(uiTableSort('size asc', columns)).toEqual({ key: 'size', descending: false });
+        expect(uiTableSort('last desc', columns)).toEqual({ key: 'last desc', descending: false });
+        expect(uiTableSort('missing desc', columns)).toBeNull();
+        expect(uiTableSort(undefined, columns)).toBeNull();
+    });
+
+    test('arrive in the order of sort, say so on the head, and still ask live readings by the place of a row in rows', () => {
+        const asked: unknown[] = [];
+
+        const html = markup(
+            '<Table sort="size desc" rows={[{name: "Core", size: 32}, {name: "Client", size: 40}]}><Column key="name"/><Column key="size" as="number"/></Table>',
+            { liveValue: (_nodeId, _prop, path) => void asked.push(path) as undefined }
+        );
+
+        expect(html.indexOf('Client')).toBeLessThan(html.indexOf('Core'));
+        expect(html).toMatch(/<th scope="col" aria-sort="descending"[^>]*><button type="button"[^>]*>size<svg[^>]*lucide-arrow-down/);
+        expect(html.match(/aria-sort/g)).toHaveLength(1);
+        expect(asked).toEqual([
+            [1, 'name'],
+            [1, 'size'],
+            [0, 'name'],
+            [0, 'size']
+        ]);
+
+        const unsorted = markup('<Table rows={[{name: "Core"}, {name: "Client"}]}/>');
+        expect(unsorted).not.toContain('aria-sort');
+        expect(unsorted).toMatch(/<th scope="col"[^>]*><button type="button"[^>]*>name<\/button>/);
+    });
+});
+
+describe('entity lists', () => {
+    test('are tiles up to four entries and a list from five, unless layout says which', () => {
+        const entries = (count: number) => Array.from({ length: count }, (_, index) => `<Entry label="k${index}">v${index}</Entry>`).join('');
+
+        expect(markup(`<EntityList>${entries(4)}</EntityList>`)).not.toContain('<dl');
+        expect(markup(`<EntityList>${entries(5)}</EntityList>`)).toContain('<dl');
+        expect(markup(`<EntityList layout="list">${entries(2)}</EntityList>`)).toContain('<dl');
+        expect(markup(`<EntityList layout="tiles">${entries(6)}</EntityList>`)).not.toContain('<dl');
+    });
+
+    test('an entry formats its value as a table cell of its kind, and shows one that does not parse as written', () => {
+        const html = markup(
+            '<EntityList><Entry label="Took" as="duration">262000</Entry><Entry label="Size" as="bytes">2048</Entry><Entry label="State" as="tag">passed</Entry><Entry label="Share" as="percent">n/a</Entry></EntityList>'
+        );
+
+        expect(html).toContain('>4 min<');
+        expect(html).toContain('>2 KB<');
+        expect(html).toMatch(/bg-text\/7 text-text-muted">passed<\/span>/);
+        expect(html).toContain('>n/a<');
+        expect(markup('<EntityList><Entry label="At" as="date">0</Entry></EntityList>')).toContain('<time dateTime="1970-01-01T00:00:00.000Z">');
     });
 });
 
@@ -694,6 +856,21 @@ describe('links', () => {
         const plain = markup('<File path="~/.codex/config.toml"/>', { link: () => ({ state: 'plain' }) });
         expect(plain).toContain('tabindex="0"');
         expect(markup('<Commit sha="47946f746"/>')).toContain('47946f7');
+    });
+
+    test('a node chip shows the state its host knows as a dot with the state in words, and nothing for a state it does not know', () => {
+        const chip = (status?: string) =>
+            markup('<Node id="node_1"/>', { link: () => ({ state: 'chip', label: 'Research', status }), openLink: () => undefined });
+
+        expect(chip('running')).toContain(
+            '<span aria-hidden="true" class="size-1.5 shrink-0 rounded-full bg-status-running"></span><span class="sr-only">Running</span>'
+        );
+        expect(chip('needsYou')).toContain('bg-status-needs-you"></span><span class="sr-only">Needs you</span>');
+        expect(chip('done')).toContain('bg-status-idle"></span><span class="sr-only">Done</span>');
+        expect(chip('constructor')).not.toContain('rounded-full');
+        expect(chip()).not.toContain('rounded-full');
+        // A file never wears the state of a node.
+        expect(markup('<File path="a.ts"/>', { link: () => ({ state: 'chip', status: 'running' }) })).not.toContain('rounded-full');
     });
 });
 
@@ -850,5 +1027,56 @@ describe('content', () => {
 
         expect(html).toContain('First');
         expect(html).toContain('aria-expanded="true"');
+    });
+
+    test('a tab shows its badge beside its title', () => {
+        const html = markup('<Tabs><Tab title="Failing" badge="3">One</Tab><Tab title="Passing">Two</Tab></Tabs>');
+        expect(html).toMatch(/Failing<span class="[^"]*bg-text\/7 text-text-muted tabular-nums">3<\/span><\/button>/);
+        expect(html).toMatch(/>Passing<\/button>/);
+    });
+
+    test('a section arrives as open says, and shows its badge as a tag in its tone at the end of its header', () => {
+        const html = markup(
+            '<Sections><Section title="Risks" open={false} badge="2 open" tone="warning">Hidden</Section><Section title="Details">Shown</Section></Sections>'
+        );
+
+        expect(html).toMatch(
+            /aria-expanded="false"[^>]*>.*?Risks<\/span><span class="[^"]*bg-status-needs-you\/15 text-status-needs-you">2 open<\/span><\/button><div id="[^"]+" hidden=""/
+        );
+        expect(html).toMatch(/aria-expanded="true"[^>]*>.*?Details<\/span><\/button>/);
+    });
+
+    test('a callout takes the surface of its tone for a warning and a danger, and stays the quiet tile otherwise', () => {
+        for (const [tone, surface] of [
+            ['warning', 'bg-status-needs-you/12'],
+            ['danger', 'bg-status-error/10']
+        ]) {
+            const html = markup(`<Callout tone="${tone}">Careful</Callout>`);
+            expect(html).toContain(`<div class="text-xs flex items-start gap-3 rounded-xl p-3 ${surface}">`);
+            // A section flattens a quiet tile and leaves a tinted one its ground.
+            expect(html).not.toContain('chat-ui-flat');
+        }
+
+        for (const tone of ['neutral', 'info', 'success']) {
+            expect(markup(`<Callout tone="${tone}">Note</Callout>`)).toContain(
+                '<div class="text-xs flex items-start gap-3 rounded-xl p-3 chat-ui-flat bg-ui-tile">'
+            );
+        }
+    });
+
+    test('a chart shows its title above the drawing and colors a series by the tone it is given', () => {
+        const html = markup(
+            '<Chart kind="hbar" title="Tests per package" tones={{"failed": "danger"}} data={[{"label": "Core", "passed": 32, "failed": 1}]}/>'
+        );
+
+        expect(html).toContain('<figcaption class="text-xs font-medium wrap-break-word text-text">Tests per package</figcaption>');
+        expect(html).toContain('background-color:var(--chart-1)');
+        expect(html).toContain('background-color:var(--status-error)');
+        expect(html).not.toContain('var(--chart-2)');
+        expect(html).toContain('lucide-octagon-alert');
+        expect(html).toContain('failed<span class="sr-only">, Danger</span>');
+        // One toned series still names itself, since its color now means something.
+        expect(markup('<Chart kind="hbar" tones={{"n": "success"}} data={[{"label": "a", "n": 1}]}/>')).toContain('lucide-circle-check');
+        expect(markup('<Chart kind="hbar" data={[{"label": "a", "n": 1}]}/>')).not.toContain('<figcaption');
     });
 });

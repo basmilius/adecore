@@ -9,6 +9,7 @@ export default function InputsDemo() {
     const [scope, setScope] = useState<unknown>('failed');
     const [name, setName] = useState<unknown>('Ada');
     const [kind, setKind] = useState<unknown>('bug');
+    const [note, setNote] = useState<unknown>('');
 
     // A Button's action runs on the block's state; here it puts the demo's values back.
     const reset = {
@@ -20,6 +21,7 @@ export default function InputsDemo() {
             setScope('failed');
             setName('Ada');
             setKind('bug');
+            setNote('');
         }
     };
 
@@ -38,8 +40,13 @@ export default function InputsDemo() {
                 ),
                 bound(ui('Switch', {}, 'Notify me when it lands'), notify, setNotify),
                 bound(ui('Slider', { min: 10, max: 100, step: 10, unit: 'runs' }, 'Runs to compare'), limit, setLimit),
-                bound(ui('Segmented', {}, ui('Option', { value: 'failed' }, 'Failed'), ui('Option', { value: 'all' }, 'All')), scope, setScope),
+                bound(
+                    ui('Segmented', { label: 'Tests to run' }, ui('Option', { value: 'failed' }, 'Failed'), ui('Option', { value: 'all' }, 'All')),
+                    scope,
+                    setScope
+                ),
                 bound(ui('TextField', { maxLength: 40, placeholder: 'Your name' }, 'Name'), name, setName),
+                bound(ui('TextField', { maxLength: 200, placeholder: 'What should change', multiline: true }, 'Note'), note, setNote),
                 bound(
                     ui(
                         'Select',

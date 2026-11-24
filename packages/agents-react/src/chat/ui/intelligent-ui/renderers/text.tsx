@@ -7,7 +7,7 @@ import { useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { uiEventTime, uiNodeLabel } from '../node-text';
 import { UiHeadContext, type UiRenderContext, type UiRendererProps } from '../render-context';
-import { UI_STEP_PILL, UI_TONE_FILL, UI_TONE_ICONS, UI_TONE_PILL, UI_TONE_SURFACE, UI_TONE_TEXT } from '../tones';
+import { UI_TONE_FILL, UI_TONE_ICONS, UI_TONE_PILL, UI_TONE_SURFACE, UI_TONE_TEXT } from '../tones';
 
 type StepState = UiProps<'Step'>['state'];
 
@@ -40,15 +40,18 @@ const ICON_SQUARE = 'grid size-8.5 shrink-0 place-items-center rounded-lg';
 const ICON_TEXT = 'flex min-h-8.5 min-w-0 grow flex-col justify-center gap-0.5';
 
 /*
- * A tile in its tone; the badge stands under the title in the tone's color. The head of the block
- * carries its icon in a square of its own, a Summary further down is a subheading without one. The
- * icon is the ground's ink in the dark theme, where its tones are too light for white.
+ * A tile in its tone. A short badge is a tag at the end of the row; a longer one stands under the
+ * title, since a tag cannot wrap. The head of the block carries its icon in a square of its own, a
+ * Summary further down is a subheading without one. The icon is the ground's ink in the dark theme,
+ * where its tones are too light for white.
  */
 export function SummaryRenderer({ node, children }: UiRendererProps<UiProps<'Summary'>>) {
     const headId = useContext(UiHeadContext);
     const head = headId === undefined || headId === node.id;
-    const { tone, badge } = node.props;
+    const { tone, badge, detail } = node.props;
     const shown = tone ?? 'neutral';
+    const badged = badge !== undefined && badge !== '';
+    const tagged = badged && badge.length <= DETAIL_AS_TAG;
 
     return (
         <div className={clsx(ICON_ROW, tone === undefined ? 'bg-ui-tile' : UI_TONE_SURFACE[tone])}>
@@ -59,26 +62,40 @@ export function SummaryRenderer({ node, children }: UiRendererProps<UiProps<'Sum
             )}
             <div className={ICON_TEXT}>
                 <div className="text-base font-semibold text-balance wrap-break-word text-text">{children}</div>
-                {badge !== undefined && badge !== '' && (
+                {/* Muted text does not reach 4.5 to 1 on the surface of a tone, so the detail is muted only on the gray tile. */}
+                {detail !== undefined && detail !== '' && (
+                    <p className={clsx('text-xs wrap-break-word', tone === undefined ? 'text-text-muted' : 'text-text')}>{detail}</p>
+                )}
+                {badged && !tagged && (
                     <p className={clsx('text-2xs font-medium wrap-anywhere', tone === undefined ? 'text-text-muted' : UI_TONE_TEXT[tone])}>{badge}</p>
                 )}
             </div>
+            {tagged && (
+                <Pill shape="tag" size="sm" tone={UI_TONE_PILL[shown]} className="mt-0.5 shrink-0">
+                    {badge}
+                </Pill>
+            )}
         </div>
     );
 }
 
-/* A quiet tile whatever its tone: only the square of its icon wears the tone. */
+/*
+ * A quiet tile whose icon square wears the tone. A warning and a danger take the surface of their tone
+ * for the whole tile, and keep it inside a Section, where a quiet tile goes flat. Their words are the full
+ * text color: muted text does not reach 4.5 to 1 on a tinted surface.
+ */
 export function CalloutRenderer({ node, children }: UiRendererProps<UiProps<'Callout'>>) {
     const { tone, title } = node.props;
+    const tinted = tone === 'warning' || tone === 'danger';
 
     return (
-        <div className={clsx('chat-ui-flat bg-ui-tile text-xs', ICON_ROW)}>
+        <div className={clsx('text-xs', ICON_ROW, tinted ? UI_TONE_SURFACE[tone] : 'chat-ui-flat bg-ui-tile')}>
             <span aria-hidden className={clsx(ICON_SQUARE, UI_TONE_SURFACE[tone], UI_TONE_TEXT[tone])}>
                 <Icon icon={UI_TONE_ICONS[tone]} size={16} />
             </span>
             <div className={ICON_TEXT}>
                 {title !== undefined && title !== '' && <div className="font-semibold text-text">{title}</div>}
-                <div className="text-text-muted">{children}</div>
+                <div className={tinted ? 'text-text' : 'text-text-muted'}>{children}</div>
             </div>
         </div>
     );
@@ -94,63 +111,80 @@ export function TagRenderer({ node, children }: UiRendererProps<UiProps<'Tag'>>)
     );
 }
 
-/* Without a value the progress is indeterminate; without a max the value is a percentage. */
+/*
+ * Without a value the progress is indeterminate; without a max the value is a percentage. The tone colors
+ * the reading and gives it the tone's icon; the bar stays the accent.
+ */
 export function ProgressRenderer({ node, children, context }: UiRendererProps<UiProps<'Progress'>>) {
     const { t } = useTranslation('agent-chat');
-    const { value, max } = node.props;
+    const { value, max, tone, detail } = node.props;
     const limit = max ?? 100;
+    const toned = tone !== undefined && tone !== 'neutral';
 
     const reading =
         value === undefined ? null : limit === 100 ? formatPercent(value) : t('blocks.progress.of', { value: formatNumber(value), max: formatNumber(limit) });
 
+    const said = [reading ?? '', toned ? t(`blocks.event.tone.${tone}`) : ''].filter((part) => part !== '').join(', ');
     const label = uiNodeLabel(node);
 
     return (
         <div className="chat-ui-flat flex flex-col gap-2 rounded-xl bg-ui-tile p-3">
             <div className="flex items-baseline justify-between gap-3 text-xs">
                 <span className="min-w-0 text-text">{children}</span>
-                {reading !== null ? (
-                    <span className="shrink-0 text-text-muted tabular-nums">{reading}</span>
-                ) : (
-                    isLive(context) && <Spinner size={12} className="shrink-0 self-center text-text-faint" />
-                )}
+                {/* The meter under it says the same to a screen reader, with the tone in words. */}
+                <span aria-hidden className="flex shrink-0 items-baseline gap-1 tabular-nums">
+                    {toned && <Icon icon={UI_TONE_ICONS[tone]} size={12} className={clsx('self-center', UI_TONE_TEXT[tone])} />}
+                    {reading !== null ? (
+                        <span className={toned ? UI_TONE_TEXT[tone] : 'text-text-muted'}>{reading}</span>
+                    ) : (
+                        isLive(context) && <Spinner size={12} className="self-center text-text-faint" />
+                    )}
+                </span>
             </div>
-            <Meter value={value ?? null} max={limit} label={label === '' ? t('blocks.progress.label') : label} valueText={reading ?? undefined} />
+            <Meter value={value ?? null} max={limit} label={label === '' ? t('blocks.progress.label') : label} valueText={said === '' ? undefined : said} />
+            {detail !== undefined && detail !== '' && <p className="text-2xs wrap-anywhere text-text-muted">{detail}</p>}
         </div>
     );
 }
 
 export function StepsRenderer({ children }: UiRendererProps<UiProps<'Steps'>>) {
-    return <ol className="chat-ui-nodes flex flex-col gap-1.5">{children}</ol>;
+    return <ol className="chat-ui-nodes chat-ui-flat flex flex-col rounded-xl bg-ui-tile p-3">{children}</ol>;
 }
 
-/* A tile per step with its state in words at the end. A running step spins only while the block is live; in a quiet block it is a still dot. */
+/*
+ * A row of the sequence's tile: the state as an icon on a rail that runs to the next step, the label, and
+ * the detail at the end, or under the label once it does not fit beside it. Only a failed step says its
+ * state in sight; every other one says it to a screen reader. A running step spins only while the block
+ * is live; in a quiet block it is a still dot.
+ */
 export function StepRenderer({ node, children, context }: UiRendererProps<UiProps<'Step'>>) {
     const { t } = useTranslation('agent-chat');
     const { state, detail } = node.props;
     const quiet = state === 'pending' || state === 'skipped';
 
     return (
-        <li className="flex min-h-10 items-start gap-3 rounded-xl bg-ui-tile px-3 py-2.5 text-xs">
-            <span className={clsx('mt-0.5 grid size-4 shrink-0 place-items-center', STEP_TONES[state])}>
-                {state === 'running' ? (
-                    isLive(context) ? (
-                        <Spinner size={14} />
+        <li className="group flex items-stretch gap-3 text-xs">
+            <span className="flex w-4 shrink-0 flex-col items-center">
+                <span className={clsx('mt-0.5 grid size-4 shrink-0 place-items-center', STEP_TONES[state])}>
+                    {state === 'running' ? (
+                        isLive(context) ? (
+                            <Spinner size={14} />
+                        ) : (
+                            <Icon icon={CircleDot} size={14} />
+                        )
                     ) : (
-                        <Icon icon={CircleDot} size={14} />
-                    )
-                ) : (
-                    <Icon icon={STEP_ICONS[state]} size={14} />
-                )}
+                        <Icon icon={STEP_ICONS[state]} size={14} />
+                    )}
+                </span>
+                <span aria-hidden className="my-1 w-px grow bg-border group-last:hidden" />
             </span>
-            {/* A short detail stays beside the title; one that does not fit beside it takes the line under it. */}
-            <span className="flex min-w-0 grow flex-wrap items-baseline gap-x-2">
-                <span className={clsx('max-w-full min-w-0 font-medium wrap-break-word', quiet ? 'text-text-muted' : 'text-text')}>{children}</span>
-                {detail !== undefined && detail !== '' && <span className="max-w-full text-2xs wrap-anywhere text-text-muted tabular-nums">{detail}</span>}
+            <span className="flex min-w-0 grow flex-col gap-0.5 pb-3 group-last:pb-0">
+                <span className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3">
+                    <span className={clsx('max-w-full min-w-0 font-medium wrap-break-word', quiet ? 'text-text-muted' : 'text-text')}>{children}</span>
+                    {detail !== undefined && detail !== '' && <span className="max-w-full text-2xs wrap-anywhere text-text-muted tabular-nums">{detail}</span>}
+                </span>
+                <span className={state === 'failed' ? 'text-2xs text-status-error' : 'sr-only'}>{t(`blocks.step.${state}`)}</span>
             </span>
-            <Pill shape="tag" size="sm" tone={UI_STEP_PILL[state]} className="shrink-0">
-                {t(`blocks.step.${state}`)}
-            </Pill>
         </li>
     );
 }

@@ -6,19 +6,21 @@ Compare values and records. Give numbers as numbers, never as text, so a rendere
 
 ```ui
 <Stats>
-<Stat label="Cold start" value={1.42} previous={1.9} unit="s" tone="success"/>
+<Stat label="Cold start" value={1.42} previous={1.9} unit="s" tone="success" trend={[1.9, 1.84, 1.71, 1.52, 1.42]}/>
 <Stat label="Bundle" value={812} unit="kB"/>
 </Stats>
 <EntityList>
 <Entry label="Branch">main</Entry>
 <Entry label="Runner">macOS arm64</Entry>
+<Entry label="Took" as="duration">262000</Entry>
 </EntityList>
-<Table rows={[{"file": "src/app.ts", "size": 48213, "time": 1250}, {"file": "src/chat.ts", "size": 31877, "time": 830}]}>
+<Table sort="size desc" rows={[{"file": "src/chat.ts", "size": 31877, "time": 830, "state": "passed"}, {"file": "src/app.ts", "size": 48213, "time": 1250, "state": "failed"}]}>
 <Column key="file" title="File" as="file"/>
 <Column key="size" title="Size" as="bytes"/>
 <Column key="time" title="Build time" as="duration"/>
+<Column key="state" title="State" as="tag" tones={{"passed": "success", "failed": "danger"}}/>
 </Table>
-<Chart kind="bar" unit="s" data={[{"label": "Mon", "build": 41, "test": 63}, {"label": "Tue", "build": 38, "test": 59}, {"label": "Wed", "build": 44, "test": 71}]}/>
+<Chart kind="bar" unit="s" title="Seconds per day" data={[{"label": "Mon", "build": 41, "test": 63}, {"label": "Tue", "build": 38, "test": 59}, {"label": "Wed", "build": 44, "test": 71}]}/>
 ```
 
 ## Stats and Stat
@@ -30,9 +32,11 @@ A small set of key numbers. `Stats` has no props and holds only `Stat`. A `Stat`
 | `label`    | string           | Yes      |                                                                                  |
 | `value`    | number or string | Yes      | A number, or a value in words that is shown as written and compares with nothing |
 | `previous` | number           | No       | The value to compare with; the tile shows the change                             |
-| `unit`     | string           | No       | Written after the number, a percent sign without a space                         |
-| `tone`     | `UiTone`         | No       | Colors the change; without it the change stays neutral                           |
+| `unit`     | string           | No       | Stands apart from the number, in smaller type; a percent sign stays attached     |
+| `tone`     | `UiTone`         | No       | Colors the change and the trend; without it both stay neutral                    |
 | `trend`    | array of numbers | No       | 2 to 64 numbers that say how the value moved, oldest first                       |
+
+The change stands at the end of the value's line: an arrow and the percentage with its sign, or the previous value when that was zero. Its tooltip says what the value changed from. A value in words shows no unit and no change. A `trend` draws as a line under the value, on a scale of its own, and a screen reader hears its first and last number.
 
 ## Meter
 
@@ -89,6 +93,8 @@ Labeled facts about one thing. `EntityList` holds only `Entry`. An `Entry` stand
 | `label`    | string | Yes      |                                                                         |
 | `as`       | string | No       | What the value is, one of the kinds a [Column](#table-and-column) takes |
 
+An Entry with `as` formats its value the way a table cell of that kind does, so `<Entry label="Took" as="duration">262000</Entry>` reads as a duration. A value the kind cannot read shows as written.
+
 ## Table and Column
 
 Rows with named columns. `Table` holds only `Column`, which describes a field of the rows. Without Columns, the table shows the row keys.
@@ -108,6 +114,10 @@ Rows with named columns. `Table` holds only `Column`, which describes a field of
 
 A `duration` is in milliseconds. A `percent` is the number before the sign, so `12.5` reads as 12.5%. A `date` is milliseconds since the epoch or an ISO string. A `file` is a path in mono text. A value of the wrong kind reads as text, and a missing one as nothing.
 
+The table arrives in the order of `sort`; a key that is no column is ignored. A person sorts by any column from its heading, and a second press turns the order around. Numbers, bytes, durations, percentages and dates sort by value, and text by the reader's language. Empty cells come last in either direction. Every heading says its order to a screen reader with `aria-sort`.
+
+`tones` colors the tags of an `as="tag"` column by their text. A text it does not name stays gray.
+
 ## Chart
 
 Labeled numeric series. Each row of `data` has a `label` and up to six numeric series by name. Chart has no children.
@@ -120,11 +130,13 @@ Labeled numeric series. Each row of `data` has a `label` and up to six numeric s
 | `title` | string           | No       | What the chart shows                                       |
 | `tones` | record           | No       | A `UiTone` per series name, such as `{"failed": "danger"}` |
 
+`title` stands above the chart. A series named in `tones` wears that tone in place of its palette color, and the legend shows the tone's icon beside its name.
+
 An `area` is a line with the space down to zero filled. A value that is not a finite number is a gap. A chart without a usable series, or with numbers it cannot scale, draws as its data.
 
 Bars and `hbar` grow from zero in either direction, so negative values work. Stacked data with a negative value draws as side-by-side bars, with a note. A drawing holds the first 60 rows and six series and names what it leaves out, with every value a press away. More than six series get `too_many_series`. The chart truncates labels that do not fit.
 
 ```ui
 $weeks = [{"label": "W1", "opened": 12, "closed": 9}, {"label": "W2", "opened": 8, "closed": 14}]
-<Chart kind="stacked" data={$weeks}/>
+<Chart kind="stacked" title="Issues per week" tones={{"closed": "success"}} data={$weeks}/>
 ```

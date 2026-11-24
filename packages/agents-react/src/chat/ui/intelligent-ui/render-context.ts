@@ -15,6 +15,9 @@ export interface UiLink {
     reason?: string;
     /* The stable code of that reason, which a client words itself where it knows it. */
     code?: string;
+
+    /* What the target is doing, for a node that is an agent or a chat: `running`, `needsYou` or `done`. Any other value draws nothing. */
+    status?: string;
 }
 
 /* What the host answered for an open Diff: nothing yet, the change as a unified patch, or why there is none. */

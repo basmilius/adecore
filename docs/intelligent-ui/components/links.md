@@ -11,7 +11,7 @@ Refer to a resource the host owns: a file, a changed file, a commit or a node. T
 <Node id="review-notes"/>
 ```
 
-A `Change` in a list of changed files and a [`Leaf`](/intelligent-ui/components/structure#tree-branch-and-leaf) with a path are links too, checked the same way.
+A `Change` in a list of changed files, a [`Leaf`](/intelligent-ui/components/structure#tree-branch-and-leaf) with a path and a [`CodeBlock`](/intelligent-ui/components/content#codeblock) with a file are links too, checked the same way.
 
 A link without children is a chip and may stand inside text. With children it is a row of the chip and the agent's note. A target reads as plain text until the host checks it; a refused target stays text, with the reason in a tooltip.
 
@@ -79,3 +79,5 @@ Anything else the host gives an id, such as a view or a document.
 | Prop | Type   | Required | Notes               |
 | ---- | ------ | -------- | ------------------- |
 | `id` | string | Yes      | 1 to 256 characters |
+
+Where the host knows what a node is doing, such as an agent or a chat, the chip shows a dot for running, needs you or done, with the state in its tooltip. The agent writes nothing for it.

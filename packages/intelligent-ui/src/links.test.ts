@@ -55,3 +55,32 @@ test('local input can choose a target only through a validated binding', () => {
     expect(() => uiLinkTargets(block, { $other: true })).toThrow('bindings');
     expect(() => uiLinkTargets({ ...block, complete: false })).toThrow('completed');
 });
+
+test('a code block that names its file links it as a File at its first line, and one without a file links nothing', () => {
+    const block = compileUiBlock(
+        '<CodeBlock file="src/total.ts" start={12} highlight={[12]}>a</CodeBlock><CodeBlock path="src/other.ts">b</CodeBlock><CodeBlock start={3}>c</CodeBlock>',
+        { id: 'b', final: true }
+    );
+
+    expect(Object.values(uiLinkTargets(block))).toEqual([
+        { type: 'File', path: 'src/total.ts', line: 12 },
+        { type: 'File', path: 'src/other.ts' }
+    ]);
+});
+
+test('a component that links as another keeps its own props where the catalog maps none', () => {
+    const block = compileUiBlock('<Tree><Leaf path="src/a.ts"/></Tree><Changes><Change path="src/b.ts" added={2}/></Changes>', { id: 'b', final: true });
+
+    expect(Object.values(uiLinkTargets(block))).toEqual([
+        { type: 'File', path: 'src/a.ts' },
+        { type: 'Diff', path: 'src/b.ts' }
+    ]);
+});
+
+test('a resolution carries the status of its target as open text, so a later status fails nobody', () => {
+    for (const status of ['running', 'needsYou', 'done', 'paused']) {
+        expect(UiLinkResolutionSchema.parse({ state: 'chip', target: { type: 'Node', id: 'node-1' }, status }).status).toBe(status);
+    }
+
+    expect(UiLinkResolutionSchema.parse({ state: 'chip' }).status).toBeUndefined();
+});

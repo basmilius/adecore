@@ -15,12 +15,12 @@ const targets = uiLinkTargets(block);
 
 A `UiLinkTarget` is one of:
 
-| Target                          | From                              |
-| ------------------------------- | --------------------------------- |
-| `{ type: 'File', path, line? }` | `<File path line>`, `<Leaf path>` |
-| `{ type: 'Diff', path }`        | `<Diff path>`, `<Change path>`    |
-| `{ type: 'Commit', sha }`       | `<Commit sha>`                    |
-| `{ type: 'Node', id }`          | `<Node id>`, `<Source node>`      |
+| Target                          | From                                                        |
+| ------------------------------- | ----------------------------------------------------------- |
+| `{ type: 'File', path, line? }` | `<File path line>`, `<Leaf path>`, `<CodeBlock file start>` |
+| `{ type: 'Diff', path }`        | `<Diff path>`, `<Change path>`                              |
+| `{ type: 'Commit', sha }`       | `<Commit sha>`                                              |
+| `{ type: 'Node', id }`          | `<Node id>`, `<Source node>`                                |
 
 `UiLinkTargetSchema` validates one. A path is at most 4,096 characters and a sha 7 to 64 hexadecimal characters.
 
@@ -37,8 +37,13 @@ The host answers a target with a `UiLinkResolution`, which `UiLinkResolutionSche
 | `cwd`, `relativePath`, `viewId`, `projectId` | Where the host opens it                                                                                 |
 | `staged`, `conflicted`                       | The state of a changed file                                                                             |
 | `code`, `reason`                             | Why a link is plain: a stable code and words                                                            |
+| `status`                                     | What the target is doing, where the host knows: `running`, `needsYou` or `done`                         |
 
 `state` is a closed set; `code` is open for host codes. A client words the codes it knows and shows `reason` for others.
+
+`status` is open text too, so a host may send a value this version does not list. A Node chip draws `running`, `needsYou` and `done` as a dot with the state in words, and ignores any other value. Leave it out for a target that has no such state.
+
+A component may link as another one. The catalog says so in its `link`: the name of the target type when the props carry the same names (`Leaf` and `Change`), or `{ type, props }` where they differ, as `CodeBlock` maps `file` to `path` and `start` to `line`.
 
 ## The host's part
 

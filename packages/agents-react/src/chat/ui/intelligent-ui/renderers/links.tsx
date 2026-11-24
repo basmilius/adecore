@@ -1,6 +1,7 @@
 import type { UiProps } from '@adecore/intelligent-ui';
 import { FileIcon, Icon, Tooltip } from '@adecore/ui';
 import clsx from 'clsx';
+import type { TFunction } from 'i18next';
 import { FileDiff, GitCommitHorizontal, SquareDashed } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,17 @@ import type { UiLink, UiLinkTarget, UiRenderContext, UiRendererProps } from '../
 
 /* A link in a block is a quiet card on its tile, unlike a mention in a message, which wears the accent. */
 const UI_CHIP = 'bg-ui-inset font-mono text-text shadow-[inset_0_0_0_1px_var(--border)]';
+
+/* The states of a node a chip shows as a dot, each in the color the rest of the app gives that state. */
+const NODE_STATUS = {
+    running: 'bg-status-running',
+    needsYou: 'bg-status-needs-you',
+    done: 'bg-status-idle'
+} as const;
+
+function nodeStatus(link: UiLink): keyof typeof NODE_STATUS | null {
+    return link.status !== undefined && Object.hasOwn(NODE_STATUS, link.status) ? (link.status as keyof typeof NODE_STATUS) : null;
+}
 
 function plainText(target: UiLinkTarget, link: UiLink): string {
     switch (target.type) {
@@ -24,7 +36,7 @@ function plainText(target: UiLinkTarget, link: UiLink): string {
     }
 }
 
-function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: string | null } {
+function chipFace(target: UiLinkTarget, link: UiLink, t: TFunction<'agent-chat'>): { face: ReactNode; hint: string | null } {
     switch (target.type) {
         case 'File':
             return {
@@ -57,16 +69,27 @@ function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: 
                 ),
                 hint: link.label ?? target.sha
             };
-        case 'Node':
+        case 'Node': {
+            const status = nodeStatus(link);
+            const said = status === null ? null : t(`blocks.node.status.${status}`);
+
             return {
                 face: (
                     <>
                         <Icon icon={SquareDashed} size={12} />
                         <span className="truncate">{link.label ?? target.id}</span>
+                        {status !== null && (
+                            <>
+                                <span aria-hidden className={clsx('size-1.5 shrink-0 rounded-full', NODE_STATUS[status])} />
+                                <span className="sr-only">{said}</span>
+                            </>
+                        )}
                     </>
                 ),
-                hint: null
+                // The dot says the state by its color alone, so the chip says it in words too.
+                hint: said
             };
+        }
     }
 }
 
@@ -101,7 +124,7 @@ export function UiLinkChip({
         return reason === null ? text : <Tooltip label={reason}>{text}</Tooltip>;
     }
 
-    const { face, hint } = chipFace(target, link);
+    const { face, hint } = chipFace(target, link, t);
     const { openLink } = context;
 
     const chip =

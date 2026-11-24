@@ -30,9 +30,32 @@ export const UiLinkResolutionSchema = z.object({
     detail: z.string().optional(),
     // A code that names the reason across versions; open, so a new one fails nobody.
     code: z.string().optional(),
-    reason: z.string().optional()
+    reason: z.string().optional(),
+    // What the target is doing, where the host knows: `running`, `needsYou` or `done`. Open, so a later value fails nobody; a client ignores one it does not know.
+    status: z.string().optional()
 });
 export type UiLinkResolution = z.infer<typeof UiLinkResolutionSchema>;
+
+/* How a catalog entry links as another component: the target's type, and for each of its fields the prop that holds it where the names differ. */
+type UiLinkAs = string | { readonly type: string; readonly props: Readonly<Record<string, string>> };
+
+/* What a node asks the host to check: its own props under its own name, or those the catalog maps onto the target it links as. */
+function linkCandidate(node: { type: string; props: Readonly<Record<string, unknown>> }): Record<string, unknown> {
+    // A Source that cites a host node links it as a Node would, so the host checks and opens it the same way.
+    if (node.type === 'Source' && typeof node.props.node === 'string') {
+        return { type: 'Node', id: node.props.node };
+    }
+
+    const entry = isUiComponent(node.type) ? UI_CATALOG[node.type] : undefined;
+    // A component the catalog says links as another one, such as a Change as a Diff, is checked and opened as that one.
+    const link: UiLinkAs = entry !== undefined && 'link' in entry ? entry.link : node.type;
+
+    if (typeof link === 'string') {
+        return { ...node.props, type: link };
+    }
+
+    return { ...Object.fromEntries(Object.entries(link.props).map(([field, prop]) => [field, node.props[prop]])), type: link.type };
+}
 
 export function uiLinkTargets(
     block: UiBlock,
@@ -44,12 +67,7 @@ export function uiLinkTargets(
     const targets: Record<string, UiLinkTarget> = Object.create(null);
 
     eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
-        const entry = isUiComponent(node.type) ? UI_CATALOG[node.type] : undefined;
-        // A component the catalog says links as another one, such as a Change as a Diff, is checked and opened as that one.
-        const type = entry !== undefined && 'link' in entry ? entry.link : node.type;
-        // A Source that cites a host node links it as a Node would, so the host checks and opens it the same way.
-        const candidate = node.type === 'Source' && typeof node.props.node === 'string' ? { type: 'Node', id: node.props.node } : { ...node.props, type };
-        const checked = UiLinkTargetSchema.safeParse(candidate);
+        const checked = UiLinkTargetSchema.safeParse(linkCandidate(node));
 
         if (checked.success) {
             targets[node.id] = checked.data;

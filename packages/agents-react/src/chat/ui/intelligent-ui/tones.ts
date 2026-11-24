@@ -53,12 +53,3 @@ export const UI_TONE_COLOR: Readonly<Record<UiTone, string>> = {
     warning: 'var(--status-needs-you)',
     danger: 'var(--status-error)'
 };
-
-/* The tag at the end of a step, in words, so a state never rests on its icon alone. */
-export const UI_STEP_PILL: Readonly<Record<'done' | 'running' | 'pending' | 'failed' | 'skipped', NonNullable<PillProps['tone']>>> = {
-    done: 'idle',
-    running: 'accent',
-    pending: 'muted',
-    failed: 'error',
-    skipped: 'muted'
-};

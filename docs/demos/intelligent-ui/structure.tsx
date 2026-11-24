@@ -9,9 +9,14 @@ export default function StructureDemo() {
                     'Tabs',
                     {},
                     ui('Tab', { title: 'Option A' }, 'Keep the cache and raise its limit.'),
-                    ui('Tab', { title: 'Option B' }, 'Drop the cache and read from disk.')
+                    ui('Tab', { title: 'Option B', badge: 'new' }, 'Drop the cache and read from disk.')
                 ),
-                ui('Sections', {}, ui('Section', { title: 'What changed' }, 'Two files, both in the loader.'), ui('Section', { title: 'Risks' }, 'None found.'))
+                ui(
+                    'Sections',
+                    {},
+                    ui('Section', { title: 'What changed' }, 'Two files, both in the loader.'),
+                    ui('Section', { title: 'Risks', open: false, badge: '1 open', tone: 'warning' }, 'A cold cache reads every file once.')
+                )
             ]}
         />
     );

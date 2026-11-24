@@ -68,3 +68,42 @@ test('a text field sits on a tile in its block and its count is muted text', () 
     expect(input.className).toContain('bg-ui-tile');
     expect(document.querySelector('[id$="-count"]')?.className).toContain('text-text-muted');
 });
+
+/* A token at `share` over `ground`, the way `bg-<token>/<percent>` paints it. */
+function over(token: string, share: number, ground: string): string {
+    const channel = (hex: string, i: number): number => parseInt(hex.slice(i, i + 2), 16);
+
+    return `#${[1, 3, 5]
+        .map((i) =>
+            Math.round(channel(token, i) * share + channel(ground, i) * (1 - share))
+                .toString(16)
+                .padStart(2, '0')
+        )
+        .join('')}`;
+}
+
+test('the words of a warning and a danger callout read at 4.5 to 1 on the surface of their tone in both themes', () => {
+    const document = drawn(
+        '<Callout tone="warning" title="Migration needed">Run the migration first.</Callout><Callout tone="danger">Do not deploy.</Callout>'
+    );
+    const tiles = [...document.querySelectorAll('div.rounded-xl')];
+
+    const surfaces = [
+        { token: 'status-needs-you', share: 0.12 },
+        { token: 'status-error', share: 0.1 }
+    ];
+
+    expect(tiles.map((tile) => tile.className.split(' ').at(-1))).toEqual(surfaces.map(({ token, share }) => `bg-${token}/${share * 100}`));
+
+    for (const tile of tiles) {
+        expect(tile.querySelector('.text-text-muted, .text-text-faint')).toBeNull();
+        expect(tile.querySelector('div.text-text')).not.toBeNull();
+    }
+
+    for (const theme of [tokens(':root, [data-theme="light"]'), tokens('[data-theme="dark"]')]) {
+        for (const { token, share } of surfaces) {
+            const surface = over(theme[token]!, share, theme['surface-raised']!);
+            expect(contrast(theme['text']!, surface)).toBeGreaterThanOrEqual(4.5);
+        }
+    }
+});

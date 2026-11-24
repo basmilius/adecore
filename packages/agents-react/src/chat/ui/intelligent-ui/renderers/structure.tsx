@@ -1,11 +1,12 @@
 import type { UiProps } from '@adecore/intelligent-ui';
-import { Icon, Tabs } from '@adecore/ui';
+import { Icon, Pill, Tabs } from '@adecore/ui';
 import clsx from 'clsx';
 import { ChevronRight } from 'lucide-react';
 import { createContext, useContext, useId } from 'react';
 import { useBlockLocal } from '../block-local';
 import { uiChildrenOf } from '../node-text';
 import type { UiRendererProps } from '../render-context';
+import { UI_TONE_PILL } from '../tones';
 
 interface SectionsFold {
     /* Whether the person opened or closed a section of this set, after which nothing opens by itself. */
@@ -15,7 +16,7 @@ interface SectionsFold {
 
 const SectionsContext = createContext<SectionsFold>({ touched: false, touch: () => undefined });
 
-/* A tab that arrives while the block streams is not picked: the one that was open stays open. */
+/* A tab that arrives while the block streams is not picked: the one that was open stays open. A badge is a small count or label beside the title. */
 export function TabsRenderer({ node, children, context }: UiRendererProps<UiProps<'Tabs'>>) {
     const tabs = uiChildrenOf(node, 'Tab');
     const [picked, setPicked] = useBlockLocal<string | null>(context, node.id, () => null);
@@ -27,6 +28,11 @@ export function TabsRenderer({ node, children, context }: UiRendererProps<UiProp
                 {tabs.map((tab) => (
                     <Tabs.Tab key={tab.id} value={tab.id} data-ui-reveal={tab.id}>
                         {tab.props.title}
+                        {tab.props.badge !== undefined && tab.props.badge !== '' && (
+                            <Pill size="sm" className="tabular-nums">
+                                {tab.props.badge}
+                            </Pill>
+                        )}
                     </Tabs.Tab>
                 ))}
             </Tabs.List>
@@ -53,10 +59,14 @@ export function SectionsRenderer({ node, children, context }: UiRendererProps<Ui
     );
 }
 
-/* Arrives open until the person folds a section of the set themselves; the content keeps one margin on both sides. */
+/*
+ * Arrives as `open` says. Without it a section arrives open until the person folds one of the set themselves.
+ * The badge is a tag at the end of the header, in the section's tone; the content keeps one margin on both sides.
+ */
 export function SectionRenderer({ node, children, context }: UiRendererProps<UiProps<'Section'>>) {
     const fold = useContext(SectionsContext);
-    const [open, setOpen] = useBlockLocal(context, node.id, () => !fold.touched);
+    const { title, badge, tone } = node.props;
+    const [open, setOpen] = useBlockLocal(context, node.id, () => node.props.open ?? !fold.touched);
     const contentId = useId();
 
     return (
@@ -77,7 +87,12 @@ export function SectionRenderer({ node, children, context }: UiRendererProps<UiP
                     size={14}
                     className={clsx('shrink-0 text-text-faint transition-transform duration-150 motion-reduce:transition-none', open && 'rotate-90')}
                 />
-                <span className="min-w-0 truncate">{node.props.title}</span>
+                <span className="min-w-0 grow truncate">{title}</span>
+                {badge !== undefined && badge !== '' && (
+                    <Pill shape="tag" size="sm" tone={tone === undefined ? 'muted' : UI_TONE_PILL[tone]}>
+                        {badge}
+                    </Pill>
+                )}
             </button>
             <div id={contentId} hidden={!open} className="chat-ui-section-body chat-ui-nodes flex flex-col gap-3 px-3 pb-3">
                 {children}

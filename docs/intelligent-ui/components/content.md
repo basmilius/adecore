@@ -6,6 +6,10 @@ Include code, attachments and sources. Nothing here loads an address or reads a 
 
 ```ui
 <CodeBlock language="ts">export const retries = 3;</CodeBlock>
+<CodeBlock file="src/total.ts" start={12} highlight={[13]}>
+const rows = await read();
+const total = rows.length;
+</CodeBlock>
 <Image generated="latest" alt="The new onboarding screen">The first screen after sign up</Image>
 <Sources>
 <Source title="Node.js release schedule" url="https://nodejs.org/en/about/previous-releases"/>
@@ -23,6 +27,10 @@ Code as text, without execution. Its contents are literal: angle brackets, brace
 | `file`      | string            | No       | The file the code stands in            |
 | `start`     | integer           | No       | The number of the first line, from 1   |
 | `highlight` | array of integers | No       | The line numbers to mark, at most 64   |
+
+With `file`, the head shows the file as a chip in place of the language. The host checks the path like any [link](/intelligent-ui/host/links): the chip opens the file at `start` once the host says it can, and stays text when not. Without `language`, the extension of the file picks the highlighting.
+
+With `start`, every line shows its number, counted from there. `highlight` marks lines by those numbers, or counted from 1 without `start`. A selection never copies a line number.
 
 ## Quote
 

@@ -1,9 +1,9 @@
-import type { UiProps } from '@adecore/intelligent-ui';
-import { Button, ScrollArea, SegmentBar, Tooltip, useMeasuredWidth } from '@adecore/ui';
+import type { UiProps, UiTone } from '@adecore/intelligent-ui';
+import { Button, Icon, ScrollArea, SegmentBar, Tooltip, useMeasuredWidth } from '@adecore/ui';
 import { formatNumber, formatRounded } from '@adecore/ui/format';
 import clsx from 'clsx';
 import type { TFunction } from 'i18next';
-import { useState } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useBlockLocal } from '../block-local';
 import {
@@ -21,6 +21,7 @@ import {
 } from '../chart-data';
 import { uiWithUnit } from '../node-text';
 import type { UiRenderContext, UiRendererProps } from '../render-context';
+import { UI_TONE_COLOR, UI_TONE_ICONS } from '../tones';
 import { UiFallbackPart } from '../UiFallbackPart';
 import { useTruncated } from '../use-truncated';
 
@@ -39,8 +40,20 @@ const LABEL_BAND = 56;
 const DOTS_UP_TO = 30;
 const GROW = 'transition-[scale,opacity] duration-400 ease-out motion-reduce:transition-none';
 
-function seriesColor(index: number): string {
-    return `var(--chart-${index + 1})`;
+type ChartTones = UiProps<'Chart'>['tones'];
+
+/* The tones a chart gives its series, by series key, for every part that colors one. */
+const TonesContext = createContext<ChartTones>(undefined);
+
+function seriesTone(key: string, tones: ChartTones): UiTone | undefined {
+    return tones !== undefined && Object.hasOwn(tones, key) ? tones[key] : undefined;
+}
+
+/* A series wears its tone where the chart names one, and otherwise the palette color of its place. */
+function seriesColor(index: number, key: string, tones: ChartTones): string {
+    const tone = seriesTone(key, tones);
+
+    return tone === undefined ? `var(--chart-${index + 1})` : UI_TONE_COLOR[tone];
 }
 
 function valueText(value: number | null, unit: string | undefined): string {
@@ -120,15 +133,29 @@ function chartSummary(values: UiChartValues, unit: string | undefined, t: TFunct
         : t('blocks.chart.summary', { count: values.labels.length, label: top.label, value: valueText(top.value, unit) });
 }
 
+/* A series with a tone shows the tone's icon in place of its square, so the tone is never its color alone. */
 function Legend({ chart }: { chart: UiChartData }) {
+    const tones = useContext(TonesContext);
+
     return (
         <div aria-hidden className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-text-muted">
-            {chart.series.map((series, index) => (
-                <span key={series.key} className="flex items-center gap-1.5">
-                    <span className="size-2 rounded-sm" style={{ backgroundColor: seriesColor(index) }} />
-                    {series.key}
-                </span>
-            ))}
+            {chart.series.map((series, index) => {
+                const tone = seriesTone(series.key, tones);
+                const color = seriesColor(index, series.key, tones);
+
+                return (
+                    <span key={series.key} className="flex items-center gap-1.5">
+                        {tone === undefined ? (
+                            <span className="size-2 rounded-sm" style={{ backgroundColor: color }} />
+                        ) : (
+                            <span className="flex" style={{ color }}>
+                                <Icon icon={UI_TONE_ICONS[tone]} size={12} />
+                            </span>
+                        )}
+                        {series.key}
+                    </span>
+                );
+            })}
         </div>
     );
 }
@@ -136,6 +163,7 @@ function Legend({ chart }: { chart: UiChartData }) {
 /* Every number of the data, for a screen reader, and on screen once a person opens it. */
 function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: string | undefined; shown: boolean }) {
     const { t } = useTranslation('agent-chat');
+    const tones = useContext(TonesContext);
 
     const table = (
         <table className={shown ? 'w-full border-collapse text-xs tabular-nums' : undefined}>
@@ -143,11 +171,20 @@ function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: str
             <thead className={shown ? 'sticky top-0 z-1 bg-surface-hover' : undefined}>
                 <tr>
                     <td />
-                    {values.series.map((series) => (
-                        <th key={series.key} scope="col" className={shown ? 'h-8 px-2 text-right font-medium whitespace-nowrap text-text-muted' : undefined}>
-                            {series.key}
-                        </th>
-                    ))}
+                    {values.series.map((series) => {
+                        const tone = seriesTone(series.key, tones);
+
+                        return (
+                            <th
+                                key={series.key}
+                                scope="col"
+                                className={shown ? 'h-8 px-2 text-right font-medium whitespace-nowrap text-text-muted' : undefined}
+                            >
+                                {series.key}
+                                {tone !== undefined && <span className="sr-only">, {t(`blocks.event.tone.${tone}`)}</span>}
+                            </th>
+                        );
+                    })}
                 </tr>
             </thead>
             <tbody>
@@ -180,6 +217,8 @@ function ValuesTable({ values, unit, shown }: { values: UiChartValues; unit: str
 }
 
 function Readout({ chart, index, left, unit }: { chart: UiChartData; index: number; left: number; unit: string | undefined }) {
+    const tones = useContext(TonesContext);
+
     return (
         <div
             aria-hidden
@@ -189,7 +228,7 @@ function Readout({ chart, index, left, unit }: { chart: UiChartData; index: numb
             <span className="font-medium wrap-anywhere text-text">{chart.labels[index]}</span>
             {chart.series.map((series, at) => (
                 <span key={series.key} className="flex items-center gap-1.5 text-text-muted tabular-nums">
-                    <span className="size-2 rounded-sm" style={{ backgroundColor: seriesColor(at) }} />
+                    <span className="size-2 rounded-sm" style={{ backgroundColor: seriesColor(at, series.key, tones) }} />
                     {chart.series.length > 1 && <span>{series.key}</span>}
                     <span className="text-text">{valueText(series.values[index] ?? null, unit)}</span>
                 </span>
@@ -212,6 +251,7 @@ function VerticalChart({
     character: number;
 }) {
     const [hover, setHover] = useState<number | null>(null);
+    const tones = useContext(TonesContext);
     const { low, high, ticks, tickTexts, axisWidth, band, labelEvery, labelRoom } = verticalLayout(chart, unit, width, character);
     const plotHeight = HEIGHT - PLOT_TOP - Math.round((LABEL_ROOM * character) / UI_CHART_CHARACTER);
 
@@ -310,7 +350,7 @@ function VerticalChart({
                                         width={Math.max(1, Math.round(barWidth) - 1)}
                                         height={Math.abs(y(value) - baseline)}
                                         rx={2}
-                                        style={{ fill: seriesColor(at) }}
+                                        style={{ fill: seriesColor(at, series.key, tones) }}
                                     />
                                 )
                             )
@@ -319,7 +359,7 @@ function VerticalChart({
                 ) : (
                     <g className={clsx(GROW, 'starting:opacity-0')}>
                         {chart.series.map((series, at) => (
-                            <g key={series.key} style={{ color: seriesColor(at) }}>
+                            <g key={series.key} style={{ color: seriesColor(at, series.key, tones) }}>
                                 {kind === 'area' && <path d={areas(series.values)} fill="currentColor" fillOpacity={0.16} stroke="none" />}
                                 <path
                                     d={segments(series.values)}
@@ -356,6 +396,7 @@ function VerticalChart({
 
 /* A row of 24px per category, its label beside the bars, which grow from zero to either side. */
 function HorizontalChart({ chart, unit }: { chart: UiChartData; unit: string | undefined }) {
+    const tones = useContext(TonesContext);
     const valueUnit = unitApart(unit) ? undefined : unit;
     const { low, high } = uiChartRange(chart.min, chart.max)!;
     const span = high - low;
@@ -379,7 +420,7 @@ function HorizontalChart({ chart, unit }: { chart: UiChartData; unit: string | u
                                         style={{
                                             left: `${((Math.min(value, 0) - low) / span) * 100}%`,
                                             width: `${(Math.abs(value) / span) * 100}%`,
-                                            backgroundColor: seriesColor(at)
+                                            backgroundColor: seriesColor(at, series.key, tones)
                                         }}
                                     />
                                 </span>
@@ -399,6 +440,8 @@ function HorizontalChart({ chart, unit }: { chart: UiChartData; unit: string | u
 
 /* A bar per category split into its series, on one scale so the rows compare. */
 function StackedChart({ chart, unit }: { chart: UiChartData; unit: string | undefined }) {
+    const tones = useContext(TonesContext);
+
     return (
         <div className="flex flex-col gap-2">
             {chart.labels.map((label, index) => (
@@ -411,7 +454,7 @@ function StackedChart({ chart, unit }: { chart: UiChartData; unit: string | unde
                         range={[0, chart.max]}
                         parts={chart.series.map((series, at) => ({
                             value: series.values[index] ?? 0,
-                            color: seriesColor(at),
+                            color: seriesColor(at, series.key, tones),
                             label: `${series.key} ${valueText(series.values[index] ?? 0, unit)}`
                         }))}
                     />
@@ -480,6 +523,8 @@ function DrawnChart({
     requested,
     data,
     unit,
+    title,
+    tones,
     context,
     nodeId
 }: {
@@ -487,6 +532,8 @@ function DrawnChart({
     requested: ChartKind;
     data: UiProps<'Chart'>['data'];
     unit: string | undefined;
+    title: string | undefined;
+    tones: ChartTones;
     context: UiRenderContext;
     nodeId: string;
 }) {
@@ -496,30 +543,36 @@ function DrawnChart({
     const [measureRows, rowsCut] = useTruncated<HTMLDivElement>(true);
     const values = uiChartValues(data);
     const { kind } = chart;
+    const toned = chart.series.some((series) => seriesTone(series.key, tones) !== undefined);
 
     return (
-        <figure className="chat-ui-flat flex flex-col gap-2.5 rounded-xl bg-ui-tile p-3.5">
-            {chart.series.length > 1 && <Legend chart={chart} />}
-            {kind !== 'stacked' && unitApart(unit) && <p className="text-xs text-text-faint">{unit}</p>}
-            <div ref={measure} role="img" aria-label={chartSummary(values, unit, t)} className="relative">
-                {kind === 'hbar' || kind === 'stacked' ? (
-                    <div ref={measureRows}>{kind === 'hbar' ? <HorizontalChart chart={chart} unit={unit} /> : <StackedChart chart={chart} unit={unit} />}</div>
-                ) : (
-                    <div style={{ height: HEIGHT }}>
-                        {width > 0 && <VerticalChart chart={chart} kind={kind} unit={unit} width={width} character={character} />}
-                    </div>
-                )}
-            </div>
-            <ChartNotes
-                chart={chart}
-                requested={requested}
-                cut={rowsCut || labelsCut(chart, unit, width, character)}
-                values={values}
-                unit={unit}
-                context={context}
-                nodeId={nodeId}
-            />
-        </figure>
+        <TonesContext value={tones}>
+            <figure className="chat-ui-flat flex flex-col gap-2.5 rounded-xl bg-ui-tile p-3.5">
+                {title !== undefined && title !== '' && <figcaption className="text-xs font-medium wrap-break-word text-text">{title}</figcaption>}
+                {(chart.series.length > 1 || toned) && <Legend chart={chart} />}
+                {kind !== 'stacked' && unitApart(unit) && <p className="text-xs text-text-faint">{unit}</p>}
+                <div ref={measure} role="img" aria-label={chartSummary(values, unit, t)} className="relative">
+                    {kind === 'hbar' || kind === 'stacked' ? (
+                        <div ref={measureRows}>
+                            {kind === 'hbar' ? <HorizontalChart chart={chart} unit={unit} /> : <StackedChart chart={chart} unit={unit} />}
+                        </div>
+                    ) : (
+                        <div style={{ height: HEIGHT }}>
+                            {width > 0 && <VerticalChart chart={chart} kind={kind} unit={unit} width={width} character={character} />}
+                        </div>
+                    )}
+                </div>
+                <ChartNotes
+                    chart={chart}
+                    requested={requested}
+                    cut={rowsCut || labelsCut(chart, unit, width, character)}
+                    values={values}
+                    unit={unit}
+                    context={context}
+                    nodeId={nodeId}
+                />
+            </figure>
+        </TonesContext>
     );
 }
 
@@ -528,7 +581,7 @@ function DrawnChart({
  * place. It grows in once, and not at all for a person who asked for less motion.
  */
 export function ChartRenderer({ node, context }: UiRendererProps<UiProps<'Chart'>>) {
-    const { kind, data, unit } = node.props;
+    const { kind, data, unit, title, tones } = node.props;
     const chart = node.complete ? uiChartData(data, kind) : null;
 
     if (!node.complete) {
@@ -539,5 +592,5 @@ export function ChartRenderer({ node, context }: UiRendererProps<UiProps<'Chart'
         return <UiFallbackPart fallback={node.fallback} problem={{ kind: 'failed' }} />;
     }
 
-    return <DrawnChart chart={chart} requested={kind} data={data} unit={unit} context={context} nodeId={node.id} />;
+    return <DrawnChart chart={chart} requested={kind} data={data} unit={unit} title={title} tones={tones} context={context} nodeId={node.id} />;
 }

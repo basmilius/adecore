@@ -275,6 +275,12 @@
 .chat-ui-section-body .chat-ui-flat thead { background-color: var(--chat-ui-tile); }
 .chat-code pre { margin: 0; padding: round(0.625rem, 1px) round(0.75rem, 1px); user-select: text; background: transparent !important; font-family: var(--font-mono); font-size: var(--text-code); line-height: var(--text-code--line-height); }
 .chat-code code { font-family: inherit; }
+/* Numbered or marked lines each fill the width, so a mark is a band from edge to edge: the padding moves from the block
+   onto its lines. A number is generated content, which a selection never copies. */
+.chat-code pre[data-lined] { padding-inline: 0; }
+.chat-code pre[data-lined] .line { display: inline-block; box-sizing: border-box; min-width: 100%; vertical-align: top; min-height: 1lh; padding-inline: round(0.75rem, 1px); }
+.chat-code pre[data-lined] .line[data-line]::before { content: attr(data-line); display: inline-block; width: calc(var(--chat-code-digits, 1) * 1ch); margin-right: round(0.75rem, 1px); color: var(--text-faint); text-align: right; user-select: none; }
+.chat-code pre[data-lined] .line[data-marked] { background: var(--accent-soft); }
 .chat-code-actions { position: absolute; top: 4px; right: 4px; border-radius: 6px; background: var(--surface-raised); color: var(--text-muted); box-shadow: 0 0 0 1px var(--border); }
 .chat-code-error { margin: 0; padding: 0 12px 10px; color: var(--status-error); font-size: var(--text-sm); }
 @media (hover: hover) and (pointer: fine) {

@@ -14,23 +14,43 @@ import { ImageGroup, ImageThumb } from '../../ImageView';
 import { uiChildrenOf, uiNodeLabel, uiNodeText, uiUrlDomain } from '../node-text';
 import type { UiRendererProps } from '../render-context';
 import { useTruncated } from '../use-truncated';
+import { UiLinkChip } from './links';
 
 // The number of every source by its node id, which the list counts in its own order.
 const SourceNumbers = createContext<ReadonlyMap<string, number>>(new Map());
 
-/* Plain text in the same measure until the node closes, so highlighting never makes it jump. */
-export function CodeBlockRenderer({ node }: UiRendererProps<UiProps<'CodeBlock'>>) {
-    const { language } = node.props;
+/* What a file is written in, by its extension, for code that names its file and no language. */
+function languageOfFile(path: string): string | undefined {
+    return /\.([A-Za-z\d]+)$/.exec(path)?.[1]?.toLowerCase();
+}
+
+/*
+ * Plain text in the same measure until the node closes, so highlighting never makes it jump. With a file
+ * the header is its chip, which opens the file at `start` once the host checked it, in place of the language.
+ */
+export function CodeBlockRenderer({ node, context }: UiRendererProps<UiProps<'CodeBlock'>>) {
+    const { language, file, start, highlight } = node.props;
+    const filed = file !== undefined && file !== '';
+    const labeled = language !== undefined && language !== '';
+    const lined = start !== undefined || (highlight !== undefined && highlight.length > 0);
 
     return (
         <div className="chat-ui-code chat-ui-flat flex flex-col rounded-xl bg-ui-tile p-1.5">
-            {language !== undefined && language !== '' && (
-                <div className="chat-ui-flat-inner flex px-1.5 pt-0.5 pb-1.5">
-                    <span className="rounded-md bg-ui-inset px-1.5 font-mono text-2xs text-text shadow-[inset_0_0_0_1px_var(--border)]">{language}</span>
+            {(filed || labeled) && (
+                <div className="chat-ui-flat-inner flex min-w-0 px-1.5 pt-0.5 pb-1.5">
+                    {filed ? (
+                        <UiLinkChip target={{ type: 'File', path: file, line: start }} context={context} />
+                    ) : (
+                        <span className="rounded-md bg-ui-inset px-1.5 font-mono text-2xs text-text shadow-[inset_0_0_0_1px_var(--border)]">{language}</span>
+                    )}
                 </div>
             )}
             <CodeStreamingContext.Provider value={!node.complete}>
-                <CodeBlock code={uiNodeText(node).replace(/^\n|\n$/g, '')} lang={language ?? 'text'} />
+                <CodeBlock
+                    code={uiNodeText(node).replace(/^\n|\n$/g, '')}
+                    lang={language ?? (filed ? languageOfFile(file) : undefined) ?? 'text'}
+                    lines={lined ? { start, marked: highlight } : undefined}
+                />
             </CodeStreamingContext.Provider>
         </div>
     );

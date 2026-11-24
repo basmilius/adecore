@@ -5,11 +5,12 @@ Summarize a result or show progress. Use one leading Summary; its children are i
 <Demo src="intelligent-ui/status" />
 
 ```ui
-<Summary tone="warning" badge="1 failing">The release build passed, one smoke test failed</Summary>
+<Summary tone="warning" badge="1 failing" detail="Build 4812 on main">The release build passed, one smoke test failed</Summary>
 <Callout tone="info" title="Retried once">The test failed again on a clean runner.</Callout>
-<Progress value={312} max={500}>Tests run</Progress>
+<Callout tone="danger" title="Do not publish">The failing test covers sign in.</Callout>
+<Progress value={312} max={500} tone="warning" detail="188 tests left">Tests run</Progress>
 <Steps>
-<Step state="done">Build</Step>
+<Step state="done" detail="2 min">Build</Step>
 <Step state="failed" detail="login.spec.ts">Smoke tests</Step>
 <Step state="pending">Publish</Step>
 </Steps>
@@ -30,8 +31,10 @@ The result in one sentence, as its children. The first Summary heads the block a
 | Prop     | Type     | Required | Notes                              |
 | -------- | -------- | -------- | ---------------------------------- |
 | `tone`   | `UiTone` | No       | Gives the sentence an icon         |
-| `badge`  | string   | No       | A short label beside it, as a pill |
+| `badge`  | string   | No       | A short label at the end, as a tag |
 | `detail` | string   | No       | A line under the sentence          |
+
+A `badge` of up to 24 characters is a tag at the end of the row, in the tone. A longer one stands under the sentence, since a tag does not wrap.
 
 ## Callout
 
@@ -41,6 +44,8 @@ A note that needs attention. Its children are the note.
 | ------- | -------- | -------- | ---------------------------------------- |
 | `tone`  | `UiTone` | No       | The surface and icon; `info` without one |
 | `title` | string   | No       | A line above the note                    |
+
+A `warning` and a `danger` color the whole tile in their tone. The other tones keep the gray tile and color only the icon.
 
 ## Tag
 
@@ -54,12 +59,14 @@ A short status label. Its children are the label. A Tag may stand inside text.
 
 Progress with a label. Its children are the label. Without `value` the progress is indeterminate; without `max` the value reads as a percentage.
 
-| Prop     | Type     | Required | Notes                          |
-| -------- | -------- | -------- | ------------------------------ |
-| `value`  | number   | No       | Zero or more                   |
-| `max`    | number   | No       | Above zero                     |
-| `tone`   | `UiTone` | No       | What the progress means        |
-| `detail` | string   | No       | A line that says more about it |
+| Prop     | Type     | Required | Notes                                           |
+| -------- | -------- | -------- | ----------------------------------------------- |
+| `value`  | number   | No       | Zero or more                                    |
+| `max`    | number   | No       | Above zero                                      |
+| `tone`   | `UiTone` | No       | Colors the reading and gives it the tone's icon |
+| `detail` | string   | No       | A faint line under the bar                      |
+
+The bar keeps the accent color whatever the tone. A screen reader hears the tone as a word after the reading.
 
 For a value against a limit that is no work in progress, use a [Meter](/intelligent-ui/components/data#meter).
 
@@ -70,7 +77,9 @@ An ordered sequence. `Steps` has no props and holds only `Step`. A `Step` stands
 | Prop     | Type   | Required | Notes                                                                      |
 | -------- | ------ | -------- | -------------------------------------------------------------------------- |
 | `state`  | string | No       | `done`, `running`, `pending`, `failed` or `skipped`; `pending` without one |
-| `detail` | string | No       | Faint text beside the label, such as a file or a time                      |
+| `detail` | string | No       | Faint text at the end of the row, such as a file or a time                 |
+
+The steps share one tile. Each is a row with its state as an icon, on a line that runs down to the next step. A detail that does not fit beside the label moves under it. Only a `failed` step says its state in a word, under its label; a screen reader hears the state of every step. A `running` step spins while the block streams or reads live data, and is a still dot after that.
 
 ## Timeline and Event
 

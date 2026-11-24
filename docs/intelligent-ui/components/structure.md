@@ -7,11 +7,11 @@ Organize distinct topics. Use Tabs for alternatives a person compares, and Secti
 ```ui
 <Tabs>
 <Tab title="Option A">Keep the cache and raise its limit.</Tab>
-<Tab title="Option B">Drop the cache and read from disk.</Tab>
+<Tab title="Option B" badge="new">Drop the cache and read from disk.</Tab>
 </Tabs>
 <Sections>
 <Section title="What changed">Two files, both in the loader.</Section>
-<Section title="Risks">None found.</Section>
+<Section title="Risks" open={false} badge="1 open" tone="warning">A cold cache reads every file once.</Section>
 </Sections>
 ```
 
@@ -24,7 +24,7 @@ Alternatives, one visible at a time. `Tabs` has no props and holds only `Tab`. A
 | `title` | string | Yes      | The tab's label                                 |
 | `badge` | string | No       | A short label beside the title, such as a count |
 
-The first tab is open. A tab that arrives while streaming does not take over the one a person opened.
+The first tab is open. A tab that arrives while streaming does not take over the one a person opened. A `badge` shows as a small label beside the title.
 
 ## Sections and Section
 
@@ -34,10 +34,10 @@ Independent topics that fold. `Sections` has no props and holds only `Section`. 
 | ------- | -------- | -------- | ----------------------------------------- |
 | `title` | string   | Yes      | The section's head                        |
 | `open`  | boolean  | No       | `false` for a section that starts folded  |
-| `badge` | string   | No       | A short label in the head                 |
+| `badge` | string   | No       | A tag at the end of the head, in the tone |
 | `tone`  | `UiTone` | No       | What the section means, such as `warning` |
 
-Sections arrive open. Once a person folds one, none in that set reopens by itself.
+A Section arrives as `open` says. Without `open` it arrives open, until a person folds one of the set; after that, none opens by itself.
 
 ## Columns and Pane
 
