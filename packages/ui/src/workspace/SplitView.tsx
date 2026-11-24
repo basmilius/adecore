@@ -359,13 +359,23 @@ export function SplitView({
         const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
         observer?.observe(element);
         const view = element.ownerDocument.defaultView;
+
+        // Only a scroll of something around the view moves it; every other scroll in the window would force a layout for nothing.
+        const scrolled = (event: Event): void => {
+            const target = event.target;
+
+            if (!(target instanceof Node) || target.contains(element)) {
+                measure();
+            }
+        };
+
         view?.addEventListener('resize', measure);
-        view?.addEventListener('scroll', measure, true);
+        view?.addEventListener('scroll', scrolled, true);
 
         return () => {
             observer?.disconnect();
             view?.removeEventListener('resize', measure);
-            view?.removeEventListener('scroll', measure, true);
+            view?.removeEventListener('scroll', scrolled, true);
         };
     }, [measure]);
 
