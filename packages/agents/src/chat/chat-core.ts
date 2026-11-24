@@ -22,6 +22,7 @@ import {
     type ChatSecretItem,
     type ChatUiChoicePayload,
     type ChatUiQueryPayload,
+    type ChatUiDiffPayload,
     type ChatUiLinkPayload,
     type ChatSkill,
     type ChatSubagentPayload,
@@ -1308,6 +1309,16 @@ export class ChatCore {
         }
 
         return this.uiQueries.link(this.require(payload.chatId), payload);
+    }
+
+    async diffUi(payload: ChatUiDiffPayload, clientId: string) {
+        await this.hooks.admitUi?.(payload.chatId, clientId);
+
+        if (!this.attached.get(payload.chatId)?.has(clientId) || !this.uiQueries) {
+            throw new ChatError('refused-query', 'Attach to the chat before reading its UI diffs.');
+        }
+
+        return this.uiQueries.diff(this.require(payload.chatId), payload);
     }
 
     async queryUi(payload: ChatUiQueryPayload, clientId: string) {

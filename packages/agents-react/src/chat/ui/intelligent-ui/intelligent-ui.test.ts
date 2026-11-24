@@ -72,14 +72,14 @@ const REVIEW =
 describe('the registry of intelligent UI renderers', () => {
     test('accounts for every catalog name, and only those', () => {
         expect(Object.keys(UI_RENDERERS).sort()).toEqual(Object.keys(UI_CATALOG).sort());
-        expect(Object.keys(UI_RENDERERS)).toHaveLength(45);
+        expect(Object.keys(UI_RENDERERS)).toHaveLength(63);
 
         const empty = Object.entries(UI_RENDERERS)
             .filter(([, renderer]) => renderer === null)
             .map(([name]) => name)
             .sort();
 
-        expect(empty).toEqual(['Column', 'Each', 'Option', 'Place', 'Show']);
+        expect(empty).toEqual(['Column', 'Each', 'Option', 'Part', 'Place', 'Show']);
     });
 });
 

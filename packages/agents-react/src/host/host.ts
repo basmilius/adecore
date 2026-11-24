@@ -6,6 +6,8 @@ import type {
     ChatGoalAction,
     ChatSubagentItem,
     ChatUiChoicePayload,
+    ChatUiDiffPayload,
+    ChatUiDiffReading,
     ChatUiQueryPayload,
     ChatUiQueryReading,
     ChatUiLinkPayload,
@@ -543,6 +545,8 @@ export interface ChatHost {
         subscribe?(scopeId: string, chatId: string, changed: () => void): () => void;
         link?(scopeId: string, payload: ChatUiLinkPayload): Promise<ChatUiLinkReading>;
         openLink?(scopeId: string, reading: ChatUiLinkReading): void;
+        /* The change of the file an open Diff names, read from git; left out, an open Diff stays the chip a closed one is. */
+        diff?(scopeId: string, payload: ChatUiDiffPayload): Promise<ChatUiDiffReading>;
         openUrl?(scopeId: string, url: string): void;
         query?(scopeId: string, payload: ChatUiQueryPayload): Promise<ChatUiQueryReading>;
         sendChoice(scopeId: string, payload: ChatUiChoicePayload): Promise<'sent' | 'queued'>;

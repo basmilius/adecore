@@ -73,6 +73,7 @@ exports[`the public API ./chat exports these names 1`] = `
   "type ChatSidecar",
   "type ChatSpawnOptions",
   "type ChatTitleInput",
+  "type ChatUiDiffRequest",
   "type ChatUiHost",
   "type ChatUiSource",
   "type CodexClientInfo",

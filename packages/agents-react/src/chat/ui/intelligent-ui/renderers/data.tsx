@@ -135,7 +135,16 @@ export function EntryRenderer({ node, children }: UiRendererProps<UiProps<'Entry
 }
 
 function numberText(cell: Extract<UiTableCell, { kind: 'number' }>, unit: string | undefined): string {
-    return cell.as === 'bytes' ? formatBytes(cell.value) : cell.as === 'duration' ? formatDuration(cell.value) : uiWithUnit(formatRounded(cell.value, 2), unit);
+    switch (cell.as) {
+        case 'bytes':
+            return formatBytes(cell.value);
+        case 'duration':
+            return formatDuration(cell.value);
+        case 'percent':
+            return formatPercent(cell.value);
+        case 'number':
+            return uiWithUnit(formatRounded(cell.value, 2), unit);
+    }
 }
 
 /* What a cell reads as, so two readings that draw the same do not light up. */

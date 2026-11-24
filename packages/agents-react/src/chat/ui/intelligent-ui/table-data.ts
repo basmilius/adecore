@@ -14,7 +14,7 @@ export interface UiTableColumn {
 export type UiTableCell =
     | { kind: 'empty' }
     | { kind: 'text'; text: string }
-    | { kind: 'number'; as: 'number' | 'bytes' | 'duration'; value: number }
+    | { kind: 'number'; as: 'number' | 'bytes' | 'duration' | 'percent'; value: number }
     | { kind: 'date'; at: number }
     | { kind: 'file'; path: string }
     | { kind: 'tag'; text: string };
@@ -24,7 +24,7 @@ export const UI_TABLE_ROWS = 50;
 
 /* The furthest a JavaScript Date reaches from the epoch either way, in milliseconds. */
 const DATE_RANGE = 8.64e15;
-const NUMERIC_KINDS: ReadonlySet<UiColumnKind> = new Set(['number', 'bytes', 'duration']);
+const NUMERIC_KINDS: ReadonlySet<UiColumnKind> = new Set(['number', 'bytes', 'duration', 'percent']);
 
 export function isNumericColumn(column: UiTableColumn): boolean {
     return NUMERIC_KINDS.has(column.as);
@@ -92,7 +92,10 @@ function numberOf(value: unknown): number | null {
     return null;
 }
 
-/* A duration is in milliseconds and a date is milliseconds since the epoch or an ISO string; anything else reads as text. */
+/*
+ * A duration is in milliseconds, a percent is the number before the sign (`12.5` reads 12.5%) and a date is
+ * milliseconds since the epoch or an ISO string; anything else reads as text.
+ */
 export function uiTableCell(value: unknown, column: UiTableColumn): UiTableCell {
     if (value === undefined || value === null || value === '') {
         return { kind: 'empty' };
@@ -101,7 +104,8 @@ export function uiTableCell(value: unknown, column: UiTableColumn): UiTableCell 
     switch (column.as) {
         case 'number':
         case 'bytes':
-        case 'duration': {
+        case 'duration':
+        case 'percent': {
             const number = numberOf(value);
 
             return number === null ? { kind: 'text', text: textOf(value) } : { kind: 'number', as: column.as, value: number };

@@ -151,7 +151,7 @@ The recorded access lives in the chat record under `uiAccess` and never reaches 
 
 A reply that drew UI keeps the block source in its `text`. `readableAssistantText(item)` from `@adecore/agents/chat` returns the text with each block replaced by its fallback. Use it wherever your app hands a reply to another agent, a notification or a search index.
 
-`ChatUiHost.link` checks File, Diff, Commit and Node targets against what the writer could reach then and now. `ui.link` answers only for a stored, visible node in an attached chat. A missing or refused link stays plain text. [Live queries](/intelligent-ui/host/queries) and [Links](/intelligent-ui/host/links) cover both sides.
+`ChatUiHost.link` checks File, Diff, Commit and Node targets against what the writer could reach then and now. `ui.link` answers only for a stored, visible node in an attached chat. A missing or refused link stays plain text. `ChatUiHost.diff` reads the change an open Diff shows, from a `ChatUiDiffRequest`, and `ui.diff` answers it under the same checks. [Live queries](/intelligent-ui/host/queries) and [Links](/intelligent-ui/host/links) cover both sides.
 
 ## Choosing how a chat is named
 

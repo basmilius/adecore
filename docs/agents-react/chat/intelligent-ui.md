@@ -20,6 +20,7 @@ A renderer never sends a message, reads a path or opens an address itself. Every
 | `query(scopeId, payload)` | A live block shows its frozen reading and does not refresh. |
 | `link(scopeId, payload)` | File, Diff, Commit and Node links stay text. |
 | `openLink(scopeId, reading)` | A link chip draws but does nothing. |
+| `diff(scopeId, payload)` | An [open Diff](/intelligent-ui/host/links#open-diffs) stays a chip. |
 | `openUrl(scopeId, url)` | A source cannot be opened. |
 | `subscribe(scopeId, chatId, changed)` | Visible blocks only refresh on their own interval. |
 
@@ -76,7 +77,7 @@ const element = renderer === null ? null : createElement(renderer, { node, conte
 
 A renderer gets `UiRendererProps`: the evaluated `UiViewNode`, its rendered `children` and the block's `UiRenderContext`. The context has the block's `phase` (`streaming` or `final`), its `answer`, and the host callbacks as `link`, `openLink`, `openUrl` and `onChoose`. An input changes state only through `node.bindings.value.onValueChange`, a Button only through `node.onAction()`.
 
-A renderer is a component for the props of its catalog entry. In the context, `link` answers a `chip` it can open or `plain` text, with a label, a Place's point is in decimal degrees, and `answer` is the choice and whether it is `sending`, `sent` or `queued`. A live value comes with the previous reading and whether it changed or went stale. `liveNode` answers a `UiLiveNodeState` for a node that reads live data: `live`, or `stale` while a failed read left its last value. The block dims every stale node itself, so a renderer only lights a value that changed.
+A renderer is a component for the props of its catalog entry. In the context, `link` answers a `chip` it can open or `plain` text, with a label, `diff(nodeId)` answers what the host read for an open Diff (`reading`, the `patch`, or `refused` with its reason) and is undefined where the Diff stays a chip, a Place's point is in decimal degrees, and `answer` is the choice and whether it is `sending`, `sent` or `queued`. A live value comes with the previous reading and whether it changed or went stale. `liveNode` answers a `UiLiveNodeState` for a node that reads live data: `live`, or `stale` while a failed read left its last value. The block dims every stale node itself, so a renderer only lights a value that changed.
 
 `UiBlockFrame` is the card around a block, with a footer for live status, the answer and compiler notes. A part this version cannot draw shows as its Markdown. Its props are `UiBlockFrameProps`. The footer takes the live status as a `UiLiveStatus` (fresh, reading, failed or refused, what it reads and when), the answer, and the notes as `UiBlockFix` records, `{ code, message }`.
 

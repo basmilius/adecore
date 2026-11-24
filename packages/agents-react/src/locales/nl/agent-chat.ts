@@ -720,9 +720,56 @@ export default {
             change: '{{change}} vanaf {{previous}}',
             from: 'vanaf {{previous}}'
         },
+        meter: {
+            label: 'Meter',
+            reading: '{{value}} van {{max}}',
+            of: 'van {{max}}',
+            mark: 'markering bij {{mark}}'
+        },
+        parts: {
+            label: 'Delen van het geheel',
+            part: '{{label}}: {{value}}, {{share}}'
+        },
         table: {
             label: 'Tabel van {{columns}}',
             showAll: 'Alle {{total}} rijen tonen'
+        },
+        changes: {
+            label_one: '{{count}} gewijzigd bestand',
+            label_other: '{{count}} gewijzigde bestanden',
+            added_one: '{{count}} regel toegevoegd',
+            added_other: '{{count}} regels toegevoegd',
+            removed_one: '{{count}} regel verwijderd',
+            removed_other: '{{count}} regels verwijderd',
+            state: {
+                added: 'Nieuw',
+                modified: 'Gewijzigd',
+                deleted: 'Verwijderd',
+                renamed: 'Hernoemd'
+            }
+        },
+        diff: {
+            label: 'Wijzigingen in {{path}}',
+            unchanged: 'Geen wijzigingen',
+            partial: 'Alleen de eerste regels staan hier.',
+            showAll: 'Hele diff openen',
+            unavailable: 'Kon deze diff niet lezen'
+        },
+        alternatives: {
+            label_one: '{{count}} optie',
+            label_other: '{{count}} opties',
+            recommended: 'Aanbevolen',
+            pro: 'Voor:',
+            con: 'Tegen:'
+        },
+        tree: {
+            label: 'Boom'
+        },
+        numberField: {
+            between: 'Een getal van {{min}} tot en met {{max}}',
+            atLeast: 'Een getal van minstens {{min}}',
+            atMost: 'Een getal van hoogstens {{max}}',
+            number: 'Een getal'
         },
         chart: {
             values: 'Waarden',
@@ -812,6 +859,7 @@ export default {
                 'access-unavailable': 'De chat die dit maakte heeft geen toegang meer.',
                 'block-stale': 'Dit blok is veranderd sinds het getekend werd.',
                 busy: 'Er lezen te veel live blokken tegelijk.',
+                'diffs-unsupported': 'De machine toont geen diffs in blokken.',
                 'link-unchecked': 'Deze link moet opnieuw gecontroleerd worden.',
                 'link-unsupported': 'De machine kan deze link niet openen.',
                 'links-unsupported': 'De machine opent geen links uit blokken.',

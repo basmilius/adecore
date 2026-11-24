@@ -32,43 +32,95 @@ A small set of key numbers. `Stats` has no props and holds only `Stat`. A `Stat`
 | `previous` | number           | No       | The value to compare with; the tile shows the change                             |
 | `unit`     | string           | No       | Written after the number, a percent sign without a space                         |
 | `tone`     | `UiTone`         | No       | Colors the change; without it the change stays neutral                           |
+| `trend`    | array of numbers | No       | 2 to 64 numbers that say how the value moved, oldest first                       |
+
+## Meter
+
+A value against a limit, such as a context window or a coverage target. Its children are the label. Unlike [Progress](/intelligent-ui/components/status#progress), a Meter says nothing about work that runs.
+
+| Prop     | Type     | Required | Notes                                                               |
+| -------- | -------- | -------- | ------------------------------------------------------------------- |
+| `value`  | number   | Yes      |                                                                     |
+| `max`    | number   | No       | Above zero; 100 without it, and then only the value is written      |
+| `mark`   | number   | No       | A line across the bar, such as a target                             |
+| `unit`   | string   | No       | Written after the value and the max, a percent sign without a space |
+| `tone`   | `UiTone` | No       | Colors the value and gives it the tone's icon                       |
+| `detail` | string   | No       | A faint line under the bar                                          |
+
+```ui
+<Meter value={142} max={200} mark={160} unit="k" detail="Compacts at 160k">Context</Meter>
+<Meter value={71} unit="%" mark={80} tone="warning" detail="Target 80%">Coverage</Meter>
+```
+
+A screen reader hears the label, the value against the max, the mark and the tone in words.
+
+## Parts and Part
+
+How a whole divides, as one bar. `Parts` holds only `Part`, one to six of them. A `Part` stands only inside `Parts`; its children are its label.
+
+| Prop   | Type   | Required | Notes                                   |
+| ------ | ------ | -------- | --------------------------------------- |
+| `unit` | string | No       | Written after each value in its tooltip |
+
+| Part prop | Type     | Required | Notes                                                   |
+| --------- | -------- | -------- | ------------------------------------------------------- |
+| `value`   | number   | Yes      | Zero or more                                            |
+| `tone`    | `UiTone` | No       | The color of the part; the next chart color without one |
+
+```ui
+<Parts unit="tokens">
+<Part value={6100000}>Large model</Part>
+<Part value={2400000}>Small model</Part>
+</Parts>
+```
+
+Each part is as wide as its share of the sum. The legend under the bar names every part with its share as a percentage, and a part's tooltip gives its value.
 
 ## EntityList and Entry
 
-Labeled facts about one thing. `EntityList` has no props and holds only `Entry`. An `Entry` stands only inside `EntityList`; its children are the value.
+Labeled facts about one thing. `EntityList` holds only `Entry`. An `Entry` stands only inside `EntityList`; its children are the value.
 
-| Prop    | Type   | Required | Notes |
-| ------- | ------ | -------- | ----- |
-| `label` | string | Yes      |       |
+| Prop     | Type   | Required | Notes                                                                        |
+| -------- | ------ | -------- | ---------------------------------------------------------------------------- |
+| `layout` | string | No       | `tiles` or `list`; without it, tiles up to four entries and a list from five |
+
+| Entry prop | Type   | Required | Notes                                                                   |
+| ---------- | ------ | -------- | ----------------------------------------------------------------------- |
+| `label`    | string | Yes      |                                                                         |
+| `as`       | string | No       | What the value is, one of the kinds a [Column](#table-and-column) takes |
 
 ## Table and Column
 
 Rows with named columns. `Table` holds only `Column`, which describes a field of the rows. Without Columns, the table shows the row keys.
 
-| Prop   | Type             | Required | Notes              |
-| ------ | ---------------- | -------- | ------------------ |
-| `rows` | array of records | Yes      | At most 1,000 rows |
+| Prop   | Type             | Required | Notes                                                      |
+| ------ | ---------------- | -------- | ---------------------------------------------------------- |
+| `rows` | array of records | Yes      | At most 1,000 rows                                         |
+| `sort` | string           | No       | A column key, with ` desc` behind it for the largest first |
 
-| Column prop | Type   | Required | Notes                                                          |
-| ----------- | ------ | -------- | -------------------------------------------------------------- |
-| `key`       | string | Yes      | The field of each row, 1 to 256 characters                     |
-| `title`     | string | No       | The heading; the key without one                               |
-| `unit`      | string | No       | Written after each number                                      |
-| `as`        | string | No       | `text`, `number`, `bytes`, `duration`, `date`, `file` or `tag` |
+| Column prop | Type   | Required | Notes                                                                     |
+| ----------- | ------ | -------- | ------------------------------------------------------------------------- |
+| `key`       | string | Yes      | The field of each row, 1 to 256 characters                                |
+| `title`     | string | No       | The heading; the key without one                                          |
+| `unit`      | string | No       | Written after each number                                                 |
+| `as`        | string | No       | `text`, `number`, `bytes`, `duration`, `date`, `file`, `tag` or `percent` |
+| `tones`     | record | No       | A `UiTone` per value of the column, such as `{"failed": "danger"}`        |
 
-A `duration` is in milliseconds. A `date` is milliseconds since the epoch or an ISO string. A `file` is a path in mono text. A value of the wrong kind reads as text, and a missing one as nothing.
+A `duration` is in milliseconds. A `percent` is the number before the sign, so `12.5` reads as 12.5%. A `date` is milliseconds since the epoch or an ISO string. A `file` is a path in mono text. A value of the wrong kind reads as text, and a missing one as nothing.
 
 ## Chart
 
 Labeled numeric series. Each row of `data` has a `label` and up to six numeric series by name. Chart has no children.
 
-| Prop   | Type             | Required | Notes                                           |
-| ------ | ---------------- | -------- | ----------------------------------------------- |
-| `kind` | string           | Yes      | `bar`, `hbar` (horizontal), `stacked` or `line` |
-| `data` | array of records | Yes      | At most 1,000 rows of scalars                   |
-| `unit` | string           | No       | Written after each value                        |
+| Prop    | Type             | Required | Notes                                                      |
+| ------- | ---------------- | -------- | ---------------------------------------------------------- |
+| `kind`  | string           | Yes      | `bar`, `hbar` (horizontal), `stacked`, `line` or `area`    |
+| `data`  | array of records | Yes      | At most 1,000 rows of scalars                              |
+| `unit`  | string           | No       | Written after each value                                   |
+| `title` | string           | No       | What the chart shows                                       |
+| `tones` | record           | No       | A `UiTone` per series name, such as `{"failed": "danger"}` |
 
-A value that is not a finite number is a gap. A chart without a usable series, or with numbers it cannot scale, draws as its data.
+An `area` is a line with the space down to zero filled. A value that is not a finite number is a gap. A chart without a usable series, or with numbers it cannot scale, draws as its data.
 
 Bars and `hbar` grow from zero in either direction, so negative values work. Stacked data with a negative value draws as side-by-side bars, with a note. A drawing holds the first 60 rows and six series and names what it leaves out, with every value a press away. More than six series get `too_many_series`. The chart truncates labels that do not fit.
 

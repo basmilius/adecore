@@ -38,6 +38,7 @@ import { UiSourceCitation } from './renderers/content';
 import { uiReplyParts } from './reply-parts';
 import { UiBlockFrame } from './UiBlockFrame';
 import { UiFallbackPart } from './UiFallbackPart';
+import { useUiDiffs } from './use-ui-diffs';
 import { useUiLinks } from './use-ui-links';
 import { useUiQueries, useUiLiveValues } from './use-ui-queries';
 
@@ -68,12 +69,13 @@ const BLOCK = '$block';
  * Parents whose text is read as written: code, a short tag, and the labels of controls, whose
  * accessible name and sent text are that same string.
  */
-const LITERAL_PARENTS = new Set(['CodeBlock', 'Tag', 'Choice', 'Item', 'Switch', 'Slider', 'Segmented', 'Option', 'Button', 'Column']);
+const LITERAL_PARENTS = new Set(['CodeBlock', 'Tag', 'Choice', 'Item', 'Switch', 'Slider', 'Segmented', 'Option', 'Button', 'Column', 'Leaf']);
 
 /* Parents that stack their children, where a run of text and inline nodes is one paragraph. */
 const PARAGRAPHS: Readonly<Record<string, string>> = {
     [BLOCK]: 'text-xs text-text',
     Tab: 'text-xs text-text',
+    Pane: 'text-xs text-text',
     Section: 'text-xs text-text-muted'
 };
 
@@ -279,7 +281,14 @@ function isInline(node: UiViewNode): boolean {
         return true;
     }
 
-    return node.error === undefined && (node.type === 'Tag' || (LINKS.has(node.type) && node.children.length === 0));
+    if (node.error !== undefined) {
+        return false;
+    }
+
+    // An open Diff is a tile of its own, also while its host has not answered or never will.
+    const chip = LINKS.has(node.type) && node.children.length === 0 && !(node.type === 'Diff' && node.props.open === true);
+
+    return node.type === 'Tag' || node.type === 'Keys' || chip;
 }
 
 function isBlank(node: UiViewNode): boolean {
@@ -525,6 +534,7 @@ function UiBlockBody({
         [sources, element]
     );
 
+    const diff = useUiDiffs(block, state, context, queries.reads, evaluation.nodes);
     const { liveValue, liveNode } = useUiLiveValues(block, evaluation.nodes, queries.currentReadings);
     const sendChoice = host.intelligentUi?.sendChoice;
     const place = useMemo(() => placeReader(frozen, block.revision, unrecorded), [frozen, block.revision, unrecorded]);
@@ -532,6 +542,7 @@ function UiBlockBody({
     const rendering: UiRenderContext = {
         ...context,
         ...links,
+        diff,
         place,
         answer,
         failedChoiceId,

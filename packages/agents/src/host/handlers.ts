@@ -88,6 +88,7 @@ export function chatHandlers(chats: ChatCore, providers: ProviderRegistry): { [T
             ),
         'chat.uiChoice': (payload, clientId) => chats.choose(payload, clientId),
         'ui.link': (payload, clientId) => chats.linkUi(payload, clientId),
+        'ui.diff': (payload, clientId) => chats.diffUi(payload, clientId),
         'ui.query': (payload, clientId) => chats.queryUi(payload, clientId),
         'chat.unqueue': (payload) => ({ message: chats.unqueue(payload.chatId, payload.messageId) }),
         'chat.sendNow': (payload) => {

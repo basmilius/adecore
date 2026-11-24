@@ -12,6 +12,8 @@ const scalar = z.union([text, number, z.boolean(), z.null()]);
 const rows = z.array(z.record(z.string(), z.unknown())).max(1000);
 const empty = z.strictObject({});
 const tone = UiToneSchema.optional();
+const tones = z.record(z.string(), UiToneSchema).optional();
+const cell = z.enum(['text', 'number', 'bytes', 'duration', 'date', 'file', 'tag', 'percent']);
 
 export const UI_GROUPS = {
     status: { description: 'Summarize a result or show progress.', rules: 'Use one leading Summary. Children are inline prose, not headings or tables.' },
@@ -44,7 +46,7 @@ export const UI_CATALOG = {
     Summary: {
         group: 'status',
         description: 'The result in one sentence.',
-        schema: z.strictObject({ tone, badge: text.optional() }),
+        schema: z.strictObject({ tone, badge: text.optional(), detail: text.optional() }),
         content: 'title',
         aliases: { status: 'tone', variant: 'tone', type: 'tone' },
         example: '<Summary tone="success" badge="v2.4.0">The release is live</Summary>'
@@ -69,7 +71,7 @@ export const UI_CATALOG = {
     Progress: {
         group: 'status',
         description: 'Progress with a label; omit value for indeterminate progress.',
-        schema: z.strictObject({ value: number.nonnegative().optional(), max: number.positive().optional() }),
+        schema: z.strictObject({ value: number.nonnegative().optional(), max: number.positive().optional(), tone, detail: text.optional() }),
         text: 'label',
         quantity: { props: ['value', 'max'] },
         example: '<Progress value={7} max={12}>Files migrated</Progress>'
@@ -121,31 +123,68 @@ export const UI_CATALOG = {
     Stat: {
         group: 'data',
         description: 'A labeled number with an optional previous number, or a value in words.',
-        schema: z.strictObject({ label: text, value: z.union([number, text]), previous: number.optional(), unit: text.optional(), tone }),
+        schema: z.strictObject({
+            label: text,
+            value: z.union([number, text]),
+            previous: number.optional(),
+            unit: text.optional(),
+            tone,
+            trend: z.array(number).min(2).max(64).optional()
+        }),
         parent: 'Stats',
         aliases: { title: 'label', name: 'label', prev: 'previous', suffix: 'unit' },
         quantity: { props: ['value', 'previous'], unit: 'unit' },
         textProp: 'value'
     },
+    Meter: {
+        group: 'data',
+        description: 'A value against a limit, with an optional mark for a target; children are the label.',
+        schema: z.strictObject({
+            value: number,
+            max: number.positive().optional(),
+            mark: number.optional(),
+            unit: text.optional(),
+            tone,
+            detail: text.optional()
+        }),
+        text: 'label',
+        quantity: { props: ['value', 'max', 'mark'], unit: 'unit' },
+        example: '<Meter value={142} max={200} mark={160} unit="k" detail="Compacts at 160k">Context</Meter>'
+    },
+    Parts: {
+        group: 'data',
+        description: 'How a whole divides, as one bar of up to six parts.',
+        schema: z.strictObject({ unit: text.optional() }),
+        children: ['Part'],
+        count: { min: 1, max: 6 },
+        example: '<Parts unit="tokens"><Part value={6100000}>Large model</Part><Part value={2400000}>Small model</Part></Parts>'
+    },
+    Part: {
+        group: 'data',
+        description: 'One part of the whole; children are its label.',
+        schema: z.strictObject({ value: number.nonnegative(), tone }),
+        parent: 'Parts',
+        text: 'label'
+    },
     EntityList: {
         group: 'data',
-        description: 'Labeled facts about an entity.',
-        schema: empty,
+        description: 'Labeled facts about an entity, as tiles up to four and as a list from five unless layout says otherwise.',
+        schema: z.strictObject({ layout: z.enum(['tiles', 'list']).optional() }),
         children: ['Entry'],
         example: '<EntityList><Entry label="ci">21 min 38 sec</Entry><Entry label="far-future-clock">16 min 46 sec</Entry></EntityList>'
     },
     Entry: {
         group: 'data',
         description: 'One labeled fact.',
-        schema: z.strictObject({ label: text }),
+        schema: z.strictObject({ label: text, as: cell.optional() }),
         parent: 'EntityList',
         text: 'value',
         aliases: { title: 'label', name: 'label', key: 'label' }
     },
     Table: {
         group: 'data',
-        description: 'Rows with named columns.',
-        schema: z.strictObject({ rows }),
+        description: 'Rows with named columns; sort is a column key, with " desc" behind it for the largest first.',
+        schema: z.strictObject({ rows, sort: text.max(256).optional() }),
         children: ['Column'],
         aliases: { data: 'rows' },
         example:
@@ -158,7 +197,8 @@ export const UI_CATALOG = {
             key: name,
             title: text.optional(),
             unit: text.optional(),
-            as: z.enum(['text', 'number', 'bytes', 'duration', 'date', 'file', 'tag']).optional()
+            as: cell.optional(),
+            tones
         }),
         parent: 'Table',
         aliases: { label: 'title', name: 'title', field: 'key', type: 'as', format: 'as' }
@@ -167,9 +207,11 @@ export const UI_CATALOG = {
         group: 'data',
         description: 'Compare labeled numeric series. Data rows have label and up to six numeric series.',
         schema: z.strictObject({
-            kind: z.enum(['bar', 'hbar', 'stacked', 'line']),
+            kind: z.enum(['bar', 'hbar', 'stacked', 'line', 'area']),
             data: z.array(z.record(z.string(), scalar)).max(1000),
-            unit: text.optional()
+            unit: text.optional(),
+            title: text.optional(),
+            tones
         }),
         aliases: { type: 'kind', rows: 'data' },
         series: { prop: 'data', label: 'label', unit: 'unit' },
@@ -185,7 +227,7 @@ export const UI_CATALOG = {
     Tab: {
         group: 'structure',
         description: 'A named tab.',
-        schema: z.strictObject({ title: text }),
+        schema: z.strictObject({ title: text, badge: text.optional() }),
         parent: 'Tabs',
         aliases: { label: 'title', name: 'title' }
     },
@@ -199,17 +241,88 @@ export const UI_CATALOG = {
     },
     Section: {
         group: 'structure',
-        description: 'A named section.',
-        schema: z.strictObject({ title: text }),
+        description: 'A named section, open unless open is false.',
+        schema: z.strictObject({ title: text, open: z.boolean().optional(), badge: text.optional(), tone }),
         parent: 'Sections',
         aliases: { label: 'title', name: 'title' }
     },
+    Columns: {
+        group: 'structure',
+        description: 'Two or three panes side by side, stacked where the block is narrow.',
+        schema: empty,
+        children: ['Pane'],
+        count: { min: 2, max: 3 },
+        example: '<Columns><Pane title="Before"><Tag>48 ms</Tag></Pane><Pane title="After"><Tag tone="success">11 ms</Tag></Pane></Columns>'
+    },
+    Pane: { group: 'structure', description: 'One pane of Columns.', schema: z.strictObject({ title: text.optional() }), parent: 'Columns' },
+    Alternatives: {
+        group: 'structure',
+        description: 'Two to four options compared side by side. It only shows them: a person chooses with a Choice or your question tool.',
+        schema: empty,
+        children: ['Alternative'],
+        count: { min: 2, max: 4 },
+        example:
+            '<Alternatives><Alternative title="In the compiler" recommended>One place for every component.<Pro>No schema changes</Pro><Con>One more step</Con></Alternative><Alternative title="Per prop">As one prop does today.<Con>Easy to forget</Con></Alternative></Alternatives>'
+    },
+    Alternative: {
+        group: 'structure',
+        description: 'One option: its words describe it, Pro and Con children argue it.',
+        schema: z.strictObject({ title: text, recommended: z.boolean().optional() }),
+        parent: 'Alternatives',
+        children: ['Pro', 'Con'],
+        text: 'description',
+        aliases: { label: 'title', name: 'title' }
+    },
+    Pro: { group: 'structure', description: 'A point for an Alternative.', schema: empty, parent: 'Alternative', text: 'point' },
+    Con: { group: 'structure', description: 'A point against an Alternative.', schema: empty, parent: 'Alternative', text: 'point' },
+    Tree: {
+        group: 'structure',
+        description: 'A hierarchy of branches and leaves, such as folders and files.',
+        schema: empty,
+        children: ['Branch', 'Leaf'],
+        example: '<Tree><Branch label="src"><Leaf path="src/compiler.ts" detail="changed"/><Leaf detail="new">normalize.ts</Leaf></Branch></Tree>'
+    },
+    Branch: {
+        group: 'structure',
+        description: 'A node of a Tree that holds others, open unless open is false.',
+        schema: z.strictObject({ label: text, open: z.boolean().optional() }),
+        parent: ['Tree', 'Branch'],
+        children: ['Branch', 'Leaf'],
+        aliases: { title: 'label', name: 'label' }
+    },
+    Leaf: {
+        group: 'structure',
+        description: 'An end of a Tree; children are its name. With path it opens as a File, named after the file without children.',
+        schema: z.strictObject({ path: text.optional(), detail: text.optional(), tone }),
+        parent: ['Tree', 'Branch'],
+        text: 'name',
+        link: 'File'
+    },
     CodeBlock: {
         group: 'content',
-        description: 'Code as text, without execution.',
-        schema: z.strictObject({ language: name.optional() }),
-        aliases: { lang: 'language' },
-        example: '<CodeBlock language="ts">const total = rows.length;</CodeBlock>'
+        description: 'Code as text, without execution. file names where it stands, start numbers its lines from there and highlight marks line numbers.',
+        schema: z.strictObject({
+            language: name.optional(),
+            file: text.optional(),
+            start: number.int().positive().max(10000000).optional(),
+            highlight: z.array(number.int().positive()).max(64).optional()
+        }),
+        aliases: { lang: 'language', path: 'file' },
+        example: '<CodeBlock language="ts" file="src/total.ts" start={12} highlight={[12]}>const total = rows.length;</CodeBlock>'
+    },
+    Quote: {
+        group: 'content',
+        description: 'Words quoted from a log, a message or a source; mono keeps them in the code font.',
+        schema: z.strictObject({ tone, source: text.optional(), mono: z.boolean().optional() }),
+        content: 'text',
+        example: '<Quote tone="danger" source="The build log" mono>error TS2362: the left-hand side must be a number</Quote>'
+    },
+    Keys: {
+        group: 'content',
+        description: 'A keyboard shortcut in a sentence, its keys joined with +; mod is Command on a Mac and Control elsewhere.',
+        schema: empty,
+        content: 'keys',
+        example: '<Keys>mod+K</Keys> opens the palette'
     },
     Image: {
         group: 'content',
@@ -306,9 +419,38 @@ export const UI_CATALOG = {
     },
     Diff: {
         group: 'links',
-        description: 'A changed project file.',
-        schema: z.strictObject({ path: text }),
-        example: '<Diff path="src/compiler.ts">Reads a number written as text</Diff>'
+        description:
+            'A changed project file. With open the host shows its change in the block, read from git: the working tree against HEAD, or between from and to.',
+        schema: z.strictObject({
+            path: text,
+            open: z.boolean().optional(),
+            from: name.optional(),
+            to: name.optional(),
+            whitespace: z.enum(['show', 'hide']).optional()
+        }),
+        example: '<Diff path="src/compiler.ts" open>Reads a number written as text</Diff>'
+    },
+    Changes: {
+        group: 'links',
+        description: 'The files a piece of work changed, each with its lines added and removed.',
+        schema: empty,
+        children: ['Change'],
+        count: { min: 1, max: 100 },
+        example: '<Changes><Change path="src/compiler.ts" added={48} removed={6}/><Change path="src/normalize.ts" added={71} state="added"/></Changes>'
+    },
+    Change: {
+        group: 'links',
+        description: 'One changed file, opened as a Diff; children say what changed.',
+        schema: z.strictObject({
+            path: text,
+            added: number.int().nonnegative().optional(),
+            removed: number.int().nonnegative().optional(),
+            state: z.enum(['added', 'modified', 'deleted', 'renamed']).optional()
+        }),
+        parent: 'Changes',
+        text: 'note',
+        aliases: { file: 'path', additions: 'added', deletions: 'removed', status: 'state' },
+        link: 'Diff'
     },
     Commit: {
         group: 'links',
@@ -331,7 +473,13 @@ export const UI_CATALOG = {
         implicit: [],
         example: '$picked = ["types"]\n<Checklist value={$picked}><Item value="types">Types</Item><Item value="aliases">Aliases</Item></Checklist>'
     },
-    Item: { group: 'inputs', description: 'One selectable value.', schema: z.strictObject({ value: scalar }), parent: 'Checklist', text: 'label' },
+    Item: {
+        group: 'inputs',
+        description: 'One selectable value.',
+        schema: z.strictObject({ value: scalar, detail: text.optional() }),
+        parent: 'Checklist',
+        text: 'label'
+    },
     Switch: {
         group: 'inputs',
         description: 'A local boolean.',
@@ -353,7 +501,7 @@ export const UI_CATALOG = {
     Segmented: {
         group: 'inputs',
         description: 'Choose one local value.',
-        schema: z.strictObject({ value: scalar }),
+        schema: z.strictObject({ value: scalar, label: text.optional() }),
         children: ['Option'],
         binding: 'value',
         example: '$env = "staging"\n<Segmented value={$env}><Option value="dev">Dev</Option><Option value="staging">Staging</Option></Segmented>'
@@ -367,22 +515,49 @@ export const UI_CATALOG = {
         text: 'label',
         example: '$model = "small"\n<Select value={$model}>Model<Option value="small">Small</Option><Option value="large">Large</Option></Select>'
     },
+    Radio: {
+        group: 'inputs',
+        description: 'Choose one local value from a list, for options that each need a line of explanation.',
+        schema: z.strictObject({ value: scalar, label: text.optional() }),
+        children: ['Option'],
+        binding: 'value',
+        example:
+            '$scope = "fast"\n<Radio value={$scope}><Option value="fast" detail="Only the changed files">Fast</Option><Option value="full" detail="Every suite">Full</Option></Radio>'
+    },
     Option: {
         group: 'inputs',
-        description: 'One local alternative.',
-        schema: z.strictObject({ value: scalar }),
-        parent: ['Segmented', 'Select'],
+        description: 'One local alternative; detail is a line under it where its parent has room for one.',
+        schema: z.strictObject({ value: scalar, detail: text.optional() }),
+        parent: ['Segmented', 'Select', 'Radio'],
         text: 'label'
     },
     TextField: {
         group: 'inputs',
         description: 'A line of local text up to maxLength characters (256 without one, at most 1024); children are the label.',
         schema: z
-            .strictObject({ value: text, maxLength: z.number().int().min(1).max(1024).optional(), placeholder: text.max(128).optional() })
+            .strictObject({
+                value: text,
+                maxLength: z.number().int().min(1).max(1024).optional(),
+                placeholder: text.max(128).optional(),
+                multiline: z.boolean().optional()
+            })
             .refine((props) => props.value.length <= (props.maxLength ?? 256), 'Value must not be longer than maxLength.'),
         binding: 'value',
         text: 'label',
         example: '$name = ""\n<TextField value={$name} placeholder="feat/..." maxLength={64}>Branch name</TextField>'
+    },
+    NumberField: {
+        group: 'inputs',
+        description: 'A local number a person types, within min and max where given; children are the label.',
+        schema: z
+            .strictObject({ value: number, min: number.optional(), max: number.optional(), step: number.positive().optional(), unit: text.optional() })
+            .refine(
+                (props) => (props.min === undefined || props.value >= props.min) && (props.max === undefined || props.value <= props.max),
+                'Value must lie within min and max.'
+            ),
+        binding: 'value',
+        text: 'label',
+        example: '$runs = 50\n<NumberField value={$runs} min={1} max={500} unit="runs">Number of runs</NumberField>'
     },
     Button: {
         group: 'inputs',

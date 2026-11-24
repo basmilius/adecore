@@ -17,19 +17,48 @@ Include code, attachments and sources. Nothing here loads an address or reads a 
 
 Code as text, without execution. Its contents are literal: angle brackets, braces and `$` stay as written, up to `</CodeBlock>`.
 
-| Prop       | Type   | Required | Notes                                   |
-| ---------- | ------ | -------- | --------------------------------------- |
-| `language` | string | No       | For highlighting, such as `ts` or `sh`  |
+| Prop        | Type              | Required | Notes                                  |
+| ----------- | ----------------- | -------- | -------------------------------------- |
+| `language`  | string            | No       | For highlighting, such as `ts` or `sh` |
+| `file`      | string            | No       | The file the code stands in            |
+| `start`     | integer           | No       | The number of the first line, from 1   |
+| `highlight` | array of integers | No       | The line numbers to mark, at most 64   |
+
+## Quote
+
+Words quoted from a log, a message or a source. Its children are the words, shown as written. Stars and underscores stay what they are.
+
+| Prop     | Type     | Required | Notes                                                                     |
+| -------- | -------- | -------- | ------------------------------------------------------------------------- |
+| `tone`   | `UiTone` | No       | The color of the bar beside the words; a screen reader hears it as a word |
+| `source` | string   | No       | Where the words come from, in a faint line under them                     |
+| `mono`   | boolean  | No       | Keeps the words in the code font, with their line breaks                  |
+
+```ui
+<Quote tone="danger" source="The build log" mono>error TS2362: the left-hand side must be a number</Quote>
+```
+
+For code a person may copy or run, use a `CodeBlock`. A Quote is for what someone or something said.
+
+## Keys
+
+A keyboard shortcut in a sentence. `Keys` has no props; its children are the keys, joined with `+`.
+
+```ui
+Open the palette with <Keys>mod+K</Keys> and close a panel with <Keys>Escape</Keys>.
+```
+
+`mod` is Command on a Mac and Control elsewhere, and the keys print the way the reader's platform writes them: `⌘K` or `Ctrl` `K`. `ctrl`, `alt`, `shift` and `meta` name those keys, in any case, as do `enter`, `escape`, `tab`, `space`, `backspace`, `delete` and the arrows (`up`, `left`). Keys that form no single shortcut, such as `g+g`, print as written. Keys may stand inside a Summary, a Callout or any other text.
 
 ## Image
 
 A chat attachment with an optional caption as its children. Give exactly one of `attachment` and `generated`.
 
-| Prop         | Type     | Required | Notes                                                                 |
-| ------------ | -------- | -------- | --------------------------------------------------------------------- |
-| `attachment` | string   | One of   | The id of an attachment of the chat                                   |
-| `generated`  | `latest` | One of   | The image the agent generated last in this turn                       |
-| `alt`        | string   | No       | The text for a screen reader                                          |
+| Prop         | Type     | Required | Notes                                           |
+| ------------ | -------- | -------- | ----------------------------------------------- |
+| `attachment` | string   | One of   | The id of an attachment of the chat             |
+| `generated`  | `latest` | One of   | The image the agent generated last in this turn |
+| `alt`        | string   | No       | The text for a screen reader                    |
 
 `generated="latest"` becomes an `attachment` once the backend knows which image it is (`latestAttachment` on [compile](/intelligent-ui/host/compilation)). An Image never takes a URL or a filesystem path.
 
@@ -50,12 +79,12 @@ A cell opens the image large. An image whose attachment is gone shows its alt te
 
 Two attachments in one frame, with a handle between them that a person drags or moves with the arrow keys. Its children are the caption.
 
-| Prop          | Type   | Required | Notes                                            |
-| ------------- | ------ | -------- | ------------------------------------------------ |
+| Prop          | Type   | Required | Notes                                             |
+| ------------- | ------ | -------- | ------------------------------------------------- |
 | `before`      | string | Yes      | The id of an attachment, shown left of the handle |
-| `after`       | string | Yes      | The id of an attachment, shown right of it       |
-| `beforeLabel` | string | No       | Written on the left half; `Before` without it    |
-| `afterLabel`  | string | No       | Written on the right half; `After` without it    |
+| `after`       | string | Yes      | The id of an attachment, shown right of it        |
+| `beforeLabel` | string | No       | Written on the left half; `Before` without it     |
+| `afterLabel`  | string | No       | Written on the right half; `After` without it     |
 
 ```ui
 <Compare before="old" after="new" beforeLabel="Old" afterLabel="New">The header after the color change</Compare>
@@ -67,10 +96,10 @@ With one attachment gone, the other shows alone and says so. The handle position
 
 A 3D model from a chat attachment that a person can orbit and zoom. Its children are the caption. Show one only when the person asks to see a model, never unprompted after writing or changing one.
 
-| Prop         | Type   | Required | Notes                                      |
-| ------------ | ------ | -------- | ------------------------------------------ |
-| `attachment` | string | Yes      | The id of an attachment of the chat        |
-| `alt`        | string | No       | The text for a screen reader               |
+| Prop         | Type   | Required | Notes                               |
+| ------------ | ------ | -------- | ----------------------------------- |
+| `attachment` | string | Yes      | The id of an attachment of the chat |
+| `alt`        | string | No       | The text for a screen reader        |
 
 ```ui
 <Model attachment="bracket" alt="Mounting bracket">The bracket after the wall was made thicker</Model>
@@ -82,10 +111,10 @@ The host draws the model; the catalog knows no file format. A host without a mod
 
 Numbered sources, which prose in the block can cite as `[1]`. `Sources` has no props and holds only `Source`. A `Source` stands only inside `Sources` and has no children.
 
-| Prop    | Type   | Required | Notes                                         |
-| ------- | ------ | -------- | --------------------------------------------- |
-| `title` | string | Yes      |                                               |
-| `url`   | string | One of   | Starts with `http://` or `https://`           |
+| Prop    | Type   | Required | Notes                                          |
+| ------- | ------ | -------- | ---------------------------------------------- |
+| `title` | string | Yes      |                                                |
+| `url`   | string | One of   | Starts with `http://` or `https://`            |
 | `node`  | string | One of   | The id of a host node, such as a cited message |
 
 A source gives `url` or `node`, never both. A renderer never preloads a source; it opens one through the host on click. A truncated domain reads whole in the row's tooltip.

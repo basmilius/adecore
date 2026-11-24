@@ -24,4 +24,6 @@ An assistant item keeps a `ChatUiQueryState` (`ChatUiQueryStateSchema`): the wri
 
 `ui.link` takes a `ChatUiLinkPayload` (`ChatUiLinkPayloadSchema`) that names a stored node, with the block, local inputs and host-issued read ids. Its `ChatUiLinkReading` (`ChatUiLinkReadingSchema`) says where the link goes, or why it stays plain text. Every open resolves the node and checks access again.
 
+`ui.diff` takes a `ChatUiDiffPayload` (`ChatUiDiffPayloadSchema`), which names an open Diff of a stored block the way a link's payload names its node. Its `ChatUiDiffReading` (`ChatUiDiffReadingSchema`) is the change as a unified `patch`, with `truncated` where it was cut short, or `refused` with a `code` and a `reason`. [Open diffs](/intelligent-ui/host/links#open-diffs) covers both sides.
+
 A `ChatUiPlaceReading` (`ChatUiPlaceReadingSchema`) holds the point a host found for a `Place`, with the `address` it looked up. Its `state` is `found` or `missing`. A frozen block keeps them in its optional `places`, by node id.

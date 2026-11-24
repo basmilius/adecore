@@ -720,9 +720,56 @@ export default {
             change: '{{change}} from {{previous}}',
             from: 'from {{previous}}'
         },
+        meter: {
+            label: 'Meter',
+            reading: '{{value}} of {{max}}',
+            of: 'of {{max}}',
+            mark: 'mark at {{mark}}'
+        },
+        parts: {
+            label: 'Parts of the whole',
+            part: '{{label}}: {{value}}, {{share}}'
+        },
         table: {
             label: 'Table of {{columns}}',
             showAll: 'Show all {{total}} rows'
+        },
+        changes: {
+            label_one: '{{count}} changed file',
+            label_other: '{{count}} changed files',
+            added_one: '{{count}} line added',
+            added_other: '{{count}} lines added',
+            removed_one: '{{count}} line removed',
+            removed_other: '{{count}} lines removed',
+            state: {
+                added: 'New',
+                modified: 'Changed',
+                deleted: 'Deleted',
+                renamed: 'Renamed'
+            }
+        },
+        diff: {
+            label: 'Changes in {{path}}',
+            unchanged: 'No changes',
+            partial: 'Only the first lines are shown.',
+            showAll: 'Open the whole diff',
+            unavailable: 'Could not read this diff'
+        },
+        alternatives: {
+            label_one: '{{count}} option',
+            label_other: '{{count}} options',
+            recommended: 'Recommended',
+            pro: 'For:',
+            con: 'Against:'
+        },
+        tree: {
+            label: 'Tree'
+        },
+        numberField: {
+            between: 'A number from {{min}} to {{max}}',
+            atLeast: 'A number of at least {{min}}',
+            atMost: 'A number of at most {{max}}',
+            number: 'A number'
         },
         chart: {
             values: 'Values',
@@ -812,6 +859,7 @@ export default {
                 'access-unavailable': 'The chat that made this no longer has access.',
                 'block-stale': 'This block changed since it was drawn.',
                 busy: 'Too many live blocks reading.',
+                'diffs-unsupported': 'The machine does not show diffs in blocks.',
                 'link-unchecked': 'This link has to be checked again.',
                 'link-unsupported': 'The machine cannot open this link.',
                 'links-unsupported': 'The machine does not open links from blocks.',

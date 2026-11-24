@@ -206,7 +206,7 @@ function VerticalChart({
     character
 }: {
     chart: UiChartData;
-    kind: 'bar' | 'line';
+    kind: 'bar' | 'line' | 'area';
     unit: string | undefined;
     width: number;
     character: number;
@@ -241,6 +241,28 @@ function VerticalChart({
                 return paths;
             }, [])
             .join(' ');
+
+    // Each unbroken run of values closes on the zero line, so a gap in a series leaves a gap in its area.
+    const areas = (values: (number | null)[]): string => {
+        const shapes: string[] = [];
+        let run: string[] = [];
+        let first = 0;
+
+        values.forEach((value, index) => {
+            if (value !== null) {
+                first = run.length === 0 ? index : first;
+                run.push(`L${center(index)} ${y(value)}`);
+            }
+
+            if (run.length > 0 && (value === null || index === values.length - 1)) {
+                const last = value === null ? index - 1 : index;
+                shapes.push(`M${center(first)} ${baseline} ${run.join(' ')} L${center(last)} ${baseline} Z`);
+                run = [];
+            }
+        });
+
+        return shapes.join(' ');
+    };
 
     return (
         <>
@@ -298,6 +320,7 @@ function VerticalChart({
                     <g className={clsx(GROW, 'starting:opacity-0')}>
                         {chart.series.map((series, at) => (
                             <g key={series.key} style={{ color: seriesColor(at) }}>
+                                {kind === 'area' && <path d={areas(series.values)} fill="currentColor" fillOpacity={0.16} stroke="none" />}
                                 <path
                                     d={segments(series.values)}
                                     fill="none"

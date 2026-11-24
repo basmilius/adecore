@@ -1,8 +1,8 @@
 import type { UiProps } from '@adecore/intelligent-ui';
 import { Button, Checkbox, Input, Segmented, Select, Slider, Switch, Tooltip } from '@adecore/ui';
-import { formatNumber } from '@adecore/ui/format';
+import { formatNumber, formatRounded } from '@adecore/ui/format';
 import clsx from 'clsx';
-import { createContext, useContext, useId, type MouseEvent, type ReactNode } from 'react';
+import { createContext, useContext, useId, useState, type MouseEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { uiChildrenOf, uiNodeLabel, uiOwnLabel, uiWithUnit } from '../node-text';
 import type { UiRendererProps } from '../render-context';
@@ -47,7 +47,7 @@ export function ChecklistRenderer({ node, children, context }: UiRendererProps<U
 /* The whole tile is the label, ringed in the accent while checked; a link inside it keeps its own click and checks nothing. */
 export function ItemRenderer({ node, children }: UiRendererProps<UiProps<'Item'>>) {
     const list = useContext(ChecklistContext);
-    const { value } = node.props;
+    const { value, detail } = node.props;
     const checked = list.values.includes(value);
 
     const toggleRow = (event: MouseEvent<HTMLDivElement>): void => {
@@ -66,7 +66,10 @@ export function ItemRenderer({ node, children }: UiRendererProps<UiProps<'Item'>
             onClick={toggleRow}
         >
             <Checkbox className="mt-0.5" checked={checked} onCheckedChange={() => list.toggle(value)} label={uiNodeLabel(node)} disabled={!list.enabled} />
-            <div className="min-w-0 grow">{children}</div>
+            <div className="flex min-w-0 grow flex-col gap-0.5">
+                <div className="min-w-0">{children}</div>
+                {detail !== undefined && detail !== '' && <div className="text-2xs wrap-break-word text-text-muted">{detail}</div>}
+            </div>
         </div>
     );
 }
@@ -179,6 +182,76 @@ export function TextFieldRenderer({ node, children, context }: UiRendererProps<U
             {counting && (
                 <span id={countId} className="text-xs text-text-muted tabular-nums">
                     {t('blocks.textField.count', { used: formatNumber(value.length), max: formatNumber(maxLength) })}
+                </span>
+            )}
+        </div>
+    );
+}
+
+/* What a person typed as a number, or null for text that is none or lies outside the field's range. */
+function typedNumber(text: string, min: number | undefined, max: number | undefined): number | null {
+    const value = text.trim() === '' ? Number.NaN : Number(text);
+
+    return Number.isFinite(value) && (min === undefined || value >= min) && (max === undefined || value <= max) ? value : null;
+}
+
+/*
+ * A number a person types: the label above the field, the unit inside it at the end. What is typed stays in
+ * the field while it has the focus, and reaches the local state only as a number inside the range, so a
+ * half-typed or refused value never leaves the block. Leaving the field puts the last good number back.
+ */
+export function NumberFieldRenderer({ node, children, context }: UiRendererProps<UiProps<'NumberField'>>) {
+    const { t } = useTranslation('agent-chat');
+    const id = useId();
+    const binding = bindingOf(node, context);
+    const { min, max, step, unit } = node.props;
+    const value = binding?.value ?? node.props.value;
+    const [typed, setTyped] = useState<string | null>(null);
+    const refused = typed !== null && typedNumber(typed, min, max) === null;
+    const hintId = `${id}-hint`;
+
+    const range =
+        min !== undefined && max !== undefined
+            ? t('blocks.numberField.between', { min: formatRounded(min, 6), max: formatRounded(max, 6) })
+            : min !== undefined
+              ? t('blocks.numberField.atLeast', { min: formatRounded(min, 6) })
+              : max !== undefined
+                ? t('blocks.numberField.atMost', { max: formatRounded(max, 6) })
+                : t('blocks.numberField.number');
+
+    return (
+        <div className={clsx('flex flex-col gap-1.5', !node.complete && PENDING)}>
+            <label htmlFor={id} className="px-0.5 text-2xs text-text-muted">
+                {children}
+            </label>
+            <Input
+                id={id}
+                type="number"
+                inputMode="decimal"
+                value={typed ?? String(value)}
+                size="sm"
+                min={min}
+                max={max}
+                step={step ?? 'any'}
+                disabled={binding === null}
+                aria-invalid={refused || undefined}
+                aria-describedby={refused ? hintId : undefined}
+                className="border-transparent bg-ui-tile"
+                end={unit !== undefined && unit !== '' ? <span className="pr-1.5 text-2xs text-text-muted">{unit}</span> : undefined}
+                onChange={(event) => {
+                    const text = event.target.value;
+                    const number = typedNumber(text, min, max);
+                    setTyped(text);
+
+                    if (number !== null) {
+                        binding?.onValueChange(number);
+                    }
+                }}
+                onBlur={() => setTyped(null)}
+            />
+            {refused && (
+                <span id={hintId} role="status" className="text-2xs text-status-error">
+                    {range}
                 </span>
             )}
         </div>

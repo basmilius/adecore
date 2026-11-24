@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { UiLimits } from './budget.ts';
+import { isUiComponent, UI_CATALOG } from './catalog.ts';
 import type { UiBlock } from './compiler.ts';
 import { eachDrawnNode } from './inputs.ts';
 import { uiValidatedState } from './query.ts';
@@ -43,9 +44,11 @@ export function uiLinkTargets(
     const targets: Record<string, UiLinkTarget> = Object.create(null);
 
     eachDrawnNode(evaluateUiBlock(block, state, limits).nodes, (node) => {
+        const entry = isUiComponent(node.type) ? UI_CATALOG[node.type] : undefined;
+        // A component the catalog says links as another one, such as a Change as a Diff, is checked and opened as that one.
+        const type = entry !== undefined && 'link' in entry ? entry.link : node.type;
         // A Source that cites a host node links it as a Node would, so the host checks and opens it the same way.
-        const candidate =
-            node.type === 'Source' && typeof node.props.node === 'string' ? { type: 'Node', id: node.props.node } : { type: node.type, ...node.props };
+        const candidate = node.type === 'Source' && typeof node.props.node === 'string' ? { type: 'Node', id: node.props.node } : { ...node.props, type };
         const checked = UiLinkTargetSchema.safeParse(candidate);
 
         if (checked.success) {

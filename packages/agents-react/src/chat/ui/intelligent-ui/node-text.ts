@@ -84,6 +84,7 @@ const UI_REASON_CODES = new Set([
     'access-unavailable',
     'block-stale',
     'busy',
+    'diffs-unsupported',
     'link-unchecked',
     'link-unsupported',
     'links-unsupported',

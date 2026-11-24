@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type {
+    ChatUiDiffPayload,
+    ChatUiDiffReading,
     ChatUiLinkPayload,
     ChatUiLinkReading,
     ChatUiQueryState,
@@ -9,10 +11,10 @@ import type {
     ChatUiQueryPayload,
     ChatUiQueryReading
 } from '@adecore/agent-contracts';
-import { copyUiValue, UI_HOST_LIMITS, UiBudget, uiMayReferenceHost, type UiValue } from '@adecore/intelligent-ui';
+import { copyUiValue, evaluateUiBlock, UI_HOST_LIMITS, UiBudget, uiMayReferenceHost, type UiValue, type UiViewNode } from '@adecore/intelligent-ui';
 import type { UiBlock } from '@adecore/intelligent-ui/compiler';
 import { UiLinkResolutionSchema, uiLinkTargets, type UiLinkTarget } from '@adecore/intelligent-ui/links';
-import { uiQueryArguments, uiQueryFallback } from '@adecore/intelligent-ui/query';
+import { uiQueryArguments, uiQueryFallback, uiValidatedState } from '@adecore/intelligent-ui/query';
 import type { z } from 'zod';
 import { ChatError } from '../chat-error.ts';
 import type { ChatSession } from './chat-session.ts';
@@ -24,10 +26,23 @@ export interface ChatUiSource {
     read(info: ChatInfo, args: Record<string, UiValue>, signal: AbortSignal, access: unknown): Promise<unknown>;
 }
 
+/* What an open Diff asks to see, as its agent wrote it: the working tree against HEAD, or the change between `from` and `to`. */
+export interface ChatUiDiffRequest {
+    path: string;
+    from?: string;
+    to?: string;
+
+    /* `hide` asks to leave out lines that differ only in whitespace; how is the host's. */
+    whitespace?: 'show' | 'hide';
+}
+
 export interface ChatUiHost {
     capture(info: ChatInfo): Promise<unknown>;
     sources: Readonly<Record<string, ChatUiSource>>;
     link?(info: ChatInfo, access: unknown, target: UiLinkTarget): Promise<ChatUiLinkReading>;
+
+    /* The change as a unified patch of the one file, checked like a link; `truncated` where the host cut it short. */
+    diff?(info: ChatInfo, access: unknown, request: ChatUiDiffRequest): Promise<{ patch: string; truncated?: boolean }>;
 }
 
 interface CachedReading {
@@ -59,6 +74,48 @@ export class ChatUiRefusal extends UiQueryError {
     constructor(code: string, reason: string) {
         super('refused-query', code, reason);
     }
+}
+
+/* The longest patch one open Diff sends a client, which draws only its first lines anyway. */
+const MAX_DIFF_CHARACTERS = 256 * 1024;
+
+/* The request of the open Diff `nodeId`, or undefined where the block draws no such node with these inputs. */
+function openDiffRequest(
+    block: UiBlock,
+    nodeId: string,
+    values: Readonly<Record<string, unknown>> | undefined,
+    queries: Readonly<Record<string, unknown>>
+): ChatUiDiffRequest | undefined {
+    const target = uiLinkTargets(block, values, queries)[nodeId];
+
+    if (target?.type !== 'Diff') {
+        return undefined;
+    }
+
+    const find = (nodes: readonly UiViewNode[]): UiViewNode | undefined => {
+        for (const node of nodes) {
+            const found = node.id === nodeId ? node : find(node.children);
+
+            if (found) {
+                return found;
+            }
+        }
+
+        return undefined;
+    };
+
+    const props = find(evaluateUiBlock(block, uiValidatedState(block, values, queries)).nodes)?.props;
+
+    if (props?.open !== true) {
+        return undefined;
+    }
+
+    return {
+        path: target.path,
+        ...(typeof props.from === 'string' ? { from: props.from } : {}),
+        ...(typeof props.to === 'string' ? { to: props.to } : {}),
+        ...(props.whitespace === 'show' || props.whitespace === 'hide' ? { whitespace: props.whitespace } : {})
+    };
 }
 
 const MAX_QUERY_BYTES = 64 * 1024;
@@ -499,6 +556,40 @@ export class ChatUiQueries {
             return this.linkReading(await this.host.link(session.info, access, target));
         } catch (error) {
             return { state: 'plain', ...this.failure(error) };
+        }
+    }
+
+    /* The change an open Diff shows, for a node the stored block draws as one; the request is the node's, never the client's. */
+    async diff(session: ChatSession, payload: ChatUiDiffPayload): Promise<ChatUiDiffReading> {
+        try {
+            if (!this.host.diff) {
+                throw new UiQueryError('refused-query', 'diffs-unsupported', 'This host does not show diffs in UI blocks.');
+            }
+
+            const { item, block } = this.storedBlock(session, payload);
+            const access = item.uiQueries ? await this.access(session, item) : null;
+
+            if (access === null) {
+                throw new UiQueryError('refused-query', 'access-unavailable', 'The writer’s original access is unavailable.');
+            }
+
+            const queries = await this.choiceValues(session, payload);
+            const request = openDiffRequest(block, payload.nodeId, payload.values, queries);
+
+            if (!request) {
+                throw new UiQueryError('refused-query', 'link-unsupported', 'This visible node is not an open diff.');
+            }
+
+            const { patch, truncated } = await this.host.diff(session.info, access, request);
+
+            if (patch.length <= MAX_DIFF_CHARACTERS) {
+                return { state: 'patch', patch, ...(truncated ? { truncated: true } : {}) };
+            }
+
+            // Cut on a line, so the last one a client draws is a whole one.
+            return { state: 'patch', patch: patch.slice(0, patch.lastIndexOf('\n', MAX_DIFF_CHARACTERS) + 1), truncated: true };
+        } catch (error) {
+            return { state: 'refused', ...this.failure(error) };
         }
     }
 

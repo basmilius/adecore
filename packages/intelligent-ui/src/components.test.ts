@@ -243,7 +243,7 @@ describe('TextField and Select', () => {
         expect(compiled.diagnostics).toEqual([]);
         expect(compiled.nodes[0].bindings).toEqual({ value: '$name' });
         expect(compiled.nodes[1].bindings).toEqual({ value: '$kind' });
-        expect(UI_CATALOG.Option.parent).toEqual(['Segmented', 'Select']);
+        expect(UI_CATALOG.Option.parent).toEqual(['Segmented', 'Select', 'Radio']);
         expect(block('<Segmented value="a"><Option value="a">A</Option></Segmented>').diagnostics).toEqual([]);
         expect(problems('<Option value="a">A</Option>').errors).toEqual(['Option:invalid_parent']);
         expect(problems('<Tabs><Tab title="x"><Option value="a">A</Option></Tab></Tabs>').errors).toContain('Option:invalid_parent');

@@ -31,6 +31,6 @@ export type { LostWork } from './lost-work.ts';
 export { readableAssistantText } from '../readable-text.ts';
 export { searchThreadItems } from './thread-search.ts';
 export { ChatThread } from './thread.ts';
-export { type ChatUiSource, type ChatUiHost, ChatUiRefusal } from './ui-queries.ts';
+export { type ChatUiSource, type ChatUiHost, type ChatUiDiffRequest, ChatUiRefusal } from './ui-queries.ts';
 export { visualFileName, VisualStore } from './visual-store.ts';
 export { type WakeChat, chatOpener } from './wake-chat.ts';

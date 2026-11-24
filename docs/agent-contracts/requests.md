@@ -98,6 +98,7 @@ See [Bookmarks](/agent-contracts/conversation#bookmarks) and [Visuals](/agent-co
 | `chat.uiChoice` | `ChatUiChoicePayloadSchema` (`ChatUiChoicePayload`) | `ChatSendResultSchema` |
 | `ui.query` | `ChatUiQueryPayloadSchema` (`ChatUiQueryPayload`) | `ChatUiQueryReadingSchema` (`ChatUiQueryReading`) |
 | `ui.link` | `ChatUiLinkPayloadSchema` (`ChatUiLinkPayload`) | `ChatUiLinkReadingSchema` (`ChatUiLinkReading`) |
+| `ui.diff` | `ChatUiDiffPayloadSchema` (`ChatUiDiffPayload`) | `ChatUiDiffReadingSchema` (`ChatUiDiffReading`) |
 
 See [UI blocks in replies](/agent-contracts/ui-replies).
 

@@ -139,7 +139,7 @@ describe('streaming compiler', () => {
             expect(compiled.fallback).not.toBe('');
         }
 
-        expect(Object.keys(UI_CATALOG)).toHaveLength(45);
+        expect(Object.keys(UI_CATALOG)).toHaveLength(63);
         expect(uiCatalogText()).toContain('Image(attachment?, generated?: latest, alt?)');
         expect(uiCatalogText()).toContain('Button(action, disabled?: boolean)');
         expect(uiCatalogText()).toContain('Model(attachment, alt?)');
@@ -401,12 +401,12 @@ describe('open wire and agent text', () => {
         expect(uiReferenceText()).toContain('never on your own after writing or changing one');
         expect(uiSessionNote()).toContain('Model only when the person asks to see one.');
         expect(uiSessionNote()).toContain('@Filter(list,row,predicate)');
-        expect(uiSessionNote().length).toBeLessThan(2650);
+        expect(uiSessionNote().length).toBeLessThan(3500);
     });
 
     test('names the components per group with their required props in a note that still carries the example', () => {
         const names = uiSessionNote({ catalog: 'names', detailHint: '`tool help ui <group>` gives props' });
-        expect(names.length).toBeLessThan(2450);
+        expect(names.length).toBeLessThan(2750);
         expect(names).toContain('```ui\n');
         expect(names).toContain('(`tool help ui <group>` gives props)');
         expect(names).toContain(
@@ -452,7 +452,7 @@ describe('open wire and agent text', () => {
         expect(data.split('\n')[0]).toBe(UI_GROUPS.data.description);
         expect(data).toContain(UI_GROUPS.data.rules);
         expect(data).toContain(
-            'Stat: A labeled number with an optional previous number, or a value in words. Props: label, value: number|text, previous?: number, unit?, tone?: tone.'
+            'Stat: A labeled number with an optional previous number, or a value in words. Props: label, value: number|text, previous?: number, unit?, tone?: tone, trend?: list.'
         );
         expect(data).not.toContain('Summary:');
         expect(uiReferenceText()).toContain(data);

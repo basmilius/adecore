@@ -30,7 +30,7 @@ export function uiMayReferenceHost(text: string): boolean {
 
     linkTag ??= new RegExp(
         `<(?:${Object.entries(UI_CATALOG)
-            .filter(([, entry]) => entry.group === 'links')
+            .filter(([, entry]) => entry.group === 'links' || 'link' in entry)
             .map(([name]) => name)
             .join('|')})\\b`
     );
@@ -177,7 +177,8 @@ function nearestComponent(name: string): string | undefined {
     for (const candidate of Object.keys(UI_CATALOG)) {
         const distance = editDistance(wanted, candidate.toLowerCase());
 
-        if (distance <= 2 && (best === undefined || distance < best.distance)) {
+        // A short name is two edits away from many others, so it has to be nearer.
+        if (distance <= (wanted.length > 5 ? 2 : 1) && (best === undefined || distance < best.distance)) {
             best = { name: candidate, distance };
         }
     }
@@ -532,7 +533,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         const effectiveParent = syntax.type === 'Show' || syntax.type === 'Each' ? parent : syntax.type;
         node.children = children.map((child) => compile(child, depth + 1, effectiveParent));
         // A reader of the fallback has no control to look at, so the option a dropdown or a segmented control starts on says it is chosen.
-        const chosen = syntax.type === 'Select' || syntax.type === 'Segmented' ? fallbackProps.value : undefined;
+        const chosen = syntax.type === 'Select' || syntax.type === 'Segmented' || syntax.type === 'Radio' ? fallbackProps.value : undefined;
 
         const childText =
             syntax.type === 'Map'

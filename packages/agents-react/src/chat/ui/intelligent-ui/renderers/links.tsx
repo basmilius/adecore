@@ -5,19 +5,11 @@ import { FileDiff, GitCommitHorizontal, SquareDashed } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CHIP_IN_MESSAGE } from '../../chips';
-import { uiReasonText } from '../node-text';
+import { UI_PLAIN_LINK, uiBaseName, uiPlainLinkReason } from '../link-action';
 import type { UiLink, UiLinkTarget, UiRenderContext, UiRendererProps } from '../render-context';
-
-const PLAIN: UiLink = { state: 'plain' };
 
 /* A link in a block is a quiet card on its tile, unlike a mention in a message, which wears the accent. */
 const UI_CHIP = 'bg-ui-inset font-mono text-text shadow-[inset_0_0_0_1px_var(--border)]';
-
-function baseName(path: string): string {
-    const trimmed = path.replace(/\/+$/, '');
-
-    return trimmed.slice(trimmed.lastIndexOf('/') + 1) || path;
-}
 
 function plainText(target: UiLinkTarget, link: UiLink): string {
     switch (target.type) {
@@ -39,7 +31,7 @@ function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: 
                 face: (
                     <>
                         <FileIcon path={target.path} size={14} />
-                        <span className="truncate">{baseName(target.path)}</span>
+                        <span className="truncate">{uiBaseName(target.path)}</span>
                         {target.line !== undefined && <span className="opacity-70">:{target.line}</span>}
                     </>
                 ),
@@ -50,7 +42,7 @@ function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: 
                 face: (
                     <>
                         <Icon icon={FileDiff} size={12} />
-                        <span className="truncate">{baseName(target.path)}</span>
+                        <span className="truncate">{uiBaseName(target.path)}</span>
                     </>
                 ),
                 hint: target.path
@@ -83,12 +75,21 @@ function chipFace(target: UiLinkTarget, link: UiLink): { face: ReactNode; hint: 
  * can open the target; one it cannot, outside the project or gone, stays mono text with the reason
  * in a tooltip. A chip fades in, since a link reads as text until the host checked it.
  */
-function UiLinkChip({ target, context }: { target: UiLinkTarget; context: UiRenderContext }) {
+export function UiLinkChip({
+    target,
+    context,
+    refused
+}: {
+    target: UiLinkTarget;
+    context: UiRenderContext;
+    /* Why the link stays text whatever the host says of its target, such as an open Diff the host would not read. */
+    refused?: string;
+}) {
     const { t } = useTranslation('agent-chat');
-    const link = context.link?.(target) ?? PLAIN;
+    const link = refused === undefined ? (context.link?.(target) ?? UI_PLAIN_LINK) : UI_PLAIN_LINK;
 
     if (link.state === 'plain') {
-        const reason = uiReasonText(t, link.code, link.reason) ?? (context.link === undefined ? null : t('blocks.outsideProject'));
+        const reason = refused ?? uiPlainLinkReason(t, link, context);
 
         // Focusable only with a reason, so a keyboard reaches the tooltip.
         const text = (
@@ -120,7 +121,7 @@ function UiLinkChip({ target, context }: { target: UiLinkTarget; context: UiRend
 }
 
 /* A link with children is a row: the chip and what the agent says about it. */
-function LinkRow({ target, context, described, children }: { target: UiLinkTarget; context: UiRenderContext; described: boolean; children: ReactNode }) {
+export function LinkRow({ target, context, described, children }: { target: UiLinkTarget; context: UiRenderContext; described: boolean; children: ReactNode }) {
     if (!described) {
         return <UiLinkChip target={target} context={context} />;
     }
@@ -140,14 +141,6 @@ export function FileRenderer({ node, children, context }: UiRendererProps<UiProp
 
     return (
         <LinkRow target={{ type: 'File', path, line }} context={context} described={node.children.length > 0}>
-            {children}
-        </LinkRow>
-    );
-}
-
-export function DiffRenderer({ node, children, context }: UiRendererProps<UiProps<'Diff'>>) {
-    return (
-        <LinkRow target={{ type: 'Diff', path: node.props.path }} context={context} described={node.children.length > 0}>
             {children}
         </LinkRow>
     );

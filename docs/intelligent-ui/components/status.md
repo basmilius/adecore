@@ -27,10 +27,11 @@ Every `tone` is a `UiTone`: `neutral`, `info`, `success`, `warning` or `danger`.
 
 The result in one sentence, as its children. The first Summary heads the block and names it for a screen reader; later ones are subheadings.
 
-| Prop    | Type     | Required | Notes                              |
-| ------- | -------- | -------- | ---------------------------------- |
-| `tone`  | `UiTone` | No       | Gives the sentence an icon         |
-| `badge` | string   | No       | A short label beside it, as a pill |
+| Prop     | Type     | Required | Notes                              |
+| -------- | -------- | -------- | ---------------------------------- |
+| `tone`   | `UiTone` | No       | Gives the sentence an icon         |
+| `badge`  | string   | No       | A short label beside it, as a pill |
+| `detail` | string   | No       | A line under the sentence          |
 
 ## Callout
 
@@ -53,10 +54,14 @@ A short status label. Its children are the label. A Tag may stand inside text.
 
 Progress with a label. Its children are the label. Without `value` the progress is indeterminate; without `max` the value reads as a percentage.
 
-| Prop    | Type   | Required | Notes        |
-| ------- | ------ | -------- | ------------ |
-| `value` | number | No       | Zero or more |
-| `max`   | number | No       | Above zero   |
+| Prop     | Type     | Required | Notes                          |
+| -------- | -------- | -------- | ------------------------------ |
+| `value`  | number   | No       | Zero or more                   |
+| `max`    | number   | No       | Above zero                     |
+| `tone`   | `UiTone` | No       | What the progress means        |
+| `detail` | string   | No       | A line that says more about it |
+
+For a value against a limit that is no work in progress, use a [Meter](/intelligent-ui/components/data#meter).
 
 ## Steps and Step
 

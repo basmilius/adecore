@@ -251,6 +251,48 @@ test('opening a stored link resolves its node again and refuses stale or invente
     expect((await queries.link(r.session, { ...payload, revision: 'old' })).state).toBe('plain');
 });
 
+test('an open Diff is read for the node the stored block draws, with the request that node wrote', async () => {
+    const r = rig();
+    const requests: unknown[] = [];
+    let answer: { patch: string; truncated?: boolean } | Error = { patch: '@@ -1 +1 @@\n-old\n+new\n' };
+
+    const queries = new ChatUiQueries({
+        capture: async () => ({ readable: true }),
+        sources: {},
+        diff: async (_info, _access, request) => {
+            requests.push(request);
+
+            if (answer instanceof Error) {
+                throw answer;
+            }
+
+            return answer;
+        }
+    });
+
+    const source = '<Diff path="src/a.ts" open from="main" to="feature" whitespace="hide"/><Diff path="src/closed.ts"/><File path="readme.md"/>';
+    const block = { ...compileUiBlock(source, { id: 'block', final: true }), revision: 'rev' };
+    r.session.thread.upsert({ ...r.item, ui: [block] });
+    const [open, closed, file] = block.nodes.map((node) => ({ ...r.payload, nodeId: node.id }));
+    expect(await queries.diff(r.session, open!)).toEqual({ state: 'patch', patch: '@@ -1 +1 @@\n-old\n+new\n' });
+    expect(requests).toEqual([{ path: 'src/a.ts', from: 'main', to: 'feature', whitespace: 'hide' }]);
+    expect(await queries.diff(r.session, closed!)).toMatchObject({ state: 'refused', code: 'link-unsupported' });
+    expect(await queries.diff(r.session, file!)).toMatchObject({ state: 'refused', code: 'link-unsupported' });
+    expect(await queries.diff(r.session, { ...open!, revision: 'old' })).toMatchObject({ state: 'refused', code: 'block-stale' });
+    expect(requests).toHaveLength(1);
+    answer = new ChatUiRefusal('outside-project', 'Outside the project.');
+    expect(await queries.diff(r.session, open!)).toEqual({ state: 'refused', code: 'outside-project', reason: 'Outside the project.' });
+    // A patch past the limit is cut on a line and says so.
+    answer = { patch: `${'+line\n'.repeat(50_000)}+tail` };
+    const long = await queries.diff(r.session, open!);
+    expect(long.truncated).toBe(true);
+    expect(long.patch!.length).toBeLessThanOrEqual(256 * 1024);
+    expect(long.patch!.endsWith('+line\n')).toBe(true);
+
+    const none = new ChatUiQueries({ capture: async () => ({ readable: true }), sources: {} });
+    expect(await none.diff(r.session, open!)).toMatchObject({ state: 'refused', code: 'diffs-unsupported' });
+});
+
 describe('reading again', () => {
     afterEach(() => {
         setSystemTime();

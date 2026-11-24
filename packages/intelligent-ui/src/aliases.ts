@@ -1,5 +1,15 @@
 /* A name an agent writes for a component that has another one, read as that one. */
-export const UI_COMPONENT_ALIASES: Readonly<Record<string, string>> = { Badge: 'Tag', Pill: 'Tag', Status: 'Tag', Chip: 'Tag' };
+export const UI_COMPONENT_ALIASES: Readonly<Record<string, string>> = {
+    Badge: 'Tag',
+    Pill: 'Tag',
+    Status: 'Tag',
+    Chip: 'Tag',
+    Gauge: 'Meter',
+    Blockquote: 'Quote',
+    Kbd: 'Keys',
+    RadioGroup: 'Radio',
+    NumberInput: 'NumberField'
+};
 
 /* Per prop, the words an agent writes for one of its values, in lower case, read as that value where the written word is none of them. */
 export const UI_VALUE_ALIASES: Readonly<Record<string, Readonly<Record<string, string>>>> = {
@@ -47,7 +57,8 @@ export const UI_VALUE_ALIASES: Readonly<Record<string, Readonly<Record<string, s
         datetime: 'date',
         path: 'file',
         badge: 'tag',
-        status: 'tag'
+        status: 'tag',
+        percentage: 'percent'
     }
 };
 

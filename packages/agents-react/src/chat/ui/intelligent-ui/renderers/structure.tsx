@@ -85,3 +85,32 @@ export function SectionRenderer({ node, children, context }: UiRendererProps<UiP
         </section>
     );
 }
+
+/* The one component that divides the width: its panes stand side by side and stack in a narrow block. */
+export function ColumnsRenderer({ node, children }: UiRendererProps<UiProps<'Columns'>>) {
+    const panes = uiChildrenOf(node, 'Pane').length;
+
+    return (
+        <div className="@container">
+            <div className={clsx('chat-ui-nodes grid gap-3', panes >= 3 ? '@min-[420px]:grid-cols-3' : '@min-[420px]:grid-cols-2')}>{children}</div>
+        </div>
+    );
+}
+
+/* Stacks its children as a tab panel does, under a small title where it has one. */
+export function PaneRenderer({ node, children }: UiRendererProps<UiProps<'Pane'>>) {
+    const { title } = node.props;
+    const titleId = useId();
+    const named = title !== undefined && title !== '';
+
+    return (
+        <section aria-labelledby={named ? titleId : undefined} className="chat-ui-nodes flex min-w-0 flex-col gap-2">
+            {named && (
+                <div id={titleId} className="px-0.5 text-2xs font-semibold text-text-muted">
+                    {title}
+                </div>
+            )}
+            {children}
+        </section>
+    );
+}

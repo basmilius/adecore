@@ -219,7 +219,7 @@ describe('a synonym', () => {
 
     test('an unknown component names the one nearest to it', () => {
         expect(block('<Sumary>Done</Sumary>').diagnostics[0].message).toBe('Unknown component Sumary. Closest: Summary.');
-        expect(block('<Gauge value={3}/>').diagnostics[0].message).toBe('Unknown component Gauge.');
+        expect(block('<Dial value={3}/>').diagnostics[0].message).toBe('Unknown component Dial.');
     });
 });
 
@@ -284,10 +284,10 @@ describe('a default', () => {
 
 describe('a prop nothing can read', () => {
     test('an optional one is left out and the component draws', () => {
-        const read = reading('<Table rows={[{"a": 1}]}><Column key="a" as="percent"/></Table>');
+        const read = reading('<Table rows={[{"a": 1}]}><Column key="a" as="money"/></Table>');
         expect(read.errors).toEqual([]);
         expect(read.codes).toEqual(['dropped_prop']);
-        expect(read.messages[0]).toBe('Column as="percent" is not valid, it is one of text, number, bytes, duration, date, file, tag; left out.');
+        expect(read.messages[0]).toBe('Column as="money" is not valid, it is one of text, number, bytes, duration, date, file, tag, percent; left out.');
         expect(first('<Stats><Stat label="Tests" value={42} tone="loud"/></Stats>', 'Stat').props).toEqual({ label: 'Tests', value: 42 });
     });
 
@@ -299,7 +299,7 @@ describe('a prop nothing can read', () => {
     test('a required one says the component, the prop and what it takes', () => {
         expect(block('<Stats><Stat label="Tests"/></Stats>').diagnostics[0].message).toBe('Stat needs value, a number or text.');
         expect(block('<Chart kind="pie" data={[{"label": "A", "v": 1}]}/>').diagnostics[0].message).toBe(
-            'Chart kind is one of bar, hbar, stacked, line; got "pie".'
+            'Chart kind is one of bar, hbar, stacked, line, area; got "pie".'
         );
         expect(block('<Image src="https://example.com/a.png"/>').diagnostics.map((item) => item.message)).toEqual([
             'Image does not accept src.',
@@ -312,13 +312,13 @@ describe('a prop nothing can read', () => {
         const evaluated = evaluateUiBlock(compiled);
         expect(evaluated.nodes[0].error).toBe('invalid_props');
         expect([...compiled.diagnostics, ...evaluated.diagnostics].map((item) => item.message)).toEqual([
-            'Chart kind is one of bar, hbar, stacked, line; got "pie".'
+            'Chart kind is one of bar, hbar, stacked, line, area; got "pie".'
         ]);
     });
 
     test('a prop of a newer catalog is ignored where the block is drawn', () => {
         const compiled = block('<Stats><Stat label="Tests" value={42}/></Stats>');
-        compiled.nodes[0].children[0].props.trend = [1, 2, 3];
+        compiled.nodes[0].children[0].props.sparkle = [1, 2, 3];
         const evaluated = evaluateUiBlock(compiled);
         expect(evaluated.nodes[0].children[0].error).toBeUndefined();
         expect(evaluated.nodes[0].children[0].props).toEqual({ label: 'Tests', value: 42 });

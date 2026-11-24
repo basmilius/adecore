@@ -18,13 +18,77 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
         case '$text':
             return uiPlainText(props.text);
         case 'Summary':
-            return `${children.trimEnd()}${given(props.badge) ? ` (${uiPlainText(props.badge)})` : ''}\n`;
+            return `${children.trimEnd()}${given(props.badge) ? ` (${uiPlainText(props.badge)})` : ''}${given(props.detail) ? `: ${uiPlainText(props.detail)}` : ''}\n`;
+        case 'Meter': {
+            const unit = given(props.unit) ? ` ${uiPlainText(props.unit)}` : '';
+            const mark = given(props.mark) ? `, mark at ${uiPlainText(props.mark)}` : '';
+            const detail = given(props.detail) ? `: ${uiPlainText(props.detail)}` : '';
+
+            return `${children.trimEnd()}: ${uiPlainText(props.value)} of ${uiPlainText(props.max ?? 100)}${unit}${mark}${detail}\n`;
+        }
+        case 'Part':
+            return `${children.trim()}: ${uiPlainText(props.value)}\n`;
+        case 'Parts':
+            return given(props.unit) ? `${children.trimEnd()}\n(${uiPlainText(props.unit)})\n` : children;
+        case 'Change': {
+            const added = given(props.added) ? ` +${uiPlainText(props.added)}` : '';
+            const removed = given(props.removed) ? ` -${uiPlainText(props.removed)}` : '';
+            const counts = added || removed ? ` (${`${added}${removed}`.trim()})` : '';
+            const state = given(props.state) ? `, ${uiPlainText(props.state)}` : '';
+
+            return `${uiPlainText(props.path)}${counts}${state}${children.trim() ? `: ${children.trim()}` : ''}\n`;
+        }
+        case 'Alternative':
+            return `${uiPlainText(props.title)}${props.recommended === true ? ' (recommended)' : ''}\n${children.trimEnd()}\n`;
+        case 'Pro':
+            return `\n+ ${children.trim()}`;
+        case 'Con':
+            return `\n- ${children.trim()}`;
+        case 'Pane':
+            return `${given(props.title) ? `${uiPlainText(props.title)}\n` : ''}${children.trimEnd()}\n`;
+        case 'Branch':
+            return `${uiPlainText(props.label)}\n${children
+                .split('\n')
+                .filter(Boolean)
+                .map((line) => `  ${line}\n`)
+                .join('')}`;
+        case 'Leaf': {
+            const name = children.trim();
+            const path = given(props.path) ? uiPlainText(props.path) : '';
+
+            return `${name || path}${name && path ? ` (${path})` : ''}${given(props.detail) ? `: ${uiPlainText(props.detail)}` : ''}\n`;
+        }
+        case 'Tab':
+        case 'Section': {
+            const text = `${uiPlainText(props.title)}${given(props.badge) ? ` (${uiPlainText(props.badge)})` : ''}: ${children}`;
+
+            return text.endsWith('\n') ? text : `${text}\n`;
+        }
+        case 'CodeBlock': {
+            const file = given(props.file) ? `${uiPlainText(props.file)}${given(props.start) ? `:${uiPlainText(props.start)}` : ''}\n` : '';
+            const text = `${file}${children}`;
+
+            return text.endsWith('\n') ? text : `${text}\n`;
+        }
+        case 'Item':
+        case 'Option':
+            if (given(props.detail)) {
+                return `${children.trimEnd()}: ${uiPlainText(props.detail)}\n`;
+            }
+
+            break;
+        case 'NumberField':
+            return `${children.trim()}: ${uiPlainText(props.value)}${given(props.unit) ? ` ${uiPlainText(props.unit)}` : ''}\n`;
+        case 'Quote':
+            return `"${children.trim()}"${given(props.source) ? ` (${uiPlainText(props.source)})` : ''}\n`;
+        case 'Keys':
+            return children;
         case 'Step':
             return `${children.trimEnd()}${given(props.state) ? ` (${uiPlainText(props.state)})` : ''}${given(props.detail) ? `: ${uiPlainText(props.detail)}` : ''}\n`;
         case 'Event':
             return `${uiPlainText(props.at)} ${children.trimEnd()}${given(props.tone) ? ` (${uiPlainText(props.tone)})` : ''}${given(props.detail) ? `: ${uiPlainText(props.detail)}` : ''}\n`;
         case 'Progress':
-            return given(props.value) ? `${children.trimEnd()}: ${uiPlainText(props.value)} of ${uiPlainText(props.max ?? 100)}\n` : `${children.trimEnd()}\n`;
+            return `${children.trimEnd()}${given(props.value) ? `: ${uiPlainText(props.value)} of ${uiPlainText(props.max ?? 100)}` : ''}${given(props.detail) ? ` (${uiPlainText(props.detail)})` : ''}\n`;
         case 'Stat': {
             const unit = given(props.unit) ? ` ${uiPlainText(props.unit)}` : '';
             const previous = given(props.previous) ? ` (was ${uiPlainText(props.previous)}${unit})` : '';
@@ -44,7 +108,7 @@ export function uiNodeFallback(type: string, props: Readonly<Record<string, unkn
             return `${columns.length > 0 ? `Columns: ${columns.join(', ')}\n` : ''}${uiPlainText(props.rows ?? [])}\n`;
         }
         case 'Chart':
-            return `${uiPlainText(props.data ?? [])}${given(props.unit) ? ` (${uiPlainText(props.unit)})` : ''}\n`;
+            return `${given(props.title) ? `${uiPlainText(props.title)}\n` : ''}${uiPlainText(props.data ?? [])}${given(props.unit) ? ` (${uiPlainText(props.unit)})` : ''}\n`;
         case 'Compare':
             return `[Compare: ${uiPlainText(props.beforeLabel || 'Before')} ${uiPlainText(props.before)}, ${uiPlainText(props.afterLabel || 'After')} ${uiPlainText(props.after)}]${children.trim() ? ` ${children.trim()}` : ''}\n`;
         case 'Place': {

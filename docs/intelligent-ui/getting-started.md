@@ -102,8 +102,9 @@ Blocks travel as JSON, validated by `UiBlocksSchema` from `@adecore/intelligent-
 | Request `chat.uiChoice`   | payload, result   | `ChatUiChoicePayloadSchema`, `ChatSendResultSchema`          |
 | Request `ui.query`        | payload, result   | `ChatUiQueryPayloadSchema`, `ChatUiQueryReadingSchema`       |
 | Request `ui.link`         | payload, result   | `ChatUiLinkPayloadSchema`, `ChatUiLinkReadingSchema`         |
+| Request `ui.diff`         | payload, result   | `ChatUiDiffPayloadSchema`, `ChatUiDiffReadingSchema`         |
 
-A client applies a preview only while the item's text is `textLength` long, so a preview never draws over newer text. The three requests name a block by `chatId`, `itemId`, `blockId` and `revision`, never by its contents. The agent host answers them only for a client attached to the chat.
+A client applies a preview only while the item's text is `textLength` long, so a preview never draws over newer text. The four requests name a block by `chatId`, `itemId`, `blockId` and `revision`, never by its contents. The agent host answers them only for a client attached to the chat.
 
 ## Draw the blocks
 
@@ -119,6 +120,7 @@ const CHAT_HOST: Partial<ChatHost> = {
         query: (scopeId, payload) => transportFor(scopeId).request('ui.query', payload),
         link: (scopeId, payload) => transportFor(scopeId).request('ui.link', payload),
         openLink: (scopeId, reading) => openInApp(scopeId, reading),
+        diff: (scopeId, payload) => transportFor(scopeId).request('ui.diff', payload),
         openUrl: (scopeId, url) => openExternal(url)
     }
 };

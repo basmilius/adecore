@@ -45,6 +45,15 @@ export const UI_TONE_FILL: Readonly<Record<UiTone, string>> = {
     danger: 'bg-status-error'
 };
 
+/* The tone as a CSS color, for a shape that takes its color through `style`, such as a part of a bar. */
+export const UI_TONE_COLOR: Readonly<Record<UiTone, string>> = {
+    neutral: 'var(--text-muted)',
+    info: 'var(--status-running)',
+    success: 'var(--positive)',
+    warning: 'var(--status-needs-you)',
+    danger: 'var(--status-error)'
+};
+
 /* The tag at the end of a step, in words, so a state never rests on its icon alone. */
 export const UI_STEP_PILL: Readonly<Record<'done' | 'running' | 'pending' | 'failed' | 'skipped', NonNullable<PillProps['tone']>>> = {
     done: 'idle',

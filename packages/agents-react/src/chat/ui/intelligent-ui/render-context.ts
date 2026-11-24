@@ -17,6 +17,22 @@ export interface UiLink {
     code?: string;
 }
 
+/* What the host answered for an open Diff: nothing yet, the change as a unified patch, or why there is none. */
+export type UiDiff =
+    | { state: 'reading' }
+    | {
+          state: 'patch';
+          patch: string;
+          /* The host cut the patch short. */
+          truncated: boolean;
+      }
+    | {
+          state: 'refused';
+          reason?: string;
+          /* The stable code of that reason, which a client words itself where it knows it. */
+          code?: string;
+      };
+
 /* The point a Place stands at, in decimal degrees. */
 export interface UiPlacePoint {
     lat: number;
@@ -72,6 +88,8 @@ export interface UiRenderContext {
     live?: UiLiveStatus | null;
     link?(target: UiLinkTarget): UiLink;
     openLink?(target: UiLinkTarget): void;
+    /* The change the host read for the open Diff `nodeId`. Undefined, like the callback itself, for a Diff that stays a chip. */
+    diff?(nodeId: string): UiDiff | undefined;
     openUrl?(url: string): void;
     onChoose?(nodeId: string): void;
     /* Why the choices are closed while `onChoose` is absent, such as live data still being read; without it they say they are not available. */

@@ -441,6 +441,19 @@ export const ChatUiLinkReadingSchema = UiLinkResolutionSchema;
 export type ChatUiLinkReading = z.infer<typeof ChatUiLinkReadingSchema>;
 
 // `state` is a frozen set, like a link's: native clients validate these payloads whole.
+export const ChatUiDiffReadingSchema = z.object({
+    state: z.enum(['patch', 'refused']),
+    // The change as a unified patch of the one file, read by the host from git.
+    patch: z.string().optional(),
+    // Set where the host cut the patch short, so a client offers the whole change elsewhere.
+    truncated: z.boolean().optional(),
+    // A code that names the reason across versions; open, so a new one fails nobody.
+    code: z.string().optional(),
+    reason: z.string().optional()
+});
+export type ChatUiDiffReading = z.infer<typeof ChatUiDiffReadingSchema>;
+
+// `state` is a frozen set, like a link's: native clients validate these payloads whole.
 export const ChatUiPlaceReadingSchema = z.object({
     state: z.enum(['found', 'missing']),
     // The address as it was looked up (trimmed), which a reader compares with the address a node has now: a node id alone moves with a reordered Each.
@@ -1307,6 +1320,10 @@ export type ChatUiQueryPayload = z.infer<typeof ChatUiQueryPayloadSchema>;
 
 export const ChatUiLinkPayloadSchema = ChatUiChoicePayloadSchema.omit({ choiceId: true }).extend({ nodeId: z.string().min(1).max(256) });
 export type ChatUiLinkPayload = z.infer<typeof ChatUiLinkPayloadSchema>;
+
+// Names an open Diff of the stored block as a link names its node: the path and the revisions come from that node, never from the client.
+export const ChatUiDiffPayloadSchema = ChatUiLinkPayloadSchema.extend({});
+export type ChatUiDiffPayload = z.infer<typeof ChatUiDiffPayloadSchema>;
 
 export const ChatQueuePayloadSchema = z.object({
     chatId: ChatIdSchema,
