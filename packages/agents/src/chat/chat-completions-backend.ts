@@ -27,6 +27,33 @@ type Message = z.infer<typeof MessageSchema>;
 // A request that streams nothing for this long is not coming back.
 const REQUEST_TIMEOUT_MS = 180_000;
 
+interface IdleTimeout {
+    signal: AbortSignal;
+    /** A stream that passes its chunks on and starts the wait over at each one. */
+    watch(): TransformStream<Uint8Array, Uint8Array>;
+    stop(): void;
+}
+
+/* Aborts once nothing arrived for `ms`, counted from the last chunk and not from the request: a long answer that keeps streaming is alive. */
+function idleTimeout(ms: number): IdleTimeout {
+    const controller = new AbortController();
+    const expire = (): void => controller.abort(new DOMException('The request timed out.', 'TimeoutError'));
+    let timer = setTimeout(expire, ms);
+
+    return {
+        signal: controller.signal,
+        watch: () =>
+            new TransformStream({
+                transform(chunk, output) {
+                    clearTimeout(timer);
+                    timer = setTimeout(expire, ms);
+                    output.enqueue(chunk);
+                }
+            }),
+        stop: () => clearTimeout(timer)
+    };
+}
+
 /** One request a chat made, with the tokens the API counted for it. */
 export interface ChatCompletionsUsage extends ChatCompletionsTokens {
     model: string;
@@ -237,6 +264,16 @@ export class ChatCompletionsBackend implements ChatBackend {
 
     /* One request of a round, streamed into the thread under `ref`, with the tokens it spent logged before a stop can end the turn. */
     private async exchange(ref: string, signal: AbortSignal): Promise<ChatCompletionsAnswer> {
+        const idle = idleTimeout(REQUEST_TIMEOUT_MS);
+
+        try {
+            return await this.stream(ref, signal, idle);
+        } finally {
+            idle.stop();
+        }
+    }
+
+    private async stream(ref: string, signal: AbortSignal, idle: IdleTimeout): Promise<ChatCompletionsAnswer> {
         const key = this.spec.apiKey();
         const { model } = this.launch.selection;
 
@@ -248,7 +285,7 @@ export class ChatCompletionsBackend implements ChatBackend {
             method: 'POST',
             redirect: 'error',
             headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json', Accept: 'text/event-stream' },
-            signal: AbortSignal.any([signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS)]),
+            signal: AbortSignal.any([signal, idle.signal]),
             body: JSON.stringify({
                 model,
                 stream: true,
@@ -269,7 +306,7 @@ export class ChatCompletionsBackend implements ChatBackend {
 
         let counted: ChatCompletionsTokens | null = null;
 
-        const answer = await readChatCompletionsStream(response.body, this.spec.name, {
+        const answer = await readChatCompletionsStream(response.body.pipeThrough(idle.watch()), this.spec.name, {
             onText: (text) => this.host.onEvent({ type: 'text.delta', ref, text }),
             onThinking: (text) => this.host.onEvent({ type: 'thinking.delta', ref: `${ref}-thinking`, text }),
             onUsage: (usage) => {
