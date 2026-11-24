@@ -54,7 +54,7 @@ function ErrorFallback({ label, error, componentStack, compact, reload, classNam
             <div className={clsx('flex max-w-[360px] flex-col items-center text-center', compact ? 'gap-1' : 'gap-2')}>
                 {!compact && <Icon icon={TriangleAlert} size={20} className="text-status-error" />}
                 <p className="text-sm font-medium text-text">{label}</p>
-                <p className="line-clamp-4 text-xs break-words text-text-muted">{errorMessageOf(error)}</p>
+                <p className="line-clamp-4 text-xs break-words text-text-muted select-text">{errorMessageOf(error)}</p>
                 <div className={clsx('flex items-center gap-2', compact ? 'mt-1' : 'mt-2')}>
                     <Button variant="secondary" size="sm" onClick={onRetry}>
                         {t('action.retry')}

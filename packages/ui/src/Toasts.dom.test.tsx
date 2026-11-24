@@ -32,6 +32,23 @@ describe('the toast stack', () => {
         expect(container.textContent).toContain('Pull failed');
     });
 
+    test('lets a person select the title and the description, but not the buttons', async () => {
+        const store = createToastStore();
+        const { createRoot } = await import('react-dom/client');
+        root = createRoot(container);
+        await act(async () => root.render(<Toasts store={store} />));
+        await act(async () =>
+            store
+                .getState()
+                .show({ id: 'push', kind: 'error', title: 'Push failed', description: 'Rejected by the remote.', action: { label: 'Retry', run: () => {} } })
+        );
+
+        const spans = [...container.querySelectorAll('span')];
+        expect(spans.find((span) => span.textContent === 'Push failed')?.classList.contains('select-text')).toBe(true);
+        expect(spans.find((span) => span.textContent === 'Rejected by the remote.')?.classList.contains('select-text')).toBe(true);
+        expect(container.querySelector('button')?.closest('.select-text')).toBeNull();
+    });
+
     test('fills a bar while work is in progress, and drops it with the outcome', async () => {
         const store = createToastStore();
         const { createRoot } = await import('react-dom/client');

@@ -103,11 +103,11 @@ function ToastCard<T extends Toast>({ toast, footer, onDismiss }: { toast: T; fo
                 )}
             </span>
             <div className="flex min-w-0 grow flex-col gap-1">
-                <span className="text-sm break-words text-text">{toast.title}</span>
+                <span className="text-sm break-words text-text select-text">{toast.title}</span>
                 {toast.kind === 'progress' && toast.progress !== undefined && <ProgressBar value={toast.progress} label={toast.title} />}
                 {/* Wraps rather than clips: a reason cut off at the card's edge is no reason at all. */}
                 {toast.description !== undefined && toast.description !== '' && (
-                    <span className="text-xs break-words text-pretty text-text-muted">{toast.description}</span>
+                    <span className="text-xs break-words text-pretty text-text-muted select-text">{toast.description}</span>
                 )}
                 {/* Two or more would squeeze the title beside them, so they get a line of their own. */}
                 {actions.length > 1 && (

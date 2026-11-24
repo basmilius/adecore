@@ -45,8 +45,8 @@ export function EmptyState({ icon, scene, busy = false, title, children, action,
                     )}
                 </span>
             )}
-            {title && <p className={clsx('text-text', scene ? 'text-base font-semibold' : 'text-sm font-medium')}>{title}</p>}
-            <p className="max-w-[280px] text-xs leading-snug text-text-muted">{children}</p>
+            {title && <p className={clsx('text-text select-text', scene ? 'text-base font-semibold' : 'text-sm font-medium')}>{title}</p>}
+            <p className="max-w-[280px] text-xs leading-snug text-text-muted select-text">{children}</p>
             {/* The button is an answer to the sentence, not a third line of it. */}
             {action && <div className="mt-2">{action}</div>}
         </div>

@@ -5,7 +5,8 @@ import { FieldContext } from './field-context.ts';
 import { SectionLabel } from './SectionLabel.tsx';
 
 const HINT = 'text-xs text-text-muted';
-const ERROR = 'text-xs text-status-error';
+// The body turns selection off; an error is what a person pastes into a search or a report.
+const ERROR = 'text-xs text-status-error select-text';
 
 // Beside the control the label reads at the size of what is typed, on the middle of the control's first line however tall it grows.
 const LABEL_BESIDE = 'flex h-8 items-center self-start text-sm text-text-muted';

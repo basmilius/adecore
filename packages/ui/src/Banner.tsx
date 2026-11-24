@@ -40,7 +40,7 @@ export function Banner({ icon, tone, message, children, placement = 'overlay', c
                 <span className="flex h-(--text-sm--line-height) shrink-0 items-center">
                     <Icon icon={icon} size={16} className={TONE[tone]} />
                 </span>
-                <span className="min-w-0 grow">{message}</span>
+                <span className="min-w-0 grow select-text">{message}</span>
             </span>
             {children}
         </>
