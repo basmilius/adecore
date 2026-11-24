@@ -169,7 +169,8 @@ function readQuantities(type: string, entry: UiNormalEntry, props: Record<string
         warnings.push(
             new UiFailure(
                 'coerced_prop',
-                `${type} ${item.key} takes a number: write ${uiWritten(item.key, item.value)}${both}, not ${uiWritten(item.key, written)}; read as that.`
+                `${type} ${item.key} takes a number: write ${uiWritten(item.key, item.value)}${both}, not ${uiWritten(item.key, written)}; read as that.`,
+                item.key
             )
         );
     }
@@ -242,7 +243,8 @@ function readSeries(type: string, entry: UiNormalEntry, props: Record<string, Ui
     warnings.push(
         new UiFailure(
             'coerced_prop',
-            `${type} ${series.prop} takes numbers for ${columns.join(', ')}: write {"${columns[0]}": 12}, not {"${columns[0]}": "12"}; read as that.`
+            `${type} ${series.prop} takes numbers for ${columns.join(', ')}: write {"${columns[0]}": 12}, not {"${columns[0]}": "12"}; read as that.`,
+            series.prop
         )
     );
 }
@@ -282,7 +284,7 @@ export function normalizeUiProps(type: string, entry: UiNormalEntry, written: Re
 
             if (read !== undefined && options.includes(read)) {
                 next = read;
-                warnings.push(new UiFailure('renamed_value', `${type} ${key} is "${read}", not "${value}"; read as "${read}".`));
+                warnings.push(new UiFailure('renamed_value', `${type} ${key} is "${read}", not "${value}"; read as "${read}".`, key));
             }
         } else {
             next = coerced(schema, value);
@@ -291,7 +293,8 @@ export function normalizeUiProps(type: string, entry: UiNormalEntry, written: Re
                 warnings.push(
                     new UiFailure(
                         'coerced_prop',
-                        `${type} ${key} takes ${described(schema)}: write ${uiWritten(key, next)}, not ${uiWritten(key, value)}; read as that.`
+                        `${type} ${key} takes ${described(schema)}: write ${uiWritten(key, next)}, not ${uiWritten(key, value)}; read as that.`,
+                        key
                     )
                 );
             }
@@ -305,7 +308,8 @@ export function normalizeUiProps(type: string, entry: UiNormalEntry, written: Re
             warnings.push(
                 new UiFailure(
                     'dropped_prop',
-                    `${type} ${key}=${clipped(value)} is not valid${options === null ? '' : `, it is one of ${options.join(', ')}`}; left out.`
+                    `${type} ${key}=${clipped(value)} is not valid${options === null ? '' : `, it is one of ${options.join(', ')}`}; left out.`,
+                    key
                 )
             );
         }

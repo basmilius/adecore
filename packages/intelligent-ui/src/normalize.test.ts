@@ -326,6 +326,24 @@ describe('a prop nothing can read', () => {
     });
 });
 
+describe('what a diagnostic is about', () => {
+    test('names the component as its agent wrote it, and the prop where it is about one', () => {
+        const about = (source: string) => block(source).diagnostics.map((item) => [item.code, item.component, item.prop]);
+        expect(about('<Stats><Stat label="Tests" value="42" tone="loud"/></Stats>')).toEqual([
+            ['coerced_prop', 'Stat', 'value'],
+            ['dropped_prop', 'Stat', 'tone']
+        ]);
+        expect(about('<Badge tone="error" size="big">x</Badge>')).toEqual([
+            ['renamed_component', 'Badge', undefined],
+            ['refused_prop', 'Badge', 'size'],
+            ['renamed_value', 'Badge', 'tone']
+        ]);
+        expect(about('<Tabs><Tab label="A">x</Tab></Tabs>')).toEqual([['renamed_prop', 'Tab', 'label']]);
+        expect(about('<Chart kind="pie" data={[]}/>')).toEqual([['invalid_props', 'Chart', undefined]]);
+        expect(about('<Dial/>')).toEqual([['unknown_component', 'Dial', undefined]]);
+    });
+});
+
 describe('the catalog', () => {
     test('every other name of a component stands for one the catalog has', () => {
         for (const [written, name] of Object.entries(UI_COMPONENT_ALIASES)) {

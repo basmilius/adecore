@@ -27,10 +27,15 @@ export const UI_LIMITS: Readonly<UiLimits> = {
 export class UiFailure extends Error {
     readonly code: string;
 
-    constructor(code: string, message: string) {
+    /* The component the failure is about as its agent wrote it, and the prop where it is about one; a tally reads them, the message already says both. */
+    component?: string;
+    prop?: string;
+
+    constructor(code: string, message: string, prop?: string) {
         super(message);
         this.code = code;
         this.name = 'UiFailure';
+        this.prop = prop;
     }
 }
 

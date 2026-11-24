@@ -279,9 +279,17 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         let fallbackProps = node.props;
         let children = syntax.children;
 
+        const diagnoseNode = (error: unknown) => {
+            if (error instanceof UiFailure) {
+                error.component ??= original.type;
+            }
+
+            diagnose(error, syntax.start, syntax.end, syntax.id);
+        };
+
         const warn = (failure: UiFailure) => {
             if (syntax.complete) {
-                diagnose(failure, syntax.start, syntax.end, syntax.id);
+                diagnoseNode(failure);
             }
         };
 
@@ -348,7 +356,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                 const key = aliasedProp(entry, written, syntax.props);
 
                 if (key !== written) {
-                    warn(new UiFailure('renamed_prop', `${syntax.type} takes ${key}, not ${written}; read as ${key}.`));
+                    warn(new UiFailure('renamed_prop', `${syntax.type} takes ${key}, not ${written}; read as ${key}.`, written));
                 }
 
                 if (key === actionProp) {
@@ -377,12 +385,12 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                             ...children
                         ];
 
-                        warn(new UiFailure('renamed_prop', `${syntax.type} takes its ${words} between the tags, not as ${written}; read as that.`));
+                        warn(new UiFailure('renamed_prop', `${syntax.type} takes its ${words} between the tags, not as ${written}; read as that.`, written));
 
                         continue;
                     }
 
-                    diagnose(new UiFailure('refused_prop', `${syntax.type} does not accept ${written}.`), syntax.start, syntax.end, syntax.id);
+                    diagnoseNode(new UiFailure('refused_prop', `${syntax.type} does not accept ${written}.`, written));
 
                     continue;
                 }
@@ -484,17 +492,12 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             const unreadable = !unresolved && syntax.complete && syntax.type === 'Event' ? unreadableEventTime(evaluated.at) : null;
 
             if (unreadable !== null) {
-                diagnose(unreadable, syntax.start, syntax.end, syntax.id);
+                diagnoseNode(unreadable);
             }
 
             // The catalog promises six series, one per chart color; more still reach the values a person can open.
             if (!unresolved && syntax.complete && syntax.type === 'Chart' && chartSeries(evaluated.data) > CHART_SERIES) {
-                diagnose(
-                    new UiFailure('too_many_series', `Chart draws up to ${CHART_SERIES} numeric series; the rest are only in its values.`),
-                    syntax.start,
-                    syntax.end,
-                    syntax.id
-                );
+                diagnoseNode(new UiFailure('too_many_series', `Chart draws up to ${CHART_SERIES} numeric series; the rest are only in its values.`));
             }
 
             if (syntax.complete && 'count' in entry) {
@@ -518,7 +521,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         } catch (error) {
             rethrowBudget(error);
             node.error = error instanceof UiFailure ? error.code : 'invalid_props';
-            diagnose(error, syntax.start, syntax.end, syntax.id);
+            diagnoseNode(error);
         }
 
         // The parser already diagnosed both, so they only decide how the node draws.

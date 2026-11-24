@@ -49,7 +49,9 @@ export function uiDiagnostic(error: unknown, start: number, end: number, nodeId?
         message: error instanceof Error ? error.message : 'Invalid UI syntax.',
         start,
         end,
-        ...(nodeId ? { nodeId } : {})
+        ...(nodeId ? { nodeId } : {}),
+        ...(error instanceof UiFailure && error.component !== undefined ? { component: error.component } : {}),
+        ...(error instanceof UiFailure && error.prop !== undefined ? { prop: error.prop } : {})
     };
 }
 

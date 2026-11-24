@@ -115,7 +115,7 @@ Once the reply is final, anything still open is reported: `unclosed_tag` for a t
 
 ## Diagnostics
 
-Every problem becomes a `UiDiagnostic` with a `code`, a `message`, a source range and, where it has one, the node id. A block keeps at most `UI_LIMITS.diagnostics` of them.
+Every problem becomes a `UiDiagnostic` with a `code`, a `message`, a source range and, where it has one, the node id. One about a component also names it in `component`, as the agent wrote it, and one about a prop names that in `prop`, so a host can count problems without reading messages. A block keeps at most `UI_LIMITS.diagnostics` of them.
 
 | Code                                                              | Cause                                                                                         |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |

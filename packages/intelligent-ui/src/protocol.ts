@@ -32,6 +32,9 @@ export const UiDiagnosticSchema = z.object({
     start: position,
     end: position,
     nodeId: z.string().optional(),
+    // What the problem is about, for a host that counts problems; the message says both in words.
+    component: z.string().optional(),
+    prop: z.string().optional(),
     // A warning leaves the part it names drawn. Absent means an error, a part that could not be drawn.
     severity: z.literal('warning').optional()
 });
