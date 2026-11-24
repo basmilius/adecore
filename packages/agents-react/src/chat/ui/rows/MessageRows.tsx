@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { useContext, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CliMark } from '../../../agents/AgentModelLabel';
 import { useChatHost, type CommandLookSent, type ReplyAuthor } from '../../../host/host';
 import { useHostAttachmentUrl, useHostChatPlace, useHostReplyAuthor, useHostStreaming, useHostUnknownItemWords } from '../../../host/host-hooks';
 import { useChatScope } from '../../../scope';
@@ -805,7 +806,10 @@ export function SelectionSwitchRow({ chatId, from, to }: { chatId: string; from:
         <div className="flex items-center gap-3 pb-3 text-xs text-text-faint">
             <span className="grow border-t border-border" />
             <Tooltip label={t('rows.selectionSwitch.summary')}>
-                <span>{t('rows.selectionSwitch.label', { from: text.from, to: text.to })}</span>
+                <span className="flex items-center gap-1.5">
+                    {provider !== undefined && <CliMark kind={provider} size={12} />}
+                    {t('rows.selectionSwitch.label', { from: text.from, to: text.to })}
+                </span>
             </Tooltip>
             <span className="grow border-t border-border" />
         </div>
