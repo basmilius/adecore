@@ -102,6 +102,7 @@ describe('segmentsOf', () => {
     test('decodes the segments and refuses one that could climb out', () => {
         expect(segmentsOf('/a/b%20c')).toEqual(['a', 'b c']);
         expect(segmentsOf('/')).toEqual([]);
+        expect(segmentsOf('/a/b/')).toEqual(['a', 'b']);
         expect(segmentsOf('/a/../b')).toBeNull();
         expect(segmentsOf('/a%2Fb')).toBeNull();
         expect(segmentsOf('/a//b')).toBeNull();

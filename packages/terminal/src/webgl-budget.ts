@@ -107,9 +107,17 @@ class WebglBudget {
         }
 
         if (Addon === null) {
-            addonLoad ??= import('@xterm/addon-webgl').then((module) => {
-                Addon = module.WebglAddon;
-            });
+            addonLoad ??= import('@xterm/addon-webgl').then(
+                (module) => {
+                    Addon = module.WebglAddon;
+                },
+                (error: unknown) => {
+                    // Asked again by the next terminal, since a chunk that failed once may load later.
+                    addonLoad = null;
+
+                    throw error;
+                }
+            );
 
             void addonLoad.then(
                 () => {

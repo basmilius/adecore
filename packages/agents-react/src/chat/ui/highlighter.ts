@@ -50,13 +50,29 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
     const tokenizers = new Map<string, { tokenize: Tokenize<GrammarState>; fg: string | undefined }>();
 
     const load = (): Promise<Highlighter> => {
-        highlighterLoad ??= source().then((loaded) => {
-            highlighter = loaded;
+        highlighterLoad ??= source().then(
+            (loaded) => {
+                highlighter = loaded;
 
-            return loaded;
-        });
+                return loaded;
+            },
+            (error: unknown) => {
+                // A chunk that failed to load once may load the next time; kept, it would leave code plain until a reload.
+                highlighterLoad = null;
+
+                throw error;
+            }
+        );
 
         return highlighterLoad;
+    };
+
+    // A load that failed is asked again by the next block that needs it.
+    const retried = (loads: Map<string, Promise<void>>, key: string, pending: Promise<void>): Promise<void> => {
+        loads.set(key, pending);
+        pending.catch(() => loads.delete(key));
+
+        return pending;
     };
 
     const ready = (langs: Iterable<string>, theme: string): Highlighter | null => {
@@ -80,11 +96,13 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
             let pending = languageLoads.get(lang);
 
             if (!pending) {
-                pending = load().then(async (loaded) => {
-                    languages.set(lang, await grammarOf(loaded, lang));
-                });
-
-                languageLoads.set(lang, pending);
+                pending = retried(
+                    languageLoads,
+                    lang,
+                    load().then(async (loaded) => {
+                        languages.set(lang, await grammarOf(loaded, lang));
+                    })
+                );
             }
 
             return pending;
@@ -93,16 +111,18 @@ function createCodeHighlighter(source: () => Promise<Highlighter>): CodeHighligh
             let pending = themeLoads.get(theme);
 
             if (!pending) {
-                pending = load().then(async (loaded) => {
-                    // Loading a theme the highlighter already has replaces it, under whatever else of the host draws with it.
-                    if (!loaded.getLoadedThemes().includes(theme)) {
-                        await loaded.loadTheme(shikiThemeOf(theme, custom) as BundledTheme | ThemeRegistration);
-                    }
+                pending = retried(
+                    themeLoads,
+                    theme,
+                    load().then(async (loaded) => {
+                        // Loading a theme the highlighter already has replaces it, under whatever else of the host draws with it.
+                        if (!loaded.getLoadedThemes().includes(theme)) {
+                            await loaded.loadTheme(shikiThemeOf(theme, custom) as BundledTheme | ThemeRegistration);
+                        }
 
-                    themes.add(theme);
-                });
-
-                themeLoads.set(theme, pending);
+                        themes.add(theme);
+                    })
+                );
             }
 
             return pending;

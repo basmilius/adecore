@@ -98,7 +98,8 @@ const readWhole = async (file: string): Promise<Response> => new Response(new Ui
 
 /* The segments of a path as the URL carries them, decoded, or null when one could climb out or means nothing on its own. */
 export const segmentsOf = (pathname: string): string[] | null => {
-    const path = pathname.replace(/^\/+/, '');
+    // A slash at the end names the same page, as a link to `/settings/` does.
+    const path = pathname.replace(/^\/+/, '').replace(/\/$/, '');
 
     if (path === '') {
         return [];
