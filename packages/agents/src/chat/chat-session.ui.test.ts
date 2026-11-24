@@ -67,7 +67,7 @@ test('compiler diagnostics are retained for the next real prompt', async () => {
     const run = rig();
     await run.session.send('Show results');
     await flush();
-    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Summary tone="huge">Result</Summary>\n```', parentRef: null });
+    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Stats><Stat label="Result"/></Stats>\n```', parentRef: null });
     expect(run.session.preambles.join(' ')).toContain('Your last ui block');
     run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
     await run.session.send('Fix it');
@@ -94,7 +94,7 @@ test('an error is still drawn as a note in the thread', async () => {
     const run = rig();
     await run.session.send('Show results');
     await flush();
-    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Summary tone="huge">Result</Summary>\n```', parentRef: null });
+    run.event({ type: 'text.done', ref: 'answer', text: '```ui\n<Stats><Stat label="Result"/></Stats>\n```', parentRef: null });
     run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
     await run.session.send('Next');
     await flush();

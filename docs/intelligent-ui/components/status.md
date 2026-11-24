@@ -38,7 +38,7 @@ A note that needs attention. Its children are the note.
 
 | Prop    | Type     | Required | Notes                  |
 | ------- | -------- | -------- | ---------------------- |
-| `tone`  | `UiTone` | Yes      | The surface and icon   |
+| `tone`  | `UiTone` | No       | The surface and icon; `info` without one |
 | `title` | string   | No       | A line above the note  |
 
 ## Tag
@@ -64,7 +64,7 @@ An ordered sequence. `Steps` has no props and holds only `Step`. A `Step` stands
 
 | Prop     | Type   | Required | Notes                                                  |
 | -------- | ------ | -------- | ------------------------------------------------------ |
-| `state`  | string | Yes      | `done`, `running`, `pending`, `failed` or `skipped`   |
+| `state`  | string | No       | `done`, `running`, `pending`, `failed` or `skipped`; `pending` without one |
 | `detail` | string | No       | Faint text beside the label, such as a file or a time  |
 
 ## Timeline and Event

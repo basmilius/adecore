@@ -57,7 +57,9 @@ export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>
     const { t } = useTranslation('agent-chat');
     const { label, value, previous, unit, tone } = node.props;
     const live = context.liveValue?.(node.id, 'value');
-    const change = previous === undefined ? null : value - previous;
+    // A value in words stands as written and compares with nothing.
+    const figure = typeof value === 'number' ? uiWithUnit(formatRounded(value, 2), unit) : value;
+    const change = previous === undefined || typeof value !== 'number' ? null : value - previous;
     const arrow = change === null || change === 0 ? ArrowRight : change > 0 ? ArrowUp : ArrowDown;
     const from = previous === undefined ? '' : uiWithUnit(formatRounded(previous, 2), unit);
     // A change from zero has no percentage.
@@ -68,7 +70,7 @@ export function StatRenderer({ node, context }: UiRendererProps<UiProps<'Stat'>>
         <div className="flex min-w-0 flex-col items-start gap-1.5 rounded-xl bg-ui-tile p-3">
             <span className="max-w-full truncate text-2xs text-text-muted">{label}</span>
             <LiveFigure
-                text={uiWithUnit(formatRounded(value, 2), unit)}
+                text={figure}
                 previous={typeof live?.previous === 'number' ? uiWithUnit(formatRounded(live.previous, 2), unit) : undefined}
                 live={live}
                 className="max-w-full truncate text-lg font-semibold text-text tabular-nums"

@@ -96,7 +96,7 @@ A host may pass overrides, a `Partial<UiLimits>`, as the last argument of `new U
 
 A refusal anywhere in the package is a `UiFailure`, an `Error` with a machine-readable `code`. `uiDiagnostic(error, start, end, nodeId?)` turns any caught error into a `UiDiagnostic`, with `invalid_syntax` for other errors. `safeKey(key)` throws `refused_access` for `__proto__`, `constructor` and `prototype`. [Syntax](/intelligent-ui/language/syntax#diagnostics) lists the codes.
 
-The agents host puts up to six diagnostics of a final reply into one note before the agent's next prompt.
+The agents host puts up to six diagnostics of a final reply into a note before the agent's next prompt, a line each. Errors go in one note, which the person sees too; warnings go in another that only the agent hears, since the block drew.
 
 ## Fallbacks
 

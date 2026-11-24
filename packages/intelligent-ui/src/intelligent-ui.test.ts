@@ -94,7 +94,7 @@ describe('bounded expressions', () => {
 
 const EXAMPLES = [
     '<Summary tone="success">Ready to ship</Summary>',
-    '$selected = ["links", "preload"]\n$show = false\n<Summary>{@Count($selected)} selected</Summary><Switch value={$show}>Show nits</Switch><Checklist value={$selected}><Item value="links"><File path="src/links.ts" line="148">Fix a path</File></Item><Show when={$show}><Item value="nits">Nits</Item></Show></Checklist><Choices><Choice context={"Fix " + @Join($selected, ", ")}>Fix {@Count($selected)}</Choice></Choices>',
+    '$selected = ["links", "preload"]\n$show = false\n<Summary>{@Count($selected)} selected</Summary><Switch value={$show}>Show nits</Switch><Checklist value={$selected}><Item value="links"><File path="src/links.ts" line={148}>Fix a path</File></Item><Show when={$show}><Item value="nits">Nits</Item></Show></Checklist><Choices><Choice context={"Fix " + @Join($selected, ", ")}>Fix {@Count($selected)}</Choice></Choices>',
     '<Stats><Stat label="Passed" value={32} previous={29} tone="success"/></Stats><EntityList><Entry label="Owner">Bas</Entry></EntityList>',
     '<Table rows={[{name: "Core", size: 32}]}><Column key="name"/><Column key="size" as="number"/></Table>',
     '<Chart kind="bar" data={[{label: "Core", passed: 32, failed: 1}]}/>',
@@ -140,8 +140,8 @@ describe('streaming compiler', () => {
         }
 
         expect(Object.keys(UI_CATALOG)).toHaveLength(45);
-        expect(uiCatalogText()).toContain('Image(attachment?, generated?, alt?)');
-        expect(uiCatalogText()).toContain('Button(action, disabled?)');
+        expect(uiCatalogText()).toContain('Image(attachment?, generated?: latest, alt?)');
+        expect(uiCatalogText()).toContain('Button(action, disabled?: boolean)');
         expect(uiCatalogText()).toContain('Model(attachment, alt?)');
     });
 
@@ -396,21 +396,21 @@ describe('open wire and agent text', () => {
         const text = 'Before\n```ui\n<Summary>Readable</Summary>\n```\nAfter';
         expect(uiFallbackText(text, compileUi(text, { id: 'item', final: true }))).toBe('Before\nReadable\nAfter');
         expect(uiFallbackText(text, [{ ...block('<Summary>Invalid range</Summary>'), start: 200, end: 210 }])).toBe(text);
-        expect(uiCompactCatalog()).toContain('Slider: value,min,max,step?,unit?');
+        expect(uiCompactCatalog()).toContain('Slider: value:number,min:number,max:number,step?:number,unit?');
         expect(uiReferenceText()).toContain('Image accepts a chat attachment');
         expect(uiReferenceText()).toContain('never on your own after writing or changing one');
         expect(uiSessionNote()).toContain('Model only when the person asks to see one.');
         expect(uiSessionNote()).toContain('@Filter(list,row,predicate)');
-        expect(uiSessionNote().length).toBeLessThan(2400);
+        expect(uiSessionNote().length).toBeLessThan(2650);
     });
 
     test('names the components per group with their required props in a note that still carries the example', () => {
         const names = uiSessionNote({ catalog: 'names', detailHint: '`tool help ui <group>` gives props' });
-        expect(names.length).toBeLessThan(2200);
+        expect(names.length).toBeLessThan(2450);
         expect(names).toContain('```ui\n');
         expect(names).toContain('(`tool help ui <group>` gives props)');
         expect(names).toContain(
-            'status: Summary, Callout tone, Tag, Progress (text: label), Steps, Step state (text: label), Timeline, Event at (text: title)'
+            'status: Summary, Callout tone, Tag, Progress (text: label), Steps, Step state=done|running|pending|failed|skipped (text: label), Timeline, Event at (text: title)'
         );
         expect(names).not.toContain('Slider: value');
         expect(names).not.toContain('step?');
@@ -429,7 +429,9 @@ describe('open wire and agent text', () => {
         const names = uiSessionNote({ catalog: 'names' });
         expect(names).toContain('(text: words between the tags)');
         expect(names).toContain('Event at (text: title)');
-        expect(names).toContain('Place lat lon (text: name)');
+        expect(names).toContain('Place lat={number} lon={number} (text: name)');
+        expect(names).toContain('Stat label value={number}');
+        expect(names).toContain('Switch value={boolean} (text: label)');
         expect(names).toContain('TextField value (text: label)');
         expect(names).toContain('Option value (text: label)');
 
@@ -449,7 +451,9 @@ describe('open wire and agent text', () => {
         const data = uiGroupReference('data');
         expect(data.split('\n')[0]).toBe(UI_GROUPS.data.description);
         expect(data).toContain(UI_GROUPS.data.rules);
-        expect(data).toContain('Stat: A labeled value and optional previous value. Props: label, value, previous?, unit?, tone?.');
+        expect(data).toContain(
+            'Stat: A labeled number with an optional previous number, or a value in words. Props: label, value: number|text, previous?: number, unit?, tone?: tone.'
+        );
         expect(data).not.toContain('Summary:');
         expect(uiReferenceText()).toContain(data);
     });
@@ -460,18 +464,26 @@ describe('open wire and agent text', () => {
         expect(coordinates.components.find((component) => component.name === 'Place')).toEqual({
             name: 'Place',
             description: 'One place by lat and lon. Children are the name.',
-            props: ['lat?', 'lon?', 'detail?', 'value?']
+            props: ['lat?: number', 'lon?: number', 'detail?', 'value?: scalar']
         });
 
         const addresses = uiGroupDescription('places', 'addresses');
         expect(addresses.rules).toBe(
             'Give lat and lon in decimal degrees, or an address the host looks up. Never a tile or map URL. The host chooses the map.'
         );
-        expect(addresses.components.find((component) => component.name === 'Place')?.props).toEqual(['lat?', 'lon?', 'address?', 'detail?', 'value?']);
+        expect(addresses.components.find((component) => component.name === 'Place')?.props).toEqual([
+            'lat?: number',
+            'lon?: number',
+            'address?',
+            'detail?',
+            'value?: scalar'
+        ]);
         expect(uiGroupReference('places', 'addresses')).toContain('Place: One place by lat and lon, or by an address the host looks up');
-        expect(uiSessionNote({ catalog: 'names', places: 'addresses' })).toContain('Place lat lon|address (text: name)');
-        expect(uiSessionNote({ places: 'addresses' })).toContain('Place: lat?,lon?,address?,detail?,value?');
-        expect(uiCatalogText('addresses')).toContain('Place(lat?, lon?, address?, detail?, value?): One place by lat and lon, or by an address');
+        expect(uiSessionNote({ catalog: 'names', places: 'addresses' })).toContain('Place lat={number} lon={number}|address (text: name)');
+        expect(uiSessionNote({ places: 'addresses' })).toContain('Place: lat?:number,lon?:number,address?,detail?,value?:scalar');
+        expect(uiCatalogText('addresses')).toContain(
+            'Place(lat?: number, lon?: number, address?, detail?, value?: scalar): One place by lat and lon, or by an address'
+        );
 
         for (const text of [uiSessionNote(), uiSessionNote({ catalog: 'names' }), uiReferenceText(), uiCatalogText()]) {
             expect(text).not.toContain('address');

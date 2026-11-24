@@ -148,15 +148,12 @@ export class UiReplies {
     }
 
     private repair(diagnostics: UiDiagnostic[]): void {
-        const say = (found: UiDiagnostic[], audience: 'person' | 'agent') => {
+        const say = (found: UiDiagnostic[], audience: 'person' | 'agent', what: string) => {
             const messages = [...new Set(found.map((diagnostic) => diagnostic.message))].slice(0, 6);
 
             if (messages.length > 0) {
                 this.options.repair(
-                    `Your last ${this.options.fenceLanguage} block had these diagnostics: ${messages.join(' ')} Use the catalog's supported props and components.`.slice(
-                        0,
-                        1200
-                    ),
+                    `Your last ${this.options.fenceLanguage} block ${what}:\n${messages.map((message) => `- ${message}`).join('\n')}`.slice(0, 1200),
                     audience
                 );
             }
@@ -164,12 +161,14 @@ export class UiReplies {
 
         say(
             diagnostics.filter((diagnostic) => diagnostic.severity !== 'warning'),
-            'person'
+            'person',
+            'could not be drawn in full'
         );
 
         say(
             diagnostics.filter((diagnostic) => diagnostic.severity === 'warning'),
-            'agent'
+            'agent',
+            'was drawn after these corrections, write it this way next time'
         );
     }
 

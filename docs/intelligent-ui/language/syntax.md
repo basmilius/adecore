@@ -54,7 +54,31 @@ A prop is `name="text"`, `name='text'` or `name={expression}`. A name on its own
 
 A constant braced value becomes a static prop. A value that reads a variable stays an expression, evaluated against state when the block draws. The compiler checks every prop against the component's schema: constants at once, expressions with the block's defaults.
 
-An unknown prop is dropped with `refused_prop`, and the rest of the node still draws. A component may list likely misspellings as `aliases` in the catalog (`time` on an `Event` for `at`). The compiler reads an alias as the real prop and warns with `renamed_prop`, unless the real prop is written too. A prop written twice gets `duplicate_prop`. A value that fails the schema marks the node `invalid_props`, and the node draws as its fallback.
+An unknown prop is dropped with `refused_prop`, and the rest of the node still draws. A prop written twice gets `duplicate_prop`. A value that fails the schema marks the node `invalid_props`, and the node draws as its fallback.
+
+## What is read leniently
+
+An agent writes HTML and JSX from habit, so the compiler reads the forms below as what they mean. Each one draws, and each one comes with a warning that says how the prop is written, so the agent learns the form. The block that goes over the wire holds the corrected value, so a client draws it without knowing the rule.
+
+| Written | Read as | Warning |
+| --- | --- | --- |
+| `value="42"`, `when="true"`, `unit={5}`, `rows='[{"a": 1}]'` | The number, boolean, text or list the schema asks for | `coerced_prop` |
+| `value=42`, `primary=true` | A bare number or boolean, as if in braces | None |
+| `value="12 min"` on a `Stat` | `value={12} unit="min"` | `coerced_prop` |
+| `tone="error"`, `state="active"` | `danger`, `running`: a synonym of an enum value | `renamed_value` |
+| `<Tab label="A">`, `<Place lng={5.1}>` | `title`, `lon`: an alias of the prop in the catalog | `renamed_prop` |
+| `<Step label="Build"/>` | `<Step>Build</Step>`: the words of a component written as a prop | `renamed_prop` |
+| `<Stat label="Tests">42</Stat>` | `value={42}` | `renamed_prop` |
+| `<Badge>` | `<Tag>` | `renamed_component` |
+| `<Column as="percent"/>` | The column without `as`: an optional prop nothing could read is left out | `dropped_prop` |
+
+A value is converted only where one reading exists. A number is digits with an optional sign and decimal point: `"1,5"`, `"1e3"` and `"ten"` are never numbers. A scalar prop, such as the `value` of an `Option`, is never converted, since `"1"` and `1` are two values there.
+
+A quantity, a number with its unit behind it, reads as a number only where the number is shown and steers nothing: `value` and `previous` on a `Stat`, the series of a `Chart`, and a percentage on a `Progress`. Quantities that share a prop for the unit must agree on it. `"21 min 38 sec"` and `"6,777"` stay text on a `Stat`, which shows them as written. A `Slider`, a `Place` and a `File` line never read a unit.
+
+An alias of a prop yields to the real prop when both are written, and the words of a component win over a prop that carries them. An optional prop is left out only when its value is of the wrong kind; a number out of range, such as a latitude of 200, stays `invalid_props`.
+
+A prop the catalog gives a default is written into the block: a `Callout` without a `tone` is `info`, a `Step` without a `state` is `pending`. A `Checklist` that binds no state gets state of its own.
 
 ## Text
 
@@ -99,7 +123,10 @@ Every problem becomes a `UiDiagnostic` with a `code`, a `message`, a source rang
 | `invalid_declaration`, `duplicate_declaration`, `invalid_default` | A declaration that is malformed, repeated or not a literal |
 | `unclosed_tag`, `unmatched_tag`              | Tags that do not pair                                        |
 | `duplicate_prop`, `refused_prop`, `invalid_props` | A prop written twice, unknown, or failing its schema    |
-| `renamed_prop`                               | A prop written under an alias from the catalog, read as the real prop |
+| `renamed_prop`                               | A prop written under an alias from the catalog, or the words of a component written as a prop |
+| `renamed_value`, `renamed_component`        | A synonym of an enum value or of a component name, read as the real one |
+| `coerced_prop`                               | A value written in another type, read as the type the schema asks for |
+| `dropped_prop`                               | An optional prop with a value nothing could read, left out   |
 | `too_many_series`                            | A Chart with more numeric series than a drawing holds; the rest stay in its values |
 | `unknown_component`                          | A name outside the catalog                                   |
 | `invalid_parent`, `invalid_child`            | A component in the wrong place                               |

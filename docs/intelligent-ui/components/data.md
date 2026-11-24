@@ -28,7 +28,7 @@ A small set of key numbers. `Stats` has no props and holds only `Stat`. A `Stat`
 | Prop       | Type     | Required | Notes                                                         |
 | ---------- | -------- | -------- | ------------------------------------------------------------- |
 | `label`    | string   | Yes      |                                                               |
-| `value`    | number   | Yes      |                                                               |
+| `value`    | number or string | Yes | A number, or a value in words that is shown as written and compares with nothing |
 | `previous` | number   | No       | The value to compare with; the tile shows the change          |
 | `unit`     | string   | No       | Written after the number, a percent sign without a space      |
 | `tone`     | `UiTone` | No       | Colors the change; without it the change stays neutral        |

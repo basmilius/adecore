@@ -78,9 +78,8 @@ describe('UiReplies', () => {
 
     test('asks for a repair when a block compiled with diagnostics', () => {
         const { thread, repairs, replies } = rig();
-        replies.pass(thread.upsert(reply('```ui\n<Summary tone="huge">Result</Summary>\n```')));
-        expect(repairs).toHaveLength(1);
-        expect(repairs[0]).toContain('Your last ui block had these diagnostics');
+        replies.pass(thread.upsert(reply('```ui\n<Stats><Stat label="Tests"/></Stats>\n```')));
+        expect(repairs).toEqual(['Your last ui block could not be drawn in full:\n- Stat needs value, a number or text.']);
     });
 
     test('tells the agent about a warning without showing it to the person', () => {

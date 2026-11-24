@@ -1,10 +1,12 @@
 import { type z } from 'zod';
 import { uiActionProp, uiActionTarget, uiLocalState } from './actions.ts';
+import { UI_COMPONENT_ALIASES, UI_TEXT_PROPS } from './aliases.ts';
 import { safeKey, UI_LIMITS, UiBudget, UiFailure, type UiLimits } from './budget.ts';
 import { isUiComponent, UI_CATALOG, UI_CATALOG_VERSION } from './catalog.ts';
 import { unreadableEventTime } from './event-warning.ts';
 import { evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { uiNodeFallback, uiPlainText } from './fallback.ts';
+import { normalizeUiProps, uiPropsMessage, type UiNormalEntry } from './normalize.ts';
 import { aliasedProp } from './prop-alias.ts';
 import type { UiBlock, UiNode, UiQuery } from './protocol.ts';
 import { rethrowBudget } from './rethrow.ts';
@@ -162,6 +164,43 @@ function chartSeries(data: unknown): number {
     return keys.size;
 }
 
+/* Whether a child is words written between the tags: an expression, or text that is more than whitespace. */
+function isWords(child: UiSyntaxNode): boolean {
+    return child.type === '$text' && (child.expression !== undefined || (child.text ?? '').trim() !== '');
+}
+
+/* The catalog component nearest to a name nobody knows, when one is near enough to be what was meant. */
+function nearestComponent(name: string): string | undefined {
+    const wanted = name.toLowerCase();
+    let best: { name: string; distance: number } | undefined;
+
+    for (const candidate of Object.keys(UI_CATALOG)) {
+        const distance = editDistance(wanted, candidate.toLowerCase());
+
+        if (distance <= 2 && (best === undefined || distance < best.distance)) {
+            best = { name: candidate, distance };
+        }
+    }
+
+    return best?.name;
+}
+
+function editDistance(first: string, second: string): number {
+    let row = Array.from({ length: second.length + 1 }, (_, i) => i);
+
+    for (let i = 1; i <= first.length; i++) {
+        const next = [i];
+
+        for (let at = 1; at <= second.length; at++) {
+            next.push(Math.min(row[at] + 1, next[at - 1] + 1, row[at - 1] + (first[i - 1] === second[at - 1] ? 0 : 1)));
+        }
+
+        row = next;
+    }
+
+    return row[second.length];
+}
+
 /* Whether a child can give a Choice words: a component, an expression, or text that is more than whitespace. */
 function isLabelSource(child: UiSyntaxNode): boolean {
     return child.type !== '$text' || child.expression !== undefined || (child.text ?? '').trim() !== '';
@@ -202,8 +241,25 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         return action;
     };
 
-    const compile = (syntax: UiSyntaxNode, depth: number, parent?: string): UiNode => {
+    // A name for the state of an input that binds none, numbered in the order of the source so it holds while the block streams.
+    let implicitStates = 0;
+
+    const implicitState = (type: string, initial: UiValue): string => {
+        let name: string;
+
+        do {
+            name = `$${type.toLowerCase()}${++implicitStates}`;
+        } while (Object.hasOwn(block.defaults, name) || Object.hasOwn(block.queries, name));
+
+        block.defaults[name] = initial;
+
+        return name;
+    };
+
+    const compile = (original: UiSyntaxNode, depth: number, parent?: string): UiNode => {
         budget.depth(depth);
+        const alias = isUiComponent(original.type) || original.type === '$text' ? undefined : UI_COMPONENT_ALIASES[original.type];
+        const syntax = alias === undefined ? original : { ...original, type: alias };
 
         const node: UiNode = {
             id: syntax.id,
@@ -219,8 +275,19 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         };
 
         let fallbackProps = node.props;
+        let children = syntax.children;
+
+        const warn = (failure: UiFailure) => {
+            if (syntax.complete) {
+                diagnose(failure, syntax.start, syntax.end, syntax.id);
+            }
+        };
 
         try {
+            if (alias !== undefined) {
+                warn(new UiFailure('renamed_component', `${original.type} is not a component; read as ${alias}.`));
+            }
+
             if (syntax.type === '$text') {
                 if (syntax.expression) {
                     node.expressions.text = syntax.expression;
@@ -239,10 +306,13 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             }
 
             if (!isUiComponent(syntax.type)) {
-                throw new UiFailure('unknown_component', `Unknown component ${syntax.type}.`);
+                const nearest = nearestComponent(syntax.type);
+
+                throw new UiFailure('unknown_component', `Unknown component ${syntax.type}.${nearest === undefined ? '' : ` Closest: ${nearest}.`}`);
             }
 
             const entry = UI_CATALOG[syntax.type];
+            const normal: UiNormalEntry = entry;
 
             if ('parent' in entry) {
                 const parents: readonly string[] = [entry.parent].flat();
@@ -267,30 +337,49 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
 
             const actionProp = uiActionProp(syntax.type);
 
+            // What the words between the tags of this component are, when it takes any.
+            const words = 'text' in entry ? entry.text : 'content' in entry ? entry.content : undefined;
+            let wordsProp: string | undefined;
+
             for (const [written, expression] of Object.entries(syntax.props)) {
                 safeKey(written);
+                const key = aliasedProp(entry, written, syntax.props);
 
-                if (written === actionProp) {
-                    node.expressions[written] = checkedAction(expression);
+                if (key !== written) {
+                    warn(new UiFailure('renamed_prop', `${syntax.type} takes ${key}, not ${written}; read as ${key}.`));
+                }
+
+                if (key === actionProp) {
+                    node.expressions[key] = checkedAction(expression);
 
                     continue;
                 }
 
-                const key = aliasedProp(entry, written, syntax.props);
-
                 if (!Object.hasOwn(entry.schema.shape, key)) {
+                    // The words a component takes between its tags, written as a prop instead.
+                    if (words !== undefined && UI_TEXT_PROPS.includes(key) && wordsProp === undefined && !children.some(isWords)) {
+                        wordsProp = key;
+                        const child = {
+                            id: `${syntax.id}:${key}`,
+                            type: '$text',
+                            props: {},
+                            children: [],
+                            complete: true,
+                            start: syntax.start,
+                            end: syntax.end
+                        };
+                        children = [
+                            isConstant(expression) ? { ...child, text: uiPlainText(evaluateUiExpression(expression, {}, budget)) } : { ...child, expression },
+                            ...children
+                        ];
+                        warn(new UiFailure('renamed_prop', `${syntax.type} takes its ${words} between the tags, not as ${written}; read as that.`));
+
+                        continue;
+                    }
+
                     diagnose(new UiFailure('refused_prop', `${syntax.type} does not accept ${written}.`), syntax.start, syntax.end, syntax.id);
 
                     continue;
-                }
-
-                if (key !== written && syntax.complete) {
-                    diagnose(
-                        new UiFailure('renamed_prop', `${syntax.type} takes ${key}, not ${written}; read as ${key}.`),
-                        syntax.start,
-                        syntax.end,
-                        syntax.id
-                    );
                 }
 
                 if (isConstant(expression)) {
@@ -313,7 +402,45 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
                 throw new UiFailure('invalid_props', `${syntax.type} needs ${actionProp}.`);
             }
 
-            const evaluated: Record<string, UiValue> = { ...node.props };
+            const given = (key: string) => Object.hasOwn(node.props, key) || Object.hasOwn(node.expressions, key);
+
+            // The value of a component that takes it as a prop, written between its tags instead.
+            if ('textProp' in entry && !given(entry.textProp) && syntax.complete) {
+                const between = children.filter(isWords);
+
+                if (between.length > 0 && children.every((child) => child.type === '$text')) {
+                    if (between.length === 1 && between[0].expression) {
+                        node.expressions[entry.textProp] = between[0].expression;
+                    } else {
+                        node.props[entry.textProp] = between
+                            .map((child) => child.text ?? '')
+                            .join('')
+                            .trim();
+                    }
+
+                    children = [];
+                    warn(new UiFailure('renamed_prop', `${syntax.type} takes ${entry.textProp} as a prop; the text between its tags was read as it.`));
+                }
+            }
+
+            // An input that binds no state still holds what a person picks, in state of its own.
+            if ('implicit' in entry && !given(entry.binding) && syntax.complete) {
+                const name = implicitState(syntax.type, [...entry.implicit]);
+                node.expressions[entry.binding] = { kind: 'reference', name };
+                node.bindings[entry.binding] = name;
+            }
+
+            // Written into the block, so a client that knows no default for the prop reads the same component.
+            for (const [key, schema] of Object.entries(normal.schema.shape)) {
+                if (!given(key) && schema.def.type === 'default') {
+                    node.props[key] = schema.parse(undefined) as UiValue;
+                }
+            }
+
+            const constants = normalizeUiProps(syntax.type, normal, node.props);
+            node.props = Object.assign(Object.create(null), constants.props);
+            constants.warnings.forEach(warn);
+            let evaluated: Record<string, UiValue> = { ...node.props };
             fallbackProps = evaluated;
             let unresolved = false;
 
@@ -332,10 +459,15 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
 
             // Each locals and live query data are only available to the client evaluator.
             if (!unresolved && syntax.complete) {
+                // What state and an Each hand a prop is read as leniently as what is written, here and where the block is drawn.
+                const resolved = normalizeUiProps(syntax.type, normal, evaluated);
+                resolved.warnings.forEach(warn);
+                evaluated = resolved.props;
+                fallbackProps = evaluated;
                 const parsed = entry.schema.safeParse(evaluated);
 
                 if (!parsed.success) {
-                    throw new UiFailure('invalid_props', parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('; '));
+                    throw new UiFailure('invalid_props', uiPropsMessage(syntax.type, normal, evaluated, parsed.error.issues));
                 }
             }
 
@@ -356,7 +488,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             }
 
             if (syntax.complete && 'count' in entry) {
-                const counted = countChildren(syntax.children, entry.children);
+                const counted = countChildren(children, entry.children);
                 const limit = entry.count as { min: number; max?: number };
 
                 if (counted < limit.min || (limit.max !== undefined && counted > limit.max)) {
@@ -370,7 +502,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
             }
 
             // A Choice sends its label, so one without a label can never send; whether it closed is only known once final.
-            if (syntax.type === 'Choice' && syntax.complete && !syntax.children.some(isLabelSource)) {
+            if (syntax.type === 'Choice' && syntax.complete && !children.some(isLabelSource)) {
                 throw new UiFailure('invalid_props', 'A choice needs a visible label.');
             }
         } catch (error) {
@@ -389,7 +521,7 @@ export function compileUiBlock(source: string, options: UiCompileOptions): UiBlo
         }
 
         const effectiveParent = syntax.type === 'Show' || syntax.type === 'Each' ? parent : syntax.type;
-        node.children = syntax.children.map((child) => compile(child, depth + 1, effectiveParent));
+        node.children = children.map((child) => compile(child, depth + 1, effectiveParent));
         // A reader of the fallback has no control to look at, so the option a dropdown or a segmented control starts on says it is chosen.
         const chosen = syntax.type === 'Select' || syntax.type === 'Segmented' ? fallbackProps.value : undefined;
 

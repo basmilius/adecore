@@ -25,7 +25,20 @@ export interface UiSyntax {
     diagnostics: UiDiagnostic[];
 }
 
-const WARNING_CODES = new Set(['refused_prop', 'renamed_prop', 'too_many_series', 'too_many_children', 'unreadable_time']);
+const WARNING_CODES = new Set([
+    'refused_prop',
+    'renamed_prop',
+    'renamed_value',
+    'renamed_component',
+    'coerced_prop',
+    'dropped_prop',
+    'too_many_series',
+    'too_many_children',
+    'unreadable_time'
+]);
+
+// A number or a boolean written without quotes or braces, up to what ends a prop.
+const BARE_VALUE = /^(?:-?\d+(?:\.\d+)?|true|false)(?=[\s/>]|$)/;
 
 export function uiDiagnostic(error: unknown, start: number, end: number, nodeId?: string): UiDiagnostic {
     const code = error instanceof UiFailure ? error.code : 'invalid_syntax';
@@ -355,13 +368,30 @@ class UiParser {
             value = body.value;
         } else {
             const quote = this.source[this.position];
+            const bare = quote === '"' || quote === "'" ? null : BARE_VALUE.exec(this.source.slice(this.position));
+
+            if (bare) {
+                // More of the number may still arrive.
+                if (!this.final && this.position + bare[0].length === this.source.length) {
+                    return false;
+                }
+
+                if (Object.hasOwn(node.props, name)) {
+                    throw new UiFailure('duplicate_prop', `Duplicate prop ${name}.`);
+                }
+
+                this.position += bare[0].length;
+                node.props[name] = parseUiExpression(bare[0], this.budget);
+
+                return true;
+            }
 
             if (quote !== '"' && quote !== "'") {
                 if (!this.final && this.position === this.source.length) {
                     return false;
                 }
 
-                throw new UiFailure('invalid_prop', 'Use a quoted string or a braced expression.');
+                throw new UiFailure('invalid_prop', `Write ${name}="text", or ${name}={value} for a number, a boolean, a list or an expression.`);
             }
 
             const valueStart = this.position++;

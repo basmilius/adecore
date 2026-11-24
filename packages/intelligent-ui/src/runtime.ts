@@ -6,6 +6,7 @@ import { unreadableEventTime } from './event-warning.ts';
 import { copyUiValue, evaluateUiExpression, sameUiValue, type UiExpression, type UiValue } from './expression.ts';
 import { uiCompiledNodes, uiVisibleInputs } from './inputs.ts';
 import type { UiBinding, UiEvaluation, UiViewNode } from './model.ts';
+import { normalizeUiProps, uiPropsMessage } from './normalize.ts';
 import { uiDiagnostic } from './syntax.ts';
 
 export type { UiBinding, UiEvaluation, UiViewNode } from './model.ts';
@@ -169,7 +170,7 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
                 throw new UiFailure(node.error ?? 'unknown_catalog', 'This part uses an unsupported UI definition.');
             }
 
-            const props: Record<string, UiValue> = copyUiValue(node.props, budget) as Record<string, UiValue>;
+            let props: Record<string, UiValue> = copyUiValue(node.props, budget) as Record<string, UiValue>;
             const actionProp = uiActionProp(node.type);
 
             for (const [key, expression] of Object.entries(node.expressions)) {
@@ -193,10 +194,21 @@ export function evaluateUiBlock(block: UiBlock, state = new UiState(block), limi
             }
 
             const entry = UI_CATALOG[node.type];
+
+            // A block from a newer catalog draws what this one knows of it.
+            for (const key of Object.keys(props)) {
+                if (!Object.hasOwn(entry.schema.shape, key)) {
+                    delete props[key];
+                    report(new UiFailure('refused_prop', `${node.type} does not accept ${key}.`), node);
+                }
+            }
+
+            const normal = normalizeUiProps(node.type, entry, props);
+            props = normal.props;
             const parsed = entry.schema.safeParse(props);
 
             if (!parsed.success) {
-                throw new UiFailure('invalid_props', parsed.error.issues.map((issue) => issue.message).join('; '));
+                throw new UiFailure('invalid_props', uiPropsMessage(node.type, entry, props, parsed.error.issues));
             }
 
             view.props = parsed.data;

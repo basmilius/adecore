@@ -1,12 +1,14 @@
 import { UI_CATALOG, UI_GROUPS, type UiGroupName } from './catalog.ts';
 import { UI_FENCE_LANGUAGE } from './compiler.ts';
 import { type UiBlock } from './compiler.ts';
-import { uiDescription, uiPropList, uiRequirement, type UiPlaces } from './prop-list.ts';
+import { UI_TONES, uiDescription, uiPropList, uiRequirement, type UiPlaces } from './prop-list.ts';
 
 export function uiCompactCatalog(places: UiPlaces = 'coordinates'): string {
     return Object.entries(UI_CATALOG)
         .map(([name, entry]) => {
-            const props = uiPropList(entry, places).join(',');
+            const props = uiPropList(entry, places)
+                .map((prop) => prop.replaceAll(' ', ''))
+                .join(',');
 
             return `${name}${props ? `: ${props}` : ''}`;
         })
@@ -25,7 +27,7 @@ export interface UiTextOptions {
 }
 
 function uiSyntax(language: string): string {
-    return `Write XML-like component tags inside a fenced ${language} block. Put text between opening and closing tags; empty components end with />. Quote string props; put numbers, booleans and expressions in braces.`;
+    return `Write XML-like component tags inside a fenced ${language} block. Put text between opening and closing tags; empty components end with />. Quote string props; put numbers, booleans, lists and expressions in braces. A tone is ${UI_TONES.join(', ')}.`;
 }
 
 function uiExample(language: string): string {
@@ -56,7 +58,8 @@ function uiGroupNames(detailHint: string | undefined, places: UiPlaces): string 
 }
 
 export function uiSessionNote({ fenceLanguage = UI_FENCE_LANGUAGE, catalog = 'props', detailHint, places = 'coordinates' }: UiTextOptions = {}): string {
-    const components = catalog === 'names' ? uiGroupNames(detailHint, places) : `Catalog (? means optional props): ${uiCompactCatalog(places)}`;
+    const components =
+        catalog === 'names' ? uiGroupNames(detailHint, places) : `Catalog (? means optional, a prop without a type takes text): ${uiCompactCatalog(places)}`;
 
     return `${uiSyntax(fenceLanguage)} Prose outside. Only named catalog props, no styling. $name = literal JSON; input value={$name}; Button action={@Set($name, literal)}, {@Reset($name)} or {@Reset()} changes local state only; braced expressions: @Count, @Filter(list,row,predicate), @Sum, @Join, @Round. Show/Each control children. Choices are shortcuts after finished work that the person may ignore. When your turn would end waiting on the person (a missing fact, a decision, a go-ahead for work you would otherwise do), ask with your own question tool if you have one, otherwise in prose, never with Choices. Choice labels and precise context stay visible and send once. Image: attachment or generated="latest", never URL/path. Model only when the person asks to see one. No code execution. State resets on reload. ${components}\nExample:\n${uiExample(fenceLanguage)}\n`;
 }
