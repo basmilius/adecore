@@ -2587,7 +2587,7 @@ export class EditorView {
                 : null;
 
         for (const kind of ['text', 'read', 'write'] as const) {
-            const group = this.occurrences.filter((mark) => (mark.kind ?? 'text') === kind);
+            const group = this.occurrences.filter((mark) => (mark.kind ?? 'text') === kind && mark.to >= shownFrom && mark.from <= shownTo);
 
             if (group.length > 0) {
                 marks.push({
@@ -2624,7 +2624,8 @@ export class EditorView {
         const struck: LayoutRect[] = [];
 
         for (const marker of this.markers) {
-            if (marker.to <= marker.from) {
+            // A file can hold thousands of markers, and every frame of a scroll paints only the rows in sight.
+            if (marker.to <= marker.from || marker.to < shownFrom || marker.from > shownTo) {
                 continue;
             }
 

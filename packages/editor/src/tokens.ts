@@ -146,6 +146,14 @@ export class TokenCache {
         const old = this.entries[lastOld];
         this.pivotLine = old ? lastNew : -1;
         this.pivotState = old?.state;
+        if (delta === 0 && this.entries.length > lastNew) {
+            // The same lines, which is every key typed inside one: cleared in place, since a copy of a long file per key adds up.
+            this.entries.fill(undefined, firstLine, lastNew + 1);
+            this.reusableFrom = lastNew + 1;
+
+            return;
+        }
+
         // Not a spread into splice: a paste of a few hundred thousand lines would overflow the call stack.
         this.entries = this.entries.slice(0, firstLine).concat(new Array<undefined>(lastNew - firstLine + 1).fill(undefined), this.entries.slice(lastOld + 1));
         this.reusableFrom = lastNew + 1;
