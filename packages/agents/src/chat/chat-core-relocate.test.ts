@@ -33,6 +33,9 @@ let codex: InProcessCli;
 let launches: Launch[];
 let admitted: string[];
 let admitRefuses: boolean;
+// The folder a host names for a chat whose own folder is refused; null for a host without the hook.
+let fallback: string | null;
+let fellBackDuring: string | null;
 let hosts: AgentHost[];
 let watchers: Array<{ check(): boolean; resolve(): void }>;
 
@@ -81,10 +84,20 @@ async function openHost(): Promise<AgentHost> {
                     admit: async (_chatId, cwd) => {
                         admitted.push(cwd);
 
-                        if (admitRefuses) {
+                        if (admitRefuses && cwd !== fallback) {
                             throw new Error(`not a project: ${cwd}`);
                         }
-                    }
+                    },
+                    ...(fallback === null
+                        ? {}
+                        : {
+                              fallbackFolder: async (_chatId, chat) => ({
+                                  cwd: fallback!,
+                                  during: async () => {
+                                      fellBackDuring = chat.cwd;
+                                  }
+                              })
+                          })
                 }
             })
     });
@@ -107,6 +120,8 @@ beforeEach(async () => {
     launches = [];
     admitted = [];
     admitRefuses = false;
+    fallback = null;
+    fellBackDuring = null;
     hosts = [];
     watchers = [];
     host = await openHost();
@@ -319,6 +334,26 @@ describe('ChatCore.relocate', () => {
         await other.chats.send('chat', 'once moved');
         await until(() => launches.length === launched + 1);
         expect(launches.at(-1)!.cwd).toBe(after);
+    });
+
+    test('a stored chat in a refused folder starts in the folder the host falls back to, and only once it starts', async () => {
+        await open('chat', 'claude');
+        await turn('chat', 'hello');
+        await host.chats.save('chat');
+        const launched = launches.length;
+
+        admitRefuses = true;
+        fallback = after;
+        const other = await openHost();
+        expect((await other.chats.create({ chatId: 'chat' })).cwd).toBe(before);
+        expect(fellBackDuring).toBeNull();
+
+        await other.chats.send('chat', 'again');
+        await until(() => launches.length === launched + 1);
+        expect(launches.at(-1)!.cwd).toBe(after);
+        expect(fellBackDuring).toBe(before);
+        expect(other.chats.get('chat')!.info.cwd).toBe(after);
+        expect((await new ChatStore(dataDir).read('chat'))?.info.cwd).toBe(after);
     });
 
     test('a new chat in a refused folder is never made', async () => {

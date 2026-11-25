@@ -149,6 +149,8 @@ export interface ChatSessionOptions {
     subagentSettlement?(toolUseId: string): Promise<SubagentSettlement | null>;
     // What the host owes a turn that stopped on a limit; absent, nothing takes one up on its own.
     limitResume?: LimitResumeHooks;
+    // The admitted folder a chat whose start is refused continues in, asked at that start; null keeps the refusal.
+    fallbackFolder?(): Promise<string | null>;
 }
 
 export interface LimitResumeHooks {
@@ -264,6 +266,7 @@ export class ChatSession {
     private launchedCwd: string | null = null;
     // Why the host refuses a CLI in this chat's folder; the thread still reads, and only a start fails with it.
     private startRefusal: Error | null = null;
+    private fallingBack: Promise<void> | null = null;
     // Set while the host moves the chat's folder: messages queue and nothing starts a process until it ends.
     private relocating = false;
     private launchedRuntimeMode: RuntimeMode | null = null;
@@ -503,9 +506,38 @@ export class ChatSession {
         return this.thread.info;
     }
 
-    /* Every start fails with `refusal` until it is cleared with null, such as after a move to a folder the host admits. */
+    /*
+     * Every start fails with `refusal` until it is cleared with null, such as after a move to a folder the host admits,
+     * or until the host names a fallback folder at that start.
+     */
     refuseStarts(refusal: Error | null): void {
         this.startRefusal = refusal;
+    }
+
+    /* A refused chat never started a process, so taking the host's folder is only its new cwd; starts meanwhile share the wait. */
+    private startInFallback(refusal: Error): Promise<ChatBackend> {
+        const fallbackFolder = this.options.fallbackFolder;
+
+        if (fallbackFolder === undefined) {
+            return Promise.reject(refusal);
+        }
+
+        this.fallingBack ??= fallbackFolder()
+            .then((folder) => {
+                if (folder === null) {
+                    throw refusal;
+                }
+
+                const previous = this.thread.info.cwd;
+                this.startRefusal = null;
+                this.setCwd(folder);
+                this.addNote('info', `The folder ${previous} is gone, so this chat continues in ${folder}`);
+            })
+            .finally(() => {
+                this.fallingBack = null;
+            });
+
+        return this.fallingBack.then(() => this.ensureBackend());
     }
 
     get relocatable(): boolean {
@@ -2674,7 +2706,7 @@ export class ChatSession {
         }
 
         if (this.startRefusal !== null) {
-            return Promise.reject(this.startRefusal);
+            return this.startInFallback(this.startRefusal);
         }
 
         const projectConfig = this.loadsProjectConfig();

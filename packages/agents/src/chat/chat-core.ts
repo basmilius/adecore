@@ -128,6 +128,11 @@ export interface ChatCoreHooks {
      * a chat moves to. A new chat it refuses is never made; a stored one opens and refuses every start until it moves.
      */
     admit?(chatId: string, cwd: string): Promise<void>;
+    /*
+     * Where a stored chat whose folder `admit` refused continues, asked at its first start after that; null keeps the
+     * refusal. `during` runs before the chat takes the folder, such as to move what its CLI keeps per folder.
+     */
+    fallbackFolder?(chatId: string, info: ChatInfo): Promise<{ cwd: string; during?: () => Promise<void> } | null>;
     /* Throws for a client that may not read this chat's UI blocks, asked before a link or a query is resolved. */
     admitUi?(chatId: string, clientId: string): Promise<void>;
     /* The start of a chat as the host wants it, when it planned one before the client asked; the core reads what this returns. */
@@ -733,7 +738,8 @@ export class ChatCore {
                 : {}),
             ...(titlePolicy ? { titlePolicy: () => titlePolicy(payload.chatId, kind) } : {}),
             ...(runsClaudeCode(provider) ? { subagentSettlement: (toolUseId: string) => this.subagents.claudeSettlement(payload.chatId, toolUseId) } : {}),
-            ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {})
+            ...(this.limitResume ? { limitResume: limitHooks(this.limitResume, payload.chatId) } : {}),
+            ...(this.hooks.fallbackFolder ? { fallbackFolder: () => this.fallbackFolderOf(session) } : {})
         });
 
         this.chats.set(session.id, session);
@@ -1640,6 +1646,20 @@ export class ChatCore {
 
             return asError(e);
         }
+    }
+
+    private async fallbackFolderOf(session: ChatSession): Promise<string | null> {
+        const fallback = await this.hooks.fallbackFolder?.(session.id, session.info);
+
+        if (!fallback) {
+            return null;
+        }
+
+        await this.hooks.admit?.(session.id, fallback.cwd);
+        await fallback.during?.();
+        this.skillIndex.forget(session.info.provider, session.info.cwd, this.skillOptionsOf(session.info));
+
+        return fallback.cwd;
     }
 
     private async relocateNow(session: ChatSession, cwd: string, during: (() => Promise<void>) | undefined): Promise<ChatInfo> {
