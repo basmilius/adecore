@@ -116,12 +116,12 @@ export default {
         },
         folder: {
             label: 'Folder',
-            detail: 'Given to the CLI as <code>{{variable}}</code>. The CLI keeps its own login, settings and history here.',
+            detail: 'The CLI gets this folder as <code>{{variable}}</code>. It keeps its own login, settings and history here.',
             detailPlain: 'The CLI keeps its own login, settings and history here.'
         },
         variables: {
             title: 'Variables',
-            description: 'Extra environment for this account. Secrets stay in the keychain.',
+            description: 'Environment variables for this account. Secrets stay in the keychain.',
             add: 'Add variable',
             name: 'Name of variable {{index}}',
             value: 'Value of {{name}}',
@@ -153,7 +153,7 @@ export default {
         shareConfigFailed: 'Could not change what this account shares',
         shareConfig: {
             label: 'Use the setup of the default account',
-            description: 'Instructions, skills, agents and commands come from the default {{provider}} account. Sign-in and history stay apart.'
+            description: 'Instructions, skills, agents and commands come from the default {{provider}} account. Login and history stay apart.'
         }
     },
     add: {

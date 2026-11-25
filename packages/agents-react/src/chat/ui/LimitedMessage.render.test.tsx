@@ -52,7 +52,7 @@ test('a message held by the limit says so, and Deliver now sends the person a pr
 
         const text = page.host.textContent ?? '';
 
-        expect(text).toContain('Waiting: messages woke this chat as often as they may this hour');
+        expect(text).toContain('Waiting. Messages may not wake this chat again this hour.');
         expect(text).toContain('Waiting for the next turn');
 
         const buttons = [...page.host.querySelectorAll<HTMLButtonElement>('button')].filter((button) => button.textContent === 'Deliver now');

@@ -1,9 +1,9 @@
 export default {
     limits: {
-        notRead: 'No plan limits have been read. Read them again on this machine.',
+        notRead: 'No plan limits read yet. Choose Read limits again.',
         refresh: 'Read limits again',
         reading: 'Reading limits',
-        refreshHint: 'Asks this machine to read the eligible accounts again.',
+        refreshHint: 'Reads the limits again for every account that has them.',
         refreshFailed: 'Could not read limits. Try again.',
         offline: 'Connect to this machine to read limits.',
         lastKnown: 'Last known numbers',

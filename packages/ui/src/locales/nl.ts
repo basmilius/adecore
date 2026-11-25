@@ -95,7 +95,7 @@ export default {
     workspace: {
         tabs: 'Open weergaven',
         unsaved: 'Niet-opgeslagen wijzigingen',
-        closeTab: 'Sluit {{name}}',
+        closeTab: '{{name}} sluiten',
         resize: 'Panelen vergroten of verkleinen',
         pane: 'Paneel',
         movePane: 'Paneel verplaatsen',

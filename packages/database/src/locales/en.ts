@@ -274,7 +274,7 @@ export default {
         dismiss: 'Dismiss',
         changed: 'The table changed. Reload to see it.',
         reload: 'Reload',
-        conflict: 'Change {{number}} ({{row}}) matched no single row. Nothing was saved. Refresh and try again.',
+        conflict: 'Change {{number}} ({{row}}) did not match exactly one row. Nothing was saved. Refresh and try again.',
         queryTime: 'Query time',
         elapsed: '{{value}} ms',
         range: 'Rows {{from}} to {{to}}',

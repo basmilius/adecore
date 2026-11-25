@@ -100,7 +100,7 @@ export default {
         machineOff: 'Turned off for this machine. Turn it on in Settings, Agents.',
         continueOn: 'Continue on',
         continueOnAria: 'Continue on {{account}}',
-        continueOnTip: 'Switches to {{account}}, which has the most room left, and resends the turn.',
+        continueOnTip: 'Resends the turn on {{account}}, the account with the most room left.',
         continueFailed: 'Could not continue on {{account}}',
         chooseAccount: 'Choose another account',
         continueInForkAria: 'Continue on {{account}} in a fork',
@@ -134,10 +134,10 @@ export default {
             unnamed: 'another node',
             waiting: 'Waiting for the next turn',
             dropped: 'Expired before the agent read it',
-            limited: 'Waiting: messages woke this chat as often as they may this hour',
+            limited: 'Waiting. Messages may not wake this chat again this hour.',
             deliverNow: 'Deliver now',
             deliverPrompt: 'Read the waiting messages and act on them.',
-            deliverFailed: 'The messages could not be delivered'
+            deliverFailed: 'Could not deliver the messages'
         },
         sent: {
             heading: 'Message to {{name}}',
@@ -254,7 +254,7 @@ export default {
         changedFiles_other: '{{count}} changed files',
         folderChanges_one: '{{count}} folder change this turn',
         folderChanges_other: '{{count}} folder changes this turn',
-        baseMoved: 'Branch moved this turn ({{from}} to {{to}}). Includes its incoming changes.',
+        baseMoved: 'The branch moved this turn, from {{from}} to {{to}}. The changes that came in with it count too.',
         andMore: 'and more',
         edits_one: '{{count}} edit',
         edits_other: '{{count}} edits',
@@ -596,7 +596,7 @@ export default {
         },
         mode: {
             label: 'Permissions',
-            effective: 'Running with {{effective}}. Selected: {{requested}}.'
+            effective: 'Running with {{effective}}. You selected {{requested}}.'
         },
         account: {
             label: 'Account',
@@ -866,7 +866,7 @@ export default {
             reasons: {
                 'access-unavailable': 'The chat that made this no longer has access.',
                 'block-stale': 'This block changed since it was drawn.',
-                busy: 'Too many live blocks reading.',
+                busy: 'Too many live blocks are reading at once.',
                 'diffs-unsupported': 'The machine does not show diffs in blocks.',
                 'link-unchecked': 'This link has to be checked again.',
                 'link-unsupported': 'The machine cannot open this link.',
@@ -880,7 +880,7 @@ export default {
                 'source-unregistered': 'The machine does not know this source.',
                 'stale-read': 'Read the source again before you choose.',
                 'target-unavailable': 'Target no longer available.',
-                'timed-out': 'Source timed out.',
+                'timed-out': 'The source took too long to answer.',
                 unreadable: 'Could not read the source.'
             }
         }

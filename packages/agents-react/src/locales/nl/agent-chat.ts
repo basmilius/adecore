@@ -100,7 +100,7 @@ export default {
         machineOff: 'Uitgezet voor deze machine. Zet het aan in Instellingen, Agents.',
         continueOn: 'Verder op',
         continueOnAria: 'Verder op {{account}}',
-        continueOnTip: 'Wisselt naar {{account}}, dat de meeste ruimte over heeft, en verstuurt de turn opnieuw.',
+        continueOnTip: 'Verstuurt de turn opnieuw op {{account}}, het account met de meeste ruimte over.',
         continueFailed: 'Kon niet verder op {{account}}',
         chooseAccount: 'Kies een ander account',
         continueInForkAria: 'Verder op {{account}} in een fork',
@@ -134,10 +134,10 @@ export default {
             unnamed: 'een andere node',
             waiting: 'Wacht op de volgende turn',
             dropped: 'Vervallen voordat de agent het las',
-            limited: 'Wacht: berichten wekten deze chat dit uur zo vaak als mag',
+            limited: 'Wacht. Berichten mogen deze chat dit uur niet meer wekken.',
             deliverNow: 'Nu bezorgen',
             deliverPrompt: 'Lees de wachtende berichten en handel ernaar.',
-            deliverFailed: 'De berichten konden niet worden bezorgd'
+            deliverFailed: 'Kon de berichten niet bezorgen'
         },
         sent: {
             heading: 'Bericht aan {{name}}',
@@ -180,7 +180,7 @@ export default {
         },
         selectionSwitch: {
             label: '{{from}} → {{to}}',
-            summary: 'Model of reasoning effort gewijzigd vóór deze turn'
+            summary: 'Model of denkniveau gewijzigd vóór deze turn'
         },
         approval: {
             allow: 'Toegestaan',
@@ -254,12 +254,12 @@ export default {
         changedFiles_other: '{{count}} gewijzigde bestanden',
         folderChanges_one: '{{count}} mapwijziging tijdens deze turn',
         folderChanges_other: '{{count}} mapwijzigingen tijdens deze turn',
-        baseMoved: 'Branch verplaatst tijdens deze turn ({{from}} naar {{to}}). Inclusief wat daarmee binnenkwam.',
+        baseMoved: 'De branch verplaatste tijdens deze turn, van {{from}} naar {{to}}. De wijzigingen die daarmee binnenkwamen tellen mee.',
         andMore: 'en meer',
         edits_one: '{{count}} bewerking',
         edits_other: '{{count}} bewerkingen',
         workingFor: 'Werkt al',
-        exitCode: 'Afsluitcode {{code}}',
+        exitCode: 'Exit code {{code}}',
         alsoRan: '+ {{programs}}',
         heredoc: 'heredoc',
         moreRuns_one: '+{{count}}',
@@ -572,7 +572,7 @@ export default {
         model: {
             choose: 'Model kiezen',
             search: 'Modellen zoeken',
-            noProvider: 'Geen chat-CLI geïnstalleerd',
+            noProvider: 'Geen chatprovider geïnstalleerd',
             noMatch: 'Geen modellen gevonden',
             allGroup_one: 'Modellen ({{count}})',
             allGroup_other: 'Modellen ({{count}})',
@@ -596,7 +596,7 @@ export default {
         },
         mode: {
             label: 'Rechten',
-            effective: 'Draait met {{effective}}. Gekozen: {{requested}}.'
+            effective: 'Draait met {{effective}}. Jij koos {{requested}}.'
         },
         account: {
             label: 'Account',
@@ -630,7 +630,7 @@ export default {
         removeTitle: 'Visualisatie verwijderen?',
         removeDescription: 'Verwijdert {{title}} uit de chat. Dit kan niet ongedaan worden gemaakt.',
         removeFailed: 'Kon de visualisatie niet verwijderen',
-        loading: '{{title}} wordt geladen',
+        loading: '{{title}} laden',
         failed: 'Kon {{title}} niet laden',
         renderFailed: 'Kon deze visualisatie niet tonen'
     },
@@ -871,7 +871,7 @@ export default {
                 'link-unchecked': 'Deze link moet opnieuw gecontroleerd worden.',
                 'link-unsupported': 'De machine kan deze link niet openen.',
                 'links-unsupported': 'De machine opent geen links uit blokken.',
-                'no-unique-match': 'Geen eenduidige overeenkomst voor die naam.',
+                'no-unique-match': 'Die naam past niet op precies één ding.',
                 'outside-project': 'Buiten het project van de agent.',
                 'query-undeclared': 'Dit blok leest die bron niet.',
                 'refresh-limit': 'Deze bron leest hooguit eens per tien seconden.',

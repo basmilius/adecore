@@ -330,10 +330,10 @@ export default {
                 error: 'Kon niet vervangen. Er is niets gewijzigd'
             }
         },
-        countMore: '{{total}}+ resultaten',
+        countMore: '{{total}}+ treffers',
         searching: 'Zoeken…',
         large: 'Dit document is groot. Druk op Enter om te zoeken',
-        replaced: '{{count}} resultaten vervangen',
+        replaced: '{{count}} treffers vervangen',
         failed: {
             timeout: 'Zoeken duurde te lang. Druk op Enter om het opnieuw te proberen',
             unavailable: 'Zoeken met regex is niet beschikbaar',

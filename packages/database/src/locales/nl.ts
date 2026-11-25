@@ -106,7 +106,7 @@ export default {
         }
     },
     explorer: {
-        label: 'Database-verkenner',
+        label: 'Databaseverkenner',
         filter: 'Tabellen filteren',
         noConnections: 'Geen verbindingen',
         noMatches: 'Geen geladen tabel past bij "{{query}}".',
@@ -187,7 +187,7 @@ export default {
         yes: 'Ja',
         no: 'Nee',
         autoIncrement: 'Auto-increment',
-        generated: 'Berekend',
+        generated: 'Gegenereerd',
         primary: 'Primair',
         unique: 'Uniek',
         engineDefault: 'Standaard',
@@ -213,7 +213,7 @@ export default {
             name: 'Naam',
             columns: 'Kolommen',
             references: 'Verwijst naar',
-            onUpdate: 'Bij update',
+            onUpdate: 'Bij wijzigen',
             onDelete: 'Bij verwijderen'
         }
     },
@@ -285,9 +285,9 @@ export default {
         previousPage: 'Vorige pagina',
         nextPage: 'Volgende pagina',
         discard: {
-            title: 'Wijzigingen negeren?',
+            title: 'Wijzigingen weggooien?',
             description: 'Niet-opgeslagen wijzigingen gaan verloren.',
-            confirm: 'Wijzigingen negeren'
+            confirm: 'Wijzigingen weggooien'
         },
         cloneRows: 'Geselecteerde rijen dupliceren',
         revertRows: 'Geselecteerde rijen terugdraaien',
@@ -416,9 +416,9 @@ export default {
             rollbackFailed: 'Kon niet terugdraaien'
         },
         destructive: {
-            title: 'Destructieve opdrachten uitvoeren?',
-            description_one: 'Deze opdracht verwijdert of overschrijft gegevens.',
-            description_other: 'Deze opdrachten verwijderen of overschrijven gegevens.',
+            title: 'Destructieve statements uitvoeren?',
+            description_one: 'Dit statement verwijdert of overschrijft gegevens.',
+            description_other: 'Deze statements verwijderen of overschrijven gegevens.',
             confirm: 'Toch uitvoeren',
             drop: 'Verwijdert een object',
             truncate: 'Maakt een tabel leeg',
@@ -460,8 +460,8 @@ export default {
         apply: 'Toepassen',
         applyHint: 'Toepassen als openstaande wijziging',
         revert: 'Terugdraaien',
-        setNull: 'NULL instellen',
-        setDefault: 'DEFAULT instellen',
+        setNull: 'Op NULL zetten',
+        setDefault: 'Op DEFAULT zetten',
         invalidJson: 'Ongeldige JSON: {{reason}}',
         invalidHexCharacters: 'Gebruik alleen 0-9, a-f, spaties en regeleinden.',
         invalidHexOdd: 'Hex vraagt een even aantal cijfers.',

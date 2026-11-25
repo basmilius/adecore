@@ -116,12 +116,12 @@ export default {
         },
         folder: {
             label: 'Map',
-            detail: 'Aan de CLI gegeven als <code>{{variable}}</code>. De CLI bewaart hier zijn eigen login, instellingen en geschiedenis.',
+            detail: 'De CLI krijgt deze map als <code>{{variable}}</code>. Hij bewaart hier zijn eigen login, instellingen en geschiedenis.',
             detailPlain: 'De CLI bewaart hier zijn eigen login, instellingen en geschiedenis.'
         },
         variables: {
             title: 'Variabelen',
-            description: 'Extra omgeving voor dit account. Geheimen blijven in de sleutelhanger.',
+            description: 'Omgevingsvariabelen voor dit account. Geheimen blijven in de sleutelhanger.',
             add: 'Variabele toevoegen',
             name: 'Naam van variabele {{index}}',
             value: 'Waarde van {{name}}',
@@ -153,7 +153,7 @@ export default {
         shareConfigFailed: 'Kon niet wijzigen wat dit account deelt',
         shareConfig: {
             label: 'De opzet van het standaardaccount gebruiken',
-            description: "Instructies, skills, agents en commando's komen van het standaardaccount van {{provider}}. Inloggen en geschiedenis blijven apart."
+            description: "Instructies, skills, agents en commando's komen van het standaardaccount van {{provider}}. Login en geschiedenis blijven apart."
         }
     },
     add: {
