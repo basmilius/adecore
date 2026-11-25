@@ -152,6 +152,9 @@ export {
 } from './shortcut.ts';
 
 export {
+    ERROR_MS,
+    LONG_MS,
+    SUCCESS_MS,
     UNDO_MS,
     createToastStore,
     type Toast,
@@ -161,7 +164,8 @@ export {
     type ToastKind,
     type ToastPatch,
     type ToastStore,
-    type ToastStoreHook
+    type ToastStoreHook,
+    type ToastStoreOptions
 } from './toast-store.ts';
 
 export { useAsyncAction, type AsyncAction } from './useAsyncAction.ts';

@@ -18,15 +18,25 @@ export const toasts = createToastStore();
 | Kind | Icon | Goes away |
 | --- | --- | --- |
 | `progress` | A spinner | When you update or dismiss it. |
-| `success` | A check | After 4 seconds, unless `persist` is set. |
-| `error` | An alert | When the person dismisses it. A failure waits to be read. |
+| `success` | A check | After 4 seconds (`SUCCESS_MS`). |
+| `error` | An alert | After 12 seconds (`ERROR_MS`). |
 | `deleted` | A trash can | After 8 seconds (`UNDO_MS`). |
+
+A toast with an action stays at least 8 seconds, whatever its kind. `persist` keeps a toast of any kind up until the person dismisses it: set it on a toast that asks something only they can answer.
 
 A timed toast with an action, such as undo, shows a countdown ring instead of its close button. A timed toast without an action shows its close button only on hover or focus.
 
+While the pointer or the keyboard focus is on the stack, every timer stands still, and each toast gets the time it had left once the person moves away. The store does this through `hold()` and `release()`.
+
 ### A lifetime of its own
 
-`lifetime` removes a toast after that many milliseconds, whatever its kind, and overrides `persist`. Zero or less is ignored; `Infinity` keeps the toast up. An `update` keeps it; patch `lifetime: undefined` to restore the kind's time.
+`lifetime` removes a toast after that many milliseconds, whatever its kind, and overrides `persist`. Zero or less is ignored; `Infinity` keeps the toast up. An `update` keeps it; patch `lifetime: undefined` to restore the kind's time. `LONG_MS` (20 seconds) is there for news that lands while nobody is looking.
+
+A time that follows from a field of your own goes on the store once, as `lifetimeOf`. It answers for every toast that names no `lifetime`, and `undefined` leaves the time to the kind:
+
+```ts
+const toasts = createToastStore<AppToast>({ lifetimeOf: (toast) => (toast.output === undefined ? undefined : LONG_MS) });
+```
 
 <Demo src="overlays/toasts-lifetime" />
 
@@ -61,7 +71,7 @@ toasts.getState().update(id, { description: '68 of 120 messages', progress: 68 /
 
 ## The store
 
-`createToastStore<T>()` returns a zustand store hook (`ToastStoreHook<T>`). Its state (`ToastStore<T>`) is:
+`createToastStore<T>(options?)` returns a zustand store hook (`ToastStoreHook<T>`). The options (`ToastStoreOptions<T>`) hold `lifetimeOf`. Its state (`ToastStore<T>`) is:
 
 | Member | |
 | --- | --- |
@@ -69,8 +79,10 @@ toasts.getState().update(id, { description: '68 of 120 messages', progress: 68 /
 | `show(toast)` | Puts one up, or replaces the one with the same `id`, and returns its id. Takes a `ToastInput<T>`. |
 | `update(id, patch)` | Changes a toast that is up and restarts its timer. Takes a `ToastPatch<T>`. |
 | `dismiss(id)` | Takes a toast down. |
+| `hold()` | Stops every timer where it is. `Toasts` calls it; a stack of your own does the same. |
+| `release()` | Lets every timer run on with the time it had left. |
 
-A `Toast` is `{ id, title, kind, description?, action?, actions?, progress?, persist?, lifetime?, onClose?, deadline? }`. The store sets `deadline` (a `ToastDeadline` of `start` and `end` in epoch milliseconds). A `ToastAction` is `{ label, run, shortcut? }`; the shortcut is only printed. One action sits beside the title; with `actions`, two or more get their own line under the description. An action does not dismiss the toast; do that in `run` if needed. `ToastKind` is the union of the four kinds.
+A `Toast` is `{ id, title, kind, description?, action?, actions?, progress?, persist?, lifetime?, onClose?, deadline? }`. The store sets `deadline` (a `ToastDeadline` of `start` and `end` in epoch milliseconds, with `pausedAt` while the stack is held). A `ToastAction` is `{ label, run, shortcut? }`; the shortcut is only printed. One action sits beside the title; with `actions`, two or more get their own line under the description. An action does not dismiss the toast; do that in `run` if needed. `ToastKind` is the union of the four kinds.
 
 To carry more on a toast, extend `Toast`, pass the type to the store, and draw the extra fields with `footer`:
 
@@ -93,4 +105,4 @@ const toasts = createToastStore<AppToast>();
 | `className` | `string` | | |
 | `ref` | `Ref<HTMLDivElement>` | | |
 
-The stack is a polite live region and renders nothing when empty. `ToastsProps`, `Toast`, `ToastAction`, `ToastDeadline`, `ToastInput`, `ToastKind`, `ToastPatch`, `ToastStore` and `ToastStoreHook` are exported types.
+The stack is a polite live region and renders nothing when empty. `ToastsProps`, `Toast`, `ToastAction`, `ToastDeadline`, `ToastInput`, `ToastKind`, `ToastPatch`, `ToastStore`, `ToastStoreHook` and `ToastStoreOptions` are exported types.

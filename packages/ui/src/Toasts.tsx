@@ -66,7 +66,11 @@ function TimerRing({ deadline, onDismiss }: { deadline: ToastDeadline; onDismiss
                     pathLength={1}
                     strokeDasharray={1}
                     className="toast-timer-arc stroke-current"
-                    style={{ animationDuration: `${lifetime}ms`, animationDelay: `${-elapsed}ms` }}
+                    style={{
+                        animationDuration: `${lifetime}ms`,
+                        animationDelay: `${-elapsed}ms`,
+                        animationPlayState: deadline.pausedAt === undefined ? 'running' : 'paused'
+                    }}
                 />
             </svg>
             <Icon icon={X} size={8} className="absolute opacity-0 group-hover/ring:opacity-100 group-focus-visible/ring:opacity-100" />
@@ -160,6 +164,14 @@ export function Toasts<T extends Toast>({ store, footer, className, ref }: Toast
             className={clsx('fixed right-4 bottom-4 z-(--z-popup) flex w-90 max-w-[calc(100vw-32px)] flex-col gap-2', className)}
             role="status"
             aria-live="polite"
+            onPointerEnter={() => store.getState().hold()}
+            onPointerLeave={() => store.getState().release()}
+            onFocus={() => store.getState().hold()}
+            onBlur={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget)) {
+                    store.getState().release();
+                }
+            }}
         >
             {toasts.map((toast) => (
                 <ToastCard key={toast.id} toast={toast} footer={footer} onDismiss={() => store.getState().dismiss(toast.id)} />

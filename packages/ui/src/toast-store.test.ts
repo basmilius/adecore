@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from 'bun:test';
-import { createToastStore, elapsedOf, SUCCESS_MS, UNDO_MS, type Toast, type ToastStoreHook } from './toast-store.ts';
+import { createToastStore, elapsedOf, ERROR_MS, LONG_MS, SUCCESS_MS, UNDO_MS, type Toast, type ToastStoreHook } from './toast-store.ts';
 
 describe('createToastStore', () => {
     let useToasts: ToastStoreHook;
@@ -75,13 +75,87 @@ describe('createToastStore', () => {
         useToasts.getState().update('pushed', { kind: 'success' });
         expect(useToasts.getState().toasts[0]?.deadline).toEqual({ start: 13_000, end: 13_000 + SUCCESS_MS });
         useToasts.getState().update('pushed', { kind: 'error' });
-        expect(useToasts.getState().toasts[0]?.deadline).toBeUndefined();
+        expect(useToasts.getState().toasts[0]?.deadline).toEqual({ start: 13_000, end: 13_000 + ERROR_MS });
     });
 
-    test('a failure waits for the person', () => {
+    test('a failure stays longer than an offer to undo, then goes', () => {
         useToasts.getState().show({ id: 'failed', title: 'Push failed', kind: 'error' });
-        jest.advanceTimersByTime(SUCCESS_MS + 1);
+        jest.advanceTimersByTime(UNDO_MS + 1);
         expect(ids()).toEqual(['failed']);
+        jest.advanceTimersByTime(ERROR_MS - UNDO_MS);
+        expect(ids()).toEqual([]);
+    });
+
+    test('a failure with persist waits for the person', () => {
+        useToasts.getState().show({ id: 'asked', title: 'Restart the server?', kind: 'error', persist: true });
+        jest.advanceTimersByTime(LONG_MS + 1);
+        expect(ids()).toEqual(['asked']);
+    });
+
+    test('running work stays until its outcome', () => {
+        useToasts.getState().show({ id: 'push', title: 'Pushing', kind: 'progress', action: { label: 'Cancel', run: () => {} } });
+        jest.advanceTimersByTime(LONG_MS + 1);
+        expect(ids()).toEqual(['push']);
+    });
+
+    test('a success with an action stays as long as an offer to undo, and a failure with one as long as a failure', () => {
+        useToasts.getState().show({ id: 'shared', title: 'Shared', kind: 'success', action: { label: 'Undo', run: () => {} } });
+        useToasts.getState().show({ id: 'failed', title: 'Push failed', kind: 'error', actions: [{ label: 'Retry', run: () => {} }] });
+        jest.advanceTimersByTime(SUCCESS_MS + 1);
+        expect(ids()).toEqual(['shared', 'failed']);
+        jest.advanceTimersByTime(UNDO_MS - SUCCESS_MS);
+        expect(ids()).toEqual(['failed']);
+        jest.advanceTimersByTime(ERROR_MS - UNDO_MS);
+        expect(ids()).toEqual([]);
+    });
+
+    test('the app names the time of a toast that names none, and the toast still goes first', () => {
+        const withOutput = createToastStore<Toast & { output?: string }>({ lifetimeOf: (toast) => (toast.output === undefined ? undefined : LONG_MS) });
+        withOutput.getState().show({ id: 'plain', title: 'Push failed', kind: 'error' });
+        withOutput.getState().show({ id: 'output', title: 'Push failed', kind: 'error', output: 'rejected' });
+        withOutput.getState().show({ id: 'own', title: 'Push failed', kind: 'error', output: 'rejected', lifetime: 1000 });
+        jest.advanceTimersByTime(1001);
+        expect(withOutput.getState().toasts.map((toast) => toast.id)).toEqual(['plain', 'output']);
+        jest.advanceTimersByTime(ERROR_MS);
+        expect(withOutput.getState().toasts.map((toast) => toast.id)).toEqual(['output']);
+        jest.advanceTimersByTime(LONG_MS - ERROR_MS);
+        expect(withOutput.getState().toasts).toEqual([]);
+    });
+
+    test('a held stack keeps its toasts, and a released one gives each the time it had left', () => {
+        jest.setSystemTime(10_000);
+        useToasts.getState().show({ id: 'pushed', title: 'Pushed', kind: 'success' });
+        jest.advanceTimersByTime(1000);
+        useToasts.getState().hold();
+        expect(useToasts.getState().toasts[0]?.deadline).toEqual({ start: 10_000, end: 10_000 + SUCCESS_MS, pausedAt: 11_000 });
+        jest.advanceTimersByTime(LONG_MS);
+        expect(ids()).toEqual(['pushed']);
+        useToasts.getState().release();
+        expect(useToasts.getState().toasts[0]?.deadline).toEqual({ start: 30_000, end: 30_000 + SUCCESS_MS });
+        jest.advanceTimersByTime(SUCCESS_MS - 1001);
+        expect(ids()).toEqual(['pushed']);
+        jest.advanceTimersByTime(1);
+        expect(ids()).toEqual([]);
+    });
+
+    test('a toast shown into a held stack waits with it', () => {
+        useToasts.getState().show({ id: 'first', title: 'Pushed', kind: 'success' });
+        useToasts.getState().hold();
+        useToasts.getState().show({ id: 'second', title: 'Pulled', kind: 'success' });
+        jest.advanceTimersByTime(LONG_MS);
+        expect(ids()).toEqual(['first', 'second']);
+        useToasts.getState().release();
+        jest.advanceTimersByTime(SUCCESS_MS);
+        expect(ids()).toEqual([]);
+    });
+
+    test('a stack emptied while held is held no more', () => {
+        useToasts.getState().show({ id: 'first', title: 'Pushed', kind: 'success' });
+        useToasts.getState().hold();
+        useToasts.getState().dismiss('first');
+        useToasts.getState().show({ id: 'second', title: 'Pulled', kind: 'success' });
+        jest.advanceTimersByTime(SUCCESS_MS);
+        expect(ids()).toEqual([]);
     });
 
     test('a failure with a lifetime goes after it, with the deadline of that timer', () => {
@@ -143,6 +217,10 @@ describe('elapsedOf', () => {
 
     test('says how far the timer is, so a ring drawn late starts where the timer already is', () => {
         expect(elapsedOf(deadline, 3500)).toBe(2500);
+    });
+
+    test('stands still while the timer does', () => {
+        expect(elapsedOf({ ...deadline, pausedAt: 2000 }, 3500)).toBe(1000);
     });
 
     test('stays inside the lifetime', () => {

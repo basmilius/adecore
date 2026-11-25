@@ -627,7 +627,9 @@ describe('the toasts', () => {
             toasts: [{ id: 'save', kind: 'error', title: 'Could not save', action: { label: 'Retry', run: () => {} } }],
             show: () => 'save',
             update: () => {},
-            dismiss: () => {}
+            dismiss: () => {},
+            hold: () => {},
+            release: () => {}
         }));
 
         const markup = render(<Toasts store={store} />);
@@ -644,7 +646,9 @@ describe('the toasts', () => {
             ],
             show: () => 'ping',
             update: () => {},
-            dismiss: () => {}
+            dismiss: () => {},
+            hold: () => {},
+            release: () => {}
         }));
 
         const markup = render(<Toasts store={store} />);

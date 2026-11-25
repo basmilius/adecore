@@ -64,4 +64,31 @@ describe('the toast stack', () => {
         await act(async () => store.getState().update('sync', { kind: 'success', title: 'Synced' }));
         expect(container.querySelector('[role="progressbar"]')).toBeNull();
     });
+
+    test('stops the countdown while the pointer or the focus is on the stack', async () => {
+        const store = createToastStore();
+        const { createRoot } = await import('react-dom/client');
+        root = createRoot(container);
+        await act(async () => root.render(<Toasts store={store} />));
+        await act(async () => store.getState().show({ id: 'deleted', kind: 'deleted', title: 'Deleted view', action: { label: 'Undo', run: () => {} } }));
+
+        const stack = container.querySelector('[role="status"]') as HTMLElement;
+        const arc = (): HTMLElement => container.querySelector('.toast-timer-arc') as HTMLElement;
+        expect(arc().style.animationPlayState).toBe('running');
+
+        await act(async () => stack.dispatchEvent(new MouseEvent('pointerover', { bubbles: true })));
+        expect(arc().style.animationPlayState).toBe('paused');
+        expect(store.getState().toasts[0]?.deadline?.pausedAt).toBeDefined();
+
+        await act(async () => stack.dispatchEvent(new MouseEvent('pointerout', { bubbles: true })));
+        expect(arc().style.animationPlayState).toBe('running');
+
+        const button = container.querySelector('button') as HTMLButtonElement;
+        await act(async () => button.focus());
+        expect(arc().style.animationPlayState).toBe('paused');
+
+        await act(async () => button.blur());
+        expect(store.getState().toasts[0]?.deadline?.pausedAt).toBeUndefined();
+        await act(async () => store.getState().dismiss('deleted'));
+    });
 });
