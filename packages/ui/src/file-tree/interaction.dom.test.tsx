@@ -430,6 +430,21 @@ describe('file tree interaction', () => {
         expect(Math.max(...copied)).toBeLessThan(100);
     });
 
+    test('draws the overlay bar over the engine scroller, shown while it scrolls', async () => {
+        await mount(<Harness />);
+        const scroller = exposed.getFileTreeContainer()!.shadowRoot!.querySelector<HTMLElement>('[data-file-tree-virtualized-scroll]')!;
+        const bar = container.querySelector<HTMLElement>('.adecore-file-tree > .ade-scrollbar[data-orientation="vertical"]')!;
+
+        expect(scroller.hasAttribute('data-overlay-scrollbars')).toBe(true);
+        expect(bar.hasAttribute('data-visible')).toBe(false);
+
+        await change(() => {
+            scroller.dispatchEvent(new Event('scroll'));
+        });
+
+        expect(bar.hasAttribute('data-visible')).toBe(true);
+    });
+
     test('draws the icon a row asks for in place of its glyph, and lets a click through to the row', async () => {
         await mount(<Harness rowIcon={(row) => (row.kind === 'directory' ? FolderGit2 : undefined)} />);
         const icons = container.querySelectorAll<HTMLElement>('.adecore-tree-icon');

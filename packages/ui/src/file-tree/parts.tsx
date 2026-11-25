@@ -8,10 +8,12 @@ import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../Icon.tsx';
 import { mergeRefs } from '../merge-refs.ts';
+import { useOverlayScrollbars } from '../useOverlayScrollbars.tsx';
 import type { FileTreeEmptyLabel } from './empty-lines.ts';
 import { directoryHandle, extendsSelection, followFocus, movesFocus, menuTargetsOf, rowPathOf, visibleRows } from './helpers.ts';
 import { useEmptyLines } from './use-empty-lines.ts';
 import { useFileTreeShift } from './use-file-tree-shift.tsx';
+import { useFileTreeScroller } from './use-scroller.ts';
 import { useFileTreeSlots, type FileTreeDecorationOrder } from './use-slots.ts';
 
 export type FileTreeRootProps = useRender.ComponentProps<'div'> & {
@@ -93,6 +95,7 @@ export function FileTreeRoot({
     const rowCount = useSyncExternalStore(subscribeToRows, countRows, countRows);
     const slots = useFileTreeSlots(model, frame, label ?? t('tree.label'), { order: decorationOrder, rowIcon, highlight, emptyLabel });
     const passEmptyLine = useEmptyLines(model, frame, emptyLabel);
+    const scrollbars = useOverlayScrollbars(useFileTreeScroller(model, frame));
     const latestLoads = useRef({ onLoadChildren, onExpandedPathsChange });
 
     useLayoutEffect(() => {
@@ -258,6 +261,7 @@ export function FileTreeRoot({
                     })}
                     {children}
                     {bar}
+                    {scrollbars}
                 </>
             )
         }

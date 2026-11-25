@@ -840,9 +840,11 @@
         min-height: 0;
         overflow: hidden;
     }
+    /* Its own stacking layer, so a port or a pinned row with a z-index inside never covers the bars. */
     .adecore-file-tree-host {
         display: block;
         height: 100%;
+        isolation: isolate;
     }
     .adecore-tree-shift {
         pointer-events: none;

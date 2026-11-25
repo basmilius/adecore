@@ -32,6 +32,13 @@ export const FILE_TREE_CSS = `
     [data-own-icon="true"] [data-item-section="icon"] > * { visibility: hidden; }
     [data-own-icon="true"][data-item-type="folder"]:hover [data-item-section="icon"] > * { visibility: visible; }
     [data-tree-port="icon"][data-hover="true"] { visibility: hidden; }
+    /* The root draws overlay bars over the engine's scroller; the theme's rule for them stops at the shadow tree. */
+    [data-file-tree-virtualized-scroll="true"] {
+        scrollbar-width: none;
+        scrollbar-gutter: auto;
+        padding-inline: max(calc(var(--trees-padding-inline) - var(--trees-item-margin-x)), 0px);
+    }
+    [data-file-tree-virtualized-scroll="true"]::-webkit-scrollbar { display: none; }
     [data-empty-line="true"] { cursor: default; }
     [data-empty-line="true"] :is([data-item-section="icon"], [data-item-section="git"]) { display: none; }
     [data-empty-line="true"] [data-item-section="content"] { overflow: hidden; text-overflow: ellipsis; color: var(--text-muted); }
