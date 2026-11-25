@@ -299,4 +299,23 @@ describe('SkillIndex', () => {
         expect((await index.list('claude', project)).map((skill) => skill.name)).toContain('fresh');
         await rm(join(project, '.claude', 'skills', 'fresh'), { recursive: true });
     });
+
+    test('scans the configuration folder a call names apart from the default one', async () => {
+        const work = join(home, 'accounts', 'work');
+        await writeSkill(join(work, 'skills'), 'work-only', '---\nname: work-only\ndescription: At work.\n---\n');
+        const index = new SkillIndex({ home });
+
+        const names = async (claudeConfigDir?: string) => (await index.list('claude', project, { claudeConfigDir })).map((skill) => skill.name);
+
+        expect(await names(work)).toContain('work-only');
+        expect(await names(work)).not.toContain('unslop');
+        expect(await names()).toContain('unslop');
+        expect(await names()).not.toContain('work-only');
+
+        await writeSkill(join(work, 'skills'), 'later', '---\nname: later\ndescription: Later.\n---\n');
+        index.forget('claude', project, { claudeConfigDir: work });
+
+        expect(await names(work)).toContain('later');
+        expect(await names()).not.toContain('later');
+    });
 });

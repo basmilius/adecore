@@ -415,6 +415,11 @@ export async function discoverSkills(kind: AgentKind, cwd: string, options: Skil
 
 const CACHE_TTL_MS = 30_000;
 
+export interface SkillListOptions {
+    // The configuration folder of the account a Claude Code CLI runs on, when it is not the index's own.
+    claudeConfigDir?: string;
+}
+
 /* The skills of one CLI in one folder, scanned at most once per half minute. There is no watcher. */
 export class SkillIndex {
     private readonly options: SkillRootOptions;
@@ -424,22 +429,27 @@ export class SkillIndex {
         this.options = options;
     }
 
-    async list(kind: AgentKind, cwd: string): Promise<ChatSkill[]> {
-        const key = `${kind}:${cwd}`;
+    async list(kind: AgentKind, cwd: string, options: SkillListOptions = {}): Promise<ChatSkill[]> {
+        const key = skillCacheKey(kind, cwd, options);
         const cached = this.cache.get(key);
 
         if (cached && Date.now() - cached.at < CACHE_TTL_MS) {
             return cached.skills;
         }
 
-        const skills = await discoverSkills(kind, cwd, this.options);
+        const claudeConfigDir = options.claudeConfigDir ?? this.options.claudeConfigDir;
+        const skills = await discoverSkills(kind, cwd, { ...this.options, claudeConfigDir });
         this.cache.set(key, { at: Date.now(), skills });
 
         return skills;
     }
 
     /* Drops the scan of one CLI in one folder, so the next look reads the disk again. */
-    forget(kind: AgentKind, cwd: string): void {
-        this.cache.delete(`${kind}:${cwd}`);
+    forget(kind: AgentKind, cwd: string, options: SkillListOptions = {}): void {
+        this.cache.delete(skillCacheKey(kind, cwd, options));
     }
+}
+
+function skillCacheKey(kind: AgentKind, cwd: string, options: SkillListOptions): string {
+    return JSON.stringify([kind, cwd, options.claudeConfigDir ?? null]);
 }

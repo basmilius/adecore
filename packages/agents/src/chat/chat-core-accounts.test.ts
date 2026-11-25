@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { ProviderAccountMap } from '@adecore/agent-contracts';
 import type { BackendHost, BackendLaunch, ChatBackend } from '../backends/backend.ts';
 import { createClaudeProvider } from '../providers/claude-provider.ts';
 import { ProviderRegistry } from '../providers/registry.ts';
+import { SkillIndex } from '../skills.ts';
 import { testAccounts } from '../testing/accounts.ts';
 import { claudeProvider, codexProvider } from '../testing/providers.ts';
 import { AttachmentStore } from './attachment-store.ts';
@@ -45,7 +46,8 @@ async function open(accounts: ProviderAccountMap): Promise<ChatCore> {
         store: new ChatStore(root),
         attachments: new AttachmentStore(root),
         env: { HOME: home, PATH: '/bin' },
-        accounts: service
+        accounts: service,
+        skills: new SkillIndex({ home })
     });
 
     return core;
@@ -263,5 +265,51 @@ describe('where ChatCore reads the transcripts of a chat', () => {
 
         expect(asked[0]).toEqual({ agentSessionId: 'session-api', projectsDir: join(apiConfig, 'projects') });
         expect(core.get('api')?.info.suggestedTitle).toBe('B-trees in short');
+    });
+});
+
+describe('where ChatCore finds the skills of a chat', () => {
+    async function writeSkill(configDir: string, name: string): Promise<void> {
+        await mkdir(join(configDir, 'skills', name), { recursive: true });
+        await writeFile(join(configDir, 'skills', name, 'SKILL.md'), `---\nname: ${name}\ndescription: A skill.\n---\n`);
+    }
+
+    async function names(skills: Promise<Array<{ name: string }>>): Promise<string[]> {
+        return (await skills).map((skill) => skill.name);
+    }
+
+    test('a chat on an extra account lists the skills in its own folder, and one on the default account those in the default folder', async () => {
+        const chats = await open(machine(true));
+        await writeSkill(join(home, '.claude'), 'at-home');
+        await writeSkill(join(root, 'work'), 'at-work');
+        await chats.create({ chatId: 'work', cwd: home, provider: 'claude', account: 'claude_work' });
+        await chats.create({ chatId: 'default', cwd: home, provider: 'claude' });
+
+        expect(await names(chats.skills('work'))).toEqual(['at-work']);
+        expect(await names(chats.skills('default'))).toEqual(['at-home']);
+        expect(await names(chats.skillsIn('claude', home, 'claude_work'))).toEqual(['at-work']);
+        expect(await names(chats.skillsIn('claude', home))).toEqual(['at-home']);
+    });
+
+    test('a provider that runs Claude Code in a folder of its own lists the skills of that folder', async () => {
+        const apiConfig = join(root, 'api', 'claude-config');
+        await writeSkill(join(home, '.claude'), 'at-home');
+        await writeSkill(apiConfig, 'on-the-api');
+
+        core = new ChatCore({
+            providers: new ProviderRegistry({
+                detect: async () => ({ installed: true, version: 'test' }),
+                providers: [
+                    claudeProvider,
+                    { ...createClaudeProvider({ apiKey: { key: () => 'sk-test', configDir: apiConfig } }), kind: 'anthropic-claude-api' }
+                ]
+            }),
+            store: new ChatStore(root),
+            attachments: new AttachmentStore(root),
+            env: { HOME: home, USERPROFILE: home, PATH: '/bin' },
+            skills: new SkillIndex({ home })
+        });
+
+        expect(await names(core.skillsIn('anthropic-claude-api', home))).toEqual(['on-the-api']);
     });
 });
