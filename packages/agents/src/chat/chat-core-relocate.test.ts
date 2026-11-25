@@ -299,6 +299,34 @@ describe('ChatCore.relocate', () => {
         expect(info('chat').cwd).toBe(after);
     });
 
+    test('a stored chat in a refused folder opens with its thread, starts nothing, and starts again once it moved', async () => {
+        await open('chat', 'claude');
+        await turn('chat', 'hello');
+        await host.chats.save('chat');
+        const launched = launches.length;
+
+        admitRefuses = true;
+        const other = await openHost();
+        const reopened = await other.chats.create({ chatId: 'chat' });
+        expect(reopened.cwd).toBe(before);
+
+        await other.chats.send('chat', 'again');
+        await until(() => other.chats.get('chat')!.info.activeTurnId === null);
+        expect(launches.length).toBe(launched);
+
+        admitRefuses = false;
+        await other.chats.relocate('chat', after);
+        await other.chats.send('chat', 'once moved');
+        await until(() => launches.length === launched + 1);
+        expect(launches.at(-1)!.cwd).toBe(after);
+    });
+
+    test('a new chat in a refused folder is never made', async () => {
+        admitRefuses = true;
+        await expect(open('fresh', 'claude')).rejects.toThrow(`not a project: ${before}`);
+        expect(host.chats.get('fresh')).toBeUndefined();
+    });
+
     test('an unknown chat is not found', async () => {
         await expect(host.chats.relocate('nobody', after)).rejects.toMatchObject({ code: 'chat-not-found' });
     });

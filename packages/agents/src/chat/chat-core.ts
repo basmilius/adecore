@@ -34,6 +34,7 @@ import {
     type Task
 } from '@adecore/agent-contracts';
 import { UI_FENCE_LANGUAGE } from '@adecore/intelligent-ui';
+import { asError } from '@adecore/utils/errors';
 import type { LimitsUpdate } from '../backends/limits.ts';
 import type { ThreadProcess } from '../backends/threads.ts';
 import { ChatError } from '../chat-error.ts';
@@ -48,7 +49,7 @@ import { AccountError, definedEnv, isDefaultAccountOf, launchEnv, storedAccount,
 import { runsClaudeCode } from '../providers/provider.ts';
 import type { ProviderRegistry } from '../providers/registry.ts';
 import { readableAssistantText } from '../readable-text.ts';
-import { SkillIndex } from '../skills.ts';
+import { SkillIndex, type SkillListOptions } from '../skills.ts';
 import { defaultClaudeProjectsDir } from '../usage/roots.ts';
 import type { AttachmentStore } from './attachment-store.ts';
 import { commandLabel, isBackgroundWork, runsInBackground, type BackgroundWork } from './background-work.ts';
@@ -122,7 +123,10 @@ const DEFAULT_RESUME_WORDS: ResumeWords = {
  * knows the client, so a check of who asks belongs on the wire.
  */
 export interface ChatCoreHooks {
-    /* Throws for a folder this chat may not start in; asked every time a chat is loaded, from disk too. */
+    /*
+     * Throws for a folder this chat may not start in; asked every time a chat is loaded, from disk too, and for the folder
+     * a chat moves to. A new chat it refuses is never made; a stored one opens and refuses every start until it moves.
+     */
     admit?(chatId: string, cwd: string): Promise<void>;
     /* Throws for a client that may not read this chat's UI blocks, asked before a link or a query is resolved. */
     admitUi?(chatId: string, clientId: string): Promise<void>;
@@ -476,6 +480,27 @@ export class ChatCore {
         return folder === null ? '' : join(folder, 'projects');
     }
 
+    /* Where a Claude Code CLI of this provider and account reads its own skills and plugins, in the order `claudeProjectsDirOf` decides it. */
+    private skillOptionsOf(info: Pick<ChatInfo, 'account' | 'provider'>): SkillListOptions {
+        const runtime = this.providers.get(info.provider).claudeCode;
+
+        if (runtime === undefined) {
+            return {};
+        }
+
+        if (runtime.configDir !== undefined) {
+            return { claudeConfigDir: runtime.configDir };
+        }
+
+        if (isDefaultAccountOf(info.provider, info.account)) {
+            return {};
+        }
+
+        const folder = this.accounts?.transcriptFolder(info.provider, info.account) ?? null;
+
+        return folder === null ? {} : { claudeConfigDir: folder };
+    }
+
     canContinue(kind: AgentKind, from: string | undefined, to: string | undefined): boolean {
         if ((from ?? kind) === (to ?? kind)) {
             return true;
@@ -611,7 +636,7 @@ export class ChatCore {
         const catalog = provider.catalog;
         const selection = catalog.normalize(stored?.info.selection ?? this.hooks.openingSelection?.(payload.chatId, kind) ?? payload.selection);
         const cwd = stored?.info.cwd ?? payload.cwd ?? homeFolder(this.env);
-        await this.hooks.admit?.(payload.chatId, cwd);
+        const startRefusal = await this.admitOnLoad(payload.chatId, cwd, stored !== null && stored !== undefined);
         // A thread on disk keeps its account too. One it lost still opens, and says why on its next turn.
         // A new one without an account takes the host's choice, else the top account of this CLI that is on.
         // It is checked as named, before the default account loses its id, so one that is turned off is refused too.
@@ -713,6 +738,7 @@ export class ChatCore {
 
         this.chats.set(session.id, session);
         this.unloadedInfo.delete(session.id);
+        session.refuseStarts(startRefusal);
 
         if (stored) {
             session.settleStored(selection, resume);
@@ -1443,12 +1469,15 @@ export class ChatCore {
     skills(chatId: string): Promise<ChatSkill[]> {
         const session = this.require(chatId);
 
-        return session.skills(() => this.skillIndex.list(session.info.provider, session.info.cwd));
+        return session.skills(() => this.skillIndex.list(session.info.provider, session.info.cwd, this.skillOptionsOf(session.info)));
     }
 
-    /* What a CLI would run as a skill in a folder before any chat of it exists there, such as for a prompt saved to send later. */
-    skillsIn(provider: AgentKind, cwd: string): Promise<ChatSkill[]> {
-        return this.skillIndex.list(provider, cwd);
+    /*
+     * What a CLI would run as a skill in a folder before any chat of it exists there, such as for a prompt saved to send later.
+     * Without an account, the default one's.
+     */
+    skillsIn(provider: AgentKind, cwd: string, account?: string): Promise<ChatSkill[]> {
+        return this.skillIndex.list(provider, cwd, this.skillOptionsOf({ provider, account }));
     }
 
     /* Ends the chat's CLI and keeps its conversation; the next message resumes it in a process that reads its skills and plugins again. */
@@ -1456,7 +1485,7 @@ export class ChatCore {
         const session = this.require(chatId);
         this.refuseWhileRelocating(chatId);
         const ended = session.restart();
-        this.skillIndex.forget(session.info.provider, session.info.cwd);
+        this.skillIndex.forget(session.info.provider, session.info.cwd, this.skillOptionsOf(session.info));
         await ended;
     }
 
@@ -1595,6 +1624,24 @@ export class ChatCore {
         return this.relocations.has(chatId);
     }
 
+    /*
+     * Asks the host about the folder of a chat being loaded. A new chat in a refused folder is never made; a stored one
+     * still opens, since reading its thread starts nothing, and keeps the refusal for every start until it moves.
+     */
+    private async admitOnLoad(chatId: string, cwd: string, stored: boolean): Promise<Error | null> {
+        try {
+            await this.hooks.admit?.(chatId, cwd);
+
+            return null;
+        } catch (e) {
+            if (!stored) {
+                throw e;
+            }
+
+            return asError(e);
+        }
+    }
+
     private async relocateNow(session: ChatSession, cwd: string, during: (() => Promise<void>) | undefined): Promise<ChatInfo> {
         const chatId = session.id;
         await this.hooks.admit?.(chatId, cwd);
@@ -1612,6 +1659,7 @@ export class ChatCore {
             await during?.();
             session.setCwd(cwd);
             await this.persistNow(chatId, true);
+            session.refuseStarts(null);
         } catch (e) {
             session.setCwd(previous);
 
@@ -1620,7 +1668,7 @@ export class ChatCore {
             session.endRelocate();
         }
 
-        this.skillIndex.forget(session.info.provider, previous);
+        this.skillIndex.forget(session.info.provider, previous, this.skillOptionsOf(session.info));
 
         return session.info;
     }

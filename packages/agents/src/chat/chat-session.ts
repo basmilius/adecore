@@ -262,6 +262,8 @@ export class ChatSession {
     // The account the running CLI was started under, which what it reports about a plan belongs to.
     private launchedAccount: string | undefined = undefined;
     private launchedCwd: string | null = null;
+    // Why the host refuses a CLI in this chat's folder; the thread still reads, and only a start fails with it.
+    private startRefusal: Error | null = null;
     // Set while the host moves the chat's folder: messages queue and nothing starts a process until it ends.
     private relocating = false;
     private launchedRuntimeMode: RuntimeMode | null = null;
@@ -499,6 +501,11 @@ export class ChatSession {
         this.options.persist();
 
         return this.thread.info;
+    }
+
+    /* Every start fails with `refusal` until it is cleared with null, such as after a move to a folder the host admits. */
+    refuseStarts(refusal: Error | null): void {
+        this.startRefusal = refusal;
     }
 
     get relocatable(): boolean {
@@ -2664,6 +2671,10 @@ export class ChatSession {
 
         if (this.backend && this.starting) {
             return this.starting;
+        }
+
+        if (this.startRefusal !== null) {
+            return Promise.reject(this.startRefusal);
         }
 
         const projectConfig = this.loadsProjectConfig();
