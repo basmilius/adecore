@@ -96,7 +96,7 @@ export { SectionLabel, type SectionLabelProps } from './SectionLabel.tsx';
 export { SegmentBar, type SegmentBarPart, type SegmentBarProps } from './SegmentBar.tsx';
 export { Segmented, type SegmentedProps } from './Segmented.tsx';
 export type { SegmentedOption } from './segmented-keys.ts';
-export { Select, type SelectGroup, type SelectItem } from './Select.tsx';
+export { Select, type SelectGroup, type SelectItem, type SelectItemAction } from './Select.tsx';
 export type { SelectProps } from './select-shared.ts';
 export { Separator, type SeparatorProps } from './Separator.tsx';
 export { ShortcutHints } from './ShortcutHints.tsx';

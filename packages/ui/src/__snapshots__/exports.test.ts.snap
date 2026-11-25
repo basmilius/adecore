@@ -252,6 +252,7 @@ exports[`the public API . exports these names 1`] = `
   "type SegmentedProps",
   "type SelectGroup",
   "type SelectItem",
+  "type SelectItemAction",
   "type SelectProps",
   "type SeparatorProps",
   "type Shortcut",

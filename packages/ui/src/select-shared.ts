@@ -1,5 +1,16 @@
 import clsx from 'clsx';
+import type { LucideIcon } from 'lucide-react';
 import type { ReactNode, Ref } from 'react';
+
+/* A button beside a row that acts on its option without picking it, so the list stays open. */
+export interface SelectItemAction {
+    icon: LucideIcon;
+
+    /* The accessible name of the button, and its tooltip. */
+    label: string;
+
+    run(): void;
+}
 
 export interface SelectItem<T extends string> {
     value: T;
@@ -10,6 +21,12 @@ export interface SelectItem<T extends string> {
 
     icon?: ReactNode;
     disabled?: boolean;
+
+    /* A way to try the option before picking it. A pointer reaches it; the keys of the list do not. */
+    action?: SelectItemAction;
+
+    /* A line under the row, for an option that stands apart from the ones after it, such as "None". */
+    separatorAfter?: boolean;
 }
 
 export interface SelectGroup<T extends string> {

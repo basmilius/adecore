@@ -6,18 +6,20 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import { MENU_LABEL } from './menu/parts.tsx';
 import { renderPositioner } from './popup-layer.ts';
-import { RowContent } from './select-row.tsx';
-import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem, type SelectProps } from './select-shared.ts';
+import { RowContent, RowFrame } from './select-row.tsx';
+import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem, type SelectItemAction, type SelectProps } from './select-shared.ts';
 import { SelectSearch } from './SelectSearch.tsx';
 import { useOverlayScrollbars } from './useOverlayScrollbars.tsx';
 
-export type { SelectGroup, SelectItem };
+export type { SelectGroup, SelectItem, SelectItemAction };
 
 function Row<T extends string>({ item, picked }: { item: SelectItem<T>; picked: boolean }) {
     return (
-        <BaseSelect.Item className={rowClassName(item)} value={item.value} label={item.label} disabled={item.disabled}>
-            <RowContent item={item} picked={picked} text={<BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>} />
-        </BaseSelect.Item>
+        <RowFrame item={item}>
+            <BaseSelect.Item className={rowClassName(item)} value={item.value} label={item.label} disabled={item.disabled}>
+                <RowContent item={item} picked={picked} text={<BaseSelect.ItemText>{item.label}</BaseSelect.ItemText>} />
+            </BaseSelect.Item>
+        </RowFrame>
     );
 }
 

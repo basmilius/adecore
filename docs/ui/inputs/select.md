@@ -8,7 +8,7 @@ import { Select } from '@adecore/ui';
 
 <Demo src="inputs/select" />
 
-`outlined`, the default, is a bordered field at most 224 pixels wide. `ghost` is a borderless trigger in muted text, for a toolbar. An item can carry an icon, a second-line description and `disabled`. Without a value the trigger shows `placeholder`, or "Select" (`action.select`).
+`outlined`, the default, is a bordered field at most 224 pixels wide. `ghost` is a borderless trigger in muted text, for a toolbar. An item can carry an icon, a second-line description and `disabled`. `separatorAfter` draws a line under an item that stands apart from the rest, such as "None". Without a value the trigger shows `placeholder`, or "Select" (`action.select`).
 
 ## Groups
 
@@ -23,6 +23,14 @@ Pass `items` a list of groups to get a label above each group's rows.
 <Demo src="inputs/select-search" />
 
 `searchPlaceholder` sets the field's placeholder and accessible name, "Search" (`select.search`) by default. An empty result shows `select.noMatch`.
+
+## Trying an option
+
+An item's `action` puts a button beside its row, as a [`Menu.Row`](../menus/menu) has: the two light up together under the pointer. A click on the button runs the action and leaves the list open and the value as it was, so a person can try several options before picking one.
+
+<Demo src="inputs/select-action" />
+
+The button is for a pointer: the keys of the list still pick the row. Offer what the action does somewhere a keyboard reaches too.
 
 ## Props
 
@@ -45,4 +53,4 @@ Pass `items` a list of groups to get a label above each group's rows.
 | `className` | `string` | | |
 | `ref` | `Ref<HTMLButtonElement>` | | The trigger. |
 
-A `SelectItem<T>` is `{ value, label, description?, icon?, disabled? }`. A `SelectGroup<T>` is `{ label, items }`. `SelectProps`, `SelectItem` and `SelectGroup` are exported types.
+A `SelectItem<T>` is `{ value, label, description?, icon?, disabled?, action?, separatorAfter? }`. A `SelectItemAction` is `{ icon, label, run }`, with a Lucide icon and the button's accessible name. A `SelectGroup<T>` is `{ label, items }`. `SelectProps`, `SelectItem`, `SelectItemAction` and `SelectGroup` are exported types.

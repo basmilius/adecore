@@ -524,6 +524,10 @@
     :root[data-modality='pointer'] .menu-row > .menu-item[data-highlighted] {
         background: var(--surface-hover);
     }
+    /* The button beside an option of a select is no item of its list, so nothing marks it highlighted: the pointer does. */
+    :root[data-modality='pointer'] .menu-row > button.menu-row-action:hover {
+        background: var(--surface-hover);
+    }
     .menu-row:has(.menu-row-action[data-popup-open]) > .menu-item {
         background: var(--surface-hover);
     }

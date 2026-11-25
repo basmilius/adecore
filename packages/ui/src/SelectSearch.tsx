@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from './Icon.tsx';
 import { MENU_LABEL } from './menu/parts.tsx';
 import { renderPositioner } from './popup-layer.ts';
-import { RowContent } from './select-row.tsx';
+import { RowContent, RowFrame } from './select-row.tsx';
 import { isGroup, rowClassName, triggerClassName, type SelectGroup, type SelectItem, type SelectProps } from './select-shared.ts';
 import { useOverlayScrollbars } from './useOverlayScrollbars.tsx';
 
@@ -45,9 +45,11 @@ export function SelectSearch<T extends string>({
         const item = byValue.get(itemValue)!;
 
         return (
-            <Combobox.Item key={item.value} className={rowClassName(item)} value={item.value} disabled={item.disabled}>
-                <RowContent item={item} picked={item.value === value} text={<span className="truncate">{item.label}</span>} />
-            </Combobox.Item>
+            <RowFrame key={item.value} item={item}>
+                <Combobox.Item className={rowClassName(item)} value={item.value} disabled={item.disabled}>
+                    <RowContent item={item} picked={item.value === value} text={<span className="truncate">{item.label}</span>} />
+                </Combobox.Item>
+            </RowFrame>
         );
     };
 
