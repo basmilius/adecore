@@ -77,7 +77,8 @@ function PlainSelect<T extends string>({
                     alignItemWithTrigger={false}
                 >
                     <BaseSelect.Popup className="menu-popup">
-                        <BaseSelect.List ref={setList} className="max-h-80 overflow-auto">
+                        {/* The list takes the popup's side padding as its own: a separator reaches into it, and outside the list's box it would make the list scroll sideways. */}
+                        <BaseSelect.List ref={setList} className="-mx-1 max-h-80 overflow-auto px-1">
                             {groups
                                 ? groups.map((group) => (
                                       <BaseSelect.Group key={group.label}>
