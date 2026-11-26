@@ -300,8 +300,13 @@ export function TableRenderer({ node, context }: UiRendererProps<UiProps<'Table'
 
     return (
         <div className="flex flex-col items-start gap-1.5">
-            {/* Flat on both parts: a section drops the frame's ground and the viewport's padding. */}
-            <ScrollArea axis="both" className="chat-ui-flat max-h-80 w-full rounded-xl bg-ui-tile" viewportClassName="chat-ui-flat px-1.5 pb-1.5">
+            {/* Flat on both parts: a section drops the frame's ground and the viewport's padding.
+                A wheel at the table's end goes on to the thread, which a bounce in the table would swallow. */}
+            <ScrollArea
+                axis="both"
+                className="chat-ui-flat max-h-80 w-full rounded-xl bg-ui-tile"
+                viewportClassName="chat-ui-flat overscroll-y-auto px-1.5 pb-1.5"
+            >
                 <table
                     aria-label={t('blocks.table.label', { columns: columns.map((column) => column.title).join(', ') })}
                     className={clsx(
