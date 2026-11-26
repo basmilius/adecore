@@ -303,34 +303,6 @@ export function DataGrid({
     }, [blockKey]);
 
     useEffect(() => {
-        if (focusRequest === null || focusRequest === undefined) {
-            return;
-        }
-
-        const index = rows.findIndex((row) => row.key === focusRequest.rowKey);
-
-        if (index >= 0) {
-            focusAt({ row: index, column: focusRequest.column });
-
-            if (focusRequest.quiet !== true) {
-                scroller.current?.focus();
-            }
-        }
-        // Only a new request moves the focus; the rows changing under a request already handled must not.
-        // oxlint-disable-next-line react-hooks/exhaustive-deps
-    }, [focusRequest]);
-
-    useEffect(() => {
-        if (columnRequest !== null && columnRequest !== undefined && displayOf.has(columnRequest.column)) {
-            pickColumn(columnRequest.column);
-            revealColumn(columnRequest.column);
-            scroller.current?.focus();
-        }
-        // Only a new request moves the pick; the columns changing under a request already handled must not.
-        // oxlint-disable-next-line react-hooks/exhaustive-deps
-    }, [columnRequest]);
-
-    useEffect(() => {
         const stop = (): void => {
             dragging.current = false;
         };
@@ -409,6 +381,37 @@ export function DataGrid({
         setFocused(position);
         reveal(position);
     };
+
+    useEffect(() => {
+        if (focusRequest === null || focusRequest === undefined) {
+            return;
+        }
+
+        const index = rows.findIndex((row) => row.key === focusRequest.rowKey);
+
+        if (index >= 0) {
+            // A focus request is a command from the owner, so it lands in the state the grid keeps itself.
+            // oxlint-disable-next-line react/set-state-in-effect
+            focusAt({ row: index, column: focusRequest.column });
+
+            if (focusRequest.quiet !== true) {
+                scroller.current?.focus();
+            }
+        }
+        // Only a new request moves the focus; the rows changing under a request already handled must not.
+        // oxlint-disable-next-line react-hooks/exhaustive-deps
+    }, [focusRequest]);
+
+    useEffect(() => {
+        if (columnRequest !== null && columnRequest !== undefined && displayOf.has(columnRequest.column)) {
+            // oxlint-disable-next-line react/set-state-in-effect
+            pickColumn(columnRequest.column);
+            revealColumn(columnRequest.column);
+            scroller.current?.focus();
+        }
+        // Only a new request moves the pick; the columns changing under a request already handled must not.
+        // oxlint-disable-next-line react-hooks/exhaustive-deps
+    }, [columnRequest]);
 
     const step = (from: CellPosition | null, input: NavigationKey): CellPosition | null => {
         const next = moveFocus(isShown(from) ? toDisplay(from) : null, input, { rows: rows.length, columns: order.length, page });
