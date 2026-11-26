@@ -165,6 +165,32 @@ describe('ChatStore', () => {
         expect(await store.settled('chat')).toBe(true);
     });
 
+    test('tells the agent session of a chat by its last logged info or the head of its record', async () => {
+        await store.write('chat', info({ agentSessionId: 'from-record' }), [user('u1', 'hi')], { seq: 1, resetSeq: 0 });
+
+        expect(await store.agentSessionId('chat')).toBe('from-record');
+
+        logEvents(
+            [
+                { type: 'info', info: info({ agentSessionId: 'from-log' }) },
+                { type: 'item', item: user('u2', 'again') }
+            ],
+            1
+        );
+
+        expect(await store.agentSessionId('chat')).toBe('from-log');
+
+        await rm(store.logPath('chat'));
+        await store.write('chat', info({ agentSessionId: null }), []);
+
+        expect(await store.agentSessionId('chat')).toBeNull();
+
+        await writeFile(join(store.dir, 'chat.json'), JSON.stringify({ items: [], info: info({ agentSessionId: 'late' }) }));
+
+        expect(await store.agentSessionId('chat')).toBeUndefined();
+        expect(await store.agentSessionId('missing')).toBeUndefined();
+    });
+
     test('leaves a chat to a full read when its log says more or its record starts otherwise', async () => {
         await store.write('chat', info(), [], { seq: 1, resetSeq: 0 });
 

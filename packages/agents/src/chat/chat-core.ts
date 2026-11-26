@@ -567,6 +567,28 @@ export class ChatCore {
         return stored ? { info: stored.info, items: stored.items } : null;
     }
 
+    /*
+     * The agent session a chat goes on in, as `readChat` would say it, from memory or else from the head
+     * of the chat's record, so a host asking about many chats it never opened validates no thread. Null
+     * when the chat has none or this host has no such chat.
+     */
+    async agentSessionIdOf(chatId: string): Promise<string | null> {
+        await this.loaded(chatId);
+        const session = this.chats.get(chatId);
+
+        if (session) {
+            return session.info.agentSessionId;
+        }
+
+        const cheap = await this.store?.agentSessionId(chatId).catch(() => undefined);
+
+        if (cheap !== undefined) {
+            return cheap;
+        }
+
+        return (await this.readChat(chatId))?.info.agentSessionId ?? null;
+    }
+
     /* What a chat of this CLI starts with when nobody else says: the model named, else the newest composer pick, in that CLI's catalog. */
     startingPoint(provider: AgentKind, selection?: ModelSelection): { selection: ModelSelection; runtimeMode?: RuntimeMode; contextWindow: number | null } {
         const catalog = this.providers.get(provider).catalog;

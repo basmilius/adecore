@@ -296,6 +296,18 @@ export class ChatStore {
         return last === undefined || settledInfo(last);
     }
 
+    /*
+     * The agent session a stored chat goes on in, by the last info its log wrote or else the info its
+     * record starts with, without parsing the thread. Undefined whenever that cannot be told so cheaply,
+     * which leaves it to `read`.
+     */
+    async agentSessionId(chatId: string): Promise<string | null | undefined> {
+        const info = lastLoggedInfo((await readOrNull(this.logPath(chatId))) ?? '') ?? (await leadingInfo(join(this.dir, recordFileName(chatId))));
+        const id = typeof info === 'object' && info !== null ? (info as { agentSessionId?: unknown }).agentSessionId : undefined;
+
+        return typeof id === 'string' || id === null ? id : undefined;
+    }
+
     private async readSnapshot(chatId: string): Promise<z.infer<typeof RecordSchema> | typeof UNREADABLE | null> {
         const raw = await readOrNull(join(this.dir, recordFileName(chatId)));
 
