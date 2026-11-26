@@ -132,7 +132,11 @@ export const Scrubber = memo(function Scrubber({
         };
     }, [anchorY, strip]);
 
-    const pointAt = (e: ReactMouseEvent<HTMLDivElement>): number | null => messageAt(layout, e.clientY - e.currentTarget.getBoundingClientRect().top);
+    // Only the band the ticks stand in answers the pointer, so the empty height above and below it stays the thread's.
+    const bandHeight = layout.slots.length * layout.pitch;
+
+    const pointAt = (e: ReactMouseEvent<HTMLDivElement>): number | null =>
+        messageAt(layout, e.clientY - e.currentTarget.getBoundingClientRect().top + layout.top);
 
     const actionsFor = (tick: ScrubberTick | null): CardAction[] =>
         tick === null ? [] : Object.values(CARD_ACTIONS).filter((action) => action.offers(tick, chat));
@@ -161,115 +165,119 @@ export const Scrubber = memo(function Scrubber({
     };
 
     return (
-        <ContextMenu.Root onOpenChange={setMenuOpen}>
-            <ContextMenu.Trigger className="h-full w-full" onContextMenu={onContextMenu}>
-                <PreviewCard.Root open={cardOpen && !menuOpen} onOpenChange={setCardOpen}>
-                    <PreviewCard.Trigger
-                        delay={150}
-                        closeDelay={150}
-                        render={
-                            <div
-                                ref={setStrip}
-                                role="navigation"
-                                aria-label={t('scrubber.strip')}
-                                className="relative h-full w-full cursor-pointer select-none"
-                                onPointerMove={(e) => {
-                                    setPointing(true);
-                                    const index = pointAt(e);
+        <div ref={setStrip} className="relative h-full w-full">
+            <ContextMenu.Root onOpenChange={setMenuOpen}>
+                <ContextMenu.Trigger className="absolute inset-x-0" style={{ top: layout.top, height: bandHeight }} onContextMenu={onContextMenu}>
+                    <PreviewCard.Root open={cardOpen && !menuOpen} onOpenChange={setCardOpen}>
+                        <PreviewCard.Trigger
+                            delay={150}
+                            closeDelay={150}
+                            render={
+                                <div
+                                    role="navigation"
+                                    aria-label={t('scrubber.strip')}
+                                    className="relative h-full w-full cursor-pointer select-none"
+                                    onPointerMove={(e) => {
+                                        setPointing(true);
+                                        const index = pointAt(e);
 
-                                    if (index !== hovered) {
-                                        setHovered(index);
-                                    }
-                                }}
-                                onPointerLeave={() => setPointing(false)}
-                                onClick={(e) => {
-                                    const index = pointAt(e);
+                                        if (index !== hovered) {
+                                            setHovered(index);
+                                        }
+                                    }}
+                                    onPointerLeave={() => setPointing(false)}
+                                    onClick={(e) => {
+                                        const index = pointAt(e);
 
-                                    if (index !== null) {
-                                        onPick(index);
-                                    }
-                                }}
-                            />
-                        }
-                    >
-                        {layout.slots.map((slot, index) => {
-                            const distance = pointing && hoveredSlot !== null ? Math.abs(index - hoveredSlot) : null;
-                            // A bookmark is a place to find again from anywhere, so it never dims with the rest.
-                            const bright = slot.marked || slotInView(slot, inView) || distance === 0;
+                                        if (index !== null) {
+                                            onPick(index);
+                                        }
+                                    }}
+                                />
+                            }
+                        >
+                            {layout.slots.map((slot, index) => {
+                                const distance = pointing && hoveredSlot !== null ? Math.abs(index - hoveredSlot) : null;
+                                // A bookmark is a place to find again from anywhere, so it never dims with the rest.
+                                const bright = slot.marked || slotInView(slot, inView) || distance === 0;
 
-                            return (
-                                <Fragment key={slot.first}>
-                                    <span
-                                        aria-hidden
-                                        className={clsx(
-                                            'absolute left-1 rounded-full transition-[width,opacity] duration-100 ease-out motion-reduce:transition-none',
-                                            slot.marked ? 'bg-accent' : slot.kind === 'wake' ? 'bg-text-muted' : 'bg-text',
-                                            bright ? 'opacity-100' : 'opacity-30'
-                                        )}
-                                        style={{ top: slot.y, height: TICK_HEIGHT_PX, width: tickWidth(slot.kind, distance) }}
-                                    />
-                                    {slot.found && (
+                                return (
+                                    <Fragment key={slot.first}>
                                         <span
                                             aria-hidden
-                                            className={clsx('absolute right-0 rounded-full bg-chat-find', index === currentSlot ? 'opacity-100' : 'opacity-50')}
-                                            style={{ top: slot.y, height: TICK_HEIGHT_PX, width: FOUND_WIDTH_PX }}
+                                            className={clsx(
+                                                'absolute left-1 rounded-full transition-[width,opacity] duration-100 ease-out motion-reduce:transition-none',
+                                                slot.marked ? 'bg-accent' : slot.kind === 'wake' ? 'bg-text-muted' : 'bg-text',
+                                                bright ? 'opacity-100' : 'opacity-30'
+                                            )}
+                                            style={{ top: slot.y - layout.top, height: TICK_HEIGHT_PX, width: tickWidth(slot.kind, distance) }}
                                         />
-                                    )}
-                                </Fragment>
-                            );
-                        })}
-                    </PreviewCard.Trigger>
-                    <PreviewCard.Popup anchor={anchor} side="right" align="center" sideOffset={4} className="w-72">
-                        {hoveredTick !== null && (
-                            <>
-                                <div className="px-2.5 pt-1.5 pb-2">
-                                    <div className="flex items-baseline justify-between gap-3 text-xs text-text-faint">
-                                        {hoveredTick.bookmark === null ? (
-                                            <span>{hoveredTick.kind === 'person' ? t('rows.user.heading') : t('scrubber.tasks')}</span>
-                                        ) : (
-                                            <span className="flex min-w-0 items-center gap-1 self-center text-text-muted">
-                                                <Icon icon={Bookmark} size={12} className="shrink-0 text-accent" />
-                                                <span className="truncate">{hoveredTick.bookmark.name ?? t('bookmarks.unnamed')}</span>
-                                            </span>
+                                        {slot.found && (
+                                            <span
+                                                aria-hidden
+                                                className={clsx(
+                                                    'absolute right-0 rounded-full bg-chat-find',
+                                                    index === currentSlot ? 'opacity-100' : 'opacity-50'
+                                                )}
+                                                style={{ top: slot.y - layout.top, height: TICK_HEIGHT_PX, width: FOUND_WIDTH_PX }}
+                                            />
                                         )}
-                                        <time className="tabular-nums">{timeOf(hoveredTick.createdAt)}</time>
+                                    </Fragment>
+                                );
+                            })}
+                        </PreviewCard.Trigger>
+                        <PreviewCard.Popup anchor={anchor} side="right" align="center" sideOffset={4} className="w-72">
+                            {hoveredTick !== null && (
+                                <>
+                                    <div className="px-2.5 pt-1.5 pb-2">
+                                        <div className="flex items-baseline justify-between gap-3 text-xs text-text-faint">
+                                            {hoveredTick.bookmark === null ? (
+                                                <span>{hoveredTick.kind === 'person' ? t('rows.user.heading') : t('scrubber.tasks')}</span>
+                                            ) : (
+                                                <span className="flex min-w-0 items-center gap-1 self-center text-text-muted">
+                                                    <Icon icon={Bookmark} size={12} className="shrink-0 text-accent" />
+                                                    <span className="truncate">{hoveredTick.bookmark.name ?? t('bookmarks.unnamed')}</span>
+                                                </span>
+                                            )}
+                                            <time className="tabular-nums">{timeOf(hoveredTick.createdAt)}</time>
+                                        </div>
+                                        <p className="mt-1 line-clamp-4 text-sm break-words whitespace-pre-line text-text">
+                                            {hoveredTick.text.slice(0, PREVIEW_CHARS) || t('pickers.stash.noText')}
+                                        </p>
                                     </div>
-                                    <p className="mt-1 line-clamp-4 text-sm break-words whitespace-pre-line text-text">
-                                        {hoveredTick.text.slice(0, PREVIEW_CHARS) || t('pickers.stash.noText')}
-                                    </p>
-                                </div>
-                                {actions.length > 0 && (
-                                    <>
-                                        <Menu.Separator />
-                                        {actions.map((action) => (
-                                            <button
-                                                key={action.label}
-                                                type="button"
-                                                className="menu-item w-full hover:bg-surface-hover"
-                                                onClick={() => action.run(hoveredTick, chat)}
-                                            >
-                                                <Icon icon={action.icon} size={14} /> {t(action.label)}
-                                            </button>
-                                        ))}
-                                    </>
-                                )}
-                            </>
-                        )}
-                    </PreviewCard.Popup>
-                </PreviewCard.Root>
-            </ContextMenu.Trigger>
-            <ContextMenu.Popup>
-                {menuTick !== null &&
-                    actionsFor(menuTick).map((action) => (
-                        <ContextMenu.Item key={action.label} onClick={() => action.run(menuTick, chat)}>
-                            <Icon icon={action.icon} size={14} /> {t(action.label)}
-                        </ContextMenu.Item>
-                    ))}
-                {menuTick !== null && actionsFor(menuTick).length > 0 && menuMarkable !== null && <ContextMenu.Separator />}
-                {chat !== null && menuIndex !== null && menuMarkable !== null && (
-                    <BookmarkMenuItems chatId={chat.chatId} itemId={menuMarkable} onName={() => onPick(menuIndex)} />
-                )}
-            </ContextMenu.Popup>
-        </ContextMenu.Root>
+                                    {actions.length > 0 && (
+                                        <>
+                                            <Menu.Separator />
+                                            {actions.map((action) => (
+                                                <button
+                                                    key={action.label}
+                                                    type="button"
+                                                    className="menu-item w-full hover:bg-surface-hover"
+                                                    onClick={() => action.run(hoveredTick, chat)}
+                                                >
+                                                    <Icon icon={action.icon} size={14} /> {t(action.label)}
+                                                </button>
+                                            ))}
+                                        </>
+                                    )}
+                                </>
+                            )}
+                        </PreviewCard.Popup>
+                    </PreviewCard.Root>
+                </ContextMenu.Trigger>
+                <ContextMenu.Popup>
+                    {menuTick !== null &&
+                        actionsFor(menuTick).map((action) => (
+                            <ContextMenu.Item key={action.label} onClick={() => action.run(menuTick, chat)}>
+                                <Icon icon={action.icon} size={14} /> {t(action.label)}
+                            </ContextMenu.Item>
+                        ))}
+                    {menuTick !== null && actionsFor(menuTick).length > 0 && menuMarkable !== null && <ContextMenu.Separator />}
+                    {chat !== null && menuIndex !== null && menuMarkable !== null && (
+                        <BookmarkMenuItems chatId={chat.chatId} itemId={menuMarkable} onName={() => onPick(menuIndex)} />
+                    )}
+                </ContextMenu.Popup>
+            </ContextMenu.Root>
+        </div>
     );
 });
