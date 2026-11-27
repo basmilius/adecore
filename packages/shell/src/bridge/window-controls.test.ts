@@ -12,4 +12,9 @@ describe('the room for the window controls from the platform alone', () => {
         expect(windowControlsOf('win32')).toEqual({ inset: null });
         expect(windowControlsOf('linux')).toEqual({ inset: null });
     });
+
+    test('clears them in fullscreen while they show over the page', () => {
+        expect(windowControlsOf('darwin', { fullscreen: true, revealed: true })).toEqual({ inset: 86 });
+        expect(windowControlsOf('darwin', { fullscreen: true, revealed: false })).toEqual({ inset: null });
+    });
 });

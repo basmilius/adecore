@@ -1,9 +1,19 @@
 import type { BrowserWindow, BrowserWindowConstructorOptions, NativeTheme } from 'electron';
 import type { ThemeState } from './bridge/theme.ts';
 import { TRAFFIC_LIGHTS, type WindowControlsState, windowControlsOf } from './bridge/window-controls.ts';
+import type { FullScreenTitlebar } from './fullscreen-titlebar.ts';
 
-/* A window as far as the room for its controls goes: whether it is fullscreen, and when that changes. */
-export type ControlsWindow = Pick<BrowserWindow, 'isFullScreen' | 'isDestroyed' | 'on' | 'off'>;
+/*
+ * A window as far as the room for its controls goes: whether it is fullscreen, and when that changes.
+ * With `fullScreenTitlebar` the theme also needs its native handle.
+ */
+export type ControlsWindow = Pick<BrowserWindow, 'isFullScreen' | 'isDestroyed' | 'on' | 'off'> & Partial<Pick<BrowserWindow, 'getNativeWindowHandle'>>;
+
+/* What `fullScreenTitlebar` last reported for a fullscreen window. */
+interface FullScreenLights {
+    revealed: boolean;
+    offset: number;
+}
 
 /* The native window controls a page leaves room for off macOS, with their colors per theme. */
 export interface TitleBarOverlay {
@@ -22,6 +32,11 @@ export interface ThemeOptions {
     nativeFrame?: boolean;
     /* Where macOS puts the traffic lights, inset into the page. */
     trafficLights?: { x: number; y: number };
+    /*
+     * On macOS, the module of `loadFullScreenTitlebar`. A fullscreen window then fades its traffic lights in over
+     * the page as the menu bar comes down, and `followWindowControls` reports the room for them only while they show.
+     */
+    fullScreenTitlebar?: FullScreenTitlebar | null;
     platform?: NodeJS.Platform;
 }
 
@@ -32,10 +47,41 @@ export interface ThemeOptions {
 export const createTheme = (options: ThemeOptions) => {
     const platform = options.platform ?? process.platform;
     const lights = options.trafficLights ?? TRAFFIC_LIGHTS;
+    const titlebar = platform === 'darwin' ? (options.fullScreenTitlebar ?? null) : null;
+    // The windows the module follows; outside fullscreen it reports nothing that changes their room.
+    const followed = new WeakMap<ControlsWindow, FullScreenLights>();
     let current: ThemeState | null = null;
 
-    const controlsOf = (window: ControlsWindow): WindowControlsState =>
-        windowControlsOf(platform, { fullscreen: window.isFullScreen(), trafficLights: lights });
+    const controlsOf = (window: ControlsWindow): WindowControlsState => {
+        const fullscreen = window.isFullScreen();
+        const lightsShown = followed.get(window);
+
+        if (!fullscreen || lightsShown === undefined) {
+            return windowControlsOf(platform, { fullscreen, trafficLights: lights });
+        }
+
+        return { ...windowControlsOf(platform, { fullscreen, revealed: lightsShown.revealed, trafficLights: lights }), offset: lightsShown.offset };
+    };
+
+    const follow = (window: ControlsWindow, send: (state: WindowControlsState) => void) => {
+        const handle = window.getNativeWindowHandle?.();
+
+        if (titlebar === null || handle === undefined) {
+            return;
+        }
+
+        const attached = titlebar.attach(handle, (revealed, offset) => {
+            followed.set(window, { revealed, offset });
+
+            if (!window.isDestroyed() && window.isFullScreen()) {
+                send(controlsOf(window));
+            }
+        });
+
+        if (attached) {
+            followed.set(window, { revealed: false, offset: 0 });
+        }
+    };
 
     // The colors a page reports win over the ones per theme. Only the two colors are taken from what crossed IPC.
     const overlayOf = (theme: Pick<ThemeState, 'resolved' | 'overlay'>) => {
@@ -84,7 +130,10 @@ export const createTheme = (options: ThemeOptions) => {
         /* The room a page keeps free for the controls of this window, which the app hands its page on a channel of its own. */
         windowControls: controlsOf,
 
-        /* Calls `send` each time the room changes, as the window goes in and out of fullscreen. Returns what stops it. */
+        /*
+         * Calls `send` each time the room changes: as the window goes in and out of fullscreen, and with
+         * `fullScreenTitlebar` as its lights fade in and out and the menu bar comes down. Returns what stops it.
+         */
         followWindowControls: (window: ControlsWindow, send: (state: WindowControlsState) => void): (() => void) => {
             const changed = () => {
                 if (!window.isDestroyed()) {
@@ -92,10 +141,19 @@ export const createTheme = (options: ThemeOptions) => {
                 }
             };
 
+            // The module follows the window until it closes, so its reports go nowhere once the app stopped.
+            let following = true;
+            follow(window, (state) => {
+                if (following) {
+                    send(state);
+                }
+            });
+
             window.on('enter-full-screen', changed);
             window.on('leave-full-screen', changed);
 
             return () => {
+                following = false;
                 window.off('enter-full-screen', changed);
                 window.off('leave-full-screen', changed);
             };

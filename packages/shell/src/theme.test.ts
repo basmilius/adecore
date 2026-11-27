@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import type { BrowserWindow } from 'electron';
+import type { FullScreenTitlebar } from './fullscreen-titlebar.ts';
 import { createTheme, type ControlsWindow } from './theme.ts';
 
 const fakeWindow = (destroyed = false) => {
@@ -185,6 +186,7 @@ describe('the room for the window controls', () => {
         const window = {
             isFullScreen: () => fullscreen,
             isDestroyed: () => false,
+            getNativeWindowHandle: () => Buffer.alloc(8),
             on: (event: string, listener: () => void) => void listeners.set(event, listener),
             off: (event: string) => void listeners.delete(event)
         } as unknown as ControlsWindow;
@@ -218,5 +220,65 @@ describe('the room for the window controls', () => {
 
         stop();
         expect(listeners.size).toBe(0);
+    });
+
+    const fakeTitlebar = (attaches = true) => {
+        let report: (revealed: boolean, offset: number) => void = () => undefined;
+
+        const titlebar: FullScreenTitlebar = {
+            attach: (_handle, next) => {
+                report = next;
+
+                return attaches;
+            }
+        };
+
+        return { titlebar, report: (revealed: boolean, offset: number) => report(revealed, offset) };
+    };
+
+    const themeWith = (platform: NodeJS.Platform, titlebar: FullScreenTitlebar) =>
+        createTheme({ nativeTheme: { themeSource: 'system' }, windows: () => [], background: '#131316', platform, fullScreenTitlebar: titlebar });
+
+    test('keeps the room in fullscreen only while the traffic lights show, with how far the menu bar pushes the top down', () => {
+        const { window, go } = controlsWindow();
+        const { titlebar, report } = fakeTitlebar();
+        const theme = themeWith('darwin', titlebar);
+        const sent: unknown[] = [];
+        theme.followWindowControls(window, (state) => sent.push(state));
+
+        go(true);
+        report(true, 0);
+        report(true, 30);
+        expect(theme.windowControls(window)).toEqual({ inset: 86, offset: 30 });
+        report(false, 0);
+        go(false);
+        expect(sent).toEqual([{ inset: null, offset: 0 }, { inset: 86, offset: 0 }, { inset: 86, offset: 30 }, { inset: null, offset: 0 }, { inset: 86 }]);
+    });
+
+    test('sends nothing the module reports outside fullscreen or after the app stopped following', () => {
+        const { window, go } = controlsWindow();
+        const { titlebar, report } = fakeTitlebar();
+        const sent: unknown[] = [];
+        const stop = themeWith('darwin', titlebar).followWindowControls(window, (state) => sent.push(state));
+
+        report(false, 0);
+        go(true);
+        stop();
+        report(true, 0);
+        expect(sent).toEqual([{ inset: null, offset: 0 }]);
+    });
+
+    test('hides the room in fullscreen as before where the module could not follow the window, or off macOS', () => {
+        const mac = controlsWindow();
+        const windows = controlsWindow();
+        const sent: unknown[] = [];
+        themeWith('darwin', fakeTitlebar(false).titlebar).followWindowControls(mac.window, (state) => sent.push(state));
+        const { titlebar, report } = fakeTitlebar();
+        themeWith('win32', titlebar).followWindowControls(windows.window, (state) => sent.push(state));
+
+        mac.go(true);
+        windows.go(true);
+        report(true, 30);
+        expect(sent).toEqual([{ inset: null }, { inset: null }]);
     });
 });

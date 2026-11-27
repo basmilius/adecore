@@ -17,6 +17,7 @@
   "sideEffects": false,
   "files": [
     "dist",
+    "native",
     "src",
     "!src/**/*.test.ts",
     "!src/**/__snapshots__"

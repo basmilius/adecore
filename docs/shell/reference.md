@@ -61,6 +61,7 @@ The `WindowState` it returns has `bounds(key, fallback?)`, `track(key, window)`,
 | `overlay` | `TitleBarOverlay`, optional | Off macOS, the height of the controls drawn over the page and their colors per theme. |
 | `nativeFrame` | `boolean`, optional | Off macOS, the system's own title bar instead. |
 | `trafficLights` | `{ x, y }`, optional | Where macOS puts the traffic lights. `{ x: 17, y: 17 }` by default. |
+| `fullScreenTitlebar` | `FullScreenTitlebar \| null`, optional | On macOS, the module of `loadFullScreenTitlebar`: traffic lights that fade in over the page in fullscreen. |
 | `platform` | `NodeJS.Platform`, optional | `process.platform` by default. |
 
 The `Theme` it returns has `apply(state)`, `current()`, `windowOptions()`, `windowControls(window)` and `followWindowControls(window, send)`, which take a `ControlsWindow`.

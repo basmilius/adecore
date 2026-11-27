@@ -43,12 +43,37 @@ A page that reaches the top of a macOS window keeps the start of its first colum
 
 `followWindowControls(window, send)` calls `send` with a new state each time the window goes in or out of fullscreen, and returns what stops it. The shell registers no channel, so the app sends the state on one of its own and answers a page that asks for it. On the page, [`WindowControlsSpacer`](/ui/layout/window-controls-spacer) draws the room.
 
-`windowControlsOf(platform, options)` (`@adecore/shell/bridge`) computes the same state without a window: `options` takes `fullscreen` and `trafficLights`, a `WindowControlsOptions`. A page starts from it with the platform its preload reports, so the first frame clears the traffic lights before the shell answers.
+`windowControlsOf(platform, options)` (`@adecore/shell/bridge`) computes the same state without a window: `options` takes `fullscreen`, `revealed` and `trafficLights`, a `WindowControlsOptions`. A page starts from it with the platform its preload reports, so the first frame clears the traffic lights before the shell answers.
 
 ```ts
 // `ipc` is the app's createAppIpc, which checks the sender first.
 ipc.handle('window:controls', (event) => theme.windowControls(ipc.senderWindow(event)!));
 theme.followWindowControls(window, (state) => window.webContents.send('window:controls', state));
 ```
+
+### Traffic lights in fullscreen
+
+Without a toolbar, a fullscreen macOS window slides a title bar strip with its title down over the page when the pointer reaches the menu bar. A native app with a toolbar shows only its traffic lights: they fade in over the page at the place they have outside fullscreen. A small native module gives an Electron window the same. Hand it to `createTheme` as `fullScreenTitlebar`, and `followWindowControls` follows each window it is given:
+
+- In fullscreen, `inset` is the room for the lights while they show and `null` while they are hidden. The lights fade in as the menu bar comes down, and the state changes as the fade-in starts. It changes back once they faded out, so the room stays until they are gone.
+- `offset` is how far the menu bar pushes the top of the window down. On a display without a notch the menu bar comes down over the page, and a page moves its top bar down with it, as a native toolbar does. The state comes once per frame while that happens. On a display with a notch it stays 0.
+- Clicks in the top of the page reach the page, except over the lights while they show.
+
+The module is Objective-C, shipped as source in the package's `native` folder, so the app compiles it in its own build with `buildFullScreenTitlebar({ outfile, arch })`, a `FullScreenTitlebarBuild`. That needs the Xcode command line tools and nothing else, and the module runs on macOS 14 and later. In the main process, `loadFullScreenTitlebar(path)` loads it. It returns `null` off macOS and when the file is missing, and the window then keeps macOS's own strip.
+
+```ts
+// In the app's build script, on macOS.
+buildFullScreenTitlebar({ outfile: 'dist/native/fullscreen-titlebar.node', arch: 'arm64' });
+
+// In the main process.
+const theme = createTheme({
+    nativeTheme,
+    windows: () => windows.all(),
+    background: '#131316',
+    fullScreenTitlebar: loadFullScreenTitlebar(join(process.resourcesPath, 'native', 'fullscreen-titlebar.node'))
+});
+```
+
+A native module cannot load from inside an asar archive, and a signed app signs the `.node` file like any other binary it ships.
 
 `current()` returns the last `ThemeState` applied, or `null` before the first. `createTheme` takes `ThemeOptions`, whose `overlay` is a `TitleBarOverlay`, and returns a `Theme`. The [reference](/shell/reference#themeoptions) lists the options.

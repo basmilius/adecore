@@ -3,6 +3,7 @@
 exports[`the public API . exports these names 1`] = `
 [
   "appWindowNavigation",
+  "buildFullScreenTitlebar",
   "createAppIpc",
   "createAppScheme",
   "createGestureGate",
@@ -18,6 +19,7 @@ exports[`the public API . exports these names 1`] = `
   "isAppUrl",
   "isExternalLink",
   "isWebLink",
+  "loadFullScreenTitlebar",
   "menuTemplateOf",
   "originOf",
   "segmentsOf",
@@ -27,6 +29,8 @@ exports[`the public API . exports these names 1`] = `
   "type AppSchemeOptions",
   "type AttachOptions",
   "type ControlsWindow",
+  "type FullScreenTitlebar",
+  "type FullScreenTitlebarBuild",
   "type GestureGate",
   "type MenuCommandOptions",
   "type MenuTemplateOptions",

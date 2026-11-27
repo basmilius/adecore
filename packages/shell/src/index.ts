@@ -12,6 +12,8 @@ export { appWindowNavigation, createGestureGate, isAppSender, isAppUrl, isExtern
 export type { GestureGate, NavigationVerdict, SenderFrame } from './web-guards.ts';
 export { createWindowState, fileStorage } from './window-state.ts';
 export type { SavedWindow, StateWindow, WindowDisplay, WindowSize, WindowState, WindowStateOptions, WindowStateStorage } from './window-state.ts';
+export { buildFullScreenTitlebar, loadFullScreenTitlebar } from './fullscreen-titlebar.ts';
+export type { FullScreenTitlebar, FullScreenTitlebarBuild } from './fullscreen-titlebar.ts';
 export { createTheme } from './theme.ts';
 export type { ControlsWindow, Theme, ThemeOptions, TitleBarOverlay } from './theme.ts';
 export { createWindows } from './windows.ts';
