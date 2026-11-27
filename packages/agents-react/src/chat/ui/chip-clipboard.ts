@@ -5,12 +5,12 @@ import { referenceTokens } from '../chat-references';
 import {
     clipboardChipsOf,
     hasClipboardChips,
+    namedChipParts,
     tokenizeChips,
     tokenizeNamedReferences,
     writeClipboardChips,
     type ChipSegment,
-    type ClipboardChips,
-    type NamedChipKind
+    type ClipboardChips
 } from '../mentions';
 import type { ReferenceLookup } from './reference-lookup';
 
@@ -56,11 +56,15 @@ function segmentOf(chip: Element): ChipSegment | null {
 
             return name === null || name === '' ? null : { kind: 'reference', id: value, name };
         }
-        case 'model':
-        case 'account': {
-            const slash = value.indexOf('/');
+        case 'model': {
+            const parts = namedChipParts(value);
 
-            return slash < 1 ? null : { kind: chip.getAttribute('data-chip') as NamedChipKind, cli: value.slice(0, slash), id: value.slice(slash + 1) };
+            return parts === null ? null : { kind: 'model', cli: parts.cli, id: parts.id, ...(parts.account === undefined ? {} : { account: parts.account }) };
+        }
+        case 'account': {
+            const parts = namedChipParts(value);
+
+            return parts === null ? null : { kind: 'account', cli: parts.cli, id: parts.id };
         }
         default:
             return null;

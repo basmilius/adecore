@@ -18,6 +18,8 @@ interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children
     sigil?: string;
     icon: ReactNode;
     label: string;
+    /* Muted words read before the label, such as the account a model runs on. A selection copies the sigil instead. */
+    prefix?: string;
     /* What a selection copies in place of a label that is not the text, such as a model's id under its name. */
     spelled?: string;
     tone: string;
@@ -29,7 +31,7 @@ interface TokenChipProps extends Omit<HTMLAttributes<HTMLSpanElement>, 'children
  * since a button is a box with a baseline of its own and would not sit on the line the others sit on.
  * It stays out of prose, whose margins on an image would lift a host's picture mark off the line.
  */
-export function TokenChip({ kind, value, sigil, icon, label, spelled, tone, onOpen, className, ...rest }: TokenChipProps) {
+export function TokenChip({ kind, value, sigil, icon, label, prefix, spelled, tone, onOpen, className, ...rest }: TokenChipProps) {
     const onKeyDown = (e: KeyboardEvent<HTMLSpanElement>): void => {
         if (onOpen !== undefined && (e.key === 'Enter' || e.key === ' ')) {
             e.preventDefault();
@@ -57,6 +59,7 @@ export function TokenChip({ kind, value, sigil, icon, label, spelled, tone, onOp
         >
             {icon}
             {sigil !== undefined && <span className="sr-only">{sigil}</span>}
+            {prefix !== undefined && <span className="text-text-muted select-none">{`${prefix} / `}</span>}
             {spelled === undefined ? (
                 label
             ) : (

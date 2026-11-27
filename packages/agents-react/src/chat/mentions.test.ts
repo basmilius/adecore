@@ -97,6 +97,19 @@ describe('namedChipRanges', () => {
         ]);
         expect(segments.map(chipText).join('')).toBe('@a.ts with @model:codex/gpt-5');
     });
+
+    test('reads a model on an account, and spells it the same way back', () => {
+        const text = 'run @model:claude:claude_work/claude-opus-5-5.';
+        const segments = tokenizeChips(text, []);
+
+        expect(namedChipRanges(text)).toEqual([{ from: 4, to: 45, kind: 'model', value: 'claude:claude_work/claude-opus-5-5' }]);
+        expect(segments[1]).toEqual({ kind: 'model', cli: 'claude', id: 'claude-opus-5-5', account: 'claude_work' });
+        expect(segments.map(chipText).join('')).toBe(text);
+    });
+
+    test('leaves an account on an account as text', () => {
+        expect(namedChipRanges('@account:claude:claude_work/claude_home')).toEqual([]);
+    });
 });
 
 describe('insertMention', () => {

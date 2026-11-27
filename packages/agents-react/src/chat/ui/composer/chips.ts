@@ -8,7 +8,7 @@ import { MarkGlyph } from '../../../agents/AgentIcon';
 import { CliMark } from '../../../agents/AgentModelLabel';
 import type { HostSkill, ReferenceIconProps } from '../../../host/host';
 import type { ReferableKind, ReferenceStep } from '../../../host/references';
-import { chipRanges, withNamedChips, type ReferenceToken } from '../../mentions';
+import { chipRanges, namedChipParts, withNamedChips, type ReferenceToken } from '../../mentions';
 import { CHIP_IN_EDITOR, MENTION_TONE, REFERENCE_TONE, SKILL_TONE, TOKEN_ICON_IN_EDITOR } from '../chips';
 import type { NamedChipLook, NamedChipLookup } from '../named-chip-look';
 import { referenceGlyph } from '../reference-icons';
@@ -103,7 +103,9 @@ class NamedChipWidget extends WidgetType {
     }
 
     override eq(other: NamedChipWidget): boolean {
-        return other.cli === this.cli && other.look.label === this.look.label && other.look.color === this.look.color;
+        return (
+            other.cli === this.cli && other.look.label === this.look.label && other.look.color === this.look.color && other.look.account === this.look.account
+        );
     }
 
     toDOM(): HTMLElement {
@@ -120,7 +122,17 @@ class NamedChipWidget extends WidgetType {
 
         root.render(createElement(CliMark, { kind: this.cli, size: 12 }));
         roots.set(chip, root);
-        chip.append(mark, this.look.label);
+        chip.append(mark);
+
+        if (this.look.account !== undefined) {
+            const account = document.createElement('span');
+
+            account.className = 'text-text-muted';
+            account.textContent = `${this.look.account} / `;
+            chip.append(account);
+        }
+
+        chip.append(this.look.label);
 
         return chip;
     }
@@ -184,10 +196,9 @@ function chipMarks(state: EditorState): ChipMarks {
     // `@a.ts` in backticks is code, not a mention.
     for (const range of withNamedChips(text, chipRanges(text, mentions, skills, code, references), code)) {
         if (range.kind === 'model' || range.kind === 'account') {
-            const slash = range.value.indexOf('/');
-            const cli = range.value.slice(0, slash);
-            const id = range.value.slice(slash + 1);
-            const look = named?.(range.kind, cli, id) ?? { label: id, color: undefined };
+            // A named range always holds a `<cli>/`, since the pattern that found it requires one.
+            const { cli, id, account } = namedChipParts(range.value)!;
+            const look = named?.(range.kind, cli, id, account) ?? { label: id, color: undefined, account };
             const atom = Decoration.replace({ widget: new NamedChipWidget(cli as AgentKind, look) }).range(range.from, range.to);
 
             marks.push(atom);

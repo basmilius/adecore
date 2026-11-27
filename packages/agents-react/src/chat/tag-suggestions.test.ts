@@ -82,10 +82,38 @@ describe('modelSuggestions', () => {
         expect(modelSuggestions([provider('codex', [blocked])], null, 'gpt', () => new Set(['gpt-9']))).toHaveLength(1);
     });
 
-    test('stops at five', () => {
-        const many = Array.from({ length: 7 }, (_, i) => model(`opus-${i}`, `Opus ${i}`));
+    test('stops at eight', () => {
+        const many = Array.from({ length: 10 }, (_, i) => model(`opus-${i}`, `Opus ${i}`));
 
-        expect(modelSuggestions([provider('claude', many)], null, 'op', none)).toHaveLength(5);
+        expect(modelSuggestions([provider('claude', many)], null, 'op', none)).toHaveLength(8);
+    });
+});
+
+describe('modelSuggestions on accounts', () => {
+    const opus = model('claude-opus-5-5', 'Opus 5.5');
+    const sonnet = model('claude-sonnet-5-5', 'Sonnet 5.5');
+    const providers = [provider('claude', [opus, sonnet])];
+    const accounts = accountsWith({ claude: 'ready', claude_work: 'ready' }, { claude_work: 'Work' });
+    const rows = (found: ReturnType<typeof modelSuggestions>): string[] => found.map((entry) => `${entry.accountName ?? '-'} / ${entry.id}`);
+
+    test('offers a row per ready account, the chat own account first', () => {
+        const found = modelSuggestions(providers, accounts, 'op', none, null, { provider: 'claude', account: 'claude_work' });
+
+        expect(rows(found)).toEqual(['Work / claude-opus-5-5', 'Claude Code / claude-opus-5-5']);
+        expect(found[0]).toMatchObject({ kind: 'model', cli: 'claude', account: 'claude_work' });
+    });
+
+    test('finds every model of an account by its name, and narrows with a slash', () => {
+        expect(rows(modelSuggestions(providers, accounts, 'wo', none))).toEqual(['Work / claude-opus-5-5', 'Work / claude-sonnet-5-5']);
+        expect(rows(modelSuggestions(providers, accounts, 'wo/so', none))).toEqual(['Work / claude-sonnet-5-5']);
+    });
+
+    test('keeps the model alone while fewer than two accounts are ready and offered', () => {
+        const signedOut = accountsWith({ claude: 'ready', claude_work: 'signed-out' }, { claude_work: 'Work' });
+
+        expect(rows(modelSuggestions(providers, signedOut, 'op', none))).toEqual(['- / claude-opus-5-5']);
+        expect(rows(modelSuggestions(providers, accounts, 'op', none, { claude: { off: ['claude_work'] } }))).toEqual(['- / claude-opus-5-5']);
+        expect(modelSuggestions(providers, signedOut, 'wo', none)).toEqual([]);
     });
 });
 

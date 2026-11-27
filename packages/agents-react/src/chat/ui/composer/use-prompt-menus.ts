@@ -227,7 +227,7 @@ export function usePromptMenus<D extends PromptDraft>({
     const skillMenuOpen = !commandMenuOpen && skillQuery !== null && skillMatches.length > 0;
     // Results belong to the query that asked for them; a closed picker shows none while the next answer is on its way.
     const files = mention === null || cwd === null ? [] : searched.files;
-    const modelMatches = mention === null ? [] : modelSuggestions(providers, accounts, mention.query, reportedOf);
+    const modelMatches = mention === null ? [] : modelSuggestions(providers, accounts, mention.query, reportedOf, accountRule, home);
     const accountMatches = mention === null ? [] : accountSuggestions(providers, accounts, accountRule, mention.query);
     const named: NamedPick[] = [...modelMatches, ...accountMatches];
     // Without files to search, `@` opens only once a model or an account matches.
@@ -299,7 +299,7 @@ export function usePromptMenus<D extends PromptDraft>({
             return;
         }
 
-        const result = insertToken(text, mention, '', namedChipToken(pick.kind, pick.cli, pick.id));
+        const result = insertToken(text, mention, '', namedChipToken(pick.kind, pick.cli, pick.id, pick.account));
         setText(result.text);
         setMention(null);
         moveCaret(result.caret);

@@ -89,7 +89,7 @@ function SkillMenu({ menus }: { menus: Menus }) {
 
 /* The CLI's mark of a model or account row, in the color of the account it runs on, as its chip wears it. */
 function NamedMark({ menus, pick }: { menus: Menus; pick: ModelSuggestion | AccountSuggestion }) {
-    const { color } = menus.namedLook(pick.kind, pick.cli, pick.id);
+    const { color } = menus.namedLook(pick.kind, pick.cli, pick.id, pick.account);
 
     return (
         <span className="flex shrink-0" style={color === undefined ? undefined : { color }}>
@@ -120,14 +120,17 @@ function MentionMenu({ menus, query }: { menus: Menus; query: string }) {
                             <Menu.Label id={modelsLabelId}>{t('composer.mentions.models')}</Menu.Label>
                             {modelMatches.map((match, index) => (
                                 <MenuOption
-                                    key={`${match.cli}/${match.id}`}
+                                    key={`${match.cli}:${match.account ?? ''}/${match.id}`}
                                     menus={menus}
                                     index={index}
                                     className="items-center"
                                     onPick={() => menus.chooseNamed(match)}
                                 >
                                     <NamedMark menus={menus} pick={match} />
-                                    <span className="truncate text-text">{match.model.name}</span>
+                                    <span className="truncate text-text">
+                                        {match.accountName !== undefined && <span className="text-text-muted">{`${match.accountName} / `}</span>}
+                                        {match.model.name}
+                                    </span>
                                     <ModelMarks model={match.model} />
                                 </MenuOption>
                             ))}

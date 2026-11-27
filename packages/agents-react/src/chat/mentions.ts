@@ -131,10 +131,14 @@ export type ChipSegment =
     | { kind: 'mention'; path: string }
     | { kind: 'skill'; name: string }
     | { kind: 'reference'; id: string; name: string }
-    | { kind: 'model'; cli: string; id: string }
+    | { kind: 'model'; cli: string; id: string; account?: string }
     | { kind: 'account'; cli: string; id: string };
 
-/* A model or a provider account, spelled in the text as `@model:<cli>/<id>` or `@account:<cli>/<id>`. */
+/*
+ * A model or a provider account, spelled in the text as `@model:<cli>/<id>` or `@account:<cli>/<id>`. A model
+ * on one account of its CLI is `@model:<cli>:<account>/<id>`; the account goes before the slash, since an id
+ * may hold slashes of its own.
+ */
 export type NamedChipKind = 'model' | 'account';
 
 function isBoundary(char: string | undefined): boolean {
@@ -235,6 +239,9 @@ export interface NamedPick {
     kind: NamedChipKind;
     cli: string;
     id: string;
+
+    /* The account a model runs on, when its CLI has a choice of them. */
+    account?: string;
 }
 
 type MentionPick = { kind: 'file'; path: string } | NamedPick;
@@ -316,8 +323,12 @@ export function chipText(segment: ChipSegment): string {
         return `#${segment.name}`;
     }
 
-    if (segment.kind === 'model' || segment.kind === 'account') {
-        return namedChipToken(segment.kind, segment.cli, segment.id);
+    if (segment.kind === 'model') {
+        return namedChipToken('model', segment.cli, segment.id, segment.account);
+    }
+
+    if (segment.kind === 'account') {
+        return namedChipToken('account', segment.cli, segment.id);
     }
 
     return segment.text;
@@ -342,23 +353,56 @@ export interface TextRange {
     to: number;
 }
 
-/* `value` is the path, the skill's name, a reference's id or a model's or account's `<cli>/<id>`; the range spans the name. */
+/* `value` is the path, the skill's name, a reference's id or a named chip's `namedChipValue`; the range spans the name. */
 interface ChipRange extends TextRange {
     kind: 'mention' | 'skill' | 'reference' | NamedChipKind;
     value: string;
 }
 
-export function namedChipToken(kind: NamedChipKind, cli: string, id: string): string {
-    return `@${kind}:${cli}/${id}`;
+/* The token without its `@<kind>:`: `<cli>/<id>`, or `<cli>:<account>/<id>` for a model on one account. */
+export function namedChipValue(cli: string, id: string, account?: string): string {
+    return `${namedChipHead(cli, account)}/${id}`;
 }
 
-/* The part of a named chip its CLI's mark stands in for: `@model:claude/`. */
-export function namedChipPrefix(kind: NamedChipKind, cli: string): string {
-    return `@${kind}:${cli}/`;
+export interface NamedChipParts {
+    cli: string;
+    id: string;
+    account: string | undefined;
 }
 
-// The id runs to whitespace or a backtick; a slash belongs to it (`openrouter/anthropic/claude`).
-const NAMED_CHIP = /@(model|account):([a-z0-9][a-z0-9-]*)\/([^\s`]+)/g;
+/* What a `namedChipValue` holds, or null for one without a CLI. */
+export function namedChipParts(value: string): NamedChipParts | null {
+    const slash = value.indexOf('/');
+
+    if (slash < 1) {
+        return null;
+    }
+
+    const head = value.slice(0, slash);
+    const colon = head.indexOf(':');
+
+    return {
+        cli: colon < 0 ? head : head.slice(0, colon),
+        id: value.slice(slash + 1),
+        account: colon < 0 ? undefined : head.slice(colon + 1)
+    };
+}
+
+function namedChipHead(cli: string, account: string | undefined): string {
+    return account === undefined ? cli : `${cli}:${account}`;
+}
+
+export function namedChipToken(kind: NamedChipKind, cli: string, id: string, account?: string): string {
+    return `@${kind}:${namedChipValue(cli, id, account)}`;
+}
+
+/* The part of a named chip its CLI's mark stands in for: `@model:claude/`, or `@model:claude:claude_work/`. */
+export function namedChipPrefix(kind: NamedChipKind, cli: string, account?: string): string {
+    return `@${kind}:${namedChipHead(cli, account)}/`;
+}
+
+// The id runs to whitespace or a backtick; a slash belongs to it (`openrouter/anthropic/claude`). The account is spelled as `ProviderAccountIdSchema` spells it.
+const NAMED_CHIP = /@(model|account):([a-z0-9][a-z0-9-]*)(?::([a-z][a-z0-9_-]{0,63}))?\/([^\s`]+)/g;
 
 // Punctuation after the id ends the sentence, except a `]` that closes a `[` in the id (`claude-opus-5-5[1m]`).
 function trimmedId(id: string): string {
@@ -381,14 +425,21 @@ export function namedChipRanges(text: string, excluded: readonly TextRange[] = [
 
     for (const found of text.matchAll(NAMED_CHIP)) {
         const from = found.index;
-        const id = trimmedId(found[3]!);
-        const to = from + found[0].length - (found[3]!.length - id.length);
+        const kind = found[1] as NamedChipKind;
+        const account = found[3];
+        const id = trimmedId(found[4]!);
+        const to = from + found[0].length - (found[4]!.length - id.length);
 
-        if (id === '' || (from > 0 && !REFERENCE_OPENER.test(text[from - 1]!)) || excluded.some((range) => from < range.to && to > range.from)) {
+        // An account runs on no other account.
+        if (id === '' || (kind === 'account' && account !== undefined)) {
             continue;
         }
 
-        ranges.push({ from, to, kind: found[1] as NamedChipKind, value: `${found[2]}/${id}` });
+        if ((from > 0 && !REFERENCE_OPENER.test(text[from - 1]!)) || excluded.some((range) => from < range.to && to > range.from)) {
+            continue;
+        }
+
+        ranges.push({ from, to, kind, value: namedChipValue(found[2]!, id, account) });
     }
 
     return ranges;
@@ -474,9 +525,9 @@ function segmentOf(text: string, range: ChipRange): ChipSegment {
     }
 
     if (range.kind === 'model' || range.kind === 'account') {
-        const slash = range.value.indexOf('/');
+        const { cli, id, account } = namedChipParts(range.value)!;
 
-        return { kind: range.kind, cli: range.value.slice(0, slash), id: range.value.slice(slash + 1) };
+        return range.kind === 'model' && account !== undefined ? { kind: 'model', cli, id, account } : { kind: range.kind, cli, id };
     }
 
     return { kind: 'reference', id: range.value, name: text.slice(range.from + 1, range.to) };

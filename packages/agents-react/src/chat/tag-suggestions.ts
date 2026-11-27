@@ -3,8 +3,9 @@ import { accountName, accountsOfKind, hasAccountChoice, projectOffered, type Acc
 import { modelRequirementOf } from '../agents/model-requirement';
 import type { AccountRule } from '../host/host';
 import type { NamedPick } from './mentions';
+import type { NamedChipHome } from './ui/named-chip-look';
 
-const MODEL_SUGGESTIONS = 5;
+const MODEL_SUGGESTIONS = 8;
 const ACCOUNT_SUGGESTIONS = 3;
 
 export interface ModelSuggestion extends NamedPick {
@@ -12,6 +13,9 @@ export interface ModelSuggestion extends NamedPick {
     cli: AgentKind;
     provider: ProviderInfo;
     model: ModelInfo;
+
+    /* The name of the account in `account`, which the row reads before the model's. */
+    accountName?: string;
 }
 
 export interface AccountSuggestion extends NamedPick {
@@ -56,28 +60,86 @@ export function signedIn(accounts: ProviderAccounts | null, kind: AgentKind): bo
     return entries.some((entry) => entry.account.enabled !== false && (entry.status === null || !UNUSABLE.has(entry.status.state)));
 }
 
+interface ModelAccount {
+    id: string;
+    name: string;
+}
+
+/*
+ * The accounts a CLI's models are offered on, the chat's own first: the ready ones the project offers. None
+ * while fewer than two are, so a CLI without a choice keeps rows of the model alone.
+ */
+function modelAccounts(provider: ProviderInfo, accounts: ProviderAccounts | null, rule: AccountRule | null, home: NamedChipHome | null): ModelAccount[] {
+    const entries = accountsOfKind(accounts, provider.kind);
+
+    if (!hasAccountChoice(entries)) {
+        return [];
+    }
+
+    const ready = projectOffered(entries, rule, provider.kind, undefined).filter((entry) => entry.account.enabled !== false && entry.status?.state === 'ready');
+
+    if (ready.length < 2) {
+        return [];
+    }
+
+    const first = home?.provider === provider.kind ? (home.account ?? provider.kind) : undefined;
+
+    return [...ready.filter((entry) => entry.id === first), ...ready.filter((entry) => entry.id !== first)].map((entry) => ({
+        id: entry.id,
+        name: accountName(entry, provider.name)
+    }));
+}
+
 /*
  * The models the `@` list offers for a query: of a CLI that is installed, chats and is signed in, and
- * that the CLI is new enough for. Legacy models last, at most `MODEL_SUGGESTIONS`. A bare `@` offers none.
+ * that the CLI is new enough for. A CLI with a choice of accounts offers a row per account, found by the
+ * account's name too, and `<account>/<model>` narrows to both. Legacy models last, at most
+ * `MODEL_SUGGESTIONS`. A bare `@` offers none.
  */
 export function modelSuggestions(
     providers: readonly ProviderInfo[],
     accounts: ProviderAccounts | null,
     query: string,
-    reportedOf: (kind: AgentKind) => ReadonlySet<string>
+    reportedOf: (kind: AgentKind) => ReadonlySet<string>,
+    rule: AccountRule | null = null,
+    home: NamedChipHome | null = null
 ): ModelSuggestion[] {
     if (query === '') {
         return [];
     }
 
-    const found = inPickerOrder(providers.filter((entry) => entry.installed && entry.capabilities.chat && signedIn(accounts, entry.kind))).flatMap((provider) =>
-        provider.models
-            .filter(
-                (model) =>
-                    (startsAWord(model.name, query) || startsAWord(model.slug, query)) &&
-                    modelRequirementOf(model, provider, reportedOf(provider.kind)) === null
-            )
-            .map((model): ModelSuggestion => ({ kind: 'model', cli: provider.kind, id: model.slug, provider, model }))
+    const slash = query.indexOf('/');
+    const modelMatches = (model: ModelInfo, words: string): boolean => startsAWord(model.name, words) || startsAWord(model.slug, words);
+
+    // A slash may belong to a model's id (`openrouter/anthropic/claude`), so the whole query still finds a model.
+    const accountMatches = (model: ModelInfo, account: ModelAccount): boolean => {
+        if (slash < 0) {
+            return startsAWord(account.name, query);
+        }
+
+        const rest = query.slice(slash + 1);
+
+        return startsAWord(account.name, query.slice(0, slash)) && (rest === '' || modelMatches(model, rest));
+    };
+
+    const found = inPickerOrder(providers.filter((entry) => entry.installed && entry.capabilities.chat && signedIn(accounts, entry.kind))).flatMap(
+        (provider) => {
+            const offered = modelAccounts(provider, accounts, rule, home);
+
+            return provider.models
+                .filter((model) => modelRequirementOf(model, provider, reportedOf(provider.kind)) === null)
+                .flatMap((model): ModelSuggestion[] => {
+                    const row: ModelSuggestion = { kind: 'model', cli: provider.kind, id: model.slug, provider, model };
+
+                    if (offered.length === 0) {
+                        return modelMatches(model, query) ? [row] : [];
+                    }
+
+                    return offered
+                        .filter((account) => modelMatches(model, query) || accountMatches(model, account))
+                        .map((account) => ({ ...row, account: account.id, accountName: account.name }));
+                });
+        }
     );
 
     return [...found.filter((entry) => !entry.model.legacy), ...found.filter((entry) => entry.model.legacy)].slice(0, MODEL_SUGGESTIONS);

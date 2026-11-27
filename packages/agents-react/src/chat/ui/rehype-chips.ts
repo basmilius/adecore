@@ -1,4 +1,4 @@
-import { chipText, tokenizeChips, tokenizeNamedReferences, type ChipSegment, type ReferenceToken } from '../mentions';
+import { chipText, namedChipValue, tokenizeChips, tokenizeNamedReferences, type ChipSegment, type ReferenceToken } from '../mentions';
 
 /* Just the part of hast this plugin touches; the package's own types are not a dependency here. */
 interface HastText {
@@ -36,8 +36,12 @@ function valueOf(segment: Exclude<ChipSegment, { kind: 'text' }>): string {
         return segment.path;
     }
 
-    if (segment.kind === 'model' || segment.kind === 'account') {
-        return `${segment.cli}/${segment.id}`;
+    if (segment.kind === 'model') {
+        return namedChipValue(segment.cli, segment.id, segment.account);
+    }
+
+    if (segment.kind === 'account') {
+        return namedChipValue(segment.cli, segment.id);
     }
 
     return segment.kind === 'skill' ? segment.name : segment.id;

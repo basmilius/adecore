@@ -33,6 +33,13 @@ describe('namedChipLookup', () => {
         expect(lookup('model', 'claude', 'claude-haiku-5-5').color).toBe('#0aa');
     });
 
+    test('names the account a model chip names, in that account color', () => {
+        const lookup = namedChipLookup(providers, accounts, accents, { provider: 'claude', account: undefined });
+
+        expect(lookup('model', 'claude', 'claude-haiku-5-5', 'claude_work')).toEqual({ label: 'Haiku 5.5', color: '#e46', account: 'Work' });
+        expect(lookup('model', 'claude', 'claude-haiku-5-5', 'claude').account).toBe('Claude Code');
+    });
+
     test('names an account by its label and paints it its own color', () => {
         expect(namedChipLookup(providers, accounts, accents, null)('account', 'claude', 'claude_work')).toEqual({ label: 'Work', color: '#e46' });
     });
