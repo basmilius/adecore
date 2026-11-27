@@ -48,6 +48,7 @@ import { thoughtLine, thoughtPreview } from '../../logic/thought';
 import { toolStartedAt, toolSummary, toolSummaryIsPath } from '../../logic/tools';
 import { presentReferences } from '../../mentions';
 import { splitQuote } from '../../quote';
+import { useStopTask } from '../../stop-task';
 import { jumpToTimelineItem } from '../../timeline-scroll';
 import { copySelectionWithChips } from '../chip-clipboard';
 import { REFERENCE_TONE, TOKEN_IN_MESSAGE } from '../chips';
@@ -654,18 +655,30 @@ const NOTE_ICON = {
     error: <Icon icon={CircleAlert} size={12} />
 };
 
+interface NoteRowProps {
+    id: string;
+    level: 'info' | 'warning' | 'error';
+    text: string;
+    from?: string;
+    said?: true;
+
+    /* The chat the note is in and the background task its message waits for, which the note offers to stop. */
+    chatId?: string;
+    stops?: string;
+}
+
 /*
  * A line from the machine in the thread. A note of more than one line (a summary a fork sent back)
  * shows its first line and folds the rest open as markdown; one that came from a fork leads to it.
  */
-export function NoteRow({ id, level, text, from, said }: { id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string; said?: true }) {
+export function NoteRow({ id, level, text, from, said, chatId, stops }: NoteRowProps) {
     const { saidBy } = useChatHost();
 
     if (said && saidBy !== undefined) {
         return <HostSaidRow id={id} text={text} author={saidBy} />;
     }
 
-    return <NoteLine id={id} level={level} text={text} from={from} />;
+    return <NoteLine id={id} level={level} text={text} from={from} chatId={chatId} stops={stops} />;
 }
 
 /* An item of a newer host this version cannot read: one muted line in its place, with nothing on it to act on. */
@@ -684,7 +697,7 @@ export function UnknownRow({ id, waits }: { id: string; waits: boolean }) {
     );
 }
 
-function NoteLine({ id, level, text, from }: { id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string }) {
+function NoteLine({ id, level, text, from, chatId, stops }: Omit<NoteRowProps, 'said'>) {
     const { t } = useTranslation('agent-chat');
     const [open, setOpen] = useState(false);
     const breakAt = text.indexOf('\n');
@@ -712,6 +725,7 @@ function NoteLine({ id, level, text, from }: { id: string; level: 'info' | 'warn
                         </button>
                     )}
                     {from !== undefined && <OpenChatButton chatId={from} label={id.startsWith(WAITING_NOTE_PREFIX) ? 'openWaiting' : 'openFork'} />}
+                    {chatId !== undefined && stops !== undefined && <StopTaskButton chatId={chatId} taskId={stops} />}
                 </div>
                 {open && rest !== '' && (
                     <div data-find-field="output" className="mt-1 text-text-muted select-text">
@@ -720,6 +734,23 @@ function NoteLine({ id, level, text, from }: { id: string; level: 'info' | 'warn
                 )}
             </div>
         </div>
+    );
+}
+
+/* Stop on a note about a message that waits for a background task, for as long as the chat runs that task. */
+function StopTaskButton({ chatId, taskId }: { chatId: string; taskId: string }) {
+    const { t } = useTranslation('agent-chat');
+    const stop = useStopTask(chatId);
+    const runs = useChatRow(chatId, (row) => row?.info.background?.some((task) => task.id === taskId) === true);
+
+    if (!runs) {
+        return null;
+    }
+
+    return (
+        <button className="text-text-muted hover:text-text" onClick={() => stop(taskId)}>
+            {t('activity.stop')}
+        </button>
     );
 }
 

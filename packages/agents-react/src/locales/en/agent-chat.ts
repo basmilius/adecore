@@ -440,7 +440,9 @@ export default {
             alreadySent: 'Already sent',
             editFailed: 'Could not edit message',
             sendNow: 'Send now',
-            paused: 'Queue paused. Send a message or choose Send now.'
+            paused: 'Queue paused. Send a message or choose Send now.',
+            heldBy: 'Waiting for {{command}} to end',
+            heldByWork: 'Waiting for work in the background to end'
         },
         quote: {
             add: 'Quote',
@@ -511,6 +513,8 @@ export default {
     waitingOn: {
         needsYou_one: 'A sub-agent needs you',
         needsYou_other: '{{count}} sub-agents need you',
+        queue: 'A message waits for {{command}}',
+        queueWork: 'A message waits for work in the background',
         paused: 'A sub-agent is paused',
         pausedUntil: 'A sub-agent is paused until {{time}}',
         command: '{{command}} · {{age}}',

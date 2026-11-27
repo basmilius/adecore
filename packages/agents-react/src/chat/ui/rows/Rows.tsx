@@ -112,7 +112,7 @@ export function Row({ row, chatId, toggleGroup, toggleTurn, toggleSubagent, open
         case 'question':
             return <QuestionHistoryRow item={row.item} />;
         case 'note':
-            return <NoteRow id={row.id} level={row.level} text={row.text} from={row.from} said={row.said} />;
+            return <NoteRow id={row.id} level={row.level} text={row.text} from={row.from} said={row.said} chatId={chatId} stops={row.stops} />;
         case 'message':
             return <SentMessageRow chatId={chatId} id={row.id} message={row.message} />;
         case 'sent':

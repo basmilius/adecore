@@ -40,6 +40,7 @@ import type { ChatTitleInput } from './chat-title.ts';
 import { limitedTurn, limitResumeAt, limitResumeWake } from './limit-resume.ts';
 import { LOST_CONVERSATION_WAIT, lostConversationHandoff, lostConversationNote, namesLostConversation } from './lost-conversation.ts';
 import { lostWorkNote, lostWorkNoteId, toldLost, type LostWork } from './lost-work.ts';
+import { messageWaitNote, shortLabel } from './message-wait.ts';
 import { isMainAgentOutput, ThreadProjector } from './projector.ts';
 import type { SubagentSettlement } from './subagent-settlement.ts';
 import { ChatThread } from './thread.ts';
@@ -576,7 +577,7 @@ export class ChatSession {
         const turnId = newId('turn');
 
         // Behind whatever still waits (a CLI that crashed leaves its queue), so everything goes out in the order it was sent.
-        if (this.busy || this.queue.length > 0 || this.replacementWaits() || this.relocating) {
+        if (this.busy || this.queue.length > 0 || this.holdsMessages() || this.relocating) {
             if (this.busy && this.info.queuePaused) {
                 this.sendAfterStop = true;
             }
@@ -767,7 +768,7 @@ export class ChatSession {
             !turnId ||
             !backend?.steerTurn ||
             this.pendingStart ||
-            this.replacementWaits()
+            this.holdsMessages()
         ) {
             return this.send(text, extras);
         }
@@ -906,11 +907,16 @@ export class ChatSession {
     }
 
     private setQueue(queue: ChatQueuedMessage[]): void {
-        this.emit([this.thread.patchInfo({ queue })]);
+        this.emit([this.thread.patchInfo({ queue, ...(queue.length === 0 ? { queueHeld: undefined } : {}) })]);
         this.options.persist();
     }
 
     private drainQueue(asked = false): void {
+        this.sendQueued(asked);
+        this.syncQueueHeld();
+    }
+
+    private sendQueued(asked: boolean): void {
         const [next, ...rest] = this.queue;
         const limited = limitedTurn(this.thread.list());
         const explicit = asked || this.sendAfterReplacement;
@@ -925,21 +931,24 @@ export class ChatSession {
             return;
         }
 
-        if (this.replacementWaits()) {
+        if (this.holdsMessages()) {
             this.sendAfterReplacement = explicit;
             const id = `settings-wait-${this.generation}`;
+            const known = this.thread.get(id);
+            const work = this.heldBy();
+            const text = this.conversationLost ? LOST_CONVERSATION_WAIT : messageWaitNote(work.until, this.pickedChanges());
 
-            if (!this.thread.get(id)) {
+            // Written again when other work or another change holds the message, so the note names what it waits for now.
+            if (known?.kind !== 'note' || known.text !== text || known.stops !== work.task) {
                 this.emit([
                     this.thread.upsert({
                         id,
                         kind: 'note',
-                        createdAt: Date.now(),
+                        createdAt: known?.createdAt ?? Date.now(),
                         turnId: null,
                         level: 'info',
-                        text: this.conversationLost
-                            ? LOST_CONVERSATION_WAIT
-                            : 'Your message is queued until the current work and open requests finish. The changes to this chat will apply then.'
+                        text,
+                        ...(work.task === undefined ? {} : { stops: work.task })
                     })
                 ]);
 
@@ -1014,7 +1023,7 @@ export class ChatSession {
             throw new ChatError('chat-unsupported', `${this.options.provider.name} cannot compact its context`);
         }
 
-        if (this.replacementWaits()) {
+        if (this.holdsMessages()) {
             throw new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply');
         }
 
@@ -1219,6 +1228,7 @@ export class ChatSession {
                 activeTurnId: null,
                 queue: [],
                 queuePaused: false,
+                queueHeld: undefined,
                 background: [],
                 delegating: undefined,
                 goal: undefined,
@@ -1448,7 +1458,7 @@ export class ChatSession {
         /* The host's instruction for this turn alone; a refused wake drops it, and a slash command carries it after the command. */
         brief?: string;
     }): string | null {
-        if (this.frozen || this.relocating || this.thread.info.activeTurnId !== null || this.replacementWaits()) {
+        if (this.frozen || this.relocating || this.thread.info.activeTurnId !== null || this.holdsMessages()) {
             return null;
         }
 
@@ -1734,7 +1744,7 @@ export class ChatSession {
         const backend = this.backend;
         const turnId = this.info.activeTurnId;
 
-        if (this.info.queuePaused || this.goalWorks() || !this.busy || !turnId || !backend?.steerTurn || this.pendingStart || this.replacementWaits()) {
+        if (this.info.queuePaused || this.goalWorks() || !this.busy || !turnId || !backend?.steerTurn || this.pendingStart || this.holdsMessages()) {
             return false;
         }
 
@@ -1837,7 +1847,7 @@ export class ChatSession {
                 permissionMode: undefined,
                 status: 'idle',
                 activeTurnId: null,
-                ...(this.queue.length > 0 ? { queue: [] } : {}),
+                ...(this.queue.length > 0 ? { queue: [], queueHeld: undefined } : {}),
                 ...(this.thread.info.background?.length ? { background: [] } : {})
             })
         );
@@ -1967,6 +1977,11 @@ export class ChatSession {
 
         if (this.thread.info.background?.length) {
             events.push(this.thread.patchInfo({ background: [] }));
+        }
+
+        // The process that held the queue went with the host.
+        if (this.thread.info.queueHeld !== undefined) {
+            events.push(this.thread.patchInfo({ queueHeld: undefined }));
         }
 
         if (events.length > 0) {
@@ -2581,16 +2596,41 @@ export class ChatSession {
     }
 
     private requiresReplacement(): boolean {
-        return (
-            this.backend !== null &&
-            (this.replaceProcess ||
-                JSON.stringify(this.info.selection) !== JSON.stringify(this.launchedSelection) ||
-                this.info.runtimeMode !== this.launchedRuntimeMode ||
-                this.info.account !== this.launchedAccount ||
-                this.info.cwd !== this.launchedCwd ||
-                !sameFolders(this.options.folders?.() ?? [], this.launchedFolders) ||
-                this.loadsProjectConfig() !== this.launchedProjectConfig)
-        );
+        return this.backend !== null && (this.changedByPick() || this.changedByHost());
+    }
+
+    /* A change the next answer has to run on: what a person picked, or a process that has to go. */
+    private changedByPick(): boolean {
+        return this.replaceProcess || this.pickedChanges().length > 0;
+    }
+
+    /* What a person picked since the launch, in the words a note names it by. */
+    private pickedChanges(): string[] {
+        const { selection, runtimeMode, account, cwd } = this.info;
+        const changes: string[] = [];
+
+        if (JSON.stringify(selection) !== JSON.stringify(this.launchedSelection)) {
+            changes.push(selection.model === this.launchedSelection?.model ? 'the model options' : 'the model');
+        }
+
+        if (runtimeMode !== this.launchedRuntimeMode) {
+            changes.push('the mode');
+        }
+
+        if (account !== this.launchedAccount) {
+            changes.push('the account');
+        }
+
+        if (cwd !== this.launchedCwd) {
+            changes.push('the working folder');
+        }
+
+        return changes;
+    }
+
+    /* A change in what the host hands the process, which nobody picked and the next answer can do without. */
+    private changedByHost(): boolean {
+        return !sameFolders(this.options.folders?.() ?? [], this.launchedFolders) || this.loadsProjectConfig() !== this.launchedProjectConfig;
     }
 
     private loadsProjectConfig(): boolean {
@@ -2618,6 +2658,56 @@ export class ChatSession {
 
     private replacementWaits(): boolean {
         return this.requiresReplacement() && !this.changesDuringGoal() && (this.info.activeTurnId !== null || this.processWorks());
+    }
+
+    /*
+     * Whether messages wait for the new process. A change of the host alone holds none: they go to the process
+     * there is, which is replaced once it is free.
+     */
+    private holdsMessages(): boolean {
+        return this.changedByPick() && this.replacementWaits();
+    }
+
+    /* The work a held message waits for, a command a person can stop first, and that command's task. */
+    private heldBy(): { until: string; task?: string } {
+        const command = (this.info.background ?? []).find((task) => scheduledWakeupAt(task) === null);
+
+        if (command !== undefined) {
+            return { until: `"${shortLabel(command)}" ends`, ...(this.backend?.stopTask ? { task: command.id } : {}) };
+        }
+
+        const work = runningInBackground(this.thread.list()).at(0);
+
+        if (work !== undefined) {
+            return { until: work.kind === 'subagent' ? 'the background agent is done' : 'the workflow is done' };
+        }
+
+        if (this.thread.pending().length > 0) {
+            return { until: 'the open request is answered' };
+        }
+
+        if (this.awaitingBackgroundReport) {
+            return { until: 'the agent has reported on its background work' };
+        }
+
+        return { until: this.goalWorks() ? 'the goal ends' : 'the current work ends' };
+    }
+
+    /* Says in the info that the queue waits for work of the process, so a client shows a chat that waits and not one at rest. */
+    private syncQueueHeld(): void {
+        // Asked after every event of the CLI, most of which find no queue.
+        if (this.queue.length === 0 && this.info.queueHeld === undefined) {
+            return;
+        }
+
+        const paused = this.info.queuePaused === true && !this.sendAfterReplacement;
+        const held = this.queue.length > 0 && this.info.activeTurnId === null && !paused && this.holdsMessages();
+        const task = held ? this.heldBy().task : undefined;
+        const next = held ? (task === undefined ? {} : { task }) : undefined;
+
+        if (JSON.stringify(next) !== JSON.stringify(this.info.queueHeld)) {
+            this.emit([this.thread.patchInfo({ queueHeld: next })]);
+        }
     }
 
     /* A goal goes on in turns the CLI opens itself on the settings it holds, so a change it takes in place cannot wait for the goal. */
@@ -2679,6 +2769,11 @@ export class ChatSession {
 
         if (this.backend && this.requiresReplacement()) {
             if (this.processWorks() && !this.changesDuringGoal()) {
+                // Only what the host hands over changed: the turn runs on the process there is, and the change waits for a free one.
+                if (!this.changedByPick()) {
+                    return this.starting ?? Promise.resolve(this.backend);
+                }
+
                 return Promise.reject(new ChatError('chat-busy', 'The current work and open requests must finish before the changes to this chat can apply'));
             }
 
@@ -3090,6 +3185,8 @@ export class ChatSession {
         ) {
             this.drainQueue();
         }
+
+        this.syncQueueHeld();
     }
 
     private pauseQueue(paused: boolean): void {
@@ -3097,6 +3194,8 @@ export class ChatSession {
             this.emit([this.thread.patchInfo({ queuePaused: paused })]);
             this.options.persist();
         }
+
+        this.syncQueueHeld();
     }
 
     private clearWorkflowWarnings(): void {

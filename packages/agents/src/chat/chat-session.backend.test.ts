@@ -122,7 +122,7 @@ function turnOf(items: readonly ChatItem[], id: string): Extract<ChatItem, { kin
 }
 
 describe('backend replacement with live work', () => {
-    for (const change of ['model', 'options', 'mode', 'account', 'folders', 'auth'] as const) {
+    for (const change of ['model', 'options', 'mode', 'account', 'auth'] as const) {
         test(`${change} waits for the child, its approval and Claude's final report`, async () => {
             const run = replacementRig();
             run.session.send('start research');
@@ -160,10 +160,6 @@ describe('backend replacement with live work', () => {
 
             if (change === 'account') {
                 run.session.setAccount('other');
-            }
-
-            if (change === 'folders') {
-                run.setFolders(['/extra']);
             }
 
             const queued = run.session.send('after research', { mentions: ['mention'], skills: ['skill'] });
@@ -205,10 +201,6 @@ describe('backend replacement with live work', () => {
 
             if (change === 'account') {
                 expect(current.launch.env.PROBE_ACCOUNT).toBe('other');
-            }
-
-            if (change === 'folders') {
-                expect(current.launch.folders).toEqual(['/extra']);
             }
 
             run.event({ type: 'exit', exitCode: 0 }, 0);

@@ -224,6 +224,8 @@ export function Composer({
     );
 
     const queue = info.queue ?? [];
+    const heldTask = info.queueHeld?.task;
+    const held = info.queueHeld === undefined ? undefined : { task: (info.background ?? []).find((task) => task.id === heldTask) ?? null };
     const empty = isEmptyDraft(draft);
 
     useEffect(() => {
@@ -315,6 +317,7 @@ export function Composer({
                                 chatId={chatId}
                                 queue={queue}
                                 paused={info.queuePaused === true}
+                                held={held}
                                 takingBack={takingBack !== null}
                                 onEdit={(message) => void takeBack(message)}
                             />

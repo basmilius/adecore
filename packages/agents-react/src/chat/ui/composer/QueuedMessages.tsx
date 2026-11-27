@@ -3,25 +3,45 @@ import { ButtonGroup, ContextMenu, copyText, Icon, IconButton } from '@adecore/u
 import { Clock, Copy, FastForward, Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChatActions } from '../../actions';
+import { backgroundTaskName, type ChatThreadBackgroundTask } from '../../activity';
+import { useStopTask } from '../../stop-task';
 import { scrollTimelineToEnd } from '../../timeline-scroll';
 
 interface QueuedMessagesProps {
     chatId: string;
     queue: readonly ChatQueuedMessage[];
     paused: boolean;
+
+    /* Set while the queue waits for work of the process to end, with the background task in its way when it is one. */
+    held?: { task: ChatThreadBackgroundTask | null };
+
     /* A message is on its way back into the draft, so no other can follow until it is there. */
     takingBack: boolean;
     onEdit(message: ChatQueuedMessage): void;
 }
 
 /* The messages waiting for the running turn to end, each with a way to send it now, edit it or drop it. */
-export function QueuedMessages({ chatId, queue, paused, takingBack, onEdit }: QueuedMessagesProps) {
+export function QueuedMessages({ chatId, queue, paused, held, takingBack, onEdit }: QueuedMessagesProps) {
     const { t } = useTranslation('agent-chat');
     const actions = useChatActions();
+    const stop = useStopTask(chatId);
+    const task = held?.task ?? null;
 
     return (
         <div className="flex flex-col gap-1 border-b border-border px-2 py-1.5">
             {paused && <p className="px-1.5 text-xs text-text-muted">{t('composer.queue.paused')}</p>}
+            {held !== undefined && !paused && (
+                <p className="flex items-center gap-2 px-1.5 text-xs text-text-muted">
+                    <span className="min-w-0 truncate">
+                        {task === null ? t('composer.queue.heldByWork') : t('composer.queue.heldBy', { command: backgroundTaskName(task) })}
+                    </span>
+                    {task !== null && (
+                        <button className="shrink-0 text-text-muted hover:text-text" onClick={() => stop(task.id)}>
+                            {t('activity.stop')}
+                        </button>
+                    )}
+                </p>
+            )}
             {queue.map((message) => {
                 const sendNow = (): void => {
                     scrollTimelineToEnd(chatId, 'instant');

@@ -781,3 +781,98 @@ test('what the agent heard in front of a prompt is a note the host said', async 
     ]);
     await run.session.dispose();
 });
+
+describe('a change to the chat while a background shell runs', () => {
+    const WAIT_NOTE = 'Your message waits until "gh run watch 42" ends, because the model changed.';
+
+    // One turn that left a shell running, on a process launched with the folders the host handed then.
+    async function withShell(folders: () => readonly string[] = () => []) {
+        const run = rig({ folders });
+        const stopped: string[] = [];
+        run.backend.stopTask = (taskId) => void stopped.push(taskId);
+        run.session.send('start');
+        await flush();
+        run.event({ type: 'background.started', taskId: 'watch', ref: null, monitor: false, description: 'gh run watch 42' });
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+
+        return { ...run, stopped };
+    }
+
+    function endShell(run: Awaited<ReturnType<typeof withShell>>): void {
+        run.event({ type: 'background.ended', taskId: 'watch' });
+        // Claude Code opens a turn of its own to say what came of the shell.
+        run.event({ type: 'text.done', ref: 'report', text: 'The run passed', parentRef: null });
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+    }
+
+    function waitNotes(run: Awaited<ReturnType<typeof withShell>>) {
+        return run.session.thread.list().filter((item) => item.kind === 'note' && item.id.startsWith('settings-wait-'));
+    }
+
+    test('of the folders alone sends a message at once, and the process is replaced after the shell ends', async () => {
+        let folders: readonly string[] = [];
+        const run = await withShell(() => folders);
+        folders = ['/visuals'];
+        expect(run.session.send('next').queued).toBe(false);
+        await flush();
+        expect(run.sent.map((input) => input.text)).toEqual(['start', 'next']);
+        expect(run.stops()).toBe(0);
+        expect(waitNotes(run)).toEqual([]);
+        expect(run.session.info.queueHeld).toBeUndefined();
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        endShell(run);
+        run.session.send('later');
+        await flush();
+        expect(run.stops()).toBe(1);
+        expect(run.launched()?.folders).toEqual(['/visuals']);
+        expect(run.sent.map((input) => input.text)).toEqual(['start', 'next', 'later']);
+        await run.session.dispose();
+    });
+
+    test('of the model holds the message, with a note that names the shell and offers to stop it', async () => {
+        const run = await withShell();
+        run.session.configure({ selection: { model: 'haiku', options: {} } });
+        expect(run.session.send('next').queued).toBe(true);
+        await flush();
+        expect(run.sent.map((input) => input.text)).toEqual(['start']);
+        expect(waitNotes(run)).toEqual([expect.objectContaining({ text: WAIT_NOTE, stops: 'watch' })]);
+        expect(run.session.info).toMatchObject({ status: 'idle', activeTurnId: null, queueHeld: { task: 'watch' } });
+        await run.session.stopTask('watch');
+        expect(run.stopped).toEqual(['watch']);
+        endShell(run);
+        await flush();
+        expect(run.stops()).toBe(1);
+        expect(run.launched()?.selection.model).toBe(run.session.info.selection.model);
+        expect(run.sent.map((input) => input.text)).toEqual(['start', 'next']);
+        expect(run.session.info.queueHeld).toBeUndefined();
+        await run.session.dispose();
+    });
+
+    test('says no longer that the queue waits once a person pauses or empties it', async () => {
+        const run = await withShell();
+        run.session.configure({ runtimeMode: 'auto' });
+        run.session.send('next');
+        expect(run.session.info.queueHeld).toEqual({ task: 'watch' });
+        run.session.cancel();
+        expect(run.session.info).toMatchObject({ queuePaused: true });
+        expect(run.session.info.queueHeld).toBeUndefined();
+        run.session.unqueue(run.session.info.queue![0]!.id);
+        expect(run.session.info.queueHeld).toBeUndefined();
+        await run.session.dispose();
+    });
+
+    test('lets compact through for the folders alone and refuses it for a pick of the person', async () => {
+        let folders: readonly string[] = [];
+        const run = await withShell(() => folders);
+        folders = ['/visuals'];
+        run.session.compact();
+        await flush();
+        expect(run.session.info.activeTurnId).not.toBeNull();
+        expect(run.stops()).toBe(0);
+        run.event({ type: 'turn.done', state: 'done', costUsd: 0 });
+        run.session.configure({ runtimeMode: 'auto' });
+        expect(() => run.session.compact()).toThrow(expect.objectContaining({ code: 'chat-busy' }));
+        expect(run.session.info.activeTurnId).toBeNull();
+        await run.session.dispose();
+    });
+});

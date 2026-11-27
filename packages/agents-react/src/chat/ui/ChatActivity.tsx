@@ -10,8 +10,8 @@ import { useChatHost } from '../../host/host';
 import { useHostTask, useHostTasks } from '../../host/host-hooks';
 import { useChatScope } from '../../scope';
 import { useChatRow, useChats } from '../../state/chats';
-import { useChatActions } from '../actions';
 import { backgroundCounts, backgroundTaskName, backgroundTaskTime, type ChatThreadBackgroundTask } from '../activity';
+import { useStopTask } from '../stop-task';
 import { badgeCountOf, entryTimeOf, flyoutSubagents, progressOf, statusWordOf, subagentTitle, summaryWordOf, taskRowStateOf } from '../subagent-list';
 import { useSubagentSupport } from '../subagent-support';
 import { canOpenSubagent, crumbOf, openFromMain, useSubagentTrail, type SubagentStep } from '../subagent-view';
@@ -258,17 +258,9 @@ function SubagentEntry({ chatId, item, now }: { chatId: string; item: ChatSubage
 
 /* Only drawn while the flyout is open, so the clock ticks for nobody otherwise. */
 function BackgroundTaskRows({ chatId, tasks }: { chatId: string; tasks: readonly ChatThreadBackgroundTask[] }) {
-    const host = useChatHost();
     const { t } = useTranslation('agent-chat');
     const now = useNow(1000);
-    const actions = useChatActions();
-
-    function stop(taskId: string): void {
-        void actions.stopTask(chatId, taskId).catch((e: unknown) => {
-            const description = e instanceof Error ? e.message : t('subagents.noAnswer');
-            host.notify({ kind: 'error', title: t('activity.stopFailed'), description });
-        });
-    }
+    const stop = useStopTask(chatId);
 
     return tasks.map((task) => (
         <ActivityRow

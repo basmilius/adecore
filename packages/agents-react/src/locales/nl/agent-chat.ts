@@ -440,7 +440,9 @@ export default {
             alreadySent: 'Al verstuurd',
             editFailed: 'Kon het bericht niet bewerken',
             sendNow: 'Nu versturen',
-            paused: 'Wachtrij gepauzeerd. Verstuur een bericht of kies Nu versturen.'
+            paused: 'Wachtrij gepauzeerd. Verstuur een bericht of kies Nu versturen.',
+            heldBy: 'Wacht tot {{command}} klaar is',
+            heldByWork: 'Wacht tot werk op de achtergrond klaar is'
         },
         quote: {
             add: 'Citeren',
@@ -511,6 +513,8 @@ export default {
     waitingOn: {
         needsYou_one: 'Een sub-agent vraagt aandacht',
         needsYou_other: '{{count}} sub-agents vragen aandacht',
+        queue: 'Een bericht wacht op {{command}}',
+        queueWork: 'Een bericht wacht op werk op de achtergrond',
         paused: 'Een sub-agent is gepauzeerd',
         pausedUntil: 'Een sub-agent is gepauzeerd tot {{time}}',
         command: '{{command}} · {{age}}',

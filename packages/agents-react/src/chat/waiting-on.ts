@@ -13,6 +13,8 @@ export interface WaitingChild {
 export interface WaitingOnInput {
     children?: readonly WaitingChild[];
     background?: readonly ChatThreadBackgroundTask[];
+    /* `ChatThreadInfo.queueHeld`: set while a message of the person waits for work of the process to end. */
+    queueHeld?: { task?: string };
     /* Background subagents and workflows of the CLI's own, counted where the thread is loaded. */
     subagents?: number;
     workflows?: number;
@@ -24,14 +26,15 @@ export interface WaitingOnInput {
 
 export type WaitingOn =
     | { kind: 'needs-you'; count: number }
+    | { kind: 'queue'; task: ChatThreadBackgroundTask | null }
     | { kind: 'paused'; until?: number }
     | { kind: 'command'; task: ChatThreadBackgroundTask }
     | { kind: 'background'; subagents: number; workflows: number }
     | { kind: 'plan'; text: string };
 
 /*
- * The one thing a chat waits on, most pressing first: a child that needs the person, a child paused
- * until a time, the oldest command or monitor in the background, background subagents and workflows,
+ * The one thing a chat waits on, most pressing first: a child that needs the person, the work a
+ * message of the person waits for, a child paused until a time, the oldest command or monitor in the background, background subagents and workflows,
  * and the plan's status line. Null when it waits on none of them.
  */
 export function waitingOnOf(input: WaitingOnInput): WaitingOn | null {
@@ -40,6 +43,12 @@ export function waitingOnOf(input: WaitingOnInput): WaitingOn | null {
 
     if (needsYou > 0) {
         return { kind: 'needs-you', count: needsYou };
+    }
+
+    if (input.queueHeld !== undefined) {
+        const holding = input.queueHeld.task;
+
+        return { kind: 'queue', task: (input.background ?? []).find((task) => task.id === holding) ?? null };
     }
 
     const paused = children.filter((entry) => entry.paused !== undefined);
@@ -78,6 +87,8 @@ export function waitingOnLabel(waiting: WaitingOn, now: number): string {
     switch (waiting.kind) {
         case 'needs-you':
             return t('waitingOn.needsYou', { count: waiting.count });
+        case 'queue':
+            return waiting.task === null ? t('waitingOn.queueWork') : t('waitingOn.queue', { command: backgroundTaskName(waiting.task) });
         case 'paused':
             return waiting.until === undefined ? t('waitingOn.paused') : t('waitingOn.pausedUntil', { time: formatMoment(waiting.until, now) });
         case 'command':

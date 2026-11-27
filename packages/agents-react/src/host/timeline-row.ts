@@ -58,7 +58,7 @@ export type TimelineRow =
     | ({ kind: 'subagent' } & SubagentBranch)
     | { kind: 'approval'; id: string; item: ChatApprovalItem }
     | { kind: 'question'; id: string; item: ChatQuestionItem }
-    | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string; said?: true }
+    | { kind: 'note'; id: string; level: 'info' | 'warning' | 'error'; text: string; from?: string; said?: true; stops?: string }
     // A message another node sent the chat, drawn as said to it under the name of its sender.
     | { kind: 'message'; id: string; message: ChatNoteMessage; createdAt: number }
     // A message this chat's agent sent another node with a command of a look, drawn as said instead of as its call.

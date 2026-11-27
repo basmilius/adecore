@@ -311,6 +311,8 @@ export const ChatInfoSchema = z.object({
     // Messages typed while a turn ran, in the order they go out once it settles.
     queue: z.array(ChatQueuedMessageSchema).optional(),
     queuePaused: z.boolean().optional(),
+    // Set while the queue waits for work of the process to end before a change to the chat applies; `task` is the background task in its way, when it is one.
+    queueHeld: z.object({ task: z.string().min(1).optional() }).optional(),
     background: z.array(ChatBackgroundTaskSchema).optional(),
     // Whether a subagent or workflow of the CLI's own still runs in the background; absent reads as none.
     delegating: z.boolean().optional(),
@@ -827,7 +829,9 @@ export const ChatNoteItemSchema = z.object({
     // A message another node sent, which a client draws as said to this chat; `text` holds it as a line for one that does not know this.
     message: ChatNoteMessageSchema.optional(),
     // What the host told the agent in front of a prompt, which a client draws as said by the host.
-    said: z.literal(true).optional()
+    said: z.literal(true).optional(),
+    // The background task a message waits for, which a client offers to stop while the chat still runs it.
+    stops: z.string().min(1).optional()
 });
 
 export const ChatCompactionItemSchema = z.object({

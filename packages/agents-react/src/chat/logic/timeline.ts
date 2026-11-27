@@ -430,7 +430,8 @@ function rowsForItems(items: ChatThreadItem[], options: TimelineOptions, childre
                         level: item.level,
                         text: item.text,
                         ...(item.from === undefined ? {} : { from: item.from }),
-                        ...(item.said === undefined ? {} : { said: item.said })
+                        ...(item.said === undefined ? {} : { said: item.said }),
+                        ...(item.stops === undefined ? {} : { stops: item.stops })
                     });
                 }
 

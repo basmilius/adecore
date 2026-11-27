@@ -20,6 +20,7 @@ The fields a client reads most:
 | `status`                                | `running`, `needs-you`, `idle`, `error` or `exited`.                                                     |
 | `running`, `activeTurnId`               | Whether the CLI process is alive, and the turn in flight. A live process can be idle between turns.      |
 | `queue`, `queuePaused`                  | Messages sent during a turn, in send order, each a `ChatQueuedMessage`.                                  |
+| `queueHeld`                             | Set while the queue waits for work of the process to end before a change to the chat applies. Its `task` is the background task in the way, when it is one. |
 | `background`, `delegating`              | Shell commands and monitors the CLI keeps running, each a `ChatBackgroundTask` (`ChatBackgroundTaskSchema`), and whether its own subagent still works. |
 | `requests`                              | The approvals and questions waiting on a person, oldest first, at most `CHAT_REQUEST_LIMITS.perChat`.    |
 | `usage`                                 | `ChatUsage` (`ChatUsageSchema`): context tokens, context window, cost, turns and an estimated context `breakdown`. `cacheTtlMs` and `cacheExpiresAt` give the prompt cache lifetime when the CLI reports it. `contextPending` is set after a compaction whose CLI named no size: the context tokens read 0 until the next count. |
@@ -61,6 +62,7 @@ The parts of an item have their own types:
 - An approval's `decision` is a `ChatApprovalDecision` (`ChatApprovalDecisionSchema`): `pending`, `allow`, `allow-always`, `deny` or `cancelled`.
 - A question item holds `ChatQuestion`s (`ChatQuestionSchema`): an `id`, a `header`, the `question`, its `choices` and whether more than one may be picked.
 - A turn's `limit` is a `ChatTurnLimit` (`ChatTurnLimitSchema`), see [Limits](#limits).
+- A note about a message that waits may name in `stops` the background task it waits for. Offer to stop it (`chat.stopTask`) while `background` still lists that task.
 - A note may carry the `message` another chat sent this one, a `ChatNoteMessage` (`ChatNoteMessageSchema`) with who sent it, their title and the text.
 
 `toolFileEdit(name, input)` reads the file an `Edit`, `Write` or `MultiEdit` call changes from its `input`, as a `ToolFileEdit`: the `path`, whether the call is a `write` of the whole file, and its `pieces` (`ToolFileEditPiece`, `{ before, after }`, one per edit). It returns `null` for any other tool, for a call without a `file_path` and for a `MultiEdit` without an `edits` list. It does not read the diffs a provider reports in `changes`. The thread's diffs, the summary of an approval and a host that tracks who wrote which line all read their edits through it, and `@adecore/agents/chat` re-exports it.

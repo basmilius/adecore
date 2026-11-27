@@ -34,6 +34,14 @@ describe('what a chat waits on', () => {
         ).toBe('2 sub-agents need you');
     });
 
+    test('then the work a message of the person waits for, by the task that holds it', () => {
+        const children = [{ paused: {} }];
+
+        expect(line({ ...everything, children, queueHeld: { task: 'late' } })).toBe('A message waits for run late');
+        expect(line({ ...everything, children, queueHeld: { task: 'gone' } })).toBe('A message waits for work in the background');
+        expect(line({ queueHeld: {} })).toBe('A message waits for work in the background');
+    });
+
     test('then a paused child, until the earliest time any of them names', () => {
         const children = [{ paused: { until: NOW + 2 * 60 * 60_000 } }, { paused: {} }, { paused: { until: NOW + 60 * 60_000 } }];
 
